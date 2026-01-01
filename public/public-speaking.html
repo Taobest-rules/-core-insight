@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Public Speaking & Presentation | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to public speaking skills, presentation techniques, overcoming stage fright, and delivering powerful presentations.">
+    <meta name="keywords" content="public speaking, presentation skills, communication, speech delivery, storytelling, stage fright, presentation design">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #8E2DE2, #4A00E0);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(142, 45, 226, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #FF512F, #F09819);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #FF512F;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #FF512F, #F09819);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #FF512F;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #FF512F;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #F09819;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(240, 152, 25, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(74, 0, 224, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #FF512F;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #F09819;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: rgba(74, 0, 224, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .research-item h4 {
+            color: #FF512F;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: rgba(74, 0, 224, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FF512F;
+        }
+        
+        .tip-box h4 {
+            color: #FF512F;
+            margin-bottom: 10px;
+        }
+        
+        /* Fear Scale Visual */
+        .fear-scale {
+            background: rgba(74, 0, 224, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .fear-scale h4 {
+            color: #FF512F;
+            margin-bottom: 20px;
+        }
+        
+        .scale-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            height: 30px;
+            background: linear-gradient(to right, #4CAF50, #FFC107, #FF5252);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .scale-marker {
+            position: absolute;
+            top: -10px;
+            width: 2px;
+            height: 50px;
+            background: white;
+        }
+        
+        .scale-label {
+            position: absolute;
+            top: 40px;
+            transform: translateX(-50%);
+            font-size: 12px;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(142, 45, 226, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #FF512F;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #F09819;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                   <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Public Speaking & <span>Presentation</span></h1>
+            <p>Master the art of powerful communication, compelling storytelling, and confident delivery to captivate any audience.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="business.html">Business</a> / Public Speaking & Presentation
+        </div>
+
+        <!-- Public Speaking Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-microphone"></i> Mastering Public Speaking & Presentation</h2>
+                <p>Public speaking is the process of communicating information to an audience. It involves not just what you say, but how you say it—encompassing verbal communication, nonverbal cues, and visual elements. Effective presentation skills are essential for leadership, influence, and career advancement across all fields.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Speech Preparation & Structure</h3>
+                <p>The foundation of effective public speaking begins with thorough preparation and clear organization.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-pencil-alt"></i> Speech Development</h4>
+                        <p>Process for creating compelling and organized presentations:</p>
+                        <ul>
+                            <li><strong>Audience Analysis:</strong> Understanding who you're speaking to</li>
+                            <li><strong>Purpose Definition:</strong> Clear objective for your presentation</li>
+                            <li><strong>Research & Content Gathering:</strong> Collecting relevant information</li>
+                            <li><strong>Thesis Statement:</strong> Core message of your presentation</li>
+                            <li><strong>Outline Creation:</strong> Organizing content logically</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sitemap"></i> Speech Structures</h4>
+                        <p>Effective organizational patterns for different presentation types:</p>
+                        <ul>
+                            <li><strong>Problem-Solution:</strong> Present issue then proposed solution</li>
+                            <li><strong>Chronological:</strong> Time-based organization of information</li>
+                            <li><strong>Spatial/Topical:</strong> Organization by location or categories</li>
+                            <li><strong>Cause-Effect:</strong> Explain causes then demonstrate effects</li>
+                            <li><strong>Monroe's Motivated Sequence:</strong> Attention, need, satisfaction, visualization, action</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Delivery Techniques & Vocal Skills</h3>
+                <p>How you deliver your message is as important as the message itself.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-volume-up"></i> Vocal Variety</h4>
+                        <p>Using your voice effectively to engage and persuade:</p>
+                        <ul>
+                            <li><strong>Pitch:</strong> Variation in vocal highness and lowness</li>
+                            <li><strong>Pace:</strong> Speed of delivery for emphasis and clarity</li>
+                            <li><strong>Pause:</strong> Strategic silence for emphasis and reflection</li>
+                            <li><strong>Volume:</strong> Loudness adjustments for emphasis and intimacy</li>
+                            <li><strong>Articulation:</strong> Clear pronunciation and diction</li>
+                            <li><strong>Tone:</strong> Emotional quality conveyed through voice</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hands"></i> Body Language</h4>
+                        <p>Nonverbal communication that reinforces your message:</p>
+                        <ul>
+                            <li><strong>Posture:</strong> Confident, open stance that commands attention</li>
+                            <li><strong>Gestures:</strong> Purposeful hand movements that emphasize points</li>
+                            <li><strong>Eye Contact:</strong> Connecting with individuals throughout the audience</li>
+                            <li><strong>Facial Expressions:</strong> Conveying emotion and enthusiasm</li>
+                            <li><strong>Movement:</strong> Purposeful use of stage space</li>
+                            <li><strong>Appearance:</strong> Dress and grooming appropriate to occasion</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-delivery-fast"></i> Delivery Methods</h4>
+                        <p>Different approaches to presenting your material:</p>
+                        <ul>
+                            <li><strong>Manuscript Speaking:</strong> Reading from a prepared text</li>
+                            <li><strong>Memorized Speaking:</strong> Delivering from memory</li>
+                            <li><strong>Impromptu Speaking:</strong> Speaking without preparation</li>
+                            <li><strong>Extemporaneous Speaking:</strong> Prepared but delivered conversationally</li>
+                            <li><strong>Interactive Presentation:</strong> Engaging audience throughout</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Presentation Design & Visual Aids</h3>
+                <p>Creating effective visual support that enhances rather than distracts from your message.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-desktop"></i> Slide Design Principles</h4>
+                        <p>Best practices for creating effective presentation visuals:</p>
+                        <ul>
+                            <li><strong>Simplicity:</strong> One main idea per slide</li>
+                            <li><strong>Visual Hierarchy:</strong> Clear organization of information</li>
+                            <li><strong>Consistency:</strong> Uniform fonts, colors, and styles</li>
+                            <li><strong>Contrast:</strong> Sufficient difference between elements</li>
+                            <li><strong>White Space:</strong> Adequate breathing room around elements</li>
+                            <li><strong>Visuals Over Text:</strong> Using images to convey ideas</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-images"></i> Effective Visual Aids</h4>
+                        <p>Types of visual support and when to use them:</p>
+                        <ul>
+                            <li><strong>Slides (PowerPoint, Keynote):</strong> For most business presentations</li>
+                            <li><strong>Props & Physical Objects:</strong> For demonstrations and tangible examples</li>
+                            <li><strong>Whiteboards & Flipcharts:</strong> For interactive sessions</li>
+                            <li><strong>Videos & Multimedia:</strong> For emotional impact and demonstrations</li>
+                            <li><strong>Handouts:</strong> For detailed information and references</li>
+                            <li><strong>Live Demos:</strong> For product presentations</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-chart-line"></i> Data Visualization</h4>
+                        <p>Presenting numbers and statistics effectively:</p>
+                        <ul>
+                            <li>Choosing the right chart type for your data</li>
+                            <li>Simplifying complex information</li>
+                            <li>Highlighting key insights and trends</li>
+                            <li>Using color strategically to direct attention</li>
+                            <li>Providing context for numbers</li>
+                            <li>Avoiding chart junk and unnecessary elements</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Storytelling & Audience Engagement</h3>
+                <p>Techniques for creating memorable messages and connecting with your audience.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-book-open"></i> Narrative Techniques</h4>
+                        <p>Using storytelling to make your message memorable:</p>
+                        <ul>
+                            <li><strong>Hero's Journey:</strong> Classic story structure for transformation</li>
+                            <li><strong>Case Studies:</strong> Real-world examples and applications</li>
+                            <li><strong>Personal Anecdotes:</strong> Sharing relevant personal experiences</li>
+                            <li><strong>Metaphors & Analogies:</strong> Making complex ideas relatable</li>
+                            <li><strong>Three-Act Structure:</strong> Setup, confrontation, resolution</li>
+                            <li><strong>Emotional Arc:</strong> Creating emotional journey for audience</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-users"></i> Audience Engagement</h4>
+                        <p>Techniques for involving your audience actively:</p>
+                        <ul>
+                            <li><strong>Rhetorical Questions:</strong> Prompting audience reflection</li>
+                            <li><strong>Polls & Surveys:</strong> Gathering audience input in real-time</li>
+                            <li><strong>Q&A Sessions:</strong> Addressing audience questions directly</li>
+                            <li><strong>Interactive Activities:</strong> Exercises that involve participation</li>
+                            <li><strong>Humor:</strong> Appropriate jokes and lighthearted moments</li>
+                            <li><strong>Audience Examples:</strong> Incorporating audience experiences</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Managing Speaking Anxiety</h3>
+                <p>Understanding and overcoming the fear of public speaking.</p>
+                
+                <div class="fear-scale">
+                    <h4>Understanding Speaking Anxiety</h4>
+                    <p>Public speaking anxiety exists on a spectrum from mild nervousness to severe glossophobia</p>
+                    <div class="scale-container">
+                        <div class="scale-marker" style="left: 10%;"></div>
+                        <div class="scale-marker" style="left: 30%;"></div>
+                        <div class="scale-marker" style="left: 50%;"></div>
+                        <div class="scale-marker" style="left: 70%;"></div>
+                        <div class="scale-marker" style="left: 90%;"></div>
+                    </div>
+                    <div style="position: relative;">
+                        <div class="scale-label" style="left: 10%;">Mild Nerves</div>
+                        <div class="scale-label" style="left: 30%;">Moderate Anxiety</div>
+                        <div class="scale-label" style="left: 50%;">Significant Fear</div>
+                        <div class="scale-label" style="left: 70%;">High Anxiety</div>
+                        <div class="scale-label" style="left: 90%;">Severe Phobia</div>
+                    </div>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-heartbeat"></i> Physiological Strategies</h4>
+                        <p>Managing the physical symptoms of speaking anxiety:</p>
+                        <ul>
+                            <li>Deep breathing exercises (4-7-8 technique)</li>
+                            <li>Progressive muscle relaxation</li>
+                            <li>Grounding techniques (5-4-3-2-1 method)</li>
+                            <li>Physical exercise before speaking</li>
+                            <li>Proper hydration and nutrition</li>
+                            <li>Adequate rest and sleep</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Cognitive Techniques</h4>
+                        <p>Changing thought patterns that contribute to anxiety:</p>
+                        <ul>
+                            <li>Cognitive restructuring (changing negative thoughts)</li>
+                            <li>Visualization and mental rehearsal</li>
+                            <li>Focus on message rather than self</li>
+                            <li>Reframing nervous energy as excitement</li>
+                            <li>Setting realistic expectations</li>
+                            <li>Developing a growth mindset about speaking</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tasks"></i> Practical Preparation</h4>
+                        <p>Preparation strategies that reduce anxiety:</p>
+                        <ul>
+                            <li>Thorough knowledge of material</li>
+                            <li>Multiple practice sessions</li>
+                            <li>Familiarity with venue and equipment</li>
+                            <li>Backup plans for technical issues</li>
+                            <li>Arriving early to acclimatize</li>
+                            <li>Having water and notes accessible</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Public Speaking Research</h3>
+                <p>Evidence-based insights from communication studies and psychology research.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-chart-line"></i> Presentation Effectiveness Studies</h4>
+                    <p>Key findings about what makes presentations successful:</p>
+                    <ul>
+                        <li>Audiences remember stories 22x more than facts alone</li>
+                        <li>Presentations with visuals are 43% more persuasive than those without</li>
+                        <li>Speakers who make eye contact are judged as more believable and confident</li>
+                        <li>The average attention span for presentations is 10-18 minutes before needing a break</li>
+                        <li>People process visual information 60,000x faster than text</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-flask"></i> Anxiety Research</h4>
+                    <p>Studies on public speaking fear and management techniques:</p>
+                    <ul>
+                        <li>75% of people experience some degree of anxiety about public speaking</li>
+                        <li>Virtual reality exposure therapy reduces public speaking anxiety by 40%</li>
+                        <li>Practice in front of small groups reduces anxiety more than solo practice</li>
+                        <li>Power posing for 2 minutes can reduce cortisol (stress hormone) by 25%</li>
+                        <li>Audiences typically can't detect the level of nervousness speakers feel</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-memory"></i> Memory & Retention Studies</h4>
+                    <p>Research on how audiences remember presentation content:</p>
+                    <ul>
+                        <li>People remember 10% of what they hear, 20% of what they see, and 65% of what they hear and see</li>
+                        <li>Information presented at the beginning and end is remembered best (primacy and recency effects)</li>
+                        <li>Emotional content is remembered longer and more vividly than neutral content</li>
+                        <li>Audiences retain 40% more information when humor is appropriately used</li>
+                        <li>Interactive presentations increase retention by 25-50% compared to passive listening</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Special Presentation Contexts</h3>
+                <p>Adapting your speaking approach for different settings and purposes.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-video"></i> Virtual Presentations</h4>
+                        <p>Effective techniques for online speaking engagements:</p>
+                        <ul>
+                            <li>Optimizing lighting and camera positioning</li>
+                            <li>Managing technology and backup options</li>
+                            <li>Engaging remote audiences intentionally</li>
+                            <li>Adjusting pace for virtual delivery</li>
+                            <li>Using virtual backgrounds appropriately</li>
+                            <li>Managing chat and Q&A in digital formats</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-briefcase"></i> Business Presentations</h4>
+                        <p>Specific considerations for professional settings:</p>
+                        <ul>
+                            <li>Executive summaries and bottom-line up front</li>
+                            <li>Data-driven arguments and business cases</li>
+                            <li>Stakeholder-specific messaging</li>
+                            <li>Professional slide design standards</li>
+                            <li>Time management and respect for schedules</li>
+                            <li>Follow-up materials and action items</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Educational Presentations</h4>
+                        <p>Effective teaching and instructional speaking:</p>
+                        <ul>
+                            <li>Learning objective alignment</li>
+                            <li>Scaffolding complex information</li>
+                            <li>Checking for understanding</li>
+                            <li>Incorporating multiple learning styles</li>
+                            <li>Creating interactive learning experiences</li>
+                            <li>Assessment and feedback integration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Essential Public Speaking Tips</h3>
+                <p>Proven strategies and techniques from master speakers and communication experts.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4>Know Your Audience</h4>
+                        <p>Research your audience's needs, interests, and knowledge level. Tailor your message specifically for them.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Practice, But Don't Memorize</h4>
+                        <p>Rehearse enough to be comfortable with your material, but avoid sounding scripted or robotic.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Start Strong</h4>
+                        <p>Capture attention in the first 30 seconds with a compelling opening—story, question, or surprising statistic.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Focus on Breathing</h4>
+                        <p>Use deep belly breathing to manage nerves and support your vocal delivery.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Embrace the Pause</h4>
+                        <p>Strategic silence adds emphasis and gives your audience time to process information.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Use the Power of Three</h4>
+                        <p>Group concepts in threes—it's a pattern that's easy for audiences to remember.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Move with Purpose</h4>
+                        <p>Use gestures and stage movement intentionally to emphasize points, not just to burn nervous energy.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>End Memorably</h4>
+                        <p>Finish with a clear call to action, summary, or impactful statement that leaves a lasting impression.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Public Speaking</h3>
+                <p>Emerging trends and evolving practices in presentation and communication.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Technology Integration</h4>
+                        <ul>
+                            <li>AI-powered speech coaching and feedback</li>
+                            <li>Virtual and augmented reality presentation environments</li>
+                            <li>Real-time audience analytics and engagement metrics</li>
+                            <li>Interactive holograms and 3D visualizations</li>
+                            <li>Multilingual real-time translation for global audiences</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Skill Development</h4>
+                        <ul>
+                            <li>Develop virtual presentation skills for remote settings</li>
+                            <li>Learn to create and deliver hybrid presentations</li>
+                            <li>Master data visualization and digital storytelling</li>
+                            <li>Practice with new presentation technologies and tools</li>
+                            <li>Develop cultural intelligence for global audiences</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge public speaking insights to help professionals excel in their careers.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Business Topics</h3>
+                     <a href="entrepreneurship.html">Entrepreneurship</a>
+                    <a href="marketing.html">Marketing</a>
+                    <a href="management.html">Management And Leadership</a>
+                    <a href="strategy.html">Business Strategy</a>
+                    <a href="sales.html">Sales</a>
+                    <a href="finance.html">Finance And Accounting</a>
+                   
+                    <a href="negotiation.html">Negotiation And Communication</a>
+                </div>
+                
+           
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

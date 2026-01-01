@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Creative Thinking | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to creative thinking techniques, overcoming mental blocks, enhancing creativity, and applying creative thinking to problem-solving.">
+    <meta name="keywords" content="creative thinking, creativity techniques, divergent thinking, convergent thinking, mental blocks, idea generation, creative process">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #5D4157, #A8CABA);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(93, 65, 87, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #F8FFAE, #43C6AC);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #F8FFAE;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #F8FFAE, #43C6AC);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #F8FFAE;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #F8FFAE;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #43C6AC;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(67, 198, 172, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(168, 202, 186, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #F8FFAE;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #43C6AC;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: rgba(168, 202, 186, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .research-item h4 {
+            color: #F8FFAE;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: rgba(168, 202, 186, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F8FFAE;
+        }
+        
+        .tip-box h4 {
+            color: #F8FFAE;
+            margin-bottom: 10px;
+        }
+        
+        /* Thinking Process Visual */
+        .process-visual {
+            background: rgba(168, 202, 186, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .process-visual h4 {
+            color: #F8FFAE;
+            margin-bottom: 20px;
+        }
+        
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .process-step {
+            text-align: center;
+            width: 20%;
+            position: relative;
+        }
+        
+        .process-step i {
+            font-size: 30px;
+            color: #43C6AC;
+            background: rgba(93, 65, 87, 0.8);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+        }
+        
+        .process-connector {
+            position: absolute;
+            top: 30px;
+            height: 2px;
+            background: #43C6AC;
+            width: 80%;
+            left: 10%;
+            z-index: -1;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(93, 65, 87, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #F8FFAE;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #43C6AC;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .process-steps {
+                flex-direction: column;
+                align-items: center;
+                gap: 30px;
+            }
+            
+            .process-step {
+                width: 100%;
+            }
+            
+            .process-connector {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Creative <span>Thinking</span></h1>
+            <p>Unlock your creative potential, overcome mental blocks, and develop innovative solutions through proven creative thinking techniques.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="creativity.html">Creativity</a> / Creative Thinking
+        </div>
+
+        <!-- Creative Thinking Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-brain"></i> Mastering Creative Thinking</h2>
+                <p>Creative thinking is the capacity to generate novel and valuable ideas, approaches, and solutions. It involves breaking away from established patterns to see things in new ways and make unexpected connections. Creative thinking is not just for artists—it's a crucial skill for problem-solving and innovation in every field.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Types of Creative Thinking</h3>
+                <p>Creative thinking encompasses various cognitive approaches that help generate innovative ideas and solutions.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-expand-arrows-alt"></i> Divergent Thinking</h4>
+                        <p>Generating multiple ideas, options, or solutions:</p>
+                        <ul>
+                            <li>Brainstorming without judgment or criticism</li>
+                            <li>Exploring many possible solutions</li>
+                            <li>Encouraging wild and unconventional ideas</li>
+                            <li>Focusing on quantity over quality initially</li>
+                            <li>Making unexpected connections between concepts</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-bullseye"></i> Convergent Thinking</h4>
+                        <p>Narrowing down options to find the best solution:</p>
+                        <ul>
+                            <li>Evaluating and analyzing ideas critically</li>
+                            <li>Applying criteria to select the best options</li>
+                            <li>Making decisions based on feasibility and impact</li>
+                            <li>Refining and improving selected ideas</li>
+                            <li>Focusing on implementation practicality</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Lateral Thinking</h4>
+                        <p>Solving problems through indirect and creative approaches:</p>
+                        <ul>
+                            <li>Challenging assumptions and established patterns</li>
+                            <li>Using reasoning that is not immediately obvious</li>
+                            <li>Exploring multiple perspectives and angles</li>
+                            <li>Employing unorthodox techniques to spark ideas</li>
+                            <li>Edward de Bono's structured approach to creativity</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>The Creative Thinking Process</h3>
+                <p>Creative thinking typically follows a process from problem identification to solution implementation.</p>
+                
+                <div class="process-visual">
+                    <h4>The Creative Thinking Journey</h4>
+                    <div class="process-steps">
+                        <div class="process-step">
+                            <i class="fas fa-search"></i>
+                            <p>Preparation</p>
+                            <small>Understanding the problem</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-lightbulb"></i>
+                            <p>Incubation</p>
+                            <small>Letting ideas develop subconsciously</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-bolt"></i>
+                            <p>Illumination</p>
+                            <small>The "Aha!" moment of insight</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-check-circle"></i>
+                            <p>Evaluation</p>
+                            <small>Assessing ideas critically</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-rocket"></i>
+                            <p>Implementation</p>
+                            <small>Putting ideas into action</small>
+                        </div>
+                        <div class="process-connector"></div>
+                    </div>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-search"></i> Preparation Phase</h4>
+                        <p>Laying the groundwork for creative thinking:</p>
+                        <ul>
+                            <li>Defining the problem clearly</li>
+                            <li>Gathering relevant information</li>
+                            <li>Understanding constraints and requirements</li>
+                            <li>Researching existing solutions</li>
+                            <li>Identifying stakeholders and their needs</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Incubation & Illumination</h4>
+                        <p>Allowing ideas to develop and emerge:</p>
+                        <ul>
+                            <li>Stepping away from conscious effort</li>
+                            <li>Engaging in unrelated activities</li>
+                            <li>Allowing subconscious connections to form</li>
+                            <li>Recognizing and capturing insights when they emerge</li>
+                            <li>Creating conditions conducive to insight</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-check-circle"></i> Evaluation & Implementation</h4>
+                        <p>Refining and applying creative ideas:</p>
+                        <ul>
+                            <li>Applying critical thinking to assess ideas</li>
+                            <li>Testing ideas against practical constraints</li>
+                            <li>Refining and improving promising concepts</li>
+                            <li>Developing action plans for implementation</li>
+                            <li>Communicating ideas effectively to others</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Creative Thinking Techniques</h3>
+                <p>Proven methods to stimulate creativity and generate innovative ideas.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-random"></i> Idea Generation Techniques</h4>
+                        <p>Methods for producing a wide range of ideas:</p>
+                        <ul>
+                            <li><strong>Brainstorming:</strong> Group idea generation without criticism</li>
+                            <li><strong>Mind Mapping:</strong> Visual representation of ideas and connections</li>
+                            <li><strong>SCAMPER:</strong> Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse</li>
+                            <li><strong>Six Thinking Hats:</strong> Parallel thinking from different perspectives</li>
+                            <li><strong>Reverse Thinking:</strong> Considering the opposite of what's expected</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-puzzle-piece"></i> Problem Reframing Methods</h4>
+                        <p>Techniques for viewing problems from new perspectives:</p>
+                        <ul>
+                            <li><strong>Questioning Assumptions:</strong> Challenging what is believed to be true</li>
+                            <li><strong>Why/Why Analysis:</strong> Digging to root causes through successive "whys"</li>
+                            <li><strong>Analogous Thinking:</strong> Applying solutions from different domains</li>
+                            <li><strong>Change Perspective:</strong> Viewing problems from different viewpoints</li>
+                            <li><strong>Problem Reversal:</strong> Flipping the problem to see it differently</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-magic"></i> Creative Stimulation Approaches</h4>
+                        <p>Methods to spark creativity and overcome blocks:</p>
+                        <ul>
+                            <li><strong>Forced Connections:</strong> Combining unrelated concepts</li>
+                            <li><strong>Visualization:</strong> Creating mental images of possibilities</li>
+                            <li><strong>Random Input:</strong> Using random words or images to trigger ideas</li>
+                            <li><strong>Attribute Listing:</strong> Examining characteristics for improvement</li>
+                            <li><strong>Morphological Analysis:</strong> Combining different parameters systematically</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Overcoming Creative Blocks</h3>
+                <p>Identifying and moving past obstacles to creative thinking.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-ban"></i> Common Creative Blocks</h4>
+                        <p>Typical obstacles that inhibit creative thinking:</p>
+                        <ul>
+                            <li><strong>Mental Fixedness:</strong> Inability to see beyond conventional uses</li>
+                            <li><strong>Fear of Failure:</strong> Anxiety about making mistakes or being judged</li>
+                            <li><strong>Perfectionism:</strong> Inability to accept anything less than perfect</li>
+                            <li><strong>Resource Myopia:</strong> Believing resources are more limited than they are</li>
+                            <li><strong>Functional Fixedness:</strong> Seeing objects only in their traditional roles</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Strategies to Overcome Blocks</h4>
+                        <p>Approaches for breaking through creative barriers:</p>
+                        <ul>
+                            <li>Changing physical environment or context</li>
+                            <li>Taking breaks and allowing incubation time</li>
+                            <li>Using constraints to stimulate creativity</li>
+                            <li>Seeking inspiration from unrelated fields</li>
+                            <li>Collaborating with people with different perspectives</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-seedling"></i> Creating Conditions for Creativity</h4>
+                        <p>Establishing environments that foster creative thinking:</p>
+                        <ul>
+                            <li>Psychological safety for risk-taking</li>
+                            <li>Diverse experiences and knowledge sources</li>
+                            <li>Time for reflection and exploration</li>
+                            <li>Acceptance of ambiguity and uncertainty</li>
+                            <li>Encouragement of curiosity and questioning</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Creative Thinking Research</h3>
+                <p>Evidence-based insights from psychology and neuroscience research.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Neuroscience of Creativity</h4>
+                    <p>Key findings about how the brain enables creative thinking:</p>
+                    <ul>
+                        <li>Creativity involves both divergent and convergent thinking networks</li>
+                        <li>The Default Mode Network is active during creative incubation</li>
+                        <li>The Executive Control Network helps evaluate and implement ideas</li>
+                        <li>Alpha brain waves are associated with creative insight</li>
+                        <li>Creativity involves communication between brain regions that don't typically interact</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-flask"></i> Psychology Research</h4>
+                    <p>Studies on the cognitive processes behind creative thinking:</p>
+                    <ul>
+                        <li>Positive mood enhances creative problem-solving ability</li>
+                        <li>Moderate ambient noise (70 dB) boosts creative performance</li>
+                        <li>Constraints can actually enhance creativity rather than limit it</li>
+                        <li>Sleep and rest significantly improve creative insight</li>
+                        <li>Physical movement and exercise can stimulate creative thinking</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-users"></i> Environmental Factors</h4>
+                    <p>Research on how surroundings influence creative thinking:</p>
+                    <ul>
+                        <li>Blue environments enhance performance on creative tasks</li>
+                        <li>Spaces with high ceilings promote abstract thinking</li>
+                        <li>Moderately messy environments can stimulate creativity</li>
+                        <li>Exposure to nature restores attention and enhances creativity</li>
+                        <li>Cultural diversity in teams increases creative innovation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Developing Creative Thinking Skills</h3>
+                <p>Strategies and practices to enhance your creative thinking abilities.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-book-open"></i> Knowledge Building</h4>
+                        <p>Developing the foundation for creative thinking:</p>
+                        <ul>
+                            <li>Building diverse knowledge across multiple domains</li>
+                            <li>Developing expertise in specific areas of interest</li>
+                            <li>Learning about different cultures and perspectives</li>
+                            <li>Studying history of innovation in your field</li>
+                            <li>Understanding fundamental principles across disciplines</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-running"></i> Practice Techniques</h4>
+                        <p>Exercises to strengthen creative thinking muscles:</p>
+                        <ul>
+                            <li>Daily idea generation sessions</li>
+                            <li>Regular engagement with creative hobbies</li>
+                            <li>Solving puzzles and brain teasers</li>
+                            <li>Practicing observation and description skills</li>
+                            <li>Engaging in improvisational activities</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hourglass-half"></i> Mindset Development</h4>
+                        <p>Cultivating attitudes that support creative thinking:</p>
+                        <ul>
+                            <li>Embracing curiosity and asking questions</li>
+                            <li>Developing tolerance for ambiguity and uncertainty</li>
+                            <li>Practicing persistence in the face of challenges</li>
+                            <li>Adopting a growth mindset about creative abilities</li>
+                            <li>Learning to embrace and learn from failure</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Essential Creative Thinking Tips</h3>
+                <p>Practical advice and strategies from creativity researchers and experts.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4>Embrace Curiosity</h4>
+                        <p>Ask questions about everything. Curiosity is the engine of creativity—it drives exploration and discovery.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Delay Judgment</h4>
+                        <p>Separate idea generation from evaluation. Allow wild ideas to flow without immediate criticism.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Seek Novel Experiences</h4>
+                        <p>Expose yourself to new environments, people, and ideas. Novel experiences create new neural connections.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Practice Regularly</h4>
+                        <p>Creativity is like a muscle—it strengthens with regular exercise. Dedicate time to creative practice.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Collaborate Diversely</h4>
+                        <p>Work with people from different backgrounds and disciplines. Diversity sparks innovation.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Embrace Constraints</h4>
+                        <p>View limitations as creative challenges rather than obstacles. Constraints often inspire innovation.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Capture Ideas Immediately</h4>
+                        <p>Keep an idea journal. Creative insights often come unexpectedly and can be easily forgotten.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Take Breaks</h4>
+                        <p>Step away from problems to allow incubation. Some of the best ideas emerge during downtime.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Creative Thinking</h3>
+                <p>Emerging trends and evolving approaches in creative thinking.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Technology & Creativity</h4>
+                        <ul>
+                            <li>AI-assisted creative idea generation</li>
+                            <li>Virtual reality environments for creative exploration</li>
+                            <li>Digital tools that enhance collaborative creativity</li>
+                            <li>Brain-computer interfaces for capturing creative states</li>
+                            <li>Algorithmic approaches to pattern recognition and combination</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Skill Development</h4>
+                        <ul>
+                            <li>Learn to collaborate creatively with AI systems</li>
+                            <li>Develop digital literacy for creative expression</li>
+                            <li>Master remote creative collaboration tools</li>
+                            <li>Cultivate cultural intelligence for global creativity</li>
+                            <li>Practice ethical creativity in technology development</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge creativity insights and education to help you unlock your innovative potential.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Creativity Topics</h3>
+                   <a href="creative-thinking.html">Creative Thinking</a>
+                    <a href="design-thinking.html">Design Thinking</a>
+                    <a href="innovation-management.html">Innovation Management</a>
+                    <a href="creative-problem-solving.html">Creative Problem Solving</a>
+                    <a href="brainstorming-techniques.html">Brainstorming-techniques</a>
+                    <a href="creative-tools.html">Creative Tools & Techniques</a>
+                    <a href="creative-process.html">The Creative Process</a>
+                    <a href="creative-mindset.html">Developing A Creative Mindset</a>
+                </div>
+                
+               
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

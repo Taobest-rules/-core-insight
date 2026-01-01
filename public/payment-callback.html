@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Processing - Core Insight</title>
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .btn { 
+            display: inline-block;
+            padding: 10px 20px;
+            background: #FFD700;
+            color: #000;
+            text-decoration: none;
+            border-radius: 30px;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Processing Your Payment...</h2>
+        <p>Please wait while we verify your payment.</p>
+        <div id="paymentStatus"></div>
+    </div>
+    
+    <script>
+        // Get transaction ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const transactionId = urlParams.get('transaction_id');
+        
+        if (transactionId) {
+            verifyPayment(transactionId);
+        } else {
+            document.getElementById('paymentStatus').innerHTML = 
+                '<p class="error">No transaction ID found. Please contact support.</p>';
+        }
+        
+        async function verifyPayment(transactionId) {
+            try {
+                const response = await fetch(`/api/verify-payment/${transactionId}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('paymentStatus').innerHTML = `
+                        <div class="success">
+                            <h3>Payment Successful! 🎉</h3>
+                            <p>You now have access to the course.</p>
+                            <p>Redirecting to courses page...</p>
+                        </div>
+                    `;
+                    // Redirect to courses page after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/courses.html';
+                    }, 3000);
+                } else {
+                    document.getElementById('paymentStatus').innerHTML = `
+                        <div class="error">
+                            <h3>Payment Failed</h3>
+                            <p>${data.message}</p>
+                            <a href="/courses.html" class="btn">Return to Courses</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                document.getElementById('paymentStatus').innerHTML = `
+                    <div class="error">
+                        <h3>Verification Error</h3>
+                        <p>Please contact support if the issue persists.</p>
+                        <a href="/courses.html" class="btn">Return to Courses</a>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

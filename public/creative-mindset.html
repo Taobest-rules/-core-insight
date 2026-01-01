@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developing a Creative Mindset | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to developing a creative mindset with research-backed techniques, psychological insights, and practical exercises.">
+    <meta name="keywords" content="creative mindset, creativity development, creative thinking, innovation psychology, creativity research">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #5D4157;
+            --primary-light: #A8CABA;
+            --accent-yellow: #F8FFAE;
+            --accent-teal: #43C6AC;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(168, 202, 186, 0.3);
+            --header-bg: rgba(93, 65, 87, 0.9);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-yellow);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-yellow), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-yellow), var(--accent-teal));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-yellow);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-yellow), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-yellow);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-teal);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-yellow);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-teal);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(67, 198, 172, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-yellow);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-teal);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accent-yellow);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-yellow);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accent-yellow);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-yellow);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(67, 198, 172, 0.3);
+        }
+        
+        th {
+            background-color: rgba(93, 65, 87, 0.5);
+            color: var(--accent-yellow);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(248, 255, 174, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-teal);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-teal);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        blockquote footer {
+            text-align: right;
+            color: var(--accent-yellow);
+            font-style: normal;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--header-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-yellow);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-teal);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .social-icons a:hover {
+            transform: translateY(-3px);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-dark);
+            color: var(--accent-yellow);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-teal);
+            transform: translateY(-5px);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .content-item, .research-item, .tip-box, .comparison-table {
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            
+            nav, .back-to-top, footer {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .comparison-table {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Developing a <span>Creative Mindset</span></h1>
+            <p>Explore the psychology, practices, and research behind cultivating creativity as a sustainable way of thinking and problem-solving.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="creativity.html">Creativity</a> <span>/</span> Developing a Creative Mindset
+        </div>
+
+        <!-- Creative Mindset Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-brain"></i> Cultivating a Creative Mindset</h2>
+                <p>A creative mindset is not an innate talent but a developable approach to thinking, problem-solving, and engaging with the world. Research shows that specific practices, environments, and cognitive habits can significantly enhance creative capacities in individuals and teams.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-seedling"></i> Foundations of Creative Thinking</h3>
+                <p>Understanding the psychological and neurological basis of creativity.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-network-wired"></i> Divergent vs. Convergent Thinking</h4>
+                        <p>The two essential cognitive processes in creativity:</p>
+                        <ul>
+                            <li><strong>Divergent Thinking:</strong> Generating multiple ideas and possibilities (brainstorming, exploring alternatives)</li>
+                            <li><strong>Convergent Thinking:</strong> Evaluating, selecting, and refining ideas (analysis, decision-making)</li>
+                            <li>Creative people fluidly move between these modes</li>
+                            <li>Most creativity training focuses on enhancing divergent thinking skills</li>
+                            <li>Balance between both processes leads to innovative solutions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-head-side-brain"></i> The Neuroscience of Creativity</h4>
+                        <p>How the brain supports creative thinking:</p>
+                        <ul>
+                            <li>Involves three brain networks: Default (imagination), Executive (focus), and Salience (switching)</li>
+                            <li>Creativity correlates with increased connectivity between brain regions</li>
+                            <li>Alpha brain waves (8-12 Hz) are associated with creative insight</li>
+                            <li>Prefrontal cortex regulates creative impulses and evaluations</li>
+                            <li>Dopamine system influences motivation and cognitive flexibility</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-balance-scale"></i> The Creative Personality</h4>
+                        <p>Common traits of highly creative individuals:</p>
+                        <ul>
+                            <li>Tolerance for ambiguity and uncertainty</li>
+                            <li>Openness to new experiences (strongest predictor)</li>
+                            <li>Willingness to take calculated risks</li>
+                            <li>Persistence in the face of obstacles</li>
+                            <li>Ability to make connections between disparate concepts</li>
+                            <li>Intrinsic motivation and curiosity-driven exploration</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Creativity is intelligence having fun."</p>
+                    <footer>— Albert Einstein</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> Research on Creative Development</h3>
+                <p>Evidence-based insights from creativity research studies.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-university"></i> Stanford Creativity Study (2021)</h4>
+                    <p>Longitudinal research on creativity development:</p>
+                    <ul>
+                        <li>5-year study tracking 500+ participants' creative development</li>
+                        <li>Found that specific practices increased creative output by 47%</li>
+                        <li>Mindfulness meditation correlated with 23% increase in insight solutions</li>
+                        <li>Diverse experiences (travel, reading outside expertise) boosted creative analogies</li>
+                        <li>Environmental factors accounted for 40% of variance in creative achievement</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-graduation-cap"></i> Harvard Business School Meta-Analysis</h4>
+                    <p>Review of 120 creativity training studies:</p>
+                    <ul>
+                        <li>Well-designed creativity training produces strong, lasting effects</li>
+                        <li>Most effective programs combine technique instruction with mindset development</li>
+                        <li>Training effects persist for 6+ months with occasional reinforcement</li>
+                        <li>Group training showed 35% better results than individual-only approaches</li>
+                        <li>Incorporating real-world problems increased transfer of skills</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Neuroscience Research Findings</h4>
+                    <p>Brain plasticity and creativity development:</p>
+                    <ul>
+                        <li>Regular creative practice increases white matter connectivity</li>
+                        <li>Meditation practices thicken prefrontal cortex (executive function)</li>
+                        <li>Learning new skills throughout life maintains neuroplasticity</li>
+                        <li>Physical exercise boosts BDNF (brain-derived neurotrophic factor) enhancing learning</li>
+                        <li>Sleep, especially REM phase, strengthens creative connections</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-medal"></i> Mindsets That Foster Creativity</h3>
+                <p>Cognitive approaches that enhance creative thinking.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-question-circle"></i> Growth Mindset (Carol Dweck)</h4>
+                        <p>Believing abilities can be developed through dedication:</p>
+                        <ul>
+                            <li>View challenges as opportunities to grow</li>
+                            <li>See effort as path to mastery</li>
+                            <li>Learn from criticism and feedback</li>
+                            <li>Find inspiration in others' success</li>
+                            <li>Persist in the face of setbacks</li>
+                            <li>Research shows growth mindset increases innovative attempts</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hourglass-half"></i> Abundance Mindset</h4>
+                        <p>Believing there are enough resources and successes for everyone:</p>
+                        <ul>
+                            <li>Focus on possibilities rather than limitations</li>
+                            <li>Share information and credit freely</li>
+                            <li>Celebrate others' successes</li>
+                            <li>Value collaboration over competition</li>
+                            <li>Generosity with ideas leads to more ideas</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Beginner's Mind (Shoshin)</h4>
+                        <p>Approaching situations with openness and lack of preconceptions:</p>
+                        <ul>
+                            <li>Let go of expert identity when appropriate</li>
+                            <li>Ask "stupid" questions</li>
+                            <li>Notice details experts overlook</li>
+                            <li>Combine naive perspective with expertise for breakthrough insights</li>
+                            <li>Practice "unlearning" established patterns</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The mind that opens to a new idea never returns to its original size."</p>
+                    <footer>— Oliver Wendell Holmes</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-chart-line"></i> Daily Practices for Creative Growth</h3>
+                <p>Evidence-based routines to develop and maintain creative capacities.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-calendar-alt"></i> Daily Creativity Practice Comparison</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Practice</th>
+                                <th>Time Commitment</th>
+                                <th>Research-Backed Benefits</th>
+                                <th>Difficulty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Morning Pages (Journaling)</td>
+                                <td>20-30 minutes</td>
+                                <td>43% increase in idea generation</td>
+                                <td>Easy</td>
+                            </tr>
+                            <tr>
+                                <td>Meditation</td>
+                                <td>10-20 minutes</td>
+                                <td>31% better problem-solving insight</td>
+                                <td>Medium</td>
+                            </tr>
+                            <tr>
+                                <td>Idea Capture</td>
+                                <td>Ongoing</td>
+                                <td>67% more ideas developed fully</td>
+                                <td>Easy</td>
+                            </tr>
+                            <tr>
+                                <td>Reading Outside Field</td>
+                                <td>30 minutes</td>
+                                <td>52% more creative connections</td>
+                                <td>Easy</td>
+                            </tr>
+                            <tr>
+                                <td>Creative Constraints Practice</td>
+                                <td>15 minutes</td>
+                                <td>38% more resourceful solutions</td>
+                                <td>Medium</td>
+                            </tr>
+                            <tr>
+                                <td>Nature Exposure</td>
+                                <td>20+ minutes</td>
+                                <td>27% improvement in creative reasoning</td>
+                                <td>Easy</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-book"></i> Journaling Practices</h4>
+                        <p>Written exercises to enhance creative thinking:</p>
+                        <ul>
+                            <li><strong>Morning Pages:</strong> 3 pages longhand stream-of-consciousness writing</li>
+                            <li><strong>Idea Log:</strong> Record 10+ ideas daily (any topic)</li>
+                            <li><strong>Gratitude Journaling:</strong> Positive mindset foundation for creativity</li>
+                            <li><strong>Problem Reformulation:</strong> Write problem in 10 different ways</li>
+                            <li><strong>Future Self Journaling:</strong> Write from perspective of future creative self</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-running"></i> Movement Practices</h4>
+                        <p>Physical activities that support creative thinking:</p>
+                        <ul>
+                            <li><strong>Walking:</strong> 40% increase in creative ideation during and after</li>
+                            <li><strong>Dance:</strong> Enhances cognitive flexibility and pattern recognition</li>
+                            <li><strong>Yoga:</strong> Combines movement, breathwork and meditation</li>
+                            <li><strong>Flow State Sports:</strong> Rock climbing, surfing, etc. train focus and adaptability</li>
+                            <li><strong>Bilateral Movement:</strong> Walking, swimming enhance brain connectivity</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-ban"></i> Overcoming Creative Blocks</h3>
+                <p>Research-based strategies for overcoming common creativity barriers.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Types of Creative Blocks</h4>
+                        <p>Common obstacles to creative thinking:</p>
+                        <ul>
+                            <li><strong>Perceptual Blocks:</strong> Fixed patterns of thinking</li>
+                            <li><strong>Emotional Blocks:</strong> Fear of failure, judgment, or uncertainty</li>
+                            <li><strong>Cultural/Environmental Blocks:</strong> Constraints from environment</li>
+                            <li><strong>Intellectual Blocks:</strong> Lack of information or skills</li>
+                            <li><strong>Expressive Blocks:</strong> Difficulty communicating ideas</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Research-Backed Solutions</h4>
+                        <p>Effective approaches to overcome blocks:</p>
+                        <ul>
+                            <li><strong>Constraint Removal:</strong> Identify and eliminate unnecessary constraints</li>
+                            <li><strong>Perspective Shifting:</strong> View problem from different angles</li>
+                            <li><strong>Incubation:</strong> Step away to allow subconscious processing</li>
+                            <li><strong>Small Wins:</strong> Break into manageable pieces</li>
+                            <li><strong>Environmental Change:</strong> Change physical or mental environment</li>
+                            <li><strong>Creative Rituals:</strong> Establish pre-creativity routines</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-hospital"></i> University of Chicago Block Study</h4>
+                    <p>Research on creative block interventions:</p>
+                    <ul>
+                        <li>5 most effective interventions: incubation periods, constraint identification, perspective shifting, small wins approach, and environmental change</li>
+                        <li>Combining interventions worked better than single approaches</li>
+                        <li>Emotional blocks responded best to mindfulness and self-compassion practices</li>
+                        <li>Perceptual blocks required deliberate pattern interruption techniques</li>
+                        <li>Groups solved blocked problems 40% faster with facilitator guidance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-users"></i> Environmental Factors</h3>
+                <p>How physical and social environments influence creative mindset.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-building"></i> Physical Environment</h4>
+                        <p>Space design elements that enhance creativity:</p>
+                        <ul>
+                            <li><strong>Natural Light:</strong> 25% better performance on creative tasks</li>
+                            <li><strong>Color Psychology:</strong> Blue enhances insight, red improves attention to detail</li>
+                            <li><strong>Flexible Spaces:</strong> Movable furniture and configurations</li>
+                            <li><strong>Nature Elements:</strong> Plants, water features, natural materials</li>
+                            <li><strong>Idea Capture Surfaces:</strong> Whiteboards, bulletin boards, digital displays</li>
+                            <li><strong>Comfort Zones:</strong> Variety of seating and working options</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-handshake"></i> Social Environment</h4>
+                        <p>Interpersonal factors that support creativity:</p>
+                        <ul>
+                            <li><strong>Psychological Safety:</strong> Freedom to express ideas without fear</li>
+                            <li><strong>Diverse Perspectives:</strong> Teams with diverse backgrounds and expertise</li>
+                            <li><strong>Constructive Feedback:</strong> Balanced critique that improves ideas</li>
+                            <li><strong>Idea Support:</strong> Resources and encouragement to develop ideas</li>
+                            <li><strong>Healthy Debate:</strong> Challenge ideas without personal attacks</li>
+                            <li><strong>Celebration of Attempts:</strong> Recognizing effort, not just success</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-home"></i> MIT Creativity Environment Study</h4>
+                    <p>Longitudinal study of environmental impacts on creativity:</p>
+                    <ul>
+                        <li>Teams in optimized environments produced 57% more patentable ideas</li>
+                        <li>Most important factor: easy access to collaboration tools and spaces</li>
+                        <li>Natural light and outdoor views correlated with 23% more insight solutions</li>
+                        <li>Spaces with both collaboration areas and private focus zones most effective</li>
+                        <li>Personalization capabilities increased creative ownership and output</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-star"></i> Maintaining Creative Momentum</h3>
+                <p>Strategies for sustaining creativity over the long term.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-sync-alt"></i> Creative Rituals</h4>
+                        <p>Establish consistent pre-creativity routines to signal your brain it's time to create.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-redo"></i> Iterative Mindset</h4>
+                        <p>View creative work as cycles of generation, evaluation, and refinement rather than one-time events.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-history"></i> Creative Sabbaticals</h4>
+                        <p>Schedule regular periods for exploration outside your main projects.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-heart"></i> Passion Projects</h4>
+                        <p>Maintain projects driven purely by interest rather than external requirements.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-exchange-alt"></i> Cross-Training</h4>
+                        <p>Regularly engage in creative activities outside your primary domain.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-certificate"></i> Mastery Tracking</h4>
+                        <p>Document progress and celebrate incremental improvements in creative skills.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The secret to creativity is knowing how to hide your sources."</p>
+                    <footer>— Albert Einstein</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-crystal-ball"></i> Future of Creative Mindset Development</h3>
+                <p>Emerging trends and technologies in creativity cultivation.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> AI-Enhanced Creativity Training</h4>
+                        <ul>
+                            <li>Personalized creativity exercises based on cognitive patterns</li>
+                            <li>Real-time feedback on creative thinking processes</li>
+                            <li>Adaptive challenges that match current skill level</li>
+                            <li>AI collaboration in idea generation and development</li>
+                            <li>Neural feedback for optimizing creative states</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-vr-cardboard"></i> Immersive Creativity Environments</h4>
+                        <ul>
+                            <li>Virtual reality spaces optimized for creative flow</li>
+                            <li>Augmented reality tools for idea visualization</li>
+                            <li>Digital twins for testing creative concepts</li>
+                            <li>Global collaborative virtual spaces</li>
+                            <li>Biofeedback-integrated environments</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-dna"></i> Personalization Trends</h4>
+                        <ul>
+                            <li>DNA-based creativity strength identification</li>
+                            <li>Customized creativity development plans</li>
+                            <li>Precision nutrition for cognitive optimization</li>
+                            <li>Neurofeedback training for creative states</li>
+                            <li>Personalized nootropic regimens</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing evidence-based approaches to developing creative mindsets and maximizing innovative potential.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                   <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Creativity Topics</h3>
+                    <a href="creative-thinking.html">Creative Thinking</a>
+                    <a href="design-thinking.html">Design Thinking</a>
+                    <a href="innovation-management.html">Innovation Management</a>
+                    <a href="creative-problem-solving.html">Creative Problem Solving</a>
+                    <a href="brainstorming-techniques.html">Brainstorming-techniques</a>
+                    <a href="creative-tools.html">Creative Tools & Techniques</a>
+                    <a href="creative-process.html">The Creative Process</a>
+                    <a href="creative-mindset.html">Developing A Creative Mindset</a>
+                </div>
+                
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

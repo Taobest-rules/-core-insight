@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Design Principles | Core Insight</title>
+    <meta name="description" content="Explore fundamental design principles that create effective, aesthetically pleasing, and user-friendly designs across all media.">
+    <meta name="keywords" content="design principles, visual design, graphic design, UX design, composition, balance, contrast, typography, color theory">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #00d2ff;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 100px 0 60px;
+        }
+        
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #ff6a00, #ee0979);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 22px;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 20px 0;
+            font-size: 16px;
+            color: #dcdde1;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 40px;
+        }
+        
+        .breadcrumb a {
+            color: #00d2ff;
+            text-decoration: none;
+        }
+        
+        /* Main Content */
+        .main-content {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin-bottom: 50px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Content Sections */
+        .content-section {
+            padding: 60px 40px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .section-header h2 {
+            font-size: 36px;
+            color: #00d2ff;
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-header h2:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            border-radius: 2px;
+        }
+        
+        .section-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Two-column layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+            margin: 40px 0;
+        }
+        
+        /* Principle Cards */
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .principle-card {
+            background: rgba(40, 59, 75, 0.7);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .principle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+        }
+        
+        .principle-icon {
+            background: linear-gradient(45deg, #ff6a00, #ee0979);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .principle-icon i {
+            color: white;
+            font-size: 30px;
+        }
+        
+        .principle-card h3 {
+            color: #00d2ff;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        /* Visual Examples */
+        .visual-example {
+            background: rgba(30, 45, 60, 0.8);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .example-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .example-box {
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .bad-example {
+            background: linear-gradient(45deg, #8B0000, #FF0000);
+            border: 2px solid #ff4d4d;
+        }
+        
+        .good-example {
+            background: linear-gradient(45deg, #006400, #00CC00);
+            border: 2px solid #00ff00;
+        }
+        
+        /* Color Palette */
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .color-item {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Typography Showcase */
+        .typography-showcase {
+            background: rgba(30, 45, 60, 0.8);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .font-example {
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #00d2ff;
+        }
+        
+        /* Design Process */
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 40px 0;
+            position: relative;
+        }
+        
+        .process-steps:before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6a00, #ee0979);
+            z-index: 1;
+        }
+        
+        .process-step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            width: 20%;
+        }
+        
+        .step-number {
+            background: linear-gradient(45deg, #ff6a00, #ee0979);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 30px;
+            font-weight: bold;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(45deg, #ff6a00, #ee0979);
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            margin: 60px 0;
+        }
+        
+        .cta-section h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 15px 35px;
+            background: white;
+            color: #ff6a00;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 50px 0 30px;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #00d2ff;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #00d2ff;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 968px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .example-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .process-steps {
+                flex-direction: column;
+                gap: 40px;
+            }
+            
+            .process-steps:before {
+                display: none;
+            }
+            
+            .process-step {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 36px;
+            }
+            
+            .section-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section {
+                padding: 40px 20px;
+            }
+            
+            .principles-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Creative <span>Design Principles</span></h1>
+            <p>Master the fundamental principles that create effective, aesthetically pleasing, and user-friendly designs across all media.</p>
+        </div>
+    </section>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <div class="container">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / Creative Design Principles
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-content">
+            <!-- Introduction Section -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>What Makes Good Design?</h2>
+                    <p>Understanding the foundational principles that separate effective design from visual noise</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>The Role of Design Principles</h3>
+                        <p>Design principles are fundamental guidelines that help designers create solutions that are not only aesthetically pleasing but also functional, usable, and accessible. These principles form the foundation of all visual design disciplines, from graphic design to UX/UI, architecture, and industrial design.</p>
+                        <p>While trends come and go, the core principles of good design remain constant. Mastering these principles allows designers to create work that stands the test of time and effectively communicates its intended message.</p>
+                    </div>
+                    <div>
+                        <h3>Universal Application</h3>
+                        <p>Whether you're designing a website, a brochure, a product, or an interior space, the same fundamental principles apply. Understanding how to balance these principles and when to emphasize one over another is key to creating successful designs.</p>
+                        <p>Good design often goes unnoticed—it simply works. But poor design is immediately apparent, creating frustration and confusion for users. By applying these principles consistently, designers can create experiences that feel intuitive and effortless.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Core Principles -->
+            <section class="content-section" style="background: rgba(0, 0, 0, 0.2);">
+                <div class="section-header">
+                    <h2>Core Design Principles</h2>
+                    <p>The fundamental guidelines that form the foundation of all good design</p>
+                </div>
+                
+                <div class="principles-grid">
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <h3>Balance</h3>
+                        <p>Distribution of visual weight to create stability. Can be symmetrical (formal) or asymmetrical (dynamic). Proper balance creates harmony and structure in a design.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-adjust"></i>
+                        </div>
+                        <h3>Contrast</h3>
+                        <p>Creating visual interest by juxtaposing different elements. Contrast can be achieved through color, size, shape, texture, or typography to draw attention and create hierarchy.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-ruler-combined"></i>
+                        </div>
+                        <h3>Alignment</h3>
+                        <p>Arranging elements to create visual connections and organization. Proper alignment creates a cleaner, more sophisticated look and improves readability.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-retweet"></i>
+                        </div>
+                        <h3>Repetition</h3>
+                        <p>Reusing visual elements to create consistency and unity. Repetition strengthens design by tying together otherwise separate parts.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </div>
+                        <h3>Proximity</h3>
+                        <p>Grouping related items together to create relationships between elements. Proximity helps organize information and reduces visual clutter.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-space-shuttle"></i>
+                        </div>
+                        <h3>White Space</h3>
+                        <p>Effective use of empty space to create breathing room and focus. White space is not wasted space—it's a powerful design element that improves readability and comprehension.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </div>
+                        <h3>Hierarchy</h3>
+                        <p>Arranging elements to show order of importance. Visual hierarchy guides the viewer's eye through the design and communicates what's most important.</p>
+                    </div>
+                    
+                    <div class="principle-card">
+                        <div class="principle-icon">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                        <h3>Unity</h3>
+                        <p>Creating harmony between all elements so they work together cohesively. Unity ensures that all parts of the design feel like they belong together.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Visual Examples -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Principles in Practice</h2>
+                    <p>See how design principles work in real-world examples</p>
+                </div>
+                
+                <h3>Balance Example</h3>
+                <div class="visual-example">
+                    <p>Balance creates visual stability in a composition. Compare these two layouts:</p>
+                    <div class="example-comparison">
+                        <div class="example-box bad-example">
+                            <div>
+                                <h4>Unbalanced</h4>
+                                <p>Elements feel heavy on one side, creating visual tension and discomfort.</p>
+                            </div>
+                        </div>
+                        <div class="example-box good-example">
+                            <div>
+                                <h4>Balanced</h4>
+                                <p>Visual weight is distributed evenly, creating harmony and stability.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Contrast Example</h3>
+                <div class="visual-example">
+                    <p>Contrast creates visual interest and helps important elements stand out:</p>
+                    <div class="example-comparison">
+                        <div class="example-box bad-example">
+                            <div>
+                                <h4>Low Contrast</h4>
+                                <p>Similar colors and sizes make elements blend together.</p>
+                            </div>
+                        </div>
+                        <div class="example-box good-example">
+                            <div>
+                                <h4>High Contrast</h4>
+                                <p>Different colors, sizes, and weights create visual interest and hierarchy.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Color Theory -->
+            <section class="content-section" style="background: rgba(0, 0, 0, 0.2);">
+                <div class="section-header">
+                    <h2>Color Theory Fundamentals</h2>
+                    <p>Understanding how color influences design and perception</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>The Color Wheel</h3>
+                        <p>The color wheel is a fundamental tool for understanding color relationships. It consists of:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-circle" style="color: #FF0000; margin-right: 10px;"></i> <strong>Primary Colors:</strong> Red, blue, yellow—cannot be created by mixing other colors</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-circle" style="color: #FF00FF; margin-right: 10px;"></i> <strong>Secondary Colors:</strong> Green, orange, purple—created by mixing primary colors</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-circle" style="color: #BF00FF; margin-right: 10px;"></i> <strong>Tertiary Colors:</strong> Created by mixing primary and secondary colors</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Color Harmony</h3>
+                        <p>Color harmony creates visually appealing combinations that are pleasing to the eye. Common harmonious schemes include:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-palette" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Complementary:</strong> Colors opposite each other on the color wheel</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-palette" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Analogous:</strong> Colors next to each other on the color wheel</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-palette" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Triadic:</strong> Three colors evenly spaced on the color wheel</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 40px;">Color Psychology</h3>
+                <p>Colors evoke emotional responses and can significantly impact how a design is perceived:</p>
+                <div class="color-palette">
+                    <div class="color-item" style="background: #FF0000; color: white;">Red<br>Energy, Passion, Danger</div>
+                    <div class="color-item" style="background: #0000FF; color: white;">Blue<br>Trust, Calm, Professional</div>
+                    <div class="color-item" style="background: #008000; color: white;">Green<br>Growth, Nature, Health</div>
+                    <div class="color-item" style="background: #FFFF00; color: black;">Yellow<br>Happiness, Optimism, Caution</div>
+                    <div class="color-item" style="background: #800080; color: white;">Purple<br>Luxury, Creativity, Mystery</div>
+                    <div class="color-item" style="background: #FFA500; color: black;">Orange<br>Enthusiasm, Creativity, Success</div>
+                </div>
+            </section>
+
+            <!-- Typography -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Typography Principles</h2>
+                    <p>The art and technique of arranging type to make written language legible and appealing</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>Type Classification</h3>
+                        <p>Understanding type categories helps designers choose appropriate fonts:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-font" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Serif:</strong> Traditional, formal, with decorative strokes</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-font" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Sans-serif:</strong> Modern, clean, without decorative strokes</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-font" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Script:</strong> Elegant, handwritten, decorative</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-font" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Display:</strong> Decorative, attention-grabbing, for headlines</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Typography Guidelines</h3>
+                        <p>Effective typography follows these principles:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-text-height" style="color: #00d2ff; margin-right: 10px;"></i> Limit typefaces (2-3 per design)</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-ruler" style="color: #00d2ff; margin-right: 10px;"></i> Establish clear hierarchy with size and weight</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-i-cursor" style="color: #00d2ff; margin-right: 10px;"></i> Ensure proper line length (50-75 characters)</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-arrows-alt-v" style="color: #00d2ff; margin-right: 10px;"></i> Use appropriate line spacing (1.4-1.6× font size)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="typography-showcase">
+                    <h3>Type Hierarchy Example</h3>
+                    <div class="font-example" style="font-size: 42px; font-weight: 800;">
+                        <p>Heading 1 - Main Title</p>
+                    </div>
+                    <div class="font-example" style="font-size: 32px; font-weight: 700;">
+                        <p>Heading 2 - Section Title</p>
+                    </div>
+                    <div class="font-example" style="font-size: 24px; font-weight: 600;">
+                        <p>Heading 3 - Subsection Title</p>
+                    </div>
+                    <div class="font-example" style="font-size: 18px; font-weight: 400;">
+                        <p>Body Text - This is what paragraph text looks like. It should be easily readable with appropriate line height and contrast against the background.</p>
+                    </div>
+                    <div class="font-example" style="font-size: 14px; font-weight: 300;">
+                        <p>Caption - Smaller text used for labels, captions, or secondary information.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Design Process -->
+            <section class="content-section" style="background: rgba(0, 0, 0, 0.2);">
+                <div class="section-header">
+                    <h2>The Design Thinking Process</h2>
+                    <p>A human-centered approach to solving problems through design</p>
+                </div>
+                
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <h3>Empathize</h3>
+                        <p>Understand users' needs, experiences, and motivations through observation and research.</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <h3>Define</h3>
+                        <p>Synthesize findings to define core problems and create a clear problem statement.</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <h3>Ideate</h3>
+                        <p>Generate a wide range of ideas and potential solutions through brainstorming.</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <h3>Prototype</h3>
+                        <p>Create scaled-down versions of the product or specific features to investigate solutions.</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-number">5</div>
+                        <h3>Test</h3>
+                        <p>Rigorously test the complete product using the best solutions identified during prototyping.</p>
+                    </div>
+                </div>
+                
+                <div class="two-column" style="margin-top: 60px;">
+                    <div>
+                        <h3>Design Critique Framework</h3>
+                        <p>Effective design critique helps improve work through structured feedback:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-comment" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Describe:</strong> What do you see? (Objective observations)</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-analytics" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Analyze:</strong> How does it work? (Functionality and structure)</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-balance-scale" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Interpret:</strong> What does it mean? (Message and meaning)</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-star" style="color: #00d2ff; margin-right: 10px;"></i> <strong>Judge:</strong> Is it successful? (Effectiveness and quality)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Design Ethics</h3>
+                        <p>Responsible design considers the broader impact on users and society:</p>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-user-shield" style="color: #00d2ff; margin-right: 10px;"></i> Prioritize user privacy and data protection</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-universal-access" style="color: #00d2ff; margin-right: 10px;"></i> Ensure accessibility for all users</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-brain" style="color: #00d2ff; margin-right: 10px;"></i> Avoid dark patterns that manipulate users</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-globe" style="color: #00d2ff; margin-right: 10px;"></i> Consider environmental impact of design choices</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+           
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge insights into emerging technologies and future trends to help businesses and individuals prepare for what's next.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Design Resources</h3>
+                      <a href="ai.html">Technology</a>
+                    <a href="business.html">Business</a>
+                    <a href="creativity.html">Creativity</a>
+                    <a href="personal-growth.html">Personal Growth</a>
+                    <a href="future-trends.html">Future Trends</a>
+                </div>
+                
+                
+    <script>
+        // Simple animation for elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.principle-card, .process-step, .font-example');
+            
+            elements.forEach((element, index) => {
+                // Add delay based on index for staggered animation
+                element.style.animationDelay = `${index * 0.1}s`;
+                element.classList.add('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

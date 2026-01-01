@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Business Strategy | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to business strategy development, strategic planning, competitive advantage, and strategy implementation.">
+    <meta name="keywords"content="business strategy, strategic planning, competitive advantage, SWOT analysis, business model, strategic management, Porter's Five Forces">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2C3E50, #4CA1AF);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(44, 62, 80, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #FF7E5F, #FEB47B);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #FF7E5F;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #FF7E5F, #FEB47B);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #FF7E5F;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #FF7E5F;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #FEB47B;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(254, 180, 123, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(76, 161, 175, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #FF7E5F;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #FEB47B;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: rgba(76, 161, 175, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .research-item h4 {
+            color: #FF7E5F;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: rgba(76, 161, 175, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FF7E5F;
+        }
+        
+        .tip-box h4 {
+            color: #FF7E5F;
+            margin-bottom: 10px;
+        }
+        
+        /* Strategy Framework Visual */
+        .framework-visual {
+            background: rgba(76, 161, 175, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .framework-visual h4 {
+            color: #FF7E5F;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .framework-steps {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .framework-step {
+            background: rgba(44, 62, 80, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            width: 150px;
+            text-align: center;
+        }
+        
+        .framework-step i {
+            font-size: 24px;
+            color: #FEB47B;
+            margin-bottom: 10px;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(44, 62, 80, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #FF7E5F;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #FEB47B;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .framework-steps {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Business <span>Strategy</span></h1>
+            <p>Master the art and science of strategic planning, competitive advantage, and long-term business success.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="business.html">Business</a> / Business Strategy
+        </div>
+
+        <!-- Business Strategy Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-chess"></i> Mastering Business Strategy</h2>
+                <p>Business strategy involves the set of decisions and actions that determine a company's long-term direction and performance. It encompasses analyzing competitive environments, defining strategic positions, making strategic choices, and implementing plans to achieve sustainable competitive advantage.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Strategic Thinking Frameworks</h3>
+                <p>Foundational models and approaches that guide strategic decision-making in organizations.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-clipboard-list"></i> SWOT Analysis</h4>
+                        <p>Strategic planning technique used to identify and analyze:</p>
+                        <ul>
+                            <li><strong>Strengths:</strong> Internal advantages and capabilities</li>
+                            <li><strong>Weaknesses:</strong> Internal limitations and deficiencies</li>
+                            <li><strong>Opportunities:</strong> External factors that could be leveraged</li>
+                            <li><strong>Threats:</strong> External challenges that could cause trouble</li>
+                            <li>Used for strategic positioning and gap analysis</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-fist-raised"></i> Porter's Five Forces</h4>
+                        <p>Framework for analyzing industry competition and profitability:</p>
+                        <ul>
+                            <li><strong>Industry Rivalry:</strong> Intensity of competition among existing firms</li>
+                            <li><strong>Threat of New Entrants:</strong> Barriers to entry in the industry</li>
+                            <li><strong>Bargaining Power of Suppliers:</strong> Supplier concentration and importance</li>
+                            <li><strong>Bargaining Power of Buyers:</strong> Buyer concentration and price sensitivity</li>
+                            <li><strong>Threat of Substitutes:</strong> Availability of alternative products/services</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Strategic Positioning & Competitive Advantage</h3>
+                <p>Approaches to creating unique market positions and sustainable competitive edges.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-bullseye"></i> Generic Competitive Strategies</h4>
+                        <p>Michael Porter's three fundamental strategic positions:</p>
+                        <ul>
+                            <li><strong>Cost Leadership:</strong> Becoming the lowest-cost producer in the industry</li>
+                            <li><strong>Differentiation:</strong> Creating unique products/services valued by customers</li>
+                            <li><strong>Focus:</strong> Serving a narrow market segment more effectively than competitors</li>
+                            <li>Stuck in the Middle: Warning against pursuing multiple strategies poorly</li>
+                            <li>Strategy requires making trade-offs in competitive positioning</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-vector-square"></i> Blue Ocean Strategy</h4>
+                        <p>Creating uncontested market space and making competition irrelevant:</p>
+                        <ul>
+                            <li>Value Innovation: Pursuing differentiation and low cost simultaneously</li>
+                            <li>Four Actions Framework: Eliminate, Reduce, Raise, Create</li>
+                            <li>Breaking the value-cost tradeoff</li>
+                            <li>Reconstructing market boundaries</li>
+                            <li>Focus on non-customers rather than competing over existing customers</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-puzzle-piece"></i> Resource-Based View</h4>
+                        <p>Strategy based on developing valuable, rare, and hard-to-imitate resources:</p>
+                        <ul>
+                            <li>VRIN Framework: Valuable, Rare, Inimitable, Non-substitutable resources</li>
+                            <li>Core Competencies: Collective learning and coordination capabilities</li>
+                            <li>Dynamic Capabilities: Ability to integrate, build, and reconfigure resources</li>
+                            <li>Strategic Assets: Resources that provide competitive advantage</li>
+                            <li>Internal analysis of strengths and capabilities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Strategic Planning Process</h3>
+                <p>Systematic approach to strategy development, implementation, and evaluation.</p>
+                
+                <div class="framework-visual">
+                    <h4>The Strategic Management Process</h4>
+                    <div class="framework-steps">
+                        <div class="framework-step">
+                            <i class="fas fa-binoculars"></i>
+                            <p>Environmental Scanning</p>
+                        </div>
+                        <div class="framework-step">
+                            <i class="fas fa-bullseye"></i>
+                            <p>Strategy Formulation</p>
+                        </div>
+                        <div class="framework-step">
+                            <i class="fas fa-rocket"></i>
+                            <p>Strategy Implementation</p>
+                        </div>
+                        <div class="framework-step">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Evaluation & Control</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-binoculars"></i> Environmental Analysis</h4>
+                        <p>Assessing external and internal factors that impact strategy:</p>
+                        <ul>
+                            <li>PESTEL Analysis: Political, Economic, Social, Technological, Environmental, Legal factors</li>
+                            <li>Industry Life Cycle Analysis: Introduction, Growth, Maturity, Decline stages</li>
+                            <li>Competitor Analysis: Understanding competitors' strategies and capabilities</li>
+                            <li>Internal Resource Audit: Assessing organizational strengths and weaknesses</li>
+                            <li>Stakeholder Analysis: Identifying key stakeholders and their interests</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-bullseye"></i> Strategy Formulation</h4>
+                        <p>Developing strategic alternatives and making strategic choices:</p>
+                        <ul>
+                            <li>Vision and Mission Development: Defining organizational purpose and direction</li>
+                            <li>Strategic Objectives: Setting specific, measurable goals</li>
+                            <li>Strategic Alternatives: Generating different strategic options</li>
+                            <li>Strategy Evaluation: Assessing alternatives against criteria</li>
+                            <li>Strategy Choice: Selecting the optimal strategic direction</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-rocket"></i> Strategy Implementation</h4>
+                        <p>Translating strategy into organizational action and change:</p>
+                        <ul>
+                            <li>Resource Allocation: Distributing resources to support strategy</li>
+                            <li>Organizational Structure: Designing structure to enable strategy</li>
+                            <li>Strategic Leadership: Guiding the organization through change</li>
+                            <li>Performance Management: Aligning systems and processes with strategy</li>
+                            <li>Change Management: Managing resistance and building commitment</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Business Models & Innovation</h3>
+                <p>Designing and innovating how organizations create, deliver, and capture value.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-cube"></i> Business Model Canvas</h4>
+                        <p>Visual framework for developing and documenting business models:</p>
+                        <ul>
+                            <li>Customer Segments: Different groups of people or organizations served</li>
+                            <li>Value Propositions: Products and services that create value for customers</li>
+                            <li>Channels: How value propositions are delivered to customers</li>
+                            <li>Customer Relationships: Types of relationships established with customers</li>
+                            <li>Revenue Streams: Ways the business generates income from value propositions</li>
+                            <li>Key Resources: Assets required to offer and deliver value propositions</li>
+                            <li>Key Activities: Most important activities in operating the business model</li>
+                            <li>Key Partnerships: Network of suppliers and partners</li>
+                            <li>Cost Structure: All costs incurred to operate the business model</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Disruptive Innovation</h4>
+                        <p>Theory explaining how innovation transforms markets and industries:</p>
+                        <ul>
+                            <li>Sustaining vs. Disruptive Innovation: Improvements vs. market-creating changes</li>
+                            <li>Low-End Disruption: Targeting overlooked segments with simpler, cheaper alternatives</li>
+                            <li>New-Market Disruption: Creating new markets by targeting non-consumers</li>
+                            <li>Innovator's Dilemma: Why successful companies struggle with disruptive change</li>
+                            <li>Patterns of Disruption: Common pathways through which disruption occurs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Business Strategy Research</h3>
+                <p>Evidence-based insights from strategic management research and studies.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-chart-line"></i> Strategy Execution Studies</h4>
+                    <p>Key findings about what makes strategy implementation successful:</p>
+                    <ul>
+                        <li>Research shows that 60-90% of strategic plans never fully launch or deliver as intended</li>
+                        <li>Companies with strong execution capabilities achieve 40% higher shareholder returns</li>
+                        <li>Studies indicate that clear communication of strategy improves execution success by 50%</li>
+                        <li>Research reveals that organizations with aligned incentive systems are 2x more likely to achieve strategic objectives</li>
+                        <li>Companies that regularly review strategy performance outperform peers by 30%</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-crown"></i> Competitive Advantage Research</h4>
+                    <p>Studies on what creates sustainable competitive advantage:</p>
+                    <ul>
+                        <li>Research shows that competitive advantage typically erodes within 3-5 years without continuous renewal</li>
+                        <li>Studies indicate that companies focusing on multiple sources of advantage outperform those relying on single advantages</li>
+                        <li>Network effects create some of the most durable competitive advantages in digital businesses</li>
+                        <li>Research reveals that culture and talent development provide more sustainable advantages than product features alone</li>
+                        <li>Companies that continuously innovate maintain advantage 70% longer than those with static advantages</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-chess-board"></i> Strategic Decision-Making Research</h4>
+                    <p>Studies on how organizations make strategic choices:</p>
+                    <ul>
+                        <li>Cognitive biases affect strategic decisions, with overconfidence being particularly problematic</li>
+                        <li>Companies that use diverse teams for strategic decisions make better choices 87% of the time</li>
+                        <li>Research shows that scenario planning improves strategic resilience by 40%</li>
+                        <li>Organizations that regularly challenge assumptions make more adaptive strategic choices</li>
+                        <li>Data-driven decision-making correlates with 5-6% higher productivity and profitability</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Corporate Strategy & Growth</h3>
+                <p>Strategic approaches for multi-business organizations and growth initiatives.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-expand-arrows-alt"></i> Growth Strategies</h4>
+                        <p>Frameworks for pursuing organizational growth and expansion:</p>
+                        <ul>
+                            <li>Ansoff Matrix: Market penetration, product development, market development, diversification</li>
+                            <li>Organic vs. Inorganic Growth: Internal development vs. mergers and acquisitions</li>
+                            <li>Vertical Integration: Controlling more stages of the value chain</li>
+                            <li>Geographic Expansion: Entering new regional or international markets</li>
+                            <li>Strategic Alliances: Partnerships for shared growth objectives</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sitemap"></i> Portfolio Management</h4>
+                        <p>Managing multiple business units and investments strategically:</p>
+                        <ul>
+                            <li>BCG Growth-Share Matrix: Stars, Question Marks, Cash Cows, Dogs classification</li>
+                            <li>GE-McKinsey Matrix: Industry attractiveness and business strength assessment</li>
+                            <li>Resource Allocation: Distributing resources across business units strategically</li>
+                            <li>Parenting Advantage: Creating more value than standalone entities would</li>
+                            <li>Synergy Realization: Capturing value from business unit interactions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Essential Business Strategy Tips</h3>
+                <p>Proven strategies and best practices from leading strategists and successful companies.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4>Start with Why</h4>
+                        <p>Define your purpose before determining your strategy. Companies with a clear purpose outperform the market by 15:1.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Focus on Differentiation</h4>
+                        <p>Avoid competing on the same dimensions as rivals. Create unique value that separates you from competitors.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Think Long-Term</h4>
+                        <p>Balance short-term pressures with long-term vision. The most successful strategies span 5-10 year horizons.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Embrace Strategic Flexibility</h4>
+                        <p>Build options and maintain flexibility to adapt to changing circumstances. Rigid strategies often fail.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Align Organization with Strategy</h4>
+                        <p>Ensure structure, systems, people, and culture all support your strategic direction.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Monitor Execution Relentlessly</h4>
+                        <p>Strategy means little without execution. Track progress and make adjustments as needed.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Challenge Assumptions Regularly</h4>
+                        <p>Question your strategic premises periodically. What was true yesterday may not be true tomorrow.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Balance Analysis with Intuition</h4>
+                        <p>Use data and analysis to inform strategy, but also trust experienced intuition and judgment.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Business Strategy</h3>
+                <p>Emerging trends and evolving approaches in strategic management.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> AI & Strategy</h4>
+                        <ul>
+                            <li>Predictive analytics for strategic forecasting</li>
+                            <li>AI-powered scenario planning and simulation</li>
+                            <li>Algorithmic competitive intelligence</li>
+                            <li>Automated strategy development tools</li>
+                            <li>Real-time strategic adjustment based on data</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Strategic Leadership Development</h4>
+                        <ul>
+                            <li>Develop systems thinking and complexity management skills</li>
+                            <li>Learn to navigate VUCA (Volatile, Uncertain, Complex, Ambiguous) environments</li>
+                            <li>Master digital transformation strategies</li>
+                            <li>Develop sustainability and ESG integration capabilities</li>
+                            <li>Cultivate strategic agility and adaptive leadership</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge business strategy insights to help professionals excel in their careers.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Business Topics</h3>
+                    <a href="entrepreneurship.html">Entrepreneurship</a>
+                    <a href="marketing.html">Marketing</a>
+                    <a href="management.html">Management And Leadership</a>
+                    
+                    <a href="sales.html">Sales</a>
+                    <a href="finance.html">Finance And Accounting</a>
+                    <a href="public-speaking.html">Public speaking And Presentation</a>
+                    <a href="negotiation.html">Negotiation And Communication</a>
+                </div>
+                
+               
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

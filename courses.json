@@ -1,0 +1,24 @@
+[
+  {
+    "id": "course1",
+    "title": "Intro to Web Dev",
+    "author": "Core Insight",
+    "file": "/uploads/atomichabits.pdf",
+    "price": 0,
+    "category": "programming",
+    "description": "Beginner-friendly guide to HTML, CSS, and JavaScript.",
+    "uploadedBy": "admin",
+    "uploadDate": "2023-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "course2",
+    "title": "Advanced CSS",
+    "author": "Core Insight",
+    "file": "/uploads/atomichabits.pdf",
+    "price": 2000,
+    "category": "design",
+    "description": "Master Flexbox, Grid, animations, and responsive design.",
+    "uploadedBy": "admin",
+    "uploadDate": "2023-01-02T00:00:00.000Z"
+  }
+]

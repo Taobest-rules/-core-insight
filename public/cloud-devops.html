@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Cloud Computing & DevOps | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to Cloud Computing, DevOps practices, CI/CD pipelines, containerization, and infrastructure as code. Learn everything about modern software delivery.">
+    <meta name="keywords" content="cloud computing, devops, aws, azure, google cloud, docker, kubernetes, ci/cd, infrastructure as code, microservices, cloud services">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #f9d342;
+        }
+        
+        /* Hero Section -->
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #ff6f61;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #f9d342;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #ff6f61;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 111, 97, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(40, 39, 60, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #f9d342;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #ff6f61;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #f9d342;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #ff6f61;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Cloud & <span>DevOps</span></h1>
+            <p>Comprehensive guide to cloud computing, DevOps practices, and modern software delivery methodologies.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="technology.html">Technology</a> / Cloud & DevOps
+        </div>
+
+        <!-- Cloud & DevOps Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-cloud"></i> Understanding Cloud Computing & DevOps</h2>
+                <p>Cloud Computing provides on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user. DevOps is a set of practices that combines software development (Dev) and IT operations (Ops) aimed at shortening the systems development life cycle and providing continuous delivery with high software quality.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Cloud Computing Models</h3>
+                <p>Cloud computing offers different service models to meet various business needs and technical requirements.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-layer-group"></i> Service Models</h4>
+                        <ul>
+                            <li><strong>Infrastructure as a Service (IaaS):</strong> Provides virtualized computing resources over the internet</li>
+                            <li><strong>Platform as a Service (PaaS):</strong> Provides hardware and software tools over the internet</li>
+                            <li><strong>Software as a Service (SaaS):</strong> Delivers software applications over the internet</li>
+                            <li><strong>Function as a Service (FaaS):</strong> Serverless computing that runs code in response to events</li>
+                            <li><strong>Container as a Service (CaaS):</strong> Container-based virtualization as a service</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-server"></i> Deployment Models</h4>
+                        <ul>
+                            <li><strong>Public Cloud:</strong> Services delivered over the public internet</li>
+                            <li><strong>Private Cloud:</strong> Cloud infrastructure for exclusive use by a single organization</li>
+                            <li><strong>Hybrid Cloud:</strong> Combination of public and private clouds</li>
+                            <li><strong>Multi-Cloud:</strong> Use of multiple cloud computing services</li>
+                            <li><strong>Community Cloud:</strong> Shared infrastructure for specific communities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Major Cloud Providers</h3>
+                <p>Several major providers dominate the cloud computing market, each offering a comprehensive suite of services.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fab fa-aws"></i> Amazon Web Services (AWS)</h4>
+                        <p>The most comprehensive and widely adopted cloud platform, offering over 200 fully featured services.</p>
+                        <ul>
+                            <li>EC2 (Elastic Compute Cloud)</li>
+                            <li>S3 (Simple Storage Service)</li>
+                            <li>Lambda (Serverless Computing)</li>
+                            <li>RDS (Relational Database Service)</li>
+                            <li>VPC (Virtual Private Cloud)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-microsoft"></i> Microsoft Azure</h4>
+                        <p>Cloud computing service created by Microsoft for building, testing, deploying, and managing applications.</p>
+                        <ul>
+                            <li>Virtual Machines</li>
+                            <li>Azure App Service</li>
+                            <li>Azure Functions</li>
+                            <li>Azure SQL Database</li>
+                            <li>Azure Active Directory</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-google"></i> Google Cloud Platform (GCP)</h4>
+                        <p>Suite of cloud computing services that runs on the same infrastructure that Google uses internally.</p>
+                        <ul>
+                            <li>Compute Engine</li>
+                            <li>Cloud Storage</li>
+                            <li>Cloud Functions</li>
+                            <li>BigQuery</li>
+                            <li>Kubernetes Engine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Core DevOps Principles</h3>
+                <p>DevOps represents a cultural shift that brings development and operations teams together to deliver software more efficiently.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Continuous Practices</h4>
+                        <ul>
+                            <li><strong>Continuous Integration (CI):</strong> Merging code changes frequently</li>
+                            <li><strong>Continuous Delivery (CD):</strong> Ensuring code can be released to production at any time</li>
+                            <li><strong>Continuous Deployment:</strong> Automatically deploying every change that passes tests</li>
+                            <li><strong>Continuous Monitoring:</strong> Monitoring applications and infrastructure</li>
+                            <li><strong>Continuous Testing:</strong> Automated testing throughout the development lifecycle</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-people-carry"></i> Cultural Aspects</h4>
+                        <ul>
+                            <li><strong>Collaboration:</strong> Breaking down silos between teams</li>
+                            <li><strong>Automation:</strong> Reducing manual processes and human error</li>
+                            <li><strong>Measurement:</strong> Using metrics to drive improvement</li>
+                            <li><strong>Sharing:</strong> Promoting knowledge sharing and transparency</li>
+                            <li><strong>Learning:</strong> Encouraging experimentation and learning from failures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Containerization and Orchestration</h3>
+                <p>Containers package applications with their dependencies, and orchestration manages containerized applications at scale.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fab fa-docker"></i> Docker</h4>
+                        <p>Platform for developing, shipping, and running applications in containers.</p>
+                        <ul>
+                            <li>Container images and Dockerfile</li>
+                            <li>Docker Hub for image distribution</li>
+                            <li>Docker Compose for multi-container applications</li>
+                            <li>Docker Swarm for clustering</li>
+                            <li>Volume management for persistent data</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cubes"></i> Kubernetes</h4>
+                        <p>Open-source system for automating deployment, scaling, and management of containerized applications.</p>
+                        <ul>
+                            <li>Pods, Services, and Deployments</li>
+                            <li>ReplicaSets for scaling</li>
+                            <li>ConfigMaps and Secrets</li>
+                            <li>Ingress for external access</li>
+                            <li>Helm for package management</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Container Orchestration</h4>
+                        <ul>
+                            <li>Automatic bin packing</li>
+                            <li>Self-healing capabilities</li>
+                            <li>Horizontal scaling</li>
+                            <li>Service discovery and load balancing</li>
+                            <li>Rolling updates and rollbacks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Infrastructure as Code (IaC)</h3>
+                <p>Managing and provisioning infrastructure through code instead of manual processes.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-code"></i> IaC Tools</h4>
+                        <ul>
+                            <li><strong>Terraform:</strong> Infrastructure provisioning tool</li>
+                            <li><strong>Ansible:</strong> Configuration management and automation</li>
+                            <li><strong>Chef:</strong> Infrastructure automation framework</li>
+                            <li><strong>Puppet:</strong> Configuration management tool</li>
+                            <li><strong>CloudFormation:</strong> AWS-specific infrastructure as code</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-check-double"></i> IaC Benefits</h4>
+                        <ul>
+                            <li>Consistency across environments</li>
+                            <li>Version control for infrastructure</li>
+                            <li>Faster provisioning</li>
+                            <li>Reduced human error</li>
+                            <li>Documentation through code</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>CI/CD Pipelines</h3>
+                <p>Continuous Integration and Continuous Delivery pipelines automate the process of software delivery.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-tasks"></i> Pipeline Components</h4>
+                        <ul>
+                            <li>Source code management (Git)</li>
+                            <li>Build automation tools</li>
+                            <li>Testing frameworks</li>
+                            <li>Artifact repositories</li>
+                            <li>Deployment automation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> CI/CD Tools</h4>
+                        <ul>
+                            <li><strong>Jenkins:</strong> Open-source automation server</li>
+                            <li><strong>GitLab CI/CD:</strong> Integrated CI/CD solution</li>
+                            <li><strong>GitHub Actions:</strong> CI/CD built into GitHub</li>
+                            <li><strong>CircleCI:</strong> Cloud-based CI/CD service</li>
+                            <li><strong>Azure DevOps:</strong> Microsoft's CI/CD platform</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Monitoring and Observability</h3>
+                <p>Monitoring system health and performance is crucial for maintaining reliable applications.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-chart-line"></i> Monitoring Tools</h4>
+                        <ul>
+                            <li><strong>Prometheus:</strong> Open-source monitoring system</li>
+                            <li><strong>Grafana:</strong> Analytics and monitoring platform</li>
+                            <li><strong>ELK Stack:</strong> Elasticsearch, Logstash, and Kibana</li>
+                            <li><strong>Datadog:</strong> Monitoring service for cloud applications</li>
+                            <li><strong>New Relic:</strong> Application performance monitoring</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-binoculars"></i> Observability Pillars</h4>
+                        <ul>
+                            <li><strong>Metrics:</strong> Numerical measurements over time</li>
+                            <li><strong>Logs:</strong> Timestamped records of events</li>
+                            <li><strong>Traces:</strong> Following requests through distributed systems</li>
+                            <li><strong>Profiles:</strong> Resource utilization analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Getting Started with Cloud & DevOps</h3>
+                <p>Beginning your journey in cloud computing and DevOps requires foundational knowledge and hands-on experience.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-road"></i> Learning Path</h4>
+                        <ul>
+                            <li>Learn a programming language (Python, Go)</li>
+                            <li>Understand Linux fundamentals</li>
+                            <li>Learn about networking concepts</li>
+                            <li>Study cloud computing basics</li>
+                            <li>Practice with containerization</li>
+                            <li>Explore CI/CD pipelines</li>
+                            <li>Gain hands-on experience with cloud platforms</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-award"></i> Certifications</h4>
+                        <ul>
+                            <li><strong>AWS Certified Solutions Architect</strong></li>
+                            <li><strong>Microsoft Azure Administrator</strong></li>
+                            <li><strong>Google Cloud Associate Engineer</strong></li>
+                            <li><strong>Docker Certified Associate</strong></li>
+                            <li><strong>Certified Kubernetes Administrator (CKA)</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge technology insights and education to help you stay ahead in the digital world.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Technology Topics</h3>
+                    <a href="ai.html">Artificial Intelligence</a>
+                    <a href="web-development.html">Web Development</a>
+                    <a href="cybersecurity.html">Cybersecurity</a>
+                    <a href="cloud-devops.html">Cloud & DevOps</a>
+                </div>
+                
+                
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

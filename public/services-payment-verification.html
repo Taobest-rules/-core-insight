@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Verification - Core Insight Services</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .success { color: green; }
+        .loading { color: orange; }
+    </style>
+</head>
+<body>
+    <div id="verificationStatus">
+        <h1>Verifying Your Payment...</h1>
+        <p>Please wait while we confirm your transaction.</p>
+    </div>
+    
+    <script>
+        async function verifyPayment() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const transactionId = urlParams.get('transaction_id');
+            
+            try {
+                const response = await fetch(`/api/verify-service-payment/${transactionId}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('verificationStatus').innerHTML = `
+                        <h1 class="success">Payment Successful! ✅</h1>
+                        <p>Your payment has been verified successfully.</p>
+                        <p>You now have full access to our services platform.</p>
+                        <a href="/services.html">Return to Services</a>
+                    `;
+                } else {
+                    window.location.href = '/services-payment-failed.html';
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                window.location.href = '/services-payment-failed.html';
+            }
+        }
+        
+        verifyPayment();
+    </script>
+</body>
+</html>

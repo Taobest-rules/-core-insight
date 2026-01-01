@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contact & Support | Core Insight Marketplace</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-dark: #0f172a;
+      --secondary-dark: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-gold: #f59e0b;
+      --text-light: #f8fafc;
+      --text-gray: #94a3b8;
+      --text-muted: #64748b;
+      --card-bg: #1e293b;
+      --card-bg-hover: #2d3748;
+      --border: #334155;
+      --border-light: #475569;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--primary-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    header {
+      height: 70px;
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav {
+      display: flex;
+      gap: 28px;
+      align-items: center;
+    }
+
+    nav a {
+      color: var(--text-gray);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 8px 4px;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    nav a:hover {
+      color: var(--text-light);
+    }
+
+    nav a.active {
+      color: var(--accent);
+    }
+
+    nav a.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* Removed header-actions styles */
+
+    main {
+      padding-top: calc(70px + 32px);
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-left: 28px;
+      padding-right: 28px;
+      min-height: calc(100vh - 200px);
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 60px;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      color: var(--text-gray);
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Contact Container */
+    .contact-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    @media (max-width: 900px) {
+      .contact-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+    }
+
+    /* Contact Form */
+    .contact-form {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .form-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .form-title h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+
+    .form-title i {
+      color: var(--accent);
+      font-size: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-light);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .form-label .required {
+      color: var(--danger);
+      margin-left: 4px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--primary-dark);
+      color: var(--text-light);
+      font-size: 15px;
+      transition: var(--transition);
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-textarea {
+      min-height: 150px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-size: 20px;
+      padding-right: 44px;
+    }
+
+    .priority-badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .priority-badge {
+      flex: 1;
+      min-width: 120px;
+      background: var(--primary-dark);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .priority-badge:hover {
+      border-color: var(--accent);
+    }
+
+    .priority-badge.selected {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .priority-badge i {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .priority-badge.high i {
+      color: var(--danger);
+    }
+
+    .priority-badge.medium i {
+      color: var(--warning);
+    }
+
+    .priority-badge.low i {
+      color: var(--success);
+    }
+
+    .priority-badge span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .file-upload {
+      position: relative;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .file-upload input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-upload-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--primary-dark);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .file-upload-label:hover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .file-upload-label i {
+      color: var(--accent);
+      font-size: 20px;
+    }
+
+    .file-upload-label span {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .form-btn {
+      flex: 1;
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .form-btn.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .form-btn.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .form-btn.secondary {
+      background: transparent;
+      color: var(--text-gray);
+      border: 1px solid var(--border);
+    }
+
+    .form-btn.secondary:hover {
+      background: var(--card-bg-hover);
+      color: var(--text-light);
+    }
+
+    .form-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Contact Info */
+    .contact-info {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      border: 1px solid var(--border);
+    }
+
+    .contact-info h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 30px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+
+    .contact-info h2 i {
+      color: var(--accent);
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .info-item:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .info-item i {
+      color: var(--accent);
+      font-size: 20px;
+      margin-top: 2px;
+    }
+
+    .info-content h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .info-content p {
+      margin: 0;
+      color: var(--text-gray);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-content a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .info-content a:hover {
+      text-decoration: underline;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-section h2 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+
+    .faq-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .faq-item.active {
+      border-color: var(--accent);
+    }
+
+    .faq-question {
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .faq-question h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .faq-question i {
+      color: var(--accent);
+      transition: var(--transition);
+    }
+
+    .faq-item.active .faq-question i {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      padding: 0 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .faq-item.active .faq-answer {
+      padding: 20px;
+      max-height: 500px;
+    }
+
+    .faq-answer p {
+      margin: 0;
+      color: var(--text-gray);
+      line-height: 1.6;
+    }
+
+    /* Form Messages */
+    .form-message {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      display: none;
+    }
+
+    .form-message.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 4px solid var(--success);
+      color: var(--success);
+    }
+
+    .form-message.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .form-message.info {
+      display: block;
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .form-message p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .form-message strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--secondary-dark);
+      padding: 40px 28px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 40px;
+    }
+
+    .footer-section h3 {
+      color: var(--text-light);
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .footer-section p {
+      color: var(--text-gray);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: var(--text-gray);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .copyright {
+      text-align: center;
+      padding-top: 30px;
+      margin-top: 30px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 9999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast i {
+      font-size: 20px;
+    }
+
+    .toast.success i {
+      color: var(--success);
+    }
+
+    .toast.error i {
+      color: var(--danger);
+    }
+
+    .toast.warning i {
+      color: var(--warning);
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+
+    .toast-message {
+      color: var(--text-gray);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-gray);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .toast-close:hover {
+      color: var(--text-light);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      main {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .contact-form, .contact-info {
+        padding: 30px 20px;
+      }
+      
+      .form-title h2, .contact-info h2 {
+        font-size: 22px;
+      }
+      
+      .priority-badges {
+        flex-direction: column;
+      }
+      
+      .priority-badge {
+        min-width: 100%;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+      
+      .hero p {
+        font-size: 1rem;
+      }
+      
+      .form-title h2, .contact-info h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><i class="fas fa-store"></i></div>
+      <div class="logo-text">Core Insight</div>
+    </div>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="knowledge-hub.html">Knowledge Hub</a>
+      <a href="services.html">Services</a>
+      <a href="courses.html">Courses</a>
+      <a href="products.html">Products</a>
+      <a href="contact.html" class="active">Contact</a>
+    </nav>
+
+    <!-- Login/Signup buttons removed -->
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Contact Support</h1>
+      <p>Have questions, complaints, or need assistance? We're here to help. Submit your complaint and we'll respond directly to your email.</p>
+    </section>
+
+    <!-- Contact Container -->
+    <div class="contact-container">
+      <!-- Contact Form -->
+      <div class="contact-form">
+        <div class="form-title">
+          <i class="fas fa-headset"></i>
+          <h2>Submit a Complaint</h2>
+        </div>
+
+        <form id="complaintForm">
+          <div class="form-group">
+            <label class="form-label">Your Name <span class="required">*</span></label>
+            <input type="text" id="contactName" class="form-input" placeholder="John Doe" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your Email <span class="required">*</span></label>
+            <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Subject <span class="required">*</span></label>
+            <select id="contactSubject" class="form-select" required>
+              <option value="">Select a subject</option>
+              <option value="Technical Issue">Technical Issue</option>
+              <option value="Product Complaint">Product Complaint</option>
+              <option value="Seller Issue">Seller Issue</option>
+              <option value="Payment Problem">Payment Problem</option>
+              <option value="Refund Request">Refund Request</option>
+              <option value="Account Issue">Account Issue</option>
+              <option value="Feature Suggestion">Feature Suggestion</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <div class="priority-badges">
+              <div class="priority-badge low" data-priority="Low">
+                <i class="fas fa-info-circle"></i>
+                <span>Low Priority</span>
+              </div>
+              <div class="priority-badge medium selected" data-priority="Medium">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Medium Priority</span>
+              </div>
+              <div class="priority-badge high" data-priority="High">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>High Priority</span>
+              </div>
+            </div>
+            <input type="hidden" id="contactPriority" value="Medium">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message <span class="required">*</span></label>
+            <textarea id="contactMessage" class="form-textarea" placeholder="Please describe your issue in detail..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Order ID (if applicable)</label>
+            <input type="text" id="orderId" class="form-input" placeholder="e.g., ORD-12345">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attach Screenshots (Optional)</label>
+            <div class="file-upload">
+              <input type="file" id="attachments" accept="image/*,.pdf,.doc,.docx" multiple>
+              <label for="attachments" class="file-upload-label">
+                <i class="fas fa-paperclip"></i>
+                <span>Click to attach files</span>
+              </label>
+            </div>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">
+              Max file size: 5MB • Supported: JPG, PNG, PDF, DOC
+            </p>
+          </div>
+
+          <div class="form-message info" id="infoMessage">
+            <strong>Note:</strong>
+            <p>Your complaint will be sent to our support team at suppourtcoreinsight@gmail.com. You'll also receive a copy of your complaint.</p>
+          </div>
+
+          <div class="form-message success" id="successMessage" style="display: none;">
+            <strong>✓ Complaint Submitted Successfully!</strong>
+            <p>Your complaint has been sent to suppourtcoreinsight@gmail.com. You should receive a confirmation email shortly.</p>
+          </div>
+
+          <div class="form-message error" id="errorMessage" style="display: none;">
+            <strong>✗ Error</strong>
+            <p id="errorText">There was an error submitting your complaint. Please try again.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="submitBtn" class="form-btn primary">
+              <i class="fas fa-paper-plane"></i>
+              Submit Complaint
+            </button>
+            <button type="button" onclick="resetForm()" class="form-btn secondary">
+              <i class="fas fa-redo"></i>
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="contact-info">
+        <h2><i class="fas fa-info-circle"></i> Contact Information</h2>
+        
+        <div class="info-grid">
+          <div class="info-item">
+            <i class="fas fa-envelope"></i>
+            <div class="info-content">
+              <h3>Primary Support Email</h3>
+              <p>
+                <a href="mailto:suppourtcoreinsight@gmail.com">suppourtcoreinsight@gmail.com</a><br>
+                <small>For complaints and urgent issues</small>
+              </p>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <i class="fas fa-clock"></i>
+            <div class="info-content">
+              <h3>Response Time</h3>
+              <p>
+                Monday - Friday: 9 AM - 6 PM EST<br>
+                Weekends: 10 AM - 4 PM EST<br>
+                <small>We aim to respond within 24 hours</small>
+              </p>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <i class="fas fa-headset"></i>
+            <div class="info-content">
+              <h3>Live Support</h3>
+              <p>
+                Available Monday-Friday<br>
+                9:00 AM - 5:00 PM EST<br>
+                <small>Email is our primary support channel</small>
+              </p>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <i class="fas fa-shipping-fast"></i>
+            <div class="info-content">
+              <h3>Order-Related Issues</h3>
+              <p>
+                Include your Order ID<br>
+                Provide screenshots if possible<br>
+                Mention transaction details<br>
+                <small>Speeds up resolution process</small>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-item" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+          <i class="fas fa-lightbulb" style="color: var(--success);"></i>
+          <div class="info-content">
+            <h3>Best Practices</h3>
+            <p>
+              • Be specific and detailed<br>
+              • Include relevant order IDs<br>
+              • Attach screenshots if available<br>
+              • Check your spam folder for replies
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+      <h2>Frequently Asked Questions</h2>
+      
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>How will I know if my complaint was received?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>You'll receive an automatic confirmation email to the address you provided. This email serves as proof that we've received your complaint. If you don't see it within 5 minutes, please check your spam folder.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What's the typical response time?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>We aim to respond within 24 hours for urgent issues and 48 hours for non-urgent matters. High priority complaints receive faster attention, usually within 4-8 hours during business hours.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>Can I follow up on my complaint?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Yes! Reply to the confirmation email you receive, and it will be added to your existing ticket. This helps us track the complete conversation history and provide better support.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What information should I include?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Include: Your full name, email address, order ID (if applicable), detailed description of the issue, steps to reproduce (for technical issues), and any relevant screenshots or documents.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>Is my personal information secure?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Yes. We use secure email protocols and your information is protected. We never share your personal details with third parties without your consent, except as required by law.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Core Insight Marketplace</h3>
+        <p>Your trusted platform for digital and physical products. Connecting creators with customers worldwide.</p>
+        <p><i class="fas fa-envelope"></i> suppourtcoreinsight@gmail.com</p>
+      </div>
+
+      <div class="footer-section">
+        <h3>Quick Links</h3>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="products.html">Products</a></li>
+          <li><a href="courses.html">Courses</a></li>
+          <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h3>Support</h3>
+        <ul class="footer-links">
+          <li><a href="contact.html">Contact Us</a></li>
+          <li><a href="#">Help Center</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h3>Connect With Us</h3>
+        <p>Follow us for updates and announcements.</p>
+        <div style="display: flex; gap: 15px; margin-top: 15px;">
+          <a href="#" style="color: var(--text-gray);"><i class="fab fa-twitter fa-lg"></i></a>
+          <a href="#" style="color: var(--text-gray);"><i class="fab fa-facebook fa-lg"></i></a>
+          <a href="#" style="color: var(--text-gray);"><i class="fab fa-instagram fa-lg"></i></a>
+          <a href="#" style="color: var(--text-gray);"><i class="fab fa-linkedin fa-lg"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="copyright">
+      © 2024 Core Insight Marketplace. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    // Toast Notification System
+    function showToast(title, message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i>
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close">&times;</button>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      });
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    // Priority Selection
+    document.querySelectorAll('.priority-badge').forEach(badge => {
+      badge.addEventListener('click', () => {
+        document.querySelectorAll('.priority-badge').forEach(b => b.classList.remove('selected'));
+        badge.classList.add('selected');
+        document.getElementById('contactPriority').value = badge.getAttribute('data-priority');
+      });
+    });
+
+    // FAQ Toggle
+    document.querySelectorAll('.faq-question').forEach(question => {
+      question.addEventListener('click', () => {
+        const item = question.parentElement;
+        item.classList.toggle('active');
+      });
+    });
+
+    // File upload preview
+    document.getElementById('attachments').addEventListener('change', function(e) {
+      const files = e.target.files;
+      const label = document.querySelector('.file-upload-label span');
+      
+      if (files.length > 0) {
+        if (files.length === 1) {
+          label.textContent = files[0].name;
+        } else {
+          label.textContent = `${files.length} files selected`;
+        }
+      } else {
+        label.textContent = 'Click to attach files';
+      }
+    });
+
+    // Reset form
+    function resetForm() {
+      document.getElementById('complaintForm').reset();
+      document.querySelector('.priority-badge.medium').click();
+      document.querySelector('.file-upload-label span').textContent = 'Click to attach files';
+      document.getElementById('successMessage').style.display = 'none';
+      document.getElementById('errorMessage').style.display = 'none';
+      showToast('Form Reset', 'All fields have been cleared.', 'info');
+    }
+
+    // Form Submission
+    document.getElementById('complaintForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const successMessage = document.getElementById('successMessage');
+      const errorMessage = document.getElementById('errorMessage');
+      const errorText = document.getElementById('errorText');
+      
+      // Hide previous messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+      
+      // Disable submit button
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+      
+      try {
+        // Collect form data
+        const formData = {
+          name: document.getElementById('contactName').value.trim(),
+          email: document.getElementById('contactEmail').value.trim(),
+          subject: document.getElementById('contactSubject').value,
+          priority: document.getElementById('contactPriority').value,
+          message: document.getElementById('contactMessage').value.trim(),
+          orderId: document.getElementById('orderId').value.trim()
+        };
+        
+        // Validation
+        if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+          throw new Error('Please fill in all required fields');
+        }
+        
+        if (!isValidEmail(formData.email)) {
+          throw new Error('Please enter a valid email address');
+        }
+        
+        // Send complaint via backend API
+        await sendComplaint(formData);
+        
+        // Show success
+        successMessage.style.display = 'block';
+        showToast('Success!', 'Your complaint has been submitted successfully.', 'success');
+        
+        // Scroll to success message
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Reset form after 3 seconds
+        setTimeout(resetForm, 3000);
+        
+      } catch (error) {
+        // Show error
+        errorText.textContent = error.message;
+        errorMessage.style.display = 'block';
+        showToast('Error', error.message, 'error');
+        
+        // Scroll to error
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Complaint';
+      }
+    });
+
+    // Email validation
+    function isValidEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+
+    // Send complaint to backend
+   // Send complaint to backend
+async function sendComplaint(formData) {
+  console.log('📤 Sending complaint:', formData);
+  
+  const response = await fetch('/api/send-complaint', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(formData)
+  });
+  
+  console.log('📥 Response status:', response.status);
+  
+  const data = await response.json();
+  console.log('📥 Response data:', data);
+  
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to submit complaint. Please try again.');
+  }
+  
+  return data;
+}
+  </script>
+
+</body>
+</html>

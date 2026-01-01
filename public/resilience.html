@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resilience & Adaptability | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to building resilience and adaptability with research-backed strategies for overcoming challenges, managing stress, and thriving through change.">
+    <meta name="keywords" content="resilience, adaptability, stress management, coping strategies, mental toughness, change management, growth mindset">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #0f2027;
+            --primary-medium: #203a43;
+            --primary-light: #2c5364;
+            --accent-blue: #4682B4;
+            --accent-teal: #20B2AA;
+            --accent-seagreen: #2E8B57;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(40, 59, 75, 0.7);
+            --header-bg: rgba(15, 32, 39, 0.95);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-medium), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-blue);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-blue);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-seagreen);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-teal);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(32, 178, 170, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-teal);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-blue);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-blue); /* Fixed variable name */
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(70, 130, 180, 0.3);
+        }
+        
+        th {
+            background-color: rgba(15, 32, 39, 0.5);
+            color: var(--accent-blue);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(70, 130, 180, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-teal);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-teal);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent-blue);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-teal);
+            transform: translateY(-3px);
+        }
+        
+        /* Footer Styles */
+        footer {
+            background: var(--header-bg);
+            padding: 50px 0 20px;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-teal);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-blue);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            background: var(--accent-blue);
+            transform: translateY(-3px);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 15px;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .hero p {
+                font-size: 18px;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tip-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="personal-growth.html" class="active">Personal Growth</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Resilience & <span>Adaptability</span></h1>
+            <p>Develop the capacity to navigate challenges, bounce back from setbacks, and thrive in the face of change with evidence-based strategies for mental toughness and flexibility.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="personal-growth.html">Personal Growth</a> <span>/</span> Resilience & Adaptability
+        </div>
+
+        <!-- Resilience & Adaptability Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-feather-alt"></i> The Science of Bouncing Back</h2>
+                <p>Resilience is not an innate trait but a set of skills that can be developed. Research shows that specific practices, mindsets, and strategies can significantly enhance our ability to navigate challenges and adapt to change.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-shield-alt"></i> Foundations of Resilience</h3>
+                <p>Core components that contribute to psychological resilience and adaptability.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Cognitive Flexibility</h4>
+                        <p>The mental ability to switch between different concepts and adapt thinking:</p>
+                        <ul>
+                            <li>Ability to consider multiple perspectives</li>
+                            <li>Willingness to adjust beliefs in light of new evidence</li>
+                            <li>Capacity to reframe challenges as opportunities</li>
+                            <li>Skill in generating alternative solutions</li>
+                            <li>Openness to new experiences and ideas</li>
+                            <li>Balancing emotion and logic in decision-making</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-heart"></i> Emotional Regulation</h4>
+                        <p>Managing and responding to emotional experiences effectively:</p>
+                        <ul>
+                            <li>Identifying and labeling emotions accurately</li>
+                            <li>Understanding the causes and effects of emotions</li>
+                            <li>Developing healthy coping strategies for distress</li>
+                            <li>Maintaining emotional equilibrium during challenges</li>
+                            <li>Channeling emotional energy productively</li>
+                            <li>Practicing self-compassion during difficult times</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hands-helping"></i> Social Support Systems</h4>
+                        <p>The role of relationships in building resilience:</p>
+                        <ul>
+                            <li>Quality connections that provide emotional support</li>
+                            <li>Practical assistance during challenging times</li>
+                            <li>Diverse network for different types of support</li>
+                            <li>Reciprocal relationships that benefit all parties</li>
+                            <li>Community involvement and sense of belonging</li>
+                            <li>Mentorship and guidance from experienced individuals</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The oak fought the wind and was broken, the willow bent when it must and survived."</p>
+                    <footer>— Robert Jordan</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> Research on Resilience & Adaptability</h3>
+                <p>Scientific evidence and studies on what enables people to thrive through adversity.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-child"></i> Kauai Longitudinal Study</h4>
+                    <p>Landmark research on resilience in adverse circumstances:</p>
+                    <ul>
+                        <li>Followed 698 children from birth through adulthood</li>
+                        <li>One-third of high-risk children developed into competent adults</li>
+                        <li>Protective factors: temperament, parenting quality, community support</li>
+                        <li>Turning points throughout life allowed for positive development</li>
+                        <li>Resilience emerged from interactions between individuals and their environments</li>
+                        <li>Demonstrated that resilience can develop at any life stage</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-university"></i> University of Pennsylvania Resilience Research</h4>
+                    <p>Martin Seligman's work on learned optimism and resilience:</p>
+                    <ul>
+                        <li>Pessimistic explanatory style correlates with higher depression rates</li>
+                        <li>Optimistic explanatory style can be learned through cognitive techniques</li>
+                        <li>ABCDE model for disputing pessimistic thoughts</li>
+                        <li>Resilience training reduces depression and anxiety symptoms</li>
+                        <li>Positive psychology interventions boost wellbeing and resilience</li>
+                        <li>Character strengths serve as buffers against adversity</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Neuroscience of Resilience</h4>
+                    <p>How the brain supports adaptive responses to stress:</p>
+                    <ul>
+                        <li>Prefrontal cortex regulation of amygdala responses</li>
+                        <li>Neuroplasticity allows brain adaptation to stress</li>
+                        <li>BDNF (brain-derived neurotrophic factor) promotes neural resilience</li>
+                        <li>Hippocampal volume changes in response to stress management</li>
+                        <li>Default mode network activity related to rumination vs. adaptation</li>
+                        <li>Mindfulness practices change brain structure and function toward resilience</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-tools"></i> Resilience Building Techniques</h3>
+                <p>Practical methods and approaches for developing greater resilience.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-exchange-alt"></i> Cognitive Restructuring</h4>
+                        <p>Changing thought patterns to build resilience:</p>
+                        <ul>
+                            <li>Identifying cognitive distortions and thinking traps</li>
+                            <li>Challenging catastrophic thinking patterns</li>
+                            <li>Developing balanced and realistic perspectives</li>
+                            <li>Practicing thought stopping and redirection</li>
+                            <li>Creating alternative narratives for challenges</li>
+                            <li>Building evidence against negative automatic thoughts</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-procedures"></i> Stress Inoculation Training</h4>
+                        <p>Gradual exposure to build stress tolerance:</p>
+                        <ul>
+                            <li>Conceptualization phase: understanding stress responses</li>
+                            <li>Skills acquisition: learning coping techniques</li>
+                            <li>Application phase: practicing skills in controlled situations</li>
+                            <li>Gradual exposure to increasing challenges</li>
+                            <li>Building confidence in coping abilities</li>
+                            <li>Generalization of skills to real-world situations</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hands"></i> Mindfulness & Acceptance Practices</h4>
+                        <p>Developing present-moment awareness for resilience:</p>
+                        <ul>
+                            <li>Mindfulness meditation for stress reduction</li>
+                            <li>Acceptance of difficult emotions without avoidance</li>
+                            <li>Values clarification to guide action during challenges</li>
+                            <li>Committed action aligned with values despite discomfort</li>
+                            <li>Defusion from unhelpful thoughts and stories</li>
+                            <li>Present-moment focus to reduce anxiety about future</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"That which does not kill us makes us stronger."</p>
+                    <footer>— Friedrich Nietzsche</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-sync-alt"></i> Adaptability Skills</h3>
+                <p>Developing the capacity to adjust to new conditions and thrive in changing environments.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-balance-scale"></i> Adaptability Competencies Framework</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Competency</th>
+                                <th>Key Skills</th>
+                                <th>Development Strategies</th>
+                                <th>Application Examples</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Cognitive Flexibility</td>
+                                <td>Perspective-taking, creative thinking, mental agility</td>
+                                <td>Learning new skills, exposure to diverse viewpoints, brain teasers</td>
+                                <td>Problem-solving in uncertain conditions, adapting strategies</td>
+                            </tr>
+                            <tr>
+                                <td>Emotional Adaptability</td>
+                                <td>Emotional regulation, stress tolerance, impulse control</td>
+                                <td>Mindfulness practices, emotion labeling, distress tolerance exercises</td>
+                                <td>Maintaining composure during change, managing transition stress</td>
+                            </tr>
+                            <tr>
+                                <td>Dispositional Flexibility</td>
+                                <td>Openness, optimism, tolerance for ambiguity</td>
+                                <td>Challenging comfort zones, cultivating curiosity, embracing novelty</td>
+                                <td>Adjusting to new roles, welcoming organizational changes</td>
+                            </tr>
+                            <tr>
+                                <td>Interpersonal Adaptability</td>
+                                <td>Social perceptiveness, communication flexibility, cultural intelligence</td>
+                                <td>Active listening, cross-cultural experiences, feedback seeking</td>
+                                <td>Working in diverse teams, adjusting communication styles</td>
+                            </tr>
+                            <tr>
+                                <td>Change Navigation</td>
+                                <td>Transition management, uncertainty tolerance, future orientation</td>
+                                <td>Scenario planning, change exposure, developing contingency plans</td>
+                                <td>Leading through organizational change, career transitions</td>
+                            </tr>
+                            <tr>
+                                <td>Learning Agility</td>
+                                <td>Rapid learning, unlearning, applying knowledge in new contexts</td>
+                                <td>Deliberate practice, seeking stretch assignments, reflection</td>
+                                <td>Mastering new technologies, adapting to industry disruptions</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-wind"></i> Navigating Uncertainty</h4>
+                        <p>Strategies for thriving in ambiguous situations:</p>
+                        <ul>
+                            <li>Developing tolerance for ambiguity and uncertainty</li>
+                            <li>Focusing on controllable factors rather than worrying about unknowns</li>
+                            <li>Creating flexible plans with multiple options</li>
+                            <li>Practicing decision-making with incomplete information</li>
+                            <li>Building safety nets and contingency plans</li>
+                            <li>Viewing uncertainty as opportunity rather than threat</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync"></i> Transition Management</h4>
+                        <p>Navigating life and work changes effectively:</p>
+                        <ul>
+                            <li>Understanding the stages of transition</li>
+                            <li>Creating rituals to mark endings and new beginnings</li>
+                            <li>Building bridges between old and new situations</li>
+                            <li>Managing the neutral zone between endings and beginnings</li>
+                            <li>Developing identity flexibility during role changes</li>
+                            <li>Creating support systems for transitional periods</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-ban"></i> Overcoming Adversity</h3>
+                <p>Strategies for navigating significant challenges and setbacks.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Common Resilience Challenges</h4>
+                        <p>Typical obstacles to maintaining resilience:</p>
+                        <ul>
+                            <li>Chronic stress without recovery periods</li>
+                            <li>Lack of social support and connection</li>
+                            <li>Rumination and persistent negative thinking</li>
+                            <li>Avoidance of difficult emotions and situations</li>
+                            <li>Rigid thinking and inability to adapt</li>
+                            <li>Burnout from prolonged demands without resources</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Adversity Navigation Strategies</h4>
+                        <p>Research-backed approaches to overcoming challenges:</p>
+                        <ul>
+                            <li>Meaning-making from difficult experiences</li>
+                            <li>Post-traumatic growth principles and practices</li>
+                            <li>Building psychological capital (hope, efficacy, resilience, optimism)</li>
+                            <li>Developing grit and perseverance</li>
+                            <li>Creating recovery rituals and practices</li>
+                            <li>Strategic disengagement and reengagement</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-hospital"></i> Post-Traumatic Growth Research</h4>
+                    <p>How people can grow positively after trauma and adversity:</p>
+                    <ul>
+                        <li>5 domains of post-traumatic growth: personal strength, relationships, new possibilities, appreciation of life, spiritual change</li>
+                        <li>Not everyone experiences growth, but many do with proper support</li>
+                        <li>Deliberate rumination (constructive processing) facilitates growth</li>
+                        <li>Social support and disclosure are important factors</li>
+                        <li>Meaning-making is central to the growth process</li>
+                        <li>Can coexist with post-traumatic stress symptoms</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-star"></i> Essential Resilience Practices</h3>
+                <p>Daily habits and techniques for building and maintaining resilience.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-network-wired"></i> Build Support Networks</h4>
+                        <p>Cultivate diverse relationships—social connection is one of the strongest predictors of resilience.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-dumbbell"></i> Practice Stress Tolerance</h4>
+                        <p>Gradually expose yourself to manageable stress—like building muscles, resilience strengthens with practice.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-search"></i> Find Meaning</h4>
+                        <p>Look for purpose in challenges—finding meaning in adversity transforms suffering into growth.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-sync-alt"></i> Develop Flexibility</h4>
+                        <p>Practice adapting to small changes regularly—flexibility in minor situations builds capacity for major ones.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-heart"></i> Practice Self-Compassion</h4>
+                        <p>Be kind to yourself during difficulties—self-compassion provides emotional resources for resilience.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-history"></i> Maintain Perspective</h4>
+                        <p>View challenges as temporary and specific—resilient thinking avoids catastrophizing and overgeneralizing.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-tasks"></i> Focus on Controlables</h4>
+                        <p>Direct energy toward what you can influence—resilience involves accepting what can't be changed while acting on what can.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-seedling"></i> Cultivate Optimism</h4>
+                        <p>Practice realistic positive thinking—optimism isn't ignoring reality but believing in your ability to cope with it.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The human capacity for burden is like bamboo - far more flexible than you'd ever believe at first glance."</p>
+                    <footer>— Jodi Picoult</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-crystal-ball"></i> Future of Resilience & Adaptability</h3>
+                <p>Emerging trends and developments in understanding and building human resilience.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-dna"></i> Personalized Resilience</h4>
+                        <ul>
+                            <li>Genetic markers for stress resilience and vulnerability</li>
+                            <li>Personalized resilience training based on individual profiles</li>
+                            <li>Biometric monitoring for early stress detection</li>
+                            <li>Customized interventions based on personality and coping style</li>
+                            <li>Nutrigenomics for stress resilience nutrition</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Technology-Enhanced Resilience</h4>
+                        <ul>
+                            <li>AI-powered resilience coaching and feedback systems</li>
+                            <li>VR exposure therapy for building stress tolerance</li>
+                            <li>Wearable technology for real-time resilience monitoring</li>
+                            <li>Digital platforms for resilience skill-building</li>
+                            <li>Biofeedback and neurofeedback for self-regulation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-globe"></i> Organizational Resilience</h4>
+                        <ul>
+                            <li>Resilience as a core organizational capability</li>
+                            <li>Adaptive leadership development programs</li>
+                            <li>Building resilient team cultures and practices</li>
+                            <li>Organizational change readiness assessments</li>
+                            <li>Workplace design for psychological safety and adaptability</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing evidence-based approaches to resilience and adaptability development for navigating life's challenges and changes.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Personal Growth Topics</h3>
+                    <a href="mindfulness.html">Mindfulness & Meditation</a>
+                    <a href="goal-achievement.html">Goal Achievement</a>
+                    <a href="relationships.html">Relationships & Communication</a>
+                    <a href="emotional-intelligence.html">Emotional Intelligence</a>
+                    <a href="health.html">Health & Wellness</a>
+                    <a href="creativity.html">Creativity & Innovation</a>
+                    <a href="resilience.html">Resilience & Adaptability</a>
+                    <a href="purpose.html">Purpose & Meaning</a>
+                </div>
+                
+              
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

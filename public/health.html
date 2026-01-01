@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health & Wellness | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to health and wellness with research-backed strategies for nutrition, exercise, sleep, stress management, and preventive care.">
+    <meta name="keywords" content="health, wellness, nutrition, exercise, sleep, stress management, preventive care, mental health">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #0f2027;
+            --primary-medium: #203a43;
+            --primary-light: #2c5364;
+            --accent-coral: #FF7F50;
+            --accent-orange: #FFA500;
+            --accent-gold: #FFD700;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(40, 59, 75, 0.7);
+            --header-bg: rgba(15, 32, 39, 0.95);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-medium), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-coral);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-coral), var(--accent-orange));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-coral), var(--accent-orange));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-coral);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-coral), var(--accent-orange));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-coral);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-gold);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-coral);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-orange);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 165, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-coral);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-orange);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accept-coral);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-coral);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accent-coral);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-coral);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 127, 80, 0.3);
+        }
+        
+        th {
+            background-color: rgba(15, 32, 39, 0.5);
+            color: var(--accent-coral);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(255, 127, 80, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-orange);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-orange);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        blockquote footer {
+            text-align: right;
+            color: var(--accent-coral);
+            font-style: normal;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--header-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-coral);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-orange);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+        
+        .social-icons a:hover {
+            transform: translateY(-3px);
+            color: var(--accent-coral);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-dark);
+            color: var(--accent-coral);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-orange);
+            transform: translateY(-5px);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .content-item, .research-item, .tip-box, .comparison-table {
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            
+            nav, .back-to-top, footer {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .comparison-table {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Health & <span>Wellness</span></h1>
+            <p>Discover evidence-based strategies for optimal physical and mental health, sustainable fitness, nutrition, and holistic wellbeing.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="personal-growth.html">Personal Growth</a> <span>/</span> Health & Wellness
+        </div>
+
+        <!-- Health & Wellness Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-heartbeat"></i> Holistic Wellbeing</h2>
+                <p>True health encompasses physical, mental, emotional, and social wellbeing. Research shows that integrated approaches to wellness lead to longer, healthier, and more fulfilling lives.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-apple-alt"></i> Nutrition & Diet</h3>
+                <p>Evidence-based approaches to eating for health and vitality.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-seedling"></i> Plant-Based Nutrition</h4>
+                        <p>Benefits and implementation of plant-forward eating patterns:</p>
+                        <ul>
+                            <li>Associated with reduced risk of chronic diseases</li>
+                            <li>Higher intake of fiber, vitamins, and phytonutrients</li>
+                            <li>Focus on whole foods rather than processed alternatives</li>
+                            <li>Environmental sustainability benefits</li>
+                            <li>Flexitarian approaches for gradual transition</li>
+                            <li>Proper planning to ensure nutritional adequacy</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-balance-scale"></i> Macronutrient Balance</h4>
+                        <p>Understanding and balancing proteins, fats, and carbohydrates:</p>
+                        <ul>
+                            <li>Individual needs vary based on activity level and goals</li>
+                            <li>Quality matters more than rigid ratios</li>
+                            <li>Protein supports muscle repair and satiety</li>
+                            <li>Healthy fats essential for hormone production</li>
+                            <li>Complex carbohydrates provide sustained energy</li>
+                            <li>Timing strategies for different activities and goals</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-clock"></i> Intermittent Fasting</h4>
+                        <p>Time-restricted eating patterns and their benefits:</p>
+                        <ul>
+                            <li>Various protocols (16:8, 5:2, alternate day fasting)</li>
+                            <li>Potential benefits for metabolic health</li>
+                            <li>May support cellular repair processes (autophagy)</li>
+                            <li>Not suitable for everyone (pregnant women, those with eating disorders)</li>
+                            <li>Focus on nutrient-dense foods during eating windows</li>
+                            <li>Importance of hydration during fasting periods</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Let food be thy medicine and medicine be thy food."</p>
+                    <footer>— Hippocrates</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> Research on Nutrition & Health</h3>
+                <p>Scientific evidence supporting dietary approaches for optimal health.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-heart"></i> Framingham Heart Study</h4>
+                    <p>Landmark research on diet and cardiovascular health:</p>
+                    <ul>
+                        <li>Multi-generational study spanning over 70 years</li>
+                        <li>Identified risk factors for heart disease</li>
+                        <li>Showed connection between diet, cholesterol, and heart health</li>
+                        <li>Demonstrated benefits of Mediterranean-style eating patterns</li>
+                        <li>Linked lifestyle factors to cardiovascular disease risk</li>
+                        <li>Continues to yield insights into aging and health</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> PREDIMED Study</h4>
+                    <p>Mediterranean diet and cardiovascular disease prevention:</p>
+                    <ul>
+                        <li>Nearly 7,500 participants at high cardiovascular risk</li>
+                        <li>Mediterranean diet with extra virgin olive oil or nuts</li>
+                        <li>30% reduction in major cardiovascular events</li>
+                        <li>Benefits for cognitive function and diabetes prevention</li>
+                        <li>Emphasis on whole foods, healthy fats, and plant-based eating</li>
+                        <li>Practical, sustainable approach to healthy eating</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-university"></i> Harvard Nurse's Health Study</h4>
+                    <p>Long-term research on women's health and nutrition:</p>
+                    <ul>
+                        <li>Following over 120,000 nurses since 1976</li>
+                        <li>Identified links between diet and chronic disease risk</li>
+                        <li>Found trans fats increase heart disease risk</li>
+                        <li>Showed benefits of whole grains for longevity</li>
+                        <li>Demonstrated importance of healthy fats</li>
+                        <li>Provided evidence for plant-based eating patterns</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-running"></i> Exercise & Movement</h3>
+                <p>Comprehensive approaches to physical activity for health and longevity.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-dumbbell"></i> Strength Training</h4>
+                        <p>Benefits and principles of resistance exercise:</p>
+                        <ul>
+                            <li>Preserves muscle mass and bone density</li>
+                            <li>Boosts metabolism and insulin sensitivity</li>
+                            <li>Recommended 2-3 times weekly for most adults</li>
+                            <li>Progressive overload principle for continued adaptation</li>
+                            <li>Compound movements for efficiency</li>
+                            <li>Proper form to prevent injury</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-heart"></i> Cardiovascular Exercise</h4>
+                        <p>Aerobic activity for heart health and endurance:</p>
+                        <ul>
+                            <li>150 minutes moderate or 75 minutes vigorous weekly</li>
+                            <li>Variety of modalities (walking, cycling, swimming)</li>
+                            <li>HIIT protocols for time-efficient conditioning</li>
+                            <li>Zone training for targeted adaptations</li>
+                            <li>Recovery and periodization principles</li>
+                            <li>Consistency over intensity for long-term adherence</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-yin-yang"></i> Mobility & Flexibility</h4>
+                        <p>Maintaining joint health and movement quality:</p>
+                        <ul>
+                            <li>Yoga, Pilates, and stretching practices</li>
+                            <li>Dynamic warm-ups before activity</li>
+                            <li>Static stretching after exercise</li>
+                            <li>Foam rolling and self-myofascial release</li>
+                            <li>Addressing sedentary behavior patterns</li>
+                            <li>Functional movement for daily activities</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Movement is medicine for creating change in a person's physical, emotional, and mental states."</p>
+                    <footer>— Carol Welch</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-bed"></i> Sleep & Recovery</h3>
+                <p>The critical role of rest and regeneration in overall health.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-moon"></i> Sleep Requirement Guidelines</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Age Group</th>
+                                <th>Recommended Hours</th>
+                                <th>Key Considerations</th>
+                                <th>Common Challenges</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Adults (18-64)</td>
+                                <td>7-9 hours</td>
+                                <td>Consistent schedule, sleep environment</td>
+                                <td>Work stress, screen time, caffeine</td>
+                            </tr>
+                            <tr>
+                                <td>Older Adults (65+)</td>
+                                <td>7-8 hours</td>
+                                <td>Sleep quality, nap management</td>
+                                <td>Medical conditions, medications</td>
+                            </tr>
+                            <tr>
+                                <td>Teenagers (14-17)</td>
+                                <td>8-10 hours</td>
+                                <td>School schedules, social pressures</td>
+                                <td>Social media, academic stress</td>
+                            </tr>
+                            <tr>
+                                <td>Children (6-13)</td>
+                                <td>9-11 hours</td>
+                                <td>Bedtime routines, screen limits</td>
+                                <td>Homework, extracurricular activities</td>
+                            </tr>
+                            <tr>
+                                <td>Young Children (3-5)</td>
+                                <td>10-13 hours</td>
+                                <td>Naps, consistent routines</td>
+                                <td>Night fears, transitioning from crib</td>
+                            </tr>
+                            <tr>
+                                <td>Toddlers (1-2)</td>
+                                <td>11-14 hours</td>
+                                <td>Safe sleep environment, routines</td>
+                                <td>Separation anxiety, teething</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-spa"></i> Sleep Hygiene Practices</h4>
+                        <p>Evidence-based strategies for better sleep quality:</p>
+                        <ul>
+                            <li>Consistent sleep and wake times</li>
+                            <li>Dark, cool, quiet sleep environment</li>
+                            <li>Screen-free time before bed</li>
+                            <li>Caffeine and alcohol moderation</li>
+                            <li>Relaxation techniques before bedtime</li>
+                            <li>Appropriate exposure to natural light</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Sleep & Cognitive Function</h4>
+                        <p>The critical relationship between rest and brain health:</p>
+                        <ul>
+                            <li>Memory consolidation during sleep cycles</li>
+                            <li>Glymphatic system clearance of brain waste</li>
+                            <li>Impact on emotional regulation and mental health</li>
+                            <li>Sleep deprivation and impaired decision-making</li>
+                            <li>Connection between sleep and neurodegenerative diseases</li>
+                            <li>Optimal sleep for learning and creativity</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-brain"></i> Mental Health & Stress Management</h3>
+                <p>Integrating psychological wellbeing into overall health practices.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-wind"></i> Stress Reduction Techniques</h4>
+                        <p>Evidence-based approaches to managing stress:</p>
+                        <ul>
+                            <li>Mindfulness and meditation practices</li>
+                            <li>Breathing exercises for nervous system regulation</li>
+                            <li>Physical activity as stress relief</li>
+                            <li>Nature exposure and ecotherapy</li>
+                            <li>Social connection and support systems</li>
+                            <li>Time management and boundary setting</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hands-helping"></i> Resilience Building</h4>
+                        <p>Developing capacity to navigate challenges:</p>
+                        <ul>
+                            <li>Cognitive behavioral techniques</li>
+                            <li>Growth mindset cultivation</li>
+                            <li>Emotional regulation skills</li>
+                            <li>Adaptive coping strategies</li>
+                            <li>Purpose and meaning development</li>
+                            <li>Post-traumatic growth principles</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-hospital"></i> ACE Study (Adverse Childhood Experiences)</h4>
+                    <p>Groundbreaking research on childhood trauma and adult health:</p>
+                    <ul>
+                        <li>17,000 participants surveyed about childhood experiences</li>
+                        <li>Strong correlation between childhood trauma and adult health problems</li>
+                        <li>Higher ACE scores linked to chronic disease, mental health issues</li>
+                        <li>Highlighted importance of trauma-informed care</li>
+                        <li>Emphasized resilience factors that buffer against adversity</li>
+                        <li>Informed public health approaches to prevention</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-star"></i> Essential Health Practices</h3>
+                <p>Daily habits and routines for maintaining optimal health and wellbeing.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-glass-whiskey"></i> Hydration Priority</h4>
+                        <p>Aim for 2-3 liters of water daily—proper hydration impacts energy, cognition, and physical performance.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-utensils"></i> Mindful Eating</h4>
+                        <p>Eat without distractions, savor each bite, and stop when 80% full to improve digestion and satisfaction.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-walking"></i> Daily Movement</h4>
+                        <p>Incorporate walking and standing throughout the day—even short activity breaks counter sedentary harms.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-sun"></i> Morning Sunlight</h4>
+                        <p>Get 10-30 minutes of morning sunlight to regulate circadian rhythms and boost mood and sleep quality.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-heart"></i> Strength Training</h4>
+                        <p>Include resistance exercise 2-3 times weekly to maintain muscle mass, bone density, and metabolic health.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-bed"></i> Sleep Consistency</h4>
+                        <p>Maintain consistent sleep and wake times—even on weekends—to support circadian rhythm regulation.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-apple-alt"></i> Plant Emphasis</h4>
+                        <p>Make plants the center of your plate—aim for diverse colorful vegetables, fruits, legumes, and whole grains.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-hands"></i> Social Connection</h4>
+                        <p>Prioritize meaningful relationships—social health is a powerful predictor of longevity and wellbeing.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The greatest wealth is health."</p>
+                    <footer>— Virgil</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-crystal-ball"></i> Future of Health & Wellness</h3>
+                <p>Emerging trends and innovations in health promotion and disease prevention.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-dna"></i> Personalized Health</h4>
+                        <ul>
+                            <li>Genetic testing for personalized nutrition and exercise</li>
+                            <li>Microbiome analysis for gut health optimization</li>
+                            <li>Wearable technology for real-time health monitoring</li>
+                            <li>AI-powered health recommendations and predictions</li>
+                            <li>Nutrigenomics and personalized supplement regimens</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Mental Health Innovation</h4>
+                        <ul>
+                            <li>Digital therapeutics for mental health conditions</li>
+                            <li>VR and AR applications for therapy and exposure</li>
+                            <li>Neuromodulation techniques for depression and anxiety</li>
+                            <li>Psychedelic-assisted therapy research</li>
+                            <li>Community-based mental health support systems</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-seedling"></i> Sustainable Health</h4>
+                        <ul>
+                            <li>Planetary health diets that benefit people and environment</li>
+                            <li>Regenerative agriculture and food systems</li>
+                            <li>Green exercise and nature-based therapies</li>
+                            <li>Community health initiatives and built environment design</li>
+                            <li>Integrative approaches combining traditional and modern medicine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing evidence-based approaches to health and wellness for optimal living and longevity.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Personal Growth Topics</h3>
+                    <a href="mindfulness.html">Mindfulness & Meditation</a>
+                    <a href="goal-achievement.html">Goal Achievement</a>
+                    <a href="relationships.html">Relationships & Communication</a>
+                    <a href="emotional-intelligence.html">Emotional Intelligence</a>
+                    <a href="health.html">Health & Wellness</a>
+                    <a href="creative.html">Creativity & Innovation</a>
+                    <a href="resilience.html">Resilience & Adaptability</a>
+                    <a href="purpose.html">Purpose & Meaning</a>
+                </div>
+                
+              
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

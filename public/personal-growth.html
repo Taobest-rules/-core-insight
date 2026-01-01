@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Growth Knowledge Hub | Core Insight</title>
+    <meta name="description" content="Comprehensive personal growth resources covering mindfulness, goal achievement, relationships, emotional intelligence, health, creativity, resilience, and purpose.">
+    <meta name="keywords" content="personal growth, self-improvement, mindfulness, goals, relationships, emotional intelligence, health, creativity, resilience, purpose">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #00d2ff;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #00d2ff;
+            text-decoration: none;
+        }
+        
+        /* Topic Grid */
+        .topics-header {
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .topics-header h2 {
+            font-size: 36px;
+            color: #00d2ff;
+            margin-bottom: 15px;
+        }
+        
+        .topics-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .topics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 50px 0;
+        }
+        
+        .topic-card {
+            background: rgba(40, 59, 75, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            padding: 25px 25px 15px;
+            text-align: center;
+        }
+        
+        .card-header i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .card-header h3 {
+            font-size: 24px;
+            color: #00d2ff;
+        }
+        
+        .card-content {
+            padding: 0 25px 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-content p {
+            margin-bottom: 20px;
+            color: #dcdde1;
+            flex-grow: 1;
+        }
+        
+        .card-button {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .card-button:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Color variations for each topic */
+        .topic-card.mindfulness .card-header h3,
+        .topic-card.mindfulness .card-button {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.mindfulness .card-button {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            color: white;
+        }
+        
+        .topic-card.goal-achievement .card-header h3,
+        .topic-card.goal-achievement .card-button {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.goal-achievement .card-button {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            color: white;
+        }
+        
+        .topic-card.relationships .card-header h3,
+        .topic-card.relationships .card-button {
+            background: linear-gradient(45deg, #00416a, #e4e5e6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.relationships .card-button {
+            background: linear-gradient(45deg, #00416a, #e4e5e6);
+            color: white;
+        }
+        
+        .topic-card.emotional-intelligence .card-header h3,
+        .topic-card.emotional-intelligence .card-button {
+            background: linear-gradient(45deg, #40e0d0, #ff8c00, #ff0080);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.emotional-intelligence .card-button {
+            background: linear-gradient(45deg, #40e0d0, #ff8c00, #ff0080);
+            color: white;
+        }
+        
+        .topic-card.health .card-header h3,
+        .topic-card.health .card-button {
+            background: linear-gradient(45deg, #834d9b, #d04ed6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.health .card-button {
+            background: linear-gradient(45deg, #834d9b, #d04ed6);
+            color: white;
+        }
+        
+        .topic-card.creativity .card-header h3,
+        .topic-card.creativity .card-button {
+            background: linear-gradient(45deg, #2ebf91, #8360c3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.creativity .card-button {
+            background: linear-gradient(45deg, #2ebf91, #8360c3);
+            color: white;
+        }
+        
+        .topic-card.resilience .card-header h3,
+        .topic-card.resilience .card-button {
+            background: linear-gradient(45deg, #c471f5, #fa71cd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.resilience .card-button {
+            background: linear-gradient(45deg, #c471f5, #fa71cd);
+            color: white;
+        }
+        
+        .topic-card.purpose .card-header h3,
+        .topic-card.purpose .card-button {
+            background: linear-gradient(45deg, #ee0979, #ff6a00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.purpose .card-button {
+            background: linear-gradient(45deg, #ee0979, #ff6a00);
+            color: white;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #00d2ff;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #00d2ff;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Animation for cards */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topics-header h2 {
+                font-size: 28px;
+            }
+            
+            .topics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Personal Growth <span>Knowledge Hub</span></h1>
+            <p>Discover resources and strategies for self-improvement, well-being, and living your most fulfilling life.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / Personal Growth
+        </div>
+
+        <!-- Topics Section -->
+        <section class="topics-content">
+            <div class="topics-header">
+                <h2><i class="fas fa-seedling"></i> Personal Growth Topics</h2>
+                <p>Explore our comprehensive guides to develop yourself mentally, emotionally, physically, and spiritually.</p>
+            </div>
+            
+            <div class="topics-grid">
+                <!-- Mindfulness & Meditation -->
+                <div class="topic-card mindfulness">
+                    <div class="card-header">
+                        <i class="fas fa-spa"></i>
+                        <h3>Mindfulness & Meditation</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Develop present-moment awareness, reduce stress, and enhance focus through proven mindfulness techniques and meditation practices.</p>
+                        <a href="mindfulness.html" class="card-button">Explore Mindfulness</a>
+                    </div>
+                </div>
+                
+                <!-- Goal Achievement -->
+                <div class="topic-card goal-achievement">
+                    <div class="card-header">
+                        <i class="fas fa-bullseye"></i>
+                        <h3>Goal Achievement</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Learn effective goal-setting strategies, overcome obstacles, and create actionable plans to achieve your personal and professional aspirations.</p>
+                        <a href="goal-achievement.html" class="card-button">Explore Goal Achievement</a>
+                    </div>
+                </div>
+                
+                <!-- Relationships & Communication -->
+                <div class="topic-card relationships">
+                    <div class="card-header">
+                        <i class="fas fa-heart"></i>
+                        <h3>Relationships & Communication</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Build deeper connections, improve communication skills, and create fulfilling relationships in all areas of your life.</p>
+                        <a href="relationships.html" class="card-button">Explore Relationships</a>
+                    </div>
+                </div>
+                
+                <!-- Emotional Intelligence -->
+                <div class="topic-card emotional-intelligence">
+                    <div class="card-header">
+                        <i class="fas fa-smile"></i>
+                        <h3>Emotional Intelligence</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Develop self-awareness, self-regulation, motivation, empathy, and social skills. Learn to navigate emotions effectively for personal and professional success.</p>
+                        <a href="emotional-intelligence.html" class="card-button">Explore EQ</a>
+                    </div>
+                </div>
+                
+                <!-- Health & Wellness -->
+                <div class="topic-card health">
+                    <div class="card-header">
+                        <i class="fas fa-heartbeat"></i>
+                        <h3>Health & Wellness</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Optimize your physical health through nutrition, exercise, sleep, and stress management. Create sustainable habits for lifelong vitality.</p>
+                        <a href="health.html" class="card-button">Explore Health</a>
+                    </div>
+                </div>
+                
+                <!-- Creativity & Innovation -->
+                <div class="topic-card creativity">
+                    <div class="card-header">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Creativity & Innovation</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Unlock your creative potential, develop innovative thinking skills, and apply creativity to solve problems in all areas of life.</p>
+                        <a href="creative.html" class="card-button">Explore Creativity</a>
+                    </div>
+                </div>
+                
+                <!-- Resilience & Adaptability -->
+                <div class="topic-card resilience">
+                    <div class="card-header">
+                        <i class="fas fa-feather-alt"></i>
+                        <h3>Resilience & Adaptability</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Develop mental toughness, bounce back from setbacks, and adapt to change effectively. Build the capacity to thrive in challenging circumstances.</p>
+                        <a href="resilience.html" class="card-button">Explore Resilience</a>
+                    </div>
+                </div>
+                
+                <!-- Purpose & Meaning -->
+                <div class="topic-card purpose">
+                    <div class="card-header">
+                        <i class="fas fa-search"></i>
+                        <h3>Purpose & Meaning</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Discover your core values, identify your life purpose, and create meaning in your daily activities and long-term direction.</p>
+                        <a href="purpose.html" class="card-button">Explore Purpose</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge personal growth insights and education to help individuals live their best lives.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Personal Growth Topics</h3>
+                    <a href="mindfulness.html">Mindfulness & Meditation</a>
+                    <a href="goal-achievement.html">Goal Achievement</a>
+                    <a href="relationships.html">Relationships & Communication</a>
+                    <a href="emotional-intelligence.html">Emotional Intelligence</a>
+                    <a href="health.html">Health & Wellness</a>
+                    <a href="creative.html">Creativity & Innovation</a>
+                    <a href="resilience.html">Resilience & Adaptability</a>
+                    <a href="purpose.html">Purpose & Meaning</a>
+                </div>
+                
+          
+    <script>
+        // Simple animation for topic cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.topic-card');
+            
+            cards.forEach((card, index) => {
+                // Add delay based on index for staggered animation
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.classList.add('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

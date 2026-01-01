@@ -1,0 +1,43 @@
+async function checkRole() {
+  try {
+    const res = await fetch("/api/me");
+    const user = await res.json();
+
+    if (!user) {
+      document.getElementById("message").textContent =
+        "⚠️ Please log in to upload courses.";
+      document.getElementById("uploadForm").style.display = "none";
+      return;
+    }
+
+    if (user.role === "admin") {
+      document.getElementById("priceField").style.display = "block";
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+async function deleteCourse(courseId) {
+  if (!confirm('Are you sure you want to delete this upload?')) return;
+
+  try {
+    const response = await fetch(`/api/courses/${courseId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('✅ Course deleted successfully!');
+      loadCourses(); // Refresh the list
+    } else {
+      alert('❌ Error: ' + (data.error || 'Failed to delete course'));
+    }
+  } catch (error) {
+    console.error('Delete error:', error);
+    alert('Network error deleting course. Please try again.');
+  }
+}

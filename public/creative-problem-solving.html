@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Creative Problem Solving | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to creative problem solving techniques, methodologies, and frameworks for innovative solutions.">
+    <meta name="keywords"content="creative problem solving, CPS, problem solving techniques, innovation, solution finding, decision making">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #5614B0, #DBD65C);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(86, 20, 176, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #FFE259, #FFA751);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #FFE259;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #FFE259, #FFA751);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #FFE259;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #FFE259;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #FFA751;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 167, 81, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(219, 214, 92, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #FFE259;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #FFA751;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: rgba(219, 214, 92, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .research-item h4 {
+            color: #FFE259;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: rgba(219, 214, 92, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FFE259;
+        }
+        
+        .tip-box h4 {
+            color: #FFE259;
+            margin-bottom: 10px;
+        }
+        
+        /* CPS Process Visual */
+        .process-visual {
+            background: rgba(219, 214, 92, 0.3);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .process-visual h4 {
+            color: #FFE259;
+            margin-bottom: 20px;
+        }
+        
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .process-step {
+            text-align: center;
+            width: 22%;
+            position: relative;
+        }
+        
+        .process-step i {
+            font-size: 30px;
+            color: #FFA751;
+            background: rgba(86, 20, 176, 0.8);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .process-step:hover i {
+            transform: scale(1.1);
+        }
+        
+        .process-connector {
+            position: absolute;
+            top: 35px;
+            height: 2px;
+            background: #FFA751;
+            width: 78%;
+            left: 11%;
+            z-index: -1;
+        }
+        
+        .process-arrow {
+            position: absolute;
+            top: 32px;
+            right: 11%;
+            color: #FFA751;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(86, 20, 176, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #FFE259;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #FFA751;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 968px) {
+            .process-steps {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 30px;
+            }
+            
+            .process-step {
+                width: 45%;
+            }
+            
+            .process-connector, .process-arrow {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .process-step {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Creative Problem <span>Solving</span></h1>
+            <p>Systematic approaches to identifying challenges, generating innovative solutions, and implementing effective actions for complex problems.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="creativity.html">Creativity</a> / Creative Problem Solving
+        </div>
+
+        <!-- Creative Problem Solving Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-puzzle-piece"></i> Mastering Creative Problem Solving</h2>
+                <p>Creative Problem Solving (CPS) is a structured process for solving problems or finding opportunities when conventional thinking has failed. It encourages you to find fresh perspectives and come up with innovative solutions that you can implement effectively. CPS involves both divergent thinking (generating many ideas) and convergent thinking (narrowing down those ideas).</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>The Creative Problem Solving Process</h3>
+                <p>CPS is typically structured as a multi-stage process that balances divergent and convergent thinking throughout.</p>
+                
+                <div class="process-visual">
+                    <h4>The Creative Problem Solving Framework</h4>
+                    <div class="process-steps">
+                        <div class="process-step">
+                            <i class="fas fa-search"></i>
+                            <p>Clarify</p>
+                            <small>Explore the challenge</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-lightbulb"></i>
+                            <p>Ideate</p>
+                            <small>Generate ideas</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-cogs"></i>
+                            <p>Develop</p>
+                            <small>Formulate solutions</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-rocket"></i>
+                            <p>Implement</p>
+                            <small>Plan for action</small>
+                        </div>
+                        <div class="process-connector"></div>
+                        <div class="process-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    <p><em>The CPS process is iterative rather than linear—teams often move back and forth between stages as they gain new insights.</em></p>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-search"></i> Clarify Stage</h4>
+                        <p>Understanding the problem and gathering data:</p>
+                        <ul>
+                            <li>Problem identification and definition</li>
+                            <li>Data gathering and research</li>
+                            <li>Stakeholder analysis</li>
+                            <li>Problem reframing techniques</li>
+                            <li>Objective setting</li>
+                            <li>Success criteria establishment</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Ideate Stage</h4>
+                        <p>Generating potential solutions and ideas:</p>
+                        <ul>
+                            <li>Brainstorming techniques</li>
+                            <li>Idea generation methods</li>
+                            <li>Divergent thinking exercises</li>
+                            <li>Analogous thinking</li>
+                            <li>Forced connections</li>
+                            <li>Idea stimulation tools</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cogs"></i> Develop Stage</h4>
+                        <p>Evaluating and strengthening solutions:</p>
+                        <ul>
+                            <li>Idea evaluation criteria</li>
+                            <li>Solution strengthening techniques</li>
+                            <li>Feasibility analysis</li>
+                            <li>Prototype development</li>
+                            <li>Solution refinement</li>
+                            <li>Decision-making frameworks</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-rocket"></i> Implement Stage</h4>
+                        <p>Planning and executing the solution:</p>
+                        <ul>
+                            <li>Action planning</li>
+                            <li>Resource allocation</li>
+                            <li>Implementation strategies</li>
+                            <li>Change management</li>
+                            <li>Monitoring and evaluation</li>
+                            <li>Adaptation and iteration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>CPS Techniques & Methodologies</h3>
+                <p>Various structured approaches to creative problem solving.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Osborn-Parnes CPS</h4>
+                        <p>The classic Creative Problem Solving process:</p>
+                        <ul>
+                            <li>Objective Finding: Identifying goal or challenge</li>
+                            <li>Fact Finding: Gathering relevant data</li>
+                            <li>Problem Finding: Clarifying the real problem</li>
+                            <li>Idea Finding: Generating possible solutions</li>
+                            <li>Solution Finding: Evaluating and strengthening ideas</li>
+                            <li>Acceptance Finding: Planning for implementation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-chess-board"></i> Design Thinking</h4>
+                        <p>Human-centered approach to problem solving:</p>
+                        <ul>
+                            <li>Empathize: Understand user needs</li>
+                            <li>Define: Articulate the problem</li>
+                            <li>Ideate: Generate potential solutions</li>
+                            <li>Prototype: Create tangible representations</li>
+                            <li>Test: Gather feedback and refine</li>
+                            <li>Iterate: Continuously improve solutions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-random"></i> TRIZ</h4>
+                        <p>Theory of Inventive Problem Solving:</p>
+                        <ul>
+                            <li>40 Inventive Principles</li>
+                            <li>Contradiction Matrix</li>
+                            <li>Laws of Technical Systems Evolution</li>
+                            <li>Substance-Field Analysis</li>
+                            <li>Ideal Final Result</li>
+                            <li>Resources analysis and utilization</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Six Thinking Hats</h4>
+                        <p>Parallel thinking technique by Edward de Bono:</p>
+                        <ul>
+                            <li>White Hat: Facts and information</li>
+                            <li>Red Hat: Emotions and feelings</li>
+                            <li>Black Hat: Critical judgment</li>
+                            <li>Yellow Hat: Positive benefits</li>
+                            <li>Green Hat: Creativity and new ideas</li>
+                            <li>Blue Hat: Process control</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Problem Definition & Framing</h3>
+                <p>Critical first steps in the CPS process that determine solution direction.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-question-circle"></i> Problem Identification</h4>
+                        <p>Techniques for recognizing and articulating problems:</p>
+                        <ul>
+                            <li>Five Whys technique for root cause analysis</li>
+                            <li>Problem statement development</li>
+                            <li>Gap analysis (current vs. desired state)</li>
+                            <li>Stakeholder needs assessment</li>
+                            <li>Pain point identification</li>
+                            <li>Opportunity recognition</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-vector-square"></i> Problem Framing</h4>
+                        <p>Approaches to viewing problems from different perspectives:</p>
+                        <ul>
+                            <li>Reframing techniques</li>
+                            <li>Multiple perspectives approach</li>
+                            <li>Challenge mapping</li>
+                            <li>Boundary examination</li>
+                            <li>Assumption testing</li>
+                            <li>Point of View (POV) statements</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-compress-arrows-alt"></i> Problem Scoping</h4>
+                        <p>Defining the boundaries and parameters of the problem:</p>
+                        <ul>
+                            <li>Problem boundary setting</li>
+                            <li>Constraint identification</li>
+                            <li>Success criteria definition</li>
+                            <li>Resource assessment</li>
+                            <li>Timeline establishment</li>
+                            <li>Scope negotiation with stakeholders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Idea Generation Techniques</h3>
+                <p>Methods for producing innovative ideas and potential solutions.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Brainstorming Variants</h4>
+                        <p>Structured approaches to group idea generation:</p>
+                        <ul>
+                            <li>Traditional brainstorming</li>
+                            <li>Brainwriting (6-3-5 method)</li>
+                            <li>Reverse brainstorming</li>
+                            <li>Starbursting (question-oriented brainstorming)</li>
+                            <li>Round-robin brainstorming</li>
+                            <li>Step-ladder technique</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-random"></i> Stimulation Techniques</h4>
+                        <p>Methods to trigger new ideas and connections:</p>
+                        <ul>
+                            <li>SCAMPER (Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse)</li>
+                            <li>Analogous thinking</li>
+                            <li>Forced relationships</li>
+                            <li>Attribute listing</li>
+                            <li>Morphological analysis</li>
+                            <li>Provocative operations</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-palette"></i> Visual Techniques</h4>
+                        <p>Visual approaches to idea generation:</p>
+                        <ul>
+                            <li>Mind mapping</li>
+                            <li>Concept mapping</li>
+                            <li>Storyboarding</li>
+                            <li>Sketchnoting</li>
+                            <li>Rich pictures</li>
+                            <li>Visual metaphor</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Solution Development & Evaluation</h3>
+                <p>Methods for refining, evaluating, and selecting the best solutions.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-filter"></i> Evaluation Techniques</h4>
+                        <p>Structured approaches to assessing solutions:</p>
+                        <ul>
+                            <li>Decision matrix analysis</li>
+                            <li>Paired comparison analysis</li>
+                            <li>Cost-benefit analysis</li>
+                            <li>Feasibility analysis</li>
+                            <li>Risk assessment</li>
+                            <li>Impact-effort matrix</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hammer"></i> Solution Strengthening</h4>
+                        <p>Techniques for improving and enhancing solutions:</p>
+                        <ul>
+                            <li>Solution development protocols</li>
+                            <li>Assumption testing</li>
+                            <li>Potential problem analysis</li>
+                            <li>Solution refinement cycles</li>
+                            <li>Feedback incorporation</li>
+                            <li>Iterative improvement</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-vial"></i> Prototyping & Testing</h4>
+                        <p>Methods for validating solutions before full implementation:</p>
+                        <ul>
+                            <li>Rapid prototyping</li>
+                            <li>Pilot testing</li>
+                            <li>A/B testing</li>
+                            <li>Scenario testing</li>
+                            <li>User testing</li>
+                            <li>Simulation modeling</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Creative Problem Solving Research</h3>
+                <p>Evidence-based insights from psychology and cognitive science research.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Cognitive Studies</h4>
+                    <p>Research on how people solve problems creatively:</p>
+                    <ul>
+                        <li>Insight problems activate the right anterior temporal lobe before solutions emerge</li>
+                        <li>Emotional positivity increases creative problem-solving ability by 50%</li>
+                        <li>Sleep and incubation periods improve problem-solving success by 30%</li>
+                        <li>Diverse teams solve complex problems 60% faster than homogeneous teams</li>
+                        <li>Physical movement and exercise can improve creative problem-solving by 40%</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-flask"></i> Methodology Effectiveness</h4>
+                    <p>Studies on the effectiveness of different CPS techniques:</p>
+                    <ul>
+                        <li>Structured CPS processes yield 45% more implementable solutions than unstructured approaches</li>
+                        <li>Teams using brainstorming techniques generate 20% more ideas than individuals working alone</li>
+                        <li>Visual thinking techniques improve problem understanding and solution quality by 35%</li>
+                        <li>Groups that practice deferred judgment during ideation produce 50% more novel ideas</li>
+                        <li>Systematic evaluation techniques lead to 40% better solution selection</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-users"></i> Team Dynamics Research</h4>
+                    <p>Studies on how team composition affects creative problem solving:</p>
+                    <ul>
+                        <li>Teams with cognitive diversity solve complex problems 3x faster than similar-minded teams</li>
+                        <li>Psychological safety increases team problem-solving effectiveness by 65%</li>
+                        <li>Groups that include outsiders generate 40% more innovative solutions</li>
+                        <li>Teams that rotate facilitation roles maintain higher engagement and creativity</li>
+                        <li>Cross-functional teams identify 50% more implementation barriers early in the process</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Applications of Creative Problem Solving</h3>
+                <p>How CPS is applied across different domains and contexts.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-briefcase"></i> Business & Organizational</h4>
+                        <p>Applications in business contexts:</p>
+                        <ul>
+                            <li>Strategic planning and decision making</li>
+                            <li>Process improvement and optimization</li>
+                            <li>Product development and innovation</li>
+                            <li>Marketing strategy development</li>
+                            <li>Organizational change management</li>
+                            <li>Conflict resolution and negotiation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Educational</h4>
+                        <p>Applications in learning environments:</p>
+                        <ul>
+                            <li>Curriculum design and development</li>
+                            <li>Teaching methodology innovation</li>
+                            <li>Student project development</li>
+                            <li>Educational policy development</li>
+                            <li>Learning assessment design</li>
+                            <li>Educational technology integration</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-heartbeat"></i> Social & Community</h4>
+                        <p>Applications for social challenges:</p>
+                        <ul>
+                            <li>Community development initiatives</li>
+                            <li>Social policy development</li>
+                            <li>Nonprofit program design</li>
+                            <li>Environmental problem solving</li>
+                            <li>Public health initiatives</li>
+                            <li>Urban planning and design</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-user"></i> Personal</h4>
+                        <p>Applications for individual challenges:</p>
+                        <ul>
+                            <li>Career planning and development</li>
+                            <li>Personal goal achievement</li>
+                            <li>Relationship challenges</li>
+                            <li>Life transition navigation</li>
+                            <li>Personal project planning</li>
+                            <li>Decision making for complex choices</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Essential Creative Problem Solving Tips</h3>
+                <p>Practical advice and strategies from problem-solving experts.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4>Define Before You Solve</h4>
+                        <p>Spend adequate time understanding and framing the problem before jumping to solutions.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Separate Ideation from Evaluation</h4>
+                        <p>Practice deferred judgment—generate ideas first, evaluate them later.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Embrace Multiple Perspectives</h4>
+                        <p>Seek diverse viewpoints to challenge assumptions and uncover blind spots.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Think in Questions</h4>
+                        <p>Frame challenges as open-ended questions to stimulate creative thinking.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Make Ideas Tangible</h4>
+                        <p>Use sketches, prototypes, and visualizations to develop and communicate ideas.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Iterate and Refine</h4>
+                        <p>View solutions as prototypes that can be improved through testing and feedback.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Balance Divergent and Convergent Thinking</h4>
+                        <p>Alternate between opening up possibilities and narrowing down options.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Create Psychological Safety</h4>
+                        <p>Foster an environment where people feel safe to share unconventional ideas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Creative Problem Solving</h3>
+                <p>Emerging trends and evolving approaches in creative problem solving.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Technology Integration</h4>
+                        <ul>
+                            <li>AI-assisted problem framing and idea generation</li>
+                            <li>Virtual collaboration tools for distributed teams</li>
+                            <li>Data analytics for problem understanding</li>
+                            <li>Digital whiteboarding and visualization tools</li>
+                            <li>Algorithmic solution evaluation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Skill Development</h4>
+                        <ul>
+                            <li>Develop digital facilitation skills</li>
+                            <li>Learn to leverage AI as a thinking partner</li>
+                            <li>Master virtual collaboration techniques</li>
+                            <li>Build data literacy for problem understanding</li>
+                            <li>Cultivate cognitive flexibility</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge creative problem solving insights to help you tackle complex challenges effectively.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Creativity Topics</h3>
+                  <a href="creative-thinking.html">Creative Thinking</a>
+                    <a href="design-thinking.html">Design Thinking</a>
+                    <a href="innovation-management.html">Innovation Management</a>
+                    <a href="creative-problem-solving.html">Creative Problem Solving</a>
+                    <a href="brainstorming-techniques.html">Brainstorming-techniques</a>
+                    <a href="creative-tools.html">Creative Tools & Techniques</a>
+                    <a href="creative-process.html">The Creative Process</a>
+                    <a href="creative-mindset.html">Developing A Creative Mindset</a>
+                </div>
+                
+               
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

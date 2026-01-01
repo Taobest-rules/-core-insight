@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Hub | Core Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset and Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --study-blue: #4a6fa5;
+      --study-blue-light: #6b8cbc;
+      --study-blue-dark: #3a5784;
+      --study-green: #5a8d7d;
+      --study-green-light: #7aad9d;
+      --study-neutral: #f8f9fa;
+      --study-neutral-dark: #e9ecef;
+      --study-gray: #6c757d;
+      --study-gray-light: #adb5bd;
+      --study-text: #343a40;
+      --study-text-light: #495057;
+      --study-accent: #8a6baf;
+      --study-accent-light: #a88bc9;
+      --study-white: #ffffff;
+      --study-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --study-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--study-neutral);
+      color: var(--study-text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header Styles */
+    header {
+      background-color: var(--study-white);
+      border-bottom: 1px solid var(--study-neutral-dark);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 20px;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      height: 45px;
+      width: auto;
+      filter: brightness(1.05);
+    }
+
+    .brand-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--study-blue);
+      letter-spacing: -0.5px;
+    }
+
+    /* Navigation */
+    nav ul {
+      display: flex;
+      list-style: none;
+      gap: 25px;
+    }
+
+    nav a {
+      color: var(--study-text);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 8px 15px;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+
+    nav a:hover {
+      color: var(--study-blue);
+      background-color: rgba(74, 111, 165, 0.08);
+    }
+
+    nav a.active {
+      color: var(--study-blue);
+      background-color: rgba(74, 111, 165, 0.12);
+      font-weight: 600;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+      background: linear-gradient(135deg, var(--study-blue) 0%, var(--study-green) 100%);
+      color: white;
+      margin-bottom: 40px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .hero h1 {
+      font-size: 2.8rem;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+
+    .hero span {
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 600;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      opacity: 0.9;
+    }
+
+    /* Search Section */
+    .search-section {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 50px;
+      padding: 0 20px;
+    }
+
+    .search-section input {
+      flex: 1;
+      max-width: 600px;
+      padding: 16px 24px;
+      background-color: var(--study-white);
+      border: 1px solid var(--study-neutral-dark);
+      border-radius: 8px 0 0 8px;
+      color: var(--study-text);
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    .search-section input:focus {
+      outline: none;
+      border-color: var(--study-blue);
+      box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+    }
+
+    .search-section input::placeholder {
+      color: var(--study-gray-light);
+    }
+
+    .search-section button {
+      padding: 16px 30px;
+      background-color: var(--study-blue);
+      color: white;
+      border: none;
+      border-radius: 0 8px 8px 0;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .search-section button:hover {
+      background-color: var(--study-blue-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--study-shadow);
+    }
+
+    /* Categories Section */
+    .categories {
+      margin-bottom: 70px;
+    }
+
+    .categories h2 {
+      font-size: 2rem;
+      margin-bottom: 30px;
+      text-align: center;
+      color: var(--study-text);
+      position: relative;
+      display: inline-block;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .categories h2::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 25%;
+      right: 25%;
+      height: 3px;
+      background: linear-gradient(to right, var(--study-blue), var(--study-green));
+      border-radius: 3px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .card {
+      background-color: var(--study-white);
+      border-radius: 10px;
+      padding: 28px;
+      transition: var(--transition);
+      border: 1px solid var(--study-neutral-dark);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--study-shadow);
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--study-shadow-hover);
+      border-color: var(--study-blue-light);
+    }
+
+    .card h3 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: var(--study-blue);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card h3 i {
+      font-size: 1.3rem;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(74, 111, 165, 0.1);
+      border-radius: 8px;
+      color: var(--study-blue);
+    }
+
+    .card p {
+      color: var(--study-text-light);
+      margin-bottom: 20px;
+      flex-grow: 1;
+      line-height: 1.6;
+    }
+
+    .card a {
+      color: var(--study-blue);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+      align-self: flex-start;
+    }
+
+    .card a:hover {
+      color: var(--study-blue-dark);
+      gap: 12px;
+    }
+
+    /* Featured Articles */
+    .featured {
+      margin-bottom: 80px;
+    }
+
+    .featured h2 {
+      font-size: 2rem;
+      margin-bottom: 30px;
+      text-align: center;
+      color: var(--study-text);
+      position: relative;
+      display: inline-block;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .featured h2::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 25%;
+      right: 25%;
+      height: 3px;
+      background: linear-gradient(to right, var(--study-green), var(--study-accent));
+      border-radius: 3px;
+    }
+
+    .articles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 30px;
+    }
+
+    .article {
+      background-color: var(--study-white);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: var(--transition);
+      border: 1px solid var(--study-neutral-dark);
+      box-shadow: var(--study-shadow);
+    }
+
+    .article:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--study-shadow-hover);
+    }
+
+    .article img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-bottom: 1px solid var(--study-neutral-dark);
+    }
+
+    .article-content {
+      padding: 25px;
+    }
+
+    .article-content h3 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      color: var(--study-text);
+    }
+
+    .article-content p {
+      color: var(--study-text-light);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .article-content a {
+      color: var(--study-green);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+    }
+
+    .article-content a:hover {
+      color: var(--study-green-light);
+      gap: 12px;
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--study-white);
+      padding: 30px 0;
+      margin-top: 40px;
+      border-top: 1px solid var(--study-neutral-dark);
+      text-align: center;
+    }
+
+    footer p {
+      color: var(--study-gray);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+      .hero h1 {
+        font-size: 2.3rem;
+      }
+      
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      }
+      
+      .articles {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+      }
+      
+      .hero h1 {
+        font-size: 2rem;
+      }
+      
+      .search-section {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .search-section input {
+        border-radius: 8px;
+        margin-bottom: 15px;
+        width: 100%;
+      }
+      
+      .search-section button {
+        border-radius: 8px;
+        width: 100%;
+        max-width: 300px;
+      }
+      
+      .grid, .articles {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 1.8rem;
+      }
+      
+      .brand-name {
+        font-size: 1.5rem;
+      }
+      
+      .categories h2, .featured h2 {
+        font-size: 1.7rem;
+      }
+    }
+
+    /* Focus-friendly animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card, .article {
+      animation: fadeInUp 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+    .card:nth-child(4) { animation-delay: 0.4s; }
+    .card:nth-child(5) { animation-delay: 0.5s; }
+    .card:nth-child(6) { animation-delay: 0.6s; }
+    .card:nth-child(7) { animation-delay: 0.7s; }
+    .card:nth-child(8) { animation-delay: 0.8s; }
+    .card:nth-child(9) { animation-delay: 0.9s; }
+    .card:nth-child(10) { animation-delay: 1.0s; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container header-content">
+      <div class="logo-container">
+        <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+        <div class="brand-name">Core Insight</div>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="courses.html">Courses</a></li>
+          <li><a href="products.html">Products</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Welcome to the <span>Knowledge Hub</span></h1>
+      <p>Your gateway to insights, guides, and resources across multiple fields.</p>
+    </section>
+
+    <!-- Search -->
+    <section class="search-section">
+      <input type="text" placeholder="Search library..." />
+      <button><i class="fas fa-search"></i> Search</button>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories">
+      <h2>Explore by Category</h2>
+      <div class="grid">
+        <div class="card">
+          <h3><i class="fas fa-laptop-code"></i> Technology</h3>
+          <p>AI, Web Development, Cybersecurity, and more. Stay updated with the latest tech trends and tools.</p>
+          <a href="ai.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-chart-line"></i> Business</h3>
+          <p>Entrepreneurship, marketing, finance strategies. Build and grow your business knowledge.</p>
+          <a href="business.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-paint-brush"></i> Creativity</h3>
+          <p>Design, writing, content creation tips. Enhance your creative skills and express your ideas.</p>
+          <a href="creativity.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-brain"></i> Personal Growth</h3>
+          <p>Mindset, productivity, learning skills. Develop yourself both personally and professionally.</p>
+          <a href="personal-growth.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-rocket"></i> Future Trends</h3>
+          <p>Emerging tech, innovations, and predictions. Prepare for what's coming next in the world.</p>
+          <a href="future-trends.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-heartbeat"></i> Health & Wellness</h3>
+          <p>Mental and physical well-being strategies. Learn to maintain balance in a busy world.</p>
+          <a href="health.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-graduation-cap"></i> Education</h3>
+          <p>Learning methodologies and educational insights. Improve how you acquire and retain knowledge.</p>
+          <a href="education.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card">
+          <h3><i class="fas fa-leaf"></i> Sustainability</h3>
+          <p>Environmental practices and green innovations. Explore sustainable solutions for the future.</p>
+          <a href="sustainability.html">View More <i class="fas fa-arrow-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Articles -->
+    <section class="featured">
+      <h2>Featured Articles</h2>
+      <div class="articles">
+        <div class="article">
+          <img src="https://i.pinimg.com/1200x/81/5b/c7/815bc70f8fdccb8ee1564d454fa1a439.jpg" alt="AI Future">
+          <div class="article-content">
+            <h3>How AI is Changing the Future</h3>
+            <p>Explore the impact of Artificial Intelligence across industries and how it's reshaping our world.</p>
+            <a href="al.html">Read More <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        <div class="article">
+          <img src="https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?auto=format&fit=crop&w=1000&q=80" alt="Freelancing">
+          <div class="article-content">
+            <h3>Start Your Freelance Career</h3>
+            <p>Learn how to build a sustainable freelance business from the ground up with our comprehensive guide.</p>
+            <a href="freelance.html">Read More <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        <div class="article">
+          <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1000&q=80" alt="Design">
+          <div class="article-content">
+            <h3>Creative Design Principles</h3>
+            <p>Boost your design skills with modern approaches and techniques used by industry professionals.</p>
+            <a href="cdf.html">Read More <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>© 2025 Core Insight. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Simple interactive effects
+    document.addEventListener('DOMContentLoaded', function() {
+      // Smooth hover effects
+      const cards = document.querySelectorAll('.card, .article');
+      
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = this.classList.contains('card') 
+            ? 'translateY(-6px)' 
+            : 'translateY(-6px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      });
+      
+      // Search functionality
+      const searchButton = document.querySelector('.search-section button');
+      const searchInput = document.querySelector('.search-section input');
+      
+      searchButton.addEventListener('click', function() {
+        if (searchInput.value.trim() !== '') {
+          alert(`Searching for: "${searchInput.value}" - In a real implementation, this would filter the content.`);
+        } else {
+          searchInput.focus();
+        }
+      });
+      
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchButton.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Core Insight - System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        button { padding: 10px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Core Insight System Test</h1>
+    
+    <button onclick="testDatabase()">Test Database Connection</button>
+    <button onclick="testSignup()">Test User Registration</button>
+    <button onclick="testLogin()">Test User Login</button>
+    <button onclick="testCourses()">Test Courses API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testDatabase() {
+            try {
+                const res = await fetch('/api/test-db');
+                const data = await res.json();
+                showResult('Database Test', data, res.ok);
+            } catch (err) {
+                showResult('Database Test', {error: err.message}, false);
+            }
+        }
+
+        async function testSignup() {
+            const testUser = {
+                username: 'testuser_' + Date.now(),
+                password: 'test123',
+                email: 'test@example.com'
+            };
+            
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testUser)
+                });
+                const data = await res.json();
+                showResult('Signup Test', data, res.ok);
+            } catch (err) {
+                showResult('Signup Test', {error: err.message}, false);
+            }
+        }
+
+        async function testLogin() {
+            const credentials = {
+                username: 'admin',
+                password: 'admin123'
+            };
+            
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(credentials)
+                });
+                const data = await res.json();
+                showResult('Login Test', data, res.ok);
+            } catch (err) {
+                showResult('Login Test', {error: err.message}, false);
+            }
+        }
+
+        async function testCourses() {
+            try {
+                const res = await fetch('/api/courses');
+                const data = await res.json();
+                showResult('Courses Test', {count: data.length, courses: data}, res.ok);
+            } catch (err) {
+                showResult('Courses Test', {error: err.message}, false);
+            }
+        }
+
+        function showResult(testName, result, success) {
+            const div = document.getElementById('results');
+            div.innerHTML += `
+                <div class="${success ? 'success' : 'error'}">
+                    <h3>${testName}: ${success ? 'PASS' : 'FAIL'}</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                    <hr>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

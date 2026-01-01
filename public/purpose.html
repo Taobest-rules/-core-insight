@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purpose & Meaning | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to finding purpose and meaning with research-backed strategies for living a significant life aligned with your values and strengths.">
+    <meta name="keywords" content="purpose, meaning, values, life purpose, meaningful life, existential psychology, self-actualization">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #0f2027;
+            --primary-medium: #203a43;
+            --primary-light: #2c5364;
+            --accent-gold: #FFD700;
+            --accent-orange: #FF8C00;
+            --accent-bronze: #CD7F32;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(40, 59, 75, 0.7);
+            --header-bg: rgba(15, 32, 39, 0.95);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-medium), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-gold);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-gold), var(--accent-orange));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-gold), var(--accent-orange));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-gold);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-gold), var(--accent-orange));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-bronze);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-orange);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 140, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-orange);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-gold);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        th {
+            background-color: rgba(15, 32, 39, 0.5);
+            color: var(--accent-gold);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-orange);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-orange);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        blockquote footer {
+            text-align: right;
+            color: var(--accent-gold);
+            font-style: normal;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--header-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-orange);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+        
+        .social-icons a:hover {
+            transform: translateY(-3px);
+            color: var(--accent-gold);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-dark);
+            color: var(--accept-gold);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-orange);
+            transform: translateY(-5px);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .content-item, .research-item, .tip-box, .comparison-table {
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            
+            nav, .back-to-top, footer {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .comparison-table {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="personal-growth.html" class="active">Personal Growth</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Purpose & <span>Meaning</span></h1>
+            <p>Discover your unique purpose and create a life of meaning with evidence-based strategies for aligning your actions with your values and strengths.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="personal-growth.html">Personal Growth</a> <span>/</span> Purpose & Meaning
+        </div>
+
+        <!-- Purpose & Meaning Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-compass"></i> The Quest for Significance</h2>
+                <p>Purpose and meaning are fundamental human needs that contribute to wellbeing, resilience, and life satisfaction. Research shows that living with purpose is associated with better health, longer life, and greater fulfillment.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-puzzle-piece"></i> Dimensions of Meaning</h3>
+                <p>The different ways people find purpose and significance in life.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-star"></i> Purpose</h4>
+                        <p>Having goals and direction that guide your life:</p>
+                        <ul>
+                            <li>Clear sense of direction and life aims</li>
+                            <li>Goals that extend beyond self-interest</li>
+                            <li>Consistency between values and actions</li>
+                            <li>Sense of contribution to something larger</li>
+                            <li>Forward momentum and growth orientation</li>
+                            <li>Resilience derived from meaningful objectives</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Significance</h4>
+                        <p>Feeling that your life matters and has value:</p>
+                        <ul>
+                            <li>Sense that your existence has importance</li>
+                            <li>Belief that your actions make a difference</li>
+                            <li>Feeling valued by others and community</li>
+                            <li>Legacy consciousness and impact awareness</li>
+                            <li>Self-worth derived from meaningful contributions</li>
+                            <li>Recognition that your life has intrinsic value</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cog"></i> Coherence</h4>
+                        <p>Making sense of your life experiences and story:</p>
+                        <ul>
+                            <li>Narrative that integrates life experiences</li>
+                            <li>Understanding patterns in your life journey</li>
+                            <li>Ability to find meaning in challenges</li>
+                            <li>Sense that life events fit together meaningfully</li>
+                            <li>Worldview that provides explanatory framework</li>
+                            <li>Ability to contextualize experiences within larger story</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The purpose of life is not to be happy. It is to be useful, to be honorable, to be compassionate, to have it make some difference that you have lived and lived well."</p>
+                    <footer>— Ralph Waldo Emerson</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> Research on Purpose & Meaning</h3>
+                <p>Scientific evidence supporting the importance of purpose and meaning in life.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-heartbeat"></i> Longitudinal Health Studies</h4>
+                    <p>How purpose affects physical health and longevity:</p>
+                    <ul>
+                        <li>People with purpose live up to 7 years longer on average</li>
+                        <li>Lower risk of cardiovascular events among those with life purpose</li>
+                        <li>Better sleep quality and immune function</li>
+                        <li>Reduced risk of cognitive decline and Alzheimer's disease</li>
+                        <li>Faster recovery from surgery and illness</li>
+                        <li>Lower levels of inflammatory markers</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Psychological Wellbeing Research</h4>
+                    <p>The connection between purpose and mental health:</p>
+                    <ul>
+                        <li>Purpose correlates with life satisfaction and happiness</li>
+                        <li>Buffer against depression, anxiety, and hopelessness</li>
+                        <li>Greater resilience in facing life challenges</li>
+                        <li>Enhanced self-esteem and self-efficacy</li>
+                        <li>Better stress management and coping abilities</li>
+                        <li>Reduced risk of substance abuse and addictive behaviors</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-graduation-cap"></i> Stanford Purpose Study</h4>
+                    <p>William Damon's research on youth purpose development:</p>
+                    <ul>
+                        <li>Only about 20% of young people have clear purpose</li>
+                        <li>Purpose involves: dedication, discovery, and direction</li>
+                        <li>Purpose emerges from connecting self to world</li>
+                        <li>Mentors and role models significantly influence purpose development</li>
+                        <li>Purpose can be cultivated at any life stage</li>
+                        <li>Purpose provides motivation and perseverance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-search"></i> Discovering Your Purpose</h3>
+                <p>Methods and approaches for uncovering your unique sense of purpose.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-values"></i> Values Clarification</h4>
+                        <p>Identifying what truly matters to you:</p>
+                        <ul>
+                            <li>Reflecting on peak experiences and what made them meaningful</li>
+                            <li>Considering what you would stand for if no one judged you</li>
+                            <li>Identifying what pains you about the world</li>
+                            <li>Noticing when you feel most authentic and aligned</li>
+                            <li>Exploring childhood passions and interests</li>
+                            <li>Considering what you want your legacy to be</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-strength"></i> Strengths Assessment</h4>
+                        <p>Connecting your natural talents to purposeful action:</p>
+                        <ul>
+                            <li>Identifying signature strengths and talents</li>
+                            <li>Considering how your strengths can serve others</li>
+                            <li>Finding where your strengths meet world needs</li>
+                            <li>Exploring activities where you lose track of time (flow states)</li>
+                            <li>Recognizing what comes easily to you but not to others</li>
+                            <li>Considering feedback about your natural gifts</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-history"></i> Life Review Process</h4>
+                        <p>Mining your life story for clues to purpose:</p>
+                        <ul>
+                            <li>Mapping key turning points and their meanings</li>
+                            <li>Identifying recurring themes and patterns</li>
+                            <li>Noticing what you've consistently cared about</li>
+                            <li>Considering challenges that shaped you</li>
+                            <li>Recognizing people who inspired you and why</li>
+                            <li>Articulating the narrative of your life journey</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The two most important days in your life are the day you are born and the day you find out why."</p>
+                    <footer>— Mark Twain</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-road"></i> Living with Purpose</h3>
+                <p>Translating purpose discovery into daily action and meaningful living.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-balance-scale"></i> Purpose Alignment Framework</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Area</th>
+                                <th>Alignment Questions</th>
+                                <th>Indicators of Alignment</th>
+                                <th>Common Misalignments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Work & Career</td>
+                                <td>Does my work express my values? Does it feel meaningful?</td>
+                                <td>Sense of contribution, engagement, values expression</td>
+                                <td>Feeling like just a job, values conflict, lack of meaning</td>
+                            </tr>
+                            <tr>
+                                <td>Relationships</td>
+                                <td>Do my relationships reflect my values? Do they support my growth?</td>
+                                <td>Mutual growth, authentic connection, shared values</td>
+                                <td>Superficial connections, values mismatch, draining dynamics</td>
+                            </tr>
+                            <tr>
+                                <td>Personal Growth</td>
+                                <td>Am I developing in ways that matter to me? Am I using my strengths?</td>
+                                <td>Continuous learning, strength use, personal evolution</td>
+                                <td>Stagnation, strength neglect, growth avoidance</td>
+                            </tr>
+                            <tr>
+                                <td>Community</td>
+                                <td>Do I contribute to something larger? Am I part of communities that matter?</td>
+                                <td>Sense of belonging, contribution, shared purpose</td>
+                                <td>Isolation, lack of community, feeling disconnected</td>
+                            </tr>
+                            <tr>
+                                <td>Daily Practices</td>
+                                <td>Do my daily routines reflect my priorities? How I spend my time aligned with values?</td>
+                                <td>Time alignment, ritual meaning, conscious choices</td>
+                                <td>Time poverty, routine misalignment, autopilot living</td>
+                            </tr>
+                            <tr>
+                                <td>Legacy</td>
+                                <td>What impact do I want to leave? How does today contribute to that legacy?</td>
+                                <td>Future orientation, contribution focus, impact awareness</td>
+                                <td>Short-term thinking, no legacy consciousness, limited perspective</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-bullseye"></i> Purpose in Action</h4>
+                        <p>Translating purpose into daily practices:</p>
+                        <ul>
+                            <li>Setting goals aligned with your purpose</li>
+                            <li>Creating rituals that reinforce meaningful living</li>
+                            <li>Making decisions through purpose filter</li>
+                            <li>Building purpose-supporting habits</li>
+                            <li>Regularly reviewing alignment between actions and purpose</li>
+                            <li>Adjusting course when misalignment occurs</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-obstacle"></i> Overcoming Purpose Obstacles</h4>
+                        <p>Addressing common challenges to purposeful living:</p>
+                        <ul>
+                            <li>Navigating societal expectations vs. personal purpose</li>
+                            <li>Managing practical constraints while pursuing purpose</li>
+                            <li>Dealing with purpose uncertainty and evolution</li>
+                            <li>Balancing multiple purposes and roles</li>
+                            <li>Maintaining purpose during difficult times</li>
+                            <li>Adapting purpose as life circumstances change</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-hands-helping"></i> Meaning-Making Practices</h3>
+                <p>Cultivating the ability to find meaning in all of life's experiences.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-journal"></i> Reflective Practices</h4>
+                        <p>Structured approaches to meaning-making:</p>
+                        <ul>
+                            <li>Journaling about meaningful experiences</li>
+                            <li>Life review and autobiography exercises</li>
+                            <li>Gratitude practices to highlight what matters</li>
+                            <li>Regular values check-ins and alignment assessments</li>
+                            <li>Meditation on purpose and meaning questions</li>
+                            <li>Conversations about meaning with trusted others</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-community"></i> Contribution Practices</h4>
+                        <p>Finding meaning through service and contribution:</p>
+                        <ul>
+                            <li>Identifying how your unique strengths can serve others</li>
+                            <li>Volunteering for causes aligned with your values</li>
+                            <li>Mentoring others based on your experience</li>
+                            <li>Creating something that adds value to others</li>
+                            <li>Advocating for issues that matter to you</li>
+                            <li>Building communities around shared purposes</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-university"></i> Logotherapy Research</h4>
+                    <p>Viktor Frankl's approach to finding meaning:</p>
+                    <ul>
+                        <li>Meaning can be found in any circumstances</li>
+                        <li>Three main sources of meaning: creative, experiential, attitudinal</li>
+                        <li>Freedom to choose attitude toward suffering</li>
+                        <li>Meaning is unique to each individual and situation</li>
+                        <li>Will to meaning is fundamental human motivation</li>
+                        <li>Existential vacuum results from meaninglessness</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-star"></i> Essential Purpose Practices</h3>
+                <p>Daily habits and techniques for cultivating purpose and meaning.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-question"></i> Daily Purpose Question</h4>
+                        <p>Start each day asking: "How can I live according to my purpose today?"</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-check"></i> Values-Based Decision Making</h4>
+                        <p>Make choices through the filter of your core values rather than immediate convenience.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-history"></i> Meaningful Moments Reflection</h4>
+                        <p>End each day reflecting on moments that felt meaningful and why.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-people"></i> Purposeful Relationships</h4>
+                        <p>Surround yourself with people who support and reflect your values and purpose.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-strength"></i> Strengths Alignment</h4>
+                        <p>Regularly find ways to use your signature strengths in service of something meaningful.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-adjust"></i> Life Balance Audit</h4>
+                        <p>Periodically assess how your time allocation aligns with your stated priorities.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-book"></i> Purpose Storytelling</h4>
+                        <p>Practice articulating your purpose narrative to deepen understanding and commitment.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-seedling"></i> Legacy Thinking</h4>
+                        <p>Regularly consider how today's actions contribute to the legacy you want to leave.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"He who has a why to live for can bear almost any how."</p>
+                    <footer>— Friedrich Nietzsche</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-crystal-ball"></i> Future of Purpose & Meaning</h3>
+                <p>Emerging trends and developments in understanding and cultivating purpose.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-globe"></i> Evolving Work & Purpose</h4>
+                        <ul>
+                            <li>Purpose-driven organizations and workplaces</li>
+                            <li>Remote work and its impact on meaning and connection</li>
+                            <li>Multiple career paths and portfolio approaches to purpose</li>
+                            <li>Social entrepreneurship and purpose-driven business</li>
+                            <li>Intergenerational purpose partnerships and mentoring</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Neuroscience of Meaning</h4>
+                        <ul>
+                            <li>Brain mechanisms underlying meaning perception</li>
+                            <li>Neurobiological correlates of purpose and fulfillment</li>
+                            <li>How meaning-making affects brain health and resilience</li>
+                            <li>Neural pathways of values-based decision making</li>
+                            <li>Biomarkers of purposeful living and wellbeing</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-technology"></i> Technology & Purpose</h4>
+                        <ul>
+                            <li>Digital tools for purpose discovery and tracking</li>
+                            <li>Online communities around shared purposes</li>
+                            <li>Virtual reality for empathy and perspective-taking</li>
+                            <li>AI-assisted purpose exploration and alignment</li>
+                            <li>Digital legacy and purpose preservation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing evidence-based approaches to purpose and meaning discovery for a fulfilling and significant life.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Personal Growth Topics</h3>
+                    <a href="mindfulness.html">Mindfulness & Meditation</a>
+                    <a href="goal-achievement.html">Goal Achievement</a>
+                    <a href="relationships.html">Relationships & Communication</a>
+                    <a href="emotional-intelligence.html">Emotional Intelligence</a>
+                    <a href="health.html">Health & Wellness</a>
+                    <a href="creativity.html">Creativity & Innovation</a>
+                    <a href="resilience.html">Resilience & Adaptability</a>
+                    <a href="purpose.html">Purpose & Meaning</a>
+                </div>
+            
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

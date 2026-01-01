@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Processing - Core Insight Services</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Processing Your Payment...</h1>
+    <p>Please wait while we verify your payment.</p>
+    
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const transactionId = urlParams.get('transaction_id');
+        const status = urlParams.get('status');
+        
+        if (status === 'successful' && transactionId) {
+            window.location.href = `/services-payment-verification.html?transaction_id=${transactionId}`;
+        } else {
+            window.location.href = '/services-payment-failed.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Design Thinking | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to design thinking methodology, human-centered design, innovation process, and problem-solving approaches.">
+    <meta name="keywords" content="design thinking, human-centered design, innovation, ideation, prototyping, user experience, UX design, problem-solving">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2C3E50, #4CA1AF);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(44, 62, 80, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #FD746C, #FF9068);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #FD746C;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #FD746C, #FF9068);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #FD746C;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #FD746C;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #FF9068;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 144, 104, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(76, 161, 175, 0.5);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #FD746C;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #FF9068;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: rgba(76, 161, 175, 0.5);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .research-item h4 {
+            color: #FD746C;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: rgba(76, 161, 175, 0.5);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FD746C;
+        }
+        
+        .tip-box h4 {
+            color: #FD746C;
+            margin-bottom: 10px;
+        }
+        
+        /* Design Thinking Process Visual */
+        .process-visual {
+            background: rgba(76, 161, 175, 0.5);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .process-visual h4 {
+            color: #FD746C;
+            margin-bottom: 20px;
+        }
+        
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .process-step {
+            text-align: center;
+            width: 16%;
+            position: relative;
+        }
+        
+        .process-step i {
+            font-size: 30px;
+            color: #FF9068;
+            background: rgba(44, 62, 80, 0.8);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .process-step:hover i {
+            transform: scale(1.1);
+        }
+        
+        .process-connector {
+            position: absolute;
+            top: 35px;
+            height: 2px;
+            background: #FF9068;
+            width: 84%;
+            left: 8%;
+            z-index: -1;
+        }
+        
+        .process-arrow {
+            position: absolute;
+            top: 32px;
+            right: 8%;
+            color: #FF9068;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(44, 62, 80, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #FD746C;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #FF9068;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 968px) {
+            .process-steps {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 30px;
+            }
+            
+            .process-step {
+                width: 28%;
+            }
+            
+            .process-connector, .process-arrow {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .process-step {
+                width: 45%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .process-step {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Design <span>Thinking</span></h1>
+            <p>A human-centered approach to innovation that integrates user needs, technological possibilities, and business requirements to create innovative solutions.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="creativity.html">Creativity</a> / Design Thinking
+        </div>
+
+        <!-- Design Thinking Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-pencil-ruler"></i> Mastering Design Thinking</h2>
+                <p>Design Thinking is a human-centered, iterative process for creative problem-solving and innovation. It emphasizes understanding user needs, challenging assumptions, redefining problems, and creating innovative solutions to prototype and test. The approach combines creative and analytical thinking, and encourages collaboration across multidisciplinary teams.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>The Design Thinking Process</h3>
+                <p>Design Thinking typically follows a non-linear, iterative process with five key phases that allow teams to understand users, challenge assumptions, redefine problems, and create innovative solutions.</p>
+                
+                <div class="process-visual">
+                    <h4>The Design Thinking Framework</h4>
+                    <div class="process-steps">
+                        <div class="process-step">
+                            <i class="fas fa-search"></i>
+                            <p>Empathize</p>
+                            <small>Understand user needs</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-book-open"></i>
+                            <p>Define</p>
+                            <small>Articulate the problem</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-lightbulb"></i>
+                            <p>Ideate</p>
+                            <small>Generate ideas</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-puzzle-piece"></i>
+                            <p>Prototype</p>
+                            <small>Create solutions</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-vial"></i>
+                            <p>Test</p>
+                            <small>Evaluate solutions</small>
+                        </div>
+                        <div class="process-step">
+                            <i class="fas fa-sync-alt"></i>
+                            <p>Implement</p>
+                            <small>Execute and iterate</small>
+                        </div>
+                        <div class="process-connector"></div>
+                        <div class="process-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    <p><em>The process is iterative rather than linear—teams often move back and forth between stages as they learn more about users and solutions.</em></p>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-search"></i> Empathize Phase</h4>
+                        <p>Understanding the user experience and needs:</p>
+                        <ul>
+                            <li>User interviews and observation</li>
+                            <li>Empathy mapping</li>
+                            <li>User journey mapping</li>
+                            <li>Contextual inquiry</li>
+                            <li>Stakeholder conversations</li>
+                            <li>Immersion in user environment</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-book-open"></i> Define Phase</h4>
+                        <p>Synthesizing research to define the core problem:</p>
+                        <ul>
+                            <li>Persona development</li>
+                            <li>Point of view statements</li>
+                            <li>Problem framing</li>
+                            <li>Insight synthesis</li>
+                            <li>Need statements</li>
+                            <li>How Might We questions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Ideate Phase</h4>
+                        <p>Generating a wide range of creative solutions:</p>
+                        <ul>
+                            <li>Brainstorming sessions</li>
+                            <li>Mind mapping</li>
+                            <li>SCAMPER technique</li>
+                            <li>Worst possible idea</li>
+                            <li>Storyboarding</li>
+                            <li>Analogous inspiration</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-puzzle-piece"></i> Prototype Phase</h4>
+                        <p>Creating tangible representations of ideas:</p>
+                        <ul>
+                            <li>Low-fidelity prototypes</li>
+                            <li>Wireframes and mockups</li>
+                            <li>Physical models</li>
+                            <li>Role-playing</li>
+                            <li>Storytelling</li>
+                            <li>Digital prototypes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-vial"></i> Test Phase</h4>
+                        <p>Gathering feedback on proposed solutions:</p>
+                        <ul>
+                            <li>User testing sessions</li>
+                            <li>Feedback collection</li>
+                            <li>A/B testing</li>
+                            <li>Usability testing</li>
+                            <li>Iteration based on feedback</li>
+                            <li>Solution refinement</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Implement Phase</h4>
+                        <p>Bringing the solution to life and iterating:</p>
+                        <ul>
+                            <li>Solution development</li>
+                            <li>Implementation planning</li>
+                            <li>Pilot programs</li>
+                            <li>Continuous improvement</li>
+                            <li>Measuring impact</li>
+                            <li>Scaling successful solutions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Design Thinking Mindsets & Principles</h3>
+                <p>Successful Design Thinking requires adopting specific mindsets and principles that guide the approach and methodology.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-user-friends"></i> Human-Centered</h4>
+                        <p>Focus on people and their needs:</p>
+                        <ul>
+                            <li>Start with people and end with people</li>
+                            <li>Develop deep empathy for users</li>
+                            <li>Involve users throughout the process</li>
+                            <li>Design for real human behaviors</li>
+                            <li>Consider the entire user experience</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Iterative</h4>
+                        <p>Embrace learning through repetition:</p>
+                        <ul>
+                            <li>Expect to iterate multiple times</li>
+                            <li>Learn from failures and mistakes</li>
+                            <li>Progress through cycles of learning</li>
+                            <li>Refine solutions over time</li>
+                            <li>Embrace the process of continuous improvement</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hands"></i> Collaborative</h4>
+                        <p>Leverage diverse perspectives:</p>
+                        <ul>
+                            <li>Work in multidisciplinary teams</li>
+                            <li>Value different viewpoints</li>
+                            <li>Co-create with stakeholders</li>
+                            <li>Build on each other's ideas</li>
+                            <li>Create shared ownership of solutions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-rocket"></i> Action-Oriented</h4>
+                        <p>Bias toward making and doing:</p>
+                        <ul>
+                            <li>Learn by making</li>
+                            <li>Create tangible prototypes</li>
+                            <li>Test ideas in the real world</li>
+                            <li>Embrace experimentation</li>
+                            <li>Focus on doing rather than talking</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-magic"></i> Creative</h4>
+                        <p>Embrace ambiguity and possibility:</p>
+                        <ul>
+                            <li>Suspend judgment during ideation</li>
+                            <li>Explore wild ideas</li>
+                            <li>Make unexpected connections</li>
+                            <li>Think divergently before converging</li>
+                            <li>Challenge assumptions and constraints</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-clipboard-list"></i> Holistic</h4>
+                        <p>Consider the entire system:</p>
+                        <ul>
+                            <li>View problems systemically</li>
+                            <li>Consider broader context</li>
+                            <li>Understand interconnected elements</li>
+                            <li>Address root causes, not symptoms</li>
+                            <li>Design for sustainability and impact</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Design Thinking Tools & Methods</h3>
+                <p>A variety of tools and methods support each phase of the Design Thinking process.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-map-marked-alt"></i> Empathy Tools</h4>
+                        <p>Methods for understanding user needs:</p>
+                        <ul>
+                            <li>Empathy maps</li>
+                            <li>User journey maps</li>
+                            <li>Contextual interviews</li>
+                            <li>AEIOU framework (Activities, Environments, Interactions, Objects, Users)</li>
+                            <li>Five Whys technique</li>
+                            <li>Shadowing and observation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Ideation Techniques</h4>
+                        <p>Methods for generating innovative ideas:</p>
+                        <ul>
+                            <li>Brainstorming and brainwriting</li>
+                            <li>Mind mapping</li>
+                            <li>SCAMPER (Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse)</li>
+                            <li>Six Thinking Hats</li>
+                            <li>Worst possible idea</li>
+                            <li>Analogous inspiration</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-puzzle-piece"></i> Prototyping Methods</h4>
+                        <p>Approaches for creating tangible representations:</p>
+                        <ul>
+                            <li>Paper prototyping</li>
+                            <li>Wireframing</li>
+                            <li>Digital mockups</li>
+                            <li>Physical models</li>
+                            <li>Role-playing</li>
+                            <li>Storyboarding</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-clipboard-check"></i> Testing Approaches</h4>
+                        <p>Methods for gathering user feedback:</p>
+                        <ul>
+                            <li>Usability testing</li>
+                            <li>A/B testing</li>
+                            <li>Feedback grids</li>
+                            <li>Think-aloud protocols</li>
+                            <li>Heuristic evaluation</li>
+                            <li>Experience sampling</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Design Thinking Research</h3>
+                <p>Evidence-based insights from design research and case studies.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-chart-line"></i> Impact Studies</h4>
+                    <p>Research on the effectiveness of Design Thinking:</p>
+                    <ul>
+                        <li>Companies that use Design Thinking outperform industry benchmarks by 211% (DMI Design Value Index)</li>
+                        <li>Design-led companies report 41% higher market share, 46% competitive advantage, and 50% more loyal customers</li>
+                        <li>Teams using Design Thinking report 50% higher collaboration and innovation effectiveness</li>
+                        <li>Design Thinking projects have 30% higher success rates than traditionally managed projects</li>
+                        <li>Organizations that embrace Design Thinking see 2-3x faster time to market for new products</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-building"></i> Organizational Adoption</h4>
+                    <p>Studies on implementing Design Thinking in organizations:</p>
+                    <ul>
+                        <li>Successful adoption requires leadership commitment and cultural change</li>
+                        <li>Companies that train 10% or more of their workforce in Design Thinking see significant innovation improvements</li>
+                        <li>Cross-functional teams produce more innovative solutions than single-discipline teams</li>
+                        <li>Physical environment significantly impacts Design Thinking effectiveness</li>
+                        <li>Measurement and ROI tracking remains a challenge for many organizations</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-user-check"></i> User-Centered Benefits</h4>
+                    <p>Research on outcomes of human-centered design approaches:</p>
+                    <ul>
+                        <li>Products developed with Design Thinking have 50% higher user satisfaction scores</li>
+                        <li>Services designed with user involvement have 45% lower support costs</li>
+                        <li>Design Thinking reduces development rework by 30-50% by catching issues early</li>
+                        <li>Empathy-based approaches uncover 3x more user needs than traditional research</li>
+                        <li>Iterative prototyping identifies 80% of usability issues before launch</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Design Thinking Applications</h3>
+                <p>How Design Thinking is applied across different domains and industries.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-mobile-alt"></i> Product Design</h4>
+                        <p>Creating physical and digital products:</p>
+                        <ul>
+                            <li>Consumer electronics and appliances</li>
+                            <li>Software and application interfaces</li>
+                            <li>Furniture and household items</li>
+                            <li>Medical devices and equipment</li>
+                            <li>Automotive and transportation design</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-concierge-bell"></i> Service Design</h4>
+                        <p>Designing service experiences and systems:</p>
+                        <ul>
+                            <li>Customer journey mapping</li>
+                            <li>Service blueprinting</li>
+                            <li>Touchpoint optimization</li>
+                            <li>Process improvement</li>
+                            <li>Experience design</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-briefcase-medical"></i> Social Innovation</h4>
+                        <p>Addressing complex social challenges:</p>
+                        <ul>
+                            <li>Healthcare system improvement</li>
+                            <li>Educational program design</li>
+                            <li>Poverty alleviation initiatives</li>
+                            <li>Environmental sustainability solutions</li>
+                            <li>Community development projects</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-chart-line"></i> Business Innovation</h4>
+                        <p>Driving organizational change and growth:</p>
+                        <ul>
+                            <li>Business model innovation</li>
+                            <li>Strategic planning</li>
+                            <li>Organizational change management</li>
+                            <li>Workplace design</li>
+                            <li>Leadership development</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Essential Design Thinking Tips</h3>
+                <p>Practical advice and strategies from design thinking experts and practitioners.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4>Start with Why</h4>
+                        <p>Always begin by understanding the underlying problem and user needs before jumping to solutions.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Embrace Beginner's Mind</h4>
+                        <p>Approach problems with curiosity and without assumptions, even if you're an expert in the domain.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Bias Toward Action</h4>
+                        <p>Don't just talk about ideas—make them tangible through prototypes and experiments.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Listen Deeply</h4>
+                        <p>Practice active listening without judgment during user research and team discussions.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Fail Early and Often</h4>
+                        <p>View failures as learning opportunities and identify issues as early as possible.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Prototype Roughly</h4>
+                        <p>Create low-fidelity prototypes quickly—they're easier to discard and encourage honest feedback.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Seek Diverse Perspectives</h4>
+                        <p>Include people with different backgrounds, expertise, and viewpoints on your team.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4>Iterate Constantly</h4>
+                        <p>View design as an ongoing process of refinement rather than a one-time event.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Design Thinking</h3>
+                <p>Emerging trends and evolving practices in design thinking.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Technology Integration</h4>
+                        <ul>
+                            <li>AI-assisted user research and analysis</li>
+                            <li>Virtual reality for empathy and prototyping</li>
+                            <li>Digital collaboration tools for remote teams</li>
+                            <li>Data-driven design decision making</li>
+                            <li>Generative design algorithms</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Skill Development</h4>
+                        <ul>
+                            <li>Develop systems thinking capabilities</li>
+                            <li>Learn to facilitate remote design workshops</li>
+                            <li>Master data literacy for design research</li>
+                            <li>Build ethical design practices</li>
+                            <li>Cultivate cultural intelligence for global design</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge design thinking insights and education to help you unlock your innovative potential.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Creativity Topics</h3>
+                   <a href="creative-thinking.html">Creative Thinking</a>
+                    <a href="design-thinking.html">Design Thinking</a>
+                    <a href="innovation-management.html">Innovation Management</a>
+                    <a href="creative-problem-solving.html">Creative Problem Solving</a>
+                    <a href="brainstorming-techniques.html">Brainstorming-techniques</a>
+                    <a href="creative-tools.html">Creative Tools & Techniques</a>
+                    <a href="creative-process.html">The Creative Process</a>
+                    <a href="creative-mindset.html">Developing A Creative Mindset</a>
+                </div>
+                
+              
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

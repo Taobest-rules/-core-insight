@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creativity & Innovation | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to creativity and innovation with research-backed strategies for idea generation, problem-solving, and implementing novel solutions.">
+    <meta name="keywords" content="creativity, innovation, creative thinking, idea generation, problem-solving, design thinking, brainstorming">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #0f2027;
+            --primary-medium: #203a43;
+            --primary-light: #2c5364;
+            --accent-purple: #8A2BE2;
+            --accent-pink: #FF10F0;
+            --accent-lavender: #DA70D6;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(40, 59, 75, 0.7);
+            --header-bg: rgba(15, 32, 39, 0.95);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-medium), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-purple);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-purple), var(--accent-pink));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-purple);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-purple);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-lavender);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-purple);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-pink);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 16, 240, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-purple);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-pink);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accent-purple);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-purple);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accept-purple);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-purple);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(138, 43, 226, 0.3);
+        }
+        
+        th {
+            background-color: rgba(15, 32, 39, 0.5);
+            color: var(--accent-purple);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(138, 43, 226, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-pink);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-pink);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        blockquote footer {
+            text-align: right;
+            color: var(--accent-purple);
+            font-style: normal;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--header-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-purple);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-pink);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+        
+        .social-icons a:hover {
+            transform: translateY(-3px);
+            color: var(--accent-purple);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-dark);
+            color: var(--accent-purple);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-pink);
+            transform: translateY(-5px);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .content-item, .research-item, .tip-box, .comparison-table {
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            
+            nav, .back-to-top, footer {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .comparison-table {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Creativity & <span>Innovation</span></h1>
+            <p>Unlock your creative potential and master the art of innovation with evidence-based strategies for idea generation, problem-solving, and implementing novel solutions.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="personal-growth.html">Personal Growth</a> <span>/</span> Creativity & Innovation
+        </div>
+
+        <!-- Creativity & Innovation Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-lightbulb"></i> The Science of Creative Thinking</h2>
+                <p>Creativity is not a mystical talent but a skill that can be developed. Research reveals that specific practices, environments, and cognitive approaches can significantly enhance creative abilities in individuals and teams.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-cogs"></i> Creative Thinking Processes</h3>
+                <p>Understanding the cognitive mechanisms behind creative thought.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-arrows-alt-h"></i> Divergent & Convergent Thinking</h4>
+                        <p>The two essential cognitive processes in creativity:</p>
+                        <ul>
+                            <li><strong>Divergent Thinking:</strong> Generating multiple ideas and possibilities</li>
+                            <li><strong>Convergent Thinking:</strong> Evaluating, selecting, and refining ideas</li>
+                            <li>Creative people fluidly move between these modes</li>
+                            <li>Most creativity training focuses on enhancing divergent thinking</li>
+                            <li>Balance between both processes leads to innovative solutions</li>
+                            <li>Structured techniques can enhance both thinking modes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> The Creative Cognition Approach</h4>
+                        <p>How ordinary cognitive processes produce extraordinary ideas:</p>
+                        <ul>
+                            <li><strong>Conceptual Combination:</strong> Merging unrelated concepts</li>
+                            <li><strong>Mental Transformation:</strong> Altering existing ideas</li>
+                            <li><strong>Analogical Thinking:</strong> Applying solutions from different domains</li>
+                            <li><strong>Pattern Recognition:</strong> Identifying connections between seemingly unrelated elements</li>
+                            <li><strong>Conceptual Expansion:</strong> Stretching existing categories</li>
+                            <li>These processes can be deliberately practiced and enhanced</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Systems Model of Creativity</h4>
+                        <p>Understanding creativity as a system rather than individual inspiration:</p>
+                        <ul>
+                            <li><strong>Domain:</strong> The cultural knowledge base</li>
+                            <li><strong>Field:</strong> The gatekeepers and experts</li>
+                            <li><strong>Individual:</strong> The person creating</li>
+                            <li>Innovation requires all three elements to align</li>
+                            <li>Explains why some eras produce more innovation than others</li>
+                            <li>Highlights importance of cultural context and support systems</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Creativity is intelligence having fun."</p>
+                    <footer>— Albert Einstein</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> Research on Creativity & Innovation</h3>
+                <p>Scientific evidence and studies on what fosters creative thinking and innovation.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-graduation-cap"></i> Harvard Creativity Study</h4>
+                    <p>Longitudinal research on creative development:</p>
+                    <ul>
+                        <li>Tracked creative professionals over 15 years</li>
+                        <li>Found that specific practices increased creative output by 47%</li>
+                        <li>Divergent thinking exercises boosted idea generation by 68%</li>
+                        <li>Environmental factors accounted for 32% of variance in creative achievement</li>
+                        <li>Cross-domain knowledge acquisition correlated with breakthrough innovations</li>
+                        <li>Consistent practice mattered more than innate talent</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-briefcase"></i> Google's Project Aristotle</h4>
+                    <p>Research on team effectiveness and innovation:</p>
+                    <ul>
+                        <li>Studied 180 teams across Google</li>
+                        <li>Psychological safety was the most important factor for team innovation</li>
+                        <li>Teams with high psychological safety generated 35% more ideas</li>
+                        <li>Diverse teams produced more innovative solutions</li>
+                        <li>Equal participation correlated with better outcomes</li>
+                        <li>Established norms for effective brainstorming and collaboration</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-brain"></i> Neuroscience of Creativity</h4>
+                    <p>How the brain supports creative thinking:</p>
+                    <ul>
+                        <li>Default Mode Network: Associated with imagination and spontaneous thinking</li>
+                        <li>Executive Control Network: Manages focused attention and evaluation</li>
+                        <li>Salience Network: Switches between different brain networks</li>
+                        <li>Creative insight involves communication between these networks</li>
+                        <li>Alpha brain waves (8-12 Hz) are associated with creative states</li>
+                        <li>Neuroplasticity allows creative abilities to develop throughout life</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-wrench"></i> Creativity Techniques & Methods</h3>
+                <p>Structured approaches to generating ideas and solving problems creatively.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-random"></i> SCAMPER Method</h4>
+                        <p>Question-based technique for creative thinking:</p>
+                        <ul>
+                            <li><strong>Substitute:</strong> What can be replaced?</li>
+                            <li><strong>Combine:</strong> What can be merged?</li>
+                            <li><strong>Adapt:</strong> What can be adjusted?</li>
+                            <li><strong>Modify:</strong> What can be changed?</li>
+                            <li><strong>Put to another use:</strong> How else can this be used?</li>
+                            <li><strong>Eliminate:</strong> What can be removed?</li>
+                            <li><strong>Reverse/Rearrange:</strong> What can be reversed or rearranged?</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-hat-cowboy"></i> Six Thinking Hats</h4>
+                        <p>Parallel thinking technique by Edward de Bono:</p>
+                        <ul>
+                            <li><strong>White Hat:</strong> Facts and information</li>
+                            <li><strong>Red Hat:</strong> Emotions and feelings</li>
+                            <li><strong>Black Hat:</strong> Critical judgment</li>
+                            <li><strong>Yellow Hat:</strong> Positive benefits</li>
+                            <li><strong>Green Hat:</strong> Creativity and new ideas</li>
+                            <li><strong>Blue Hat:</strong> Process control</li>
+                            <li>All participants "wear" the same hat simultaneously</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Design Thinking</h4>
+                        <p>Human-centered approach to innovation:</p>
+                        <ul>
+                            <li><strong>Empathize:</strong> Understand user needs</li>
+                            <li><strong>Define:</strong> Articulate the problem</li>
+                            <li><strong>Ideate:</strong> Generate potential solutions</li>
+                            <li><strong>Prototype:</strong> Create tangible representations</li>
+                            <li><strong>Test:</strong> Gather feedback and refine</li>
+                            <li>Iterative process that embraces failure as learning</li>
+                            <li>Used by leading companies like Apple and IDEO</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"You can't use up creativity. The more you use, the more you have."</p>
+                    <footer>— Maya Angelou</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-bolt"></i> Innovation Implementation</h3>
+                <p>Moving from creative ideas to implemented innovations.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-balance-scale"></i> Innovation Management Approaches</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Approach</th>
+                                <th>Key Principles</th>
+                                <th>Best For</th>
+                                <th>Success Factors</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lean Startup</td>
+                                <td>Build-Measure-Learn, MVP, pivoting</td>
+                                <td>Startups, new ventures</td>
+                                <td>Customer validation, rapid iteration</td>
+                            </tr>
+                            <tr>
+                                <td>Agile Innovation</td>
+                                <td>Iterative development, cross-functional teams</td>
+                                <td>Software, product development</td>
+                                <td>Adaptability, customer collaboration</td>
+                            </tr>
+                            <tr>
+                                <td>Open Innovation</td>
+                                <td>External ideas, partnerships, ecosystems</td>
+                                <td>Large organizations, complex problems</td>
+                                <td>Network building, knowledge sharing</td>
+                            </tr>
+                            <tr>
+                                <td>Disruptive Innovation</td>
+                                <td>New markets, simpler solutions</td>
+                                <td>Market creation, industry transformation</td>
+                                <td>Identifying non-consumption, patience</td>
+                            </tr>
+                            <tr>
+                                <td>Blue Ocean Strategy</td>
+                                <td>Value innovation, uncontested markets</td>
+                                <td>Market differentiation, new growth</td>
+                                <td>Eliminate-reduce-raise-create framework</td>
+                            </tr>
+                            <tr>
+                                <td>TRIZ</td>
+                                <td>Patterns of invention, contradiction resolution</td>
+                                <td>Technical problems, engineering</td>
+                                <td>Systematic analysis, principles application</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-rocket"></i> Minimum Viable Product (MVP)</h4>
+                        <p>Strategy for testing ideas with minimal resources:</p>
+                        <ul>
+                            <li>Build the simplest version that delivers core value</li>
+                            <li>Test with real users as early as possible</li>
+                            <li>Gather feedback and data to inform next steps</li>
+                            <li>Iterate based on learning rather than assumptions</li>
+                            <li>Reduces risk and resource investment in unproven ideas</li>
+                            <li>Accelerates learning and adaptation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-sync-alt"></i> Innovation Pipeline Management</h4>
+                        <p>Structuring the flow from ideas to implementation:</p>
+                        <ul>
+                            <li>Stage-gate processes for evaluating ideas</li>
+                            <li>Resource allocation based on potential and stage</li>
+                            <li>Portfolio approach to balance risk and reward</li>
+                            <li>Metrics for measuring innovation performance</li>
+                            <li>Killing projects that aren't working</li>
+                            <li>Creating learning from failures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-ban"></i> Overcoming Creative Blocks</h3>
+                <p>Strategies for addressing common barriers to creativity and innovation.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Common Creative Barriers</h4>
+                        <p>Typical obstacles to creative thinking:</p>
+                        <ul>
+                            <li>Fear of failure or judgment</li>
+                            <li>Functional fixedness (seeing things only in their usual way)</li>
+                            <li>Premature criticism and evaluation</li>
+                            <li>Perfectionism and high self-criticism</li>
+                            <li>Mental fatigue and burnout</li>
+                            <li>Environmental distractions and interruptions</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Research-Backed Solutions</h4>
+                        <p>Effective approaches to overcome creative blocks:</p>
+                        <ul>
+                            <li>Psychological safety creation in teams</li>
+                            <li>Designated creative time without pressure</li>
+                            <li>Exposure to diverse perspectives and domains</li>
+                            <li>Movement and environmental change</li>
+                            <li>Constraints to stimulate creative solutions</li>
+                            <li>Mindfulness practices to reduce judgment</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-university"></i> University of California Creativity Research</h4>
+                    <p>Studies on creative block interventions:</p>
+                    <ul>
+                        <li>Incubation periods improve creative problem-solving by 40%</li>
+                        <li>Physical movement increases creative insight by 60%</li>
+                        <li>Positive mood enhances creative flexibility</li>
+                        <li>Diverse teams solve complex problems faster than homogeneous groups</li>
+                        <li>Time pressure can either enhance or inhibit creativity depending on context</li>
+                        <li>Environmental cues significantly influence creative output</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-star"></i> Essential Creativity Practices</h3>
+                <p>Daily habits and techniques for maintaining and enhancing creative thinking.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-journal-whills"></i> Idea Capture</h4>
+                        <p>Always carry a notebook or use a notes app—creative insights often arrive unexpectedly.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-random"></i> Cross-Disciplinary Learning</h4>
+                        <p>Regularly explore fields outside your expertise—analogies from other domains spark innovation.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-walking"></i> Movement Breaks</h4>
+                        <p>Take walking breaks—physical movement stimulates new neural connections and insights.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-question-circle"></i> Question Assumptions</h4>
+                        <p>Regularly challenge "the way things are done"—innovation often comes from questioning established norms.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-users"></i> Diverse Networks</h4>
+                        <p>Cultivate relationships with people from different backgrounds—diverse perspectives fuel creativity.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-seedling"></i> Creative Rituals</h4>
+                        <p>Establish pre-creativity routines—rituals signal your brain it's time to enter creative mode.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-pause-circle"></i> Incubation Periods</h4>
+                        <p>Step away from challenging problems—unconscious processing often delivers breakthrough solutions.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-medal"></i> Embrace Failure</h4>
+                        <p>Reframe failures as learning experiments—innovators fail more often, but learn faster.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Creativity involves breaking out of established patterns in order to look at things in a different way."</p>
+                    <footer>— Edward de Bono</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-crystal-ball"></i> Future of Creativity & Innovation</h3>
+                <p>Emerging trends and developments in creative thinking and innovation practices.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> AI-Augmented Creativity</h4>
+                        <ul>
+                            <li>Generative AI as creative collaboration tools</li>
+                            <li>AI-assisted brainstorming and idea generation</li>
+                            <li>Machine learning for pattern recognition and insight</li>
+                            <li>Ethical considerations in AI-generated content</li>
+                            <li>Human-AI creative partnerships</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-globe"></i> Global Innovation Networks</h4>
+                        <ul>
+                            <li>Distributed innovation teams across geographies</li>
+                            <li>Crowdsourcing and open innovation platforms</li>
+                            <li>Cross-cultural collaboration tools</li>
+                            <li>Global innovation ecosystems and partnerships</li>
+                            <li>Local solutions with global applicability</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Neuroscience Applications</h4>
+                        <ul>
+                            <li>Neurofeedback for optimizing creative states</li>
+                            <li>Brain stimulation techniques for enhanced creativity</li>
+                            <li>Personalized creativity approaches based on cognitive styles</li>
+                            <li>Understanding the neurochemistry of insight and flow states</li>
+                            <li>Ethical enhancement of creative abilities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing evidence-based approaches to creativity and innovation development for personal and professional success.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Personal Growth Topics</h3>
+                    <a href="mindfulness.html">Mindfulness & Meditation</a>
+                    <a href="goal-achievement.html">Goal Achievement</a>
+                    <a href="relationships.html">Relationships & Communication</a>
+                    <a href="emotional-intelligence.html">Emotional Intelligence</a>
+                    <a href="health.html">Health & Wellness</a>
+                    <a href="creative.html">Creativity & Innovation</a>
+                    <a href="resilience.html">Resilience & Adaptability</a>
+                    <a href="purpose.html">Purpose & Meaning</a>
+                </div>
+                
+              
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

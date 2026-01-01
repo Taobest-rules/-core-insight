@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freelance Career Guide | Core Insight</title>
+    <meta name="description" content="A comprehensive guide to building a successful freelance career with practical tips, strategies, and resources.">
+    <meta name="keywords" content="freelance, freelancing, career guide, self-employment, remote work, freelance tips, freelance business">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #555;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #1a2a6c;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 100px 0 60px;
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #fdbb2d, #ff5e62);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 22px;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            color: #f8f8f8;
+        }
+        
+        .hero-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #ff5e62, #fdbb2d);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 18px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .hero-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 20px 0;
+            font-size: 16px;
+            color: #eee;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 40px;
+        }
+        
+        .breadcrumb a {
+            color: #fdbb2d;
+            text-decoration: none;
+        }
+        
+        /* Main Content */
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 50px;
+        }
+        
+        /* Content Sections */
+        .content-section {
+            padding: 60px 40px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .section-header h2 {
+            font-size: 36px;
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-header h2:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            border-radius: 2px;
+        }
+        
+        .section-header p {
+            font-size: 18px;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Two-column layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+            margin: 40px 0;
+        }
+        
+        /* Step Cards */
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .step-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-number {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            color: white;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            border-bottom-left-radius: 15px;
+        }
+        
+        .step-card h3 {
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            font-size: 22px;
+            padding-right: 40px;
+        }
+        
+        .step-card i {
+            font-size: 40px;
+            color: #fdbb2d;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        /* Tips Grid */
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .tip-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #fdbb2d;
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .tip-card h3 {
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        /* Resources Section */
+        .resources-list {
+            margin: 40px 0;
+        }
+        
+        .resource-item {
+            background: #f5f7ff;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .resource-icon {
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .resource-icon i {
+            color: white;
+            font-size: 24px;
+        }
+        
+        /* Platform Comparison */
+        .platform-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .platform-table th, .platform-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .platform-table th {
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .platform-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .platform-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            margin: 60px 0;
+            color: white;
+        }
+        
+        .cta-section h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 15px 35px;
+            background: white;
+            color: #1a2a6c;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .cta-button.outline {
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(26, 42, 108, 0.95);
+            padding: 50px 0 30px;
+            color: white;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #fdbb2d;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #eee;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #fdbb2d;
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            transition: background 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            background: #fdbb2d;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #ccc;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 968px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 36px;
+            }
+            
+            .section-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section {
+                padding: 40px 20px;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cta-button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Build Your <span>Freelance Career</span></h1>
+           
+        </div>
+    </section>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <div class="container">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / Freelance Career Guide
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-content">
+            <!-- Introduction Section -->
+            <section class="content-section" id="start">
+                <div class="section-header">
+                    <h2>Why Choose Freelancing?</h2>
+                    <p>Discover the freedom, flexibility, and financial opportunities of building your own career</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>The Rise of the Freelance Economy</h3>
+                        <p>The freelance economy is booming, with over 60 million Americans performing freelance work in the past year, contributing $1.3 trillion to the U.S. economy. The global pandemic accelerated the shift toward remote work, making freelancing more viable and attractive than ever before.</p>
+                        <p>Whether you're looking to escape the 9-5 grind, pursue your passion, or create additional income streams, freelancing offers unprecedented opportunities for those willing to take the initiative.</p>
+                    </div>
+                    <div>
+                        <h3>Benefits of Freelancing</h3>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: #1a2a6c; margin-right: 10px;"></i> <strong>Flexibility:</strong> Set your own hours and work from anywhere</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: #1a2a6c; margin-right: 10px;"></i> <strong>Unlimited Earning Potential:</strong> Your income isn't capped by a salary</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: #1a2a6c; margin-right: 10px;"></i> <strong>Variety:</strong> Work on diverse projects with different clients</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: #1a2a6c; margin-right: 10px;"></i> <strong>Autonomy:</strong> Be your own boss and make your own decisions</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check-circle" style="color: #1a2a6c; margin-right: 10px;"></i> <strong>Skill Development:</strong> Continuously learn and grow your expertise</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Getting Started -->
+            <section class="content-section" style="background: #f9f9f9;">
+                <div class="section-header">
+                    <h2>Getting Started as a Freelancer</h2>
+                    <p>Follow these essential steps to launch your freelance career on the right foot</p>
+                </div>
+                
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <i class="fas fa-search"></i>
+                        <h3>Identify Your Niche</h3>
+                        <p>Determine what services you'll offer based on your skills, experience, and market demand. Specializing in a specific niche often leads to higher rates and less competition.</p>
+                    </div>
+                    
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <i class="fas fa-tools"></i>
+                        <h3>Build Your Portfolio</h3>
+                        <p>Create samples of your work, even if you need to do pro bono projects initially. A strong portfolio is essential for convincing clients to hire you.</p>
+                    </div>
+                    
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <i class="fas fa-dollar-sign"></i>
+                        <h3>Set Your Rates</h3>
+                        <p>Research market rates for your services and set pricing that reflects your experience and value. Consider hourly, project-based, or retainer pricing models.</p>
+                    </div>
+                    
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <i class="fas fa-rocket"></i>
+                        <h3>Create Online Presence</h3>
+                        <p>Develop a professional website and social media profiles that showcase your work, skills, and client testimonials.</p>
+                    </div>
+                    
+                    <div class="step-card">
+                        <div class="step-number">5</div>
+                        <i class="fas fa-handshake"></i>
+                        <h3>Find Your First Clients</h3>
+                        <p>Leverage your network, use freelance platforms, and reach out directly to potential clients to land your first projects.</p>
+                    </div>
+                    
+                    <div class="step-card">
+                        <div class="step-number">6</div>
+                        <i class="fas fa-file-contract"></i>
+                        <h3>Set Up Business Operations</h3>
+                        <p>Establish processes for contracts, invoicing, taxes, and time management to ensure your business runs smoothly.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Finding Clients -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Finding and Retaining Clients</h2>
+                    <p>Strategies for building a steady stream of high-quality clients</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>Proven Client Acquisition Strategies</h3>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Leverage Your Network:</strong> Let friends, family, and former colleagues know about your services</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Content Marketing:</strong> Share your expertise through blogs, videos, or podcasts</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Social Media:</strong> Build your professional brand on LinkedIn, Twitter, or Instagram</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Cold Outreach:</strong> Research and contact potential clients directly</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Referral Program:</strong> Incentivize current clients to refer new business</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-check" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Freelance Platforms:</strong> Use sites like Upwork, Fiverr, or Toptal to find initial clients</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Retaining Clients for Long-Term Success</h3>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Overdeliver:</strong> Exceed expectations with every project</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Communicate Proactively:</strong> Keep clients updated on progress</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Be Reliable:</strong> Meet deadlines and deliver consistent quality</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Ask for Feedback:</strong> Continuously improve based on client input</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Offer Additional Value:</strong> Suggest ideas that benefit the client's business</li>
+                            <li style="margin-bottom: 15px;"><i class="fas fa-star" style="color: #fdbb2d; margin-right: 10px;"></i> <strong>Maintain Relationships:</strong> Check in periodically even after projects end</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="section-header" style="margin-top: 50px;">
+                    <h2>Freelance Platforms Comparison</h2>
+                    <p>Where to find clients and grow your freelance business</p>
+                </div>
+                
+                <table class="platform-table">
+                    <thead>
+                        <tr>
+                            <th>Platform</th>
+                            <th>Best For</th>
+                            <th>Fee Structure</th>
+                            <th>Competition Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Upwork</td>
+                            <td>Established freelancers, long-term projects</td>
+                            <td>10% service fee</td>
+                            <td>High</td>
+                        </tr>
+                        <tr>
+                            <td>Fiverr</td>
+                            <td>Beginners, quick gigs, fixed-price projects</td>
+                            <td>20% service fee</td>
+                            <td>Very High</td>
+                        </tr>
+                        <tr>
+                            <td>Toptal</td>
+                            <td>Top-tier talent, high-paying projects</td>
+                            <td>Varies (selective)</td>
+                            <td>Low (but highly selective)</td>
+                        </tr>
+                        <tr>
+                            <td>Freelancer.com</td>
+                            <td>Varied projects, competitive bidding</td>
+                            <td>10% fee or membership</td>
+                            <td>Very High</td>
+                        </tr>
+                        <tr>
+                            <td>99designs</td>
+                            <td>Designers, creative work</td>
+                            <td>Flat fee per project</td>
+                            <td>High</td>
+                        </tr>
+                        <tr>
+                            <td>PeoplePerHour</td>
+                            <td>European market, various skills</td>
+                            <td>15-20% service fee</td>
+                            <td>Medium</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Pricing Strategies -->
+            <section class="content-section" style="background: #f9f9f9;">
+                <div class="section-header">
+                    <h2>Pricing Your Services</h2>
+                    <p>How to set rates that reflect your value and attract the right clients</p>
+                </div>
+                
+                <div class="tips-grid">
+                    <div class="tip-card">
+                        <h3>Hourly Pricing</h3>
+                        <p>Charge based on time spent. Best for projects with uncertain scope or ongoing work. Average freelance rates range from $25-150+/hour depending on expertise.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <h3>Project-Based Pricing</h3>
+                        <p>Charge a fixed fee for the entire project. Ideal for well-defined projects. Typically results in higher earnings than hourly if you work efficiently.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <h3>Retainer Model</h3>
+                        <p>Client pays a monthly fee for ongoing work. Provides income stability and reduces time spent finding new clients.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <h3>Value-Based Pricing</h3>
+                        <p>Price based on the value you deliver to the client rather than time spent. Can significantly increase your earnings for high-impact projects.</p>
+                    </div>
+                </div>
+                
+                <div class="two-column" style="margin-top: 40px;">
+                    <div>
+                        <h3>Factors to Consider When Setting Rates</h3>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Your experience and expertise</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Industry standards and market rates</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Complexity of the project</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Client's budget and location</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Your business expenses and financial goals</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-calculator" style="color: #1a2a6c; margin-right: 10px;"></i> Urgency and timeline of the project</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Negotiation Tips</h3>
+                        <ul style="list-style: none;">
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Know your minimum acceptable rate beforehand</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Focus on the value you provide, not just the cost</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Be prepared to walk away from bad deals</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Offer package deals or tiered pricing options</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Consider bartering or equity for promising startups</li>
+                            <li style="margin-bottom: 12px;"><i class="fas fa-handshake" style="color: #b21f1f; margin-right: 10px;"></i> Get everything in writing to avoid scope creep</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Productivity & Management -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Productivity & Business Management</h2>
+                    <p>Essential tools and strategies for running your freelance business efficiently</p>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>Must-Have Tools for Freelancers</h3>
+                        <div class="resources-list">
+                            <div class="resource-item">
+                                <div class="resource-icon">
+                                    <i class="fas fa-calendar"></i>
+                                </div>
+                                <div>
+                                    <h4>Scheduling & Time Management</h4>
+                                    <p>Calendly, Toggl, Google Calendar, RescueTime</p>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-item">
+                                <div class="resource-icon">
+                                    <i class="fas fa-file-invoice"></i>
+                                </div>
+                                <div>
+                                    <h4>Invoicing & Accounting</h4>
+                                    <p>FreshBooks, QuickBooks, Wave, HoneyBook</p>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-item">
+                                <div class="resource-icon">
+                                    <i class="fas fa-project-diagram"></i>
+                                </div>
+                                <div>
+                                    <h4>Project Management</h4>
+                                    <p>Asana, Trello, Notion, Monday.com</p>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-item">
+                                <div class="resource-icon">
+                                    <i class="fas fa-cloud"></i>
+                                </div>
+                                <div>
+                                    <h4>Cloud Storage & Collaboration</h4>
+                                    <p>Google Drive, Dropbox, OneDrive, GitHub</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Productivity Strategies</h3>
+                        <div class="tips-grid">
+                            <div class="tip-card">
+                                <h3>Time Blocking</h3>
+                                <p>Schedule specific blocks of time for different tasks to maintain focus and productivity.</p>
+                            </div>
+                            
+                            <div class="tip-card">
+                                <h3>Pomodoro Technique</h3>
+                                <p>Work in focused 25-minute intervals with 5-minute breaks to maintain mental agility.</p>
+                            </div>
+                            
+                            <div class="tip-card">
+                                <h3>Task Batching</h3>
+                                <p>Group similar tasks together to minimize context switching and improve efficiency.</p>
+                            </div>
+                            
+                            <div class="tip-card">
+                                <h3>Set Office Hours</h3>
+                                <p>Establish clear working hours to maintain work-life balance and prevent burnout.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+           
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge insights and resources to help professionals thrive in the modern economy.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <a href="ai.html">Technology</a>
+                    <a href="business.html">Business</a>
+                    <a href="creativity.html">Creativity</a>
+                    <a href="personal-growth.html">Personal Growth</a>
+                    <a href="future-trends.html">Future Trends</a>
+                </div>
+                
+           
+
+    <script>
+        // Simple animation for elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.step-card, .tip-card, .resource-item');
+            
+            elements.forEach((element, index) => {
+                // Add delay based on index for staggered animation
+                element.style.animationDelay = `${index * 0.1}s`;
+                element.classList.add('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

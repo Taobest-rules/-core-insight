@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Knowledge Hub | Core Insight</title>
+    <meta name="description" content="Comprehensive business education covering entrepreneurship, marketing, management, sales, negotiation, finance, strategy, and public speaking.">
+    <meta name="keywords" content="business, entrepreneurship, marketing, management, leadership, sales, negotiation, communication, finance, accounting, strategy, public speaking, presentation">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #00d2ff;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #00d2ff;
+            text-decoration: none;
+        }
+        
+        /* Topic Grid */
+        .topics-header {
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .topics-header h2 {
+            font-size: 36px;
+            color: #00d2ff;
+            margin-bottom: 15px;
+        }
+        
+        .topics-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .topics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 50px 0;
+        }
+        
+        .topic-card {
+            background: rgba(40, 59, 75, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            padding: 25px 25px 15px;
+            text-align: center;
+        }
+        
+        .card-header i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .card-header h3 {
+            font-size: 24px;
+            color: #00d2ff;
+        }
+        
+        .card-content {
+            padding: 0 25px 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-content p {
+            margin-bottom: 20px;
+            color: #dcdde1;
+            flex-grow: 1;
+        }
+        
+        .card-button {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .card-button:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Color variations for each topic */
+        .topic-card.entrepreneurship .card-header h3,
+        .topic-card.entrepreneurship .card-button {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.entrepreneurship .card-button {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            color: white;
+        }
+        
+        .topic-card.marketing .card-header h3,
+        .topic-card.marketing .card-button {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.marketing .card-button {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            color: white;
+        }
+        
+        .topic-card.management .card-header h3,
+        .topic-card.management .card-button {
+            background: linear-gradient(45deg, #00416a, #e4e5e6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.management .card-button {
+            background: linear-gradient(45deg, #00416a, #e4e5e6);
+            color: white;
+        }
+        
+        .topic-card.sales .card-header h3,
+        .topic-card.sales .card-button {
+            background: linear-gradient(45deg, #40e0d0, #ff8c00, #ff0080);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.sales .card-button {
+            background: linear-gradient(45deg, #40e0d0, #ff8c00, #ff0080);
+            color: white;
+        }
+        
+        .topic-card.negotiation .card-header h3,
+        .topic-card.negotiation .card-button {
+            background: linear-gradient(45deg, #834d9b, #d04ed6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.negotiation .card-button {
+            background: linear-gradient(45deg, #834d9b, #d04ed6);
+            color: white;
+        }
+        
+        .topic-card.finance .card-header h3,
+        .topic-card.finance .card-button {
+            background: linear-gradient(45deg, #2ebf91, #8360c3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.finance .card-button {
+            background: linear-gradient(45deg, #2ebf91, #8360c3);
+            color: white;
+        }
+        
+        .topic-card.strategy .card-header h3,
+        .topic-card.strategy .card-button {
+            background: linear-gradient(45deg, #c471f5, #fa71cd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.strategy .card-button {
+            background: linear-gradient(45deg, #c471f5, #fa71cd);
+            color: white;
+        }
+        
+        .topic-card.public-speaking .card-header h3,
+        .topic-card.public-speaking .card-button {
+            background: linear-gradient(45deg, #ee0979, #ff6a00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .topic-card.public-speaking .card-button {
+            background: linear-gradient(45deg, #ee0979, #ff6a00);
+            color: white;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 32, 39, 0.95);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #00d2ff;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #00d2ff;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topics-header h2 {
+                font-size: 28px;
+            }
+            
+            .topics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html"class="active">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Business <span>Knowledge Hub</span></h1>
+            <p>Comprehensive resources for entrepreneurs, managers, and business professionals to excel in their careers.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / Business Topics
+        </div>
+
+        <!-- Topics Section -->
+        <section class="topics-content">
+            <div class="topics-header">
+                <h2><i class="fas fa-chart-line"></i> Essential Business Topics</h2>
+                <p>Explore our comprehensive guides to master the key areas of business management and leadership.</p>
+            </div>
+            
+            <div class="topics-grid">
+                <!-- Entrepreneurship -->
+                <div class="topic-card entrepreneurship">
+                    <div class="card-header">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Entrepreneurship</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Learn how to transform ideas into successful businesses. Discover startup strategies, funding options, and growth techniques from successful entrepreneurs.</p>
+                        <a href="entrepreneurship.html" class="card-button">Explore Entrepreneurship</a>
+                    </div>
+                </div>
+                
+                <!-- Marketing -->
+                <div class="topic-card marketing">
+                    <div class="card-header">
+                        <i class="fas fa-bullhorn"></i>
+                        <h3>Marketing</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Master digital and traditional marketing strategies. Learn about branding, SEO, social media, content marketing, and customer acquisition techniques.</p>
+                        <a href="marketing.html" class="card-button">Explore Marketing</a>
+                    </div>
+                </div>
+                
+                <!-- Management & Leadership -->
+                <div class="topic-card management">
+                    <div class="card-header">
+                        <i class="fas fa-users"></i>
+                        <h3>Management & Leadership</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Develop essential leadership skills and management techniques. Learn how to build high-performing teams and create effective organizational structures.</p>
+                        <a href="management.html" class="card-button">Explore Management</a>
+                    </div>
+                </div>
+                
+                <!-- Sales -->
+                <div class="topic-card sales">
+                    <div class="card-header">
+                        <i class="fas fa-handshake"></i>
+                        <h3>Sales</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Master the art of selling. Learn proven sales methodologies, pipeline management, closing techniques, and customer relationship management.</p>
+                        <a href="sales.html" class="card-button">Explore Sales</a>
+                    </div>
+                </div>
+                
+                <!-- Negotiation & Communication -->
+                <div class="topic-card negotiation">
+                    <div class="card-header">
+                        <i class="fas fa-comments"></i>
+                        <h3>Negotiation & Communication</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Enhance your communication skills and master negotiation tactics. Learn how to persuade, influence, and create win-win outcomes in any situation.</p>
+                        <a href="negotiation.html" class="card-button">Explore Negotiation</a>
+                    </div>
+                </div>
+                
+                <!-- Finance & Accounting -->
+                <div class="topic-card finance">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie"></i>
+                        <h3>Finance & Accounting</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Understand financial statements, budgeting, forecasting, and investment analysis. Learn to make data-driven financial decisions for business growth.</p>
+                        <a href="finance.html" class="card-button">Explore Finance</a>
+                    </div>
+                </div>
+                
+                <!-- Business Strategy -->
+                <div class="topic-card strategy">
+                    <div class="card-header">
+                        <i class="fas fa-chess"></i>
+                        <h3>Business Strategy</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Develop strategic thinking skills and learn to formulate effective business strategies. Understand competitive analysis and long-term planning.</p>
+                        <a href="strategy.html" class="card-button">Explore Strategy</a>
+                    </div>
+                </div>
+                
+                <!-- Public Speaking & Presentation -->
+                <div class="topic-card public-speaking">
+                    <div class="card-header">
+                        <i class="fas fa-microphone"></i>
+                        <h3>Public Speaking & Presentation</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Master the art of public speaking and creating compelling presentations. Overcome stage fright and learn to captivate any audience.</p>
+                        <a href="public-speaking.html" class="card-button">Explore Public Speaking</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge business insights and education to help professionals excel in their careers.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                  <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Business Topics</h3>
+                    <a href="entrepreneurship.html">Entrepreneurship</a>
+                    <a href="marketing.html">Marketing</a>
+                    <a href="management.html">Management And Leadership</a>
+                    <a href="strategy.html">Business Strategy</a>
+                    <a href="sales.html">Sales</a>
+                    <a href="finance.html">Finance And Accounting</a>
+                    <a href="public-speaking.html">Public speaking And Presentation</a>
+                    <a href="negotiation.html">Negotiation And Communication</a>
+                </div>
+                
+             
+
+    <script>
+        // Simple animation for topic cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.topic-card');
+            
+            cards.forEach((card, index) => {
+                // Add delay based on index for staggered animation
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.classList.add('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

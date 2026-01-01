@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Web Development | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to web development including frontend, backend, full-stack development, frameworks, and modern web technologies.">
+    <meta name="keywords" content="web development, frontend development, backend development, full-stack, HTML, CSS, JavaScript, frameworks, responsive design, web applications">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #f9d342;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #ff6f61;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #f9d342;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #ff6f61;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 111, 97, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(40, 39, 60, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #f9d342;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #ff6f61;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #f9d342;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #ff6f61;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Web <span>Development</span></h1>
+            <p>Comprehensive guide to building modern, responsive websites and web applications.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="technology.html">Technology</a> / Web Development
+        </div>
+
+        <!-- Web Development Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-code"></i> Understanding Web Development</h2>
+                <p>Web development is the work involved in developing websites and web applications for the internet or an intranet. It can range from developing a simple single static page of plain text to complex web applications, electronic businesses, and social network services.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Frontend Development</h3>
+                <p>Frontend development involves creating the user interface and experience that users interact with directly in their web browsers.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fab fa-html5"></i> HTML5</h4>
+                        <p>The standard markup language for documents designed to be displayed in a web browser.</p>
+                        <ul>
+                            <li>Semantic elements (header, footer, article, section)</li>
+                            <li>Multimedia support (audio, video)</li>
+                            <li>Canvas for graphics</li>
+                            <li>Form enhancements</li>
+                            <li>Local storage</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-css3-alt"></i> CSS3</h4>
+                        <p>Style sheet language used for describing the presentation of a document written in HTML.</p>
+                        <ul>
+                            <li>Flexbox and Grid layout</li>
+                            <li>Animations and transitions</li>
+                            <li>Responsive design (media queries)</li>
+                            <li>Custom properties (variables)</li>
+                            <li>Box model and positioning</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-js"></i> JavaScript</h4>
+                        <p>A programming language that enables interactive web pages and is an essential part of web applications.</p>
+                        <ul>
+                            <li>DOM manipulation</li>
+                            <li>Event handling</li>
+                            <li>Asynchronous programming (Promises, async/await)</li>
+                            <li>ES6+ features</li>
+                            <li>API integration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Backend Development</h3>
+                <p>Backend development involves working with servers, databases, and application logic that power the frontend experience.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-server"></i> Server Technologies</h4>
+                        <p>Various technologies used to create server-side applications:</p>
+                        <ul>
+                            <li>Node.js with Express</li>
+                            <li>Python with Django or Flask</li>
+                            <li>Ruby on Rails</li>
+                            <li>PHP with Laravel</li>
+                            <li>Java with Spring Boot</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-database"></i> Databases</h4>
+                        <p>Systems for storing and retrieving application data:</p>
+                        <ul>
+                            <li>SQL databases (MySQL, PostgreSQL)</li>
+                            <li>NoSQL databases (MongoDB, Redis)</li>
+                            <li>ORM (Object-Relational Mapping)</li>
+                            <li>Database design and normalization</li>
+                            <li>Query optimization</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-plug"></i> APIs</h4>
+                        <p>Application Programming Interfaces enable communication between different software systems:</p>
+                        <ul>
+                            <li>RESTful API design</li>
+                            <li>GraphQL</li>
+                            <li>Authentication (JWT, OAuth)</li>
+                            <li>API documentation</li>
+                            <li>Rate limiting and security</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Frontend Frameworks and Libraries</h3>
+                <p>Modern frontend development often involves using frameworks and libraries that provide structure and reusable components.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fab fa-react"></i> React</h4>
+                        <p>A JavaScript library for building user interfaces, particularly single-page applications.</p>
+                        <ul>
+                            <li>Component-based architecture</li>
+                            <li>Virtual DOM for performance</li>
+                            <li>JSX syntax</li>
+                            <li>Hooks for state management</li>
+                            <li>Rich ecosystem</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-angular"></i> Angular</h4>
+                        <p>A platform and framework for building single-page client applications using HTML and TypeScript.</p>
+                        <ul>
+                            <li>TypeScript-based</li>
+                            <li>Dependency injection</li>
+                            <li>Two-way data binding</li>
+                            <li>Modular architecture</li>
+                            <li>Comprehensive solution</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fab fa-vuejs"></i> Vue.js</h4>
+                        <p>A progressive JavaScript framework for building user interfaces.</p>
+                        <ul>
+                            <li>Approachable and versatile</li>
+                            <li>Reactive data binding</li>
+                            <li>Component-based</li>
+                            <li>Detailed documentation</li>
+                            <li>Gentle learning curve</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Web Performance Optimization</h3>
+                <p>Optimizing website performance is crucial for user experience and search engine rankings.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-tachometer-alt"></i> Performance Techniques</h4>
+                        <ul>
+                            <li>Code splitting and lazy loading</li>
+                            <li>Image optimization (WebP, responsive images)</li>
+                            <li>Minification and compression</li>
+                            <li>CDN usage</li>
+                            <li>Caching strategies</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-chart-line"></i> Performance Metrics</h4>
+                        <ul>
+                            <li>Largest Contentful Paint (LCP)</li>
+                            <li>First Input Delay (FID)</li>
+                            <li>Cumulative Layout Shift (CLS)</li>
+                            <li>Time to First Byte (TTFB)</li>
+                            <li>First Contentful Paint (FCP)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Performance Tools</h4>
+                        <ul>
+                            <li>Lighthouse</li>
+                            <li>WebPageTest</li>
+                            <li>Chrome DevTools</li>
+                            <li>GTmetrix</li>
+                            <li>PageSpeed Insights</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Web Security Best Practices</h3>
+                <p>Implementing security measures is essential to protect websites and user data from threats.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-shield-alt"></i> Common Vulnerabilities</h4>
+                        <ul>
+                            <li>Cross-Site Scripting (XSS)</li>
+                            <li>SQL Injection</li>
+                            <li>Cross-Site Request Forgery (CSRF)</li>
+                            <li>Clickjacking</li>
+                            <li>Man-in-the-Middle attacks</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lock"></i> Security Measures</h4>
+                        <ul>
+                            <li>HTTPS implementation</li>
+                            <li>Content Security Policy (CSP)</li>
+                            <li>Input validation and sanitization</li>
+                            <li>Authentication best practices</li>
+                            <li>Regular security audits</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Progressive Web Apps (PWAs)</h3>
+                <p>PWAs are web applications that use modern web capabilities to deliver an app-like experience to users.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-mobile-alt"></i> PWA Characteristics</h4>
+                        <ul>
+                            <li>Reliable - Load instantly even in uncertain network conditions</li>
+                            <li>Fast - Respond quickly to user interactions</li>
+                            <li>Engaging - Feel like a natural app on the device</li>
+                            <li>Installable - Can be installed on the device's home screen</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cog"></i> PWA Technologies</h4>
+                        <ul>
+                            <li>Service Workers</li>
+                            <li>Web App Manifests</li>
+                            <li>App Shell architecture</li>
+                            <li>Push Notifications</li>
+                            <li>Background Sync</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Getting Started with Web Development</h3>
+                <p>Beginning your journey in web development requires learning foundational technologies and practicing regularly.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-road"></i> Learning Path</h4>
+                        <ul>
+                            <li>HTML fundamentals</li>
+                            <li>CSS styling and layout</li>
+                            <li>JavaScript programming</li>
+                            <li>Responsive design principles</li>
+                            <li>Version control with Git</li>
+                            <li>Choose a specialization (frontend, backend, or full-stack)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-lightbulb"></i> Learning Resources</h4>
+                        <ul>
+                            <li>MDN Web Docs</li>
+                            <li>FreeCodeCamp</li>
+                            <li>Codecademy</li>
+                            <li>YouTube tutorials</li>
+                            <li>Online courses (Udemy, Coursera)</li>
+                            <li>Documentation for specific frameworks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge technology insights and education to help you stay ahead in the digital world.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Technology Topics</h3>
+                    <a href="ai.html">Artificial Intelligence</a>
+                    <a href="web-development.html">Web Development</a>
+                    <a href="cybersecurity.html">Cybersecurity</a>
+                    <a href="cloud-devops.html">Cloud & DevOps</a>
+                </div>
+                
+                
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

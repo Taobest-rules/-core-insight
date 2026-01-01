@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artificial Intelligence | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to artificial intelligence covering machine learning, deep learning, natural language processing, computer vision, and AI applications across industries.">
+    <meta name="keywords" content="artificial intelligence, AI, machine learning, deep learning, neural networks, natural language processing, computer vision, robotics, AI ethics">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-dark: #0f2027;
+            --primary-medium: #203a43;
+            --primary-light: #2c5364;
+            --accent-blue: #4682B4;
+            --accent-teal: #20B2AA;
+            --accent-purple: #9370DB;
+            --text-light: #f5f5f5;
+            --text-muted: #dcdde1;
+            --card-bg: rgba(40, 59, 75, 0.7);
+            --header-bg: rgba(15, 32, 39, 0.95);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-medium), var(--primary-light));
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: var(--header-bg);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-blue);
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+            position: relative;
+        }
+        
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            transition: width 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent-blue);
+        }
+        
+        nav a:hover:after, nav a.active:after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-teal));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            animation: fadeInUp 1s ease 0.2s;
+            animation-fill-mode: both;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--accent-teal);
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+            flex: 1;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: var(--accent-teal);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(32, 178, 170, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+        }
+        
+        .content-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-item h4 {
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+            margin-top: auto;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: var(--accent-teal);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Research Studies Section */
+        .research-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        
+        .research-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .research-item h4 {
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tips Section */
+        .tip-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tip-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-blue);
+            transition: transform 0.3s ease;
+        }
+        
+        .tip-box:hover {
+            transform: scale(1.03);
+        }
+        
+        .tip-box h4 {
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tool Comparison Table */
+        .comparison-table {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .comparison-table h4 {
+            color: var(--accent-blue);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 22px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(70, 130, 180, 0.3);
+        }
+        
+        th {
+            background-color: rgba(15, 32, 39, 0.5);
+            color: var(--accent-blue);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: rgba(70, 130, 180, 0.1);
+        }
+        
+        /* Blockquote */
+        blockquote {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-teal);
+            margin: 20px 0;
+            padding: 20px;
+            font-style: italic;
+            position: relative;
+        }
+        
+        blockquote:before {
+            content: "";
+            font-size: 60px;
+            color: var(--accent-teal);
+            position: absolute;
+            left: 10px;
+            top: -10px;
+            opacity: 0.3;
+        }
+        
+        blockquote p {
+            margin-bottom: 10px;
+        }
+        
+        blockquote footer {
+            text-align: right;
+            color: var(--accent-blue);
+            font-style: normal;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--header-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: var(--accent-blue);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-teal);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .social-icons a {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+        
+        .social-icons a:hover {
+            transform: translateY(-3px);
+            color: var(--accent-blue);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-dark);
+            color: var(--accent-blue);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 99;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent-teal);
+            transform: translateY(-5px);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .content-item, .research-item, .tip-box, .comparison-table {
+                background: white;
+                color: black;
+                border: 1px solid #ddd;
+            }
+            
+            nav, .back-to-top, footer {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+            
+            .comparison-table {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="future-trends.html" class="active">Future Trends</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="products.html">Products</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Artificial <span>Intelligence</span></h1>
+            <p>Comprehensive guide to AI technologies transforming our world, from machine learning and neural networks to real-world applications across industries.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> <span>/</span> <a href="knowledge-hub.html">Knowledge Hub</a> <span>/</span> <a href="future-trends.html">Future Trends</a> <span>/</span> Artificial Intelligence
+        </div>
+
+        <!-- AI Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-robot"></i> The AI Revolution</h2>
+                <p>Artificial Intelligence represents the most transformative technology of the 21st century, reshaping how we live, work, and interact with the world through intelligent systems that learn, reason, and act.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-brain"></i> Foundations of AI</h3>
+                <p>Core concepts and approaches that form the basis of artificial intelligence.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-cogs"></i> Machine Learning</h4>
+                        <p>Systems that learn from data without explicit programming:</p>
+                        <ul>
+                            <li>Supervised learning with labeled datasets</li>
+                            <li>Unsupervised learning for pattern discovery</li>
+                            <li>Reinforcement learning through trial and error</li>
+                            <li>Feature engineering and selection techniques</li>
+                            <li>Model evaluation and validation methods</li>
+                            <li>Hyperparameter tuning and optimization</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Deep Learning</h4>
+                        <p>Neural networks with multiple layers for complex pattern recognition:</p>
+                        <ul>
+                            <li>Artificial neural networks and their architectures</li>
+                            <li>Convolutional neural networks for image processing</li>
+                            <li>Recurrent neural networks for sequence data</li>
+                            <li>Transformers for natural language processing</li>
+                            <li>Generative adversarial networks (GANs)</li>
+                            <li>Autoencoders for unsupervised learning</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-language"></i> Natural Language Processing</h4>
+                        <p>Enabling machines to understand and generate human language:</p>
+                        <ul>
+                            <li>Text preprocessing and tokenization</li>
+                            <li>Sentiment analysis and text classification</li>
+                            <li>Named entity recognition</li>
+                            <li>Machine translation systems</li>
+                            <li>Question answering and dialogue systems</li>
+                            <li>Text generation and summarization</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"Artificial intelligence would be the ultimate version of Google. The ultimate search engine that would understand everything on the web. It would understand exactly what you wanted, and it would give you the right thing."</p>
+                    <footer>— Larry Page</footer>
+                </blockquote>
+            </div>
+            
+            <div class="content-section">
+                <h3><i class="fas fa-flask"></i> AI Research Breakthroughs</h3>
+                <p>Key scientific advancements that have propelled AI forward.</p>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-chess"></i> DeepMind's Alpha Series</h4>
+                    <p>Reinforcement learning achievements in complex games:</p>
+                    <ul>
+                        <li>AlphaGo: First AI to defeat world champion in Go</li>
+                        <li>AlphaZero: Mastered chess, shogi, and Go through self-play</li>
+                        <li>AlphaFold: Revolutionized protein folding predictions</li>
+                        <li>AlphaStar: Achieved Grandmaster level in StarCraft II</li>
+                        <li>MuZero: Learned game rules while mastering games</li>
+                        <li>AlphaCode: Competitive performance in programming contests</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-language"></i> Transformer Revolution</h4>
+                    <p>The architecture that transformed natural language processing:</p>
+                    <ul>
+                        <li>Attention mechanism and self-attention</li>
+                        <li>BERT: Bidirectional Encoder Representations</li>
+                        <li>GPT series: Generative Pre-trained Transformers</li>
+                        <li>T5: Text-to-Text Transfer Transformer</li>
+                        <li>Multimodal transformers combining text and images</li>
+                        <li>Efficient transformer variants for reduced computation</li>
+                    </ul>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-eye"></i> Computer Vision Advances</h4>
+                    <p>From image recognition to complex scene understanding:</p>
+                    <ul>
+                        <li>ImageNet competition and deep learning breakthrough</li>
+                        <li>Object detection and segmentation algorithms</li>
+                        <li>Facial recognition and biometric systems</li>
+                        <li>Generative models for image synthesis</li>
+                        <li>3D computer vision and depth estimation</li>
+                        <li>Video understanding and action recognition</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-tools"></i> AI Development Tools</h3>
+                <p>Essential frameworks and platforms for building AI systems.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-code"></i> Programming Frameworks</h4>
+                        <p>Libraries and tools for AI development:</p>
+                        <ul>
+                            <li>TensorFlow: Google's open-source ML framework</li>
+                            <li>PyTorch: Facebook's research-friendly framework</li>
+                            <li>Keras: High-level neural networks API</li>
+                            <li>Scikit-learn: Machine learning in Python</li>
+                            <li>Hugging Face: Transformers and NLP library</li>
+                            <li>OpenAI Gym: Reinforcement learning toolkit</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cloud"></i> Cloud AI Platforms</h4>
+                        <p>Cloud services for AI development and deployment:</p>
+                        <ul>
+                            <li>Google AI Platform and TensorFlow Enterprise</li>
+                            <li>AWS SageMaker and AI services</li>
+                            <li>Azure Machine Learning and Cognitive Services</li>
+                            <li>IBM Watson Studio and AI tools</li>
+                            <li>NVIDIA GPU Cloud and AI enterprise</li>
+                            <li>Specialized AI chips and hardware accelerators</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cubes"></i> MLOps & Deployment</h4>
+                        <p>Tools for managing the machine learning lifecycle:</p>
+                        <ul>
+                            <li>MLflow: Platform for the machine learning lifecycle</li>
+                            <li>Kubeflow: Machine learning on Kubernetes</li>
+                            <li>TFX: TensorFlow Extended production pipeline</li>
+                            <li>Model monitoring and performance tracking</li>
+                            <li>Continuous integration for machine learning</li>
+                            <li>Model versioning and experiment tracking</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The development of full artificial intelligence could spell the end of the human race. It would take off on its own, and re-design itself at an ever increasing rate."</p>
+                    <footer>— Stephen Hawking</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-industry"></i> AI Applications</h3>
+                <p>Transformative AI implementations across various industries.</p>
+                
+                <div class="comparison-table">
+                    <h4><i class="fas fa-table"></i> Industry Applications of AI</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Industry</th>
+                                <th>Key Applications</th>
+                                <th>Impact Level</th>
+                                <th>Examples</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Healthcare</td>
+                                <td>Medical imaging, drug discovery, personalized treatment</td>
+                                <td>Transformative</td>
+                                <td>DeepMind Health, IBM Watson Health, PathAI</td>
+                            </tr>
+                            <tr>
+                                <td>Finance</td>
+                                <td>Fraud detection, algorithmic trading, risk assessment</td>
+                                <td>High</td>
+                                <td>Kensho, Ayasdi, Fraud detection systems</td>
+                            </tr>
+                            <tr>
+                                <td>Retail</td>
+                                <td>Recommendation systems, inventory management, customer service</td>
+                                <td>High</td>
+                                <td>Amazon recommendations, chatbots, demand forecasting</td>
+                            </tr>
+                            <tr>
+                                <td>Manufacturing</td>
+                                <td>Predictive maintenance, quality control, supply chain optimization</td>
+                                <td>High</td>
+                                <td>Siemens AI, GE Predix, predictive maintenance systems</td>
+                            </tr>
+                            <tr>
+                                <td>Transportation</td>
+                                <td>Autonomous vehicles, route optimization, traffic management</td>
+                                <td>Transformative</td>
+                                <td>Waymo, Tesla Autopilot, Uber AI</td>
+                            </tr>
+                            <tr>
+                                <td>Education</td>
+                                <td>Personalized learning, automated grading, content generation</td>
+                                <td>Moderate</td>
+                                <td>Knewton, Carnegie Learning, Duolingo AI</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-heartbeat"></i> Healthcare AI</h4>
+                        <p>Revolutionizing medical diagnosis and treatment:</p>
+                        <ul>
+                            <li>Medical imaging analysis (X-rays, MRI, CT scans)</li>
+                            <li>Drug discovery and development acceleration</li>
+                            <li>Personalized medicine and treatment plans</li>
+                            <li>Predictive analytics for patient outcomes</li>
+                            <li>Robot-assisted surgery and precision medicine</li>
+                            <li>Wearable health monitoring and analysis</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-car"></i> Autonomous Systems</h4>
+                        <p>AI-powered self-operating machines and vehicles:</p>
+                        <ul>
+                            <li>Self-driving cars and autonomous vehicles</li>
+                            <li>Industrial robots and automation systems</li>
+                            <li>Drones for delivery and surveillance</li>
+                            <li>Agricultural automation and precision farming</li>
+                            <li>Warehouse logistics and inventory management</li>
+                            <li>Space exploration rovers and satellites</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-balance-scale"></i> AI Ethics & Society</h3>
+                <p>Addressing the ethical implications and societal impact of AI.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Ethical Challenges</h4>
+                        <p>Key ethical issues in AI development and deployment:</p>
+                        <ul>
+                            <li>Algorithmic bias and fairness concerns</li>
+                            <li>Privacy implications of data collection</li>
+                            <li>Transparency and explainability of AI decisions</li>
+                            <li>Accountability for AI errors and harms</li>
+                            <li>Job displacement and economic inequality</li>
+                            <li>Autonomous weapons and military applications</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-shield-alt"></i> Responsible AI</h4>
+                        <p>Principles and practices for ethical AI development:</p>
+                        <ul>
+                            <li>Fairness, accountability, and transparency (FAT)</li>
+                            <li>Human-centered AI design principles</li>
+                            <li>AI safety research and value alignment</li>
+                            <li>Regulatory frameworks and compliance</li>
+                            <li>Ethical AI guidelines and best practices</li>
+                            <li>AI impact assessments and audits</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="research-item">
+                    <h4><i class="fas fa-gavel"></i> AI Governance & Policy</h4>
+                    <p>Regulatory approaches to AI development and use:</p>
+                    <ul>
+                        <li>EU AI Act and regulatory frameworks</li>
+                        <li>National AI strategies and initiatives</li>
+                        <li>International cooperation on AI governance</li>
+                        <li>Standards development for AI systems</li>
+                        <li>Public-private partnerships in AI policy</li>
+                        <li>Ethics boards and review processes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-rocket"></i> Future of AI</h3>
+                <p>Emerging trends and future directions in artificial intelligence.</p>
+                
+                <div class="tip-container">
+                    <div class="tip-box">
+                        <h4><i class="fas fa-brain"></i> Artificial General Intelligence</h4>
+                        <p>The pursuit of AI with human-like general intelligence capabilities.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-robot"></i> Embodied AI</h4>
+                        <p>AI systems that interact with the physical world through robots.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-exchange-alt"></i> Neuro-Symbolic AI</h4>
+                        <p>Combining neural networks with symbolic reasoning approaches.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-bolt"></i> Efficient AI</h4>
+                        <p>Developing AI that requires less computation and energy.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-user-shield"></i> AI Safety Research</h4>
+                        <p>Ensuring AI systems remain aligned with human values.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-handshake"></i> Human-AI Collaboration</h4>
+                        <p>Designing AI systems that augment rather than replace humans.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-dna"></i> AI in Science</h4>
+                        <p>Accelerating scientific discovery through AI applications.</p>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <h4><i class="fas fa-language"></i> Multimodal AI</h4>
+                        <p>AI systems that process and understand multiple data types.</p>
+                    </div>
+                </div>
+                
+                <blockquote>
+                    <p>"The coming era of Artificial Intelligence will not be the era of war, but be the era of deep compassion, non-violence, and love."</p>
+                    <footer>— Amit Ray</footer>
+                </blockquote>
+            </div>
+
+            <div class="content-section">
+                <h3><i class="fas fa-graduation-cap"></i> Learning AI</h3>
+                <p>Pathways and resources for developing AI knowledge and skills.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-book"></i> Foundational Knowledge</h4>
+                        <ul>
+                            <li>Mathematics: Linear algebra, calculus, statistics</li>
+                            <li>Computer science fundamentals and programming</li>
+                            <li>Machine learning theory and algorithms</li>
+                            <li>Neural networks and deep learning principles</li>
+                            <li>Probability theory and Bayesian methods</li>
+                            <li>Optimization techniques and algorithms</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-laptop-code"></i> Practical Skills</h4>
+                        <ul>
+                            <li>Python programming and data science libraries</li>
+                            <li>TensorFlow, PyTorch, and other ML frameworks</li>
+                            <li>Data preprocessing and feature engineering</li>
+                            <li>Model training, evaluation, and deployment</li>
+                            <li>Cloud platforms and distributed computing</li>
+                            <li>Version control and collaborative development</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-network-wired"></i> Specializations</h4>
+                        <ul>
+                            <li>Computer vision and image processing</li>
+                            <li>Natural language processing and linguistics</li>
+                            <li>Reinforcement learning and autonomous systems</li>
+                            <li>Generative models and creative AI</li>
+                            <li>AI ethics and responsible innovation</li>
+                            <li>Domain-specific AI applications</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Back to top button -->
+    <a href="#" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing comprehensive education on artificial intelligence and its transformative impact on society and industry.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Future Topics</h3>
+                   <a href="ai-trends.html">Artificial Intelligence</a>
+                    <a href="blockchain.html">Blockchain & Web3</a>
+                    <a href="iot.html">Internet of Things</a>
+                    <a href="quantum.html">Quantum Computing</a>
+                    <a href="biotech.html">Biotechnology</a>
+                    <a href="sustainability.html">Sustainability Tech</a>
+                    <a href="web3.html">Web3 & Metaverse</a>
+                    <a href="metaverse.html">Metaverse & Digital Twins</a>
+                </div>
+                
+           
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Back to top button functionality
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Scroll animation for content sections
+        const contentSections = document.querySelectorAll('.content-section');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        contentSections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Print functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

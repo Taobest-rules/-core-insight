@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Artificial Intelligence | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to Artificial Intelligence, Machine Learning, Neural Networks, and AI applications. Learn everything about AI technology and its impact on various industries.">
+    <meta name="keywords" content="artificial intelligence, machine learning, neural networks, deep learning, AI applications, natural language processing, computer vision, robotics, AI ethics">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #f9d342;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #ff6f61;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #f9d342;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #ff6f61;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 111, 97, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(40, 39, 60, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #f9d342;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #ff6f61;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #f9d342;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #ff6f61;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Artificial <span>Intelligence</span></h1>
+            <p>Comprehensive guide to AI technologies, applications, and their impact on our world.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="technology.html">Technology</a> / Artificial Intelligence
+        </div>
+
+        <!-- AI Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-brain"></i> Understanding Artificial Intelligence</h2>
+                <p>Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that are programmed to think and learn like humans. The core principles of AI include learning (acquiring information and rules for using it), reasoning (using rules to reach approximate or definite conclusions), and self-correction.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Types of Artificial Intelligence</h3>
+                <p>AI can be categorized based on capabilities and functionality, ranging from simple task-specific systems to hypothetical conscious machines.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-robot"></i> Based on Capabilities</h4>
+                        <ul>
+                            <li><strong>Narrow AI:</strong> Designed to perform a specific task (e.g., facial recognition, internet searches)</li>
+                            <li><strong>General AI:</strong> Hypothetical AI that can understand, learn, and apply knowledge across different domains</li>
+                            <li><strong>Super AI:</strong> Hypothetical AI that surpasses human intelligence and capabilities</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-cogs"></i> Based on Functionality</h4>
+                        <ul>
+                            <li><strong>Reactive Machines:</strong> Basic AI systems that respond to specific inputs with specific outputs</li>
+                            <li><strong>Limited Memory:</strong> AI that can learn from historical data to make decisions</li>
+                            <li><strong>Theory of Mind:</strong> Advanced AI that understands human emotions and beliefs</li>
+                            <li><strong>Self-Aware AI:</strong> Hypothetical AI with consciousness and self-awareness</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Machine Learning Fundamentals</h3>
+                <p>Machine Learning is a subset of AI that enables systems to learn and improve from experience without being explicitly programmed. It focuses on the development of computer programs that can access data and use it to learn for themselves.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-project-diagram"></i> Supervised Learning</h4>
+                        <p>The algorithm learns from labeled training data, helping to predict outcomes for unforeseen data. Common applications include:</p>
+                        <ul>
+                            <li>Image classification</li>
+                            <li>Spam detection</li>
+                            <li>Predictive analytics</li>
+                            <li>Risk assessment</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-network-wired"></i> Unsupervised Learning</h4>
+                        <p>The algorithm studies data to identify patterns without any predefined labels. Common applications include:</p>
+                        <ul>
+                            <li>Customer segmentation</li>
+                            <li>Anomaly detection</li>
+                            <li>Association mining</li>
+                            <li>Dimensionality reduction</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-brain"></i> Neural Networks</h4>
+                        <p>Neural networks are computing systems inspired by the human brain that can recognize underlying relationships in a set of data through a process that mimics how the human brain operates.</p>
+                        <ul>
+                            <li>Input, hidden, and output layers</li>
+                            <li>Weights and biases</li>
+                            <li>Activation functions</li>
+                            <li>Backpropagation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>AI Applications Across Industries</h3>
+                <p>AI is transforming numerous industries by automating processes, gaining insights from data, and engaging with customers and employees.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-heartbeat"></i> Healthcare</h4>
+                        <p>AI is revolutionizing healthcare with applications such as:</p>
+                        <ul>
+                            <li>Medical imaging analysis</li>
+                            <li>Drug discovery and development</li>
+                            <li>Personalized medicine</li>
+                            <li>Virtual health assistants</li>
+                            <li>Predictive analytics for patient outcomes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-money-bill-wave"></i> Finance</h4>
+                        <p>The financial industry uses AI for:</p>
+                        <ul>
+                            <li>Fraud detection</li>
+                            <li>Algorithmic trading</li>
+                            <li>Credit scoring</li>
+                            <li>Customer service chatbots</li>
+                            <li>Personalized financial advice</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-truck"></i> Manufacturing</h4>
+                        <p>AI applications in manufacturing include:</p>
+                        <ul>
+                            <li>Predictive maintenance</li>
+                            <li>Quality control</li>
+                            <li>Supply chain optimization</li>
+                            <li>Robotics and automation</li>
+                            <li>Demand forecasting</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Natural Language Processing (NLP)</h3>
+                <p>NLP enables machines to understand, interpret, and generate human language, powering applications like chatbots, translation services, and sentiment analysis.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-language"></i> NLP Techniques</h4>
+                        <ul>
+                            <li>Tokenization and text normalization</li>
+                            <li>Part-of-speech tagging</li>
+                            <li>Named entity recognition</li>
+                            <li>Sentiment analysis</li>
+                            <li>Topic modeling</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-comments"></i> NLP Applications</h4>
+                        <ul>
+                            <li>Chatbots and virtual assistants</li>
+                            <li>Machine translation</li>
+                            <li>Text summarization</li>
+                            <li>Speech recognition</li>
+                            <li>Content recommendation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Computer Vision</h3>
+                <p>Computer vision enables machines to interpret and understand visual information from the world, similar to human vision.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-camera"></i> Computer Vision Techniques</h4>
+                        <ul>
+                            <li>Image classification</li>
+                            <li>Object detection</li>
+                            <li>Image segmentation</li>
+                            <li>Facial recognition</li>
+                            <li>Pattern recognition</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-eye"></i> Computer Vision Applications</h4>
+                        <ul>
+                            <li>Autonomous vehicles</li>
+                            <li>Medical image analysis</li>
+                            <li>Surveillance systems</li>
+                            <li>Augmented reality</li>
+                            <li>Quality control in manufacturing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Ethical Considerations in AI</h3>
+                <p>As AI systems become more powerful, ethical considerations around their development and deployment are increasingly important.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-balance-scale"></i> Key Ethical Issues</h4>
+                        <ul>
+                            <li>Algorithmic bias and fairness</li>
+                            <li>Privacy concerns</li>
+                            <li>Accountability and transparency</li>
+                            <li>Job displacement</li>
+                            <li>Autonomous weapons</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-shield-alt"></i> Responsible AI Practices</h4>
+                        <ul>
+                            <li>Diverse and representative training data</li>
+                            <li>Algorithmic auditing</li>
+                            <li>Explainable AI techniques</li>
+                            <li>Human oversight</li>
+                            <li>Ethical guidelines and frameworks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Future of Artificial Intelligence</h3>
+                <p>The field of AI continues to evolve rapidly, with new developments and applications emerging constantly.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-rocket"></i> Emerging Trends</h4>
+                        <ul>
+                            <li>Explainable AI (XAI)</li>
+                            <li>AI democratization</li>
+                            <li>Edge AI</li>
+                            <li>Generative AI</li>
+                            <li>AI for sustainability</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Getting Started with AI</h4>
+                        <ul>
+                            <li>Learn programming (Python recommended)</li>
+                            <li>Study mathematics (linear algebra, calculus, statistics)</li>
+                            <li>Explore machine learning frameworks (TensorFlow, PyTorch)</li>
+                            <li>Work on practical projects</li>
+                            <li>Join AI communities and forums</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge technology insights and education to help you stay ahead in the digital world.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Technology Topics</h3>
+                    <a href="ai.html">Artificial Intelligence</a>
+                    <a href="web-development.html">Web Development</a>
+                    <a href="cybersecurity.html">Cybersecurity</a>
+                    <a href="cloud-devops.html">Cloud & DevOps</a>
+                </div>
+                
+                
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

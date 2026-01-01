@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide to Cybersecurity | Core Insight</title>
+    <meta name="description" content="Comprehensive guide to cybersecurity, including threats, protection strategies, ethical hacking, and security best practices for individuals and organizations.">
+    <meta name="keywords" content="cybersecurity, information security, network security, ethical hacking, cyber threats, data protection, security best practices, penetration testing, security frameworks">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            color: #dcdde1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 18px;
+        }
+        
+        nav a:hover, nav a.active {
+            color: #f9d342;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0 50px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(45deg, #ff6f61, #f9d342);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #dcdde1;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            padding: 15px 0;
+            font-size: 16px;
+            color: #dcdde1;
+        }
+        
+        .breadcrumb a {
+            color: #ff6f61;
+            text-decoration: none;
+        }
+        
+        /* Topic Content */
+        .topic-content {
+            padding: 30px 0;
+        }
+        
+        .topic-header {
+            margin-bottom: 30px;
+        }
+        
+        .topic-header h2 {
+            font-size: 36px;
+            color: #f9d342;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .topic-header p {
+            font-size: 18px;
+            color: #dcdde1;
+            max-width: 800px;
+        }
+        
+        .content-section {
+            margin-bottom: 50px;
+        }
+        
+        .content-section h3 {
+            font-size: 28px;
+            color: #ff6f61;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 111, 97, 0.3);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .content-item {
+            background: rgba(40, 39, 60, 0.7);
+            padding: 25px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .content-item h4 {
+            color: #f9d342;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-item p {
+            color: #dcdde1;
+            margin-bottom: 15px;
+        }
+        
+        .content-item ul {
+            list-style: none;
+            margin-left: 10px;
+        }
+        
+        .content-item li {
+            margin-bottom: 8px;
+            color: #dcdde1;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .content-item li:before {
+            content: "•";
+            color: #ff6f61;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(15, 12, 41, 0.9);
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section h3 {
+            color: #f9d342;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        
+        .footer-section p, .footer-section a {
+            color: #dcdde1;
+            margin-bottom: 15px;
+            display: block;
+            text-decoration: none;
+        }
+        
+        .footer-section a:hover {
+            color: #ff6f61;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            color: #dcdde1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .topic-header h2 {
+                font-size: 28px;
+            }
+            
+            .content-section h3 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                     <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Cyber<span>security</span></h1>
+            <p>Comprehensive guide to protecting systems, networks, and data from digital attacks.</p>
+        </section>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> / <a href="knowledge-hub.html">Knowledge Hub</a> / <a href="technology.html">Technology</a> / Cybersecurity
+        </div>
+
+        <!-- Cybersecurity Content -->
+        <section class="topic-content">
+            <div class="topic-header">
+                <h2><i class="fas fa-shield-alt"></i> Understanding Cybersecurity</h2>
+                <p>Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks. These cyberattacks are usually aimed at accessing, changing, or destroying sensitive information; extorting money from users; or interrupting normal business processes.</p>
+            </div>
+            
+            <div class="content-section">
+                <h3>Types of Cyber Threats</h3>
+                <p>Cyber threats continue to evolve in sophistication and scale, targeting individuals, businesses, and governments.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-virus"></i> Malware</h4>
+                        <p>Malicious software designed to harm or exploit any programmable device, service, or network.</p>
+                        <ul>
+                            <li><strong>Viruses:</strong> Self-replicating programs that infect other software</li>
+                            <li><strong>Worms:</strong> Self-replicating malware that spreads across networks</li>
+                            <li><strong>Trojans:</strong> Malicious programs disguised as legitimate software</li>
+                            <li><strong>Ransomware:</strong> Encrypts files and demands payment for decryption</li>
+                            <li><strong>Spyware:</strong> Secretly monitors user activities</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-user-secret"></i> Social Engineering</h4>
+                        <p>Psychological manipulation of people into performing actions or divulging confidential information.</p>
+                        <ul>
+                            <li><strong>Phishing:</strong> Fraudulent emails pretending to be from reputable sources</li>
+                            <li><strong>Spear Phishing:</strong> Targeted phishing attacks against specific individuals</li>
+                            <li><strong>Whaling:</strong> Phishing attacks targeting high-profile individuals</li>
+                            <li><strong>Baiting:</strong> Offering something enticing to deliver malware</li>
+                            <li><strong>Pretexting:</strong> Creating fabricated scenarios to obtain information</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-network-wired"></i> Network Attacks</h4>
+                        <p>Attacks targeting network infrastructure and services.</p>
+                        <ul>
+                            <li><strong>DDoS:</strong> Overwhelming systems with traffic to disrupt service</li>
+                            <li><strong>Man-in-the-Middle:</strong> Intercepting communications between two parties</li>
+                            <li><strong>DNS Spoofing:</strong> Redirecting traffic to malicious websites</li>
+                            <li><strong>ARP Poisoning:</strong> Redirecting traffic on local networks</li>
+                            <li><strong>Packet Sniffing:</strong> Capturing and analyzing network traffic</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Cybersecurity Domains</h3>
+                <p>Cybersecurity encompasses multiple specialized domains, each focusing on different aspects of protection.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-lock"></i> Network Security</h4>
+                        <p>Protecting network infrastructure from unauthorized access, misuse, or theft.</p>
+                        <ul>
+                            <li>Firewalls and intrusion detection systems</li>
+                            <li>Virtual Private Networks (VPNs)</li>
+                            <li>Network segmentation</li>
+                            <li>Wireless security</li>
+                            <li>Network access control</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-database"></i> Application Security</h4>
+                        <p>Protecting software applications from external threats throughout their lifecycle.</p>
+                        <ul>
+                            <li>Secure coding practices</li>
+                            <li>Application testing and vulnerability assessment</li>
+                            <li>Web application firewalls</li>
+                            <li>API security</li>
+                            <li>Runtime application self-protection</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-user-lock"></i> Information Security</h4>
+                        <p>Protecting the confidentiality, integrity, and availability of data.</p>
+                        <ul>
+                            <li>Data encryption</li>
+                            <li>Access control systems</li>
+                            <li>Data loss prevention</li>
+                            <li>Information classification</li>
+                            <li>Backup and recovery procedures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3>Security Frameworks and Standards</h3>
+                <p>Established frameworks provide structured approaches to implementing and maintaining cybersecurity.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-certificate"></i> Industry Standards</h4>
+                        <ul>
+                            <li><strong>ISO 27001:</strong> International standard for information security management</li>
+                            <li><strong>NIST CSF:</strong> Cybersecurity Framework from the National Institute of Standards and Technology</li>
+                            <li><strong>PCI DSS:</strong> Payment Card Industry Data Security Standard</li>
+                            <li><strong>HIPAA:</strong> Health Insurance Portability and Accountability Act</li>
+                            <li><strong>GDPR:</strong> General Data Protection Regulation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tasks"></i> Security Frameworks</h4>
+                        <ul>
+                            <li><strong>CIS Controls:</strong> Center for Internet Security Critical Security Controls</li>
+                            <li><strong>COBIT:</strong> Control Objectives for Information and Related Technologies</li>
+                            <li><strong>ITIL:</strong> Information Technology Infrastructure Library</li>
+                            <li><strong>OWASP:</strong> Open Web Application Security Project</li>
+                            <li><strong>SANS:</strong> SysAdmin, Audit, Network, and Security Institute</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Security Tools and Technologies</h3>
+                <p>Various tools and technologies help organizations detect, prevent, and respond to security incidents.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-shield-virus"></i> Protective Technologies</h4>
+                        <ul>
+                            <li><strong>Firewalls:</strong> Network security systems that monitor and control traffic</li>
+                            <li><strong>Antivirus/Antimalware:</strong> Software designed to detect and remove malicious programs</li>
+                            <li><strong>Intrusion Prevention Systems (IPS):</strong> Monitor networks for malicious activity</li>
+                            <li><strong>Encryption Tools:</strong> Protect data confidentiality through encryption</li>
+                            <li><strong>Web Application Firewalls (WAF):</strong> Protect web applications from attacks</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-search"></i> Detection Technologies</h4>
+                        <ul>
+                            <li><strong>SIEM:</strong> Security Information and Event Management systems</li>
+                            <li><strong>IDS:</strong> Intrusion Detection Systems monitor networks for policy violations</li>
+                            <li><strong>EDR:</strong> Endpoint Detection and Response solutions</li>
+                            <li><strong>Vulnerability Scanners:</strong> Identify security weaknesses in systems</li>
+                            <li><strong>Packet Analyzers:</strong> Capture and analyze network traffic</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-user-shield"></i> Identity and Access Management</h4>
+                        <ul>
+                            <li><strong>Multi-Factor Authentication (MFA):</strong> Requires multiple verification methods</li>
+                            <li><strong>Single Sign-On (SSO):</strong> Allows users to access multiple systems with one login</li>
+                            <li><strong>Privileged Access Management (PAM):</strong> Controls and monitors privileged accounts</li>
+                            <li><strong>Role-Based Access Control (RBAC):</strong> Access based on user roles</li>
+                            <li><strong>Identity Governance:</strong> Policies and processes for managing digital identities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Ethical Hacking and Penetration Testing</h3>
+                <p>Authorized attempts to gain unauthorized access to systems to identify security vulnerabilities.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-target"></i> Penetration Testing Methodologies</h4>
+                        <ul>
+                            <li><strong>Reconnaissance:</strong> Gathering information about the target</li>
+                            <li><strong>Scanning:</strong> Identifying open ports and services</li>
+                            <li><strong>Gaining Access:</strong> Exploiting vulnerabilities to enter systems</li>
+                            <li><strong>Maintaining Access:</strong> Ensuring continued access to the system</li>
+                            <li><strong>Covering Tracks:</strong> Removing evidence of the penetration</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-tools"></i> Ethical Hacking Tools</h4>
+                        <ul>
+                            <li><strong>Nmap:</strong> Network discovery and security auditing</li>
+                            <li><strong>Metasploit:</strong> Penetration testing framework</li>
+                            <li><strong>Burp Suite:</strong> Web application security testing</li>
+                            <li><strong>Wireshark:</strong> Network protocol analyzer</li>
+                            <li><strong>John the Ripper:</strong> Password cracking tool</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Incident Response and Recovery</h3>
+                <p>Preparedness and processes for handling security incidents when they occur.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-first-aid"></i> Incident Response Lifecycle</h4>
+                        <ul>
+                            <li><strong>Preparation:</strong> Developing policies and procedures</li>
+                            <li><strong>Identification:</strong> Detecting and determining the scope of incidents</li>
+                            <li><strong>Containment:</strong> Limiting the damage of security incidents</li>
+                            <li><strong>Eradication:</strong> Removing the cause of the incident</li>
+                            <li><strong>Recovery:</strong> Restoring systems and operations</li>
+                            <li><strong>Lessons Learned:</strong> Documenting and improving from incidents</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-history"></i> Business Continuity and Disaster Recovery</h4>
+                        <ul>
+                            <li><strong>Business Impact Analysis:</strong> Identifying critical business functions</li>
+                            <li><strong>Recovery Time Objective (RTO):</strong> Maximum acceptable downtime</li>
+                            <li><strong>Recovery Point Objective (RPO):</strong> Maximum data loss acceptable</li>
+                            <li><strong>Disaster Recovery Plans:</strong> Procedures for recovering IT infrastructure</li>
+                            <li><strong>Backup Strategies:</strong> Regular data backups and testing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h3>Getting Started in Cybersecurity</h3>
+                <p>Beginning a career in cybersecurity requires foundational knowledge and specialized skills.</p>
+                
+                <div class="content-grid">
+                    <div class="content-item">
+                        <h4><i class="fas fa-graduation-cap"></i> Learning Path</h4>
+                        <ul>
+                            <li>Networking fundamentals</li>
+                            <li>Operating system knowledge (Windows, Linux)</li>
+                            <li>Programming basics (Python, PowerShell)</li>
+                            <li>Security fundamentals and concepts</li>
+                            <li>Specialized security domains</li>
+                            <li>Hands-on practice with security tools</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="content-item">
+                        <h4><i class="fas fa-award"></i> Cybersecurity Certifications</h4>
+                        <ul>
+                            <li><strong>CompTIA Security+:</strong> Foundational security certification</li>
+                            <li><strong>CEH:</strong> Certified Ethical Hacker</li>
+                            <li><strong>CISSP:</strong> Certified Information Systems Security Professional</li>
+                            <li><strong>CISM:</strong> Certified Information Security Manager</li>
+                            <li><strong>GSEC:</strong> GIAC Security Essentials</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Core Insight</h3>
+                    <p>Providing cutting-edge technology insights and education to help you stay ahead in the digital world.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="index.html">Home</a>
+                    <a href="knowledge-hub.html">Knowledge Hub</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="services.html">Services</a>
+                    <a href="products.html">Products</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Technology Topics</h3>
+                    <a href="ai.html">Artificial Intelligence</a>
+                    <a href="web-development.html">Web Development</a>
+                    <a href="cybersecurity.html">Cybersecurity</a>
+                    <a href="cloud-devops.html">Cloud & DevOps</a>
+                </div>
+                
+                
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

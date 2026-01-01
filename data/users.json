@@ -1,0 +1,11 @@
+[
+  {
+    "username": "Taobest",
+    "email": "dicksonanderson2004@gmail.com",
+    "password": "$2b$10$IKar99av3mqhODDb.pkYs.qOD4TKjvygYEWtz92f0X3Nx9CRTEteW",
+    "purchasedCourses": [
+      "course1"
+    ],
+    "isAdmin": true
+  }
+]

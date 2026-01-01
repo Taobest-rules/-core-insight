@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Insight - Complete Platform Overview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --primary-dark: #4f46e5;
+            --accent: #0ea5e9;
+            --accent-glow: rgba(14, 165, 233, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark-bg: #0a0f1f;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --gradient-accent: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            --gradient-success: linear-gradient(135deg, #10b981, #34d399);
+            --gradient-warning: linear-gradient(135deg, #f59e0b, #f97316);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--dark-bg);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background-color: rgba(10, 15, 31, 0.85);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .brand-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 15px;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+        }
+
+        nav ul li a.active {
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Overview Hero */
+        .overview-hero {
+            padding: 100px 0 60px;
+            text-align: center;
+            position: relative;
+        }
+
+        .overview-hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.1;
+            text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .overview-hero h1 span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overview-hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+        }
+
+        .platform-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 60px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            min-width: 180px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .stat-box:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Section Cards */
+        .overview-section {
+            margin-bottom: 100px;
+            position: relative;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .section-title span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .section-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            gap: 15px;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 16px;
+            padding: 35px;
+            border: 1px solid var(--border-color);
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-icon {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 25px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .knowledge-hub .card-icon {
+            background: var(--gradient-success);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .courses .card-icon {
+            background: var(--gradient-primary);
+            box-shadow: 0 0 25px var(--primary-glow);
+        }
+
+        .services .card-icon {
+            background: var(--gradient-accent);
+            box-shadow: 0 0 25px var(--accent-glow);
+        }
+
+        .products .card-icon {
+            background: var(--gradient-warning);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+        }
+
+        .card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .card-features li {
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-features li i {
+            color: var(--primary);
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 20px;
+            padding: 60px;
+            margin-bottom: 100px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .contact-method {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .contact-method:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .contact-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .contact-method h4 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .contact-method p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        .contact-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .contact-link:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(10, 15, 31, 0.9);
+            padding: 60px 0 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 18px;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .social-links a:hover {
+            background: var(--gradient-primary);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        footer p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.7;
+        }
+
+        .copyright {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                max-width: 1000px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .overview-hero h1 {
+                font-size: 42px;
+            }
+            
+            .overview-hero p {
+                font-size: 18px;
+            }
+            
+            .section-title {
+                font-size: 32px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+            
+            .contact-section {
+                padding: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .overview-hero {
+                padding: 80px 0 40px;
+            }
+            
+            .overview-hero h1 {
+                font-size: 36px;
+            }
+            
+            .platform-stats {
+                gap: 20px;
+            }
+            
+            .stat-box {
+                min-width: 150px;
+                padding: 20px;
+            }
+            
+            .stat-number {
+                font-size: 30px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .overview-hero h1 {
+                font-size: 32px;
+            }
+            
+            .overview-hero p {
+                font-size: 17px;
+            }
+            
+            .section-title {
+                font-size: 28px;
+            }
+            
+            .card {
+                padding: 30px;
+            }
+            
+            .contact-section {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+                <div class="brand-name">Core Insight</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="active">Overview</a></li>
+                    <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="products.html">Products</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="overview-hero">
+            <h1>Complete <span>Platform</span> Overview</h1>
+            <p>Discover everything Core Insight has to offer in one comprehensive view. From knowledge sharing to professional services, digital courses, and marketplace products.</p>
+            
+            <div class="platform-stats">
+                <div class="stat-box">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Main Platforms</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Access</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">Secure</div>
+                    <div class="stat-label">Transactions</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Knowledge Hub Section -->
+        <section class="overview-section knowledge-hub">
+            <div class="section-header">
+                <h2 class="section-title"><span>Knowledge</span> Hub</h2>
+                <a href="knowledge-hub.html" class="section-link">
+                    Explore All Resources <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3>Digital Library</h3>
+                    <p>Access thousands of eBooks, research papers, and educational materials uploaded by our community.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Upload & download eBooks</li>
+                        <li><i class="fas fa-check"></i> Academic research papers</li>
+                        <li><i class="fas fa-check"></i> Educational resources</li>
+                        <li><i class="fas fa-check"></i> Community ratings</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <h3>Articles & Blogs</h3>
+                    <p>Read and contribute to expert articles, tutorials, and industry insights from professionals.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Expert-written articles</li>
+                        <li><i class="fas fa-check"></i> Tutorial guides</li>
+                        <li><i class="fas fa-check"></i> Industry insights</li>
+                        <li><i class="fas fa-check"></i> Comment discussions</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3>Video Tutorials</h3>
+                    <p>Watch and share educational video content covering various topics and skill levels.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Educational videos</li>
+                        <li><i class="fas fa-check"></i> How-to tutorials</li>
+                        <li><i class="fas fa-check"></i> Expert interviews</li>
+                        <li><i class="fas fa-check"></i> Downloadable resources</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Courses Section -->
+        <section class="overview-section courses">
+            <div class="section-header">
+                <h2 class="section-title"><span>Courses</span> Platform</h2>
+                <a href="courses.html" class="section-link">
+                    View All Courses <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <h3>Tech & Development</h3>
+                    <p>Learn programming, web development, data science, and other technical skills from experts.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Programming languages</li>
+                        <li><i class="fas fa-check"></i> Web development</li>
+                        <li><i class="fas fa-check"></i> Data science</li>
+                        <li><i class="fas fa-check"></i> Certification available</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Business & Finance</h3>
+                    <p>Master business strategy, marketing, finance, and entrepreneurship with practical courses.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Business strategy</li>
+                        <li><i class="fas fa-check"></i> Digital marketing</li>
+                        <li><i class="fas fa-check"></i> Financial planning</li>
+                        <li><i class="fas fa-check"></i> Case studies</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-paint-brush"></i>
+                    </div>
+                    <h3>Creative Arts</h3>
+                    <p>Develop creative skills in design, photography, writing, and other artistic disciplines.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Graphic design</li>
+                        <li><i class="fas fa-check"></i> Photography</li>
+                        <li><i class="fas fa-check"></i> Creative writing</li>
+                        <li><i class="fas fa-check"></i> Portfolio building</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section class="overview-section services">
+            <div class="section-header">
+                <h2 class="section-title"><span>Services</span> Marketplace</h2>
+                <a href="services.html" class="section-link">
+                    Browse Services <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>Tech Services</h3>
+                    <p>Hire developers, designers, and IT specialists for your projects or offer your tech expertise.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Web development</li>
+                        <li><i class="fas fa-check"></i> App development</li>
+                        <li><i class="fas fa-check"></i> UI/UX design</li>
+                        <li><i class="fas fa-check"></i> IT consulting</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                    <h3>Marketing Services</h3>
+                    <p>Find marketing experts or offer your skills in digital marketing, SEO, and brand strategy.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Digital marketing</li>
+                        <li><i class="fas fa-check"></i> SEO optimization</li>
+                        <li><i class="fas fa-check"></i> Social media management</li>
+                        <li><i class="fas fa-check"></i> Brand strategy</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3>Professional Services</h3>
+                    <p>Connect with consultants, writers, translators, and other professionals for various needs.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Business consulting</li>
+                        <li><i class="fas fa-check"></i> Content writing</li>
+                        <li><i class="fas fa-check"></i> Translation services</li>
+                        <li><i class="fas fa-check"></i> Legal consultation</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section class="overview-section products">
+            <div class="section-header">
+                <h2 class="section-title"><span>Products</span> Marketplace</h2>
+                <a href="products.html" class="section-link">
+                    Shop Products <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <h3>Digital Products</h3>
+                    <p>Buy and sell templates, themes, graphics, and other digital assets for creative projects.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Website templates</li>
+                        <li><i class="fas fa-check"></i> Stock photos</li>
+                        <li><i class="fas fa-check"></i> Graphic assets</li>
+                        <li><i class="fas fa-check"></i> Digital tools</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h3>Handmade Goods</h3>
+                    <p>Discover unique handmade products from artisans worldwide or sell your own creations.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Artisanal crafts</li>
+                        <li><i class="fas fa-check"></i> Custom jewelry</li>
+                        <li><i class="fas fa-check"></i> Handmade decor</li>
+                        <li><i class="fas fa-check"></i> Personalized items</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h3>Business Products</h3>
+                    <p>Find tools, equipment, and resources for business operations and professional use.</p>
+                    <ul class="card-features">
+                        <li><i class="fas fa-check"></i> Office supplies</li>
+                        <li><i class="fas fa-check"></i> Business software</li>
+                        <li><i class="fas fa-check"></i> Professional tools</li>
+                        <li><i class="fas fa-check"></i> Equipment rental</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="contact-section">
+            <h2 class="section-title" style="text-align: center; margin-bottom: 40px;">Get In <span>Touch</span></h2>
+            
+            <div class="contact-grid">
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h4>Email Support</h4>
+                    <p>Get help via email for general inquiries and support questions.</p>
+                    <a href="mailto:support@coreinsight.com" class="contact-link">support@coreinsight.com</a>
+                </div>
+                
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h4>Live Chat</h4>
+                    <p>Chat with our support team in real-time during business hours.</p>
+                    <a href="#" class="contact-link">Start Live Chat</a>
+                </div>
+                
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h4>Phone Support</h4>
+                    <p>Call us for urgent matters or complex issues that need immediate attention.</p>
+                    <a href="tel:+11234567890" class="contact-link">+1 (123) 456-7890</a>
+                </div>
+                
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h4>Visit Us</h4>
+                    <p>Our headquarters location for in-person meetings and consultations.</p>
+                    <p class="contact-link">123 Digital Street, Tech City</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <footer>
+        <div class="container footer-content">
+            <div class="social-links">
+                <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+            </div>
+            <p>Core Insight - Your complete digital platform for knowledge, services, courses, and products.</p>
+            <p class="copyright">© 2025 Core Insight. All Rights Reserved. | Privacy Policy | Terms of Service</p>
+        </div>
+    </footer>
+</body>
+</html>

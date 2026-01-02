@@ -1,35 +1,39 @@
 // db.js
-const mariadb = require("mariadb");
-require("dotenv").config();
+const mysql = require("mysql2/promise");
 
-const pool = mariadb.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: (process.env.DB_PASSWORD || "").trim(),
-  database: process.env.DB_NAME || "core_insight",
-  port: process.env.DB_PORT || 3306,
-  connectionLimit: 10,       // up to 10 simultaneous connections
-  connectTimeout: 10000,     // 10 seconds to connect
-  acquireTimeout: 10000,     // 10 seconds to acquire a connection
-  idleTimeout: 30000         // closes idle connections after 30s
-});
+// Load .env ONLY in development
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
-// Test the pool connection once at startup
-pool.getConnection()
-  .then(conn => {
-    console.log("✅ Connected to MariaDB successfully!");
-    conn.release();
-  })
-  .catch(err => {
-    console.error("❌ Failed to connect to MariaDB:", err.message);
-  });
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD?.trim(),
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT),
 
-// Handle pool-level errors
-pool.on("error", (err) => {
-  console.error("❌ MariaDB pool error:", err);
-  if (err.code === "ECONNRESET") {
-    console.warn("⚠️ Connection reset by server. The pool will recover automatically.");
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+
+  ssl: false,
+  authPlugins: {
+    mysql_clear_password: () => () => Buffer.from(process.env.DB_PASSWORD)
   }
 });
+
+// Test connection ONLY in development
+if (process.env.NODE_ENV !== "production") {
+  (async () => {
+    try {
+      const conn = await pool.getConnection();
+      console.log("✅ Connected to MySQL successfully!");
+      conn.release();
+    } catch (err) {
+      console.error("❌ MySQL connection failed:", err.message);
+    }
+  })();
+}
 
 module.exports = pool;

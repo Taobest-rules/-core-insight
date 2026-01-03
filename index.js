@@ -4684,7 +4684,15 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
     console.error("❌ Error fetching admin dashboard:", err);
     res.status(500).json({ error: "Error fetching dashboard data" });
   }
-});// ========================= ORDER SYSTEM ROUTES =========================
+  
+});
+app.get("/api/products", async (req, res) => {
+  const [rows] = await db.query("SELECT * FROM products");
+  console.log("PRODUCT ROWS COUNT:", rows.length);
+  res.json(rows);
+});
+
+// ========================= ORDER SYSTEM ROUTES =========================
 
 // Create new physical product order
 app.post('/api/orders/create', async (req, res) => {

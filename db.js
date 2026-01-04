@@ -1,68 +1,58 @@
-// db.js - FOR RAILWAY MYSQL
+// db.js - FIXED VERSION
 const mysql = require("mysql2/promise");
 
 // Always load environment variables
 require("dotenv").config();
 
-console.log('🔧 Connecting to Railway MySQL...');
-console.log('Host:', process.env.DB_HOST);
-console.log('Port:', process.env.DB_PORT);
-console.log('Database:', process.env.DB_NAME);
+// Check if we're in production (Render) or development (localhost)
+const isProduction = process.env.NODE_ENV === 'production';
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT) || 59121, // Railway uses custom port
+console.log(`🔧 Database configuration: ${isProduction ? 'Production (Railway)' : 'Development (localhost)'}`);
+
+const poolConfig = {
+  host: isProduction ? process.env.DB_HOST : 'localhost',
+  user: isProduction ? process.env.DB_USER : 'root',
+  password: isProduction ? process.env.DB_PASSWORD : '',
+  database: isProduction ? process.env.DB_NAME : 'core_insight',
+  port: isProduction ? (Number(process.env.DB_PORT) || 59121) : 3306,
   
-  // Railway requires SSL
-  ssl: {
-    rejectUnauthorized: false
-  },
-  
-  // Connection settings
+  // Connection pool settings
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 30000,  // 30 seconds
-  
-  // For Railway/MySQL 8+ authentication
-  authPlugins: {
-    mysql_native_password: () => require('mysql2/lib/auth/mysql_native_password')
-  },
-  
-  // Additional settings
-  charset: 'utf8mb4',
-  timezone: 'Z'
-});
+  connectTimeout: 10000
+};
 
-// Test connection
+// SSL is required for Railway in production
+if (isProduction) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false
+  };
+  console.log('✅ SSL enabled for Railway connection');
+}
+
+const pool = mysql.createPool(poolConfig);
+
+// Test connection on startup
 (async () => {
-  let connection;
   try {
-    console.log('Attempting connection to Railway MySQL...');
-    connection = await pool.getConnection();
-    console.log('✅ Connected to Railway MySQL successfully!');
+    const connection = await pool.getConnection();
+    console.log(`✅ Connected to database: ${poolConfig.database}`);
     
-    // Show database info
-    const [rows] = await connection.query('SELECT DATABASE() as db, USER() as user');
-    console.log('Connected to database:', rows[0].db);
-    console.log('Connected as user:', rows[0].user);
+    // Quick test query
+    const [result] = await connection.query('SELECT 1 as test');
+    console.log('✅ Database test query successful');
     
+    connection.release();
   } catch (error) {
-    console.error('❌ Railway MySQL connection failed:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Error number:', error.errno);
+    console.error('❌ Database connection failed:', error.message);
+    console.error('Full error:', error);
     
-    console.log('\n🔧 Troubleshooting:');
-    console.log('1. Check DB_HOST is: trolley.proxy.rlwy.net');
-    console.log('2. Check DB_PORT is: 59121');
-    console.log('3. Verify credentials in Railway dashboard');
-    console.log('4. Ensure Railway allows external connections');
-    
-  } finally {
-    if (connection) connection.release();
+    // Helpful debug info
+    console.log('\n🔧 Debug info:');
+    console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
+    console.log('DB_HOST:', process.env.DB_HOST || 'not set');
+    console.log('DB_NAME:', process.env.DB_NAME || 'not set');
   }
 })();
 

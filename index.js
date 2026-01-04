@@ -5055,6 +5055,33 @@ app.get('/api/orders/stats/overview', async (req, res) => {
     });
   }
 });
+// Test database endpoint
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    
+    // Test query
+    const [rows] = await connection.query('SELECT 1 as test, NOW() as time, DATABASE() as db, USER() as user');
+    
+    connection.release();
+    
+    res.json({
+      success: true,
+      message: 'Database connection successful',
+      data: rows[0],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Database test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message,
+      code: error.code,
+      errno: error.errno
+    });
+  }
+});
 
 // Add at the END of your index.js, just before app.listen()
 console.log("\n📋 ========== REGISTERED ROUTES ==========");

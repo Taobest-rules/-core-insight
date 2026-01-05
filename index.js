@@ -5082,7 +5082,94 @@ app.get('/api/test-db', async (req, res) => {
     });
   }
 });
+// DEBUG ROUTE - Add this to index.js
+app.get('/api/debug/db-info', async (req, res) => {
+  try {
+    // Test database connection
+    const connection = await pool.getConnection();
+    
+    // Get database info
+    const [dbInfo] = await connection.query('SELECT DATABASE() as db, USER() as user');
+    
+    // Get table counts
+    let productsCount = 0;
+    let usersCount = 0;
+    let coursesCount = 0;
+    
+    try {
+      const [products] = await pool.query('SELECT COUNT(*) as count FROM products');
+      productsCount = products[0].count;
+    } catch (e) {}
+    
+    try {
+      const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
+      usersCount = users[0].count;
+    } catch (e) {}
+    
+    try {
+      const [courses] = await pool.query('SELECT COUNT(*) as count FROM courses');
+      coursesCount = courses[0].count;
+    } catch (e) {}
+    
+    connection.release();
+    
+    res.json({
+      success: true,
+      message: 'Database connection successful',
+      environment: process.env.NODE_ENV || 'development',
+      database: {
+        host: process.env.DB_HOST || 'localhost',
+        name: dbInfo[0].db,
+        user: dbInfo[0].user,
+        port: process.env.DB_PORT || 3306
+      },
+      data: {
+        products: productsCount,
+        users: usersCount,
+        courses: coursesCount
+      },
+      config: {
+        NODE_ENV: process.env.NODE_ENV,
+        DB_HOST: process.env.DB_HOST,
+        DB_NAME: process.env.DB_NAME,
+        DB_PORT: process.env.DB_PORT
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message,
+      errorCode: error.code,
+      config: {
+        NODE_ENV: process.env.NODE_ENV,
+        DB_HOST: process.env.DB_HOST,
+        DB_NAME: process.env.DB_NAME,
+        DB_PORT: process.env.DB_PORT,
+        NODE_ENV_set: process.env.NODE_ENV ? 'YES' : 'NO'
+      }
+    });
+  }
+});
 
+// Simple database test
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT 1 as test');
+    res.json({ 
+      success: true, 
+      message: 'Database is working',
+      data: rows[0]
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Database error',
+      error: error.message
+    });
+  }
+});
 // Add at the END of your index.js, just before app.listen()
 console.log("\n📋 ========== REGISTERED ROUTES ==========");
 app._router.stack.forEach((middleware, i) => {

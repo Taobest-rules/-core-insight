@@ -5,7 +5,7 @@ const path = require("path");
 const multer = require("multer");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
-const db = require("./db");
+const db = require('./db');
 const axios = require("axios");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -5097,17 +5097,17 @@ app.get('/api/debug/db-info', async (req, res) => {
     let coursesCount = 0;
     
     try {
-      const [products] = await pool.query('SELECT COUNT(*) as count FROM products');
+      const [products] = await db.query('SELECT COUNT(*) as count FROM products');
       productsCount = products[0].count;
     } catch (e) {}
     
     try {
-      const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
+      const [users] = await db.query('SELECT COUNT(*) as count FROM users');
       usersCount = users[0].count;
     } catch (e) {}
     
     try {
-      const [courses] = await pool.query('SELECT COUNT(*) as count FROM courses');
+      const [courses] = await db.query('SELECT COUNT(*) as count FROM courses');
       coursesCount = courses[0].count;
     } catch (e) {}
     
@@ -5156,7 +5156,7 @@ app.get('/api/debug/db-info', async (req, res) => {
 // Simple database test
 app.get('/api/test-db', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT 1 as test');
+    const [rows] = await db.query('SELECT 1 as test');
     res.json({ 
       success: true, 
       message: 'Database is working',

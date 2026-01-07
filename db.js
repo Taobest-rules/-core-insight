@@ -1,91 +1,94 @@
-// db.js - WORKING VERSION FOR BOTH LOCAL AND PRODUCTION
+// db.js - WITH CONNECTION STABILITY FIXES
 const mysql = require("mysql2/promise");
+require("dotenv").config({ path: '.env.railway' });
 
-// Load environment variables
-require("dotenv").config();
+console.log("🔧 Initializing STABLE Railway MySQL connection...");
 
-// Determine environment
-const isProduction = process.env.NODE_ENV === 'production';
-const isRender = process.env.RENDER === 'true'; // Render sets this
-
-console.log(`🚀 Starting database in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-
-// Database configuration
-const dbConfig = {
-  // In production (Render), use Railway. Otherwise use localhost
-  host: isProduction ? (process.env.DB_HOST || 'trolley.proxy.rlwy.net') : 'localhost',
-  user: isProduction ? (process.env.DB_USER || 'root') : 'root',
-  password: isProduction ? process.env.DB_PASSWORD : '',
-  database: isProduction ? (process.env.DB_NAME || 'railway') : 'core_insight',
-  port: isProduction ? (Number(process.env.DB_PORT) || 59121) : 3306,
+const config = {
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'railway',
   
-  // Connection pool settings
+  // CRITICAL STABILITY SETTINGS:
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 30000,
+  connectTimeout: 30000, // 30 seconds
+  acquireTimeout: 30000, // 30 seconds to get a connection
+  timeout: 60000, // 60 seconds query timeout
   
-  // Enable keep alive
+  // Enable keepalive
   enableKeepAlive: true,
-  keepAliveInitialDelay: 10000
+  keepAliveInitialDelay: 10000,
+  
+  // No SSL for Railway
+  ssl: false,
+  
+  // Debug
+  debug: false,
+  
+  // Multiple statements (if needed)
+  multipleStatements: false
 };
 
-// Add SSL for Railway (production)
-if (isProduction) {
-  dbConfig.ssl = {
-    rejectUnauthorized: false
-  };
-  console.log('🔐 SSL enabled for Railway connection');
+const pool = mysql.createPool(config);
+
+// Add connection error handling
+pool.on('connection', (connection) => {
+  console.log('🔌 New MySQL connection established');
+});
+
+pool.on('error', (err) => {
+  console.error('🚨 MySQL pool error:', err.message);
+});
+
+// Test with retry logic
+async function testConnectionWithRetry(retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const connection = await pool.getConnection();
+      console.log(`✅ Railway MySQL Connected (attempt ${i+1}/${retries})`);
+      const [result] = await connection.query('SELECT 1 as test');
+      connection.release();
+      return true;
+    } catch (error) {
+      console.warn(`⚠️ Connection attempt ${i+1} failed:`, error.message);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+      }
+    }
+  }
+  return false;
 }
 
-// Debug output
-console.log('📊 Database Configuration:');
-console.log(`   Host: ${dbConfig.host}`);
-console.log(`   Database: ${dbConfig.database}`);
-console.log(`   Port: ${dbConfig.port}`);
-console.log(`   User: ${dbConfig.user}`);
-
-// Create connection pool
-const pool = mysql.createPool(dbConfig);
-
-// Test connection on startup
-(async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log(`✅ SUCCESS: Connected to ${dbConfig.database} at ${dbConfig.host}:${dbConfig.port}`);
-    
-    // Test query
-    const [rows] = await connection.query('SELECT 1 as connection_test');
-    console.log('✅ Database test query successful:', rows[0]);
-    
-    // Count products to verify data exists
-    try {
-      const [products] = await connection.query('SELECT COUNT(*) as count FROM products');
-      console.log(`📦 Products in database: ${products[0].count}`);
-    } catch (e) {
-      console.log('⚠️  Products table not found yet');
-    }
-    
-    connection.release();
-  } catch (error) {
-    console.error('❌ DATABASE CONNECTION FAILED:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Error number:', error.errno);
-    
-    // Helpful troubleshooting
-    console.log('\n🔧 TROUBLESHOOTING:');
-    console.log('1. Check if NODE_ENV is set to "production" on Render');
-    console.log('2. Verify Railway credentials in Render environment variables');
-    console.log('3. Ensure Railway database is running');
-    console.log('4. Check firewall/network connectivity');
-    
-    // Show current config
-    console.log('\n📝 Current configuration:');
-    console.log('   NODE_ENV:', process.env.NODE_ENV || 'not set');
-    console.log('   DB_HOST:', process.env.DB_HOST || 'not set');
-    console.log('   DB_NAME:', process.env.DB_NAME || 'not set');
-    console.log('   DB_PORT:', process.env.DB_PORT || 'not set');
+// Test on startup
+testConnectionWithRetry().then(success => {
+  if (success) {
+    console.log('🎉 Database connection stable!');
+  } else {
+    console.error('❌ Failed to establish stable database connection');
   }
-})();
+});
 
-module.exports = pool;
+// Export with retry wrapper
+module.exports = {
+  pool,
+  
+  // Enhanced query function with retry
+  query: async (sql, params, retries = 2) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const [results] = await pool.query(sql, params);
+        return results;
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        console.warn(`Query failed, retrying (${i+1}/${retries})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  },
+  
+  getConnection: () => pool.getConnection()
+};

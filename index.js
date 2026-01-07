@@ -12,7 +12,6 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 
-
 // ========================= FLUTTERWAVE SETUP =========================
 const Flutterwave = require('flutterwave-node-v3');
 

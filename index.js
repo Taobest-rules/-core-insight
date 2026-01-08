@@ -3648,14 +3648,17 @@ app.get("/api/messages/:conversationId", async (req, res) => {
 });;
 
 app.delete("/api/products/:id", async (req, res) => {
-  console.log("=== 🗑️ DELETE PRODUCT DEBUG START ===");
-  console.log("1. Request received for product ID:", req.params.id);
-  console.log("2. Session user:", req.session.user);
+  console.log("=== 🗑️ PRODUCTS DELETE DEBUG ===");
+  console.log("1. Request received");
+  console.log("2. Product ID:", req.params.id);
+  console.log("3. Session ID:", req.sessionID);
+  console.log("4. Session user:", req.session.user);
+  console.log("5. Headers:", req.headers);
   
   try {
     // 1️⃣ Ensure user is logged in
     if (!req.session.user) {
-      console.log("❌ No session user found");
+      console.log("❌ ERROR: No session user!");
       return res.status(401).json({ error: "Please login first" });
     }
 
@@ -3663,17 +3666,17 @@ app.delete("/api/products/:id", async (req, res) => {
     const userId = req.session.user.id;
     const userRole = req.session.user.role;
 
-    console.log("3. User ID:", userId, "Role:", userRole);
+    console.log("6. User ID:", userId, "Role:", userRole);
 
     // 2️⃣ Check if product exists
-    console.log("4. Checking product with ID:", productId);
+    console.log("7. Checking product in database...");
     const [product] = await db.pool.execute(
       "SELECT * FROM products WHERE id = ?", 
       [productId]
     );
 
-    console.log("5. Product query result length:", product.length);
-    console.log("6. Product data:", product[0]);
+    console.log("8. Product query result:", product);
+    console.log("9. Product found?", product.length > 0);
 
     if (!product.length) {
       console.log("❌ Product not found in database");
@@ -3681,38 +3684,44 @@ app.delete("/api/products/:id", async (req, res) => {
     }
 
     const productOwnerId = product[0].user_id;
-    console.log("7. Product owner ID:", productOwnerId, "Current user ID:", userId);
+    console.log("10. Product owner ID:", productOwnerId);
+    console.log("11. Current user ID:", userId);
+    console.log("12. Is admin?", userRole === "admin");
+    console.log("13. Is owner?", productOwnerId == userId);
+    console.log("14. Owner match?", productOwnerId === userId);
 
     // 3️⃣ Authorization check
-    if (userRole !== "admin" && productOwnerId !== userId) {
-      console.log("❌ Authorization failed - not owner nor admin");
+    if (userRole !== "admin" && productOwnerId != userId) {
+      console.log("❌ Authorization failed!");
+      console.log("   - User role:", userRole, "(admin? ", userRole === "admin", ")");
+      console.log("   - Product owner:", productOwnerId);
+      console.log("   - Current user:", userId);
+      console.log("   - Match?", productOwnerId == userId);
       return res.status(403).json({ error: "You can only delete your own products" });
     }
 
     // 4️⃣ Perform delete
-    console.log("8. Executing DELETE query...");
+    console.log("15. Executing DELETE query...");
     const [result] = await db.pool.execute(
       "DELETE FROM products WHERE id = ?", 
       [productId]
     );
     
-    console.log("9. Delete result object:", JSON.stringify(result, null, 2));
-    console.log("10. Affected rows:", result.affectedRows);
-    console.log("11. Changed rows:", result.changedRows);
+    console.log("16. Delete result object:", result);
+    console.log("17. Affected rows:", result.affectedRows);
 
     if (!result.affectedRows) {
       console.log("❌ No rows affected by DELETE");
       return res.status(404).json({ error: "Product not found or already deleted" });
     }
 
-    // 5️⃣ Success
+    console.log("✅ DELETE SUCCESSFUL!");
+    console.log("=== 🗑️ PRODUCTS DELETE DEBUG END ===");
+    
     const message = userRole === "admin"
       ? "✅ Product deleted successfully by admin"
       : "✅ Product deleted successfully";
 
-    console.log("✅ DELETE SUCCESSFUL -", message);
-    console.log("=== 🗑️ DELETE PRODUCT DEBUG END ===");
-    
     res.json({ 
       success: true,
       message,
@@ -3721,13 +3730,12 @@ app.delete("/api/products/:id", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("❌ DELETE ERROR:", err);
-    console.error("❌ Full error:", err.message);
-    console.error("❌ Error stack:", err.stack);
-    console.log("=== 🗑️ DELETE PRODUCT DEBUG END ===");
+    console.error("❌ DELETE ERROR:", err.message);
+    console.error("Stack:", err.stack);
+    console.log("=== 🗑️ PRODUCTS DELETE DEBUG END ===");
     res.status(500).json({ 
       error: "Failed to delete product: " + err.message,
-      details: err.stack 
+      details: err.message 
     });
   }
 });
@@ -4061,6 +4069,7 @@ app.delete('/api/courses/:id', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized - Please log in' });
     }
+
 
     const courseId = req.params.id;
 

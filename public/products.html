@@ -3192,6 +3192,24 @@
 
 <script>
  
+// DEBUG: Check if function exists
+console.log('🔍 DEBUG: Checking functions...');
+console.log('getProductStatus defined?', typeof getProductStatus);
+console.log('loadMyProducts defined?', typeof loadMyProducts);
+console.log('currentUser:', window.currentUser);
+
+// Test the function with a sample product
+const testProduct = {
+  id: 1,
+  title: 'Test Product',
+  is_active: 1,
+  is_published: 1,
+  quantity: 10
+};
+
+console.log('Test getProductStatus:', getProductStatus(testProduct));
+
+ 
 // ========== ADD THESE FUNCTIONS AT THE TOP ==========
 
 // Function 1: Get product status

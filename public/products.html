@@ -3915,6 +3915,48 @@ async function loadMyProducts() {
     `;
   }
 }
+// Add this function to your products.html <script> section
+function getProductStatus(product) {
+  // Determine product status based on your database fields
+  if (product.is_deleted || product.deleted_at) {
+    return {
+      text: "Deleted",
+      class: "status-deleted",
+      icon: "❌"
+    };
+  }
+  
+  if (product.is_active === 0 || product.status === "inactive") {
+    return {
+      text: "Inactive",
+      class: "status-inactive",
+      icon: "⏸️"
+    };
+  }
+  
+  if (product.is_published === 0 || product.status === "draft") {
+    return {
+      text: "Draft",
+      class: "status-draft",
+      icon: "📝"
+    };
+  }
+  
+  if (product.quantity !== undefined && product.quantity <= 0) {
+    return {
+      text: "Out of Stock",
+      class: "status-out-of-stock",
+      icon: "📦"
+    };
+  }
+  
+  // Default: Active
+  return {
+    text: "Active",
+    class: "status-active",
+    icon: "✅"
+  };
+}
 </script>
   <script>
     // ================= TOAST NOTIFICATION SYSTEM =================

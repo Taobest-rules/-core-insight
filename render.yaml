@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: core-insight
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    installCommand: npm run install
+    envVars:
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+    healthCheckPath: /api/test
+    disk:
+      name: npm-cache
+      mountPath: /opt/render/.npm
+      sizeGB: 1

@@ -3647,11 +3647,15 @@ app.get("/api/messages/:conversationId", async (req, res) => {
   }
 });;
 
-
 app.delete("/api/products/:id", async (req, res) => {
+  console.log("=== 🗑️ DELETE PRODUCT DEBUG START ===");
+  console.log("1. Request received for product ID:", req.params.id);
+  console.log("2. Session user:", req.session.user);
+  
   try {
     // 1️⃣ Ensure user is logged in
     if (!req.session.user) {
+      console.log("❌ No session user found");
       return res.status(401).json({ error: "Please login first" });
     }
 
@@ -3659,56 +3663,103 @@ app.delete("/api/products/:id", async (req, res) => {
     const userId = req.session.user.id;
     const userRole = req.session.user.role;
 
-    console.log("🗑️ Delete attempt:", { productId, userId, userRole });
+    console.log("3. User ID:", userId, "Role:", userRole);
 
-    // 2️⃣ Check if product exists - use pool.execute()
+    // 2️⃣ Check if product exists
+    console.log("4. Checking product with ID:", productId);
     const [product] = await db.pool.execute(
       "SELECT * FROM products WHERE id = ?", 
       [productId]
     );
 
-    console.log("📦 Product query result:", product);
+    console.log("5. Product query result length:", product.length);
+    console.log("6. Product data:", product[0]);
 
     if (!product.length) {
+      console.log("❌ Product not found in database");
       return res.status(404).json({ error: "Product not found" });
     }
 
     const productOwnerId = product[0].user_id;
+    console.log("7. Product owner ID:", productOwnerId, "Current user ID:", userId);
 
     // 3️⃣ Authorization check
     if (userRole !== "admin" && productOwnerId !== userId) {
+      console.log("❌ Authorization failed - not owner nor admin");
       return res.status(403).json({ error: "You can only delete your own products" });
     }
 
-    // 4️⃣ Perform delete - CRITICAL: use execute() not query()
+    // 4️⃣ Perform delete
+    console.log("8. Executing DELETE query...");
     const [result] = await db.pool.execute(
       "DELETE FROM products WHERE id = ?", 
       [productId]
     );
     
-    console.log("🗑️ Delete result object:", result);
-    console.log("🗑️ Affected rows:", result.affectedRows);
+    console.log("9. Delete result object:", JSON.stringify(result, null, 2));
+    console.log("10. Affected rows:", result.affectedRows);
+    console.log("11. Changed rows:", result.changedRows);
 
     if (!result.affectedRows) {
+      console.log("❌ No rows affected by DELETE");
       return res.status(404).json({ error: "Product not found or already deleted" });
     }
 
-    // 5️⃣ Success message
-    const message =
-      userRole === "admin"
-        ? "✅ Product deleted successfully by admin"
-        : "✅ Product deleted successfully";
+    // 5️⃣ Success
+    const message = userRole === "admin"
+      ? "✅ Product deleted successfully by admin"
+      : "✅ Product deleted successfully";
 
+    console.log("✅ DELETE SUCCESSFUL -", message);
+    console.log("=== 🗑️ DELETE PRODUCT DEBUG END ===");
+    
     res.json({ 
+      success: true,
       message,
       affectedRows: result.affectedRows,
       deletedId: productId 
     });
     
   } catch (err) {
-    console.error("❌ Error deleting product:", err);
-    res.status(500).json({ error: "Failed to delete product: " + err.message });
+    console.error("❌ DELETE ERROR:", err);
+    console.error("❌ Full error:", err.message);
+    console.error("❌ Error stack:", err.stack);
+    console.log("=== 🗑️ DELETE PRODUCT DEBUG END ===");
+    res.status(500).json({ 
+      error: "Failed to delete product: " + err.message,
+      details: err.stack 
+    });
   }
+});
+
+// Add this endpoint to see actual data
+app.get("/api/debug/products/:id", async (req, res) => {
+  try {
+    const [product] = await db.pool.execute(
+      "SELECT id, user_id, name FROM products WHERE id = ?", 
+      [req.params.id]
+    );
+    
+    const [allProducts] = await db.pool.execute(
+      "SELECT id, user_id, name FROM products LIMIT 10"
+    );
+    
+    res.json({
+      requestedId: req.params.id,
+      product: product[0] || null,
+      sampleProducts: allProducts,
+      totalProducts: allProducts.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get("/api/debug/session", (req, res) => {
+  res.json({
+    sessionId: req.sessionID,
+    user: req.session.user,
+    session: req.session
+  });
 });
 // Verify payment
 app.get("/api/verify-payment/:transaction_id", async (req, res) => {

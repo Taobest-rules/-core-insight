@@ -1636,6 +1636,141 @@
         justify-content: space-between;
       }
     }
+
+.product-status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  border: 1px solid transparent;
+}
+
+.status-active {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.status-inactive {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.status-draft {
+  background: rgba(158, 158, 158, 0.15);
+  color: #9e9e9e;
+  border-color: rgba(158, 158, 158, 0.3);
+}
+
+.status-deleted {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.status-out_of_stock {
+  background: rgba(63, 81, 181, 0.15);
+  color: #3f51b5;
+  border-color: rgba(63, 81, 181, 0.3);
+}
+
+.status-pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.product-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-physical {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196f3;
+}
+
+.badge-digital {
+  background: rgba(156, 39, 176, 0.15);
+  color: #9c27b0;
+}
+
+.action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.action-btn.view:hover {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+}
+
+.action-btn.edit:hover {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.action-btn.delete:hover {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-gray);
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--secondary-dark);
+}
+
+.empty-state h4 {
+  margin: 0 0 8px 0;
+  color: var(--text-light);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.btn-retry {
+  margin-top: 16px;
+  padding: 8px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-retry:hover {
+  opacity: 0.9;
+}
+
   </style>
 </head>
 <body>
@@ -3056,6 +3191,170 @@
 </style>
 
 <script>
+ 
+// ========== ADD THESE FUNCTIONS AT THE TOP ==========
+
+// Function 1: Get product status
+function getProductStatus(product) {
+  console.log('🔍 getProductStatus called for product:', product.id, product.title);
+  
+  // Check various status fields
+  if (product.is_deleted || product.deleted_at) {
+    return "deleted";
+  }
+  
+  if (product.is_active === 0 || product.status === "inactive") {
+    return "inactive";
+  }
+  
+  if (product.is_published === 0 || product.status === "draft") {
+    return "draft";
+  }
+  
+  if (product.quantity !== undefined && product.quantity <= 0) {
+    return "out_of_stock";
+  }
+  
+  // Default
+  return "active";
+}
+
+// Function 2: Format status for display
+function formatStatusDisplay(status) {
+  const statusMap = {
+    'active': '✅ Active',
+    'inactive': '⏸️ Inactive',
+    'draft': '📝 Draft',
+    'deleted': '❌ Deleted',
+    'out_of_stock': '📦 Out of Stock',
+    'pending': '⏳ Pending'
+  };
+  return statusMap[status] || status;
+}
+
+// Function 3: Get status class for CSS
+function getStatusClass(status) {
+  return `status-${status}`;
+}
+
+// ========== YOUR EXISTING loadMyProducts FUNCTION ==========
+async function loadMyProducts() {
+  const container = document.getElementById('myProductsList');
+  console.log('🔄 loadMyProducts started, container:', container);
+  
+  try {
+    if (!currentUser) {
+      console.error('❌ currentUser is undefined!');
+      return;
+    }
+    
+    console.log('👤 Current user ID:', currentUser.id);
+    const response = await fetch(`/api/products/seller/${currentUser.id}`);
+    console.log('📡 API Response status:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const products = await response.json();
+    console.log('📦 Products received:', products);
+    
+    if (!products || products.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-box-open"></i>
+          <h4>No products yet</h4>
+          <p>Start by listing your first product</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    products.forEach(product => {
+      console.log('📋 Processing product:', product.id, product.title);
+      
+      // Get status - NOW IT SHOULD WORK
+      const status = getProductStatus(product);
+      const statusDisplay = formatStatusDisplay(status);
+      const statusClass = getStatusClass(status);
+      
+      console.log('   Status:', status, 'Display:', statusDisplay, 'Class:', statusClass);
+      
+      html += `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+                ${product.images ? 
+                  `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                    <i class="fas fa-box"></i>
+                  </div>`
+                }
+              </div>
+              <div>
+                <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title || 'Untitled'}</strong>
+                <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
+          </td>
+          <td>
+            <strong style="color: var(--accent);">$${parseFloat(product.price || 0).toFixed(2)}</strong>
+          </td>
+          <td>
+            <span class="product-status ${statusClass}">${statusDisplay}</span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 8px;">
+              <button class="action-btn view" onclick="viewProduct(${product.id})">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="action-btn edit" onclick="editProduct(${product.id})">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete" onclick="deleteProduct(${product.id})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+    console.log('✅ Products loaded successfully');
+    
+  } catch (error) {
+    console.error('❌ Error loading my products:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading products</h4>
+        <p>${error.message}</p>
+        <button onclick="loadMyProducts()" class="btn btn-retry">Retry</button>
+      </div>
+    `;
+  }
+}
+
 // Dashboard JavaScript Code
 document.addEventListener('DOMContentLoaded', function() {
   // Dashboard toggle button
@@ -3915,48 +4214,7 @@ async function loadMyProducts() {
     `;
   }
 }
-// Add this function to your products.html <script> section
-function getProductStatus(product) {
-  // Determine product status based on your database fields
-  if (product.is_deleted || product.deleted_at) {
-    return {
-      text: "Deleted",
-      class: "status-deleted",
-      icon: "❌"
-    };
-  }
-  
-  if (product.is_active === 0 || product.status === "inactive") {
-    return {
-      text: "Inactive",
-      class: "status-inactive",
-      icon: "⏸️"
-    };
-  }
-  
-  if (product.is_published === 0 || product.status === "draft") {
-    return {
-      text: "Draft",
-      class: "status-draft",
-      icon: "📝"
-    };
-  }
-  
-  if (product.quantity !== undefined && product.quantity <= 0) {
-    return {
-      text: "Out of Stock",
-      class: "status-out-of-stock",
-      icon: "📦"
-    };
-  }
-  
-  // Default: Active
-  return {
-    text: "Active",
-    class: "status-active",
-    icon: "✅"
-  };
-}
+
 </script>
   <script>
     // ================= TOAST NOTIFICATION SYSTEM =================
@@ -4351,6 +4609,48 @@ function getProductStatus(product) {
       $('sellerView').setAttribute('aria-hidden', !(sellerMode && currentUser));
       $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
     }
+    // Add this function to your products.html <script> section
+function getProductStatus(product) {
+  // Determine product status based on your database fields
+  if (product.is_deleted || product.deleted_at) {
+    return {
+      text: "Deleted",
+      class: "status-deleted",
+      icon: "❌"
+    };
+  }
+  
+  if (product.is_active === 0 || product.status === "inactive") {
+    return {
+      text: "Inactive",
+      class: "status-inactive",
+      icon: "⏸️"
+    };
+  }
+  
+  if (product.is_published === 0 || product.status === "draft") {
+    return {
+      text: "Draft",
+      class: "status-draft",
+      icon: "📝"
+    };
+  }
+  
+  if (product.quantity !== undefined && product.quantity <= 0) {
+    return {
+      text: "Out of Stock",
+      class: "status-out-of-stock",
+      icon: "📦"
+    };
+  }
+  
+  // Default: Active
+  return {
+    text: "Active",
+    class: "status-active",
+    icon: "✅"
+  };
+}
 
     // ================= REVIEWS FUNCTIONS =================
     async function loadProductReviews(productId) {

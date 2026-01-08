@@ -77,19 +77,19 @@ module.exports = {
   pool,
   
   // Enhanced query function with retry
- // In db.js, update the query function:
-query: async (sql, params, retries = 2) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      // Use execute() for DML operations to get affectedRows
-      const [rows, fields] = await pool.execute(sql, params);
-      return [rows, fields]; // Return both rows and fields
-    } catch (error) {
-      if (i === retries - 1) throw error;
-      console.warn(`Query failed, retrying (${i+1}/${retries})...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  query: async (sql, params, retries = 2) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        // Use execute() for DML operations to get affectedRows
+        const [rows, fields] = await pool.execute(sql, params);
+        return rows; // Return just rows for backward compatibility
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        console.warn(`Query failed, retrying (${i+1}/${retries})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
-  }
-},
+  },
+  
   getConnection: () => pool.getConnection()
 };

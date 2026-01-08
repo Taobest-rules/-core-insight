@@ -3648,7 +3648,6 @@ app.get("/api/messages/:conversationId", async (req, res) => {
 });;
 
 
-// ===================== UNIFIED DELETE PRODUCT ROUTE =====================
 app.delete("/api/products/:id", async (req, res) => {
   try {
     // 1️⃣ Ensure user is logged in
@@ -3662,8 +3661,12 @@ app.delete("/api/products/:id", async (req, res) => {
 
     console.log("🗑️ Delete attempt:", { productId, userId, userRole });
 
-    // 2️⃣ Check if product exists
-    const product = await db.query("SELECT * FROM products WHERE id = ?", [productId]);
+    // 2️⃣ Check if product exists - use pool.execute()
+    const [product] = await db.pool.execute(
+      "SELECT * FROM products WHERE id = ?", 
+      [productId]
+    );
+
     console.log("📦 Product query result:", product);
 
     if (!product.length) {
@@ -3677,9 +3680,14 @@ app.delete("/api/products/:id", async (req, res) => {
       return res.status(403).json({ error: "You can only delete your own products" });
     }
 
-    // 4️⃣ Perform delete
-    const result = await db.query("DELETE FROM products WHERE id = ?", [productId]);
-    console.log("🗑️ Delete result:", result);
+    // 4️⃣ Perform delete - CRITICAL: use execute() not query()
+    const [result] = await db.pool.execute(
+      "DELETE FROM products WHERE id = ?", 
+      [productId]
+    );
+    
+    console.log("🗑️ Delete result object:", result);
+    console.log("🗑️ Affected rows:", result.affectedRows);
 
     if (!result.affectedRows) {
       return res.status(404).json({ error: "Product not found or already deleted" });
@@ -3691,14 +3699,17 @@ app.delete("/api/products/:id", async (req, res) => {
         ? "✅ Product deleted successfully by admin"
         : "✅ Product deleted successfully";
 
-    res.json({ message });
+    res.json({ 
+      message,
+      affectedRows: result.affectedRows,
+      deletedId: productId 
+    });
+    
   } catch (err) {
     console.error("❌ Error deleting product:", err);
-    res.status(500).json({ error: "Failed to delete product" });
+    res.status(500).json({ error: "Failed to delete product: " + err.message });
   }
 });
-
-
 // Verify payment
 app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   try {

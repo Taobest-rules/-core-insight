@@ -5213,34 +5213,43 @@ async function loadMyProducts() {
     window.buyProduct = buyProduct;
 
     // ---------- Delete (admin or owner) ----------
- async function deleteProduct(id) {
+async function deleteProduct(id) {
   console.log("🗑️ deleteProduct called for ID:", id);
   
-  if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
-    return;
-  }
-  
+  // Always check the server for current user
   try {
+    const userCheck = await fetch('/api/me', { credentials: 'include' });
+    const user = await userCheck.json();
+    
+    if (!user || !user.id) {
+      console.log("❌ User not logged in");
+      openModal($('loginModal'));
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+      return;
+    }
+    
     const res = await fetch(`/api/products/${id}`, { 
       method: 'DELETE',
-      credentials: 'include' // ✅ This is CRITICAL
+      credentials: 'include'
     });
-    
-    console.log("Delete response status:", res.status);
     
     if (res.ok) { 
       const data = await res.json();
-      console.log("Delete success:", data);
-      
-      // Show success message
       showToast('Success', data.message || 'Product deleted successfully', 'success');
       
-      // Reload products
-      loadProducts(); // Reload all products
-      if (window.loadMyProducts) loadMyProducts(); // Reload dashboard products
+      // Update currentUser
+      currentUser = user;
+      window.currentUser = user;
+      
+      // Reload
+      if (typeof loadProducts === 'function') loadProducts();
+      if (typeof loadMyProducts === 'function') loadMyProducts();
+      
     } else {
       const data = await res.json();
-      console.error("Delete failed:", data);
       showToast('Error', data.error || 'Failed to delete product', 'danger');
     }
   } catch(err) {

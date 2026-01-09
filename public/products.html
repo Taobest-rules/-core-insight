@@ -5213,7 +5213,7 @@ async function loadMyProducts() {
     window.buyProduct = buyProduct;
 
     // ---------- Delete (admin or owner) ----------
-   async function deleteProduct(id) {
+ async function deleteProduct(id) {
   console.log("🗑️ deleteProduct called for ID:", id);
   
   if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
@@ -5223,7 +5223,7 @@ async function loadMyProducts() {
   try {
     const res = await fetch(`/api/products/${id}`, { 
       method: 'DELETE',
-      credentials: 'include' // ← CRITICAL MISSING LINE!
+      credentials: 'include' // ✅ This is CRITICAL
     });
     
     console.log("Delete response status:", res.status);
@@ -5233,28 +5233,21 @@ async function loadMyProducts() {
       console.log("Delete success:", data);
       
       // Show success message
-      showNotification(data.message || 'Product deleted successfully', 'success');
+      showToast('Success', data.message || 'Product deleted successfully', 'success');
       
       // Reload products
-      await loadMyProducts(); // or loadProducts() depending on your function name
-      
-      // Also remove from favorites if present
-      if (window.userFavorites) {
-        window.userFavorites.delete(id);
-      }
+      loadProducts(); // Reload all products
+      if (window.loadMyProducts) loadMyProducts(); // Reload dashboard products
     } else {
       const data = await res.json();
       console.error("Delete failed:", data);
-      showNotification(data.error || 'Failed to delete product', 'error');
+      showToast('Error', data.error || 'Failed to delete product', 'danger');
     }
   } catch(err) {
     console.error('deleteProduct error:', err);
-    showNotification('Error deleting product: ' + err.message, 'error');
+    showToast('Error', 'Error deleting product: ' + err.message, 'danger');
   }
 }
-
-// Make it global
-window.deleteProduct = deleteProduct;
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

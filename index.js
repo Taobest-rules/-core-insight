@@ -10,6 +10,7 @@ const axios = require("axios");
 const fs = require("fs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const MySQLStore = require("express-mysql-session")(session); // Add this line
 
 
 // ========================= FLUTTERWAVE SETUP =========================
@@ -50,22 +51,48 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Configure MySQL session store
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  clearExpired: true,
+  checkExpirationInterval: 900000, // 15 minutes
+  expiration: 86400000, // 24 hours
+  createDatabaseTable: true,
+  schema: {
+    tableName: 'sessions',
+    columnNames: {
+      session_id: 'session_id',
+      expires: 'expires',
+      data: 'data'
+    }
+  }
+});
+
+// Session middleware with MySQL store
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'your-strong-secret-key-here',
+    store: sessionStore, // Use MySQL store
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: { 
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax' // Important for cross-origin requests
     }
   })
 );
-app.use(express.static("public"));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
 // ========================= NODEMAILER SETUP =========================
 // ========================= EMAIL SETUP =========================
 const transporter = nodemailer.createTransport({
@@ -3647,13 +3674,11 @@ app.get("/api/messages/:conversationId", async (req, res) => {
   }
 });;
 
+//delete route for products
 app.delete("/api/products/:id", async (req, res) => {
   console.log("=== 🗑️ PRODUCTS DELETE DEBUG ===");
-  console.log("1. Request received");
-  console.log("2. Product ID:", req.params.id);
-  console.log("3. Session ID:", req.sessionID);
-  console.log("4. Session user:", req.session.user);
-  console.log("5. Headers:", req.headers);
+  console.log("1. Request received for product ID:", req.params.id);
+  console.log("2. Session user:", req.session.user);
   
   try {
     // 1️⃣ Ensure user is logged in
@@ -3666,56 +3691,68 @@ app.delete("/api/products/:id", async (req, res) => {
     const userId = req.session.user.id;
     const userRole = req.session.user.role;
 
-    console.log("6. User ID:", userId, "Role:", userRole);
+    console.log("3. User ID:", userId, "Role:", userRole);
 
     // 2️⃣ Check if product exists
-    console.log("7. Checking product in database...");
-    const [product] = await db.pool.execute(
+    console.log("4. Checking product in database...");
+    const productResult = await db.query(
       "SELECT * FROM products WHERE id = ?", 
       [productId]
     );
 
-    console.log("8. Product query result:", product);
-    console.log("9. Product found?", product.length > 0);
+    // Handle MariaDB response format
+    let product = null;
+    if (Array.isArray(productResult) && productResult.length > 0) {
+      product = productResult[0];
+    } else if (productResult && productResult[0] && Array.isArray(productResult[0]) && productResult[0].length > 0) {
+      product = productResult[0][0];
+    }
 
-    if (!product.length) {
+    console.log("5. Product found:", !!product);
+
+    if (!product) {
       console.log("❌ Product not found in database");
       return res.status(404).json({ error: "Product not found" });
     }
 
-    const productOwnerId = product[0].user_id;
-    console.log("10. Product owner ID:", productOwnerId);
-    console.log("11. Current user ID:", userId);
-    console.log("12. Is admin?", userRole === "admin");
-    console.log("13. Is owner?", productOwnerId == userId);
-    console.log("14. Owner match?", productOwnerId === userId);
+    const productOwnerId = product.user_id;
+    console.log("6. Product owner ID:", productOwnerId);
+    console.log("7. Current user ID:", userId);
 
     // 3️⃣ Authorization check
-    if (userRole !== "admin" && productOwnerId != userId) {
+    if (userRole !== "admin" && parseInt(productOwnerId) !== parseInt(userId)) {
       console.log("❌ Authorization failed!");
-      console.log("   - User role:", userRole, "(admin? ", userRole === "admin", ")");
+      console.log("   - User role:", userRole);
       console.log("   - Product owner:", productOwnerId);
       console.log("   - Current user:", userId);
-      console.log("   - Match?", productOwnerId == userId);
-      return res.status(403).json({ error: "You can only delete your own products" });
+      return res.status(403).json({ 
+        error: "You can only delete your own products" 
+      });
     }
 
     // 4️⃣ Perform delete
-    console.log("15. Executing DELETE query...");
-    const [result] = await db.pool.execute(
+    console.log("8. Executing DELETE query...");
+    const deleteResult = await db.query(
       "DELETE FROM products WHERE id = ?", 
       [productId]
     );
     
-    console.log("16. Delete result object:", result);
-    console.log("17. Affected rows:", result.affectedRows);
+    console.log("9. Delete result:", deleteResult);
 
-    if (!result.affectedRows) {
+    // Check if delete was successful
+    let affectedRows = 0;
+    if (deleteResult && deleteResult.affectedRows !== undefined) {
+      affectedRows = deleteResult.affectedRows;
+    } else if (Array.isArray(deleteResult) && deleteResult[0] && deleteResult[0].affectedRows) {
+      affectedRows = deleteResult[0].affectedRows;
+    }
+
+    if (affectedRows === 0) {
       console.log("❌ No rows affected by DELETE");
       return res.status(404).json({ error: "Product not found or already deleted" });
     }
 
-    console.log("✅ DELETE SUCCESSFUL!");
+    console.log("✅ DELETE SUCCESSFUL! Affected rows:", affectedRows);
     console.log("=== 🗑️ PRODUCTS DELETE DEBUG END ===");
     
     const message = userRole === "admin"
@@ -3725,7 +3762,7 @@ app.delete("/api/products/:id", async (req, res) => {
     res.json({ 
       success: true,
       message,
-      affectedRows: result.affectedRows,
+      affectedRows: affectedRows,
       deletedId: productId 
     });
     
@@ -3739,7 +3776,6 @@ app.delete("/api/products/:id", async (req, res) => {
     });
   }
 });
-
 // Add this endpoint to see actual data
 app.get("/api/debug/products/:id", async (req, res) => {
   try {

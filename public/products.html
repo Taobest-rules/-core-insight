@@ -4043,13 +4043,30 @@ async function loadUsersTable() {
     showToast(`Editing product ${productId}`, 'info');
   };
   
-  window.deleteProduct = function(productId) {
-    if (confirm('Are you sure you want to delete this product?')) {
-      // Implement delete product API call
-      showToast('Product deleted successfully', 'success');
-      loadMyProducts();
+ window.deleteProduct = async function(productId) {
+  if (!confirm('Are you sure you want to delete this product?')) return;
+
+  try {
+    const response = await fetch(`/api/products/${productId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Delete failed');
     }
-  };
+
+    showToast(data.message || 'Product deleted successfully', 'success');
+    loadMyProducts();
+
+  } catch (err) {
+    console.error('Delete error:', err);
+    showToast(err.message, 'danger');
+  }
+};
+
   
   window.viewUser = function(userId) {
     // Implement view user functionality

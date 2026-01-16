@@ -1,16 +1,24 @@
 // index.js - COMPLETE VERSION with Enhanced Authentication Features
-require("dotenv").config();
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: process.env.NODE_ENV === "production"
+    ? ".env.production"
+    : ".env.development"
+});
+
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
-const db = require('./db');
+const db = require("./db");
 const axios = require("axios");
 const fs = require("fs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const MySQLStore = require("express-mysql-session")(session); // Add this line
+const MySQLStore = require("express-mysql-session")(session);
+
 
 
 // ========================= FLUTTERWAVE SETUP =========================
@@ -51,44 +59,51 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Configure MySQL session store
-const sessionStore = new MySQLStore({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  clearExpired: true,
-  checkExpirationInterval: 900000, // 15 minutes
-  expiration: 86400000, // 24 hours
-  createDatabaseTable: true,
-  schema: {
-    tableName: 'sessions',
-    columnNames: {
-      session_id: 'session_id',
-      expires: 'expires',
-      data: 'data'
+let sessionStore;
+
+if (isProduction) {
+  sessionStore = new MySQLStore({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    clearExpired: true,
+    checkExpirationInterval: 900000,
+    expiration: 86400000,
+    createDatabaseTable: true,
+    schema: {
+      tableName: 'sessions',
+      columnNames: {
+        session_id: 'session_id',
+        expires: 'expires',
+        data: 'data'
+      }
     }
-  }
-});
+  });
+}
+
 
 // Session middleware with MySQL store
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'your-strong-secret-key-here',
-    store: sessionStore, // Use MySQL store
+    secret: process.env.SESSION_SECRET,
+    store: isProduction ? sessionStore : undefined, // 🔥 FIX
     resave: false,
     saveUninitialized: false,
     proxy: true,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production',
+    cookie: {
+      secure: isProduction,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax' // Important for cross-origin requests
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -1220,7 +1235,7 @@ app.get("/api/services/:id/products", async (req, res) => {
   try {
     const products = await db.query(`
       SELECT * FROM service_products 
-      WHERE service_id = ? 
+      WHERE service_id = ?
       ORDER BY is_featured DESC, created_at DESC
     `, [req.params.id]);
 
@@ -3679,103 +3694,65 @@ app.delete("/api/products/:id", async (req, res) => {
   console.log("=== 🗑️ PRODUCTS DELETE DEBUG ===");
   console.log("1. Request received for product ID:", req.params.id);
   console.log("2. Session user:", req.session.user);
-  
+
   try {
-    // 1️⃣ Ensure user is logged in
     if (!req.session.user) {
-      console.log("❌ ERROR: No session user!");
       return res.status(401).json({ error: "Please login first" });
     }
 
     const productId = req.params.id;
-    const userId = req.session.user.id;
-    const userRole = req.session.user.role;
+    const { id: userId, role: userRole } = req.session.user;
 
     console.log("3. User ID:", userId, "Role:", userRole);
 
-    // 2️⃣ Check if product exists
-    console.log("4. Checking product in database...");
-    const productResult = await db.query(
-      "SELECT * FROM products WHERE id = ?", 
+    // Check product
+    const products = await db.query(
+      "SELECT user_id FROM products WHERE id = ?",
       [productId]
     );
 
-    // Handle MariaDB response format
-    let product = null;
-    if (Array.isArray(productResult) && productResult.length > 0) {
-      product = productResult[0];
-    } else if (productResult && productResult[0] && Array.isArray(productResult[0]) && productResult[0].length > 0) {
-      product = productResult[0][0];
-    }
-
-    console.log("5. Product found:", !!product);
-
-    if (!product) {
-      console.log("❌ Product not found in database");
+    if (products.length === 0) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    const productOwnerId = product.user_id;
+    const productOwnerId = products[0].user_id;
     console.log("6. Product owner ID:", productOwnerId);
-    console.log("7. Current user ID:", userId);
 
-    // 3️⃣ Authorization check
-    if (userRole !== "admin" && parseInt(productOwnerId) !== parseInt(userId)) {
-      console.log("❌ Authorization failed!");
-      console.log("   - User role:", userRole);
-      console.log("   - Product owner:", productOwnerId);
-      console.log("   - Current user:", userId);
-      return res.status(403).json({ 
-        error: "You can only delete your own products" 
-      });
+    // Authorization
+    if (userRole !== "admin" && Number(productOwnerId) !== Number(userId)) {
+      return res.status(403).json({ error: "Not allowed" });
     }
 
-    // 4️⃣ Perform delete
-    console.log("8. Executing DELETE query...");
-    const deleteResult = await db.query(
-      "DELETE FROM products WHERE id = ?", 
+    // 🔥 HARD DELETE
+    console.log("8. Executing HARD DELETE query...");
+    const result = await db.query(
+      "DELETE FROM products WHERE id = ?",
       [productId]
     );
-    
-    console.log("9. Delete result:", deleteResult);
 
-    // Check if delete was successful
-    let affectedRows = 0;
-    if (deleteResult && deleteResult.affectedRows !== undefined) {
-      affectedRows = deleteResult.affectedRows;
-    } else if (Array.isArray(deleteResult) && deleteResult[0] && deleteResult[0].affectedRows) {
-      affectedRows = deleteResult[0].affectedRows;
+    console.log("9. Delete result:", result);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Delete failed" });
     }
 
-    if (affectedRows === 0) {
-      console.log("❌ No rows affected by DELETE");
-      return res.status(404).json({ error: "Product not found or already deleted" });
-    }
+    console.log("✅ Product HARD-DELETED");
 
-    console.log("✅ DELETE SUCCESSFUL! Affected rows:", affectedRows);
-    console.log("=== 🗑️ PRODUCTS DELETE DEBUG END ===");
-    
-    const message = userRole === "admin"
-      ? "✅ Product deleted successfully by admin"
-      : "✅ Product deleted successfully";
-
-    res.json({ 
+    return res.json({
       success: true,
-      message,
-      affectedRows: affectedRows,
-      deletedId: productId 
+      message: "✅ Product deleted successfully",
+      deletedId: productId
     });
-    
+
   } catch (err) {
     console.error("❌ DELETE ERROR:", err.message);
-    console.error("Stack:", err.stack);
-    console.log("=== 🗑️ PRODUCTS DELETE DEBUG END ===");
-    res.status(500).json({ 
-      error: "Failed to delete product: " + err.message,
-      details: err.message 
+    return res.status(500).json({
+      error: "Failed to delete product",
+      details: err.message
     });
   }
 });
+
 // Add this endpoint to see actual data
 app.get("/api/debug/products/:id", async (req, res) => {
   try {
@@ -4308,6 +4285,7 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
     
+
     const products = await db.query(
       "SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC",
       [sellerId]

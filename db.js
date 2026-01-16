@@ -1,6 +1,6 @@
 // db.js - WITH CONNECTION STABILITY FIXES
 const mysql = require("mysql2/promise");
-require("dotenv").config({ path: '.env.railway' });
+
 
 console.log("🔧 Initializing STABLE Railway MySQL connection...");
 

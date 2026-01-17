@@ -851,13 +851,6 @@
       gap: 32px;
     }
 
-    @media (max-width: 1024px) {
-      .upload-grid {
-        grid-template-columns: 1fr;
-        gap: 24px;
-      }
-    }
-
     /* Form Styling */
     .form-container {
       display: flex;
@@ -904,13 +897,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 20px;
       margin-bottom: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .form-row {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
     }
 
     .form-group {
@@ -1570,207 +1556,1221 @@
       color: var(--text-light);
     }
 
-    /* Responsive */
-    @media (max-width: 900px) {
+    .product-status {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-block;
+      border: 1px solid transparent;
+    }
+
+    .status-active {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+      border-color: rgba(76, 175, 80, 0.3);
+    }
+
+    .status-inactive {
+      background: rgba(255, 152, 0, 0.15);
+      color: #ff9800;
+      border-color: rgba(255, 152, 0, 0.3);
+    }
+
+    .status-draft {
+      background: rgba(158, 158, 158, 0.15);
+      color: #9e9e9e;
+      border-color: rgba(158, 158, 158, 0.3);
+    }
+
+    .status-deleted {
+      background: rgba(244, 67, 54, 0.15);
+      color: #f44336;
+      border-color: rgba(244, 67, 54, 0.3);
+    }
+
+    .status-out_of_stock {
+      background: rgba(63, 81, 181, 0.15);
+      color: #3f51b5;
+      border-color: rgba(63, 81, 181, 0.3);
+    }
+
+    .status-pending {
+      background: rgba(255, 193, 7, 0.15);
+      color: #ffc107;
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .product-badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-physical {
+      background: rgba(33, 150, 243, 0.15);
+      color: #2196f3;
+    }
+
+    .badge-digital {
+      background: rgba(156, 39, 176, 0.15);
+      color: #9c27b0;
+    }
+
+    .action-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-light);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .action-btn.view:hover {
+      background: rgba(33, 150, 243, 0.2);
+      color: #2196f3;
+    }
+
+    .action-btn.edit:hover {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+    }
+
+    .action-btn.delete:hover {
+      background: rgba(244, 67, 54, 0.2);
+      color: #f44336;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-gray);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: var(--secondary-dark);
+    }
+
+    .empty-state h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-light);
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .btn-retry {
+      margin-top: 16px;
+      padding: 8px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-retry:hover {
+      opacity: 0.9;
+    }
+
+    /* ================= DASHBOARD STYLES ================= */
+    .dashboard-section {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-top: 32px;
+      border: 1px solid var(--border);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dashboard-title {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .dashboard-title h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-badge {
+      background: var(--accent);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dashboard-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Admin Controls */
+    .admin-controls {
+      background: rgba(59, 130, 246, 0.05);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .admin-search-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-content h3 {
+      margin: 0 0 4px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+
+    .stat-content p {
+      margin: 0;
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    /* Dashboard Tabs */
+    .dashboard-tabs {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .tabs-header {
+      display: flex;
+      background: var(--primary-dark);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: 16px 24px;
+      background: transparent;
+      border: none;
+      color: var(--text-gray);
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-light);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .tabs-content {
+      padding: 32px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Tab Headers */
+    .tab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .tab-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tab-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Products Table */
+    .products-table {
+      background: var(--primary-dark);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .products-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .products-table th {
+      background: var(--card-bg);
+      padding: 16px;
+      text-align: left;
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .products-table td {
+      padding: 16px;
+      color: var(--text-gray);
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .products-table tr:hover {
+      background: var(--card-bg-hover);
+    }
+
+    .product-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .status-active {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-sold {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-draft {
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--text-muted);
+    }
+
+    /* Sales Table */
+    .sales-table {
+      background: var(--primary-dark);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .sales-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 32px;
+    }
+
+    .summary-card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .summary-card h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-gray);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .summary-card h2 {
+      margin: 0;
+      color: var(--text-light);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    /* Analytics Grid */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
+    .analytics-card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .analytics-card h3 {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chart-container {
+      height: 200px;
+      position: relative;
+    }
+
+    .stats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--primary-dark);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .stat-item span {
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    .stat-item strong {
+      color: var(--text-light);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Admin Panel */
+    .admin-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .admin-section {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .admin-section h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .admin-table {
+      overflow-x: auto;
+    }
+
+    .admin-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .admin-table th {
+      background: var(--card-bg);
+      padding: 12px 16px;
+      text-align: left;
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .admin-table td {
+      padding: 12px 16px;
+      color: var(--text-gray);
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .admin-table tr:hover {
+      background: var(--card-bg-hover);
+    }
+
+    .user-avatar-small {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .platform-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .platform-stat {
+      background: var(--primary-dark);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .platform-stat h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-gray);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .platform-stat h2 {
+      margin: 0;
+      color: var(--text-light);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      border: none;
+      background: transparent;
+      color: var(--text-gray);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      background: var(--card-bg-hover);
+    }
+
+    .action-btn.view {
+      color: var(--accent);
+    }
+
+    .action-btn.edit {
+      color: var(--warning);
+    }
+
+    .action-btn.delete {
+      color: var(--danger);
+    }
+
+    .action-btn.suspend {
+      color: var(--warning);
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-gray);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* ================= RESPONSIVE DESIGN ================= */
+
+    /* Tablet and Desktop (769px and above) */
+    @media (min-width: 769px) {
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      }
+      
       .hero {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
+        flex-direction: row;
+        align-items: center;
+      }
+      
+      .hero h1 {
+        font-size: 2.5rem;
       }
       
       .controls {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: nowrap;
       }
       
       .search-input {
-        width: 100%;
+        width: 300px;
       }
       
       .view-toggle {
-        width: 100%;
-        justify-content: space-between;
-        margin-top: 12px;
+        margin-left: auto;
+        flex-shrink: 0;
       }
       
-      main {
-        padding-left: 20px;
-        padding-right: 20px;
+      .mobile-nav-toggle {
+        display: none;
       }
       
-      nav {
-        gap: 20px;
+      .mobile-nav {
+        display: none;
       }
     }
 
-    @media (max-width: 768px) {
+    /* Tablet (768px to 1024px) */
+    @media (max-width: 1024px) and (min-width: 769px) {
       .grid {
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
       }
       
-      header {
-        padding: 0 20px;
+      .upload-grid {
+        grid-template-columns: 1fr;
       }
       
       .hero h1 {
         font-size: 2rem;
       }
       
-      nav {
-        display: none;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .grid {
+      .form-row {
         grid-template-columns: 1fr;
       }
       
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Mobile (up to 768px) */
+    @media (max-width: 768px) {
+      /* Header adjustments */
+      header {
+        padding: 0 16px;
+        height: 60px;
+      }
+      
+      .logo-text {
+        font-size: 1.2rem;
+      }
+      
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+      }
+      
+      /* Mobile navigation menu */
+      .mobile-nav-toggle {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 30px;
+        height: 24px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin-left: auto;
+        margin-right: 15px;
+      }
+      
+      .mobile-nav-toggle span {
+        display: block;
+        height: 3px;
+        width: 100%;
+        background: var(--text-light);
+        border-radius: 3px;
+        transition: var(--transition);
+      }
+      
+      .mobile-nav-toggle.active span:nth-child(1) {
+        transform: translateY(10px) rotate(45deg);
+      }
+      
+      .mobile-nav-toggle.active span:nth-child(2) {
+        opacity: 0;
+      }
+      
+      .mobile-nav-toggle.active span:nth-child(3) {
+        transform: translateY(-10px) rotate(-45deg);
+      }
+      
+      .mobile-nav {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        background: var(--secondary-dark);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        z-index: 999;
+        transform: translateY(-100%);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+      
+      .mobile-nav.active {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      
+      .mobile-nav a {
+        color: var(--text-light);
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        transition: var(--transition);
+      }
+      
+      .mobile-nav a:hover,
+      .mobile-nav a.active {
+        background: var(--accent);
+        color: white;
+      }
+      
+      .mobile-nav-open {
+        overflow: hidden;
+      }
+      
+      /* Hide desktop nav on mobile */
+      nav:not(.mobile-nav) {
+        display: none;
+      }
+      
+      /* Main content adjustments */
+      main {
+        padding-top: calc(60px + 20px);
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      
+      .hero {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      
+      .hero h1 {
+        font-size: 1.75rem;
+        line-height: 1.3;
+      }
+      
+      .hero p {
+        font-size: 14px;
+      }
+      
+      .hero .right {
+        text-align: center;
+        min-width: auto;
+        width: 100%;
+      }
+      
+      /* Controls adjustments */
       .controls {
+        flex-direction: column;
+        gap: 12px;
         padding: 16px;
+        margin: 24px 0;
+      }
+      
+      .search-input,
+      .select,
+      .btn {
+        width: 100%;
+        font-size: 16px; /* Better for mobile touch */
+        padding: 14px 16px;
+      }
+      
+      .view-toggle {
+        margin-left: 0;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
       }
       
       .currency-selector {
         width: 100%;
         justify-content: space-between;
       }
+      
+      .become-seller {
+        width: 100%;
+        text-align: center;
+      }
+      
+      /* Product grid adjustments */
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      
+      .product-card {
+        margin-bottom: 0;
+      }
+      
+      /* Product card content adjustments */
+      .card-media {
+        height: 200px;
+      }
+      
+      .thumbs img {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .card-body {
+        padding: 16px;
+      }
+      
+      .card-body h3 {
+        font-size: 15px;
+      }
+      
+      .meta {
+        font-size: 13px;
+        -webkit-line-clamp: 3;
+      }
+      
+      .price {
+        font-size: 16px;
+      }
+      
+      .small-btn {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      
+      /* Seller form adjustments */
+      .upload-section {
+        padding: 20px;
+        margin-top: 20px;
+      }
+      
+      .form-header h3 {
+        font-size: 20px;
+      }
+      
+      .form-section {
+        padding: 16px;
+      }
+      
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      
+      .form-input,
+      .form-textarea,
+      .form-select {
+        padding: 14px 16px;
+        font-size: 16px; /* Prevents zoom on iOS */
+      }
+      
+      .form-actions {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .form-btn {
+        width: 100%;
+        padding: 16px;
+        font-size: 16px;
+      }
+      
+      /* Modal adjustments */
+      .modal-card {
+        padding: 20px;
+        margin: 20px;
+      }
+      
+      /* Dashboard adjustments */
+      .dashboard-section {
+        padding: 20px;
+      }
+      
+      .dashboard-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+      
+      .dashboard-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .tabs-header {
+        flex-wrap: wrap;
+      }
+      
+      .tab-btn {
+        flex: 1 0 auto;
+        padding: 12px 16px;
+        font-size: 14px;
+        min-width: 33.33%;
+      }
+      
+      .tabs-content {
+        padding: 20px;
+      }
+      
+      .tab-header {
+        flex-direction: column;
+        gap: 16px;
+      }
+      
+      .tab-actions {
+        width: 100%;
+      }
+      
+      .tab-actions .search-input,
+      .tab-actions .select {
+        width: 100%;
+      }
+      
+      /* Reviews section adjustments */
+      .reviews-section {
+        margin-top: 30px;
+        padding-top: 24px;
+      }
+      
+      .review-item {
+        padding: 16px;
+      }
+      
+      .review-form textarea {
+        font-size: 16px;
+        min-height: 120px;
+      }
     }
 
-.product-status {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-  border: 1px solid transparent;
-}
+    /* Small Mobile (up to 480px) */
+    @media (max-width: 480px) {
+      header {
+        padding: 0 12px;
+      }
+      
+      .logo-text {
+        font-size: 1rem;
+      }
+      
+      .auth-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+      
+      .hero h1 {
+        font-size: 1.5rem;
+      }
+      
+      .hero p {
+        font-size: 13px;
+      }
+      
+      .controls {
+        padding: 12px;
+        margin: 20px 0;
+      }
+      
+      .product-badge {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      
+      .payment-badge,
+      .delivery-badge {
+        padding: 3px 6px;
+        font-size: 9px;
+      }
+      
+      .favorite-btn,
+      .delete-btn {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .seller-info {
+        font-size: 12px;
+      }
+      
+      .product-details {
+        padding: 10px;
+      }
+      
+      .detail-item {
+        font-size: 12px;
+      }
+      
+      /* Make tables scrollable on mobile */
+      .products-table,
+      .sales-table,
+      .admin-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .products-table table,
+      .sales-table table,
+      .admin-table table {
+        min-width: 600px;
+      }
+      
+      /* Touch-friendly improvements */
+      @media (hover: none) and (pointer: coarse) {
+        .small-btn,
+        .action-btn,
+        .mobile-nav a,
+        .tab-btn {
+          min-height: 44px;
+          min-width: 44px;
+        }
+        
+        .favorite-btn,
+        .delete-btn {
+          width: 44px;
+          height: 44px;
+        }
+        
+        .thumbs img {
+          width: 44px;
+          height: 44px;
+        }
+        
+        /* Remove hover effects on mobile */
+        .product-card:hover {
+          transform: none;
+          box-shadow: var(--shadow-md);
+        }
+        
+        .btn.primary:hover,
+        .small-btn.primary:hover {
+          transform: none;
+        }
+      }
+    }
 
-.status-active {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
-  border-color: rgba(76, 175, 80, 0.3);
-}
+    /* Extra Small Mobile (up to 360px) */
+    @media (max-width: 360px) {
+      main {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      
+      .hero h1 {
+        font-size: 1.3rem;
+      }
+      
+      .card-media {
+        height: 180px;
+      }
+      
+      .card-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .small-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
 
-.status-inactive {
-  background: rgba(255, 152, 0, 0.15);
-  color: #ff9800;
-  border-color: rgba(255, 152, 0, 0.3);
-}
+    /* Fix for mobile form inputs zoom issue */
+    @media screen and (max-width: 768px) {
+      input,
+      select,
+      textarea {
+        font-size: 16px !important; /* Prevents iOS zoom on focus */
+      }
+    }
 
-.status-draft {
-  background: rgba(158, 158, 158, 0.15);
-  color: #9e9e9e;
-  border-color: rgba(158, 158, 158, 0.3);
-}
+    /* Landscape orientation adjustments */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .hero {
+        margin-bottom: 16px;
+      }
+      
+      .hero h1 {
+        font-size: 1.5rem;
+      }
+      
+      .controls {
+        margin: 16px 0;
+      }
+      
+      .grid {
+        gap: 16px;
+      }
+    }
 
-.status-deleted {
-  background: rgba(244, 67, 54, 0.15);
-  color: #f44336;
-  border-color: rgba(244, 67, 54, 0.3);
-}
+    /* High-resolution displays */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .logo-icon,
+      .stat-icon,
+      .form-section-header i {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    }
 
-.status-out_of_stock {
-  background: rgba(63, 81, 181, 0.15);
-  color: #3f51b5;
-  border-color: rgba(63, 81, 181, 0.3);
-}
-
-.status-pending {
-  background: rgba(255, 193, 7, 0.15);
-  color: #ffc107;
-  border-color: rgba(255, 193, 7, 0.3);
-}
-
-.product-badge {
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge-physical {
-  background: rgba(33, 150, 243, 0.15);
-  color: #2196f3;
-}
-
-.badge-digital {
-  background: rgba(156, 39, 176, 0.15);
-  color: #9c27b0;
-}
-
-.action-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-light);
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.action-btn.view:hover {
-  background: rgba(33, 150, 243, 0.2);
-  color: #2196f3;
-}
-
-.action-btn.edit:hover {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-}
-
-.action-btn.delete:hover {
-  background: rgba(244, 67, 54, 0.2);
-  color: #f44336;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-gray);
-}
-
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  color: var(--secondary-dark);
-}
-
-.empty-state h4 {
-  margin: 0 0 8px 0;
-  color: var(--text-light);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.btn-retry {
-  margin-top: 16px;
-  padding: 8px 20px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-retry:hover {
-  opacity: 0.9;
-}
-
+    /* Print styles */
+    @media print {
+      header,
+      .controls,
+      .sellerView,
+      .become-seller,
+      .dashboard-section,
+      .reviews-section,
+      .modal,
+      .mobile-nav-toggle,
+      .mobile-nav {
+        display: none !important;
+      }
+      
+      .grid {
+        display: block;
+      }
+      
+      .product-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2228,6 +3228,292 @@
         <p id="reviewMessage" class="form-message"></p>
       </div>
     </div>
+
+    <!-- ================= DASHBOARD SECTION ================= -->
+    <section id="dashboardSection" class="dashboard-section" style="display: none;">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
+          <span id="dashboardRoleBadge" class="role-badge">Seller</span>
+        </div>
+        
+        <div class="dashboard-actions">
+          <button id="toggleDashboard" class="btn primary">
+            <i class="fas fa-store"></i>
+            Back to Products
+          </button>
+          <button id="exportData" class="btn secondary" title="Export dashboard data">
+            <i class="fas fa-file-export"></i>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Controls (Visible only to admins) -->
+      <div id="adminControls" class="admin-controls" style="display: none;">
+        <div class="admin-search-bar">
+          <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." 
+                 class="search-input" style="flex: 1;">
+          <select id="adminSearchCategory" class="select">
+            <option value="all">All Categories</option>
+            <option value="users">Users</option>
+            <option value="products">Products</option>
+            <option value="orders">Orders</option>
+            <option value="sales">Sales</option>
+          </select>
+          <button id="adminSearchBtn" class="btn primary">
+            <i class="fas fa-search"></i>
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
+            <i class="fas fa-box-open" style="color: var(--accent);"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalProducts">0</h3>
+            <p>Total Products</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+            <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalSales">0</h3>
+            <p>Total Sales</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
+            <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalRevenue">$0</h3>
+            <p>Total Revenue</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
+            <i class="fas fa-star" style="color: var(--digital);"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="avgRating">0.0</h3>
+            <p>Average Rating</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Tabs -->
+      <div class="dashboard-tabs">
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="products">My Products</button>
+          <button class="tab-btn" data-tab="sales">Sales History</button>
+          <button class="tab-btn" data-tab="analytics">Analytics</button>
+          <button id="adminTab" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
+        </div>
+        
+        <div class="tabs-content">
+          <!-- My Products Tab -->
+          <div id="productsTab" class="tab-content active">
+            <div class="tab-header">
+              <h3><i class="fas fa-box"></i> My Listed Products</h3>
+              <div class="tab-actions">
+                <input type="text" id="searchMyProducts" placeholder="Search my products..." 
+                       class="search-input" style="width: 250px;">
+                <select id="filterMyProducts" class="select">
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="sold">Sold</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="myProductsList" class="products-table">
+              <!-- Will be populated by JavaScript -->
+              <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <h4>No products yet</h4>
+                <p>Start by listing your first product</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Sales History Tab -->
+          <div id="salesTab" class="tab-content">
+            <div class="tab-header">
+              <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
+              <div class="tab-actions">
+                <select id="salesPeriod" class="select">
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                  <option value="all">All Time</option>
+                </select>
+                <select id="salesStatus" class="select">
+                  <option value="all">All Status</option>
+                  <option value="completed">Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="salesList" class="sales-table">
+              <!-- Will be populated by JavaScript -->
+              <div class="empty-state">
+                <i class="fas fa-shopping-cart"></i>
+                <h4>No sales yet</h4>
+                <p>Your sales will appear here</p>
+              </div>
+            </div>
+            
+            <div class="sales-summary">
+              <div class="summary-card">
+                <h4>Total Sales Value</h4>
+                <h2 id="totalSalesValue">$0.00</h2>
+              </div>
+              <div class="summary-card">
+                <h4>Your Earnings</h4>
+                <h2 id="yourEarnings">$0.00</h2>
+              </div>
+              <div class="summary-card">
+                <h4>Platform Fee</h4>
+                <h2 id="platformFee">$0.00</h2>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Analytics Tab -->
+          <div id="analyticsTab" class="tab-content">
+            <div class="analytics-grid">
+              <div class="analytics-card">
+                <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
+                <div class="chart-container">
+                  <canvas id="salesChart"></canvas>
+                </div>
+              </div>
+              
+              <div class="analytics-card">
+                <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
+                <div class="chart-container">
+                  <canvas id="categoryChart"></canvas>
+                </div>
+              </div>
+              
+              <div class="analytics-card">
+                <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
+                <div class="stats-list">
+                  <div class="stat-item">
+                    <span>Best Selling Product</span>
+                    <strong id="bestProduct">N/A</strong>
+                  </div>
+                  <div class="stat-item">
+                    <span>Total Visitors</span>
+                    <strong id="totalVisitors">0</strong>
+                  </div>
+                  <div class="stat-item">
+                    <span>Conversion Rate</span>
+                    <strong id="conversionRate">0%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Panel Tab -->
+          <div id="adminTabContent" class="tab-content">
+            <div class="admin-panel">
+              <div class="admin-section">
+                <h3><i class="fas fa-users"></i> User Management</h3>
+                <div class="admin-table">
+                  <table id="usersTable">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Products</th>
+                        <th>Sales</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Will be populated by JavaScript -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="admin-section">
+                <h3><i class="fas fa-shopping-bag"></i> All Products Monitor</h3>
+                <div class="admin-filters">
+                  <input type="text" id="adminProductSearch" placeholder="Search products..." class="search-input">
+                  <select id="adminProductCategory" class="select">
+                    <option value="">All Categories</option>
+                  </select>
+                  <select id="adminProductStatus" class="select">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+                <div class="admin-table">
+                  <table id="allProductsTable">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Seller</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Sales</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Will be populated by JavaScript -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="admin-section">
+                <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
+                <div class="platform-stats">
+                  <div class="platform-stat">
+                    <h4>Total Users</h4>
+                    <h2 id="platformTotalUsers">0</h2>
+                  </div>
+                  <div class="platform-stat">
+                    <h4>Total Products</h4>
+                    <h2 id="platformTotalProducts">0</h2>
+                  </div>
+                  <div class="platform-stat">
+                    <h4>Total Sales</h4>
+                    <h2 id="platformTotalSales">0</h2>
+                  </div>
+                  <div class="platform-stat">
+                    <h4>Platform Revenue</h4>
+                    <h2 id="platformRevenue">$0.00</h2>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ================= MODALS ================= -->
@@ -2295,1946 +3581,96 @@
       <div id="signupMsg" style="margin-top:16px"></div>
     </div>
   </div>
-<!-- ================= DASHBOARD SECTION ================= -->
-<section id="dashboardSection" class="dashboard-section" style="display: none;">
-  <div class="dashboard-header">
-    <div class="dashboard-title">
-      <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
-      <span id="dashboardRoleBadge" class="role-badge">Seller</span>
-    </div>
-    
-    <div class="dashboard-actions">
-      <button id="toggleDashboard" class="btn primary">
-        <i class="fas fa-store"></i>
-        Back to Products
-      </button>
-      <button id="exportData" class="btn secondary" title="Export dashboard data">
-        <i class="fas fa-file-export"></i>
-        Export
-      </button>
-    </div>
-  </div>
 
-  <!-- Admin Controls (Visible only to admins) -->
-  <div id="adminControls" class="admin-controls" style="display: none;">
-    <div class="admin-search-bar">
-      <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." 
-             class="search-input" style="flex: 1;">
-      <select id="adminSearchCategory" class="select">
-        <option value="all">All Categories</option>
-        <option value="users">Users</option>
-        <option value="products">Products</option>
-        <option value="orders">Orders</option>
-        <option value="sales">Sales</option>
-      </select>
-      <button id="adminSearchBtn" class="btn primary">
-        <i class="fas fa-search"></i>
-        Search
-      </button>
-    </div>
-  </div>
-
-  <!-- Dashboard Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
-        <i class="fas fa-box-open" style="color: var(--accent);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalProducts">0</h3>
-        <p>Total Products</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
-        <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalSales">0</h3>
-        <p>Total Sales</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
-        <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalRevenue">$0</h3>
-        <p>Total Revenue</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
-        <i class="fas fa-star" style="color: var(--digital);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="avgRating">0.0</h3>
-        <p>Average Rating</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dashboard Tabs -->
-  <div class="dashboard-tabs">
-    <div class="tabs-header">
-      <button class="tab-btn active" data-tab="products">My Products</button>
-      <button class="tab-btn" data-tab="sales">Sales History</button>
-      <button class="tab-btn" data-tab="analytics">Analytics</button>
-      <button id="adminTab" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
-    </div>
-    
-    <div class="tabs-content">
-      <!-- My Products Tab -->
-      <div id="productsTab" class="tab-content active">
-        <div class="tab-header">
-          <h3><i class="fas fa-box"></i> My Listed Products</h3>
-          <div class="tab-actions">
-            <input type="text" id="searchMyProducts" placeholder="Search my products..." 
-                   class="search-input" style="width: 250px;">
-            <select id="filterMyProducts" class="select">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="sold">Sold</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-        </div>
-        
-        <div id="myProductsList" class="products-table">
-          <!-- Will be populated by JavaScript -->
-          <div class="empty-state">
-            <i class="fas fa-box-open"></i>
-            <h4>No products yet</h4>
-            <p>Start by listing your first product</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Sales History Tab -->
-      <div id="salesTab" class="tab-content">
-        <div class="tab-header">
-          <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
-          <div class="tab-actions">
-            <select id="salesPeriod" class="select">
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="all">All Time</option>
-            </select>
-            <select id="salesStatus" class="select">
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-        </div>
-        
-        <div id="salesList" class="sales-table">
-          <!-- Will be populated by JavaScript -->
-          <div class="empty-state">
-            <i class="fas fa-shopping-cart"></i>
-            <h4>No sales yet</h4>
-            <p>Your sales will appear here</p>
-          </div>
-        </div>
-        
-        <div class="sales-summary">
-          <div class="summary-card">
-            <h4>Total Sales Value</h4>
-            <h2 id="totalSalesValue">$0.00</h2>
-          </div>
-          <div class="summary-card">
-            <h4>Your Earnings</h4>
-            <h2 id="yourEarnings">$0.00</h2>
-          </div>
-          <div class="summary-card">
-            <h4>Platform Fee</h4>
-            <h2 id="platformFee">$0.00</h2>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Analytics Tab -->
-      <div id="analyticsTab" class="tab-content">
-        <div class="analytics-grid">
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
-            <div class="chart-container">
-              <canvas id="salesChart"></canvas>
-            </div>
-          </div>
-          
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
-            <div class="chart-container">
-              <canvas id="categoryChart"></canvas>
-            </div>
-          </div>
-          
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
-            <div class="stats-list">
-              <div class="stat-item">
-                <span>Best Selling Product</span>
-                <strong id="bestProduct">N/A</strong>
-              </div>
-              <div class="stat-item">
-                <span>Total Visitors</span>
-                <strong id="totalVisitors">0</strong>
-              </div>
-              <div class="stat-item">
-                <span>Conversion Rate</span>
-                <strong id="conversionRate">0%</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Admin Panel Tab -->
-      <div id="adminTabContent" class="tab-content">
-        <div class="admin-panel">
-          <div class="admin-section">
-            <h3><i class="fas fa-users"></i> User Management</h3>
-            <div class="admin-table">
-              <table id="usersTable">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Products</th>
-                    <th>Sales</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- Will be populated by JavaScript -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <div class="admin-section">
-            <h3><i class="fas fa-shopping-bag"></i> All Products Monitor</h3>
-            <div class="admin-filters">
-              <input type="text" id="adminProductSearch" placeholder="Search products..." class="search-input">
-              <select id="adminProductCategory" class="select">
-                <option value="">All Categories</option>
-              </select>
-              <select id="adminProductStatus" class="select">
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-            <div class="admin-table">
-              <table id="allProductsTable">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Seller</th>
-                    <th>Type</th>
-                    <th>Price</th>
-                    <th>Sales</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- Will be populated by JavaScript -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <div class="admin-section">
-            <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
-            <div class="platform-stats">
-              <div class="platform-stat">
-                <h4>Total Users</h4>
-                <h2 id="platformTotalUsers">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Products</h4>
-                <h2 id="platformTotalProducts">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Sales</h4>
-                <h2 id="platformTotalSales">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Platform Revenue</h4>
-                <h2 id="platformRevenue">$0.00</h2>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<style>
-  /* ================= DASHBOARD STYLES ================= */
-  .dashboard-section {
-    background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    padding: 32px;
-    margin-top: 32px;
-    border: 1px solid var(--border);
-    animation: fadeIn 0.3s ease;
-  }
-
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .dashboard-title {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .dashboard-title h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .role-badge {
-    background: var(--accent);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .dashboard-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  /* Admin Controls */
-  .admin-controls {
-    background: rgba(59, 130, 246, 0.05);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  .admin-search-bar {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
-  }
-
-  .stat-card {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: var(--transition);
-  }
-
-  .stat-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-
-  .stat-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stat-content h3 {
-    margin: 0 0 4px 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-light);
-  }
-
-  .stat-content p {
-    margin: 0;
-    color: var(--text-gray);
-    font-size: 14px;
-  }
-
-  /* Dashboard Tabs */
-  .dashboard-tabs {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .tabs-header {
-    display: flex;
-    background: var(--primary-dark);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .tab-btn {
-    padding: 16px 24px;
-    background: transparent;
-    border: none;
-    color: var(--text-gray);
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-  }
-
-  .tab-btn:hover {
-    color: var(--text-light);
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .tab-btn.active {
-    color: var(--accent);
-    background: rgba(59, 130, 246, 0.05);
-  }
-
-  .tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--accent);
-  }
-
-  .tabs-content {
-    padding: 32px;
-  }
-
-  .tab-content {
-    display: none;
-  }
-
-  .tab-content.active {
-    display: block;
-    animation: fadeIn 0.3s ease;
-  }
-
-  /* Tab Headers */
-  .tab-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-
-  .tab-header h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .tab-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  /* Products Table */
-  .products-table {
-    background: var(--primary-dark);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .products-table table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .products-table th {
-    background: var(--card-bg);
-    padding: 16px;
-    text-align: left;
-    color: var(--text-light);
-    font-weight: 600;
-    font-size: 14px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .products-table td {
-    padding: 16px;
-    color: var(--text-gray);
-    font-size: 14px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .products-table tr:hover {
-    background: var(--card-bg-hover);
-  }
-
-  .product-status {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-  }
-
-  .status-active {
-    background: rgba(16, 185, 129, 0.2);
-    color: var(--success);
-  }
-
-  .status-sold {
-    background: rgba(245, 158, 11, 0.2);
-    color: var(--warning);
-  }
-
-  .status-draft {
-    background: rgba(100, 116, 139, 0.2);
-    color: var(--text-muted);
-  }
-
-  /* Sales Table */
-  .sales-table {
-    background: var(--primary-dark);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 24px;
-  }
-
-  .sales-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 32px;
-  }
-
-  .summary-card {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    border: 1px solid var(--border);
-    text-align: center;
-  }
-
-  .summary-card h4 {
-    margin: 0 0 8px 0;
-    color: var(--text-gray);
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .summary-card h2 {
-    margin: 0;
-    color: var(--text-light);
-    font-size: 28px;
-    font-weight: 700;
-  }
-
-  /* Analytics Grid */
-  .analytics-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 24px;
-  }
-
-  .analytics-card {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    border: 1px solid var(--border);
-  }
-
-  .analytics-card h3 {
-    margin: 0 0 20px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .chart-container {
-    height: 200px;
-    position: relative;
-  }
-
-  .stats-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .stat-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: var(--primary-dark);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-  }
-
-  .stat-item span {
-    color: var(--text-gray);
-    font-size: 14px;
-  }
-
-  .stat-item strong {
-    color: var(--text-light);
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  /* Admin Panel */
-  .admin-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-
-  .admin-section {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    border: 1px solid var(--border);
-  }
-
-  .admin-section h3 {
-    margin: 0 0 20px 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .admin-filters {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .admin-table {
-    overflow-x: auto;
-  }
-
-  .admin-table table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .admin-table th {
-    background: var(--card-bg);
-    padding: 12px 16px;
-    text-align: left;
-    color: var(--text-light);
-    font-weight: 600;
-    font-size: 13px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-  }
-
-  .admin-table td {
-    padding: 12px 16px;
-    color: var(--text-gray);
-    font-size: 13px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: middle;
-  }
-
-  .admin-table tr:hover {
-    background: var(--card-bg-hover);
-  }
-
-  .user-avatar-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 12px;
-  }
-
-  .platform-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-  }
-
-  .platform-stat {
-    background: var(--primary-dark);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    border: 1px solid var(--border);
-    text-align: center;
-  }
-
-  .platform-stat h4 {
-    margin: 0 0 8px 0;
-    color: var(--text-gray);
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .platform-stat h2 {
-    margin: 0;
-    color: var(--text-light);
-    font-size: 24px;
-    font-weight: 700;
-  }
-
-  /* Action Buttons */
-  .action-btn {
-    padding: 6px 12px;
-    border-radius: var(--radius-md);
-    border: none;
-    background: transparent;
-    color: var(--text-gray);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: var(--transition);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .action-btn:hover {
-    background: var(--card-bg-hover);
-  }
-
-  .action-btn.view {
-    color: var(--accent);
-  }
-
-  .action-btn.edit {
-    color: var(--warning);
-  }
-
-  .action-btn.delete {
-    color: var(--danger);
-  }
-
-  .action-btn.suspend {
-    color: var(--warning);
-  }
-
-  /* Empty States */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-gray);
-  }
-
-  .empty-state i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h4 {
-    margin: 0 0 8px 0;
-    color: var(--text-light);
-    font-weight: 600;
-  }
-
-  .empty-state p {
-    margin: 0;
-    font-size: 14px;
-  }
-
-  /* Responsive */
-  @media (max-width: 1024px) {
-    .analytics-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .dashboard-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    
-    .dashboard-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
-    
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .tab-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    
-    .tab-actions {
-      width: 100%;
-      flex-direction: column;
-    }
-    
-    .tab-actions .search-input,
-    .tab-actions .select {
-      width: 100%;
-    }
-  }
-  /* Add to existing dashboard styles */
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.products-table table, .sales-table table, .admin-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.products-table th, .sales-table th, .admin-table th {
-  background: var(--card-bg);
-  padding: 12px 16px;
-  text-align: left;
-  color: var(--text-light);
-  font-weight: 600;
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-
-.products-table td, .sales-table td, .admin-table td {
-  padding: 12px 16px;
-  color: var(--text-gray);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-
-.products-table tr:hover, .sales-table tr:hover, .admin-table tr:hover {
-  background: var(--card-bg-hover);
-}
-
-.user-avatar-small {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 12px;
-}
-</style>
-
-<script>
- 
-// DEBUG: Check if function exists
-console.log('🔍 DEBUG: Checking functions...');
-console.log('getProductStatus defined?', typeof getProductStatus);
-console.log('loadMyProducts defined?', typeof loadMyProducts);
-console.log('currentUser:', window.currentUser);
-
-// Test the function with a sample product
-const testProduct = {
-  id: 1,
-  title: 'Test Product',
-  is_active: 1,
-  is_published: 1,
-  quantity: 10
-};
-
-console.log('Test getProductStatus:', getProductStatus(testProduct));
-
- 
-// ========== ADD THESE FUNCTIONS AT THE TOP ==========
-
-// Function 1: Get product status
-// Helper function 1: Get product status
-function getProductStatus(product) {
-  if (product.is_deleted || product.deleted_at) {
-    return "deleted";
-  }
-  if (product.is_active === 0) {
-    return "inactive";
-  }
-  if (product.is_published === 0) {
-    return "draft";
-  }
-  if (product.quantity !== undefined && product.quantity <= 0) {
-    return "out_of_stock";
-  }
-  return "active";
-}
-
-// Helper function 2: Format status for display
-function formatStatusDisplay(status) {
-  const statusMap = {
-    'active': '✅ Active',
-    'inactive': '⏸️ Inactive',
-    'draft': '📝 Draft',
-    'deleted': '❌ Deleted',
-    'out_of_stock': '📦 Out of Stock'
-  };
-  return statusMap[status] || status;
-}
-// Function 3: Get status class for CSS
-function getStatusClass(status) {
-  return `status-${status}`;
-}
-
-// ========== YOUR EXISTING loadMyProducts FUNCTION ==========
-async function loadMyProducts() {
-  const container = document.getElementById('myProductsList');
-  console.log('🔄 loadMyProducts started, container:', container);
-  
-  try {
-    if (!currentUser) {
-      console.error('❌ currentUser is undefined!');
-      return;
-    }
-    
-    console.log('👤 Current user ID:', currentUser.id);
-    
-    // FIX: Add credentials: 'include' here too!
-    const response = await fetch(`/api/products/seller/${currentUser.id}`, {
-      credentials: 'include' // ← ADD THIS LINE
-    });
-    
-    console.log('📡 API Response status:', response.status);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const products = await response.json();
-    console.log('📦 Products received:', products);
-    
-    if (!products || products.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-box-open"></i>
-          <h4>No products yet</h4>
-          <p>Start by listing your first product</p>
-        </div>
-      `;
-      return;
-    }
-    
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Type</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    products.forEach(product => {
-      console.log('📋 Processing product:', product.id, product.title);
-      
-      // You need to add the status logic here too:
-      const status = getProductStatus(product); // Make sure this function exists!
-      const statusClass = `status-${status}`;
-      const statusDisplay = formatStatusDisplay(status); // Add this helper function
-      
-      html += `
-        <tr>
-          <td>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                ${product.images ? 
-                  `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                    <i class="fas fa-box"></i>
-                  </div>`
-                }
-              </div>
-              <div>
-                <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title || 'Untitled'}</strong>
-                <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
-              </div>
-            </div>
-          </td>
-          <td>
-            <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
-          </td>
-          <td>
-            <strong style="color: var(--accent);">$${parseFloat(product.price || 0).toFixed(2)}</strong>
-          </td>
-          <td>
-            <span class="product-status ${statusClass}">${statusDisplay}</span>
-          </td>
-          <td>
-            <div style="display: flex; gap: 8px;">
-              <button class="action-btn view" onclick="viewProduct(${product.id})">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button class="action-btn edit" onclick="editProduct(${product.id})">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="action-btn delete" onclick="deleteProduct(${product.id})">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    });
-    
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-    console.log('✅ Products loaded successfully');
-    
-  } catch (error) {
-    console.error('❌ Error loading my products:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading products</h4>
-        <p>${error.message}</p>
-        <button onclick="loadMyProducts()" class="btn btn-retry">Retry</button>
-      </div>
-    `;
-  }
-}
-// Dashboard JavaScript Code
-document.addEventListener('DOMContentLoaded', function() {
-  // Dashboard toggle button
-  const dashboardBtn = document.createElement('button');
-  dashboardBtn.className = 'become-seller';
-  dashboardBtn.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
-  dashboardBtn.style.marginLeft = '8px';
-  dashboardBtn.id = 'toggleDashboardBtn';
-  
-  // Add dashboard button to header
-  const viewToggle = document.querySelector('.view-toggle');
-  if (viewToggle) {
-    viewToggle.appendChild(dashboardBtn);
-  }
-  
-  // Dashboard elements
-  const dashboardSection = document.getElementById('dashboardSection');
-  const buyerView = document.getElementById('buyerView');
-  const sellerView = document.getElementById('sellerView');
-  const toggleDashboardBtn = document.getElementById('toggleDashboardBtn');
-  const toggleDashboard = document.getElementById('toggleDashboard');
-  const becomeSellerBtn = document.getElementById('becomeSeller');
-  
-  // Tab elements
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
-  
-  // Initialize dashboard
-  let isDashboardVisible = false;
-  let currentUser = null;
-  let dashboardData = null;
-  
-  // Check user login status
-  checkLoginStatus();
-  
-  // Dashboard toggle functionality
-  toggleDashboardBtn.addEventListener('click', function() {
-    toggleDashboardView();
-  });
-  
-  if (toggleDashboard) {
-    toggleDashboard.addEventListener('click', function() {
-      toggleDashboardView();
-    });
-  }
-  
-  // Tab switching
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const tabId = this.getAttribute('data-tab');
-      
-      // Update active tab button
-      tabBtns.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Show selected tab content
-      tabContents.forEach(content => {
-        content.classList.remove('active');
-        if (content.id === tabId + 'Tab' || content.id === tabId + 'TabContent') {
-          content.classList.add('active');
-        }
-      });
-      
-      // Load data for the selected tab
-      loadTabData(tabId);
-    });
-  });
-  
-  // Functions
-  function toggleDashboardView() {
-    isDashboardVisible = !isDashboardVisible;
-    
-    if (isDashboardVisible) {
-      // Show dashboard, hide other views
-      dashboardSection.style.display = 'block';
-      buyerView.style.display = 'none';
-      sellerView.style.display = 'none';
-      
-      // Update button text
-      toggleDashboardBtn.innerHTML = '<i class="fas fa-store"></i> Products';
-      if (toggleDashboard) {
-        toggleDashboard.innerHTML = '<i class="fas fa-store"></i> Back to Products';
-      }
-      
-      // Load dashboard data
-      loadDashboardData();
-    } else {
-      // Hide dashboard, show products view
-      dashboardSection.style.display = 'none';
-      buyerView.style.display = 'block';
-      
-      // Update button text
-      toggleDashboardBtn.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
-      if (toggleDashboard) {
-        toggleDashboard.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
-      }
-    }
-  }
-  
-  async function checkLoginStatus() {
-    try {
-      const response = await fetch('/api/me');
-      if (response.ok) {
-        const user = await response.json();
-        currentUser = user;
-        updateDashboardForUser(user);
-      } else {
-        currentUser = null;
-      }
-    } catch (error) {
-      console.error('Error checking login status:', error);
-      currentUser = null;
-    }
-  }
-  
-  function updateDashboardForUser(user) {
-    const dashboardRoleBadge = document.getElementById('dashboardRoleBadge');
-    const adminTab = document.getElementById('adminTab');
-    const adminControls = document.getElementById('adminControls');
-    
-    if (user && user.role === 'admin') {
-      // Show admin features
-      dashboardRoleBadge.textContent = 'Admin';
-      dashboardRoleBadge.style.background = 'var(--danger)';
-      
-      if (adminTab) adminTab.style.display = 'block';
-      if (adminControls) adminControls.style.display = 'block';
-    } else if (user) {
-      // Regular seller
-      dashboardRoleBadge.textContent = 'Seller';
-      dashboardRoleBadge.style.background = 'var(--accent)';
-      
-      if (adminTab) adminTab.style.display = 'none';
-      if (adminControls) adminControls.style.display = 'none';
-    }
-    
-    // Update welcome message if needed
-    const welcomeElement = document.querySelector('.dashboard-title h2');
-    if (welcomeElement && user) {
-      welcomeElement.innerHTML = `<i class="fas fa-chart-line"></i> ${user.role === 'admin' ? 'Admin' : 'Seller'} Dashboard`;
-    }
-  }
-  
-  async function loadDashboardData() {
-    if (!currentUser) {
-      showToast('Please login to view dashboard', 'warning');
-      toggleDashboardView();
-      return;
-    }
-    
-    try {
-      // Show loading state
-      showLoadingState();
-      
-      // Load dashboard statistics
-      await loadDashboardStats();
-      
-      // Load initial tab data
-      loadTabData('products');
-      
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-      showToast('Failed to load dashboard data', 'danger');
-    }
-  }
- // Update the loadDashboardStats function:
-
-// Update the loadDashboardStats function:
-async function loadDashboardStats() {
-  try {
-    let stats;
-    
-    if (currentUser.role === 'admin') {
-      // Admin gets platform-wide stats
-      const [platformRes, summaryRes] = await Promise.all([
-        fetch('/api/admin/platform/stats'),
-        fetch('/api/admin/dashboard/summary')
-      ]);
-      
-      const platformData = platformRes.ok ? await platformRes.json() : {};
-      const summaryData = summaryRes.ok ? await summaryRes.json() : {};
-      
-      stats = {
-        totalProducts: platformData.stats?.total_products || 0,
-        totalSales: platformData.stats?.total_sales || 0,
-        totalRevenue: `$${(platformData.stats?.total_revenue || 0).toFixed(2)}`,
-        avgRating: '4.5'
-      };
-      
-      // Update platform stats for admin
-      document.getElementById('platformTotalUsers').textContent = platformData.stats?.total_users || 0;
-      document.getElementById('platformTotalProducts').textContent = stats.totalProducts;
-      document.getElementById('platformTotalSales').textContent = stats.totalSales;
-      document.getElementById('platformRevenue').textContent = `$${(platformData.stats?.platform_revenue || 0).toFixed(2)}`;
-      
-    } else {
-      // Regular user gets their own stats
-      const statsRes = await fetch(`/api/seller/stats/${currentUser.id}`);
-      const statsData = statsRes.ok ? await statsRes.json() : {};
-      
-      stats = {
-        totalProducts: statsData.stats?.product_count || 0,
-        totalSales: statsData.stats?.sales_count || 0,
-        totalRevenue: `$${(statsData.stats?.total_revenue || 0).toFixed(2)}`,
-        avgRating: statsData.stats?.avg_rating?.toFixed(1) || '0.0'
-      };
-      
-      // Update summary cards
-      const totalRevenue = statsData.stats?.total_revenue || 0;
-      const userEarnings = totalRevenue * 0.9; // 90% for seller
-      const platformFee = totalRevenue * 0.1; // 10% platform fee
-      
-      document.getElementById('totalSalesValue').textContent = `$${totalRevenue.toFixed(2)}`;
-      document.getElementById('yourEarnings').textContent = `$${userEarnings.toFixed(2)}`;
-      document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)}`;
-    }
-    
-    // Update stats cards
-    document.getElementById('totalProducts').textContent = stats.totalProducts;
-    document.getElementById('totalSales').textContent = stats.totalSales;
-    document.getElementById('totalRevenue').textContent = stats.totalRevenue;
-    document.getElementById('avgRating').textContent = stats.avgRating;
-    
-  } catch (error) {
-    console.error('Error loading stats:', error);
-  }
-}
-
-// Update the loadSalesHistory function:
-
-async function loadSalesHistory() {
-  const container = document.getElementById('salesList');
-  const period = document.getElementById('salesPeriod').value;
-  
-  try {
-    let sales = [];
-    
-    if (currentUser.role === 'admin') {
-      // Admin gets all sales
-      const response = await fetch('/api/admin/analytics/sales');
-      const data = await response.json();
-      sales = data.sales_trend || [];
-    } else {
-      // User gets their sales
-      const response = await fetch(`/api/orders/seller/${currentUser.id}`);
-      sales = await response.json();
-    }
-    
-    if (!sales || sales.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-shopping-cart"></i>
-          <h4>No sales yet</h4>
-          <p>Your sales will appear here</p>
-        </div>
-      `;
-      return;
-    }
-    
-    // Create table
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Product</th>
-            <th>Amount</th>
-            <th>Date</th>
-            ${currentUser.role === 'admin' ? '<th>Buyer</th><th>Seller</th>' : '<th>Buyer</th>'}
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    sales.forEach(sale => {
-      html += `
-        <tr>
-          <td>
-            <strong style="color: var(--accent);">${sale.order_code || 'N/A'}</strong>
-          </td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--secondary-dark);"></div>
-              <span style="color: var(--text-light); font-size: 13px;">${sale.product_name || sale.product_title || 'Product'}</span>
-            </div>
-          </td>
-          <td>
-            <strong style="color: var(--success);">$${parseFloat(sale.price || sale.total_amount || 0).toFixed(2)}</strong>
-          </td>
-          <td>
-            <span style="color: var(--text-gray); font-size: 12px;">${formatDate(sale.created_at)}</span>
-          </td>
-          ${currentUser.role === 'admin' ? `
-            <td>
-              <span style="color: var(--text-light);">${sale.buyer_name || 'Buyer'}</span>
-            </td>
-            <td>
-              <span style="color: var(--text-light);">${sale.seller_name || 'Seller'}</span>
-            </td>
-          ` : `
-            <td>
-              <span style="color: var(--text-light);">${sale.buyer_name || 'Customer'}</span>
-            </td>
-          `}
-        </tr>
-      `;
-    });
-    
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading sales:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading sales</h4>
-        <p>Please try again later</p>
-      </div>
-    `;
-  }
-}
-
-// Update the loadUsersTable function:
-
-async function loadUsersTable() {
-  const tbody = document.querySelector('#usersTable tbody');
-  
-  try {
-    const response = await fetch('/api/admin/users');
-    const users = await response.json();
-    
-    if (!users || users.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-gray);">
-            No users found
-          </td>
-        </tr>
-      `;
-      return;
-    }
-    
-    let html = '';
-    users.forEach(user => {
-      html += `
-        <tr>
-          <td>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="user-avatar-small">${user.username[0]}</div>
-              <div>
-                <div style="color: var(--text-light); font-weight: 500;">${user.username}</div>
-                <small style="color: var(--text-gray);">${user.email}</small>
-              </div>
-            </div>
-          </td>
-          <td>
-            <span class="product-status ${user.role}">${user.role}</span>
-          </td>
-          <td>
-            <span style="color: var(--text-light);">${user.product_count || 0}</span>
-          </td>
-          <td>
-            <span style="color: var(--success);">${user.sales_count || 0}</span>
-          </td>
-          <td>
-            <span class="product-status ${user.verified ? 'active' : 'pending'}">
-              ${user.verified ? 'Verified' : 'Pending'}
-            </span>
-          </td>
-          <td>
-            <div style="display: flex; gap: 8px;">
-              <button class="action-btn view" onclick="viewUser(${user.id})">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button class="action-btn suspend" onclick="toggleUserStatus(${user.id}, ${user.active ? 'false' : 'true'})">
-                <i class="fas fa-ban"></i>
-              </button>
-              <button class="action-btn delete" onclick="deleteUser(${user.id})">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    });
-    
-    tbody.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading users:', error);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-gray);">
-          Error loading users
-        </td>
-      </tr>
-    `;
-  }
-}
-  async function loadAllProductsTable() {
-    const tbody = document.querySelector('#allProductsTable tbody');
-    
-    try {
-      const response = await fetch('/api/products');
-      const products = await response.json();
-      
-      let html = '';
-      products.forEach(product => {
-        // Get seller info (you might need to fetch this separately)
-        const sellerName = product.user_id === currentUser.id ? 'You' : `Seller ${product.user_id}`;
-        
-        html += `
-          <tr>
-            <td>
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                  ${product.images ? 
-                    `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                    `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                      <i class="fas fa-box"></i>
-                    </div>`
-                  }
-                </div>
-                <div>
-                  <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title}</strong>
-                  <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span style="color: var(--text-light);">${sellerName}</span>
-            </td>
-            <td>
-              <span class="product-badge badge-${product.type}">${product.type}</span>
-            </td>
-            <td>
-              <strong style="color: var(--accent);">$${parseFloat(product.price).toFixed(2)}</strong>
-            </td>
-            <td>
-              <span style="color: var(--success);">${product.sales_count || 0}</span>
-            </td>
-            <td>
-              <span class="product-status active">Active</span>
-            </td>
-            <td>
-              <div style="display: flex; gap: 8px;">
-                <button class="action-btn view" onclick="viewProduct(${product.id})">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button class="action-btn suspend" onclick="suspendProduct(${product.id})">
-                  <i class="fas fa-pause"></i>
-                </button>
-                <button class="action-btn delete" onclick="deleteProductAsAdmin(${product.id})">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      });
-      
-      tbody.innerHTML = html;
-      
-    } catch (error) {
-      console.error('Error loading products:', error);
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-gray);">
-            Error loading products
-          </td>
-        </tr>
-      `;
-    }
-  }
-  
-  function loadCharts() {
-    // Sales Chart
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-          label: 'Sales',
-          data: [12, 19, 3, 5, 2, 3],
-          borderColor: 'var(--accent)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.4,
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: {
-              color: 'var(--text-light)'
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              color: 'var(--border)'
-            },
-            ticks: {
-              color: 'var(--text-gray)'
-            }
-          },
-          y: {
-            grid: {
-              color: 'var(--border)'
-            },
-            ticks: {
-              color: 'var(--text-gray)'
-            }
-          }
-        }
-      }
-    });
-    
-    // Category Chart
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    new Chart(categoryCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Digital', 'Physical', 'Affiliate'],
-        datasets: [{
-          data: [40, 35, 25],
-          backgroundColor: [
-            'var(--digital)',
-            'var(--physical)',
-            'var(--affiliate)'
-          ]
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: 'var(--text-light)',
-              padding: 20
-            }
-          }
-        }
-      }
-    });
-  }
-  
-  // Helper functions
- 
-  function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-  
-  function filterSalesByPeriod(sales, period) {
-    const now = new Date();
-    const filtered = sales.filter(sale => {
-      const saleDate = new Date(sale.created_at);
-      
-      switch(period) {
-        case 'today':
-          return saleDate.toDateString() === now.toDateString();
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return saleDate >= weekAgo;
-        case 'month':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return saleDate >= monthAgo;
-        case 'year':
-          const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-          return saleDate >= yearAgo;
-        default:
-          return true;
-      }
-    });
-    
-    return filtered;
-  }
-  
-  function showLoadingState() {
-    // Add loading state to dashboard
-    const containers = ['myProductsList', 'salesList', 'usersTable tbody', 'allProductsTable tbody'];
-    containers.forEach(selector => {
-      const element = document.getElementById(selector) || document.querySelector(selector);
-      if (element) {
-        element.innerHTML = `
-          <div style="padding: 40px; text-align: center; color: var(--text-gray);">
-            <div class="skeleton" style="width: 100%; height: 20px; margin-bottom: 12px;"></div>
-            <div class="skeleton" style="width: 80%; height: 20px; margin: 0 auto;"></div>
-          </div>
-        `;
-      }
-    });
-  }
-  
-  function showToast(message, type = 'info') {
-    // Use your existing toast system
-    const toast = document.createElement('div');
-    toast.className = `toast ${type} show`;
-    toast.innerHTML = `
-      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'}"></i>
-      <div class="toast-content">
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close">&times;</button>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      toast.remove();
-    }, 5000);
-    
-    // Close button
-    toast.querySelector('.toast-close').addEventListener('click', () => {
-      toast.remove();
-    });
-  }
-  
-  // Event listeners for dashboard filters
-  document.getElementById('salesPeriod')?.addEventListener('change', () => loadSalesHistory());
-  document.getElementById('salesStatus')?.addEventListener('change', () => loadSalesHistory());
-  document.getElementById('searchMyProducts')?.addEventListener('input', debounce(loadMyProducts, 300));
-  document.getElementById('filterMyProducts')?.addEventListener('change', loadMyProducts);
-  
-  // Admin search functionality
-  document.getElementById('adminSearchBtn')?.addEventListener('click', performAdminSearch);
-  document.getElementById('adminGlobalSearch')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performAdminSearch();
-  });
-  
-  async function performAdminSearch() {
-    const searchTerm = document.getElementById('adminGlobalSearch').value;
-    const category = document.getElementById('adminSearchCategory').value;
-    
-    // Implement search logic based on category
-    showToast(`Searching ${category} for "${searchTerm}"`, 'info');
-    
-    // You would implement actual search API calls here
-  }
-  
-  // Utility function for debouncing
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-  
-  // Make functions available globally for button onclick handlers
-  window.viewProduct = function(productId) {
-    // Implement view product functionality
-    showToast(`Viewing product ${productId}`, 'info');
-  };
-  
-  window.editProduct = function(productId) {
-    // Implement edit product functionality
-    showToast(`Editing product ${productId}`, 'info');
-  };
-  
- window.deleteProduct = async function(productId) {
-  if (!confirm('Are you sure you want to delete this product?')) return;
-
-  try {
-    const response = await fetch(`/api/products/${productId}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Delete failed');
-    }
-
-    showToast(data.message || 'Product deleted successfully', 'success');
-    loadMyProducts();
-
-  } catch (err) {
-    console.error('Delete error:', err);
-    showToast(err.message, 'danger');
-  }
-};
-
-  
-  window.viewUser = function(userId) {
-    // Implement view user functionality
-    showToast(`Viewing user ${userId}`, 'info');
-  };
-  
-  window.toggleUserStatus = function(userId) {
-    // Implement toggle user status
-    showToast(`Toggled user ${userId} status`, 'warning');
-  };
-  
-  window.deleteUser = function(userId) {
-    if (confirm('Are you sure you want to delete this user?')) {
-      // Implement delete user API call
-      showToast('User deleted successfully', 'success');
-      loadUsersTable();
-    }
-  };
-  
-  window.suspendProduct = function(productId) {
-    if (confirm('Are you sure you want to suspend this product?')) {
-      // Implement suspend product API call
-      showToast('Product suspended successfully', 'warning');
-      loadAllProductsTable();
-    }
-  };
-  
-  window.deleteProductAsAdmin = function(productId) {
-    if (confirm('Are you sure you want to delete this product as admin?')) {
-      // Implement delete product as admin API call
-      showToast('Product deleted successfully', 'success');
-      loadAllProductsTable();
-    }
-  };
-  
-  // Export functionality
-  document.getElementById('exportData')?.addEventListener('click', function() {
-    // Implement export functionality
-    showToast('Exporting dashboard data...', 'info');
-    // You would generate CSV/Excel file here
-  });
-});
-
-function loadTabData(tabId) {
-  switch(tabId) {
-    case 'products':
-      loadMyProducts();
-      break;
-    case 'sales':
-      loadSalesHistory();
-      break;
-    case 'analytics':
-      loadCharts();
-      break;
-    case 'admin':
-      loadUsersTable();
-      loadAllProductsTable();
-      break;
-  }
-}
-
-async function loadMyProducts() {
-  const container = document.getElementById('myProductsList');
-  
-  try {
-    if (!currentUser) return;
-    
-    const response = await fetch(`/api/products/seller/${currentUser.id}`);
-    const products = await response.json();
-    
-    if (!products || products.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-box-open"></i>
-          <h4>No products yet</h4>
-          <p>Start by listing your first product</p>
-        </div>
-      `;
-      return;
-    }
-    
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Type</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    products.forEach(product => {
-      const status = getProductStatus(product);
-      const statusClass = `status-${status}`;
-      
-      html += `
-        <tr>
-          <td>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                ${product.images ? 
-                  `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                    <i class="fas fa-box"></i>
-                  </div>`
-                }
-              </div>
-              <div>
-                <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title}</strong>
-                <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
-              </div>
-            </div>
-          </td>
-          <td>
-            <span class="product-badge badge-${product.type}">${product.type}</span>
-          </td>
-          <td>
-            <strong style="color: var(--accent);">$${parseFloat(product.price).toFixed(2)}</strong>
-          </td>
-          <td>
-            <span class="product-status ${statusClass}">${status}</span>
-          </td>
-          <td>
-            <div style="display: flex; gap: 8px;">
-              <button class="action-btn view" onclick="viewProduct(${product.id})">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button class="action-btn edit" onclick="editProduct(${product.id})">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="action-btn delete" onclick="deleteProduct(${product.id})">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    });
-    
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading my products:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading products</h4>
-        <p>Please try again later</p>
-      </div>
-    `;
-  }
-}
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    // ================= MOBILE NAVIGATION =================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create mobile navigation elements
+      const headerActions = document.querySelector('.header-actions');
+      const mobileNavToggle = document.createElement('button');
+      mobileNavToggle.className = 'mobile-nav-toggle';
+      mobileNavToggle.innerHTML = '<span></span><span></span><span></span>';
+      mobileNavToggle.setAttribute('aria-label', 'Toggle navigation menu');
+
+      const mobileNav = document.createElement('nav');
+      mobileNav.className = 'mobile-nav';
+      mobileNav.innerHTML = `
+        <a href="index.html">Home</a>
+        <a href="knowledge-hub.html">Knowledge Hub</a>
+        <a href="services.html">Services</a>
+        <a href="courses.html">Courses</a>
+        <a href="products.html" class="active">Products</a>
+      `;
+
+      // Insert elements
+      document.body.appendChild(mobileNav);
+      if (headerActions) {
+        headerActions.insertBefore(mobileNavToggle, headerActions.firstChild);
+      }
+
+      // Toggle mobile navigation
+      mobileNavToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        mobileNav.classList.toggle('active');
+        document.body.classList.toggle('mobile-nav-open');
+      });
+
+      // Close mobile nav when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!mobileNav.contains(event.target) && !mobileNavToggle.contains(event.target) && mobileNav.classList.contains('active')) {
+          mobileNavToggle.classList.remove('active');
+          mobileNav.classList.remove('active');
+          document.body.classList.remove('mobile-nav-open');
+        }
+      });
+
+      // Close mobile nav when clicking a link
+      mobileNav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileNavToggle.classList.remove('active');
+          mobileNav.classList.remove('active');
+          document.body.classList.remove('mobile-nav-open');
+        });
+      });
+
+      // Update navigation based on screen size
+      function updateNavigation() {
+        const desktopNav = document.querySelector('nav:not(.mobile-nav)');
+        if (window.innerWidth <= 768) {
+          // Show mobile toggle, hide desktop nav
+          if (mobileNavToggle) mobileNavToggle.style.display = 'flex';
+          if (desktopNav) desktopNav.style.display = 'none';
+        } else {
+          // Show desktop nav, hide mobile toggle and nav
+          if (mobileNavToggle) mobileNavToggle.style.display = 'none';
+          if (desktopNav) desktopNav.style.display = 'flex';
+          mobileNavToggle.classList.remove('active');
+          mobileNav.classList.remove('active');
+          document.body.classList.remove('mobile-nav-open');
+        }
+      }
+
+      // Initial update
+      updateNavigation();
+
+      // Update on resize
+      let resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateNavigation, 250);
+      });
+    });
+
     // ================= TOAST NOTIFICATION SYSTEM =================
     function showToast(title, message, type = 'info') {
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.innerHTML = `
         <i class="fas fa-${type === 'success' ? 'check-circle' : 
-                       type === 'warning' ? 'exclamation-triangle' : 
-                       type === 'danger' ? 'times-circle' : 'info-circle'}"></i>
+                         type === 'warning' ? 'exclamation-triangle' : 
+                         type === 'danger' ? 'times-circle' : 'info-circle'}"></i>
         <div class="toast-content">
           <div class="toast-title">${title}</div>
           <div class="toast-message">${message}</div>
@@ -4272,7 +3708,7 @@ async function loadMyProducts() {
     // ================= PRODUCT ORDER SYSTEM =================
     async function orderPhysicalProduct(productId) {
       if (!currentUser) {
-        openModal($('loginModal'));
+        openModal(document.getElementById('loginModal'));
         return;
       }
       
@@ -4441,7 +3877,6 @@ async function loadMyProducts() {
     }
 
     // ================= PRODUCT DELETE FUNCTIONALITY =================
-    // This function now properly handles owner-specific delete buttons
     function initializeProductOwnership() {
       const productCards = document.querySelectorAll('.product-card');
       
@@ -4619,6 +4054,7 @@ async function loadMyProducts() {
       $('sellerView').setAttribute('aria-hidden', !(sellerMode && currentUser));
       $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
     }
+
     // Add this function to your products.html <script> section
 
     // ================= REVIEWS FUNCTIONS =================
@@ -5230,50 +4666,51 @@ async function loadMyProducts() {
     window.buyProduct = buyProduct;
 
     // ---------- Delete (admin or owner) ----------
-async function deleteProduct(id) {
-  console.log("🗑️ deleteProduct called for ID:", id);
-  
-  // Always check the server for current user
-  try {
-    const userCheck = await fetch('/api/me', { credentials: 'include' });
-    const user = await userCheck.json();
-    
-    if (!user || !user.id) {
-      console.log("❌ User not logged in");
-      openModal($('loginModal'));
-      return;
-    }
-    
-    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
-      return;
-    }
-    
-    const res = await fetch(`/api/products/${id}`, { 
-      method: 'DELETE',
-      credentials: 'include'
-    });
-    
-    if (res.ok) { 
-      const data = await res.json();
-      showToast('Success', data.message || 'Product deleted successfully', 'success');
+    async function deleteProduct(id) {
+      console.log("🗑️ deleteProduct called for ID:", id);
       
-      // Update currentUser
-      currentUser = user;
-      window.currentUser = user;
-      
-      // Reload
-      if (typeof loadProducts === 'function') loadProducts();
-      if (typeof loadMyProducts === 'function') loadMyProducts();
-      
-    } else {
-      const data = await res.json();
-      showToast('Error', data.error || 'Failed to delete product', 'danger');
+      // Always check the server for current user
+      try {
+        const userCheck = await fetch('/api/me', { credentials: 'include' });
+        const user = await userCheck.json();
+        
+        if (!user || !user.id) {
+          console.log("❌ User not logged in");
+          openModal($('loginModal'));
+          return;
+        }
+        
+        if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+          return;
+        }
+        
+        const res = await fetch(`/api/products/${id}`, { 
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (res.ok) { 
+          const data = await res.json();
+          showToast('Success', data.message || 'Product deleted successfully', 'success');
+          
+          // Update currentUser
+          currentUser = user;
+          window.currentUser = user;
+          
+          // Reload
+          if (typeof loadProducts === 'function') loadProducts();
+          if (typeof loadMyProducts === 'function') loadMyProducts();
+          
+        } else {
+          const data = await res.json();
+          showToast('Error', data.error || 'Failed to delete product', 'danger');
+        }
+      } catch(err) {
+        console.error('deleteProduct error:', err);
+        showToast('Error', 'Error deleting product: ' + err.message, 'danger');
+      }
     }
-  } catch(err) {
-    console.error('deleteProduct error:', err);
-    showToast('Error', 'Error deleting product: ' + err.message, 'danger');
-  }
-}
+
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);
@@ -5508,6 +4945,792 @@ async function deleteProduct(id) {
       currentCurrency = e.target.value;
       localStorage.setItem('ci_currency', currentCurrency);
       renderProducts();
+    });
+
+    // ================= DASHBOARD FUNCTIONALITY =================
+    // Dashboard toggle button
+    const dashboardBtn = document.createElement('button');
+    dashboardBtn.className = 'become-seller';
+    dashboardBtn.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
+    dashboardBtn.style.marginLeft = '8px';
+    dashboardBtn.id = 'toggleDashboardBtn';
+    
+    // Add dashboard button to header
+    const viewToggle = document.querySelector('.view-toggle');
+    if (viewToggle) {
+      viewToggle.appendChild(dashboardBtn);
+    }
+    
+    // Dashboard elements
+    const dashboardSection = document.getElementById('dashboardSection');
+    const buyerView = document.getElementById('buyerView');
+    const sellerView = document.getElementById('sellerView');
+    const toggleDashboardBtn = document.getElementById('toggleDashboardBtn');
+    const toggleDashboard = document.getElementById('toggleDashboard');
+    const becomeSellerBtn = document.getElementById('becomeSeller');
+    
+    // Tab elements
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Initialize dashboard
+    let isDashboardVisible = false;
+    let dashboardData = null;
+    
+    // Dashboard toggle functionality
+    if (toggleDashboardBtn) {
+      toggleDashboardBtn.addEventListener('click', function() {
+        toggleDashboardView();
+      });
+    }
+    
+    if (toggleDashboard) {
+      toggleDashboard.addEventListener('click', function() {
+        toggleDashboardView();
+      });
+    }
+    
+    // Tab switching
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        
+        // Update active tab button
+        tabBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Show selected tab content
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+          if (content.id === tabId + 'Tab' || content.id === tabId + 'TabContent') {
+            content.classList.add('active');
+          }
+        });
+        
+        // Load data for the selected tab
+        loadTabData(tabId);
+      });
+    });
+    
+    // Functions
+    function toggleDashboardView() {
+      isDashboardVisible = !isDashboardVisible;
+      
+      if (isDashboardVisible) {
+        // Show dashboard, hide other views
+        dashboardSection.style.display = 'block';
+        buyerView.style.display = 'none';
+        sellerView.style.display = 'none';
+        
+        // Update button text
+        if (toggleDashboardBtn) toggleDashboardBtn.innerHTML = '<i class="fas fa-store"></i> Products';
+        if (toggleDashboard) {
+          toggleDashboard.innerHTML = '<i class="fas fa-store"></i> Back to Products';
+        }
+        
+        // Load dashboard data
+        loadDashboardData();
+      } else {
+        // Hide dashboard, show products view
+        dashboardSection.style.display = 'none';
+        buyerView.style.display = 'block';
+        
+        // Update button text
+        if (toggleDashboardBtn) toggleDashboardBtn.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
+        if (toggleDashboard) {
+          toggleDashboard.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard';
+        }
+      }
+    }
+    
+    async function loadDashboardData() {
+      if (!currentUser) {
+        showToast('Please login to view dashboard', 'warning');
+        toggleDashboardView();
+        return;
+      }
+      
+      try {
+        // Show loading state
+        showLoadingState();
+        
+        // Load dashboard statistics
+        await loadDashboardStats();
+        
+        // Load initial tab data
+        loadTabData('products');
+        
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        showToast('Failed to load dashboard data', 'danger');
+      }
+    }
+
+    async function loadDashboardStats() {
+      try {
+        let stats;
+        
+        if (currentUser && currentUser.role === 'admin') {
+          // Admin gets platform-wide stats
+          const [platformRes, summaryRes] = await Promise.all([
+            fetch('/api/admin/platform/stats'),
+            fetch('/api/admin/dashboard/summary')
+          ]);
+          
+          const platformData = platformRes.ok ? await platformRes.json() : {};
+          const summaryData = summaryRes.ok ? await summaryRes.json() : {};
+          
+          stats = {
+            totalProducts: platformData.stats?.total_products || 0,
+            totalSales: platformData.stats?.total_sales || 0,
+            totalRevenue: `$${(platformData.stats?.total_revenue || 0).toFixed(2)}`,
+            avgRating: '4.5'
+          };
+          
+          // Update platform stats for admin
+          document.getElementById('platformTotalUsers').textContent = platformData.stats?.total_users || 0;
+          document.getElementById('platformTotalProducts').textContent = stats.totalProducts;
+          document.getElementById('platformTotalSales').textContent = stats.totalSales;
+          document.getElementById('platformRevenue').textContent = `$${(platformData.stats?.platform_revenue || 0).toFixed(2)}`;
+          
+        } else {
+          // Regular user gets their own stats
+          const statsRes = await fetch(`/api/seller/stats/${currentUser.id}`);
+          const statsData = statsRes.ok ? await statsRes.json() : {};
+          
+          stats = {
+            totalProducts: statsData.stats?.product_count || 0,
+            totalSales: statsData.stats?.sales_count || 0,
+            totalRevenue: `$${(statsData.stats?.total_revenue || 0).toFixed(2)}`,
+            avgRating: statsData.stats?.avg_rating?.toFixed(1) || '0.0'
+          };
+          
+          // Update summary cards
+          const totalRevenue = statsData.stats?.total_revenue || 0;
+          const userEarnings = totalRevenue * 0.9; // 90% for seller
+          const platformFee = totalRevenue * 0.1; // 10% platform fee
+          
+          document.getElementById('totalSalesValue').textContent = `$${totalRevenue.toFixed(2)}`;
+          document.getElementById('yourEarnings').textContent = `$${userEarnings.toFixed(2)}`;
+          document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)}`;
+        }
+        
+        // Update stats cards
+        document.getElementById('totalProducts').textContent = stats.totalProducts;
+        document.getElementById('totalSales').textContent = stats.totalSales;
+        document.getElementById('totalRevenue').textContent = stats.totalRevenue;
+        document.getElementById('avgRating').textContent = stats.avgRating;
+        
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    async function loadSalesHistory() {
+      const container = document.getElementById('salesList');
+      const period = document.getElementById('salesPeriod').value;
+      
+      try {
+        let sales = [];
+        
+        if (currentUser && currentUser.role === 'admin') {
+          // Admin gets all sales
+          const response = await fetch('/api/admin/analytics/sales');
+          const data = await response.json();
+          sales = data.sales_trend || [];
+        } else {
+          // User gets their sales
+          const response = await fetch(`/api/orders/seller/${currentUser.id}`);
+          sales = await response.json();
+        }
+        
+        if (!sales || sales.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-shopping-cart"></i>
+              <h4>No sales yet</h4>
+              <p>Your sales will appear here</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Create table
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Date</th>
+                ${currentUser && currentUser.role === 'admin' ? '<th>Buyer</th><th>Seller</th>' : '<th>Buyer</th>'}
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        sales.forEach(sale => {
+          html += `
+            <tr>
+              <td>
+                <strong style="color: var(--accent);">${sale.order_code || 'N/A'}</strong>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--secondary-dark);"></div>
+                  <span style="color: var(--text-light); font-size: 13px;">${sale.product_name || sale.product_title || 'Product'}</span>
+                </div>
+              </td>
+              <td>
+                <strong style="color: var(--success);">$${parseFloat(sale.price || sale.total_amount || 0).toFixed(2)}</strong>
+              </td>
+              <td>
+                <span style="color: var(--text-gray); font-size: 12px;">${formatDate(sale.created_at)}</span>
+              </td>
+              ${currentUser && currentUser.role === 'admin' ? `
+                <td>
+                  <span style="color: var(--text-light);">${sale.buyer_name || 'Buyer'}</span>
+                </td>
+                <td>
+                  <span style="color: var(--text-light);">${sale.seller_name || 'Seller'}</span>
+                </td>
+              ` : `
+                <td>
+                  <span style="color: var(--text-light);">${sale.buyer_name || 'Customer'}</span>
+                </td>
+              `}
+            </tr>
+          `;
+        });
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        
+      } catch (error) {
+        console.error('Error loading sales:', error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Error loading sales</h4>
+            <p>Please try again later</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadUsersTable() {
+      const tbody = document.querySelector('#usersTable tbody');
+      
+      try {
+        const response = await fetch('/api/admin/users');
+        const users = await response.json();
+        
+        if (!users || users.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-gray);">
+                No users found
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        let html = '';
+        users.forEach(user => {
+          html += `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="user-avatar-small">${user.username[0]}</div>
+                  <div>
+                    <div style="color: var(--text-light); font-weight: 500;">${user.username}</div>
+                    <small style="color: var(--text-gray);">${user.email}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="product-status ${user.role}">${user.role}</span>
+              </td>
+              <td>
+                <span style="color: var(--text-light);">${user.product_count || 0}</span>
+              </td>
+              <td>
+                <span style="color: var(--success);">${user.sales_count || 0}</span>
+              </td>
+              <td>
+                <span class="product-status ${user.verified ? 'active' : 'pending'}">
+                  ${user.verified ? 'Verified' : 'Pending'}
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 8px;">
+                  <button class="action-btn view" onclick="viewUser(${user.id})">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn suspend" onclick="toggleUserStatus(${user.id}, ${user.active ? 'false' : 'true'})">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                  <button class="action-btn delete" onclick="deleteUser(${user.id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        
+        tbody.innerHTML = html;
+        
+      } catch (error) {
+        console.error('Error loading users:', error);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-gray);">
+              Error loading users
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    async function loadAllProductsTable() {
+      const tbody = document.querySelector('#allProductsTable tbody');
+      
+      try {
+        const response = await fetch('/api/products');
+        const products = await response.json();
+        
+        let html = '';
+        products.forEach(product => {
+          // Get seller info (you might need to fetch this separately)
+          const sellerName = product.user_id === currentUser.id ? 'You' : `Seller ${product.user_id}`;
+          
+          html += `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+                    ${product.images ? 
+                      `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                      `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                        <i class="fas fa-box"></i>
+                      </div>`
+                    }
+                  </div>
+                  <div>
+                    <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title}</strong>
+                    <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span style="color: var(--text-light);">${sellerName}</span>
+              </td>
+              <td>
+                <span class="product-badge badge-${product.type}">${product.type}</span>
+              </td>
+              <td>
+                <strong style="color: var(--accent);">$${parseFloat(product.price).toFixed(2)}</strong>
+              </td>
+              <td>
+                <span style="color: var(--success);">${product.sales_count || 0}</span>
+              </td>
+              <td>
+                <span class="product-status active">Active</span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 8px;">
+                  <button class="action-btn view" onclick="viewProduct(${product.id})">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn suspend" onclick="suspendProduct(${product.id})">
+                    <i class="fas fa-pause"></i>
+                  </button>
+                  <button class="action-btn delete" onclick="deleteProductAsAdmin(${product.id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        
+        tbody.innerHTML = html;
+        
+      } catch (error) {
+        console.error('Error loading products:', error);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-gray);">
+              Error loading products
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function loadCharts() {
+      // Sales Chart
+      const salesCtx = document.getElementById('salesChart');
+      if (salesCtx) {
+        new Chart(salesCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              label: 'Sales',
+              data: [12, 19, 3, 5, 2, 3],
+              borderColor: 'var(--accent)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: 'var(--text-light)'
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  color: 'var(--border)'
+                },
+                ticks: {
+                  color: 'var(--text-gray)'
+                }
+              },
+              y: {
+                grid: {
+                  color: 'var(--border)'
+                },
+                ticks: {
+                  color: 'var(--text-gray)'
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // Category Chart
+      const categoryCtx = document.getElementById('categoryChart');
+      if (categoryCtx) {
+        new Chart(categoryCtx.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Digital', 'Physical', 'Affiliate'],
+            datasets: [{
+              data: [40, 35, 25],
+              backgroundColor: [
+                'var(--digital)',
+                'var(--physical)',
+                'var(--affiliate)'
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: 'var(--text-light)',
+                  padding: 20
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Helper functions
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    function showLoadingState() {
+      // Add loading state to dashboard
+      const containers = ['myProductsList', 'salesList', 'usersTable tbody', 'allProductsTable tbody'];
+      containers.forEach(selector => {
+        const element = document.getElementById(selector) || document.querySelector(selector);
+        if (element) {
+          element.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-gray);">
+              <div class="skeleton" style="width: 100%; height: 20px; margin-bottom: 12px;"></div>
+              <div class="skeleton" style="width: 80%; height: 20px; margin: 0 auto;"></div>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Event listeners for dashboard filters
+    document.getElementById('salesPeriod')?.addEventListener('change', () => loadSalesHistory());
+    document.getElementById('salesStatus')?.addEventListener('change', () => loadSalesHistory());
+    document.getElementById('searchMyProducts')?.addEventListener('input', debounce(loadMyProducts, 300));
+    document.getElementById('filterMyProducts')?.addEventListener('change', loadMyProducts);
+    
+    // Admin search functionality
+    document.getElementById('adminSearchBtn')?.addEventListener('click', performAdminSearch);
+    document.getElementById('adminGlobalSearch')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') performAdminSearch();
+    });
+    
+    async function performAdminSearch() {
+      const searchTerm = document.getElementById('adminGlobalSearch').value;
+      const category = document.getElementById('adminSearchCategory').value;
+      
+      // Implement search logic based on category
+      showToast(`Searching ${category} for "${searchTerm}"`, 'info');
+      
+      // You would implement actual search API calls here
+    }
+    
+    // Utility function for debouncing
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    function loadTabData(tabId) {
+      switch(tabId) {
+        case 'products':
+          loadMyProducts();
+          break;
+        case 'sales':
+          loadSalesHistory();
+          break;
+        case 'analytics':
+          loadCharts();
+          break;
+        case 'admin':
+          loadUsersTable();
+          loadAllProductsTable();
+          break;
+      }
+    }
+
+    // Function 1: Get product status
+    function getProductStatus(product) {
+      if (product.is_deleted || product.deleted_at) {
+        return "deleted";
+      }
+      if (product.is_active === 0) {
+        return "inactive";
+      }
+      if (product.is_published === 0) {
+        return "draft";
+      }
+      if (product.quantity !== undefined && product.quantity <= 0) {
+        return "out_of_stock";
+      }
+      return "active";
+    }
+
+    // Function 2: Format status for display
+    function formatStatusDisplay(status) {
+      const statusMap = {
+        'active': '✅ Active',
+        'inactive': '⏸️ Inactive',
+        'draft': '📝 Draft',
+        'deleted': '❌ Deleted',
+        'out_of_stock': '📦 Out of Stock'
+      };
+      return statusMap[status] || status;
+    }
+
+    // Function 3: Get status class for CSS
+    function getStatusClass(status) {
+      return `status-${status}`;
+    }
+
+    async function loadMyProducts() {
+      const container = document.getElementById('myProductsList');
+      console.log('🔄 loadMyProducts started, container:', container);
+      
+      try {
+        if (!currentUser) {
+          console.error('❌ currentUser is undefined!');
+          return;
+        }
+        
+        console.log('👤 Current user ID:', currentUser.id);
+        
+        // FIX: Add credentials: 'include' here too!
+        const response = await fetch(`/api/products/seller/${currentUser.id}`, {
+          credentials: 'include' // ← ADD THIS LINE
+        });
+        
+        console.log('📡 API Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const products = await response.json();
+        console.log('📦 Products received:', products);
+        
+        if (!products || products.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-box-open"></i>
+              <h4>No products yet</h4>
+              <p>Start by listing your first product</p>
+            </div>
+          `;
+          return;
+        }
+        
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        products.forEach(product => {
+          console.log('📋 Processing product:', product.id, product.title);
+          
+          // You need to add the status logic here too:
+          const status = getProductStatus(product); // Make sure this function exists!
+          const statusClass = `status-${status}`;
+          const statusDisplay = formatStatusDisplay(status); // Add this helper function
+          
+          html += `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+                    ${product.images ? 
+                      `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                      `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                        <i class="fas fa-box"></i>
+                      </div>`
+                    }
+                  </div>
+                  <div>
+                    <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title || 'Untitled'}</strong>
+                    <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
+              </td>
+              <td>
+                <strong style="color: var(--accent);">$${parseFloat(product.price || 0).toFixed(2)}</strong>
+              </td>
+              <td>
+                <span class="product-status ${statusClass}">${statusDisplay}</span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 8px;">
+                  <button class="action-btn view" onclick="viewProduct(${product.id})">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn edit" onclick="editProduct(${product.id})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn delete" onclick="deleteProduct(${product.id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        console.log('✅ Products loaded successfully');
+        
+      } catch (error) {
+        console.error('❌ Error loading my products:', error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Error loading products</h4>
+            <p>${error.message}</p>
+            <button onclick="loadMyProducts()" class="btn btn-retry">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    // Make functions available globally for button onclick handlers
+    window.viewProduct = function(productId) {
+      // Implement view product functionality
+      showToast(`Viewing product ${productId}`, 'info');
+    };
+    
+    window.viewUser = function(userId) {
+      // Implement view user functionality
+      showToast(`Viewing user ${userId}`, 'info');
+    };
+    
+    window.toggleUserStatus = function(userId) {
+      // Implement toggle user status
+      showToast(`Toggled user ${userId} status`, 'warning');
+    };
+    
+    window.deleteUser = function(userId) {
+      if (confirm('Are you sure you want to delete this user?')) {
+        // Implement delete user API call
+        showToast('User deleted successfully', 'success');
+        loadUsersTable();
+      }
+    };
+    
+    window.suspendProduct = function(productId) {
+      if (confirm('Are you sure you want to suspend this product?')) {
+        // Implement suspend product API call
+        showToast('Product suspended successfully', 'warning');
+        loadAllProductsTable();
+      }
+    };
+    
+    window.deleteProductAsAdmin = function(productId) {
+      if (confirm('Are you sure you want to delete this product as admin?')) {
+        // Implement delete product as admin API call
+        showToast('Product deleted successfully', 'success');
+        loadAllProductsTable();
+      }
+    };
+    
+    // Export functionality
+    document.getElementById('exportData')?.addEventListener('click', function() {
+      // Implement export functionality
+      showToast('Exporting dashboard data...', 'info');
+      // You would generate CSV/Excel file here
     });
 
     // ---------- Initial load ----------

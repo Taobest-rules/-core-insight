@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0"/>
   <title>Courses | Core Insight</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://checkout.flutterwave.com/v3.js"></script>
@@ -19,6 +19,7 @@
       --card-bg: #112240;
       --card-hover: #1d3658;
       --header-height: 80px;
+      --mobile-header-height: 70px;
       --border-radius: 16px;
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       --shadow: 0 10px 30px -15px rgba(2, 12, 27, 0.7);
@@ -38,12 +39,15 @@
       color: var(--text-light);
       line-height: 1.6;
       overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     
-    /* Header Styles */
+    /* Improved Header for Mobile */
     header { 
-      background-color: rgba(10, 25, 47, 0.95); 
-      padding: 0 2.5rem; 
+      background-color: rgba(10, 25, 47, 0.98); 
+      padding: 0 1.5rem; 
       height: var(--header-height); 
       display: flex; 
       justify-content: space-between; 
@@ -57,38 +61,54 @@
       border-bottom: 1px solid rgba(100, 255, 218, 0.1);
     }
     
+    /* Mobile Navigation Toggle */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--accent-primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      z-index: 1001;
+    }
+    
     .logo { 
       display: flex; 
       align-items: center; 
-      gap: 1rem;
+      gap: 0.75rem;
       text-decoration: none;
+      z-index: 1001;
     }
     
     .logo-icon { 
-      width: 48px; 
-      height: 48px; 
+      width: 40px; 
+      height: 40px; 
       background: var(--gradient-primary); 
-      border-radius: 12px; 
+      border-radius: 10px; 
       display: flex; 
       justify-content: center; 
       align-items: center; 
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       color: var(--primary-dark);
+      flex-shrink: 0;
     }
     
     .logo-text { 
-      font-size: 1.8rem; 
+      font-size: 1.5rem; 
       font-weight: 700; 
       background: var(--gradient-primary); 
       -webkit-background-clip: text; 
       background-clip: text; 
       color: transparent;
       letter-spacing: -0.5px;
+      white-space: nowrap;
     }
     
     nav { 
       display: flex; 
-      gap: 2.5rem; 
+      gap: 2rem; 
+      align-items: center;
     }
     
     nav a { 
@@ -100,6 +120,7 @@
       font-size: 0.95rem;
       transition: var(--transition);
       letter-spacing: 0.3px;
+      white-space: nowrap;
     }
     
     nav a.active, nav a:hover { 
@@ -123,31 +144,37 @@
     
     .auth-buttons { 
       display: flex; 
-      gap: 1rem;
+      gap: 0.75rem;
+      align-items: center;
     }
     
-    /* Button Styles */
+    /* Button Styles - Mobile Optimized */
     .btn { 
-      padding: .75rem 1.75rem; 
+      padding: 0.75rem 1.5rem; 
       border-radius: 30px; 
       font-weight: 600; 
       cursor: pointer; 
       transition: var(--transition); 
       border: none; 
       text-decoration: none;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
       font-size: 0.9rem;
       letter-spacing: 0.5px;
+      min-height: 44px; /* Minimum touch target size */
+      touch-action: manipulation;
     }
     
     .btn-login { 
       background: transparent; 
       color: var(--accent-primary); 
       border: 1px solid var(--accent-primary);
+      white-space: nowrap;
     }
     
-    .btn-login:hover { 
+    .btn-login:hover, .btn-login:active { 
       background: rgba(100, 255, 218, 0.1);
       transform: translateY(-2px);
     }
@@ -156,9 +183,10 @@
       background: var(--gradient-primary); 
       color: var(--primary-dark);
       font-weight: 700;
+      white-space: nowrap;
     }
     
-    .btn-signup:hover { 
+    .btn-signup:hover, .btn-signup:active { 
       transform: translateY(-2px); 
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -166,17 +194,20 @@
     .btn-primary {
       background: var(--gradient-primary);
       color: var(--primary-dark);
-      padding: 0.85rem 2rem;
+      padding: 0.85rem 1.5rem;
       border-radius: 30px;
       text-decoration: none;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: var(--transition);
       font-weight: 700;
       width: 100%;
-      text-align: center;
+      min-height: 50px;
+      margin-top: auto;
     }
     
-    .btn-primary:hover {
+    .btn-primary:hover, .btn-primary:active {
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -185,18 +216,20 @@
       background: transparent;
       color: var(--accent-primary);
       border: 1px solid var(--accent-primary);
-      padding: 0.85rem 2rem;
+      padding: 0.85rem 1.5rem;
       border-radius: 30px;
       text-decoration: none;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: var(--transition);
       font-weight: 600;
       width: 100%;
-      text-align: center;
+      min-height: 50px;
       margin-top: 0.75rem;
     }
     
-    .btn-secondary:hover {
+    .btn-secondary:hover, .btn-secondary:active {
       background: rgba(100, 255, 218, 0.1);
       transform: translateY(-2px);
     }
@@ -204,12 +237,13 @@
     .container { 
       max-width: 1280px; 
       margin: 0 auto; 
-      padding: 0 2.5rem; 
+      padding: 0 1.5rem; 
+      width: 100%;
     }
     
-    /* Hero Section */
+    /* Hero Section - Mobile Optimized */
     .hero { 
-      min-height: 65vh; 
+      min-height: 60vh; 
       display: flex; 
       align-items: center; 
       justify-content: center; 
@@ -218,15 +252,16 @@
       background: linear-gradient(rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.98)), 
                   radial-gradient(circle at 20% 50%, rgba(100, 255, 218, 0.15) 0%, transparent 50%),
                   radial-gradient(circle at 80% 20%, rgba(0, 180, 216, 0.1) 0%, transparent 50%);
-      padding: 4rem 2rem;
+      padding: 2rem 1rem 4rem;
     }
     
     .hero-content {
       max-width: 800px;
+      width: 100%;
     }
     
     .hero h1 { 
-      font-size: 3.5rem; 
+      font-size: 2.5rem; 
       margin-bottom: 1.5rem; 
       background: var(--gradient-primary); 
       -webkit-background-clip: text; 
@@ -234,27 +269,30 @@
       color: transparent;
       line-height: 1.2;
       letter-spacing: -0.5px;
+      padding: 0 1rem;
     }
     
     .hero p { 
-      font-size: 1.25rem; 
+      font-size: 1.1rem; 
       color: var(--text-gray);
       margin-bottom: 2.5rem;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
       line-height: 1.7;
+      padding: 0 1rem;
     }
     
-    /* Search Section */
+    /* Search Section - Mobile Optimized */
     .search-section { 
       background: var(--secondary-dark); 
-      padding: 2.5rem 0; 
+      padding: 1.5rem; 
       border-radius: var(--border-radius);
-      margin: -3rem auto 3rem;
-      max-width: 1200px;
+      margin: -2rem auto 3rem;
+      max-width: 100%;
       box-shadow: var(--shadow);
       border: 1px solid rgba(100, 255, 218, 0.1);
+      width: calc(100% - 3rem);
     }
     
     .search-container {
@@ -263,15 +301,13 @@
       justify-content: center;
       align-items: center;
       flex-wrap: wrap;
-      max-width: 800px;
-      margin: 0 auto;
+      width: 100%;
     }
     
     .search-box {
       position: relative;
       flex: 1;
-      min-width: 300px;
-      max-width: 500px;
+      min-width: 100%;
     }
     
     .search-box input { 
@@ -283,6 +319,7 @@
       width: 100%;
       font-size: 1rem;
       transition: var(--transition);
+      min-height: 50px;
     }
     
     .search-box input:focus {
@@ -303,24 +340,29 @@
       display: flex;
       gap: 1rem;
       align-items: center;
+      width: 100%;
     }
     
     .search-actions button { 
       background: var(--gradient-primary); 
       color: var(--primary-dark); 
-      padding: 1rem 2rem; 
+      padding: 1rem 1.5rem; 
       border-radius: 30px; 
       border: none; 
       cursor: pointer; 
       display: flex; 
       align-items: center; 
+      justify-content: center;
       gap: .75rem;
       transition: var(--transition);
       font-weight: 600;
       font-size: 0.95rem;
+      flex: 1;
+      min-height: 50px;
+      touch-action: manipulation;
     }
     
-    .search-actions button:hover {
+    .search-actions button:hover, .search-actions button:active {
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -334,7 +376,9 @@
       cursor: pointer;
       transition: var(--transition);
       font-weight: 500;
-      min-width: 160px;
+      width: 100%;
+      min-height: 50px;
+      font-size: 0.95rem;
     }
     
     #currencySelect:focus {
@@ -349,22 +393,23 @@
     
     /* Course Section */
     .course-section {
-      padding: 4rem 0 6rem;
+      padding: 3rem 0 5rem;
     }
     
     .section-header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 3rem;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
     }
     
     .section-header h2 {
-      font-size: 2.5rem;
+      font-size: 2rem;
       display: flex;
       align-items: center;
       gap: 1rem;
       color: var(--text-light);
+      flex-wrap: wrap;
     }
     
     .section-header h2 i {
@@ -372,25 +417,28 @@
       background: rgba(100, 255, 218, 0.1);
       padding: 0.75rem;
       border-radius: 12px;
+      flex-shrink: 0;
     }
     
     .course-count {
       background: var(--gradient-primary);
       color: var(--primary-dark);
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1.25rem;
       border-radius: 20px;
       font-weight: 700;
       font-size: 0.9rem;
+      align-self: flex-start;
     }
     
-    /* Course Grid */
+    /* Improved Course Grid */
     .grid { 
       display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
-      gap: 2rem; 
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); 
+      gap: 1.5rem; 
+      width: 100%;
     }
     
-    /* Course Cards */
+    /* Course Cards - Mobile Optimized */
     .card { 
       background: var(--card-bg); 
       border-radius: var(--border-radius); 
@@ -403,15 +451,15 @@
       flex-direction: column;
     }
     
-    .card:hover {
-      transform: translateY(-10px);
+    .card:hover, .card:focus-within {
+      transform: translateY(-8px);
       border-color: rgba(100, 255, 218, 0.3);
       box-shadow: 0 20px 40px -15px rgba(2, 12, 27, 0.8);
     }
     
     .card-header {
       position: relative;
-      height: 200px;
+      height: 180px;
       overflow: hidden;
     }
     
@@ -422,7 +470,7 @@
       transition: transform 0.5s ease;
     }
     
-    .card:hover .card-header img {
+    .card:hover .card-header img, .card:focus-within .card-header img {
       transform: scale(1.05);
     }
     
@@ -436,43 +484,52 @@
       border-radius: 20px;
       font-weight: 700;
       font-size: 0.8rem;
+      z-index: 2;
     }
     
     .card-content { 
-      padding: 1.75rem; 
+      padding: 1.5rem; 
       flex-grow: 1;
       display: flex;
       flex-direction: column;
+      gap: 1rem;
     }
     
     .card-content h3 { 
-      margin-bottom: 1rem;
+      margin: 0;
       color: var(--text-light);
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       line-height: 1.4;
+      min-height: 3.5em;
     }
     
     .card-content p {
       color: var(--text-gray);
-      margin-bottom: 1.5rem;
+      margin: 0;
       flex-grow: 1;
       font-size: 0.95rem;
       line-height: 1.7;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     
     .card-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
       padding-top: 1rem;
       border-top: 1px solid rgba(100, 255, 218, 0.1);
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
     
     .price { 
       font-weight: 800; 
       color: var(--accent-primary); 
-      font-size: 1.5rem;
+      font-size: 1.3rem;
+      line-height: 1;
     }
     
     .author {
@@ -481,45 +538,55 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      white-space: nowrap;
     }
     
     .author i {
       color: var(--accent-primary);
     }
     
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    
     /* Footer */
     footer { 
       background: var(--secondary-dark); 
-      padding: 3rem 0; 
+      padding: 2.5rem 1.5rem; 
       text-align: center; 
       border-top: 1px solid rgba(100, 255, 218, 0.1);
-      margin-top: 4rem;
     }
     
     footer p {
       color: var(--text-gray);
       font-size: 0.95rem;
+      line-height: 1.7;
     }
     
-    /* Upload Section */
+    /* Upload Section - Mobile Optimized */
     #uploadSection { 
       display: none; 
       background: var(--card-bg); 
-      padding: 3rem; 
+      padding: 2rem 1.5rem; 
       border-radius: var(--border-radius); 
-      margin: 3rem auto; 
+      margin: 2rem auto; 
       max-width: 800px;
+      width: 100%;
       border: 1px solid rgba(100, 255, 218, 0.1);
       box-shadow: var(--shadow);
     }
     
     #uploadSection h2 {
-      font-size: 2rem;
-      margin-bottom: 2rem;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
       gap: 1rem;
       color: var(--text-light);
+      flex-wrap: wrap;
     }
     
     #uploadSection h2 i {
@@ -527,12 +594,13 @@
       background: rgba(100, 255, 218, 0.1);
       padding: 0.75rem;
       border-radius: 12px;
+      flex-shrink: 0;
     }
     
     #uploadForm { 
       display: flex; 
       flex-direction: column; 
-      gap: 1.5rem;
+      gap: 1.25rem;
     }
     
     .form-group {
@@ -555,6 +623,8 @@
       color: var(--text-light);
       font-size: 1rem;
       transition: var(--transition);
+      min-height: 50px;
+      width: 100%;
     }
     
     #uploadForm input:focus, #uploadForm textarea:focus, #uploadForm select:focus {
@@ -591,16 +661,19 @@
       align-items: center;
       justify-content: center;
       gap: 0.75rem;
-      padding: 1.25rem;
+      padding: 1.5rem;
       background: var(--secondary-dark);
       border: 2px dashed rgba(100, 255, 218, 0.3);
       border-radius: 12px;
       color: var(--text-gray);
       cursor: pointer;
       transition: var(--transition);
+      min-height: 100px;
+      text-align: center;
+      flex-wrap: wrap;
     }
     
-    .file-input-label:hover {
+    .file-input-label:hover, .file-input-label:active {
       border-color: var(--accent-primary);
       background: rgba(100, 255, 218, 0.05);
     }
@@ -608,17 +681,19 @@
     .file-input-label i {
       font-size: 1.5rem;
       color: var(--accent-primary);
+      flex-shrink: 0;
     }
     
-    /* Book Type Selector */
+    /* Book Type Selector - Mobile Optimized */
     .book-type-selector {
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
     
     .book-type-btn {
-      padding: 0.75rem 1.5rem;
+      padding: 0.75rem 1.25rem;
       border: 1px solid rgba(100, 255, 218, 0.2);
       background: transparent;
       color: var(--text-gray);
@@ -627,6 +702,9 @@
       transition: var(--transition);
       font-weight: 600;
       flex: 1;
+      min-width: 120px;
+      min-height: 44px;
+      touch-action: manipulation;
     }
     
     .book-type-btn.active {
@@ -642,6 +720,7 @@
       margin: 1rem 0;
       text-align: center;
       font-weight: 600;
+      font-size: 0.95rem;
     }
     
     .success { 
@@ -656,108 +735,209 @@
       border: 1px solid rgba(255, 100, 100, 0.3);
     }
     
-    /* Responsive Design */
-    @media (max-width: 1024px) {
-      .container {
-        padding: 0 2rem;
-      }
-      
-      header {
-        padding: 0 2rem;
-      }
-      
+    /* Loading States */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--primary-dark);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--secondary-dark);
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--card-bg);
+    }
+    
+    /* Responsive Design - Tablet (768px to 1024px) */
+    @media screen and (min-width: 768px) {
       .hero h1 {
         font-size: 3rem;
       }
       
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      }
-    }
-    
-    @media (max-width: 768px) {
-      .container {
-        padding: 0 1.5rem;
-      }
-      
-      header {
-        padding: 0 1.5rem;
-        flex-direction: column;
-        height: auto;
-        padding: 1rem;
-        gap: 1rem;
-      }
-      
-      nav {
-        order: 3;
-        width: 100%;
-        justify-content: center;
-        gap: 1.5rem;
-      }
-      
-      .auth-buttons {
-        order: 2;
-      }
-      
-      .hero {
-        min-height: 50vh;
-        padding: 3rem 1rem;
-        margin-top: 140px;
-      }
-      
-      .hero h1 {
-        font-size: 2.5rem;
-      }
-      
       .hero p {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
       }
       
       .search-container {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
       }
       
       .search-box {
-        min-width: 100%;
+        min-width: auto;
       }
       
       .search-actions {
-        width: 100%;
-        flex-direction: column;
+        width: auto;
+        flex-direction: row;
       }
       
       #currencySelect {
-        width: 100%;
+        width: auto;
+        min-width: 160px;
       }
       
       .section-header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
       }
       
       .grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+        gap: 2rem;
       }
       
-      #uploadSection {
-        padding: 2rem 1.5rem;
+      .card-header {
+        height: 200px;
       }
-    }
-    
-    @media (max-width: 480px) {
-      .hero h1 {
-        font-size: 2rem;
+      
+      .mobile-menu-toggle {
+        display: none;
       }
       
       nav {
+        display: flex !important;
+      }
+    }
+    
+    /* Responsive Design - Mobile (up to 767px) */
+    @media screen and (max-width: 767px) {
+      header {
+        height: var(--mobile-header-height);
+        padding: 0 1rem;
+      }
+      
+      .mobile-menu-toggle {
+        display: block;
+      }
+      
+      nav {
+        display: none;
+        position: fixed;
+        top: var(--mobile-header-height);
+        left: 0;
+        right: 0;
+        background: var(--primary-dark);
+        flex-direction: column;
+        padding: 1.5rem;
         gap: 1rem;
+        border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+        box-shadow: 0 10px 30px rgba(2, 12, 27, 0.5);
+        z-index: 1000;
+      }
+      
+      nav.active {
+        display: flex;
+      }
+      
+      .auth-buttons {
+        display: none;
+      }
+      
+      .hero {
+        margin-top: var(--mobile-header-height);
+        padding: 1.5rem 1rem 3rem;
+        min-height: 50vh;
+      }
+      
+      .hero h1 {
+        font-size: 2rem;
+        padding: 0 0.5rem;
+      }
+      
+      .hero p {
+        font-size: 1rem;
+        padding: 0 0.5rem;
+      }
+      
+      .search-section {
+        margin: -1.5rem auto 2rem;
+        width: calc(100% - 2rem);
+        padding: 1.25rem;
+      }
+      
+      .section-header h2 {
+        font-size: 1.75rem;
+      }
+      
+      .course-section {
+        padding: 2rem 0 4rem;
+      }
+      
+      .card-content h3 {
+        font-size: 1.2rem;
+        min-height: auto;
+      }
+      
+      .card-actions {
+        margin-top: 0.5rem;
+      }
+      
+      .btn, .btn-primary, .btn-secondary {
+        padding: 0.85rem 1rem;
         font-size: 0.9rem;
       }
       
-      .btn {
-        padding: 0.6rem 1.25rem;
-        font-size: 0.85rem;
+      #uploadSection {
+        padding: 1.5rem 1rem;
+        margin: 1.5rem auto;
+      }
+      
+      #uploadSection h2 {
+        font-size: 1.5rem;
+      }
+      
+      .book-type-btn {
+        min-width: 100px;
+        padding: 0.75rem 1rem;
+      }
+    }
+    
+    /* Large Desktop (above 1200px) */
+    @media screen and (min-width: 1200px) {
+      .hero h1 {
+        font-size: 3.5rem;
+      }
+      
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+      }
+    }
+    
+    /* Extra Small Devices */
+    @media screen and (max-width: 380px) {
+      .logo-text {
+        font-size: 1.3rem;
+      }
+      
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+      }
+      
+      .hero h1 {
+        font-size: 1.75rem;
+      }
+      
+      .card-content {
+        padding: 1.25rem;
+      }
+      
+      .section-header h2 {
+        font-size: 1.5rem;
       }
     }
   </style>
@@ -765,10 +945,15 @@
 <body>
   <!-- Header -->
   <header>
+    <button class="mobile-menu-toggle" aria-label="Toggle menu">
+      <i class="fas fa-bars"></i>
+    </button>
+    
     <a href="index.html" class="logo">
       <div class="logo-icon"><i class="fas fa-brain"></i></div>
       <div class="logo-text">Core Insight</div>
     </a>
+    
     <nav>
       <a href="index.html">Home</a>
       <a href="knowledge-hub.html">Knowledge Hub</a>
@@ -878,7 +1063,7 @@
       <!-- Courses will be dynamically loaded here -->
       <div class="card">
         <div class="card-header">
-          <img src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Course Preview">
+          <img src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Course Preview">
           <div class="card-badge">FREE</div>
         </div>
         <div class="card-content">
@@ -891,16 +1076,60 @@
               <span>Loading...</span>
             </div>
           </div>
-          <a href="#" class="btn-primary">Loading...</a>
-          <button class="btn-secondary">Loading...</button>
+          <div class="card-actions">
+            <a href="#" class="btn-primary">Loading...</a>
+            <button class="btn-secondary">Loading...</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
- 
-  <!-- JavaScript (No changes to functionality, only visual enhancements) -->
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 Core Insight. All rights reserved. Empowering minds through knowledge.</p>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
   <script>
+    // Mobile menu toggle
+    document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+      const nav = document.querySelector('nav');
+      const icon = this.querySelector('i');
+      
+      nav.classList.toggle('active');
+      icon.classList.toggle('fa-bars');
+      icon.classList.toggle('fa-times');
+    });
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+      const nav = document.querySelector('nav');
+      const toggle = document.querySelector('.mobile-menu-toggle');
+      
+      if (nav.classList.contains('active') && 
+          !nav.contains(event.target) && 
+          !toggle.contains(event.target)) {
+        nav.classList.remove('active');
+        toggle.querySelector('i').classList.add('fa-bars');
+        toggle.querySelector('i').classList.remove('fa-times');
+      }
+    });
+
+    // Touch-friendly hover effects
+    document.addEventListener('touchstart', function() {}, {passive: true});
+
+    // Enhanced loading state
+    function showLoading() {
+      document.body.classList.add('loading');
+    }
+
+    function hideLoading() {
+      document.body.classList.remove('loading');
+    }
+
     // ========================= CURRENCY CONVERSION FUNCTIONALITY =========================
     let userCurrency = 'NGN'; // Default
     let exchangeRates = {};
@@ -914,7 +1143,6 @@
         if (currency && currency.length === 3) {
           userCurrency = currency;
         }
-        console.log('Detected user currency:', userCurrency);
       } catch (error) {
         console.log('Using default currency:', userCurrency);
       }
@@ -924,13 +1152,16 @@
     // Load exchange rates from your backend
     async function loadExchangeRates() {
       try {
+        showLoading();
         const response = await fetch('/api/currency-rates');
         const data = await response.json();
         exchangeRates = data.rates;
         updateCurrencySelector();
         updateAllPrices();
+        hideLoading();
       } catch (error) {
         console.error('Error loading exchange rates:', error);
+        hideLoading();
       }
     }
 
@@ -976,30 +1207,6 @@
       }
     }
 
-    // Add currency selector UI
-    function addCurrencySelector() {
-      const searchSection = document.querySelector('.search-section');
-      const currencySelector = document.createElement('div');
-      currencySelector.innerHTML = `
-        <select id="currencySelect">
-          <option value="NGN">NGN - Nigerian Naira</option>
-          <option value="USD">USD - US Dollar</option>
-          <option value="EUR">EUR - Euro</option>
-          <option value="GBP">GBP - British Pound</option>
-          <option value="KES">KES - Kenyan Shilling</option>
-          <option value="GHS">GHS - Ghanaian Cedi</option>
-          <option value="ZAR">ZAR - South African Rand</option>
-        </select>
-      `;
-      searchSection.appendChild(currencySelector);
-      
-      // Add event listener for currency change
-      document.getElementById('currencySelect').addEventListener('change', function(e) {
-        userCurrency = e.target.value;
-        updateAllPrices();
-      });
-    }
-
     // Update currency selector to show current selection
     function updateCurrencySelector() {
       const currencySelect = document.getElementById('currencySelect');
@@ -1023,7 +1230,7 @@
         if (user) {
           // User is logged in - show welcome message and logout
           headerAuthButtons.innerHTML = `
-            <span style="color: var(--accent-gold); margin-right: 1rem;">
+            <span style="color: var(--accent-gold); margin-right: 1rem; font-size: 0.9rem;">
               Welcome, ${user.role === 'admin' ? '<strong>Admin</strong>' : user.username}
             </span>
             <a href="#" class="btn btn-login" onclick="logout()">Logout</a>
@@ -1060,7 +1267,8 @@
       const priceField = document.getElementById('priceField');
       
       buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
           buttons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           
@@ -1078,55 +1286,92 @@
     // Enhanced course loading with currency support
     async function loadCourses() {
       try {
+        showLoading();
         const res = await fetch('/api/courses');
         const courses = await res.json();
         const grid = document.getElementById('coursesGrid');
+        
+        // Update course count
+        document.getElementById('courseCount').textContent = `${courses.length} Courses`;
         
         // Get current user to check access
         const userRes = await fetch('/api/me');
         const user = await userRes.json();
         
+        if (courses.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+              <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+              <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
+              <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
+            </div>
+          `;
+          hideLoading();
+          return;
+        }
+        
         grid.innerHTML = courses.map(course => `
           <div class="card">
-            <img src="https://via.placeholder.com/400x200/1e293b/ffffff?text=${encodeURIComponent(course.title)}" alt="${course.title}">
+            <div class="card-header">
+              <img src="https://via.placeholder.com/400x200/1e293b/ffffff?text=${encodeURIComponent(course.title)}" alt="${course.title}" loading="lazy">
+              <div class="card-badge">${course.price > 0 ? 'PREMIUM' : 'FREE'}</div>
+            </div>
             <div class="card-content">
               <h3>${course.title}</h3>
               <p>${course.description || 'No description available'}</p>
-              <p class="price" data-original-price="${course.price}">
-                ${course.price > 0 ? `Buy Now` : 'FREE'}
-              </p>
-              ${course.author ? `<p><small>By: ${course.author}</small></p>` : ''}
-              
-              ${course.price > 0 ? `
-                <button onclick="initiatePaymentWithConversion(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}')" 
-                        class="btn btn-primary">
-                  <i class="fas fa-shopping-cart"></i> Buy Now
-                </button>
-                <button onclick="checkAccess(${course.id})" class="btn" style="background: transparent; color: var(--accent-gold); border: 1px solid var(--accent-gold); margin-top: 0.5rem;">
-                  Check Access
-                </button>
-              ` : `
-                <a href="/api/download/${course.id}" class="btn btn-primary" onclick="return handleDownload(${course.id})">
-                  <i class="fas fa-download"></i> Download Free
-                </a>
-              `}
-              ${user && (user.role === 'admin' || user.id === course.author_id) ? `
-  <button onclick="deleteCourse(${course.id})" 
-          class="btn" 
-          style="background: #ff4444; color: white; border: none; margin-top: 0.5rem;">
-    <i class="fas fa-trash"></i> Delete
-  </button>
-` : ''}
-
+              <div class="card-meta">
+                <div class="price" data-original-price="${course.price}">
+                  ${course.price > 0 ? `Buy Now` : 'FREE'}
+                </div>
+                ${course.author ? `
+                  <div class="author">
+                    <i class="fas fa-user"></i>
+                    <span>${course.author}</span>
+                  </div>
+                ` : ''}
+              </div>
+              <div class="card-actions">
+                ${course.price > 0 ? `
+                  <button onclick="initiatePaymentWithConversion(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}')" 
+                          class="btn-primary">
+                    <i class="fas fa-shopping-cart"></i> Buy Now
+                  </button>
+                  <button onclick="checkAccess(${course.id})" class="btn-secondary">
+                    <i class="fas fa-lock"></i> Check Access
+                  </button>
+                ` : `
+                  <a href="/api/download/${course.id}" class="btn-primary" onclick="return handleDownload(${course.id})">
+                    <i class="fas fa-download"></i> Download Free
+                  </a>
+                `}
+                ${user && (user.role === 'admin' || user.id === course.author_id) ? `
+                  <button onclick="deleteCourse(${course.id})" 
+                          class="btn-secondary" 
+                          style="background: #ff4444; color: white; border: none;">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                ` : ''}
+              </div>
             </div>
           </div>
         `).join('');
         
         // Update prices with user's currency after loading
         setTimeout(updateAllPrices, 100);
+        hideLoading();
       } catch (error) {
         console.error('Error loading courses:', error);
-        document.getElementById('coursesGrid').innerHTML = '<p>Error loading courses. Please try again later.</p>';
+        document.getElementById('coursesGrid').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
+            <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
+            <p style="color: var(--text-gray);">Please try again later or check your connection.</p>
+            <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
+              <i class="fas fa-redo"></i> Retry
+            </button>
+          </div>
+        `;
+        hideLoading();
       }
     }
 
@@ -1148,6 +1393,7 @@
       formData.append('file', fileInput.files[0]);
       
       try {
+        showLoading();
         // Get current user to check role
         const userRes = await fetch('/api/me');
         const user = await userRes.json();
@@ -1181,12 +1427,20 @@
           if (freeBtn) {
             freeBtn.click();
           }
+          
+          // Scroll to see the new course
+          document.querySelector('.course-section').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+          });
         } else {
           messageDiv.innerHTML = `<div class="message error">❌ ${result.error}</div>`;
         }
+        hideLoading();
       } catch (error) {
         console.error('Upload error:', error);
         document.getElementById('uploadMessage').innerHTML = `<div class="message error">❌ Upload failed. Please check your connection and try again.</div>`;
+        hideLoading();
       }
     });
   
@@ -1269,30 +1523,32 @@
       const cards = document.querySelectorAll('#coursesGrid .card');
       cards.forEach(card => {
         const title = card.querySelector('h3').textContent.toLowerCase();
-        card.style.display = title.includes(query) ? 'block' : 'none';
+        const desc = card.querySelector('p').textContent.toLowerCase();
+        card.style.display = (title.includes(query) || desc.includes(query)) ? 'block' : 'none';
       });
     });
-async function deleteCourse(courseId) {
-  if (!confirm('Are you sure you want to delete this upload? This action cannot be undone.')) return;
+    
+    async function deleteCourse(courseId) {
+      if (!confirm('Are you sure you want to delete this upload? This action cannot be undone.')) return;
 
-  try {
-    const response = await fetch(`/api/courses/${courseId}`, {
-      method: 'DELETE'
-    });
+      try {
+        const response = await fetch(`/api/courses/${courseId}`, {
+          method: 'DELETE'
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (response.ok) {
-      alert('✅ Course deleted successfully!');
-      loadCourses(); // Refresh the list
-    } else {
-      alert('❌ Error: ' + (data.error || 'Failed to delete course.'));
+        if (response.ok) {
+          alert('✅ Course deleted successfully!');
+          loadCourses(); // Refresh the list
+        } else {
+          alert('❌ Error: ' + (data.error || 'Failed to delete course.'));
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Error deleting course. Please try again.');
+      }
     }
-  } catch (error) {
-    console.error('Delete error:', error);
-    alert('Error deleting course. Please try again.');
-  }
-}
 
     // Enter key search
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
@@ -1323,14 +1579,18 @@ async function deleteCourse(courseId) {
     // Initialize page
     document.addEventListener('DOMContentLoaded', () => {
       loadUser();
-      addCurrencySelector();
       detectUserCurrency();
       loadCourses();
+      
+      // Currency selector change event
+      const currencySelect = document.getElementById('currencySelect');
+      if (currencySelect) {
+        currencySelect.addEventListener('change', function(e) {
+          userCurrency = e.target.value;
+          updateAllPrices();
+        });
+      }
     });
   </script>
-
 </body>
 </html>
-
-   
-

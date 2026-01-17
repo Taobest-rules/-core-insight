@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>Knowledge Hub | Core Insight</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* Reset and Base Styles */
     * {
@@ -70,12 +70,26 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .logo-container:hover {
+      transform: scale(1.02);
     }
 
     .logo {
       height: 45px;
       width: auto;
-      filter: brightness(1.05);
+      border-radius: 8px;
+      box-shadow: var(--study-shadow);
+      transition: var(--transition);
+      cursor: zoom-in;
+    }
+
+    .logo:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     }
 
     .brand-name {
@@ -110,6 +124,22 @@
       color: var(--study-blue);
       background-color: rgba(74, 111, 165, 0.12);
       font-weight: 600;
+    }
+
+    /* Mobile Menu Button */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--study-blue);
+      cursor: pointer;
+      padding: 10px;
+      transition: var(--transition);
+    }
+
+    .mobile-menu-btn:hover {
+      color: var(--study-blue-dark);
     }
 
     /* Hero Section */
@@ -148,9 +178,14 @@
       padding: 0 20px;
     }
 
+    .search-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 600px;
+    }
+
     .search-section input {
       flex: 1;
-      max-width: 600px;
       padding: 16px 24px;
       background-color: var(--study-white);
       border: 1px solid var(--study-neutral-dark);
@@ -183,12 +218,51 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
+      min-width: 130px;
     }
 
     .search-section button:hover {
       background-color: var(--study-blue-dark);
       transform: translateY(-1px);
       box-shadow: var(--study-shadow);
+    }
+
+    .search-section button:active {
+      transform: translateY(0);
+    }
+
+    /* Search Results */
+    .search-results {
+      max-width: 600px;
+      margin: 0 auto 50px;
+      background: var(--study-white);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: var(--study-shadow);
+      display: none;
+    }
+
+    .search-results.active {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .search-results h3 {
+      color: var(--study-blue);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-results h3 i {
+      color: var(--study-green);
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 20px;
+      color: var(--study-gray);
     }
 
     /* Categories Section */
@@ -338,6 +412,12 @@
       height: 200px;
       object-fit: cover;
       border-bottom: 1px solid var(--study-neutral-dark);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .article img:hover {
+      transform: scale(1.02);
     }
 
     .article-content {
@@ -371,6 +451,84 @@
       gap: 12px;
     }
 
+    /* Image Viewer Modal */
+    .image-viewer {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .image-viewer.active {
+      display: flex;
+    }
+
+    .viewer-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .viewer-content img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 8px;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .close-viewer {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: var(--study-blue);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-viewer:hover {
+      background: var(--study-blue-dark);
+      transform: rotate(90deg);
+    }
+
+    .download-image {
+      position: absolute;
+      top: -40px;
+      right: 50px;
+      background: var(--study-green);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .download-image:hover {
+      background: var(--study-green-light);
+      transform: scale(1.1);
+    }
+
     /* Footer */
     footer {
       background-color: var(--study-white);
@@ -401,14 +559,44 @@
 
     @media (max-width: 768px) {
       .header-content {
-        flex-direction: column;
-        gap: 20px;
+        padding: 15px 20px;
+      }
+      
+      .mobile-menu-btn {
+        display: block;
+      }
+      
+      nav {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: var(--study-white);
+        border-top: 1px solid var(--study-neutral-dark);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+      
+      nav.active {
+        max-height: 300px;
       }
       
       nav ul {
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: column;
+        padding: 20px;
         gap: 15px;
+      }
+      
+      nav a {
+        display: block;
+        padding: 12px 15px;
+        border-radius: 6px;
+      }
+      
+      .hero {
+        padding: 40px 20px;
       }
       
       .hero h1 {
@@ -420,20 +608,35 @@
         align-items: center;
       }
       
+      .search-wrapper {
+        flex-direction: column;
+      }
+      
       .search-section input {
         border-radius: 8px;
         margin-bottom: 15px;
         width: 100%;
+        border-right: 1px solid var(--study-neutral-dark);
       }
       
       .search-section button {
         border-radius: 8px;
         width: 100%;
         max-width: 300px;
+        margin: 0 auto;
       }
       
       .grid, .articles {
         grid-template-columns: 1fr;
+      }
+      
+      .close-viewer, .download-image {
+        top: 10px;
+        right: 10px;
+      }
+      
+      .download-image {
+        right: 60px;
       }
     }
 
@@ -449,9 +652,37 @@
       .categories h2, .featured h2 {
         font-size: 1.7rem;
       }
+      
+      .card, .article {
+        padding: 20px;
+      }
+      
+      .article-content {
+        padding: 20px;
+      }
     }
 
-    /* Focus-friendly animations */
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -484,11 +715,16 @@
   <!-- Header -->
   <header>
     <div class="container header-content">
-      <div class="logo-container">
-        <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo">
+      <div class="logo-container" id="logoViewer">
+        <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" class="logo" id="mainLogo">
         <div class="brand-name">Core Insight</div>
       </div>
-      <nav>
+      
+      <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+      </button>
+      
+      <nav id="mainNav">
         <ul>
           <li><a href="index.html">Home</a></li>
           <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
@@ -500,6 +736,19 @@
     </div>
   </header>
 
+  <!-- Image Viewer Modal -->
+  <div class="image-viewer" id="imageViewer">
+    <div class="viewer-content">
+      <img src="" alt="Enlarged view" id="enlargedImage">
+      <button class="close-viewer" id="closeViewer">
+        <i class="fas fa-times"></i>
+      </button>
+      <button class="download-image" id="downloadImage">
+        <i class="fas fa-download"></i>
+      </button>
+    </div>
+  </div>
+
   <div class="container">
     <!-- Hero Section -->
     <section class="hero">
@@ -509,50 +758,58 @@
 
     <!-- Search -->
     <section class="search-section">
-      <input type="text" placeholder="Search library..." />
-      <button><i class="fas fa-search"></i> Search</button>
+      <div class="search-wrapper">
+        <input type="text" id="searchInput" placeholder="Search knowledge hub..." />
+        <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
+      </div>
     </section>
+
+    <!-- Search Results -->
+    <div class="search-results" id="searchResults">
+      <h3><i class="fas fa-search"></i> Search Results</h3>
+      <div id="resultsContainer"></div>
+    </div>
 
     <!-- Categories -->
     <section class="categories">
       <h2>Explore by Category</h2>
-      <div class="grid">
-        <div class="card">
+      <div class="grid" id="categoriesGrid">
+        <div class="card" data-category="technology">
           <h3><i class="fas fa-laptop-code"></i> Technology</h3>
           <p>AI, Web Development, Cybersecurity, and more. Stay updated with the latest tech trends and tools.</p>
           <a href="ai.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="business">
           <h3><i class="fas fa-chart-line"></i> Business</h3>
           <p>Entrepreneurship, marketing, finance strategies. Build and grow your business knowledge.</p>
           <a href="business.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="creativity">
           <h3><i class="fas fa-paint-brush"></i> Creativity</h3>
           <p>Design, writing, content creation tips. Enhance your creative skills and express your ideas.</p>
           <a href="creativity.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="personal-growth">
           <h3><i class="fas fa-brain"></i> Personal Growth</h3>
           <p>Mindset, productivity, learning skills. Develop yourself both personally and professionally.</p>
           <a href="personal-growth.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="future-trends">
           <h3><i class="fas fa-rocket"></i> Future Trends</h3>
           <p>Emerging tech, innovations, and predictions. Prepare for what's coming next in the world.</p>
           <a href="future-trends.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="health">
           <h3><i class="fas fa-heartbeat"></i> Health & Wellness</h3>
           <p>Mental and physical well-being strategies. Learn to maintain balance in a busy world.</p>
           <a href="health.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="education">
           <h3><i class="fas fa-graduation-cap"></i> Education</h3>
           <p>Learning methodologies and educational insights. Improve how you acquire and retain knowledge.</p>
           <a href="education.html">View More <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="card">
+        <div class="card" data-category="sustainability">
           <h3><i class="fas fa-leaf"></i> Sustainability</h3>
           <p>Environmental practices and green innovations. Explore sustainable solutions for the future.</p>
           <a href="sustainability.html">View More <i class="fas fa-arrow-right"></i></a>
@@ -563,25 +820,25 @@
     <!-- Featured Articles -->
     <section class="featured">
       <h2>Featured Articles</h2>
-      <div class="articles">
-        <div class="article">
-          <img src="https://i.pinimg.com/1200x/81/5b/c7/815bc70f8fdccb8ee1564d454fa1a439.jpg" alt="AI Future">
+      <div class="articles" id="articlesGrid">
+        <div class="article" data-article="ai">
+          <img src="https://i.pinimg.com/1200x/81/5b/c7/815bc70f8fdccb8ee1564d454fa1a439.jpg" alt="AI Future" class="article-image">
           <div class="article-content">
             <h3>How AI is Changing the Future</h3>
             <p>Explore the impact of Artificial Intelligence across industries and how it's reshaping our world.</p>
             <a href="al.html">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
-        <div class="article">
-          <img src="https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?auto=format&fit=crop&w=1000&q=80" alt="Freelancing">
+        <div class="article" data-article="freelancing">
+          <img src="https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?auto=format&fit=crop&w=1000&q=80" alt="Freelancing" class="article-image">
           <div class="article-content">
             <h3>Start Your Freelance Career</h3>
             <p>Learn how to build a sustainable freelance business from the ground up with our comprehensive guide.</p>
             <a href="freelance.html">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
-        <div class="article">
-          <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1000&q=80" alt="Design">
+        <div class="article" data-article="design">
+          <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1000&q=80" alt="Design" class="article-image">
           <div class="article-content">
             <h3>Creative Design Principles</h3>
             <p>Boost your design skills with modern approaches and techniques used by industry professionals.</p>
@@ -600,40 +857,303 @@
   </footer>
 
   <script>
-    // Simple interactive effects
+    // Sample data for search functionality
+    const searchData = {
+      categories: [
+        { 
+          title: "Technology", 
+          description: "AI, Web Development, Cybersecurity, and more. Stay updated with the latest tech trends and tools.",
+          category: "technology",
+          keywords: ["technology", "ai", "web development", "cybersecurity", "tech", "programming", "software"]
+        },
+        { 
+          title: "Business", 
+          description: "Entrepreneurship, marketing, finance strategies. Build and grow your business knowledge.",
+          category: "business",
+          keywords: ["business", "entrepreneurship", "marketing", "finance", "strategy", "management", "startup"]
+        },
+        { 
+          title: "Creativity", 
+          description: "Design, writing, content creation tips. Enhance your creative skills and express your ideas.",
+          category: "creativity",
+          keywords: ["creativity", "design", "writing", "content", "art", "creative", "graphic design"]
+        },
+        { 
+          title: "Personal Growth", 
+          description: "Mindset, productivity, learning skills. Develop yourself both personally and professionally.",
+          category: "personal-growth",
+          keywords: ["personal growth", "mindset", "productivity", "learning", "development", "self-improvement", "motivation"]
+        },
+        { 
+          title: "Future Trends", 
+          description: "Emerging tech, innovations, and predictions. Prepare for what's coming next in the world.",
+          category: "future-trends",
+          keywords: ["future", "trends", "innovation", "emerging", "prediction", "technology", "forecast"]
+        },
+        { 
+          title: "Health & Wellness", 
+          description: "Mental and physical well-being strategies. Learn to maintain balance in a busy world.",
+          category: "health",
+          keywords: ["health", "wellness", "mental", "physical", "fitness", "wellbeing", "nutrition", "balance"]
+        },
+        { 
+          title: "Education", 
+          description: "Learning methodologies and educational insights. Improve how you acquire and retain knowledge.",
+          category: "education",
+          keywords: ["education", "learning", "teaching", "methodology", "study", "knowledge", "skills"]
+        },
+        { 
+          title: "Sustainability", 
+          description: "Environmental practices and green innovations. Explore sustainable solutions for the future.",
+          category: "sustainability",
+          keywords: ["sustainability", "environment", "green", "eco-friendly", "renewable", "conservation", "climate"]
+        }
+      ],
+      articles: [
+        {
+          title: "How AI is Changing the Future",
+          description: "Explore the impact of Artificial Intelligence across industries and how it's reshaping our world.",
+          article: "ai",
+          keywords: ["ai", "artificial intelligence", "future", "technology", "innovation", "machine learning"]
+        },
+        {
+          title: "Start Your Freelance Career",
+          description: "Learn how to build a sustainable freelance business from the ground up with our comprehensive guide.",
+          article: "freelancing",
+          keywords: ["freelance", "career", "business", "remote work", "entrepreneurship", "digital nomad"]
+        },
+        {
+          title: "Creative Design Principles",
+          description: "Boost your design skills with modern approaches and techniques used by industry professionals.",
+          article: "design",
+          keywords: ["design", "creative", "principles", "graphic", "ui/ux", "visual", "art"]
+        }
+      ]
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
-      // Smooth hover effects
+      // Mobile menu toggle
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mainNav = document.getElementById('mainNav');
+      
+      mobileMenuBtn.addEventListener('click', function() {
+        mainNav.classList.toggle('active');
+        mobileMenuBtn.innerHTML = mainNav.classList.contains('active') 
+          ? '<i class="fas fa-times"></i>' 
+          : '<i class="fas fa-bars"></i>';
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('nav') && !event.target.closest('.mobile-menu-btn') && mainNav.classList.contains('active')) {
+          mainNav.classList.remove('active');
+          mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+      });
+
+      // Image viewer functionality
+      const imageViewer = document.getElementById('imageViewer');
+      const enlargedImage = document.getElementById('enlargedImage');
+      const closeViewer = document.getElementById('closeViewer');
+      const downloadImage = document.getElementById('downloadImage');
+      const mainLogo = document.getElementById('mainLogo');
+      const logoViewer = document.getElementById('logoViewer');
+      const articleImages = document.querySelectorAll('.article-image');
+
+      // Open image viewer for logo
+      logoViewer.addEventListener('click', function() {
+        enlargedImage.src = mainLogo.src;
+        imageViewer.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+
+      // Open image viewer for article images
+      articleImages.forEach(img => {
+        img.addEventListener('click', function() {
+          enlargedImage.src = this.src;
+          imageViewer.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+      });
+
+      // Close image viewer
+      closeViewer.addEventListener('click', function() {
+        imageViewer.classList.remove('active');
+        document.body.style.overflow = 'auto';
+      });
+
+      // Close viewer with ESC key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && imageViewer.classList.contains('active')) {
+          imageViewer.classList.remove('active');
+          document.body.style.overflow = 'auto';
+        }
+      });
+
+      // Download image
+      downloadImage.addEventListener('click', function() {
+        const link = document.createElement('a');
+        link.href = enlargedImage.src;
+        link.download = 'core-insight-image.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+
+      // Search functionality
+      const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
+      const searchResults = document.getElementById('searchResults');
+      const resultsContainer = document.getElementById('resultsContainer');
+      const categoriesGrid = document.getElementById('categoriesGrid');
+      const articlesGrid = document.getElementById('articlesGrid');
+
+      // Perform search
+      function performSearch(query) {
+        const searchTerm = query.toLowerCase().trim();
+        
+        if (!searchTerm) {
+          searchResults.classList.remove('active');
+          return;
+        }
+
+        // Clear previous results
+        resultsContainer.innerHTML = '';
+        
+        let hasResults = false;
+
+        // Search in categories
+        searchData.categories.forEach(category => {
+          const matches = category.keywords.some(keyword => 
+            keyword.includes(searchTerm) || searchTerm.includes(keyword)
+          ) || 
+          category.title.toLowerCase().includes(searchTerm) || 
+          category.description.toLowerCase().includes(searchTerm);
+
+          if (matches) {
+            hasResults = true;
+            const resultItem = document.createElement('div');
+            resultItem.className = 'card';
+            resultItem.style.marginBottom = '15px';
+            resultItem.innerHTML = `
+              <h3><i class="fas fa-folder"></i> ${category.title}</h3>
+              <p>${category.description}</p>
+              <a href="${category.category}.html">View Category <i class="fas fa-arrow-right"></i></a>
+            `;
+            resultsContainer.appendChild(resultItem);
+          }
+        });
+
+        // Search in articles
+        searchData.articles.forEach(article => {
+          const matches = article.keywords.some(keyword => 
+            keyword.includes(searchTerm) || searchTerm.includes(keyword)
+          ) || 
+          article.title.toLowerCase().includes(searchTerm) || 
+          article.description.toLowerCase().includes(searchTerm);
+
+          if (matches) {
+            hasResults = true;
+            const resultItem = document.createElement('div');
+            resultItem.className = 'card';
+            resultItem.style.marginBottom = '15px';
+            resultItem.innerHTML = `
+              <h3><i class="fas fa-newspaper"></i> ${article.title}</h3>
+              <p>${article.description}</p>
+              <a href="${article.article}.html">Read Article <i class="fas fa-arrow-right"></i></a>
+            `;
+            resultsContainer.appendChild(resultItem);
+          }
+        });
+
+        // Show no results message
+        if (!hasResults) {
+          resultsContainer.innerHTML = `
+            <div class="no-results">
+              <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; color: var(--study-gray-light);"></i>
+              <p>No results found for "${searchTerm}"</p>
+              <p style="margin-top: 10px; font-size: 0.9rem;">Try searching with different keywords</p>
+            </div>
+          `;
+        }
+
+        // Filter categories grid
+        const cards = document.querySelectorAll('.card[data-category]');
+        cards.forEach(card => {
+          const category = card.getAttribute('data-category');
+          const categoryData = searchData.categories.find(c => c.category === category);
+          
+          if (categoryData) {
+            const matches = categoryData.keywords.some(keyword => 
+              keyword.includes(searchTerm) || searchTerm.includes(keyword)
+            ) || 
+            categoryData.title.toLowerCase().includes(searchTerm) || 
+            categoryData.description.toLowerCase().includes(searchTerm);
+            
+            card.style.display = matches ? 'flex' : 'none';
+          }
+        });
+
+        // Filter articles grid
+        const articles = document.querySelectorAll('.article[data-article]');
+        articles.forEach(article => {
+          const articleKey = article.getAttribute('data-article');
+          const articleData = searchData.articles.find(a => a.article === articleKey);
+          
+          if (articleData) {
+            const matches = articleData.keywords.some(keyword => 
+              keyword.includes(searchTerm) || searchTerm.includes(keyword)
+            ) || 
+            articleData.title.toLowerCase().includes(searchTerm) || 
+            articleData.description.toLowerCase().includes(searchTerm);
+            
+            article.style.display = matches ? 'block' : 'none';
+          }
+        });
+
+        // Show search results
+        searchResults.classList.add('active');
+      }
+
+      // Search button click
+      searchBtn.addEventListener('click', function() {
+        performSearch(searchInput.value);
+      });
+
+      // Search on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          performSearch(this.value);
+        }
+      });
+
+      // Clear search when input is empty
+      searchInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+          searchResults.classList.remove('active');
+          // Show all cards and articles
+          document.querySelectorAll('.card[data-category], .article[data-article]').forEach(el => {
+            el.style.display = '';
+          });
+        }
+      });
+
+      // Smooth hover effects for cards and articles
       const cards = document.querySelectorAll('.card, .article');
       
       cards.forEach(card => {
         card.addEventListener('mouseenter', function() {
-          this.style.transform = this.classList.contains('card') 
-            ? 'translateY(-6px)' 
-            : 'translateY(-6px)';
+          this.style.transform = 'translateY(-6px)';
         });
         
         card.addEventListener('mouseleave', function() {
           this.style.transform = 'translateY(0)';
         });
       });
-      
-      // Search functionality
-      const searchButton = document.querySelector('.search-section button');
-      const searchInput = document.querySelector('.search-section input');
-      
-      searchButton.addEventListener('click', function() {
-        if (searchInput.value.trim() !== '') {
-          alert(`Searching for: "${searchInput.value}" - In a real implementation, this would filter the content.`);
-        } else {
-          searchInput.focus();
-        }
-      });
-      
-      searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          searchButton.click();
-        }
-      });
+
+      // Add animation to hero section
+      const hero = document.querySelector('.hero');
+      hero.style.animation = 'fadeInUp 0.6s ease forwards';
     });
   </script>
 </body>

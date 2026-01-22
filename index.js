@@ -1293,7 +1293,7 @@ app.post("/api/services/subscribe", async (req, res) => {
       tx_ref: `service-sub-${req.session.user.id}-${Date.now()}`,
       amount: amount,
       currency: "USD",
-      redirect_url: `http://localhost:${PORT}/services-payment-callback.html`,
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,
@@ -1387,7 +1387,7 @@ app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) =>
       tx_ref: `service-product-${productId}-${Date.now()}`,
       amount: product.price,
       currency: "USD",
-      redirect_url: `https://core-insight-7.onrender.com:${PORT}/services-payment-callback.html`,
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,
@@ -3030,7 +3030,7 @@ app.post("/api/buy-product", async (req, res) => {
         tx_ref: `product-${product.id}-${Date.now()}`,
         amount: product.price,
         currency: "USD",
-        redirect_url: `http://localhost:${PORT}/payment-callback.html`,
+        redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
         payment_options: "card, banktransfer, ussd, mobilemoney",
         customer: {
           email: req.session.user.email || `${req.session.user.username}@example.com`,
@@ -4024,7 +4024,7 @@ app.post("/api/initiate-payment", async (req, res) => {
       amount: course.price,
       currency: "NGN",
       payment_options: "card, banktransfer, ussd",
-      redirect_url: `http://localhost:${PORT}/payment-callback.html`,
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email || `${req.session.user.username}@example.com`,
         name: req.session.user.username,

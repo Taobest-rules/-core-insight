@@ -4665,52 +4665,108 @@
     }
     window.buyProduct = buyProduct;
 
-    // ---------- Delete (admin or owner) ----------
-    async function deleteProduct(id) {
-      console.log("🗑️ deleteProduct called for ID:", id);
-      
-      // Always check the server for current user
-      try {
-        const userCheck = await fetch('/api/me', { credentials: 'include' });
-        const user = await userCheck.json();
-        
-        if (!user || !user.id) {
-          console.log("❌ User not logged in");
-          openModal($('loginModal'));
-          return;
-        }
-        
-        if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
-          return;
-        }
-        
-        const res = await fetch(`/api/products/${id}`, { 
-          method: 'DELETE',
-          credentials: 'include'
-        });
-        
-        if (res.ok) { 
-          const data = await res.json();
-          showToast('Success', data.message || 'Product deleted successfully', 'success');
-          
-          // Update currentUser
-          currentUser = user;
-          window.currentUser = user;
-          
-          // Reload
-          if (typeof loadProducts === 'function') loadProducts();
-          if (typeof loadMyProducts === 'function') loadMyProducts();
-          
-        } else {
-          const data = await res.json();
-          showToast('Error', data.error || 'Failed to delete product', 'danger');
-        }
-      } catch(err) {
-        console.error('deleteProduct error:', err);
-        showToast('Error', 'Error deleting product: ' + err.message, 'danger');
-      }
+  async function deleteProduct(id) {
+  console.log("🗑️ deleteProduct called for ID:", id);
+
+  try {
+    // Check auth
+    const userCheck = await fetch('/api/me', { credentials: 'include' });
+    const user = await userCheck.json();
+
+    if (!user || !user.id) {
+      openModal($('loginModal'));
+      return;
     }
 
+    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+      return;
+    }
+
+    const res = await fetch(`/api/products/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast('Error', data.error || 'Failed to delete product', 'danger');
+      return;
+    }
+
+    // ✅ SUCCESS
+    showToast('Success', data.message || 'Product deleted', 'success');
+
+    // 🔥 REMOVE FROM DOM INSTANTLY
+    removeProductFromDOM(id);
+
+  } catch (err) {
+    console.error('deleteProduct error:', err);
+    showToast('Error', 'Error deleting product: ' + err.message, 'danger');
+  }
+}
+
+// Helper function to remove product from DOM
+function removeProductFromDOM(productId) {
+  console.log(`Removing product ${productId} from DOM`);
+  
+  // Try multiple selectors
+  const selectors = [
+    `#product-${productId}`,
+    `.product-card[data-id="${productId}"]`,
+    `[data-product-id="${productId}"]`,
+    `div[onclick*="selectProductForReviews(${productId})"]`
+  ];
+  
+  let productElement = null;
+  
+  for (const selector of selectors) {
+    const el = document.querySelector(selector);
+    if (el) {
+      productElement = el;
+      console.log(`Found product with selector: ${selector}`);
+      break;
+    }
+  }
+  
+  if (productElement) {
+    // Add fade-out animation
+    productElement.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    productElement.style.opacity = '0';
+    productElement.style.transform = 'scale(0.95) translateY(20px)';
+    productElement.style.maxHeight = '0';
+    productElement.style.margin = '0';
+    productElement.style.padding = '0';
+    productElement.style.border = 'none';
+    productElement.style.overflow = 'hidden';
+    
+    // Remove after animation
+    setTimeout(() => {
+      productElement.remove();
+      
+      // Check if grid is now empty
+      const grid = document.getElementById('productsGrid');
+      const noProducts = document.getElementById('noProducts');
+      
+      if (grid && grid.children.length === 0 && noProducts) {
+        noProducts.style.display = 'block';
+      }
+      
+      // Update dashboard if open
+      if (typeof loadMyProducts === 'function') {
+        setTimeout(() => loadMyProducts(), 100);
+      }
+      
+    }, 400);
+    
+  } else {
+    console.log(`Could not find product ${productId} in DOM, reloading...`);
+    // If we can't find the element, reload the products
+    if (typeof loadProducts === 'function') {
+      setTimeout(() => loadProducts(), 500);
+    }
+  }
+}
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

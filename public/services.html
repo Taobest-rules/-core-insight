@@ -54,7 +54,7 @@
     z-index: -1;
   }
 
-  /* Header - Responsive */
+  /* Header */
   header {
     height: var(--header-h);
     background: rgba(22, 27, 46, 0.95);
@@ -62,7 +62,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 24px;
+    padding: 0 40px;
     position: fixed;
     top: 0;
     left: 0;
@@ -74,24 +74,24 @@
   .logo { 
     display: flex; 
     align-items: center; 
-    gap: 8px; 
+    gap: 12px; 
   }
 
   .logo-icon { 
-    width: 40px; 
-    height: 40px; 
-    border-radius: 10px;
+    width: 48px; 
+    height: 48px; 
+    border-radius: 12px;
     background: var(--gradient-primary);
     display: flex; 
     align-items: center; 
     justify-content: center; 
     color: white; 
-    font-size: 1rem;
+    font-size: 1.2rem;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
   }
 
   .logo-text { 
-    font-size: 1.4rem; 
+    font-size: 1.6rem; 
     font-weight: 700; 
     background: var(--gradient-primary);
     -webkit-background-clip: text; 
@@ -100,18 +100,17 @@
 
   nav { 
     display: flex; 
-    gap: 16px; 
+    gap: 32px; 
     align-items: center; 
   }
 
   nav a { 
     color: var(--text-gray); 
     text-decoration: none; 
-    padding: 8px 0;
+    padding: 12px 0;
     position: relative;
     font-weight: 500;
     transition: var(--transition);
-    font-size: 0.95rem;
   }
 
   nav a::after {
@@ -138,7 +137,7 @@
 
   .header-actions { 
     display: flex; 
-    gap: 12px; 
+    gap: 16px; 
     align-items: center; 
   }
 
@@ -146,13 +145,12 @@
     background: transparent; 
     color: var(--accent-blue); 
     border: 2px solid var(--accent-blue); 
-    padding: 8px 16px; 
-    border-radius: 8px; 
+    padding: 10px 24px; 
+    border-radius: 12px; 
     cursor: pointer; 
     text-decoration: none; 
     font-weight: 600;
     transition: var(--transition);
-    font-size: 0.9rem;
   }
 
   .auth-btn:hover {
@@ -173,19 +171,18 @@
   }
 
   main { 
-    padding-top: calc(var(--header-h) + 20px); 
+    padding-top: calc(var(--header-h) + 40px); 
     max-width: 1400px; 
     margin: 0 auto; 
-    padding-left: 20px; 
-    padding-right: 20px; 
-    width: 100%;
+    padding-left: 40px; 
+    padding-right: 40px; 
   }
 
-  /* Hero Section - Responsive */
+  /* Hero Section */
   .hero { 
     text-align: center; 
-    padding: 40px 20px; 
-    margin-bottom: 40px;
+    padding: 80px 40px; 
+    margin-bottom: 60px;
     position: relative;
     overflow: hidden;
     border-radius: var(--border-radius);
@@ -209,8 +206,8 @@
   }
 
   .hero h1 { 
-    font-size: 2.5rem; 
-    margin-bottom: 16px; 
+    font-size: 3.5rem; 
+    margin-bottom: 24px; 
     background: var(--gradient-primary);
     -webkit-background-clip: text; 
     color: transparent;
@@ -220,23 +217,23 @@
 
   .hero p { 
     color: var(--text-gray); 
-    font-size: 1.1rem; 
+    font-size: 1.2rem; 
     max-width: 600px; 
-    margin: 0 auto 30px; 
+    margin: 0 auto 40px; 
     line-height: 1.6;
   }
 
   .hero-actions { 
     display: flex; 
-    gap: 16px; 
+    gap: 20px; 
     justify-content: center; 
     flex-wrap: wrap; 
   }
 
-  /* Buttons - Responsive */
+  /* Buttons */
   .btn {
-    padding: 14px 24px;
-    border-radius: 10px;
+    padding: 16px 32px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
     font-size: 1rem;
@@ -246,10 +243,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     position: relative;
     overflow: hidden;
-    min-height: 48px;
   }
 
   .btn::before {
@@ -289,35 +285,35 @@
     transform: translateY(-3px);
   }
 
-  /* Pricing Cards - Responsive */
+  /* Pricing Cards */
   .pricing-section { 
-    margin: 60px 0; 
+    margin: 80px 0; 
   }
 
   .pricing-section h2 {
     text-align: center;
-    font-size: 2rem;
-    margin-bottom: 12px;
+    font-size: 2.5rem;
+    margin-bottom: 16px;
     color: var(--text-light);
   }
 
   .pricing-section p {
     text-align: center;
     color: var(--text-gray);
-    font-size: 1rem;
-    margin-bottom: 30px;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
   }
 
   .pricing-cards { 
     display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-    gap: 24px; 
-    margin-top: 30px; 
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+    gap: 32px; 
+    margin-top: 40px; 
   }
 
   .pricing-card { 
     background: var(--card-bg); 
-    padding: 30px; 
+    padding: 40px; 
     border-radius: var(--border-radius); 
     text-align: center; 
     border: 1px solid rgba(255,255,255,0.1);
@@ -338,21 +334,25 @@
 
   .pricing-card.featured {
     border-color: var(--accent-gold);
-    transform: scale(1);
+    transform: scale(1.05);
     box-shadow: 0 30px 60px rgba(251, 191, 36, 0.2);
   }
 
+  .pricing-card.featured::before {
+    background: var(--gradient-gold);
+  }
+
   .pricing-card h3 { 
-    margin: 0 0 16px 0; 
-    font-size: 1.3rem; 
+    margin: 0 0 20px 0; 
+    font-size: 1.5rem; 
     color: var(--text-light);
   }
 
   .price { 
-    font-size: 2.5rem; 
+    font-size: 3.5rem; 
     font-weight: 800; 
     color: var(--accent-blue); 
-    margin: 16px 0; 
+    margin: 20px 0; 
     line-height: 1;
   }
 
@@ -362,59 +362,54 @@
 
   .price-period { 
     color: var(--text-gray); 
-    font-size: 0.9rem; 
-    margin-bottom: 20px;
+    font-size: 1rem; 
+    margin-bottom: 30px;
   }
 
   .pricing-features { 
     list-style: none; 
     padding: 0; 
-    margin: 24px 0; 
+    margin: 30px 0; 
     text-align: left; 
   }
 
   .pricing-features li { 
-    padding: 10px 0; 
+    padding: 12px 0; 
     color: var(--text-light); 
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
+    gap: 12px;
   }
 
   .pricing-features li:before { 
     content: "✓"; 
     color: #10b981; 
     font-weight: bold; 
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 
-  /* Tabs - Responsive */
+  /* Tabs */
   .tabs { 
     display: flex; 
     gap: 2px; 
-    margin: 30px 0; 
+    margin: 40px 0; 
     background: var(--secondary-dark);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 4px;
     border: 1px solid rgba(255,255,255,0.1);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .tab { 
-    padding: 12px 20px; 
+    padding: 16px 32px; 
     background: transparent; 
     border: none; 
     color: var(--text-gray); 
     cursor: pointer; 
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
     transition: var(--transition);
     flex: 1;
     text-align: center;
-    min-width: max-content;
-    font-size: 0.95rem;
   }
 
   .tab:hover {
@@ -428,18 +423,18 @@
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
   }
 
-  /* Services Grid - Responsive */
+  /* Services Grid */
   .services-grid { 
     display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-    gap: 24px; 
-    margin: 30px 0; 
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); 
+    gap: 32px; 
+    margin: 40px 0; 
   }
 
   .service-card { 
     background: var(--card-bg); 
     border-radius: var(--border-radius); 
-    padding: 24px; 
+    padding: 32px; 
     box-shadow: var(--shadow-light);
     transition: var(--transition);
     border: 1px solid rgba(255,255,255,0.1);
@@ -460,7 +455,7 @@
   }
 
   .service-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-10px) scale(1.02);
     box-shadow: var(--shadow);
     border-color: rgba(59, 130, 246, 0.3);
   }
@@ -473,11 +468,11 @@
     display: flex; 
     justify-content: space-between; 
     align-items: flex-start; 
-    margin-bottom: 16px; 
+    margin-bottom: 20px; 
   }
 
   .service-title { 
-    font-size: 1.2rem; 
+    font-size: 1.3rem; 
     margin: 0; 
     color: var(--text-light); 
     line-height: 1.4;
@@ -485,7 +480,7 @@
   }
 
   .service-price { 
-    font-size: 1.3rem; 
+    font-size: 1.5rem; 
     color: var(--accent-gold); 
     font-weight: 700; 
   }
@@ -494,19 +489,19 @@
   .service-provider-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
 
   .profile-picture-wrapper {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid var(--accent-blue);
+    border: 3px solid var(--accent-blue);
     flex-shrink: 0;
   }
 
@@ -522,8 +517,8 @@
   }
 
   .provider-initials {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     background: var(--gradient-primary);
     display: flex;
@@ -531,72 +526,65 @@
     justify-content: center;
     font-weight: bold;
     color: white;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
   }
 
   .provider-info {
     flex: 1;
-    min-width: 0;
   }
 
   .service-provider-name {
     font-weight: 600;
     color: var(--text-light);
-    font-size: 0.95rem;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 1rem;
+    margin-bottom: 6px;
   }
 
   .service-rating { 
     display: flex; 
     align-items: center; 
-    gap: 6px; 
-    margin: 6px 0; 
+    gap: 8px; 
+    margin: 8px 0; 
   }
 
   .stars { 
     color: var(--accent-gold); 
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .rating-count { 
     color: var(--text-gray); 
-    font-size: 0.85rem; 
+    font-size: 0.9rem; 
   }
 
   /* Service Description */
   .description-container {
     position: relative;
-    margin: 16px 0;
+    margin: 20px 0;
   }
 
   .service-description {
     color: var(--text-gray);
     line-height: 1.6;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     margin: 0;
     transition: max-height 0.4s ease;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
   }
 
   .see-more-btn {
     background: transparent;
     color: var(--accent-blue);
     border: none;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 6px 12px;
-    margin-top: 8px;
-    border-radius: 6px;
+    padding: 8px 16px;
+    margin-top: 12px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     transition: var(--transition);
   }
 
@@ -608,19 +596,18 @@
   .service-tags { 
     display: flex; 
     flex-wrap: wrap; 
-    gap: 8px; 
-    margin: 16px 0; 
+    gap: 10px; 
+    margin: 20px 0; 
   }
 
   .tag { 
     background: rgba(59, 130, 246, 0.1); 
-    padding: 6px 12px; 
-    border-radius: 16px; 
-    font-size: 0.8rem; 
+    padding: 8px 16px; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
     color: var(--accent-blue); 
     font-weight: 500;
     transition: var(--transition);
-    white-space: nowrap;
   }
 
   .tag:hover {
@@ -631,21 +618,20 @@
   /* Service Actions */
   .service-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 24px;
   }
 
   .chat-btn {
     background: var(--gradient-primary);
     color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
     font-weight: 600;
     flex: 1;
     transition: var(--transition);
-    font-size: 0.9rem;
   }
 
   .chat-btn:hover {
@@ -656,14 +642,13 @@
   .profile-btn {
     background: transparent;
     color: var(--text-light);
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.2);
     cursor: pointer;
     font-weight: 600;
     flex: 1;
     transition: var(--transition);
-    font-size: 0.9rem;
   }
 
   .profile-btn:hover {
@@ -672,44 +657,44 @@
     transform: translateY(-2px);
   }
 
-  /* Forms - Responsive */
+  /* Forms */
   .form-section { 
     background: var(--card-bg); 
-    padding: 30px; 
+    padding: 48px; 
     border-radius: var(--border-radius); 
-    margin: 30px 0; 
+    margin: 40px 0; 
     border: 1px solid rgba(255,255,255,0.1);
     box-shadow: var(--shadow);
   }
 
   .form-grid { 
     display: grid; 
-    grid-template-columns: 1fr; 
-    gap: 20px; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 24px; 
   }
 
   .form-group { 
-    margin-bottom: 20px; 
+    margin-bottom: 24px; 
   }
 
   .form-group label { 
     display: block; 
-    margin-bottom: 8px; 
+    margin-bottom: 12px; 
     color: var(--text-light); 
     font-weight: 600; 
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 
   .form-group input, 
   .form-group textarea, 
   .form-group select { 
     width: 100%; 
-    padding: 14px; 
-    border-radius: 8px; 
+    padding: 16px; 
+    border-radius: 10px; 
     border: 2px solid rgba(255,255,255,0.1); 
     background: rgba(255,255,255,0.05); 
     color: var(--text-light); 
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: var(--transition);
   }
 
@@ -723,99 +708,358 @@
   }
 
   .form-group textarea { 
-    min-height: 120px; 
+    min-height: 140px; 
     resize: vertical; 
   }
 
   .form-actions { 
     display: flex; 
-    gap: 12px; 
-    margin-top: 24px; 
-    flex-wrap: wrap;
+    gap: 16px; 
+    margin-top: 32px; 
   }
 
-  /* Browse Services Filter Section */
-  .filter-section {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-    margin-bottom: 30px;
+  /* Enhanced Category Form */
+  .category-selection-wrapper {
+    background: var(--card-bg);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-top: 10px;
   }
 
-  .filter-row {
+  .category-tabs {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 4px;
+    background: var(--secondary-dark);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
   }
 
-  /* Profile Layout - Responsive */
+  .category-tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-gray);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .category-tab-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-light);
+  }
+
+  .category-tab-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  }
+
+  .tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .tab-pane.active {
+    display: block;
+  }
+
+  .select-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .select-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-blue);
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-gray);
+  }
+
+  .category-select {
+    width: 100%;
+    padding: 16px 48px;
+    background: var(--secondary-dark);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--text-light);
+    font-size: 1rem;
+    cursor: pointer;
+    appearance: none;
+    transition: var(--transition);
+  }
+
+  .category-select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+  }
+
+  .category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .category-chip {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    transition: var(--transition);
+  }
+
+  .category-chip:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .input-with-icon {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-blue);
+  }
+
+  .category-input {
+    width: 100%;
+    padding: 16px 16px 16px 48px;
+    background: var(--secondary-dark);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--text-light);
+    font-size: 1rem;
+    transition: var(--transition);
+  }
+
+  .category-input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+  }
+
+  .char-count {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-gray);
+    font-size: 0.85rem;
+  }
+
+  .selected-category-display {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .category-badge {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .clear-category {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: var(--transition);
+  }
+
+  .clear-category:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+  }
+
+  /* Tab Content */
+  .tab-content {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Modals */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal.open { 
+    display: flex; 
+  }
+
+  .modal-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: var(--border-radius);
+    max-width: 480px;
+    width: 100%;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.1);
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .close-x { 
+    color: var(--text-gray); 
+    cursor: pointer; 
+    font-weight: 700; 
+    font-size: 1.8rem;
+    transition: var(--transition);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .close-x:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-light);
+  }
+
+  /* Profile Section */
   #freelancerProfile {
     background: var(--primary-dark);
     border-radius: var(--border-radius);
-    margin: 30px 0;
+    margin: 40px 0;
     border: 1px solid rgba(255,255,255,0.1);
     overflow: hidden;
   }
 
   .profile-hero {
     background: var(--gradient-primary);
-    padding: 40px 20px;
+    padding: 60px 40px;
     position: relative;
     overflow: hidden;
   }
 
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    opacity: 0.3;
+  }
+
   .profile-avatar-wrapper {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     border: 4px solid white;
     overflow: hidden;
-    margin: 0 auto 16px;
+    margin: 0 auto 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .profile-badge {
+    background: var(--gradient-gold);
+    color: #000;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
   }
 
   .profile-stats {
     display: flex;
-    gap: 20px;
-    margin-top: 24px;
+    gap: 40px;
+    margin-top: 30px;
     justify-content: center;
-    flex-wrap: wrap;
   }
 
   .stat-item {
     text-align: center;
-    min-width: 80px;
   }
 
   .stat-value {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 700;
     color: white;
   }
 
   .stat-label {
     color: rgba(255,255,255,0.8);
-    font-size: 0.85rem;
-    margin-top: 4px;
+    font-size: 0.9rem;
+    margin-top: 5px;
   }
 
   /* Profile Tabs */
   .profile-navigation {
     background: var(--secondary-dark);
     border-bottom: 1px solid rgba(255,255,255,0.1);
-    overflow-x: auto;
   }
 
   .nav-tabs-enhanced {
     display: flex;
     gap: 0;
     align-items: center;
-    padding: 0 20px;
-    min-width: max-content;
+    padding: 0 40px;
   }
 
   .nav-tab.enhanced {
-    padding: 16px 20px;
+    padding: 20px 30px;
     background: transparent;
     border: none;
     color: var(--text-gray);
@@ -825,9 +1069,7 @@
     border-bottom: 3px solid transparent;
     display: flex;
     align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    font-size: 0.9rem;
+    gap: 10px;
   }
 
   .nav-tab.enhanced:hover {
@@ -842,81 +1084,247 @@
   }
 
   .profile-tab-content {
-    padding: 24px;
+    padding: 40px;
     animation: fadeIn 0.3s ease;
   }
 
-  /* Profile Content Layout */
-  #profileViewTabContent .main-content {
-    margin-bottom: 24px;
-  }
-
-  #profileViewTabContent .sidebar {
-    margin-top: 24px;
-  }
-
+  /* Profile Cards */
   .content-card {
     background: var(--card-bg);
-    padding: 24px;
+    padding: 30px;
     border-radius: var(--border-radius);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     border: 1px solid rgba(255,255,255,0.1);
   }
 
-  /* Modal Responsive */
-  .modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
-    z-index: 2000;
+  .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .skill-tag {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+  }
+
+  .skill-tag:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .sidebar-card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .detail-item-enhanced {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .detail-item-enhanced:last-child {
+    border-bottom: none;
+  }
+
+  /* Certificate Uploader */
+  .certificate-uploader {
+    margin-top: 30px;
+  }
+
+  .upload-area {
+    border: 2px dashed rgba(59, 130, 246, 0.3);
+    border-radius: var(--border-radius);
+    padding: 40px;
+    text-align: center;
+    transition: var(--transition);
+    background: rgba(59, 130, 246, 0.05);
+    cursor: pointer;
+  }
+
+  .upload-area:hover {
+    border-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .upload-area.dragover {
+    border-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.15);
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+    color: var(--accent-blue);
+    margin-bottom: 20px;
+  }
+
+  .certificate-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 30px;
+  }
+
+  .certificate-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .certificate-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+
+  .remove-certificate {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    animation: fadeIn 0.3s ease;
-    overflow-y: auto;
+    transition: var(--transition);
   }
 
-  .modal-card {
+  .remove-certificate:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
+  }
+
+  /* Edit Profile */
+  .modern-form {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .form-section-card {
     background: var(--card-bg);
-    padding: 24px;
+    padding: 30px;
     border-radius: var(--border-radius);
-    max-width: 480px;
-    width: 100%;
-    box-shadow: var(--shadow);
-    border: 1px solid rgba(255,255,255,0.1);
-    animation: slideUp 0.3s ease;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  /* Role Selection Grid */
-  .role-selection-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
     margin-bottom: 30px;
+    border: 1px solid rgba(255,255,255,0.1);
   }
 
-  /* Animations */
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  .form-grid-enhanced {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
   }
 
-  @keyframes slideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to { 
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .form-group-enhanced {
+    margin-bottom: 20px;
   }
 
-  /* Utility Classes */
+  .form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+    font-weight: 600;
+  }
+
+  .form-input-enhanced,
+  .form-textarea-enhanced,
+  .form-select-enhanced {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: var(--text-light);
+    font-size: 1rem;
+    transition: var(--transition);
+  }
+
+  .form-input-enhanced:focus,
+  .form-textarea-enhanced:focus,
+  .form-select-enhanced:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .form-textarea-enhanced {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .btn-primary-large,
+  .btn-secondary-large {
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .btn-primary-large {
+    background: var(--gradient-primary);
+    color: white;
+  }
+
+  .btn-primary-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-secondary-large {
+    background: transparent;
+    color: var(--accent-blue);
+    border: 2px solid var(--accent-blue);
+  }
+
+  .btn-secondary-large:hover {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  /* Role Selection */
+  .role-option {
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: var(--border-radius);
+    padding: 32px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+    background: var(--card-bg);
+  }
+
+  .role-option:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
+  }
+
+  .role-option.selected {
+    border-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  /* Utility */
   .hidden { 
     display: none !important; 
   }
@@ -925,95 +1333,41 @@
     text-align: center; 
   }
 
+  .mb-20 { 
+    margin-bottom: 20px; 
+  }
+
+  .mt-20 { 
+    margin-top: 20px; 
+  }
+
   /* Responsive Design */
-  /* Large screens (laptops/desktops) */
-  @media (min-width: 1024px) {
-    .hero h1 { 
-      font-size: 3.5rem; 
-    }
-    
-    .form-grid { 
-      grid-template-columns: 1fr 1fr; 
-    }
-    
-    .filter-section {
-      grid-template-columns: 1fr auto;
-    }
-    
-    #profileViewTabContent {
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      gap: 30px;
-    }
-    
-    #profileViewTabContent .main-content {
-      margin-bottom: 0;
-    }
-    
-    #profileViewTabContent .sidebar {
-      margin-top: 0;
-    }
-    
-    .role-selection-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  /* Medium screens (tablets) */
-  @media (min-width: 768px) {
-    header {
-      padding: 0 32px;
-    }
-    
-    .logo-text { 
-      font-size: 1.6rem; 
-    }
-    
-    .hero { 
-      padding: 60px 40px; 
-    }
-    
-    .hero h1 { 
-      font-size: 2.8rem; 
-    }
-    
+  @media (max-width: 1200px) {
     main {
-      padding-left: 32px;
-      padding-right: 32px;
+      padding-left: 24px;
+      padding-right: 24px;
     }
     
-    .pricing-card.featured {
-      transform: scale(1.05);
+    .hero h1 {
+      font-size: 2.8rem;
     }
   }
 
-  /* Small screens (mobile) */
-  @media (max-width: 767px) {
+  @media (max-width: 768px) {
+    header {
+      padding: 0 20px;
+    }
+    
     nav {
       display: none;
     }
     
-    .logo-icon { 
-      width: 36px; 
-      height: 36px; 
+    .hero {
+      padding: 40px 20px;
     }
     
-    .hero h1 { 
-      font-size: 2rem; 
-    }
-    
-    .hero p { 
-      font-size: 1rem; 
-    }
-    
-    .btn {
-      width: 100%;
-      max-width: 300px;
-    }
-    
-    .hero-actions {
-      flex-direction: column;
-      align-items: center;
+    .hero h1 {
+      font-size: 2.2rem;
     }
     
     .pricing-cards,
@@ -1021,163 +1375,75 @@
       grid-template-columns: 1fr;
     }
     
-    .service-card {
-      padding: 20px;
+    .form-grid,
+    .form-grid-enhanced {
+      grid-template-columns: 1fr;
     }
     
-    .form-section { 
-      padding: 20px; 
+    .pricing-card.featured {
+      transform: none;
     }
     
-    .profile-hero {
-      padding: 30px 16px;
+    .tabs {
+      flex-direction: column;
     }
     
-    .profile-avatar-wrapper {
-      width: 80px;
-      height: 80px;
+    .hero-actions {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
     }
     
     .profile-stats {
-      gap: 16px;
-    }
-    
-    .stat-item {
-      min-width: 70px;
-    }
-    
-    .stat-value {
-      font-size: 1.5rem;
+      flex-direction: column;
+      gap: 20px;
     }
     
     .nav-tabs-enhanced {
-      padding: 0 16px;
+      flex-direction: column;
+      padding: 0;
     }
     
     .nav-tab.enhanced {
-      padding: 12px 16px;
-      font-size: 0.85rem;
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .category-tabs {
+      flex-direction: column;
+    }
+    
+    .certificate-preview {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    main {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    
+    .hero h1 {
+      font-size: 1.8rem;
+    }
+    
+    .modal-card {
+      padding: 24px;
+    }
+    
+    .profile-hero {
+      padding: 40px 20px;
     }
     
     .profile-tab-content {
-      padding: 16px;
-    }
-    
-    .content-card {
       padding: 20px;
     }
     
-    .modal-card {
-      padding: 20px;
-    }
-    
-    /* Adjust filter section for mobile */
-    .filter-row {
-      flex-direction: column;
-    }
-    
-    .filter-row select {
-      width: 100%;
-    }
-    
-    /* Service actions on mobile */
-    .service-actions {
-      flex-direction: column;
-    }
-    
-    .service-actions button {
-      width: 100%;
-    }
-    
-    /* Form actions on mobile */
-    .form-actions {
-      flex-direction: column;
-    }
-    
-    .form-actions button {
-      width: 100%;
-    }
-    
-    /* Hide some icons on very small screens */
-    @media (max-width: 480px) {
-      .logo-text { 
-        font-size: 1.2rem; 
-      }
-      
-      .hero h1 { 
-        font-size: 1.8rem; 
-      }
-      
-      .pricing-section h2 {
-        font-size: 1.8rem;
-      }
-      
-      .price { 
-        font-size: 2rem; 
-      }
-      
-      .service-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .nav-tab.enhanced span:not(.fa) {
-        display: none;
-      }
-      
-      .nav-tab.enhanced {
-        padding: 12px;
-      }
-      
-      .nav-tab.enhanced i {
-        margin: 0;
-        font-size: 1.1rem;
-      }
-    }
-  }
-
-  /* Very small screens */
-  @media (max-width: 360px) {
-    main {
-      padding-left: 12px;
-      padding-right: 12px;
-    }
-    
-    .hero {
-      padding: 30px 16px;
-    }
-    
-    .service-card {
-      padding: 16px;
-    }
-    
-    .pricing-card {
-      padding: 20px;
-    }
-  }
-
-  /* Landscape orientation fixes */
-  @media (max-height: 600px) and (orientation: landscape) {
-    .modal {
-      align-items: flex-start;
-      padding-top: 20px;
-      padding-bottom: 20px;
-    }
-    
-    .modal-card {
-      max-height: 80vh;
-    }
-  }
-
-  /* High-resolution screens */
-  @media (min-width: 1400px) {
-    .hero h1 { 
-      font-size: 4rem; 
-    }
-    
-    .pricing-section h2 {
-      font-size: 3rem;
+    .certificate-preview {
+      grid-template-columns: 1fr;
     }
   }
   </style>
@@ -1301,21 +1567,16 @@
 
       <!-- Browse Services Tab -->
       <div id="browseTab" class="tab-content">
-        <div class="filter-section">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; margin-bottom: 30px; align-items: end;">
           <div class="form-group" style="margin: 0;">
             <input type="text" id="serviceSearch" placeholder="Search services, categories, or providers..." 
-                   style="padding: 14px; border-radius: 10px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); width: 100%;">
+                   style="padding: 16px 20px; border-radius: 12px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); width: 100%;">
           </div>
-          <div class="filter-row">
-            <select id="categoryFilter" style="padding: 14px; border-radius: 10px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); width: 100%;">
+          <div style="display: flex; gap: 12px;">
+            <select id="categoryFilter" style="padding: 16px; border-radius: 12px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); min-width: 160px;">
               <option value="">All Categories</option>
-              <option value="design">🎨 Design</option>
-              <option value="development">💻 Development</option>
-              <option value="marketing">📈 Marketing</option>
-              <option value="writing">✍️ Writing</option>
-              <option value="consulting">💼 Consulting</option>
             </select>
-            <select id="sortFilter" style="padding: 14px; border-radius: 10px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); width: 100%;">
+            <select id="sortFilter" style="padding: 16px; border-radius: 12px; background: var(--card-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-light); min-width: 160px;">
               <option value="newest">Newest First</option>
               <option value="price_low">Price: Low to High</option>
               <option value="price_high">Price: High to Low</option>
@@ -1326,95 +1587,6 @@
         
         <div id="servicesList" class="services-grid">
           <!-- Services will be loaded here -->
-          <div class="service-card">
-            <div class="service-header">
-              <h3 class="service-title">Web Design & Development</h3>
-              <div class="service-price">$500+</div>
-            </div>
-            <div class="service-provider-info">
-              <div class="profile-picture-wrapper">
-                <div class="provider-initials">JD</div>
-              </div>
-              <div class="provider-info">
-                <div class="service-provider-name">John Designer</div>
-                <div class="service-rating">
-                  <div class="stars">
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star-half-alt"></i>
-                  </div>
-                  <span class="rating-count">(4.7 • 128 reviews)</span>
-                </div>
-              </div>
-            </div>
-            <div class="description-container">
-              <p class="service-description">Professional website design and development services. I create responsive, modern websites that work perfectly on all devices. Specializing in React, Vue.js, and modern CSS frameworks.</p>
-              <button class="see-more-btn">
-                <span>See more</span>
-                <i class="fas fa-chevron-down"></i>
-              </button>
-            </div>
-            <div class="service-tags">
-              <span class="tag">Web Design</span>
-              <span class="tag">React</span>
-              <span class="tag">Responsive</span>
-            </div>
-            <div class="service-actions">
-              <button class="chat-btn">
-                <i class="fas fa-comment"></i> Chat Now
-              </button>
-              <button class="profile-btn">
-                <i class="fas fa-user"></i> View Profile
-              </button>
-            </div>
-          </div>
-
-          <div class="service-card">
-            <div class="service-header">
-              <h3 class="service-title">Digital Marketing Strategy</h3>
-              <div class="service-price">$1,200</div>
-            </div>
-            <div class="service-provider-info">
-              <div class="profile-picture-wrapper">
-                <div class="provider-initials">MS</div>
-              </div>
-              <div class="provider-info">
-                <div class="service-provider-name">Marketing Specialist</div>
-                <div class="service-rating">
-                  <div class="stars">
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i>
-                  </div>
-                  <span class="rating-count">(5.0 • 89 reviews)</span>
-                </div>
-              </div>
-            </div>
-            <div class="description-container">
-              <p class="service-description">Comprehensive digital marketing strategy development. Includes SEO, social media, email marketing, and PPC campaign planning. Get a customized marketing plan for your business.</p>
-              <button class="see-more-btn">
-                <span>See more</span>
-                <i class="fas fa-chevron-down"></i>
-              </button>
-            </div>
-            <div class="service-tags">
-              <span class="tag">Marketing</span>
-              <span class="tag">SEO</span>
-              <span class="tag">Strategy</span>
-            </div>
-            <div class="service-actions">
-              <button class="chat-btn">
-                <i class="fas fa-comment"></i> Chat Now
-              </button>
-              <button class="profile-btn">
-                <i class="fas fa-user"></i> View Profile
-              </button>
-            </div>
-          </div>
         </div>
         
         <div id="noServices" style="display: none; text-align: center; padding: 80px 20px; color: var(--text-gray);">
@@ -1484,24 +1656,111 @@
             <input type="text" id="serviceTitle" required>
           </div>
           
+          <!-- Enhanced Category Selection Form -->
           <div class="form-group">
-            <label for="serviceCategory">Category *</label>
-            <select id="serviceCategory" required>
-              <option value="">Select a category</option>
-              <option value="design">🎨 Design</option>
-              <option value="development">💻 Development</option>
-              <option value="marketing">📈 Marketing</option>
-              <option value="writing">✍️ Writing</option>
-              <option value="coaching">🎯 Coaching</option>
-              <option value="consulting">💼 Consulting</option>
-              <option value="video">🎬 Video Production</option>
-              <option value="music">🎵 Music & Audio</option>
-              <option value="business">📊 Business</option>
-              <option value="other">🔧 Other</option>
-            </select>
+            <label for="categorySelection" class="form-label" style="display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-tag"></i> Service Category *
+            </label>
+            <div class="category-selection-wrapper">
+              
+              <!-- Category Selection Tabs -->
+              <div class="category-tabs">
+                <button type="button" class="category-tab-btn active" data-tab="existing">
+                  <i class="fas fa-list"></i> Choose Existing
+                </button>
+                <button type="button" class="category-tab-btn" data-tab="new">
+                  <i class="fas fa-plus-circle"></i> Create New
+                </button>
+              </div>
+              
+              <!-- Tab Content Container -->
+              <div class="category-tab-content">
+                
+                <!-- Existing Categories Tab -->
+                <div class="tab-pane active" id="existing-category-tab">
+                  <div class="category-select-enhanced">
+                    <div class="select-wrapper">
+                      <i class="fas fa-tag select-icon"></i>
+                      <select id="serviceCategory" class="category-select">
+                        <option value="">Browse categories...</option>
+                        <option value="design">🎨 Design</option>
+                        <option value="development">💻 Development</option>
+                        <option value="marketing">📈 Marketing</option>
+                        <option value="writing">✍️ Writing</option>
+                        <option value="coaching">🎯 Coaching</option>
+                        <option value="consulting">💼 Consulting</option>
+                        <option value="video">🎬 Video Production</option>
+                        <option value="music">🎵 Music & Audio</option>
+                        <option value="business">📊 Business</option>
+                        <option value="other">🔧 Other</option>
+                      </select>
+                      <i class="fas fa-chevron-down select-arrow"></i>
+                    </div>
+                    
+                    <!-- Popular Categories Quick Select -->
+                    <div class="popular-categories">
+                      <span style="display: block; color: var(--text-gray); font-size: 0.85rem; margin-bottom: 8px;">Popular:</span>
+                      <div class="category-chips">
+                        <span class="category-chip" data-value="design">🎨 Design</span>
+                        <span class="category-chip" data-value="development">💻 Development</span>
+                        <span class="category-chip" data-value="marketing">📈 Marketing</span>
+                        <span class="category-chip" data-value="writing">✍️ Writing</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- New Category Tab -->
+                <div class="tab-pane" id="new-category-tab">
+                  <div class="new-category-input">
+                    <div class="input-with-icon">
+                      <i class="fas fa-plus-circle input-icon"></i>
+                      <input 
+                        type="text" 
+                        id="newCategory" 
+                        class="category-input" 
+                        placeholder="Enter new category (e.g., AI Consulting, Social Media)"
+                        maxlength="50"
+                      />
+                      <div class="char-count">0/50</div>
+                    </div>
+                    
+                    <!-- Category Suggestions -->
+                    <div class="category-suggestions">
+                      <span style="display: block; color: var(--text-gray); font-size: 0.85rem; margin-bottom: 8px;">Suggestions:</span>
+                      <div class="category-chips">
+                        <span class="category-chip" data-text="AI Consulting">🤖 AI Consulting</span>
+                        <span class="category-chip" data-text="Social Media">📱 Social Media</span>
+                        <span class="category-chip" data-text="Data Analysis">📊 Data Analysis</span>
+                        <span class="category-chip" data-text="UX/UI Design">🎨 UX/UI Design</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
+              
+              <!-- Selected Category Display -->
+              <div class="selected-category-display hidden">
+                <div class="selected-category">
+                  <span style="color: var(--text-gray); font-size: 0.9rem; margin-right: 12px;">Selected:</span>
+                  <span class="category-badge">
+                    <i class="fas fa-tag"></i>
+                    <span id="selectedCategoryText">None</span>
+                    <button type="button" class="clear-category" aria-label="Clear category">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </span>
+                </div>
+              </div>
+              
+            </div>
+            <small style="display: flex; align-items: center; gap: 8px; color: var(--text-gray); font-size: 0.85rem; margin-top: 10px;">
+              <i class="fas fa-info-circle"></i> Category helps clients find your service
+            </small>
           </div>
           
-          <div class="form-group" style="grid-column: 1 / -1;">
+          <div class="form-group" style="grid-column: span 2;">
             <label for="serviceDescription">Description *</label>
             <textarea id="serviceDescription" required></textarea>
           </div>
@@ -1553,7 +1812,7 @@
             </div>
           </div>
           
-          <div id="profileBadge" class="profile-badge" style="background: var(--gradient-gold); color: #000; padding: 8px 20px; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+          <div id="profileBadge" class="profile-badge">
             <i class="fas fa-star"></i> Pro Freelancer
           </div>
           
@@ -1601,7 +1860,7 @@
 
       <!-- Profile View Tab -->
       <div id="profileViewTabContent" class="profile-tab-content">
-        <div>
+        <div style="display: grid; grid-template-columns: 1fr 400px; gap: 30px;">
           <!-- Main Content -->
           <div class="main-content">
             <!-- About Section -->
@@ -1619,9 +1878,7 @@
                 <i class="fas fa-tools" style="color: var(--accent-blue);"></i>
                 Skills & Expertise
               </h3>
-              <div id="profileSkills" class="skills-grid" style="display: flex; flex-wrap: wrap; gap: 12px;">
-                <!-- Skills will be loaded here -->
-              </div>
+              <div id="profileSkills" class="skills-grid"></div>
             </div>
             
             <!-- Certificates Section -->
@@ -1630,7 +1887,7 @@
                 <i class="fas fa-award" style="color: var(--accent-blue);"></i>
                 Certificates
               </h3>
-              <div id="profileCertificates" class="certificate-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+              <div id="profileCertificates" class="certificate-preview">
                 <!-- Certificate images will be loaded here -->
               </div>
             </div>
@@ -1674,19 +1931,19 @@
           <!-- Basic Information -->
           <div class="form-section-card">
             <h3 style="color: var(--text-light); margin-bottom: 20px;">Basic Information</h3>
-            <div class="form-grid-enhanced" style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="form-grid-enhanced">
               <div class="form-group-enhanced">
                 <label for="editHeadline" class="form-label">Professional Headline</label>
-                <input type="text" id="editHeadline" class="form-input-enhanced" placeholder="e.g., Senior Web Developer" style="width: 100%; padding: 14px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text-light);">
+                <input type="text" id="editHeadline" class="form-input-enhanced" placeholder="e.g., Senior Web Developer">
               </div>
               <div class="form-group-enhanced">
                 <label for="editHourlyRate" class="form-label">Hourly Rate (USD)</label>
-                <input type="number" id="editHourlyRate" class="form-input-enhanced" placeholder="50" style="width: 100%; padding: 14px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text-light);">
+                <input type="number" id="editHourlyRate" class="form-input-enhanced" placeholder="50">
               </div>
             </div>
             <div class="form-group-enhanced">
               <label for="editDescription" class="form-label">About Me</label>
-              <textarea id="editDescription" class="form-textarea-enhanced" rows="4" placeholder="Describe your expertise..." style="width: 100%; padding: 14px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text-light); min-height: 120px;"></textarea>
+              <textarea id="editDescription" class="form-textarea-enhanced" rows="4" placeholder="Describe your expertise..."></textarea>
             </div>
           </div>
 
@@ -1695,17 +1952,54 @@
             <h3 style="color: var(--text-light); margin-bottom: 20px;">Skills & Expertise</h3>
             <div class="form-group-enhanced">
               <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                <input type="text" id="newSkill" class="form-input-enhanced" placeholder="Enter a skill" style="flex: 1; padding: 14px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text-light);">
+                <input type="text" id="newSkill" class="form-input-enhanced" placeholder="Enter a skill" style="flex: 1;">
                 <button type="button" id="addSkillBtn" class="btn btn-secondary">Add</button>
               </div>
-              <div id="skillsList" class="skills-grid" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <!-- Skills will be loaded here -->
+              <div id="skillsList" class="skills-grid"></div>
+            </div>
+          </div>
+          
+          <!-- Certificate Upload Section -->
+          <div class="form-section-card">
+            <h3 style="color: var(--text-light); margin-bottom: 20px;">Certificates & Credentials</h3>
+            <div class="certificate-uploader">
+              <div class="form-group-enhanced">
+                <label class="form-label">Upload Certificate Images</label>
+                <p style="color: var(--text-gray); margin-bottom: 15px; font-size: 0.9rem;">
+                  Upload images of your certificates, diplomas, or credentials. You can upload up to 5 images (JPG, PNG, max 5MB each).
+                </p>
+                
+                <div id="certificateUploadArea" class="upload-area">
+                  <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                  </div>
+                  <h4 style="color: var(--text-light); margin-bottom: 10px;">Drag & drop your certificate images here</h4>
+                  <p style="color: var(--text-gray); margin-bottom: 20px;">or click to browse files</p>
+                  <input type="file" id="certificateImagesInput" accept="image/*" multiple style="display: none;">
+                  <button type="button" id="browseCertificatesBtn" class="btn btn-secondary">
+                    <i class="fas fa-folder-open"></i> Browse Files
+                  </button>
+                </div>
+                
+                <div id="certificateProgress" style="display: none; margin-top: 20px;">
+                  <div style="color: var(--text-light); margin-bottom: 8px;">Uploading...</div>
+                  <div style="background: var(--secondary-dark); border-radius: 10px; overflow: hidden;">
+                    <div id="certificateProgressBar" style="height: 8px; background: var(--gradient-primary); width: 0%; transition: width 0.3s ease;"></div>
+                  </div>
+                  <div id="certificateProgressText" style="color: var(--text-gray); font-size: 0.9rem; margin-top: 8px;"></div>
+                </div>
+                
+                <div id="certificatePreview" class="certificate-preview" style="display: none;">
+                  <!-- Certificate previews will appear here -->
+                </div>
+                
+                <div id="certificateError" style="display: none; color: #ef4444; margin-top: 10px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;"></div>
               </div>
             </div>
           </div>
 
           <!-- Form Actions -->
-          <div class="form-actions-enhanced" style="display: flex; gap: 15px; justify-content: center; margin-top: 40px; flex-direction: column; align-items: center;">
+          <div class="form-actions-enhanced" style="display: flex; gap: 15px; justify-content: center; margin-top: 40px;">
             <button type="submit" class="btn btn-primary-large">
               <i class="fas fa-save"></i> Save Changes
             </button>
@@ -1829,7 +2123,7 @@
           <h3 style="margin:0 0 20px 0;color:var(--text-light)">Choose Your Role</h3>
           <p style="color: var(--text-gray); margin-bottom: 40px;">How would you like to use our platform?</p>
           
-          <div class="role-selection-grid">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
             <div class="role-option" onclick="selectRole('client')">
               <div style="font-size: 3rem; margin-bottom: 20px; color: var(--accent-blue);">👤</div>
               <h4 style="color: var(--text-light); margin-bottom: 12px;">Client</h4>
@@ -1865,7 +2159,6 @@
     </div>
   </main>
 
- <script src="service.js"></script>
+  <script src="service.js"></script>
 </body>
 </html>
- 

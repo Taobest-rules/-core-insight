@@ -1387,7 +1387,7 @@ app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) =>
       tx_ref: `service-product-${productId}-${Date.now()}`,
       amount: product.price,
       currency: "USD",
-      redirect_url: `http://localhost:${PORT}/services-payment-callback.html`,
+      redirect_url: `https://core-insight-7.onrender.com:${PORT}/services-payment-callback.html`,
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,

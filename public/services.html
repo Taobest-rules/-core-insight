@@ -1446,37 +1446,451 @@
       grid-template-columns: 1fr;
     }
   }
+  /* Enhanced Mobile Navigation */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav {
+    display: none;
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    right: 0;
+    background: var(--secondary-dark);
+    backdrop-filter: blur(20px);
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mobile-nav.open {
+    display: block;
+}
+
+.mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    color: var(--text-gray);
+    text-decoration: none;
+    border-radius: 12px;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--text-light);
+}
+
+.mobile-nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Mobile Header Actions */
+.header-actions-mobile {
+    display: none;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.header-actions-mobile .auth-btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+}
+
+/* Mobile Hero Adjustments */
+@media (max-width: 768px) {
+    .hero {
+        padding: 40px 20px !important;
+        margin-bottom: 40px;
+    }
+
+    .hero h1 {
+        font-size: 2rem !important;
+        line-height: 1.3;
+        margin-bottom: 16px;
+    }
+
+    .hero p {
+        font-size: 1rem !important;
+        margin-bottom: 30px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        padding: 14px 20px;
+    }
+
+    /* Services Grid Mobile Fix */
+    .services-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .service-card {
+        padding: 24px !important;
+        margin-bottom: 0;
+    }
+
+    .service-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .service-price {
+        align-self: flex-start;
+    }
+
+    .service-provider-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+    }
+
+    .provider-info {
+        width: 100%;
+    }
+
+    .service-tags {
+        margin: 16px 0;
+    }
+
+    .service-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .service-actions button {
+        width: 100%;
+    }
+
+    /* Pricing Cards Mobile */
+    .pricing-cards {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .pricing-card {
+        padding: 30px 20px !important;
+    }
+
+    .pricing-card.featured {
+        transform: none !important;
+    }
+
+    /* Form Sections Mobile */
+    .form-section {
+        padding: 30px 20px !important;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .form-group[style*="grid-column: span 2"] {
+        grid-column: span 1 !important;
+    }
+
+    /* Header Mobile */
+    header {
+        padding: 0 16px !important;
+        height: 70px;
+    }
+
+    .logo-text {
+        font-size: 1.4rem;
+    }
+
+    .logo-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    nav {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    .header-actions {
+        display: none;
+    }
+
+    .header-actions-mobile {
+        display: flex;
+    }
+
+    /* Main Content */
+    main {
+        padding-top: 90px;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Category Tabs Mobile */
+    .category-tabs {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .category-tab-btn {
+        padding: 12px 16px;
+    }
+
+    /* Search & Filter Mobile */
+    #browseTab > div:first-child {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    #browseTab > div:first-child > div:last-child {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    #browseTab select {
+        width: 100%;
+    }
+
+    /* Profile Mobile */
+    .profile-tab-content {
+        padding: 20px !important;
+    }
+
+    .profile-tab-content > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .nav-tabs-enhanced {
+        flex-direction: column;
+        padding: 0 !important;
+    }
+
+    .nav-tab.enhanced {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .profile-stats {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Modal Mobile */
+    .modal-card {
+        padding: 24px !important;
+        margin: 16px;
+    }
+
+    .role-option {
+        padding: 20px !important;
+    }
+
+    .role-option ul {
+        padding-left: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 1.8rem !important;
+    }
+
+    .pricing-section h2 {
+        font-size: 1.8rem;
+    }
+
+    .price {
+        font-size: 2.5rem !important;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .certificate-preview {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-section-card {
+        padding: 20px !important;
+    }
+
+    .form-grid-enhanced {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .pricing-cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .pricing-card.featured {
+        transform: none;
+    }
+
+    nav {
+        gap: 20px;
+    }
+
+    nav a {
+        font-size: 0.95rem;
+    }
+
+    .hero h1 {
+        font-size: 2.5rem !important;
+    }
+}
+
+/* Ensure desktop navigation is visible */
+@media (min-width: 769px) {
+    .mobile-menu-toggle {
+        display: none;
+    }
+
+    .mobile-nav {
+        display: none;
+    }
+
+    nav {
+        display: flex !important;
+    }
+
+    .header-actions {
+        display: flex !important;
+    }
+
+    .header-actions-mobile {
+        display: none !important;
+    }
+}
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header>
+<!-- Header -->
+<header>
     <div class="logo">
-      <div class="logo-icon"><i class="fas fa-lightbulb"></i></div>
-      <div class="logo-text">Core Insight</div>
+        <div class="logo-icon"><i class="fas fa-lightbulb"></i></div>
+        <div class="logo-text">Core Insight</div>
     </div>
 
+    <!-- Desktop Navigation -->
     <nav>
-      <a href="index.html">Home</a>
-      <a href="knowledge-hub.html">Knowledge Hub</a>
-      <a href="services.html" class="active">Services</a>
-      <a href="courses.html">Courses</a>
-      <a href="products.html">Products</a>
+        <a href="index.html">Home</a>
+        <a href="knowledge-hub.html">Knowledge Hub</a>
+        <a href="services.html" class="active">Services</a>
+        <a href="courses.html">Courses</a>
+        <a href="products.html">Products</a>
     </nav>
 
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <div class="header-actions">
-      <div id="headerAuthButtons">
-        <button id="loginOpen" class="auth-btn">Login</button>
-        <button id="signupOpen" class="auth-btn signup">Sign Up</button>
-      </div>
-      <div id="freelancerQuickActions" class="hidden">
-        <button class="auth-btn" onclick="switchTab('profile')">
-          <i class="fas fa-user"></i> Profile
-        </button>
-      </div>
+        <div id="headerAuthButtons">
+            <button id="loginOpen" class="auth-btn">Login</button>
+            <button id="signupOpen" class="auth-btn signup">Sign Up</button>
+        </div>
+        <div id="freelancerQuickActions" class="hidden">
+            <button class="auth-btn" onclick="switchTab('profile')">
+                <i class="fas fa-user"></i> Profile
+            </button>
+        </div>
     </div>
-  </header>
-  
+</header>
+
+<!-- Mobile Navigation -->
+<div class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-links">
+        <a href="index.html" class="mobile-nav-link">
+            <i class="fas fa-home"></i> Home
+        </a>
+        <a href="knowledge-hub.html" class="mobile-nav-link">
+            <i class="fas fa-book"></i> Knowledge Hub
+        </a>
+        <a href="services.html" class="mobile-nav-link active">
+            <i class="fas fa-briefcase"></i> Services
+        </a>
+        <a href="courses.html" class="mobile-nav-link">
+            <i class="fas fa-graduation-cap"></i> Courses
+        </a>
+        <a href="products.html" class="mobile-nav-link">
+            <i class="fas fa-box"></i> Products
+        </a>
+    </div>
+    
+    <!-- Mobile Header Actions -->
+    <div class="header-actions-mobile">
+        <div id="mobileAuthButtons">
+            <button id="mobileLoginOpen" class="auth-btn">Login</button>
+            <button id="mobileSignupOpen" class="auth-btn signup">Sign Up</button>
+        </div>
+    </div>
+</div>
   <main>
     <!-- Hero Section -->
     <section class="hero">
@@ -2160,5 +2574,6 @@
   </main>
 
   <script src="service.js"></script>
+  <script src="mobile-nav.js"></script>
 </body>
 </html>

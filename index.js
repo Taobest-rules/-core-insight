@@ -41,6 +41,19 @@ try {
     console.error("❌ Flutterwave initialization failed:", error.message);
 }
 
+// ========================= PAYSTACK SETUP =========================
+let paystackInitialized = false;
+try {
+    if (process.env.PAYSTACK_SECRET_KEY) {
+        paystackInitialized = true;
+        console.log("✅ Paystack initialized successfully");
+    } else {
+        console.warn("⚠️ Paystack secret key missing in environment variables");
+    }
+} catch (error) {
+    console.error("❌ Paystack initialization failed:", error.message);
+}
+
 // ========================= BIGINT SERIALIZATION FIX =========================
 BigInt.prototype.toJSON = function() {
     return this.toString();
@@ -121,22 +134,39 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-
 // Create uploads directory
 const uploadDir = "uploads/courses";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("✅ Created uploads directory");
+  console.log("✅ Created uploads directory:", uploadDir);
 }
 
 // ========================= MULTER CONFIG =========================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // All files go to same directory
+  },
+  filename: (req, file, cb) => {
+    // Create unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .substring(0, 50); // Limit length
+    
+    const filename = `${uniqueSuffix}-${baseName}${ext}`;
+    console.log(`📄 Generated filename: ${filename} for ${file.fieldname}`);
+    cb(null, filename);
+  }
 });
 
-const upload = multer({ storage });
-
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+    files: 2 // Max 2 files (course + thumbnail)
+  }
+});
 // ========================= COURSE ACCESS MIDDLEWARE =========================
 const checkCourseAccess = async (req, res, next) => {
   if (!req.session.user) {
@@ -247,7 +277,8 @@ app.post("/api/signup", async (req, res) => {
     );
 
     // Send verification email
-    const verifyLink = `http://localhost:${PORT}/api/verify/${verifyToken}`;
+    const verifyLink = `https://core-insight-7.onrender.com/api/verify/${verifyToken}
+}`;
     await transporter.sendMail({
       to: email,
       subject: "Verify your Core Insight account",
@@ -402,7 +433,8 @@ app.post("/api/forgot-password", async (req, res) => {
 
     // Send the email only if a row was updated
     if (result.affectedRows > 0) {
-      const resetLink = `http://localhost:${PORT}/reset-password.html?token=${token}`;
+      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}
+`;
 
       await transporter.sendMail({
         from: `"Core Insight" <${process.env.EMAIL_USER}>`,
@@ -599,148 +631,514 @@ app.post('/api/send-complaint', async (req, res) => {
   }
 });
 // ========================= COURSES =========================
-// Upload course
-app.post("/api/courses", upload.single("file"), async (req, res) => {
+// ========================= UPLOAD COURSE ROUTE =========================
+app.post("/api/courses", upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'thumbnail', maxCount: 1 }
+]), async (req, res) => {
   console.log("📤 Upload attempt by:", req.session.user?.username);
+  console.log("📁 Files received:", req.files);
+  console.log("📝 Form data:", req.body);
   
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to upload courses" });
   }
 
-  if (!req.file) {
-    return res.status(400).json({ error: "File is required" });
+  // Check both files exist
+  if (!req.files || !req.files['file'] || req.files['file'].length === 0) {
+    return res.status(400).json({ error: "Course file is required" });
+  }
+  
+  if (!req.files['thumbnail'] || req.files['thumbnail'].length === 0) {
+    return res.status(400).json({ error: "Thumbnail image is required" });
   }
 
   try {
-    const { title, description, price, author } = req.body; // Added 'author'
+    const { 
+      title, 
+      description, 
+      price, 
+      author, 
+      content_type = 'book'
+    } = req.body;
+    
     const user = req.session.user;
     
-    if (!title) {
+    if (!title || title.trim() === '') {
       return res.status(400).json({ error: "Title is required" });
     }
 
-    // Determine price based on user role
+    // Get file objects
+    const courseFile = req.files['file'][0];
+    const thumbnailFile = req.files['thumbnail'][0];
+    
+    // Store just the filenames
+    const courseFilename = courseFile.filename;
+    const thumbnailFilename = thumbnailFile.filename;
+    
+    console.log("📄 Course filename:", courseFilename);
+    console.log("🖼️ Thumbnail filename:", thumbnailFilename);
+    console.log("📁 Full paths - Course:", courseFile.path, "Thumbnail:", thumbnailFile.path);
+
+    // ==================== CONTENT TYPE LOGIC ====================
     let finalPrice = 0;
     let bookType = 'free';
+    let finalContentType = 'book';
     
-    // Only admin can set prices
+    // Content type validation
+    const validContentTypes = ['book', 'video', 'document', 'presentation'];
+    if (validContentTypes.includes(content_type)) {
+      finalContentType = content_type;
+    }
+    
+    // Price logic - only admin can set prices
     if (user.role === 'admin' && price && parseFloat(price) > 0) {
       finalPrice = parseFloat(price);
       bookType = 'paid';
     }
-
+    
+    // Auto-detect video files
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv'];
+    const fileExtension = path.extname(courseFile.originalname).toLowerCase();
+    const isVideoFile = videoExtensions.includes(fileExtension);
+    
+    // Override content type if file is a video
+    if (isVideoFile) {
+      console.log("🎥 Auto-detected video file");
+      finalContentType = 'video';
+    }
+    
     // Handle optional author field
     const finalAuthor = author && author.trim() !== '' ? author.trim() : null;
 
-    // Insert into database
+    // ==================== DATABASE INSERTION ====================
     const result = await db.query(
-      `INSERT INTO courses (title, description, file_path, price, type, user_id, author) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, req.file.path, finalPrice, bookType, user.id, finalAuthor] // Use finalAuthor
+      `INSERT INTO courses (
+        title, 
+        description, 
+        file_path, 
+        thumbnail_path, 
+        price, 
+        type, 
+        user_id, 
+        author, 
+        content_type,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        title.trim(), 
+        description ? description.trim() : '', 
+        courseFilename,
+        thumbnailFilename,
+        finalPrice, 
+        bookType, 
+        user.id, 
+        finalAuthor, 
+        finalContentType
+      ]
     );
 
-    console.log("✅ Course uploaded successfully:", title);
-    
-    const responseData = {
-      message: "Course uploaded successfully!",
-      courseId: Number(result.insertId),
+    const courseId = Number(result.insertId);
+    console.log("✅ Course uploaded successfully!");
+    console.log("📊 Details:", {
+      id: courseId,
       title: title,
       price: finalPrice,
-      type: bookType
+      type: bookType,
+      content_type: finalContentType,
+      thumbnail_filename: thumbnailFilename
+    });
+    
+    // ==================== RESPONSE DATA ====================
+    const responseData = {
+      message: "Content uploaded successfully!",
+      courseId: courseId,
+      title: title,
+      price: finalPrice,
+      type: bookType,
+      content_type: finalContentType,
+      thumbnail_url: `/uploads/${thumbnailFilename}`,
+      download_url: `/api/download/${courseId}`
     };
     
+    console.log("📤 Response data:", responseData);
     res.json(responseData);
     
   } catch (err) {
     console.error("❌ Upload error:", err);
-    res.status(500).json({ error: "Error uploading course: " + err.message });
+    
+    // Detailed error logging
+    if (err.code === 'ER_NO_SUCH_TABLE') {
+      console.error("Database table 'courses' does not exist!");
+    } else if (err.code === 'ER_BAD_FIELD_ERROR') {
+      console.error("Database column error:", err.message);
+    }
+    
+    res.status(500).json({ 
+      error: "Error uploading content", 
+      details: err.message
+    });
   }
 });
-// Get all courses
+// ========================= GET ALL COURSES ROUTE =========================
 app.get("/api/courses", async (req, res) => {
   try {
+    console.log("📥 Fetching all courses...");
+    
     const courses = await db.query(`
-      SELECT c.*, u.username as author_name 
+      SELECT 
+        c.*, 
+        u.username as author_name
       FROM courses c 
       LEFT JOIN users u ON c.user_id = u.id 
       ORDER BY c.created_at DESC
     `);
     
-    // Convert any BigInt values to regular numbers
-    const safeCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
+    console.log(`📚 Found ${courses.length} courses`);
+    
+    // Process courses and add URLs
+    const processedCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
+      // Convert BigInt to Number
       if (course.id && typeof course.id === 'bigint') {
         course.id = Number(course.id);
       }
       if (course.user_id && typeof course.user_id === 'bigint') {
         course.user_id = Number(course.user_id);
       }
+      
+      // ========== FIXED: THUMBNAIL URL GENERATION ==========
+      if (course.thumbnail_path) {
+        console.log(`🔄 Processing thumbnail path for "${course.title}": ${course.thumbnail_path}`);
+        
+        // Start with the stored path
+        let thumbnailPath = course.thumbnail_path;
+        
+        // CASE 1: If path is just a filename (no directory)
+        if (!thumbnailPath.includes('/') && !thumbnailPath.includes('\\')) {
+          // Just a filename, so prepend "uploads/courses/"
+          course.thumbnail_url = `/uploads/courses/${thumbnailPath}`;
+        }
+        // CASE 2: If path already has "uploads/courses/" but maybe duplicated
+        else if (thumbnailPath.includes('uploads/courses/')) {
+          // Remove any duplicate "uploads/courses/uploads/courses/"
+          thumbnailPath = thumbnailPath.replace(/uploads\/courses\/uploads\/courses\//, 'uploads/courses/');
+          
+          // Make sure it starts with "uploads/courses/"
+          if (!thumbnailPath.startsWith('uploads/courses/')) {
+            thumbnailPath = `uploads/courses/${path.basename(thumbnailPath)}`;
+          }
+          
+          course.thumbnail_url = `/${thumbnailPath}`;
+        }
+        // CASE 3: If path has "uploads/uploads/courses/" (double uploads)
+        else if (thumbnailPath.includes('uploads/uploads/courses/')) {
+          thumbnailPath = thumbnailPath.replace('uploads/uploads/courses/', 'uploads/courses/');
+          course.thumbnail_url = `/${thumbnailPath}`;
+        }
+        // CASE 4: If path is relative or has some other structure
+        else {
+          // Extract just the filename
+          const filename = path.basename(thumbnailPath);
+          course.thumbnail_url = `/uploads/courses/${filename}`;
+        }
+        
+        console.log(`✅ Final thumbnail URL: ${course.thumbnail_url}`);
+      } else {
+        console.log(`⚠️ No thumbnail_path for ${course.title}`);
+        course.thumbnail_url = null;
+      }
+      
+      // ========== FIXED: FILE URL GENERATION (similar logic) ==========
+      if (course.file_path) {
+        let filePath = course.file_path;
+        
+        // Apply similar logic for file paths
+        if (!filePath.includes('/') && !filePath.includes('\\')) {
+          // Just filename, prepend directory
+          course.file_url = `/uploads/courses/${filePath}`;
+        } else if (filePath.includes('uploads/courses/')) {
+          filePath = filePath.replace(/uploads\/courses\/uploads\/courses\//, 'uploads/courses/');
+          if (!filePath.startsWith('uploads/courses/')) {
+            filePath = `uploads/courses/${path.basename(filePath)}`;
+          }
+          course.file_url = `/${filePath}`;
+        } else if (filePath.includes('uploads/uploads/courses/')) {
+          filePath = filePath.replace('uploads/uploads/courses/', 'uploads/courses/');
+          course.file_url = `/${filePath}`;
+        } else {
+          const filename = path.basename(filePath);
+          course.file_url = `/uploads/courses/${filename}`;
+        }
+      }
+      
+      // Set download URL
+      course.download_url = `/api/download/${course.id}`;
+      
+      // Debug output
+      console.log(`📖 Course: ${course.title}`);
+      console.log(`   - Stored thumbnail_path: ${course.thumbnail_path}`);
+      console.log(`   - Generated thumbnail_url: ${course.thumbnail_url}`);
+      console.log(`   - Stored file_path: ${course.file_path}`);
+      console.log(`   - Generated file_url: ${course.file_url || course.download_url}`);
+      
       return course;
     });
     
-    res.json(safeCourses);
+    res.json(processedCourses);
   } catch (err) {
     console.error("❌ Courses error:", err);
-    res.status(500).json({ error: "Error fetching courses" });
+    res.status(500).json({ 
+      error: "Error fetching courses", 
+      details: err.message
+    });
   }
 });
 
-// Download course with access control
-app.get("/api/download/:id", checkCourseAccess, async (req, res) => {
+// ========================= DOWNLOAD ENDPOINT =========================
+// ========================= DOWNLOAD ENDPOINT =========================
+app.get("/api/download/:id", async (req, res) => {
   try {
-    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [req.params.id]);
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to download files" });
+    }
     
+    const courseId = req.params.id;
+    console.log("📥 Download requested for course:", courseId);
+    
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     let course = null;
+    
     if (Array.isArray(courses) && courses.length > 0) {
       course = courses[0];
     } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
       course = courses[0][0];
     }
-
+    
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
-
+    
+    // ========== FIXED: Build correct file path ==========
+    let filePath = course.file_path;
+    
+    // Log the original path for debugging
+    console.log(`📁 Original file_path: ${filePath}`);
+    
+    // CASE 1: Just a filename
+    if (!filePath.includes('/') && !filePath.includes('\\')) {
+      filePath = path.join(__dirname, "uploads/courses", filePath);
+    }
+    // CASE 2: Already has full or relative path
+    else {
+      // Remove any duplicate prefixes
+      if (filePath.includes('uploads/uploads/courses/')) {
+        filePath = filePath.replace('uploads/uploads/courses/', '');
+      }
+      if (filePath.includes('uploads/courses/')) {
+        filePath = filePath.replace('uploads/courses/', '');
+      }
+      if (filePath.includes('uploads/')) {
+        filePath = filePath.replace('uploads/', '');
+      }
+      
+      // Now build the full path
+      filePath = path.join(__dirname, "uploads/courses", path.basename(filePath));
+    }
+    
+    console.log("📄 Looking for file at:", filePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error("❌ File not found at:", filePath);
+      
+      // Try alternative paths
+      const alternatives = [
+        path.join(__dirname, "uploads", path.basename(course.file_path)), // In root uploads
+        path.join(__dirname, "uploads/courses", path.basename(course.file_path)), // In courses
+        path.join(__dirname, course.file_path) // As absolute path
+      ];
+      
+      let found = false;
+      for (const altPath of alternatives) {
+        if (fs.existsSync(altPath)) {
+          console.log("✅ Found file at alternative location:", altPath);
+          filePath = altPath;
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        return res.status(404).json({ 
+          error: "File not found on server",
+          attemptedPath: filePath,
+          alternatives: alternatives
+        });
+      }
+    }
+    
     console.log("✅ Course download by:", req.session.user.username);
-    res.download(path.resolve(course.file_path));
+    console.log("📄 Downloading file from:", filePath);
+    
+    // Set filename for download
+    const safeFilename = encodeURIComponent(
+      course.title.replace(/[^a-zA-Z0-9._-]/g, '_') + path.extname(filePath)
+    );
+    
+    res.download(filePath, safeFilename);
     
   } catch (err) {
     console.error("❌ Download error:", err);
-    res.status(500).json({ error: "Error downloading course" });
+    res.status(500).json({ error: "Error downloading file", details: err.message });
   }
 });
 
-// Check course access
-app.get("/api/check-access/:courseId", async (req, res) => {
-  if (!req.session.user) {
-    return res.json({ hasAccess: false, message: "Please login first" });
-  }
-
+// ========================= CHECK ACCESS ENDPOINT =========================
+app.get("/api/check-access/:id", async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const userId = req.session.user.id;
-
-    const accessCheck = await db.query(
-      `SELECT c.*, uc.payment_status 
-       FROM courses c 
-       LEFT JOIN user_courses uc ON c.id = uc.course_id AND uc.user_id = ?
-       WHERE c.id = ? AND (c.price = 0 OR uc.payment_status = 'completed')`,
-      [userId, courseId]
-    );
-
-    let hasAccess = false;
-    if (Array.isArray(accessCheck) && accessCheck.length > 0) {
-      hasAccess = true;
-    } else if (accessCheck && accessCheck[0] && Array.isArray(accessCheck[0]) && accessCheck[0].length > 0) {
-      hasAccess = true;
+    if (!req.session.user) {
+      return res.json({ hasAccess: false, error: "Please login first" });
     }
-
-    res.json({ hasAccess: hasAccess });
+    
+    const courseId = req.params.id;
+    const userId = req.session.user.id;
+    
+    console.log("🔍 Checking access for user:", userId, "to course:", courseId);
+    
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    let course = null;
+    
+    if (Array.isArray(courses) && courses.length > 0) {
+      course = courses[0];
+    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
+      course = courses[0][0];
+    }
+    
+    if (!course) {
+      return res.json({ hasAccess: false, error: "Course not found" });
+    }
+    
+    // Check various access conditions
+    let hasAccess = false;
+    let reason = "";
+    
+    // Free content
+    if (course.price === 0 && course.type !== 'paid') {
+      hasAccess = true;
+      reason = "Content is free";
+    }
+    // User is admin
+    else if (req.session.user.role === 'admin') {
+      hasAccess = true;
+      reason = "User is admin";
+    }
+    // User is uploader
+    else if (req.session.user.id === course.user_id) {
+      hasAccess = true;
+      reason = "User is uploader";
+    }
+    // Check purchase
+    else {
+      const purchaseCheck = await db.query(
+        "SELECT * FROM purchases WHERE user_id = ? AND course_id = ? AND status = 'completed'",
+        [userId, courseId]
+      );
+      
+      const hasPurchased = purchaseCheck.length > 0 || 
+                          (purchaseCheck[0] && purchaseCheck[0].length > 0);
+      
+      if (hasPurchased) {
+        hasAccess = true;
+        reason = "User has purchased this content";
+      } else {
+        reason = "User has not purchased this content";
+      }
+    }
+    
+    console.log("🔓 Access check result:", { hasAccess, reason, userId, courseId });
+    
+    res.json({
+      hasAccess: hasAccess,
+      reason: reason,
+      course: {
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        type: course.type,
+        content_type: course.content_type
+      },
+      user: {
+        id: userId,
+        role: req.session.user.role,
+        isUploader: req.session.user.id === course.user_id
+      }
+    });
+    
   } catch (err) {
     console.error("❌ Access check error:", err);
-    res.status(500).json({ error: "Error checking access" });
+    res.status(500).json({ 
+      hasAccess: false, 
+      error: "Error checking access", 
+      details: err.message 
+    });
   }
 });
 
+// ========================= STATIC FILE SERVING =========================
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Debug endpoint to check uploads
+app.get("/api/debug/uploads", (req, res) => {
+  const uploadsDir = path.join(__dirname, "uploads");
+  
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      return res.json({ error: "Uploads directory doesn't exist", path: uploadsDir });
+    }
+    
+    const files = fs.readdirSync(uploadsDir);
+    const fileDetails = files.map(file => {
+      const filePath = path.join(uploadsDir, file);
+      const stats = fs.statSync(filePath);
+      return {
+        name: file,
+        size: stats.size,
+        isDirectory: stats.isDirectory(),
+        created: stats.birthtime,
+        url: `/uploads/${file}`
+      };
+    });
+    
+    res.json({
+      uploadsDirectory: uploadsDir,
+      files: fileDetails,
+      totalFiles: files.length,
+      note: "Files are accessible at /uploads/filename.ext"
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Error reading uploads directory", details: err.message });
+  }
+});
+
+// Add this route to your backend
+app.get('/api/currency-rates', (req, res) => {
+  const rates = {
+    NGN: 1,
+    USD: 0.0011,  // 1 NGN = 0.0011 USD
+    EUR: 0.0010,  // 1 NGN = 0.0010 EUR
+    GBP: 0.00085, // 1 NGN = 0.00085 GBP
+    KES: 0.15,    // 1 NGN = 0.15 KES
+    GHS: 0.013,   // 1 NGN = 0.013 GHS
+    ZAR: 0.021    // 1 NGN = 0.021 ZAR
+  };
+  
+  res.json({
+    base: 'NGN',
+    rates: rates,
+    timestamp: new Date().toISOString()
+  });
+});
 // ====== PRODUCT UPLOAD SETUP ======
 // Create products upload directory FIRST
 const productsUploadDir = path.join(__dirname, 'uploads', 'products');
@@ -2959,7 +3357,235 @@ app.get("/api/reviews/:productId", async (req, res) => {
   }
 });
 
-// ====== BUY PRODUCT ======
+// ====== PAYSTACK PAYMENT ROUTE ======
+app.post("/api/paystack/pay", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please log in to buy products." });
+  }
+
+  try {
+    const { productId } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({ error: "Product ID is required." });
+    }
+
+    /* =========================
+       1️⃣ FETCH PRODUCT
+    ========================= */
+    const [productRows] = await db.query(
+      "SELECT * FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (productRows.length === 0) {
+      return res.status(404).json({ error: "Product not found." });
+    }
+
+    const product = productRows[0];
+
+    if (!product.price || product.price <= 0) {
+      return res.status(400).json({ error: "Invalid product price." });
+    }
+
+    /* =========================
+       2️⃣ AFFILIATE PRODUCT
+    ========================= */
+    if (product.type === "affiliate" && product.affiliate_link) {
+      return res.json({
+        type: "affiliate",
+        link: product.affiliate_link
+      });
+    }
+
+    /* =========================
+       3️⃣ GET SELLER PAYSTACK SUBACCOUNT
+    ========================= */
+  // Get seller subaccount
+const [sellerRows] = await db.query(
+  "SELECT paystack_subaccount_code FROM sellers WHERE user_id = ?",
+  [product.user_id]
+);
+
+if (!sellerRows.length) {
+  return res.status(400).json({ error: "Seller payment account not set up" });
+}
+
+const sellerSubaccount = sellerRows[0].paystack_subaccount_code;
+
+const amountInKobo = Math.round(product.price * 100);
+const reference = `product-${product.id}-${Date.now()}`;
+
+const payload = {
+  email: req.session.user.email,
+  amount: amountInKobo,
+  currency: "NGN",
+  reference,
+  subaccount: sellerSubaccount,
+  transaction_charge: Math.round(amountInKobo * 0.10), // 10% platform fee
+  callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
+  metadata: {
+    product_id: product.id,
+    seller_id: product.user_id,
+    buyer_id: req.session.user.id,
+    type: "digital"
+  }
+};
+
+
+    /* =========================
+       4️⃣ PAYSTACK PAYMENT
+    ========================= */
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return res.status(500).json({
+        error: "Paystack not configured"
+      });
+    }
+
+   
+    
+   
+    console.log("💰 Paystack payload:", payload);
+
+    const response = await axios.post(
+      "https://api.paystack.co/transaction/initialize",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (response.data.status && response.data.data && response.data.data.authorization_url) {
+      /* =========================
+         5️⃣ SAVE PENDING ORDER
+      ========================= */
+      await db.query(
+        `INSERT INTO orders 
+         (user_id, product_id, tx_ref, amount, status, provider)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          req.session.user.id,
+          product.id,
+          reference,
+          product.price,
+          "pending",
+          "paystack"
+        ]
+      );
+
+      /* =========================
+         6️⃣ RETURN PAYMENT LINK
+      ========================= */
+      res.json({
+        type: "payment",
+        provider: "paystack",
+        authorization_url: response.data.data.authorization_url,
+        reference: reference,
+        access_code: response.data.data.access_code
+      });
+    } else {
+      throw new Error(response.data.message || "Paystack payment initialization failed");
+    }
+
+  } catch (err) {
+    console.error("❌ Paystack payment error:", err);
+    res.status(500).json({
+      error: "Payment initialization failed: " + (err.message || "Unknown error")
+    });
+  }
+});
+app.post("/api/webhook/paystack", async (req, res) => {
+  try {
+    const hash = crypto
+      .createHmac("sha512", process.env.PAYSTACK_WEBHOOK_SECRET)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+
+    if (hash !== req.headers["x-paystack-signature"]) {
+      console.warn("❌ Invalid Paystack webhook signature");
+      return res.sendStatus(401);
+    }
+
+    const event = req.body;
+
+    console.log("📩 Paystack Webhook:", event.event);
+
+    if (event.event !== "charge.success") {
+      return res.sendStatus(200);
+    }
+
+    const data = event.data;
+    const reference = data.reference;
+    const amount = data.amount / 100; // Kobo → Naira
+
+    /* =========================
+       1️⃣ FIND ORDER
+    ========================= */
+    const [orders] = await db.query(
+      "SELECT * FROM orders WHERE tx_ref = ?",
+      [reference]
+    );
+
+    if (orders.length === 0) {
+      console.warn("⚠️ Order not found:", reference);
+      return res.sendStatus(200);
+    }
+
+    const order = orders[0];
+
+    if (order.status === "completed") {
+      console.log("🔁 Order already completed:", reference);
+      return res.sendStatus(200);
+    }
+
+    /* =========================
+       2️⃣ VERIFY AMOUNT
+    ========================= */
+    if (Number(order.amount) !== Number(amount)) {
+      console.error("❌ Amount mismatch:", {
+        expected: order.amount,
+        received: amount
+      });
+      return res.sendStatus(200);
+    }
+
+    /* =========================
+       3️⃣ COMPLETE ORDER
+    ========================= */
+    await db.query(
+      "UPDATE orders SET status='completed' WHERE id=?",
+      [order.id]
+    );
+
+    /* =========================
+       4️⃣ GRANT DIGITAL ACCESS
+    ========================= */
+    const [access] = await db.query(
+      "SELECT id FROM user_products WHERE user_id=? AND product_id=?",
+      [order.user_id, order.product_id]
+    );
+
+    if (access.length === 0) {
+      await db.query(
+        `INSERT INTO user_products (user_id, product_id, granted_at)
+         VALUES (?, ?, NOW())`,
+        [order.user_id, order.product_id]
+      );
+    }
+
+    console.log("✅ Paystack payment processed:", reference);
+
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error("❌ Paystack webhook error:", err);
+    res.sendStatus(500);
+  }
+});
+// ====== BUY PRODUCT (FLUTTERWAVE) - UPDATED TO SUPPORT BOTH ======
 app.post("/api/buy-product", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to buy products." });
@@ -2967,187 +3593,233 @@ app.post("/api/buy-product", async (req, res) => {
 
   try {
     const { productId } = req.body;
-    const axios = require('axios');
-    
-    console.log("🛒 Buy product request:", { 
-      productId, 
-      userId: req.session.user.id,
-      userEmail: req.session.user.email 
-    });
 
     if (!productId) {
       return res.status(400).json({ error: "Product ID is required." });
     }
 
-    // Get product
-    const productResult = await db.query("SELECT * FROM products WHERE id = ?", [productId]);
-    
-    let product;
-    if (Array.isArray(productResult) && productResult.length > 0) {
-      product = productResult[0];
-    } else if (productResult && productResult[0] && Array.isArray(productResult[0]) && productResult[0].length > 0) {
-      product = productResult[0][0];
-    } else {
+    /* =========================
+       1️⃣ FETCH PRODUCT
+    ========================= */
+    const [productRows] = await db.query(
+      "SELECT * FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (productRows.length === 0) {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    console.log("📦 Product found:", { 
-      id: product.id, 
-      title: product.title, 
-      price: product.price,
-      type: product.type,
-      seller_payment_provider: product.seller_payment_provider
-    });
+    const product = productRows[0];
 
-    // Validate product price
     if (!product.price || product.price <= 0) {
-      return res.status(400).json({ error: "Product price is invalid." });
+      return res.status(400).json({ error: "Invalid product price." });
     }
 
-    // For affiliate products, redirect directly
-    if (product.type === 'affiliate' || product.affiliate_link) {
-      console.log("🔗 Affiliate product - redirecting to:", product.affiliate_link);
-      return res.json({ 
-        link: product.affiliate_link,
-        type: 'affiliate' 
+    /* =========================
+       2️⃣ AFFILIATE PRODUCT
+    ========================= */
+    if (product.type === "affiliate" && product.affiliate_link) {
+      return res.json({
+        type: "affiliate",
+        link: product.affiliate_link
       });
     }
 
-    // Use the payment provider from the products table directly
-    const paymentProvider = product.seller_payment_provider || 'flutterwave';
-    console.log(`💰 Using payment provider: ${paymentProvider}`);
+  // Get seller subaccount
+const [sellerRows] = await db.query(
+  "SELECT subaccount_id FROM sellers WHERE user_id = ? AND provider = 'flutterwave'",
+  [product.user_id]
+);
 
-    let paymentLink;
+if (!sellerRows.length) {
+  return res.status(400).json({ error: "Seller has not set up payment account" });
+}
 
-    if (paymentProvider === 'flutterwave') {
-      // Flutterwave - Use USD (global)
-      if (!process.env.FLW_SECRET_KEY) {
-        console.error("❌ Flutterwave secret key not configured");
-        return res.status(500).json({ error: "Flutterwave payment gateway not configured." });
-      }
+const sellerSubaccountId = sellerRows[0].subaccount_id;
 
-      const payload = {
-        tx_ref: `product-${product.id}-${Date.now()}`,
-        amount: product.price,
-        currency: "USD",
-        redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
-        payment_options: "card, banktransfer, ussd, mobilemoney",
-        customer: {
-          email: req.session.user.email || `${req.session.user.username}@example.com`,
-          name: req.session.user.username,
-        },
-        customizations: {
-          title: "Core Insight Products",
-          description: `Payment for ${product.title}`,
-          logo: "https://via.placeholder.com/100x100?text=CI",
-        },
-        meta: {
-          product_id: product.id,
-          seller_id: product.user_id,
-          buyer_id: req.session.user.id,
-          product_type: product.type
-        },
-      };
+const payload = {
+  tx_ref: `product-${product.id}-${Date.now()}`,
+  amount: product.price,
+  currency: "USD",
+  redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+  customer: {
+    email: req.session.user.email,
+    name: req.session.user.username
+  },
+  subaccounts: [
+    {
+      id: sellerSubaccountId,
+      transaction_split_ratio: 90
+    }
+  ],
+  customizations: {
+    title: "Core Insight Marketplace",
+    description: `Payment for ${product.title}`
+  },
+  meta: {
+    product_id: product.id,
+    seller_id: product.user_id,
+    buyer_id: req.session.user.id,
+    type: "digital"
+  }
+};
 
-      console.log("💰 Flutterwave payload:", payload);
 
-      const response = await axios.post(
-        'https://api.flutterwave.com/v3/payments',
-        payload,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.FLW_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log("💰 Flutterwave response:", response.data);
-
-      if (response.data.status === 'success' && response.data.data && response.data.data.link) {
-        paymentLink = response.data.data.link;
-        console.log("✅ Flutterwave payment initialized successfully");
-      } else {
-        throw new Error(response.data.message || 'Flutterwave payment failed');
-      }
-
-    } else if (paymentProvider === 'paystack') {
-      // Paystack - Use NGN (Nigerian Naira) instead of USD
-      if (!process.env.PAYSTACK_SECRET_KEY) {
-        console.error("❌ Paystack secret key not configured");
-        return res.status(500).json({ error: "Paystack payment gateway not configured." });
-      }
-
-      // ✅ GET LIVE EXCHANGE RATE
-      const exchangeRate = await getLiveExchangeRate();
-      
-      const amountInNaira = Math.round(product.price * exchangeRate);
-      const amountInKobo = amountInNaira * 100;
-      
-      const payload = {
-        email: req.session.user.email || `${req.session.user.username}@example.com`,
-        amount: amountInKobo,
-        currency: "NGN",
-        reference: `product-${product.id}-${Date.now()}`,
-        callback_url: `http://localhost:${PORT}/payment-callback.html`,
-        metadata: {
-          product_id: product.id,
-          seller_id: product.user_id,
-          buyer_id: req.session.user.id,
-          product_type: product.type,
-          original_amount_usd: product.price,
-          exchange_rate: exchangeRate,
-          rate_timestamp: new Date().toISOString()
-        }
-      };
-
-      console.log("💰 Paystack payload:", payload);
-      console.log(`💱 Live currency conversion: $${product.price} USD → ₦${amountInNaira} NGN (Rate: ${exchangeRate})`);
-
-      const response = await axios.post(
-        'https://api.paystack.co/transaction/initialize',
-        payload,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log("💰 Paystack response:", response.data);
-
-      if (response.data.status && response.data.data && response.data.data.authorization_url) {
-        paymentLink = response.data.data.authorization_url;
-        console.log("✅ Paystack payment initialized successfully with NGN");
-      } else {
-        throw new Error(response.data.message || 'Paystack payment failed');
-      }
-    } else {
-      throw new Error(`Unsupported payment provider: ${paymentProvider}`);
+    /* =========================
+       4️⃣ FLUTTERWAVE PAYMENT
+    ========================= */
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({
+        error: "Flutterwave not configured"
+      });
     }
 
-    res.json({ 
-      link: paymentLink,
-      type: 'payment',
-      provider: paymentProvider,
-      currency: paymentProvider === 'paystack' ? 'NGN' : 'USD'
+   
+
+
+    const response = await axios.post(
+      "https://api.flutterwave.com/v3/payments",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (
+      response.data.status !== "success" ||
+      !response.data.data?.link
+    ) {
+      throw new Error("Flutterwave payment initialization failed");
+    }
+
+    /* =========================
+       5️⃣ SAVE PENDING ORDER
+    ========================= */
+    await db.query(
+      `INSERT INTO orders 
+       (user_id, product_id, tx_ref, amount, status, provider)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        req.session.user.id,
+        product.id,
+        txRef,
+        product.price,
+        "pending",
+        "flutterwave"
+      ]
+    );
+
+    /* =========================
+       6️⃣ RETURN PAYMENT LINK
+    ========================= */
+    res.json({
+      type: "payment",
+      provider: "flutterwave",
+      link: response.data.data.link
     });
 
   } catch (err) {
     console.error("❌ Buy product error:", err);
-    
-    if (err.response) {
-      console.error("❌ Payment API error details:", err.response.data);
-      res.status(500).json({ 
-        error: "Payment gateway error: " + (err.response.data.message || err.message) 
-      });
-    } else if (err.request) {
-      console.error("❌ Network error contacting payment gateway");
-      res.status(500).json({ error: "Network error contacting payment gateway." });
-    } else {
-      res.status(500).json({ error: "Error initiating payment: " + err.message });
+    res.status(500).json({
+      error: "Payment initialization failed"
+    });
+  }
+});
+
+app.post("/api/webhook/flutterwave", async (req, res) => {
+  try {
+    const secretHash = process.env.FLW_WEBHOOK_SECRET;
+    const signature = req.headers["verif-hash"];
+
+    // 🔐 Verify webhook signature
+    if (!signature || signature !== secretHash) {
+      console.warn("❌ Invalid Flutterwave webhook signature");
+      return res.status(401).send("Unauthorized");
     }
+
+    const payload = req.body;
+
+    console.log("📩 Flutterwave Webhook Received:", payload);
+
+    // Only handle successful payments
+    if (
+      payload.event !== "charge.completed" ||
+      payload.data.status !== "successful"
+    ) {
+      return res.sendStatus(200);
+    }
+
+    const txRef = payload.data.tx_ref;
+    const paidAmount = payload.data.amount;
+    const currency = payload.data.currency;
+
+    /* =========================
+       1️⃣ FIND ORDER
+    ========================= */
+    const [orderRows] = await db.query(
+      "SELECT * FROM orders WHERE tx_ref = ?",
+      [txRef]
+    );
+
+    if (orderRows.length === 0) {
+      console.warn("⚠️ Order not found:", txRef);
+      return res.sendStatus(200);
+    }
+
+    const order = orderRows[0];
+
+    // Prevent double processing
+    if (order.status === "completed") {
+      console.log("🔁 Order already completed:", txRef);
+      return res.sendStatus(200);
+    }
+
+    /* =========================
+       2️⃣ VERIFY AMOUNT
+    ========================= */
+    if (Number(order.amount) !== Number(paidAmount)) {
+      console.error("❌ Amount mismatch", {
+        expected: order.amount,
+        received: paidAmount
+      });
+      return res.sendStatus(200);
+    }
+
+    /* =========================
+       3️⃣ MARK ORDER COMPLETED
+    ========================= */
+    await db.query(
+      "UPDATE orders SET status = 'completed' WHERE id = ?",
+      [order.id]
+    );
+
+    /* =========================
+       4️⃣ GRANT PRODUCT ACCESS
+    ========================= */
+    const [existingAccess] = await db.query(
+      "SELECT id FROM user_products WHERE user_id = ? AND product_id = ?",
+      [order.user_id, order.product_id]
+    );
+
+    if (existingAccess.length === 0) {
+      await db.query(
+        `INSERT INTO user_products (user_id, product_id, granted_at)
+         VALUES (?, ?, NOW())`,
+        [order.user_id, order.product_id]
+      );
+    }
+
+    console.log("✅ Payment processed successfully:", txRef);
+
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error("❌ Webhook error:", err);
+    res.sendStatus(500);
   }
 });
 
@@ -4173,81 +4845,109 @@ app.get("/api/seller/me", async (req, res) => {
   }
 });
 
-app.post("/api/seller/subaccount", async (req, res) => {
+app.post("/api/seller/paystack-subaccount", async (req, res) => {
   if (!req.session.user)
     return res.status(401).json({ error: "Login required" });
 
-  const { business_name, email, account_number, bank_code, commission } = req.body;
+  const {
+    business_name,
+    bank_code,
+    account_number,
+    percentage_charge
+  } = req.body;
 
   try {
-    // Check if seller already exists
-    const [existing] = await db.query(
-      "SELECT * FROM sellers WHERE user_id = ?",
-      [req.session.user.id]
+    const response = await axios.post(
+      "https://api.paystack.co/subaccount",
+      {
+        business_name,
+        settlement_bank: bank_code,
+        account_number,
+        percentage_charge // 10
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
     );
 
-    if (existing.length > 0)
-      return res.status(400).json({ error: "You already created a seller account" });
+    const subaccountCode = response.data.data.subaccount_code;
 
-    // Create Flutterwave Subaccount
-    const response = await fetch("https://api.flutterwave.com/v3/subaccounts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-      },
-      body: JSON.stringify({
-        account_number,
-        business_name,
-        bank_code,
-        business_email: email,
-        split_type: "percentage",
-        split_value: commission,   // Platform commission %
-      }),
-    });
-
-    const result = await response.json();
-    if (result.status !== "success") {
-      return res.status(400).json({ error: "Failed to create subaccount" });
-    }
-
-    const subId = result.data.subaccount_id;
-
-    // Save in DB
     await db.query(
-      `INSERT INTO sellers 
-      (user_id, provider, subaccount_id, business_name, email, account_number, bank_code, commission)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        req.session.user.id,
-        "flutterwave",
-        subId,
-        business_name,
-        email,
-        account_number,
-        bank_code,
-        commission,
-      ]
+      `INSERT INTO sellers (user_id, provider, paystack_subaccount_code)
+       VALUES (?, 'paystack', ?)
+       ON DUPLICATE KEY UPDATE paystack_subaccount_code=?`,
+      [req.session.user.id, subaccountCode, subaccountCode]
     );
 
     res.json({
       success: true,
-      seller: {
-        provider: "flutterwave",
-        subaccount_id: subId,
-        business_name,
-        email,
-        account_number,
-        bank_code,
-        commission,
-      },
+      subaccount_code: subaccountCode
     });
 
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("❌ Paystack subaccount error:", err.response?.data || err);
+    res.status(500).json({ error: "Failed to create Paystack subaccount" });
   }
-  
 });
+app.post("/api/seller/flutterwave-subaccount", async (req, res) => {
+  if (!req.session.user)
+    return res.status(401).json({ error: "Login required" });
+
+  const {
+    business_name,
+    email,
+    account_number,
+    bank_code,
+  } = req.body;
+
+  try {
+    const response = await axios.post(
+      "https://api.flutterwave.com/v3/subaccounts",
+      {
+        business_name,
+        business_email: email,
+        account_number,
+        bank_code,
+        split_type: "percentage",
+        split_value: 10 // 🔥 PLATFORM COMMISSION
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (response.data.status !== "success") {
+      return res.status(400).json({ error: "Failed to create subaccount" });
+    }
+
+    const subaccountId = response.data.data.subaccount_id;
+
+    await db.query(
+      `INSERT INTO sellers 
+       (user_id, provider, subaccount_id)
+       VALUES (?, 'flutterwave', ?)
+       ON DUPLICATE KEY UPDATE subaccount_id=?`,
+      [req.session.user.id, subaccountId, subaccountId]
+    );
+
+    res.json({
+      success: true,
+      subaccount_id: subaccountId
+    });
+
+  } catch (err) {
+    console.error("❌ Flutterwave subaccount error:", err.response?.data || err);
+    res.status(500).json({ error: "Flutterwave subaccount creation failed" });
+  }
+});
+
+    
 // Add this test route to your index.js
 app.get("/api/test-payment-config", async (req, res) => {
   try {
@@ -4860,7 +5560,8 @@ app.post('/api/orders/create', async (req, res) => {
               <p>${country}</p>
             </div>
             
-            <p>You can track your order status at: <a href="http://localhost:${PORT}/order-tracking">Order Tracking</a></p>
+            <p>You can track your order status at: <a href="https://core-insight-7.onrender.com/order-tracking
+">Order Tracking</a></p>
             <p>Thank you for shopping with Core Insight!</p>
           </div>
         `

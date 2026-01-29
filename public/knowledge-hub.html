@@ -100,6 +100,10 @@
     }
 
     /* Navigation */
+    nav {
+      display: flex;
+    }
+
     nav ul {
       display: flex;
       list-style: none;
@@ -113,6 +117,7 @@
       padding: 8px 15px;
       border-radius: 6px;
       transition: var(--transition);
+      display: block;
     }
 
     nav a:hover {
@@ -529,6 +534,51 @@
       transform: scale(1.1);
     }
 
+    /* Download Progress Indicator */
+    .download-progress {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--study-green);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: var(--study-shadow);
+      z-index: 1001;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: slideInRight 0.3s ease;
+    }
+
+    .download-progress.active {
+      display: flex;
+    }
+
+    /* Direct Download Button */
+    .direct-download-btn {
+      position: absolute;
+      top: -40px;
+      right: 100px;
+      background: var(--study-accent);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .direct-download-btn:hover {
+      background: var(--study-accent-light);
+      transform: scale(1.1);
+    }
+
     /* Footer */
     footer {
       background-color: var(--study-white);
@@ -580,19 +630,26 @@
       }
       
       nav.active {
-        max-height: 300px;
+        max-height: 500px;
+        padding: 20px;
       }
       
       nav ul {
         flex-direction: column;
-        padding: 20px;
-        gap: 15px;
+        gap: 10px;
+        width: 100%;
       }
       
       nav a {
         display: block;
-        padding: 12px 15px;
+        padding: 12px 20px;
         border-radius: 6px;
+        text-align: center;
+        border: 1px solid var(--study-neutral-dark);
+      }
+      
+      nav a:hover {
+        background-color: rgba(74, 111, 165, 0.1);
       }
       
       .hero {
@@ -630,13 +687,27 @@
         grid-template-columns: 1fr;
       }
       
-      .close-viewer, .download-image {
+      .close-viewer, .download-image, .direct-download-btn {
         top: 10px;
+      }
+      
+      .close-viewer {
         right: 10px;
       }
       
       .download-image {
         right: 60px;
+      }
+      
+      .direct-download-btn {
+        right: 110px;
+      }
+      
+      .download-progress {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        justify-content: center;
       }
     }
 
@@ -660,6 +731,14 @@
       .article-content {
         padding: 20px;
       }
+      
+      .header-content {
+        flex-wrap: wrap;
+      }
+      
+      .direct-download-btn {
+        right: 110px;
+      }
     }
 
     /* Animations */
@@ -680,6 +759,17 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
       }
     }
 
@@ -731,6 +821,7 @@
           <li><a href="services.html">Services</a></li>
           <li><a href="courses.html">Courses</a></li>
           <li><a href="products.html">Products</a></li>
+          <li><a href="contact.html">Contact</a></li>
         </ul>
       </nav>
     </div>
@@ -746,7 +837,16 @@
       <button class="download-image" id="downloadImage">
         <i class="fas fa-download"></i>
       </button>
+      <button class="direct-download-btn" id="directDownloadBtn" title="Direct Download (Works on all devices)">
+        <i class="fas fa-file-download"></i>
+      </button>
     </div>
+  </div>
+
+  <!-- Download Progress Indicator -->
+  <div class="download-progress" id="downloadProgress">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>Downloading image...</span>
   </div>
 
   <div class="container">
@@ -826,7 +926,7 @@
           <div class="article-content">
             <h3>How AI is Changing the Future</h3>
             <p>Explore the impact of Artificial Intelligence across industries and how it's reshaping our world.</p>
-            <a href="al.html">Read More <i class="fas fa-arrow-right"></i></a>
+            <a href="ai.html">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
         <div class="article" data-article="freelancing">
@@ -842,14 +942,19 @@
           <div class="article-content">
             <h3>Creative Design Principles</h3>
             <p>Boost your design skills with modern approaches and techniques used by industry professionals.</p>
-            <a href="cdf.html">Read More <i class="fas fa-arrow-right"></i></a>
+            <a href="design.html">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
       </div>
     </section>
   </div>
 
- 
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>© 2025 Core Insight. All Rights Reserved.</p>
+    </div>
+  </footer>
 
   <script>
     // Sample data for search functionality
@@ -931,7 +1036,8 @@
       const mobileMenuBtn = document.getElementById('mobileMenuBtn');
       const mainNav = document.getElementById('mainNav');
       
-      mobileMenuBtn.addEventListener('click', function() {
+      mobileMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent event bubbling
         mainNav.classList.toggle('active');
         mobileMenuBtn.innerHTML = mainNav.classList.contains('active') 
           ? '<i class="fas fa-times"></i>' 
@@ -946,20 +1052,34 @@
         }
       });
 
+      // Close mobile menu when clicking a link
+      document.querySelectorAll('nav a').forEach(link => {
+        link.addEventListener('click', function() {
+          if (mainNav.classList.contains('active')) {
+            mainNav.classList.remove('active');
+            mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+          }
+        });
+      });
+
       // Image viewer functionality
       const imageViewer = document.getElementById('imageViewer');
       const enlargedImage = document.getElementById('enlargedImage');
       const closeViewer = document.getElementById('closeViewer');
       const downloadImage = document.getElementById('downloadImage');
+      const directDownloadBtn = document.getElementById('directDownloadBtn');
+      const downloadProgress = document.getElementById('downloadProgress');
       const mainLogo = document.getElementById('mainLogo');
       const logoViewer = document.getElementById('logoViewer');
       const articleImages = document.querySelectorAll('.article-image');
 
       // Open image viewer for logo
-      logoViewer.addEventListener('click', function() {
-        enlargedImage.src = mainLogo.src;
-        imageViewer.classList.add('active');
-        document.body.style.overflow = 'hidden';
+      logoViewer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('logo') || e.target.closest('.logo-container')) {
+          enlargedImage.src = mainLogo.src;
+          imageViewer.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
       });
 
       // Open image viewer for article images
@@ -977,6 +1097,14 @@
         document.body.style.overflow = 'auto';
       });
 
+      // Close viewer when clicking outside the image
+      imageViewer.addEventListener('click', function(e) {
+        if (e.target === imageViewer) {
+          imageViewer.classList.remove('active');
+          document.body.style.overflow = 'auto';
+        }
+      });
+
       // Close viewer with ESC key
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && imageViewer.classList.contains('active')) {
@@ -985,15 +1113,183 @@
         }
       });
 
-      // Download image
-      downloadImage.addEventListener('click', function() {
+      // ============ FIXED DIRECT DOWNLOAD FUNCTION ============
+      // This will trigger a real file download
+      directDownloadBtn.addEventListener('click', function() {
+        const imageUrl = enlargedImage.src;
+        const fileName = 'core-insight-logo.jpg';
+        
+        // Show download progress
+        downloadProgress.classList.add('active');
+        downloadProgress.querySelector('span').textContent = 'Starting download...';
+        
+        // Create a temporary anchor element
         const link = document.createElement('a');
-        link.href = enlargedImage.src;
-        link.download = 'core-insight-image.jpg';
+        link.href = imageUrl;
+        link.download = fileName;
+        
+        // Add to DOM
         document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        
+        // Trigger download
+        setTimeout(() => {
+          try {
+            link.click();
+            
+            // Show success message
+            setTimeout(() => {
+              downloadProgress.querySelector('span').textContent = 'Download started!';
+              downloadProgress.querySelector('i').className = 'fas fa-check';
+              downloadProgress.style.background = 'var(--study-green)';
+              
+              // Revert after 2 seconds
+              setTimeout(() => {
+                downloadProgress.classList.remove('active');
+                downloadProgress.querySelector('i').className = 'fas fa-spinner fa-spin';
+                downloadProgress.querySelector('span').textContent = 'Downloading image...';
+              }, 2000);
+            }, 500);
+            
+          } catch (error) {
+            console.error('Download error:', error);
+            
+            // Show error message with alternative
+            downloadProgress.querySelector('span').textContent = 'Right-click image and "Save Image As"';
+            downloadProgress.querySelector('i').className = 'fas fa-exclamation-triangle';
+            downloadProgress.style.background = '#e74c3c';
+            
+            // Revert after 3 seconds
+            setTimeout(() => {
+              downloadProgress.classList.remove('active');
+              downloadProgress.querySelector('i').className = 'fas fa-spinner fa-spin';
+              downloadProgress.querySelector('span').textContent = 'Downloading image...';
+              downloadProgress.style.background = 'var(--study-green)';
+            }, 3000);
+          } finally {
+            // Clean up
+            document.body.removeChild(link);
+          }
+        }, 100);
       });
+
+      // Alternative: Right-click context menu for logo
+      mainLogo.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        const contextMenu = document.createElement('div');
+        contextMenu.style.position = 'fixed';
+        contextMenu.style.background = 'white';
+        contextMenu.style.padding = '10px';
+        contextMenu.style.borderRadius = '8px';
+        contextMenu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        contextMenu.style.zIndex = '1001';
+        contextMenu.style.top = e.clientY + 'px';
+        contextMenu.style.left = e.clientX + 'px';
+        contextMenu.innerHTML = `
+          <div style="padding: 8px 12px; cursor: pointer; border-radius: 4px;"
+               onmouseover="this.style.background='#f0f0f0'"
+               onmouseout="this.style.background='transparent'"
+               onclick="downloadLogo()">
+            <i class="fas fa-download" style="margin-right: 8px;"></i> Download Logo
+          </div>
+        `;
+        document.body.appendChild(contextMenu);
+        
+        // Remove context menu on click
+        setTimeout(() => {
+          document.addEventListener('click', function removeMenu() {
+            document.body.removeChild(contextMenu);
+            document.removeEventListener('click', removeMenu);
+          });
+        }, 100);
+        
+        // Global function to download logo
+        window.downloadLogo = function() {
+          const link = document.createElement('a');
+          link.href = mainLogo.src;
+          link.download = 'core-insight-logo.jpg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+      });
+
+      // ============ ALSO ADD DIRECT LOGO DOWNLOAD ON HEADER CLICK ============
+      // Add a long-press or double-click for logo download
+      let logoClickTimer;
+      let logoClickCount = 0;
+      
+      logoViewer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('logo') || e.target.closest('.logo-container')) {
+          logoClickCount++;
+          
+          if (logoClickCount === 2) {
+            // Double-click to download
+            clearTimeout(logoClickTimer);
+            logoClickCount = 0;
+            downloadLogoDirectly();
+          } else {
+            // Single click for viewer
+            logoClickTimer = setTimeout(() => {
+              logoClickCount = 0;
+            }, 300);
+          }
+        }
+      });
+
+      // Function for direct logo download
+      function downloadLogoDirectly() {
+        const imageUrl = mainLogo.src;
+        const fileName = 'core-insight-logo.jpg';
+        
+        // Show download progress
+        downloadProgress.classList.add('active');
+        downloadProgress.querySelector('span').textContent = 'Starting download...';
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = fileName;
+        
+        // Add to page
+        document.body.appendChild(link);
+        
+        // Trigger download
+        setTimeout(() => {
+          try {
+            link.click();
+            
+            // Success feedback
+            setTimeout(() => {
+              downloadProgress.querySelector('span').textContent = 'Logo download started!';
+              downloadProgress.querySelector('i').className = 'fas fa-check';
+              downloadProgress.style.background = 'var(--study-green)';
+              
+              // Reset
+              setTimeout(() => {
+                downloadProgress.classList.remove('active');
+                downloadProgress.querySelector('i').className = 'fas fa-spinner fa-spin';
+                downloadProgress.querySelector('span').textContent = 'Downloading image...';
+              }, 2000);
+            }, 500);
+            
+          } catch (error) {
+            console.error('Download error:', error);
+            // Fallback: open in new tab
+            window.open(imageUrl, '_blank');
+            downloadProgress.querySelector('span').textContent = 'Opened in new tab. Save image from there.';
+            downloadProgress.querySelector('i').className = 'fas fa-external-link-alt';
+            
+            setTimeout(() => {
+              downloadProgress.classList.remove('active');
+              downloadProgress.querySelector('i').className = 'fas fa-spinner fa-spin';
+              downloadProgress.querySelector('span').textContent = 'Downloading image...';
+            }, 3000);
+          } finally {
+            // Clean up
+            document.body.removeChild(link);
+          }
+        }, 100);
+      }
 
       // Search functionality
       const searchInput = document.getElementById('searchInput');
@@ -1009,6 +1305,10 @@
         
         if (!searchTerm) {
           searchResults.classList.remove('active');
+          // Show all cards and articles
+          document.querySelectorAll('.card[data-category], .article[data-article]').forEach(el => {
+            el.style.display = '';
+          });
           return;
         }
 
@@ -1108,6 +1408,13 @@
 
         // Show search results
         searchResults.classList.add('active');
+        
+        // Scroll to search results on mobile
+        if (window.innerWidth <= 768) {
+          setTimeout(() => {
+            searchResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
       }
 
       // Search button click
@@ -1149,6 +1456,14 @@
       // Add animation to hero section
       const hero = document.querySelector('.hero');
       hero.style.animation = 'fadeInUp 0.6s ease forwards';
+
+      // Fix for mobile menu on window resize
+      window.addEventListener('resize', function() {
+        if (window.innerWidth > 768 && mainNav.classList.contains('active')) {
+          mainNav.classList.remove('active');
+          mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+      });
     });
   </script>
 </body>

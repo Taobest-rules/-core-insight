@@ -8,7 +8,7 @@ let currentSkills = [];
 let userSubscription = null;
 let activeConversationId = null;
 let activeConversationUserId = null;
- 
+
 // ========== UTILITY FUNCTIONS ==========
 const $ = (id) => document.getElementById(id);
 
@@ -87,10 +87,8 @@ function generateStars(rating) {
 
 // ========== TOAST NOTIFICATIONS ==========
 function showToast(message, type = 'info') {
-  // Remove existing toasts
   document.querySelectorAll('.custom-toast').forEach(toast => toast.remove());
   
-  // Create toast element
   const toast = document.createElement('div');
   toast.className = `custom-toast toast-${type}`;
   
@@ -105,7 +103,6 @@ function showToast(message, type = 'info') {
   
   document.body.appendChild(toast);
   
-  // Auto remove after 3 seconds
   setTimeout(() => {
     if (toast.parentNode) {
       toast.parentNode.removeChild(toast);
@@ -114,47 +111,28 @@ function showToast(message, type = 'info') {
 }
 
 // ========== PROFILE INITIALIZATION ==========
-// Move this to the top of your initialization section
 function initProfileSection() {
-  console.log("🔧 Initializing profile section...");
-  
-  // Check if profile elements exist
   const profileSection = document.getElementById('freelancerProfile');
   if (!profileSection) {
-    console.log("⚠️ Profile section not found in DOM");
     return;
   }
   
-  // Initialize profile event listeners
   initProfileEventListeners();
-  
-  // Initialize certificate upload
   initCertificateUpload();
-  
-  console.log("✅ Profile section initialized");
 }
 
-// Updated initProfileEventListeners function
 function initProfileEventListeners() {
-  console.log("🎯 Setting up profile event listeners...");
-  
-  // Profile picture upload
   const updatePhotoBtn = $('updatePhotoBtn');
   const profilePictureInput = $('profilePictureInput');
   
   if (updatePhotoBtn && profilePictureInput) {
-    console.log("📸 Found profile picture upload elements");
     updatePhotoBtn.addEventListener('click', () => {
-      console.log("📸 Update photo clicked");
       profilePictureInput.click();
     });
     
     profilePictureInput.addEventListener('change', handleProfilePictureUpload);
-  } else {
-    console.log("⚠️ Profile picture elements not found");
   }
   
-  // Navigation tabs
   const profileViewBtn = $('profileViewTabBtn');
   const profileEditBtn = $('profileEditTabBtn');
   const dashboardBtn = $('dashboardTabBtn');
@@ -173,7 +151,6 @@ function initProfileEventListeners() {
     myServicesBtn.addEventListener('click', switchToServicesTab);
   }
   
-  // Action buttons
   const editProfileBtn = $('editProfileBtn');
   const dashboardActionBtn = $('dashboardBtn');
   const shareProfileBtn = $('shareProfileBtn');
@@ -184,7 +161,6 @@ function initProfileEventListeners() {
   if (shareProfileBtn) shareProfileBtn.addEventListener('click', shareProfile);
   if (exportProfileBtn) exportProfileBtn.addEventListener('click', exportProfile);
   
-  // Edit form - Skills
   const addSkillBtn = $('addSkillBtn');
   const newSkillInput = $('newSkill');
   
@@ -201,7 +177,6 @@ function initProfileEventListeners() {
     });
   }
   
-  // Common skill buttons
   document.querySelectorAll('.common-skill-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const skill = e.target.getAttribute('data-skill');
@@ -209,7 +184,6 @@ function initProfileEventListeners() {
     });
   });
   
-  // Cancel edit button
   const cancelEditBtn = $('cancelEditBtn');
   if (cancelEditBtn) {
     cancelEditBtn.addEventListener('click', () => {
@@ -217,41 +191,30 @@ function initProfileEventListeners() {
     });
   }
   
-  // Profile form submission - SAFELY check for form
   setTimeout(() => {
     const profileForm = $('profileForm');
     if (profileForm) {
-      console.log("✅ Found profile form, adding submit listener");
       profileForm.addEventListener('submit', handleProfileFormSubmit);
     } else {
-      console.log("⚠️ Profile form not found yet, will retry");
-      // Try again after a delay
       setTimeout(() => {
         const profileFormRetry = $('profileForm');
         if (profileFormRetry) {
           profileFormRetry.addEventListener('submit', handleProfileFormSubmit);
-          console.log("✅ Added profile form listener on retry");
         }
       }, 1000);
     }
   }, 500);
-  
-  console.log("✅ Profile event listeners setup complete");
 }
 
-// Enhanced profile form submission handler with null checks
 async function handleProfileFormSubmit(e) {
   e.preventDefault();
-  console.log("📝 Profile form submitted");
   
   try {
-    // Get form elements with null checks
     const getElementValue = (id) => {
       const element = $(id);
       return element ? element.value : '';
     };
     
-    // Collect form data
     const profileUpdateData = {
       headline: getElementValue('editHeadline'),
       description: getElementValue('editDescription'),
@@ -266,7 +229,6 @@ async function handleProfileFormSubmit(e) {
       languages: getElementValue('editLanguages')
     };
     
-    // Get skills
     const skillTags = document.querySelectorAll('#skillsList .skill-tag');
     const skills = Array.from(skillTags).map(tag => {
       const text = tag.textContent || '';
@@ -277,9 +239,6 @@ async function handleProfileFormSubmit(e) {
       profileUpdateData.skills = JSON.stringify(skills);
     }
     
-    console.log("📦 Sending profile update data:", profileUpdateData);
-    
-    // Show loading state
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -300,24 +259,17 @@ async function handleProfileFormSubmit(e) {
       throw new Error(result.error || `HTTP ${response.status}: Failed to update profile`);
     }
     
-    console.log("✅ Profile updated successfully:", result);
-    
-    // Update local profile data
     freelancerProfile = { ...freelancerProfile, ...profileUpdateData };
     
-    // Switch back to view tab
     switchProfileTab('profileViewTabContent');
     
-    // Update the view immediately
     await updateProfileView();
     
     showToast('✅ Profile updated successfully!', 'success');
     
   } catch (error) {
-    console.error('❌ Error updating profile:', error);
     showToast('❌ Failed to update profile: ' + error.message, 'error');
   } finally {
-    // Reset button
     const submitBtn = e.target.querySelector('button[type="submit"]');
     if (submitBtn) {
       submitBtn.innerHTML = originalText || '<i class="fas fa-save"></i> Save Profile Changes';
@@ -326,7 +278,6 @@ async function handleProfileFormSubmit(e) {
   }
 }
 
-// Update profile view function
 async function updateProfileView() {
   try {
     const response = await fetch('/api/freelancer/profile', {
@@ -343,11 +294,9 @@ async function updateProfileView() {
   }
 }
 
-// Updated skill management functions
 function addNewSkill() {
   const newSkillInput = $('newSkill');
   if (!newSkillInput) {
-    console.error("❌ newSkillInput not found");
     return;
   }
   
@@ -365,11 +314,9 @@ function addNewSkill() {
 function addSkillToEdit(skill) {
   const skillsList = $('skillsList');
   if (!skillsList) {
-    console.error("❌ skillsList not found");
     return;
   }
   
-  // Check if skill already exists
   const existingSkills = Array.from(skillsList.querySelectorAll('.skill-tag')).map(tag => 
     tag.textContent.replace('×', '').trim()
   );
@@ -379,7 +326,6 @@ function addSkillToEdit(skill) {
     return;
   }
   
-  // Create skill tag
   const skillTag = document.createElement('div');
   skillTag.className = 'skill-tag';
   skillTag.innerHTML = `
@@ -399,22 +345,16 @@ function removeSkillTag(element) {
 }
 
 // ========== PROFILE TAB SWITCHING ==========
-// Add this function to handle profile tab switching
 function switchProfileTab(tabContentId) {
-  console.log("🔀 Switching to profile tab:", tabContentId);
-  
-  // Hide all tab contents
   document.querySelectorAll('.profile-tab-content').forEach(tab => {
     if (tab) tab.classList.add('hidden');
   });
   
-  // Show selected tab content
   const selectedTab = $(tabContentId);
   if (selectedTab) {
     selectedTab.classList.remove('hidden');
   }
   
-  // Update active tab button
   document.querySelectorAll('.nav-tab.enhanced').forEach(tab => {
     if (tab) tab.classList.remove('active');
   });
@@ -424,7 +364,6 @@ function switchProfileTab(tabContentId) {
     activeTabBtn.classList.add('active');
   }
   
-  // Load tab-specific data
   if (tabContentId === 'profileEditTabContent') {
     loadEditForm();
   } else if (tabContentId === 'dashboardTabContent') {
@@ -439,23 +378,17 @@ function initCertificateUpload() {
   const browseBtn = $('browseCertificatesBtn');
   
   if (!uploadArea || !fileInput || !browseBtn) {
-    console.log("⚠️ Certificate upload elements not found");
     return;
   }
   
-  console.log("✅ Initializing certificate upload...");
-  
-  // Click on upload area or browse button
   uploadArea.addEventListener('click', () => fileInput.click());
   browseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     fileInput.click();
   });
   
-  // File input change
   fileInput.addEventListener('change', handleCertificateFiles);
   
-  // Drag and drop events
   uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
@@ -475,168 +408,70 @@ function initCertificateUpload() {
     }
   });
   
-  // Load existing certificates
   loadExistingCertificates();
 }
 
 async function loadExistingCertificates() {
   try {
+    const cachedCertificates = localStorage.getItem('user_certificates');
+    const cacheTimestamp = localStorage.getItem('certificates_timestamp');
+    
+    if (cachedCertificates && cacheTimestamp && (Date.now() - parseInt(cacheTimestamp)) < 3600000) {
+      try {
+        const certificates = JSON.parse(cachedCertificates);
+        displayCertificates(certificates);
+        updateProfileCertificates(certificates);
+        return;
+      } catch (e) {
+      }
+    }
+    
     const response = await fetch('/api/freelancer/profile', {
-      credentials: 'include'
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
     });
     
     if (response.ok) {
       const profile = await response.json();
+      
       if (profile.certificate_images) {
-        displayCertificates(profile.certificate_images);
+        let certificates = profile.certificate_images;
+        
+        if (typeof certificates === 'string') {
+          try {
+            certificates = JSON.parse(certificates);
+          } catch (e) {
+            certificates = [];
+          }
+        }
+        
+        displayCertificates(certificates);
+        
+        localStorage.setItem('user_certificates', JSON.stringify(certificates));
+        localStorage.setItem('certificates_timestamp', Date.now());
+      } else {
+        displayCertificates([]);
       }
     }
   } catch (error) {
-    console.error('Error loading certificates:', error);
+    displayCertificates([]);
   }
 }
 
-function handleCertificateFiles() {
-  const fileInput = $('certificateImagesInput');
-  if (!fileInput) return;
-  
-  const files = Array.from(fileInput.files);
-  
-  if (files.length === 0) return;
-  
-  // Validate files
-  const validFiles = files.filter(file => {
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    
-    if (!validTypes.includes(file.type)) {
-      showToast(`Invalid file type: ${file.name}. Only JPG, PNG, GIF allowed.`, 'error');
-      return false;
-    }
-    
-    if (file.size > maxSize) {
-      showToast(`File too large: ${file.name}. Max 5MB.`, 'error');
-      return false;
-    }
-    
-    return true;
-  });
-  
-  if (validFiles.length === 0) return;
-  
-  // Limit to 5 files total
-  const currentCertificates = getCurrentCertificateCount();
-  if (currentCertificates + validFiles.length > 5) {
-    showToast('Maximum 5 certificates allowed. Please remove some existing certificates.', 'error');
-    return;
-  }
-  
-  // Upload files
-  uploadCertificates(validFiles);
-}
-
-async function uploadCertificates(files) {
-  const formData = new FormData();
-  files.forEach(file => {
-    formData.append('certificate_images', file);
-  });
-  
-  // Show progress
-  const progressDiv = $('certificateProgress');
-  const progressBar = $('certificateProgressBar');
-  const progressText = $('certificateProgressText');
-  
-  if (progressDiv && progressBar && progressText) {
-    progressDiv.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressText.textContent = 'Starting upload...';
-  }
-  
-  try {
-    const response = await fetch('/api/freelancer/certificate-images', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include'
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      // Simulate progress for better UX
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 20;
-        if (progressBar) {
-          progressBar.style.width = `${progress}%`;
-        }
-        if (progressText) {
-          progressText.textContent = `Uploading... ${progress}%`;
-        }
-        
-        if (progress >= 100) {
-          clearInterval(interval);
-          if (progressText) {
-            progressText.textContent = 'Upload complete!';
-          }
-          
-          // Update certificate display
-          if (result.certificate_images) {
-            displayCertificates(result.certificate_images);
-          }
-          
-          // Hide progress after delay
-          setTimeout(() => {
-            if (progressDiv) {
-              progressDiv.style.display = 'none';
-            }
-          }, 2000);
-          
-          showToast('Certificates uploaded successfully!', 'success');
-        }
-      }, 100);
-    } else {
-      throw new Error(result.error || 'Upload failed');
-    }
-  } catch (error) {
-    if (progressDiv) {
-      progressDiv.style.display = 'none';
-    }
-    showToast('Error uploading certificates: ' + error.message, 'error');
-    console.error('Upload error:', error);
-  }
-}
-
-function displayCertificates(certificatePaths) {
-  const previewDiv = $('certificatePreview');
+function updateProfileCertificates(certificates) {
   const viewCertificatesDiv = $('profileCertificates');
+  if (!viewCertificatesDiv) return;
   
-  if (!previewDiv || !viewCertificatesDiv) return;
-  
-  // Clear existing previews
-  previewDiv.innerHTML = '';
   viewCertificatesDiv.innerHTML = '';
   
-  if (!certificatePaths || certificatePaths.length === 0) {
-    previewDiv.style.display = 'none';
+  if (!certificates || certificates.length === 0) {
     viewCertificatesDiv.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
     return;
   }
   
-  previewDiv.style.display = 'block';
-  
-  certificatePaths.forEach((path, index) => {
-    // Create preview for edit mode
-    const previewItem = document.createElement('div');
-    previewItem.className = 'certificate-item';
-    previewItem.innerHTML = `
-      <img src="${path}" alt="Certificate ${index + 1}" class="certificate-image">
-      <button type="button" class="remove-certificate" data-index="${index}" data-path="${path}">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-    previewDiv.appendChild(previewItem);
-    
-    // Create view for profile mode
+  certificates.forEach((path, index) => {
     const viewItem = document.createElement('div');
     viewItem.className = 'certificate-item';
     viewItem.innerHTML = `
@@ -644,8 +479,61 @@ function displayCertificates(certificatePaths) {
     `;
     viewCertificatesDiv.appendChild(viewItem);
   });
+}
+
+function displayCertificates(certificatePaths) {
+  const previewDiv = $('certificatePreview');
+  const viewCertificatesDiv = $('profileCertificates');
   
-  // Add remove event listeners
+  if (!previewDiv || !viewCertificatesDiv) {
+    return;
+  }
+  
+  previewDiv.innerHTML = '';
+  viewCertificatesDiv.innerHTML = '';
+  
+  let certificates = certificatePaths;
+  
+  if (typeof certificatePaths === 'string') {
+    try {
+      certificates = JSON.parse(certificatePaths);
+    } catch (e) {
+      certificates = [];
+    }
+  }
+  
+  if (!Array.isArray(certificates) || certificates.length === 0) {
+    previewDiv.style.display = 'none';
+    viewCertificatesDiv.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
+    return;
+  }
+  
+  previewDiv.style.display = 'block';
+  
+  certificates.forEach((path, index) => {
+    const certPath = String(path).trim();
+    if (!certPath) return;
+    
+    const previewItem = document.createElement('div');
+    previewItem.className = 'certificate-item';
+    previewItem.innerHTML = `
+      <img src="${certPath}" alt="Certificate ${index + 1}" class="certificate-image"
+           onerror="this.onerror=null; this.src='/placeholder-certificate.png';">
+      <button type="button" class="remove-certificate" data-index="${index}" data-path="${certPath}">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    previewDiv.appendChild(previewItem);
+    
+    const viewItem = document.createElement('div');
+    viewItem.className = 'certificate-item';
+    viewItem.innerHTML = `
+      <img src="${certPath}" alt="Certificate ${index + 1}" class="certificate-image"
+           onerror="this.onerror=null; this.src='/placeholder-certificate.png';">
+    `;
+    viewCertificatesDiv.appendChild(viewItem);
+  });
+  
   previewDiv.querySelectorAll('.remove-certificate').forEach(btn => {
     btn.addEventListener('click', function() {
       const index = parseInt(this.getAttribute('data-index'));
@@ -678,18 +566,114 @@ async function removeCertificate(index, path) {
     
     if (response.ok) {
       showToast('Certificate removed successfully', 'success');
-      loadExistingCertificates(); // Reload certificates
+      loadExistingCertificates();
     } else {
       throw new Error(result.error || 'Failed to remove certificate');
     }
   } catch (error) {
     showToast('Error removing certificate: ' + error.message, 'error');
-    console.error('Remove error:', error);
   }
 }
 
-// ========== FREELANCER DELETE WORK (UPDATED) ==========
-// Update the freelancer delete function to work with the new modal structure
+function handleCertificateFiles() {
+  const fileInput = $('certificateImagesInput');
+  if (!fileInput) return;
+  
+  const files = Array.from(fileInput.files);
+  
+  if (files.length === 0) return;
+  
+  const validFiles = files.filter(file => {
+    const maxSize = 5 * 1024 * 1024;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    
+    if (!validTypes.includes(file.type)) {
+      showToast(`Invalid file type: ${file.name}. Only JPG, PNG, GIF allowed.`, 'error');
+      return false;
+    }
+    
+    if (file.size > maxSize) {
+      showToast(`File too large: ${file.name}. Max 5MB.`, 'error');
+      return false;
+    }
+    
+    return true;
+  });
+  
+  if (validFiles.length === 0) return;
+  
+  const currentCertificates = getCurrentCertificateCount();
+  if (currentCertificates + validFiles.length > 5) {
+    showToast('Maximum 5 certificates allowed. Please remove some existing certificates.', 'error');
+    return;
+  }
+  
+  uploadCertificates(validFiles);
+}
+
+async function uploadCertificates(files) {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('certificate_images', file);
+  });
+
+  const progressDiv = $('certificateProgress');
+  const progressBar = $('certificateProgressBar');
+  const progressText = $('certificateProgressText');
+  
+  if (progressDiv && progressBar && progressText) {
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Starting upload...';
+  }
+
+  try {
+    const response = await fetch('/api/freelancer/certificate-images', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    if (result.certificate_images) {
+      displayCertificates(result.certificate_images);
+      
+      const viewCertificatesDiv = $('profileCertificates');
+      if (viewCertificatesDiv) {
+        viewCertificatesDiv.innerHTML = '';
+        result.certificate_images.forEach((path, index) => {
+          const viewItem = document.createElement('div');
+          viewItem.className = 'certificate-item';
+          viewItem.innerHTML = `
+            <img src="${path}" alt="Certificate ${index + 1}" class="certificate-image">
+          `;
+          viewCertificatesDiv.appendChild(viewItem);
+        });
+      }
+    }
+    
+    showToast('✅ Certificates uploaded successfully!', 'success');
+    
+    if (result.certificate_images) {
+      localStorage.setItem('user_certificates', JSON.stringify(result.certificate_images));
+      localStorage.setItem('certificates_timestamp', Date.now());
+    }
+    
+  } catch (error) {
+    showToast('❌ Error uploading certificates: ' + error.message, 'error');
+  } finally {
+    if (progressDiv) {
+      progressDiv.style.display = 'none';
+    }
+  }
+}
+
+// ========== FREELANCER DELETE WORK ==========
 async function deleteServiceAsFreelancer(serviceId) {
   const deleteReasonInput = $('freelancerDeleteReason');
   if (!deleteReasonInput) {
@@ -705,8 +689,6 @@ async function deleteServiceAsFreelancer(serviceId) {
   }
   
   try {
-    console.log("🧪 Attempting to delete service...");
-    
     const confirmBtn = $('confirmFreelancerDeleteBtn');
     if (!confirmBtn) {
       showToast('Confirm button not found', 'error');
@@ -717,7 +699,6 @@ async function deleteServiceAsFreelancer(serviceId) {
     confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
     confirmBtn.disabled = true;
     
-    // Try the delete
     const response = await fetch(`/api/services/${serviceId}`, {
       method: 'DELETE',
       headers: {
@@ -729,27 +710,19 @@ async function deleteServiceAsFreelancer(serviceId) {
       })
     });
     
-    console.log("Response status:", response.status);
-    
-    // Get response text first
     const responseText = await response.text();
-    console.log("Raw response:", responseText);
     
     let data;
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error("Failed to parse JSON:", parseError);
       throw new Error(`Server returned: ${responseText.substring(0, 100)}`);
     }
-    
-    console.log("Parsed data:", data);
     
     if (!response.ok) {
       if (data.limit_exceeded) {
         showToast(`❌ ${data.error}`, 'error');
         closeFreelancerDeleteModal();
-        // Show contact support option
         setTimeout(() => {
           if (confirm("Would you like to contact support about deleting more services?")) {
             window.location.href = "/contact";
@@ -763,7 +736,6 @@ async function deleteServiceAsFreelancer(serviceId) {
     showToast(`✅ ${data.message}`, 'success');
     closeFreelancerDeleteModal();
     
-    // Refresh after delay
     setTimeout(() => {
       loadServices();
       if (userRole === 'freelancer') {
@@ -772,9 +744,6 @@ async function deleteServiceAsFreelancer(serviceId) {
     }, 1000);
     
   } catch (error) {
-    console.error("Delete failed:", error);
-    
-    // Better error messages
     let userMessage = error.message;
     if (error.message.includes('Cannot read properties of undefined')) {
       userMessage = 'Server configuration error. Please contact support.';
@@ -784,7 +753,6 @@ async function deleteServiceAsFreelancer(serviceId) {
     
     showToast(`❌ ${userMessage}`, 'error');
     
-    // Reset button
     const confirmBtn = $('confirmFreelancerDeleteBtn');
     if (confirmBtn) {
       confirmBtn.innerHTML = originalText || '<i class="fas fa-trash"></i> Delete Service';
@@ -793,154 +761,63 @@ async function deleteServiceAsFreelancer(serviceId) {
   }
 }
 
-// Add close modal function for freelancer delete
 function closeFreelancerDeleteModal() {
   const modal = $('freelancerDeleteModal');
   if (modal) modal.remove();
 }
 
 // ========== ENHANCED CATEGORY SELECTION ==========
-// Update your existing setupEnhancedCategorySelection function to include this:
 function setupEnhancedCategorySelection() {
-  console.log("🎯 Setting up enhanced category selection...");
-  
-  // Tab Switching
-  const tabBtns = document.querySelectorAll('.category-tab-btn');
-  const tabPanes = document.querySelectorAll('.tab-pane');
-  
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
+  document.querySelectorAll('.category-tab-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
       const tabId = this.getAttribute('data-tab');
       
-      // Update active tab button
-      tabBtns.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.category-tab-btn').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       
-      // Show corresponding tab pane
-      tabPanes.forEach(pane => pane.classList.remove('active'));
-      $(`${tabId}-category-tab`).classList.add('active');
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      const targetPane = document.getElementById(tabId + '-category-tab');
+      if (targetPane) targetPane.classList.add('active');
+    });
+  });
+  
+  document.querySelectorAll('.category-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const category = this.getAttribute('data-value');
+      const categorySelect = $('serviceCategory');
       
-      // Show/hide selected category display
-      const display = document.querySelector('.selected-category-display');
-      if (display) {
-        display.classList.add('hidden');
+      if (categorySelect) {
+        categorySelect.value = category;
+        
+        const selectedCategoryText = this.querySelector('div:last-child').textContent;
+        updateSelectedCategory(category, selectedCategoryText);
+        
+        const existingTab = document.querySelector('.category-tab-btn[data-tab="existing"]');
+        if (existingTab) existingTab.click();
       }
     });
   });
   
-  // Category Chip Selection (existing categories)
-  const categoryChips = document.querySelectorAll('.category-chip');
-  categoryChips.forEach(chip => {
-    chip.addEventListener('click', function() {
-      const value = this.getAttribute('data-value');
-      const select = $('serviceCategory');
-      if (select) {
-        select.value = value;
-        updateSelectedCategory(value, this.textContent.trim());
-        
-        // Switch to existing tab if on new tab
-        const newTabBtn = document.querySelector('.category-tab-btn[data-tab="existing"]');
-        if (newTabBtn) {
-          newTabBtn.click();
-        }
-      }
-    });
-  });
-  
-  // Suggestion Chip Selection (new categories)
-  const suggestionChips = document.querySelectorAll('.suggestion-chip');
-  suggestionChips.forEach(chip => {
-    chip.addEventListener('click', function() {
-      const text = this.getAttribute('data-text');
-      const input = $('newCategory');
-      if (input) {
-        input.value = text;
-        updateSelectedCategory(text, text);
-        
-        // Update character count
-        updateCharCount();
-        
-        // Switch to new tab if on existing tab
-        const newTabBtn = document.querySelector('.category-tab-btn[data-tab="new"]');
-        if (newTabBtn) {
-          newTabBtn.click();
-        }
-      }
-    });
-  });
-  
-  // Character counter for new category input
   const newCategoryInput = $('newCategory');
   if (newCategoryInput) {
-    newCategoryInput.addEventListener('input', updateCharCount);
-    newCategoryInput.addEventListener('focus', function() {
-      // Switch to new tab when focusing on input
-      const newTabBtn = document.querySelector('.category-tab-btn[data-tab="new"]');
-      if (newTabBtn && !newTabBtn.classList.contains('active')) {
-        newTabBtn.click();
-      }
-    });
-  }
-  
-  // Select change handler
-  const categorySelect = $('serviceCategory');
-  if (categorySelect) {
-    categorySelect.addEventListener('change', function() {
-      if (this.value) {
-        const selectedText = this.options[this.selectedIndex].text;
-        updateSelectedCategory(this.value, selectedText);
-      }
-    });
-    
-    // Auto-focus on select when tab is active
-    categorySelect.addEventListener('focus', function() {
-      // Switch to existing tab when focusing on select
-      const existingTabBtn = document.querySelector('.category-tab-btn[data-tab="existing"]');
-      if (existingTabBtn && !existingTabBtn.classList.contains('active')) {
-        existingTabBtn.click();
-      }
-    });
-  }
-  
-  // Clear category button
-  const clearBtn = document.querySelector('.clear-category');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function() {
-      // Clear both inputs
-      if (categorySelect) categorySelect.value = '';
-      if (newCategoryInput) newCategoryInput.value = '';
-      
-      // Hide selected category display
-      const display = document.querySelector('.selected-category-display');
-      if (display) {
-        display.classList.add('hidden');
-      }
-      
-      // Reset to existing tab
-      const existingTabBtn = document.querySelector('.category-tab-btn[data-tab="existing"]');
-      if (existingTabBtn) {
-        existingTabBtn.click();
-      }
-    });
-  }
-  
-  // Add new category input handling
-  if (newCategoryInput) {
     newCategoryInput.addEventListener('input', function() {
-      updateCharCount(this);
+      const charCount = this.parentElement.querySelector('.char-count');
+      if (charCount) {
+        charCount.textContent = `${this.value.length}/50`;
+      }
     });
     
     newCategoryInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (this.value.trim()) {
-          selectNewCategory(this.value.trim());
+        const categoryName = this.value.trim();
+        if (categoryName) {
+          updateSelectedCategory(categoryName, categoryName);
         }
       }
     });
   }
-  
-  console.log("✅ Enhanced category selection setup complete");
 }
 
 function selectNewCategory(categoryName) {
@@ -961,13 +838,11 @@ function selectNewCategory(categoryName) {
     selectedText.textContent = categoryName;
     selectedDisplay.classList.remove('hidden');
     
-    // Set value for new category
     const newCategoryInput = $('newCategory');
     if (newCategoryInput) {
       newCategoryInput.value = categoryName;
     }
     
-    // Clear existing category select
     const categorySelect = $('serviceCategory');
     if (categorySelect) {
       categorySelect.value = '';
@@ -1002,7 +877,6 @@ function closeModal(modal) {
 }
 
 function initModals() {
-  // Login modal
   if ($('loginOpen')) {
     $('loginOpen').addEventListener('click', () => openModal($('loginModal')));
   }
@@ -1011,7 +885,6 @@ function initModals() {
     $('signupOpen').addEventListener('click', () => openModal($('signupModal')));
   }
   
-  // Close buttons
   if ($('closeLogin')) {
     $('closeLogin').addEventListener('click', () => closeModal($('loginModal')));
   }
@@ -1020,7 +893,6 @@ function initModals() {
     $('closeSignup').addEventListener('click', () => closeModal($('signupModal')));
   }
   
-  // Modal background close
   window.addEventListener('click', (e) => {
     if (e.target === $('loginModal')) closeModal($('loginModal'));
     if (e.target === $('signupModal')) closeModal($('signupModal'));
@@ -1028,7 +900,6 @@ function initModals() {
     if (e.target === $('freelancerProfileModal')) closeModal($('freelancerProfileModal'));
   });
   
-  // Toggle login method
   if ($('loginByUsername')) {
     $('loginByUsername').addEventListener('click', () => {
       $('loginByUsername').style.color = 'var(--accent-gold)';
@@ -1047,7 +918,6 @@ function initModals() {
     });
   }
   
-  // Password visibility toggle
   if ($('toggleLoginPwd')) {
     $('toggleLoginPwd').addEventListener('click', () => {
       const field = $('loginPassword');
@@ -1062,7 +932,6 @@ function initModals() {
     });
   }
   
-  // Switch between login/signup
   if ($('openSignupFromLogin')) {
     $('openSignupFromLogin').addEventListener('click', () => {
       closeModal($('loginModal'));
@@ -1079,24 +948,15 @@ function initModals() {
 }
 
 // ========== CHAT AND PROFILE FUNCTIONS ==========
-
 async function openChat(serviceId, freelancerId) {
   try {
-    console.log("📨 Starting chat:", { serviceId, freelancerId });
-
-    // Check if user is logged in
     if (!currentUser) {
       alert("Please log in to start a chat.");
       openModal($('loginModal'));
       return;
     }
 
-    // If freelancerId is not provided, try to get it from service data
     if (!freelancerId) {
-      // You need to implement this based on your data structure
-      // Example: freelancerId = getFreelancerIdFromService(serviceId);
-      console.warn("Freelancer ID not provided, attempting to get from service data");
-      // If you can't get it, show an error
       if (!freelancerId) {
         alert("Unable to determine freelancer for this service");
         return;
@@ -1122,70 +982,115 @@ async function openChat(serviceId, freelancerId) {
       return;
     }
 
-    // Check for conversation ID
     if (!data.conversationId) {
       alert("Failed to start chat: No conversation ID returned");
       return;
     }
 
-    // Use the appropriate function based on what's available
     if (typeof openConversation === 'function') {
       openConversation(data.conversationId);
     } else if (typeof loadMessages === 'function') {
       loadMessages(data.conversationId);
     } else {
-      console.error("No chat display function available");
       alert("Chat started but cannot display messages");
     }
 
     return data.conversationId;
 
   } catch (err) {
-    console.error("❌ Chat start error:", err);
     alert("Chat failed to start");
   }
 }
 
 async function openFreelancerProfile(userId) {
   try {
-    const res = await fetch(`/api/users/${userId}/profile`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert("Failed to load freelancer profile");
+    const modal = $('freelancerProfileModal');
+    if (!modal) {
+      showToast("Profile modal not found", "error");
       return;
     }
-
+    
     const container = $("freelancerProfileContent");
-
+    if (!container) {
+      return;
+    }
+    
     container.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div style="margin-bottom: 20px;">
+          <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--accent-blue);"></i>
+        </div>
+        <h3 style="color: var(--text-light);">Loading Profile...</h3>
+        <p style="color: var(--text-gray);">Please wait while we load the freelancer's profile.</p>
+      </div>
+    `;
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.offsetHeight;
+
+    const res = await fetch(`/api/users/${userId}/profile`, {
+      credentials: 'include'
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to load profile (${res.status})`);
+    }
+
+    const data = await res.json();
+
+    let certificates = [];
+    try {
+      const certRes = await fetch(`/api/users/${userId}/certificates`, {
+        credentials: 'include'
+      });
+      if (certRes.ok) {
+        const certData = await certRes.json();
+        certificates = certData.certificate_images || [];
+      }
+    } catch (certError) {
+    }
+
+    const profileHtml = `
       <div style="text-align: center; margin-bottom: 30px;">
-        <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 20px; border: 3px solid var(--accent-gold);">
+        <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 20px; border: 3px solid var(--accent-gold); background: var(--gradient-primary);">
           ${data.profile_picture ? 
-            `<img src="${data.profile_picture}" alt="${data.username}" style="width: 100%; height: 100%; object-fit: cover;">` : 
-            `<div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dark)); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: #000;">${data.username?.charAt(0)?.toUpperCase() || 'U'}</div>`
+            `<img src="${data.profile_picture}" alt="${data.username}" 
+                 style="width: 100%; height: 100%; object-fit: cover;"
+                 onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white;\\'>${data.username?.charAt(0)?.toUpperCase() || 'U'}</div>';">` : 
+            `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white;">
+              ${data.username?.charAt(0)?.toUpperCase() || 'U'}
+            </div>`
           }
         </div>
+        
         <h2 style="color: var(--accent-gold); margin-bottom: 10px;">${escapeHtml(data.username || 'User')}</h2>
-        <p style="color: var(--text-light); font-size: 1.1rem; margin-bottom: 5px;">${escapeHtml(data.headline || 'Freelancer')}</p>
-        <p style="color: var(--text-gray); margin-bottom: 20px;">
-          <i class="fas fa-star" style="color: var(--accent-gold);"></i> ${data.avg_rating?.toFixed(1) || '0.0'} (${data.review_count || 0} reviews)
+        <p style="color: var(--text-light); font-size: 1.1rem; margin-bottom: 5px; font-weight: 500;">
+          ${escapeHtml(data.headline || 'Freelancer')}
         </p>
+        
+        <div style="margin-bottom: 20px;">
+          <div style="color: var(--accent-gold); font-size: 1.2rem; margin-bottom: 5px;">
+            ${generateStars(data.avg_rating || 0)}
+          </div>
+          <p style="color: var(--text-gray); font-size: 0.9rem;">
+            ${data.avg_rating?.toFixed(1) || '0.0'} rating (${data.review_count || 0} reviews)
+          </p>
+        </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
-        <div style="background: var(--secondary-dark); padding: 15px; border-radius: 8px;">
-          <h4 style="color: var(--accent-gold); margin-bottom: 10px;">
-            <i class="fas fa-dollar-sign"></i> Hourly Rate
-          </h4>
-          <p style="color: var(--text-light); font-size: 1.2rem; font-weight: bold;">$${data.hourly_rate || '0'}/hr</p>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+        <div style="background: var(--secondary-dark); padding: 15px; border-radius: 12px; text-align: center;">
+          <div style="color: var(--accent-gold); font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${data.service_count || 0}</div>
+          <div style="color: var(--text-gray); font-size: 0.9rem;">Services</div>
         </div>
         
-        <div style="background: var(--secondary-dark); padding: 15px; border-radius: 8px;">
-          <h4 style="color: var(--accent-gold); margin-bottom: 10px;">
-            <i class="fas fa-briefcase"></i> Services
-          </h4>
-          <p style="color: var(--text-light); font-size: 1.2rem; font-weight: bold;">${data.service_count || 0}</p>
+        <div style="background: var(--secondary-dark); padding: 15px; border-radius: 12px; text-align: center;">
+          <div style="color: var(--accent-gold); font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">$${data.hourly_rate || '0'}/hr</div>
+          <div style="color: var(--text-gray); font-size: 0.9rem;">Hourly Rate</div>
         </div>
       </div>
 
@@ -1193,9 +1098,11 @@ async function openFreelancerProfile(userId) {
         <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
           <i class="fas fa-user-circle" style="margin-right: 10px;"></i> About Me
         </h4>
-        <p style="color: var(--text-light); line-height: 1.6; background: var(--secondary-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--accent-gold);">
-          ${escapeHtml(data.description || 'No description provided.')}
-        </p>
+        <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px; border-left: 4px solid var(--accent-gold);">
+          <p style="color: var(--text-light); line-height: 1.6; margin: 0;">
+            ${escapeHtml(data.description || 'No description provided.')}
+          </p>
+        </div>
       </div>
 
       ${data.skills && data.skills.length > 0 ? `
@@ -1205,7 +1112,7 @@ async function openFreelancerProfile(userId) {
           </h4>
           <div style="display: flex; flex-wrap: wrap; gap: 10px;">
             ${data.skills.map(skill => `
-              <span style="background: rgba(255,215,0,0.1); color: var(--accent-gold); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(255,215,0,0.3);">
+              <span style="background: rgba(251, 191, 36, 0.1); color: var(--accent-gold); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(251, 191, 36, 0.3);">
                 ${escapeHtml(skill)}
               </span>
             `).join('')}
@@ -1213,68 +1120,157 @@ async function openFreelancerProfile(userId) {
         </div>
       ` : ''}
 
-      ${data.education ? `
+      ${certificates.length > 0 ? `
         <div style="margin-bottom: 25px;">
           <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-            <i class="fas fa-graduation-cap" style="margin-right: 10px;"></i> Education
+            <i class="fas fa-award" style="margin-right: 10px;"></i> Certificates (${certificates.length})
           </h4>
-          <p style="color: var(--text-light); line-height: 1.6; background: var(--secondary-dark); padding: 15px; border-radius: 8px;">
-            ${escapeHtml(data.education)}
-          </p>
-        </div>
-      ` : ''}
-
-      ${data.location || data.phone || data.website ? `
-        <div style="margin-bottom: 25px;">
-          <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-            <i class="fas fa-info-circle" style="margin-right: 10px;"></i> Contact Details
-          </h4>
-          <div style="background: var(--secondary-dark); padding: 15px; border-radius: 8px;">
-            ${data.location ? `<p style="color: var(--text-light); margin-bottom: 8px;"><i class="fas fa-map-marker-alt" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i> ${escapeHtml(data.location)}</p>` : ''}
-            ${data.phone ? `<p style="color: var(--text-light); margin-bottom: 8px;"><i class="fas fa-phone" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i> ${escapeHtml(data.phone)}</p>` : ''}
-            ${data.website ? `<p style="color: var(--text-light); margin-bottom: 8px;"><i class="fas fa-globe" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i> <a href="${data.website}" target="_blank" style="color: var(--accent-gold); text-decoration: none;">${data.website.replace(/^https?:\/\//, '')}</a></p>` : ''}
+          <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px;">
+            <div id="certificateGallery" class="certificate-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
+              ${certificates.map((cert, index) => `
+                <div class="certificate-item" style="position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid rgba(255,255,255,0.1);">
+                  <img src="${cert}" alt="Certificate ${index + 1}" 
+                       style="width: 100%; height: 120px; object-fit: cover;"
+                       onclick="openCertificateViewer('${cert}', ${index})">
+                  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 5px; font-size: 0.8rem; text-align: center;">
+                    Certificate ${index + 1}
+                  </div>
+                  <button onclick="viewCertificateFull('${cert}', event)" 
+                          style="position: absolute; top: 5px; right: 5px; background: rgba(59, 130, 246, 0.8); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.8rem;">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin-top: 10px; text-align: center;">
+              Click on any certificate to view it full screen
+            </p>
           </div>
         </div>
       ` : ''}
 
-      <div style="margin-top: 30px; text-align: center;">
-        <button onclick="startConversationWithFreelancer(${userId}, '${escapeHtml(data.username || 'User')}')" class="btn btn-primary" style="padding: 12px 30px; font-size: 1.1rem;">
-          <i class="fas fa-comments"></i> Message ${escapeHtml(data.username || 'User')}        </button>
+      ${data.location || data.experience_level ? `
+        <div style="margin-bottom: 25px;">
+          <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
+            <i class="fas fa-info-circle" style="margin-right: 10px;"></i> Details
+          </h4>
+          <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px;">
+            ${data.location ? `
+              <div style="color: var(--text-light); margin-bottom: 10px; display: flex; align-items: center;">
+                <i class="fas fa-map-marker-alt" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
+                <span>${escapeHtml(data.location)}</span>
+              </div>
+            ` : ''}
+            ${data.experience_level ? `
+              <div style="color: var(--text-light); margin-bottom: 10px; display: flex; align-items: center;">
+                <i class="fas fa-chart-line" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
+                <span>${data.experience_level.charAt(0).toUpperCase() + data.experience_level.slice(1)} Level</span>
+              </div>
+            ` : ''}
+            ${data.availability ? `
+              <div style="color: var(--text-light); display: flex; align-items: center;">
+                <i class="fas fa-clock" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
+                <span>${data.availability === 'available' ? 'Available Now' : 
+                        data.availability === 'busy' ? 'Currently Busy' : 
+                        'Not Available'}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="display: flex; gap: 15px; margin-top: 30px;">
+        <button onclick="startConversationWithFreelancer(${userId}, '${escapeHtml(data.username || 'User')}')" 
+                class="btn btn-primary" style="flex: 1; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fas fa-comments"></i> Message
+        </button>
+        <button onclick="closeModal($('freelancerProfileModal'))" 
+                class="btn btn-secondary" style="flex: 1; padding: 12px;">
+          Close
+        </button>
       </div>
     `;
 
-    openModal($('freelancerProfileModal'));
+    const certificateModalHtml = `
+      <div id="certificateViewerModal" class="modal hidden">
+        <div class="modal-card" style="max-width: 90%; max-height: 90vh; width: 90%;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--text-light);">Certificate Viewer</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button id="zoomInBtn" style="background: var(--accent-blue); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem;">
+                <i class="fas fa-search-plus"></i>
+              </button>
+              <button id="zoomOutBtn" style="background: var(--accent-blue); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem;">
+                <i class="fas fa-search-minus"></i>
+              </button>
+              <button id="resetZoomBtn" style="background: var(--accent-blue); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1rem;">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <span class="close-x" onclick="closeCertificateViewer()" style="font-size: 2rem;">&times;</span>
+            </div>
+          </div>
+          <div id="certificateContainer" style="overflow: auto; max-height: 70vh; text-align: center;">
+            <img id="certificateImage" src="" alt="Certificate" 
+                 style="max-width: 100%; max-height: 100%; transition: transform 0.3s ease;">
+          </div>
+          <div style="display: flex; justify-content: center; margin-top: 15px;">
+            <button onclick="downloadCertificate()" class="btn btn-primary" style="padding: 10px 20px;">
+              <i class="fas fa-download"></i> Download
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
 
+    if (!document.getElementById('certificateViewerModal')) {
+      document.body.insertAdjacentHTML('beforeend', certificateModalHtml);
+    }
+
+    container.innerHTML = profileHtml;
+    
   } catch (err) {
-    console.error("Profile load error:", err);
-    alert("Failed to load profile. Please try again.");
+    const container = $("freelancerProfileContent");
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="margin-bottom: 20px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ef4444;"></i>
+          </div>
+          <h3 style="color: var(--text-light); margin-bottom: 10px;">Failed to Load Profile</h3>
+          <p style="color: var(--text-gray); margin-bottom: 20px;">
+            ${err.message || 'Unable to load the freelancer profile.'}
+          </p>
+          <button onclick="closeModal($('freelancerProfileModal'))" class="btn btn-secondary">
+            Close
+          </button>
+        </div>
+      `;
+    }
+    
+    const modal = $('freelancerProfileModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      modal.classList.add('open');
+    }
   }
 }
 
-/// Updated startConversation function
-// Updated startConversation function
 async function startConversationWithService(serviceId, freelancerId) {
   try {
-    console.log("💬 Starting conversation from service:", { serviceId, freelancerId });
-
     if (!currentUser) {
       showToast("Please login to start a conversation", "warning");
       openModal($('loginModal'));
       return;
     }
 
-    // Check if trying to message yourself
     if (parseInt(currentUser.id) === parseInt(freelancerId)) {
       showToast("You cannot message yourself", "warning");
       return;
     }
 
-    console.log("📡 Sending request to start conversation...");
-
-    // ✅ ADD TIMESTAMP HERE
     const timestamp = Date.now();
     
-    // Start the conversation WITH timestamp to ensure uniqueness
     const res = await fetch("/api/messages/start", {
       method: "POST",
       headers: { 
@@ -1284,13 +1280,11 @@ async function startConversationWithService(serviceId, freelancerId) {
       body: JSON.stringify({
         serviceId: serviceId,
         freelancerId: freelancerId,
-        timestamp: timestamp  // ✅ ADD THIS LINE
+        timestamp: timestamp
       })
     });
 
     const data = await res.json();
-    console.log("📡 Server response:", data);
-    console.log("⏰ Timestamp sent:", timestamp); // ✅ ADD THIS FOR DEBUGGING
 
     if (!res.ok) {
       showToast(data.error || "Failed to start conversation", "error");
@@ -1302,34 +1296,19 @@ async function startConversationWithService(serviceId, freelancerId) {
       return;
     }
 
-    // Store conversation ID globally
     window.activeConversationId = data.conversationId;
     window.activeConversationUserId = freelancerId;
     
-    console.log("✅ Conversation started:", {
-      conversationId: window.activeConversationId,
-      userId: window.activeConversationUserId,
-      message: data.message,
-      timestamp: timestamp // ✅ ADD THIS
-    });
-
-    // Show success message
     showToast(data.message || "✅ Conversation started!", "success");
 
-    // Show inbox
     showInboxAndOpenConversation(data.conversationId, freelancerId);
 
   } catch (err) {
-    console.error("❌ Conversation start error:", err);
     showToast("Failed to start conversation. Please try again.", "error");
   }
 }
 
-//force conversations
 async function forceNewConversation(serviceId, freelancerId) {
-  console.log("🔄 Forcing new conversation...");
-  
-  // Add a random parameter to ensure new conversation
   const random = Math.random().toString(36).substring(7);
   
   const res = await fetch("/api/messages/start", {
@@ -1349,27 +1328,19 @@ async function forceNewConversation(serviceId, freelancerId) {
   return await res.json();
 }
 
-// New helper function to show inbox and open conversation
 function showInboxAndOpenConversation(conversationId, freelancerId) {
-  console.log("📬 Showing inbox for conversation:", conversationId);
-  
-  // Hide other pages
   hideAllPages();
   
-  // Show inbox page
   const inboxPage = $('inboxPage');
   if (inboxPage) {
     inboxPage.classList.remove('hidden');
   }
   
-  // Set active conversation
   window.activeConversationId = conversationId;
   window.activeConversationUserId = freelancerId;
   
-  // Setup message form for this conversation
   setupMessageForm();
   
-  // Clear chat area and show loading
   const chatMessages = $('chatMessages');
   if (chatMessages) {
     chatMessages.innerHTML = `
@@ -1384,95 +1355,152 @@ function showInboxAndOpenConversation(conversationId, freelancerId) {
     `;
   }
   
-  // Try to load the conversation
   setTimeout(async () => {
     try {
-      // First load conversations list
       await loadConversations();
       
-      // Then try to open this specific conversation
       setTimeout(() => {
         const conversationItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
         if (conversationItem) {
-          // Highlight it
           document.querySelectorAll('.conversation-item').forEach(item => {
             item.classList.remove('active');
           });
           conversationItem.classList.add('active');
           
-          // Get username and open
           const username = conversationItem.querySelector('.conversation-user')?.textContent || 'User';
           openConversation(conversationId, username);
         } else {
-          // If not in the list, try to open it directly
           openConversation(conversationId, 'Freelancer');
         }
       }, 500);
       
     } catch (error) {
-      console.error("Failed to load conversation:", error);
       showToast("Could not load conversation. Please try again.", "error");
     }
   }, 100);
 }
 
-// Updated openConversation function
 async function openConversation(conversationId, username = 'User') {
   try {
-    console.log("💬 Opening conversation ID:", conversationId, "for user:", username);
-    
-    // Validate conversation ID
     if (!conversationId || isNaN(conversationId)) {
-      console.error("❌ Invalid conversation ID:", conversationId);
       showToast('Invalid conversation ID', 'error');
       return;
     }
     
-    // Store the active conversation ID globally
     window.activeConversationId = parseInt(conversationId);
     
-    // Get the other user ID
-    const otherUserId = await getOtherUserIdFromConversation(conversationId);
-    window.activeConversationUserId = otherUserId;
-    
-    console.log("💬 Active conversation set:", {
-      id: window.activeConversationId,
-      userId: window.activeConversationUserId
+    const response = await fetch(`/api/conversation-info/${conversationId}`, {
+      credentials: "include"
     });
     
-    // Update UI to show we're in a conversation
-    const chatMessages = $('chatMessages');
-    if (!chatMessages) {
-      console.error("❌ Chat messages container not found!");
-      return;
+    if (!response.ok) {
+      throw new Error("Failed to get conversation info");
     }
     
-    // Update chat header
-    chatMessages.innerHTML = `
-      <div class="chat-header" style="margin-bottom: 15px;">
-        <h4 style="color: var(--accent-gold); margin: 0;">Chat with ${escapeHtml(username)}</h4>
-        <p style="color: var(--text-gray); font-size: 0.9rem; margin: 5px 0 15px 0;">
-          Conversation ID: ${conversationId}
-        </p>
-      </div>
-      <div id="messagesContainer" style="overflow-y: auto; max-height: 350px; padding-right: 10px;"></div>
-    `;
+    const convInfo = await response.json();
+    window.activeConversationUserId = convInfo.other_user_id;
     
-    // Setup the message form for this conversation
-    setupMessageForm();
+    $('chatUserName').textContent = username || 'User';
+    $('messageInputArea').style.display = 'block';
     
-    // Load messages
+    const messageInput = $('messageInput');
+    if (messageInput) {
+      messageInput.value = '';
+      messageInput.focus();
+      messageInput.addEventListener('input', updateCharCount);
+    }
+    
     await loadMessagesForConversation(conversationId);
     
-    console.log("✅ Conversation opened successfully");
-    
   } catch (error) {
-    console.error("❌ Error opening conversation:", error);
     showToast('Failed to open conversation', 'error');
   }
 }
 
-// Helper function to get the other user's ID from conversation
+function handleMessageKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const form = $('sendMessageForm');
+    if (form) {
+      form.dispatchEvent(new Event('submit'));
+    }
+  }
+}
+
+function updateCharCount() {
+  const input = $('messageInput');
+  const charCount = $('charCount');
+  if (input && charCount) {
+    const count = input.value.length;
+    charCount.textContent = `${count}/1000`;
+    charCount.style.color = count > 900 ? '#ff4444' : 'var(--text-gray)';
+  }
+}
+
+function toggleEmojiPicker() {
+  const picker = $('emojiPicker');
+  if (!picker) {
+    createEmojiPicker();
+    return;
+  }
+  
+  picker.classList.toggle('show');
+}
+
+function createEmojiPicker() {
+  const emojiPicker = document.createElement('div');
+  emojiPicker.id = 'emojiPicker';
+  emojiPicker.className = 'emoji-picker';
+  
+  const emojis = ['😀', '😂', '😊', '😍', '👍', '👏', '🎉', '🔥', '💯', '❤️', '🤔', '😎'];
+  
+  emojiPicker.innerHTML = `
+    <div class="emoji-picker-grid">
+      ${emojis.map(emoji => `
+        <div class="emoji-item" onclick="addEmoji('${emoji}')">${emoji}</div>
+      `).join('')}
+    </div>
+  `;
+  
+  const messageInput = $('messageInput');
+  if (messageInput) {
+    messageInput.parentElement.appendChild(emojiPicker);
+  }
+}
+
+function addEmoji(emoji) {
+  const input = $('messageInput');
+  if (input) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+    input.focus();
+    input.selectionStart = input.selectionEnd = start + emoji.length;
+    updateCharCount();
+  }
+  
+  const picker = $('emojiPicker');
+  if (picker) {
+    picker.classList.remove('show');
+  }
+}
+
+function attachFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,.pdf,.doc,.docx';
+  input.onchange = function(e) {
+    if (e.target.files.length > 0) {
+      showToast('File attached: ' + e.target.files[0].name, 'info');
+    }
+  };
+  input.click();
+}
+
+function recordAudio() {
+  showToast('Audio recording feature coming soon!', 'info');
+}
+
 async function getOtherUserIdFromConversation(conversationId) {
   try {
     if (!currentUser || !conversationId) return null;
@@ -1482,7 +1510,6 @@ async function getOtherUserIdFromConversation(conversationId) {
     });
     
     if (!response.ok) {
-      console.error("Failed to get conversation info:", response.status);
       return null;
     }
     
@@ -1490,12 +1517,10 @@ async function getOtherUserIdFromConversation(conversationId) {
     return data.other_user_id;
     
   } catch (error) {
-    console.error("Error getting conversation info:", error);
     return null;
   }
 }
 
-// Updated loadMessages function
 async function loadMessagesForConversation(conversationId) {
   if (!conversationId) return;
   
@@ -1521,7 +1546,6 @@ async function loadMessagesForConversation(conversationId) {
       return;
     }
     
-    // Clear existing messages
     const messagesContainer = $('messagesContainer');
     if (messagesContainer) {
       messagesContainer.innerHTML = '';
@@ -1543,12 +1567,10 @@ async function loadMessagesForConversation(conversationId) {
       }
     });
     
-    // Scroll to bottom
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
     
-    // Mark messages as read
     if (conversationId) {
       await fetch("/api/messages/mark-read", {
         method: "POST",
@@ -1561,7 +1583,6 @@ async function loadMessagesForConversation(conversationId) {
     }
     
   } catch (error) {
-    console.error("Error loading messages:", error);
   }
 }
 
@@ -1573,9 +1594,7 @@ async function checkUnreadMessages() {
       credentials: "include"
     });
     
-    // Don't throw on error, just log it
     if (!res.ok) {
-      console.log("⚠️ Could not check unread messages, status:", res.status);
       return;
     }
     
@@ -1591,25 +1610,11 @@ async function checkUnreadMessages() {
       badge.classList.add("hidden");
     }
   } catch (err) {
-    console.error("Unread check failed:", err);
-    // Don't show error to user
   }
 }
 
 async function testMessageSending() {
-  console.log("🧪 Testing message sending...");
-  
-  // Check current state
-  console.log("📊 Current state:", {
-    activeConversationId: window.activeConversationId,
-    activeConversationUserId: window.activeConversationUserId,
-    currentUser: currentUser
-  });
-  
-  // Test API directly
   if (window.activeConversationId && window.activeConversationUserId) {
-    console.log("📤 Testing API call...");
-    
     try {
       const testRes = await fetch("/api/messages/send", {
         method: "POST",
@@ -1625,7 +1630,6 @@ async function testMessageSending() {
       });
       
       const testData = await testRes.json();
-      console.log("📡 API Response:", testData);
       
       if (testRes.ok) {
         alert("✅ Test message sent! Check console for details.");
@@ -1633,7 +1637,6 @@ async function testMessageSending() {
         alert("❌ Test failed: " + (testData.error || "Unknown error"));
       }
     } catch (error) {
-      console.error("❌ Test error:", error);
       alert("❌ Test error: " + error.message);
     }
   } else {
@@ -1642,53 +1645,162 @@ async function testMessageSending() {
 }
 
 async function debugConversationAccess(conversationId = window.activeConversationId) {
-  console.log("🔍 DEBUG CONVERSATION ACCESS");
-  console.log("Current User:", currentUser);
-  console.log("Active Conversation ID:", conversationId);
-  
   if (!currentUser) {
-    console.error("❌ No user logged in");
     return;
   }
   
   if (!conversationId) {
-    console.error("❌ No active conversation");
     return;
   }
   
-  // Test if we can access the conversation
   try {
     const response = await fetch(`/api/messages/${conversationId}`, {
       credentials: "include"
     });
     
-    console.log("Conversation access test:");
-    console.log("- Status:", response.status);
-    console.log("- OK:", response.ok);
-    
     if (response.ok) {
       const messages = await response.json();
-      console.log("- Messages count:", messages.length);
-      console.log("- First message:", messages[0]);
     } else {
       const errorText = await response.text();
-      console.log("- Error:", errorText);
     }
     
   } catch (error) {
-    console.error("Test failed:", error);
   }
-  
-  // Test if we can send to the conversation
-  console.log("\n🧪 Test sending (will not actually send):");
-  console.log("fetch('/api/messages/send', {");
-  console.log("  method: 'POST',");
-  console.log("  headers: { 'Content-Type': 'application/json' },");
-  console.log("  body: JSON.stringify({");
-  console.log("    conversation_id: " + conversationId + ",");
-  console.log("    message: 'Test message'");
-  console.log("  })");
-  console.log("})");
+}
+
+function showCategorySpecificFields(category) {
+    const categoryFieldsDiv = $('categorySpecificFields');
+    if (!categoryFieldsDiv) {
+        const form = $('serviceForm');
+        const afterCategory = document.querySelector('.form-group:nth-child(3)');
+        if (afterCategory) {
+            afterCategory.insertAdjacentHTML('afterend', 
+                '<div id="categorySpecificFields"></div>');
+        }
+    }
+    
+    let html = '';
+    
+    switch(category) {
+        case 'web-design':
+        case 'development':
+            html = `
+                <div class="form-group">
+                    <label>Coding Languages</label>
+                    <div class="skills-input-container">
+                        <input type="text" id="codingLanguages" placeholder="e.g., HTML, CSS, JavaScript, PHP" class="form-input-enhanced">
+                        <div class="skill-tags-container" id="codingLanguagesTags"></div>
+                    </div>
+                    <small>Add languages separated by commas</small>
+                </div>
+                <div class="form-group">
+                    <label>Frameworks & Libraries</label>
+                    <input type="text" id="frameworks" placeholder="e.g., React, Vue.js, Bootstrap" class="form-input-enhanced">
+                </div>
+            `;
+            break;
+            
+        case 'graphic-design':
+            html = `
+                <div class="form-group">
+                    <label>Design Software Proficiency</label>
+                    <div class="skills-input-container">
+                        <input type="text" id="designSoftware" placeholder="e.g., Adobe Photoshop, Illustrator, Canva" class="form-input-enhanced">
+                        <div class="skill-tags-container" id="designSoftwareTags"></div>
+                    </div>
+                    <small>List the design software you're proficient with</small>
+                </div>
+                <div class="form-group">
+                    <label>Design Specialties</label>
+                    <input type="text" id="designSpecialties" placeholder="e.g., Logo Design, Branding, UI/UX" class="form-input-enhanced">
+                </div>
+            `;
+            break;
+            
+        default:
+            html = '';
+    }
+    
+    $('categorySpecificFields').innerHTML = html;
+    
+    $('categorySpecificFields').insertAdjacentHTML('beforeend', `
+        <div class="form-group">
+            <label>Delivery Time (Days)</label>
+            <input type="number" id="deliveryDays" min="1" max="365" placeholder="e.g., 7" class="form-input-enhanced" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Service Package Options</label>
+            <div class="package-options">
+                <div class="package-option">
+                    <input type="radio" id="packageBasic" name="servicePackage" value="basic" checked>
+                    <label for="packageBasic">
+                        <div class="package-header">Basic</div>
+                        <div class="package-price">$${$('fixedPrice').value || '0'}</div>
+                        <div class="package-desc">Standard service delivery</div>
+                    </label>
+                </div>
+                <div class="package-option">
+                    <input type="radio" id="packageStandard" name="servicePackage" value="standard">
+                    <label for="packageStandard">
+                        <div class="package-header">Standard</div>
+                        <div class="package-price">$${($('fixedPrice').value * 1.5 || 0).toFixed(2)}</div>
+                        <div class="package-desc">+ Faster delivery + 2 revisions</div>
+                    </label>
+                </div>
+                <div class="package-option">
+                    <input type="radio" id="packagePremium" name="servicePackage" value="premium">
+                    <label for="packagePremium">
+                        <div class="package-header">Premium</div>
+                        <div class="package-price">$${($('fixedPrice').value * 2 || 0).toFixed(2)}</div>
+                        <div class="package-desc">+ Priority support + Unlimited revisions</div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Extra Fees (Optional)</label>
+            <div id="extraFeesContainer">
+                <div class="extra-fee-item">
+                    <input type="text" placeholder="Fee description" class="extra-fee-desc">
+                    <input type="number" placeholder="Amount" min="0" step="0.01" class="extra-fee-amount">
+                    <button type="button" class="btn btn-secondary remove-extra-fee">Remove</button>
+                </div>
+            </div>
+            <button type="button" id="addExtraFee" class="btn btn-secondary">+ Add Extra Fee</button>
+        </div>
+    `);
+    
+    $('addExtraFee').addEventListener('click', addExtraFee);
+    
+    $('fixedPrice').addEventListener('input', updatePackagePrices);
+}
+
+function updatePackagePrices() {
+    const basePrice = parseFloat($('fixedPrice').value) || 0;
+    document.querySelectorAll('.package-option .package-price').forEach((el, index) => {
+        let multiplier = 1;
+        if (index === 1) multiplier = 1.5;
+        if (index === 2) multiplier = 2;
+        el.textContent = '$' + (basePrice * multiplier).toFixed(2);
+    });
+}
+
+function addExtraFee() {
+    const container = $('extraFeesContainer');
+    const feeItem = document.createElement('div');
+    feeItem.className = 'extra-fee-item';
+    feeItem.innerHTML = `
+        <input type="text" placeholder="Fee description" class="extra-fee-desc">
+        <input type="number" placeholder="Amount" min="0" step="0.01" class="extra-fee-amount">
+        <button type="button" class="btn btn-secondary remove-extra-fee">Remove</button>
+    `;
+    container.appendChild(feeItem);
+    
+    feeItem.querySelector('.remove-extra-fee').addEventListener('click', function() {
+        feeItem.remove();
+    });
 }
 
 // ========== PAGE NAVIGATION FUNCTIONS ==========
@@ -1698,10 +1810,8 @@ function showInbox() {
   if (inboxPage) {
     inboxPage.classList.remove('hidden');
     
-    // Setup message form
     setupMessageForm();
     
-    // Load conversations
     loadConversations();
   }
 }
@@ -1716,7 +1826,6 @@ function showAdminDeletedServices() {
 }
 
 function hideAllPages() {
-  // Hide all main pages
   const pages = [
     'pricingSection',
     'servicesBrowser',
@@ -1733,87 +1842,44 @@ function hideAllPages() {
     }
   });
   
-  // Also hide all tab contents
   document.querySelectorAll('.tab-content').forEach(tab => {
     if (tab) tab.classList.add('hidden');
   });
 }
 
-function debugChatSystem() {
-  console.log("=== CHAT SYSTEM DEBUG ===");
-  console.log("Active Conversation ID:", window.activeConversationId);
-  console.log("Active User ID:", window.activeConversationUserId);
-  console.log("Current User:", currentUser);
-  console.log("Message Form:", $('sendMessageForm'));
-  console.log("Message Input:", $('messageInput'));
-  console.log("Inbox Page:", $('inboxPage'));
-  
-  // Test with specific IDs
-  console.log("\n🧪 Try this in console:");
-  console.log("startConversationWithService(21, 22)");
-}
-
 async function debugConversationIssue() {
-  console.log("🔍 DEBUGGING CONVERSATION ISSUE");
-  
-  // 1. Check current user
-  console.log("👤 Current User:", currentUser);
-  console.log("User ID:", currentUser?.id);
-  
-  // 2. Check what conversation 1 contains
   try {
     const debugRes = await fetch('/api/debug/conversation/1', {
       credentials: "include"
     });
     const debugData = await debugRes.json();
-    console.log("📊 Conversation 1 Debug:", debugData);
     
-    // 3. Who are the participants?
     if (debugData.conversation) {
-      console.log("👥 Participants in conversation 1:");
-      console.log("- Client ID:", debugData.conversation.client_id);
-      console.log("- Client Name:", debugData.conversation.client_name);
-      console.log("- Freelancer ID:", debugData.conversation.freelancer_id);
-      console.log("- Freelancer Name:", debugData.conversation.freelancer_name);
-      console.log("- Current User ID:", debugData.currentUserId);
-      
-      // Check if current user is part of this conversation
       const isClient = parseInt(debugData.conversation.client_id) === parseInt(currentUser?.id);
       const isFreelancer = parseInt(debugData.conversation.freelancer_id) === parseInt(currentUser?.id);
-      console.log("- Is current user the client?", isClient);
-      console.log("- Is current user the freelancer?", isFreelancer);
     }
   } catch (error) {
-    console.error("Debug fetch error:", error);
   }
   
-  // 4. Check all conversations for current user
   try {
     const convRes = await fetch('/api/messages/conversations', {
       credentials: "include"
     });
     const conversations = await convRes.json();
-    console.log("📨 User's Conversations:", conversations);
   } catch (error) {
-    console.error("Conversations fetch error:", error);
   }
 }
 
 // ========== INBOX FUNCTIONALITY ==========
-
 async function loadConversations() {
   try {
-    console.log("📨 Loading conversations...");
     const response = await fetch("/api/messages/conversations", {
       credentials: "include"
     });
     
     const conversations = await response.json();
-    console.log("📨 Conversations loaded:", conversations);
-    
     const list = $("conversationList");
     if (!list) {
-      console.error("Conversation list element not found!");
       return;
     }
     
@@ -1833,9 +1899,7 @@ async function loadConversations() {
     }
     
     conversations.forEach(conversation => {
-      // Make sure conversation_id is valid
       if (!conversation.conversation_id) {
-        console.warn("⚠️ Skipping conversation without ID:", conversation);
         return;
       }
       
@@ -1858,23 +1922,17 @@ async function loadConversations() {
       `;
       
       div.addEventListener('click', () => {
-        // Remove active class from all items
         document.querySelectorAll('.conversation-item').forEach(item => {
           item.classList.remove('active');
         });
-        // Add active class to clicked item
         div.classList.add('active');
-        // Open conversation with VALID ID
         openConversation(conversation.conversation_id, conversation.other_user_name);
       });
       
       list.appendChild(div);
     });
     
-    console.log("✅ Conversations loaded successfully");
-    
   } catch (error) {
-    console.error("❌ Error loading conversations:", error);
     const list = $("conversationList");
     if (list) {
       list.innerHTML = `
@@ -1887,17 +1945,12 @@ async function loadConversations() {
   }
 }
 
-// Setup message form
 function setupMessageForm() {
   const form = $('sendMessageForm');
   if (!form) {
-    console.error("❌ Message form not found!");
     return;
   }
   
-  console.log("✅ Setting up message form for conversation:", window.activeConversationId);
-  
-  // Remove existing event listeners by cloning
   const newForm = form.cloneNode(true);
   form.parentNode.replaceChild(newForm, form);
   
@@ -1905,11 +1958,9 @@ function setupMessageForm() {
   const submitBtn = newForm.querySelector('button[type="submit"]');
   
   if (!messageInput || !submitBtn) {
-    console.error("❌ Message form elements not found");
     return;
   }
   
-  // Update the message sending part of setupMessageForm:
   newForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -1925,20 +1976,12 @@ function setupMessageForm() {
       return;
     }
     
-    // Check if user is authenticated
     if (!currentUser) {
       showToast('Please login to send messages', 'warning');
       openModal($('loginModal'));
       return;
     }
     
-    console.log("📤 Sending message to conversation:", {
-      conversationId: window.activeConversationId,
-      message: message,
-      userId: currentUser.id
-    });
-    
-    // Show loading state
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     submitBtn.disabled = true;
@@ -1956,20 +1999,15 @@ function setupMessageForm() {
         })
       });
       
-      console.log("📡 Send response status:", response.status);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ Send error response:", errorData);
         
         if (response.status === 403) {
           showToast('Access denied. You may not have permission to send to this conversation.', 'error');
           
-          // Clear the conversation selection
           window.activeConversationId = null;
           window.activeConversationUserId = null;
           
-          // Reload conversations to get fresh data
           await loadConversations();
         } else {
           throw new Error(errorData.error || `HTTP ${response.status}: Failed to send message`);
@@ -1978,12 +2016,9 @@ function setupMessageForm() {
       }
       
       const data = await response.json();
-      console.log("✅ Send success:", data);
       
-      // Clear input
       messageInput.value = '';
       
-      // Refresh messages for the current conversation
       if (window.activeConversationId) {
         await openConversation(window.activeConversationId);
       }
@@ -1991,16 +2026,13 @@ function setupMessageForm() {
       showToast('✅ Message sent!', 'success');
       
     } catch (error) {
-      console.error("❌ Error sending message:", error);
       showToast('Failed to send message: ' + error.message, 'error');
     } finally {
-      // Reset button
       submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
       submitBtn.disabled = false;
     }
   });
   
-  // Enter key to send
   if (messageInput) {
     messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -2016,7 +2048,6 @@ async function loadDeletedServices() {
   const res = await fetch("/api/admin/deleted-services");
 
   if (!res.ok) {
-    console.error("Failed to load deleted services");
     return;
   }
 
@@ -2041,11 +2072,7 @@ async function loadDeletedServices() {
 // ========== FIXED SERVICE CREATION WITH CATEGORY FIX ==========
 async function handleServiceFormSubmit(e) {
   e.preventDefault();
-  console.log("📤 Service form submitted");
 
-  // ---------------------------------------------
-  // 1. Get category (your enhanced category system)
-  // ---------------------------------------------
   const finalCategory = getSelectedCategoryFromEnhancedForm();
 
   if (!finalCategory) {
@@ -2053,11 +2080,6 @@ async function handleServiceFormSubmit(e) {
     return;
   }
 
-  console.log("📝 Final category:", finalCategory);
-
-  // ---------------------------------------------
-  // 2. Get provider profile picture
-  // ---------------------------------------------
   let providerProfilePicture = null;
 
   if (freelancerProfile && freelancerProfile.profile_picture) {
@@ -2067,9 +2089,6 @@ async function handleServiceFormSubmit(e) {
     if (cachedPicture) providerProfilePicture = cachedPicture;
   }
 
-  // ---------------------------------------------
-  // 3. Build service data
-  // ---------------------------------------------
   const serviceData = {
     title: $("serviceTitle").value.trim(),
     description: $("serviceDescription").value.trim(),
@@ -2079,19 +2098,12 @@ async function handleServiceFormSubmit(e) {
     provider_profile_picture: providerProfilePicture
   };
 
-  console.log("📦 Service data:", serviceData);
-
-  // ---------------------------------------------
-  // 4. Submit button loader
-  // ---------------------------------------------
   const submitBtn = e.target.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
   submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
   submitBtn.disabled = true;
 
   try {
-    console.log("📤 Sending service data to API...");
-
     const response = await fetch('/api/services', {
       method: 'POST',
       headers: {
@@ -2103,30 +2115,23 @@ async function handleServiceFormSubmit(e) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("❌ Server error:", data);
       alert(data.error || 'Failed to create service');
       return;
     }
 
-    console.log("✅ Service created successfully:", data);
-
     alert('🎉 Service created successfully!');
 
-    // Reset form
     $("serviceForm").reset();
     hideCreateServiceForm();
 
-    // Reload UI
     await loadCategories();
     if (userRole === 'freelancer') await loadMyServices();
     await loadServices();
 
   } catch (error) {
-    console.error("❌ Service creation error:", error);
     alert("Failed to create service. Please try again.");
   }
 
-  // Reset button
   submitBtn.innerHTML = originalText;
   submitBtn.disabled = false;
 }
@@ -2137,7 +2142,6 @@ function renderServices(servicesToRender) {
   const noServices = $('noServices');
 
   if (!container) {
-    console.error("❌ servicesList container not found!");
     return;
   }
 
@@ -2169,7 +2173,7 @@ function renderServices(servicesToRender) {
       `
       : `<div class="provider-initials">${providerName.charAt(0).toUpperCase()}</div>`;
 
-    return `
+    let serviceCardHTML = `
       <div class="service-card" data-service-id="${serviceId}">
 
         <div class="service-header">
@@ -2189,8 +2193,12 @@ function renderServices(servicesToRender) {
           <p class="service-description">
             ${escapeHtml(description)}
           </p>
-        </div>
+        </div>`;
 
+    if (currentUser && (currentUser.role === 'client' || currentUser.role === 'business')) {
+      serviceCardHTML += addRecruitButton(serviceCardHTML, serviceId, userId);
+    } else {
+      serviceCardHTML += `
         <div class="service-actions">
           <button class="btn chat-btn" onclick="startConversationWithService(${serviceId}, ${userId})">
             <i class="fas fa-comments"></i> Chat
@@ -2198,48 +2206,125 @@ function renderServices(servicesToRender) {
           <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
             <i class="fas fa-user"></i> View Profile
           </button>
-        </div>
+        </div>`;
+    }
 
-        ${currentUser?.role === 'admin' ? `
-          <div class="admin-badge">
-            <i class="fas fa-shield-alt"></i> Admin View
-          </div>
-        ` : ''}
+    serviceCardHTML += `
+        <button class="btn btn-primary" onclick="viewServiceDetailsModal(${serviceId})">
+          <i class="fas fa-info-circle"></i> View Details
+        </button>`;
 
-        <div class="service-actions">
-          <button class="btn btn-primary"
-            onclick="viewServiceDetails(${serviceId})">
-            View Details
-          </button>
+    if (currentUser?.role === 'admin') {
+      serviceCardHTML += `
+        <button class="btn btn-danger"
+          onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, false)">
+          <i class="fas fa-trash"></i> Admin Delete
+        </button>`;
+    }
 
-          ${currentUser?.role === 'admin' ? `
-            <button class="btn btn-danger"
-              onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, false)">
-              <i class="fas fa-trash"></i> Admin Delete
-            </button>
-          ` : ''}
+    if (currentUser?.id === userId) {
+      serviceCardHTML += `
+        <button class="btn btn-warning"
+          onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, true)">
+          <i class="fas fa-trash"></i> Delete My Service
+        </button>`;
+    }
 
-          ${currentUser?.id === userId ? `
-            <button class="btn btn-warning"
-              onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, true)">
-              <i class="fas fa-trash"></i> Delete My Service
-            </button>
-          ` : ''}
-        </div>
+    serviceCardHTML += `
+      </div>`;
 
-      </div>
-    `;
+    return serviceCardHTML;
   }).join('');
+}
+
+function addRecruitButton(serviceCardHTML, serviceId, freelancerId) {
+  return `
+    <div class="service-actions">
+      <button class="btn chat-btn" onclick="startConversationWithService(${serviceId}, ${freelancerId})">
+        <i class="fas fa-comments"></i> Chat
+      </button>
+      <button class="btn profile-btn" onclick="openFreelancerProfile(${freelancerId})">
+        <i class="fas fa-user"></i> View Profile
+      </button>
+      <button class="btn recruit-btn" onclick="recruitFreelancer(${freelancerId}, ${serviceId})">
+        <i class="fas fa-user-plus"></i> Recruit
+      </button>
+    </div>`;
+}
+
+async function recruitFreelancer(freelancerId, serviceId) {
+  if (!currentUser) {
+    showToast('Please login to recruit freelancers', 'warning');
+    openModal($('loginModal'));
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/freelancer/recruit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        freelancerId: freelancerId,
+        serviceId: serviceId
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('✅ Freelancer added to your providers list!', 'success');
+      addToMyProviders(freelancerId, serviceId);
+    } else {
+      showToast(data.error || 'Failed to recruit freelancer', 'error');
+    }
+  } catch (error) {
+    showToast('Failed to recruit freelancer', 'error');
+  }
+}
+
+async function addToMyProviders(freelancerId, serviceId) {
+  const response = await fetch(`/api/users/${freelancerId}/profile`);
+  const freelancer = await response.json();
+  
+  const providersList = $('clientServicesList');
+  if (providersList) {
+    const providerCard = `
+      <div class="service-card">
+        <div class="service-provider-info">
+          <div class="profile-picture-wrapper">
+            ${freelancer.profile_picture ? 
+              `<img src="${freelancer.profile_picture}" alt="${freelancer.username}" class="provider-profile-picture">` :
+              `<div class="provider-initials">${freelancer.username.charAt(0).toUpperCase()}</div>`
+            }
+          </div>
+          <div>
+            <div class="service-provider-name">${freelancer.username}</div>
+            <div class="service-rating">
+              <span class="stars">${generateStars(freelancer.avg_rating || 0)}</span>
+              <span class="rating-count">(${freelancer.review_count || 0})</span>
+            </div>
+          </div>
+        </div>
+        <div class="provider-actions">
+          <button class="btn btn-primary" onclick="startConversationWithService(${serviceId}, ${freelancerId})">
+            Message Again
+          </button>
+          <button class="btn btn-secondary" onclick="viewFreelancerServices(${freelancerId})">
+            View Services
+          </button>
+        </div>
+      </div>`;
+    
+    providersList.insertAdjacentHTML('beforeend', providerCard);
+  }
 }
 
 // ========== ADMIN DELETE SERVICE FUNCTIONS ==========
 function confirmDeleteService(serviceId, serviceTitle, userId, isOwner = false) {
-  console.log("🗑️ Delete request:", { serviceId, serviceTitle, userId, isOwner, currentUser });
-  
   const isAdmin = currentUser && currentUser.role === 'admin';
   const isOwnerDelete = isOwner || (currentUser && currentUser.id === userId);
   
-  // Create appropriate modal based on who's deleting
   if (isAdmin) {
     createAdminDeleteModal(serviceId, serviceTitle, userId);
   } else if (isOwnerDelete) {
@@ -2249,7 +2334,6 @@ function confirmDeleteService(serviceId, serviceTitle, userId, isOwner = false) 
   }
 }
 
-// Admin delete modal
 function createAdminDeleteModal(serviceId, serviceTitle, userId) {
   const modalHtml = `
     <div id="adminDeleteModal" class="modal" style="display: flex;">
@@ -2297,7 +2381,6 @@ function createAdminDeleteModal(serviceId, serviceTitle, userId) {
   
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   
-  // Enable button when reason is provided
   const deleteReason = $('deleteReason');
   const confirmBtn = $('confirmDeleteBtn');
   
@@ -2308,9 +2391,7 @@ function createAdminDeleteModal(serviceId, serviceTitle, userId) {
   });
 }
 
-// Freelancer delete modal
 function createFreelancerDeleteModal(serviceId, serviceTitle, userId) {
-  // Check remaining deletes first
   checkRemainingDeletes().then(remaining => {
     const modalHtml = `
       <div id="freelancerDeleteModal" class="modal" style="display: flex;">
@@ -2373,7 +2454,6 @@ function createFreelancerDeleteModal(serviceId, serviceTitle, userId) {
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    // Enable button when reason is provided
     if (remaining > 0) {
       const deleteReason = $('freelancerDeleteReason');
       const confirmBtn = $('confirmFreelancerDeleteBtn');
@@ -2386,12 +2466,10 @@ function createFreelancerDeleteModal(serviceId, serviceTitle, userId) {
     }
     
   }).catch(error => {
-    console.error("Error checking remaining deletes:", error);
     showToast('Error checking delete limits', 'error');
   });
 }
 
-// Check remaining deletes
 async function checkRemainingDeletes() {
   try {
     const response = await fetch('/api/user/delete-limits', {
@@ -2403,14 +2481,12 @@ async function checkRemainingDeletes() {
       return data.remaining_deletes || 0;
     }
     
-    return 3; // Default if error
+    return 3;
   } catch (error) {
-    console.error("Error checking delete limits:", error);
     return 3;
   }
 }
 
-// Admin delete function
 async function deleteService(serviceId, userId) {
   const deleteReason = $('deleteReason').value.trim();
   
@@ -2420,15 +2496,11 @@ async function deleteService(serviceId, userId) {
   }
   
   try {
-    console.log("🧪 Starting delete process...");
-    
-    // Show loading
     const confirmDeleteBtn = $('confirmDeleteBtn');
     const originalText = confirmDeleteBtn.innerHTML;
     confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
     confirmDeleteBtn.disabled = true;
     
-    // Prepare request
     const response = await fetch(`/api/admin/services/${serviceId}`, {
       method: 'DELETE',
       headers: {
@@ -2441,40 +2513,27 @@ async function deleteService(serviceId, userId) {
       })
     });
     
-    // Try to parse response text first for debugging
     const responseText = await response.text();
-    console.log("Raw response text:", responseText);
     
     let data;
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error("Failed to parse JSON response:", parseError);
       throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 100)}...`);
     }
-    
-    console.log("Parsed response data:", data);
     
     if (!response.ok) {
       throw new Error(data.error || `HTTP ${response.status}: Failed to delete service`);
     }
     
-    console.log("✅ Delete successful!");
     showToast('✅ Service deleted successfully!', 'success');
     closeAdminDeleteModal();
     
-    // Refresh after a short delay
     setTimeout(() => {
       loadServices();
     }, 1000);
     
   } catch (error) {
-    console.error('❌ DELETE ERROR DETAILS:');
-    console.error('- Message:', error.message);
-    console.error('- Name:', error.name);
-    console.error('- Stack:', error.stack);
-    
-    // User-friendly error messages
     let userMessage = error.message;
     if (error.message.includes('Cannot read properties of undefined')) {
       userMessage = 'Server error: Could not process the service data.';
@@ -2486,7 +2545,6 @@ async function deleteService(serviceId, userId) {
     
     showToast(`❌ ${userMessage}`, 'error');
     
-    // Reset button
     const confirmDeleteBtn = $('confirmDeleteBtn');
     if (confirmDeleteBtn) {
       confirmDeleteBtn.innerHTML = '<i class="fas fa-trash"></i> Confirm Delete';
@@ -2495,7 +2553,6 @@ async function deleteService(serviceId, userId) {
   }
 }
 
-// Close modal functions
 function closeAdminDeleteModal() {
   const modal = $('adminDeleteModal');
   if (modal) modal.remove();
@@ -2510,9 +2567,6 @@ async function handleProfilePictureUpload(e) {
   formData.append('profile_picture', file);
   
   try {
-    console.log("📸 Uploading profile picture...");
-    
-    // Show loading
     const updatePhotoBtn = $('updatePhotoBtn');
     const originalText = updatePhotoBtn.innerHTML;
     updatePhotoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
@@ -2529,14 +2583,10 @@ async function handleProfilePictureUpload(e) {
       throw new Error(result.error || 'Failed to upload picture');
     }
     
-    console.log("✅ Profile picture uploaded:", result);
-    
-    // Update the image immediately
     const img = $('profilePicture');
     const initials = $('profileInitials');
     
     if (img && result.profile_picture) {
-      // Add cache busting
       const timestamp = new Date().getTime();
       const pictureUrl = result.profile_picture + '?t=' + timestamp;
       img.src = pictureUrl;
@@ -2546,23 +2596,19 @@ async function handleProfilePictureUpload(e) {
         initials.style.display = 'none';
       }
       
-      // Save to localStorage
       localStorage.setItem('profile_picture_url', result.profile_picture);
       localStorage.setItem('profile_picture_timestamp', timestamp);
       
-      // Update local profile data
       if (freelancerProfile) {
         freelancerProfile.profile_picture = result.profile_picture;
       }
     }
     
-    // Update all existing services with new profile picture
     await updateServicesWithNewProfilePicture(result.profile_picture);
     
     showToast('✅ Profile picture updated successfully!', 'success');
     
   } catch (error) {
-    console.error('❌ Error uploading profile picture:', error);
     showToast('❌ Failed to upload profile picture: ' + error.message, 'error');
   } finally {
     const updatePhotoBtn = $('updatePhotoBtn');
@@ -2573,39 +2619,26 @@ async function handleProfilePictureUpload(e) {
   }
 }
 
-// Initialize profile functionality
 function initProfileFunctionality() {
-  console.log("🔧 Initializing profile functionality...");
-  
-  // Initialize skills if empty
   if (!currentSkills || currentSkills.length === 0) {
     currentSkills = ['React', 'Node.js', 'TypeScript', 'MongoDB', 'AWS', 'UI/UX Design'];
   }
   
-  // Setup all event listeners
   setupProfileEventListeners();
-  
-  console.log("✅ Profile functionality initialized");
 }
 
-// Setup profile event listeners
 function setupProfileEventListeners() {
-  console.log("🎯 Setting up profile event listeners...");
-  
-  // Profile picture upload
   const updatePhotoBtn = $('updatePhotoBtn');
   const profilePictureInput = $('profilePictureInput');
   
   if (updatePhotoBtn && profilePictureInput) {
     updatePhotoBtn.addEventListener('click', () => {
-      console.log("📸 Update photo clicked");
       profilePictureInput.click();
     });
     
     profilePictureInput.addEventListener('change', handleProfilePictureUpload);
   }
   
-  // Navigation tabs
   const profileViewBtn = $('profileViewTabBtn');
   const profileEditBtn = $('profileEditTabBtn');
   const dashboardBtn = $('dashboardTabBtn');
@@ -2618,7 +2651,6 @@ function setupProfileEventListeners() {
   if (myServicesBtn) myServicesBtn.addEventListener('click', switchToServicesTab);
   if (ordersBtn) ordersBtn.addEventListener('click', switchToOrdersTab);
   
-  // Action buttons
   const editProfileBtn = $('editProfileBtn');
   const dashboardActionBtn = $('dashboardBtn');
   const shareProfileBtn = $('shareProfileBtn');
@@ -2629,7 +2661,6 @@ function setupProfileEventListeners() {
   if (shareProfileBtn) shareProfileBtn.addEventListener('click', shareProfile);
   if (exportProfileBtn) exportProfileBtn.addEventListener('click', exportProfile);
   
-  // Edit form - Skills
   const addSkillBtn = $('addSkillBtn');
   const newSkillInput = $('newSkill');
   
@@ -2646,7 +2677,6 @@ function setupProfileEventListeners() {
     });
   }
   
-  // Common skill buttons
   document.querySelectorAll('.common-skill-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const skill = e.target.getAttribute('data-skill');
@@ -2654,7 +2684,6 @@ function setupProfileEventListeners() {
     });
   });
   
-  // Cancel edit button
   const cancelEditBtn = $('cancelEditBtn');
   if (cancelEditBtn) {
     cancelEditBtn.addEventListener('click', () => {
@@ -2662,16 +2691,12 @@ function setupProfileEventListeners() {
     });
   }
   
-  // Profile form submission
   const profileForm = $('profileForm');
   if (profileForm) {
     profileForm.addEventListener('submit', handleProfileFormSubmit);
   }
-  
-  console.log("✅ Profile event listeners setup complete");
 }
 
-// Skill management functions
 function addSkill() {
   const input = $('newSkill');
   const skill = input.value.trim();
@@ -2711,29 +2736,18 @@ function renderSkills(skills) {
   `).join('');
 }
 
-// Show freelancer profile
 function showFreelancerProfile() {
-  console.log("👤 Showing freelancer profile");
-  
-  // Hide other sections
-  hideAllPages();
-  
-  // Show profile section
   const profileSection = $('freelancerProfile');
   if (profileSection) {
     profileSection.classList.remove('hidden');
   }
   
-  // Load profile data
   loadFreelancerProfile();
   switchProfileTab('profileView');
 }
 
-// Load freelancer profile from server
 async function loadFreelancerProfile() {
   try {
-    console.log("🔍 Loading freelancer profile from server...");
-    
     const response = await fetch('/api/freelancer/profile', {
       headers: {
         'Content-Type': 'application/json'
@@ -2746,18 +2760,14 @@ async function loadFreelancerProfile() {
     }
     
     freelancerProfile = await response.json();
-    console.log("✅ Profile loaded from server:", freelancerProfile);
     
-    // Check localStorage for cached profile picture
     const cachedPicture = localStorage.getItem('profile_picture_url');
     if (cachedPicture && (!freelancerProfile.profile_picture || freelancerProfile.profile_picture.includes('default'))) {
       freelancerProfile.profile_picture = cachedPicture;
     }
     
-    // Render the profile
     renderProfile();
     
-    // Update skills for edit form
     if (freelancerProfile.skills) {
       try {
         currentSkills = Array.isArray(freelancerProfile.skills) ? 
@@ -2765,43 +2775,33 @@ async function loadFreelancerProfile() {
           JSON.parse(freelancerProfile.skills);
         renderSkills(currentSkills);
       } catch (e) {
-        console.error("Error parsing skills:", e);
         currentSkills = ['React', 'Node.js', 'TypeScript', 'MongoDB', 'AWS', 'UI/UX Design'];
         renderSkills(currentSkills);
       }
     }
     
   } catch (error) {
-    console.error('❌ Error loading profile:', error);
     showToast('❌ Failed to load profile. Please try again.', 'error');
     
-    // Show default profile if loading fails
     renderDefaultProfile();
   }
 }
 
-// Render profile data
 function renderProfile() {
   if (!freelancerProfile) {
-    console.log("❌ No profile data to render");
     renderDefaultProfile();
     return;
   }
   
-  console.log("🎨 Rendering profile data...");
-  
-  // Basic info
   safeSetText('profileUsername', freelancerProfile.username || currentUser?.username || 'Freelancer');
   safeSetText('profileHeadline', freelancerProfile.headline || 'Professional Freelancer');
   safeSetText('profileEmail', freelancerProfile.email || currentUser?.email || 'Not provided');
   safeSetText('profilePhone', freelancerProfile.phone || 'Not provided');
   
-  // Profile picture
   const img = $('profilePicture');
   const initials = $('profileInitials');
   
   if (freelancerProfile.profile_picture) {
-    // Add cache busting parameter
     const timestamp = localStorage.getItem('profile_picture_timestamp') || new Date().getTime();
     const pictureUrl = freelancerProfile.profile_picture.includes('?') 
       ? freelancerProfile.profile_picture 
@@ -2810,9 +2810,7 @@ function renderProfile() {
     if (img) {
       img.src = pictureUrl;
       img.style.display = 'block';
-      // Add error handling for broken images
       img.onerror = function() {
-        console.log("❌ Image failed to load, showing initials");
         this.style.display = 'none';
         if (initials) {
           initials.style.display = 'flex';
@@ -2823,7 +2821,6 @@ function renderProfile() {
       initials.style.display = 'none';
     }
   } else {
-    // Check localStorage as backup
     const cachedPicture = localStorage.getItem('profile_picture_url');
     if (cachedPicture && img) {
       const timestamp = localStorage.getItem('profile_picture_timestamp') || new Date().getTime();
@@ -2840,22 +2837,18 @@ function renderProfile() {
     }
   }
   
-  // Stats
   safeSetText('totalServices', freelancerProfile.total_services || 0);
   safeSetText('totalReviews', freelancerProfile.total_reviews || 0);
   safeSetText('avgRating', (freelancerProfile.avg_rating || 0).toFixed(1));
   safeSetText('totalEarnings', `$${freelancerProfile.total_earnings || 0}`);
   
-  // Dashboard stats
   safeSetText('dashboardServices', freelancerProfile.total_services || 0);
   safeSetText('dashboardEarnings', `$${freelancerProfile.total_earnings || 0}`);
   safeSetText('dashboardClients', freelancerProfile.total_clients || 0);
   safeSetText('dashboardRating', (freelancerProfile.avg_rating || 0).toFixed(1));
   
-  // About section
   safeSetText('profileDescription', freelancerProfile.description || 'No description provided. Tell clients about your experience and expertise.');
   
-  // Skills in view mode
   const skillsContainer = $('profileSkills');
   if (skillsContainer) {
     try {
@@ -2865,19 +2858,16 @@ function renderProfile() {
         <span class="skill-tag">${escapeHtml(skill)}</span>
       `).join('');
     } catch (e) {
-      console.error("Error parsing skills:", e);
       skillsContainer.innerHTML = '<span class="text-gray">No skills added yet</span>';
     }
   }
   
-  // Details
   safeSetText('profileHourlyRate', `$${freelancerProfile.hourly_rate || 0}/hr`);
   safeSetText('profileExperienceLevel', formatExperienceLevel(freelancerProfile.experience_level));
   safeSetText('profileLocation', freelancerProfile.location || 'Not specified');
   safeSetText('profileLocationDisplay', freelancerProfile.location || 'Not specified');
   safeSetText('profileLanguages', formatLanguages(freelancerProfile.languages));
   
-  // Availability
   const availabilityElement = $('profileAvailability');
   if (availabilityElement) {
     const availability = freelancerProfile.availability || 'available';
@@ -2885,7 +2875,6 @@ function renderProfile() {
     availabilityElement.className = `availability-badge availability-${availability}`;
   }
   
-  // Website
   const websiteElement = $('profileWebsite');
   if (websiteElement) {
     if (freelancerProfile.website) {
@@ -2897,22 +2886,17 @@ function renderProfile() {
     }
   }
   
-  // Education & Certifications
   safeSetText('profileEducation', freelancerProfile.education || 'No education information provided.');
   safeSetText('profileCertifications', freelancerProfile.certifications || 'No certifications added yet.');
   
-  // Member since
   const memberSince = freelancerProfile.created_at || freelancerProfile.user_created_at;
   safeSetText('profileMemberSince', memberSince ? 
     new Date(memberSince).toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long' 
     }) : 'N/A');
-  
-  console.log("✅ Profile rendering complete");
 }
 
-// Show default profile when loading fails
 function renderDefaultProfile() {
   const username = currentUser?.username || 'Freelancer';
   
@@ -2920,7 +2904,6 @@ function renderDefaultProfile() {
   safeSetText('profileHeadline', 'Professional Freelancer');
   safeSetText('profileEmail', currentUser?.email || 'Not provided');
   
-  // Show initials
   const img = $('profilePicture');
   const initials = $('profileInitials');
   if (img) img.style.display = 'none';
@@ -2929,40 +2912,31 @@ function renderDefaultProfile() {
     initials.style.display = 'flex';
   }
   
-  // Set default stats
   safeSetText('totalServices', '0');
   safeSetText('avgRating', '0.0');
   safeSetText('totalReviews', '0');
   safeSetText('totalEarnings', '$0');
 }
 
-// Switch between profile tabs (old version - keep for compatibility)
 function switchProfileTabOld(tabName) {
-  console.log("🔀 Switching to profile tab:", tabName);
-  
-  // Hide all profile tab contents
   document.querySelectorAll('.profile-tab-content').forEach(tab => {
     tab.classList.add('hidden');
   });
   
-  // Remove active class from all tab buttons
   document.querySelectorAll('.nav-tab.enhanced').forEach(tab => {
     tab.classList.remove('active');
   });
   
-  // Show selected tab content
   const tabContent = $(tabName + 'TabContent');
   if (tabContent) {
     tabContent.classList.remove('hidden');
   }
   
-  // Add active class to clicked tab button
   const tabButton = $(tabName + 'TabBtn');
   if (tabButton) {
     tabButton.classList.add('active');
   }
   
-  // Load tab-specific data
   if (tabName === 'profileEdit') {
     loadEditForm();
   } else if (tabName === 'dashboard') {
@@ -2970,17 +2944,11 @@ function switchProfileTabOld(tabName) {
   }
 }
 
-// Load data into edit form
 function loadEditForm() {
-  console.log("📝 Loading edit form...");
-  
   if (!freelancerProfile) {
-    console.log("No profile data to load into form");
     showToast('Please load profile data first', 'warning');
     
-    // Load profile first
     loadFreelancerProfile().then(() => {
-      // Try again after loading
       if (freelancerProfile) {
         loadEditFormData();
       }
@@ -2992,9 +2960,6 @@ function loadEditForm() {
 }
 
 function loadEditFormData() {
-  console.log("📝 Loading profile data into edit form...");
-  
-  // Set form values
   safeSetValue('editHeadline', freelancerProfile.headline || '');
   safeSetValue('editDescription', freelancerProfile.description || '');
   safeSetValue('editHourlyRate', freelancerProfile.hourly_rate || 25);
@@ -3006,29 +2971,21 @@ function loadEditFormData() {
   safeSetValue('editEducation', freelancerProfile.education || '');
   safeSetValue('editCertifications', freelancerProfile.certifications || '');
   
-  // Languages
   safeSetValue('editLanguages', formatLanguagesForEdit(freelancerProfile.languages));
   updateSelectedLanguages(freelancerProfile.languages);
   
-  // Render skills in edit form
   renderSkills(currentSkills);
-  
-  console.log("✅ Edit form loaded successfully");
 }
 
-// Handle profile form submission
 async function handleProfileFormSubmitOld(e) {
   e.preventDefault();
-  console.log("📝 Profile form submitted");
   
-  // Show loading state
   const submitBtn = document.querySelector('#profileForm button[type="submit"]');
   const originalText = submitBtn.innerHTML;
   submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
   submitBtn.disabled = true;
   
   try {
-    // Collect form data
     const profileUpdateData = {
       headline: $('editHeadline').value.trim(),
       description: $('editDescription').value.trim(),
@@ -3046,8 +3003,6 @@ async function handleProfileFormSubmitOld(e) {
         .map(lang => lang.trim())
         .filter(lang => lang)
     };
-    
-    console.log("📦 Sending profile update data:", profileUpdateData);
     
     const response = await fetch('/api/freelancer/profile', {
       method: 'PUT',
@@ -3068,30 +3023,22 @@ async function handleProfileFormSubmitOld(e) {
       throw new Error(result.error || 'Failed to update profile');
     }
     
-    console.log("✅ Profile updated successfully:", result);
-    
-    // Update local profile data
     freelancerProfile = { ...freelancerProfile, ...profileUpdateData };
     
-    // Switch back to view tab
     switchProfileTab('profileView');
     
-    // Update the view immediately
     renderProfile();
     
     showToast('✅ Profile updated successfully!', 'success');
     
   } catch (error) {
-    console.error('❌ Error updating profile:', error);
     showToast('❌ Failed to update profile: ' + error.message, 'error');
   } finally {
-    // Reset button
     submitBtn.innerHTML = originalText;
     submitBtn.disabled = false;
   }
 }
 
-// Utility functions
 function formatExperienceLevel(level) {
   const levels = {
     'beginner': 'Beginner (0-2 years)',
@@ -3166,21 +3113,15 @@ function updateSelectedLanguages(languages) {
   `).join('');
 }
 
-// Navigation functions
 function switchToServicesTab() {
-  console.log("🔀 Switching to services tab");
-  
-  // Hide profile section
   const profileSection = $('freelancerProfile');
   if (profileSection) {
     profileSection.classList.add('hidden');
   }
   
-  // Show services browser
   const servicesBrowser = $('servicesBrowser');
   if (servicesBrowser) {
     servicesBrowser.classList.remove('hidden');
-    // Call existing switchTab function
     if (typeof switchTab === 'function') {
       switchTab('myServices');
     }
@@ -3190,19 +3131,14 @@ function switchToServicesTab() {
 }
 
 function switchToOrdersTab() {
-  console.log("🔀 Switching to orders tab");
-  
-  // Hide profile section
   const profileSection = $('freelancerProfile');
   if (profileSection) {
     profileSection.classList.add('hidden');
   }
   
-  // Show services browser
   const servicesBrowser = $('servicesBrowser');
   if (servicesBrowser) {
     servicesBrowser.classList.remove('hidden');
-    // Call existing switchTab function
     if (typeof switchTab === 'function') {
       switchTab('clients');
     }
@@ -3211,7 +3147,6 @@ function switchToOrdersTab() {
   showToast('Navigating to Orders...', 'info');
 }
 
-// Other functions
 function shareProfile() {
   if (!freelancerProfile) {
     showToast('Please load your profile first', 'warning');
@@ -3227,11 +3162,9 @@ function shareProfile() {
       url: profileUrl
     }).catch(console.error);
   } else {
-    // Copy to clipboard
     navigator.clipboard.writeText(profileUrl).then(() => {
       showToast('✅ Profile link copied to clipboard!', 'success');
     }).catch(() => {
-      // Fallback for older browsers
       const tempInput = document.createElement('input');
       tempInput.value = profileUrl;
       document.body.appendChild(tempInput);
@@ -3278,16 +3211,105 @@ function exportProfile() {
   showToast('✅ Profile exported successfully!', 'success');
 }
 
+async function viewServiceDetailsModal(serviceId) {
+  try {
+    const response = await fetch(`/api/services/${serviceId}/details`);
+    const service = await response.json();
+    
+    if (!response.ok) {
+      showToast('Failed to load service details', 'error');
+      return;
+    }
+    
+    const modalHtml = `
+      <div id="serviceDetailsModal" class="modal" style="display: flex;">
+        <div class="modal-card" style="max-width: 600px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <h3 style="margin:0;color:var(--text-light)">Service Details</h3>
+            <span class="close-x" onclick="closeCurrentModal()">&times;</span>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 10px;">${escapeHtml(service.title)}</h4>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+              <div>
+                <strong style="color: var(--text-light);">Price:</strong>
+                <span style="color: var(--accent-gold); font-weight: bold; margin-left: 10px;">
+                  ${service.price > 0 ? `$${service.price}` : 'Free'}
+                </span>
+              </div>
+              <div>
+                <strong style="color: var(--text-light);">Category:</strong>
+                <span style="color: var(--text-light); margin-left: 10px;">${escapeHtml(service.category || 'General')}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <h5 style="color: var(--text-light); margin-bottom: 10px;">Description</h5>
+            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px;">
+              <p style="color: var(--text-light); line-height: 1.5;">
+                ${escapeHtml(service.description || 'No description provided.')}
+              </p>
+            </div>
+          </div>
+          
+          ${service.delivery_time ? `
+            <div style="margin-bottom: 20px;">
+              <h5 style="color: var(--text-light); margin-bottom: 10px;">Delivery Time</h5>
+              <div style="background: var(--card-bg); padding: 15px; border-radius: 8px;">
+                <span style="color: var(--text-light);">${service.delivery_time} days</span>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${service.tags ? `
+            <div style="margin-bottom: 20px;">
+              <h5 style="color: var(--text-light); margin-bottom: 10px;">Tags</h5>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${JSON.parse(service.tags).map(tag => `
+                  <span style="background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); padding: 6px 12px; border-radius: 15px; font-size: 0.85rem;">
+                    ${escapeHtml(tag)}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <div style="display: flex; gap: 10px; margin-top: 25px;">
+            <button onclick="startConversationWithService(${service.id}, ${service.user_id})" 
+                    class="btn btn-primary" style="flex: 1;">
+              <i class="fas fa-comments"></i> Contact Provider
+            </button>
+            <button onclick="closeCurrentModal()" 
+                    class="btn btn-secondary">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+  } catch (error) {
+    showToast('Failed to load service details', 'error');
+  }
+}
+
+function closeCurrentModal() {
+  const modal = document.querySelector('.modal:not(.hidden)');
+  if (modal) {
+    modal.remove();
+  }
+}
+
 async function loadDashboardData() {
   try {
-    console.log("📊 Loading dashboard data...");
-    
-    // Load dashboard stats
     const response = await fetch('/api/freelancer/dashboard');
     
     if (response.ok) {
       const data = await response.json();
-      // Update dashboard with real data if available
       if (data.total_services !== undefined) {
         safeSetText('dashboardServices', data.total_services);
       }
@@ -3303,26 +3325,14 @@ async function loadDashboardData() {
     }
     
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
   }
 }
 
-// Add this test function to your frontend to debug
 async function testChatFlow() {
-  console.log("🧪 Testing chat flow...");
-  
-  // 1. Check current user
-  console.log("👤 Current user:", currentUser);
-  
-  // 2. Load conversations
-  console.log("📨 Loading conversations...");
   const convRes = await fetch("/api/messages/conversations", {
     credentials: "include"
   });
-  console.log("📨 Conversations response:", await convRes.json());
   
-  // 3. Try to start a conversation with service 22, freelancer 22
-  console.log("💬 Starting test conversation...");
   const startRes = await fetch("/api/messages/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3332,9 +3342,466 @@ async function testChatFlow() {
       freelancerId: 22
     })
   });
-  console.log("💬 Start response:", await startRes.json());
   
   alert("Check console for test results");
+}
+
+// ========== ENHANCED SERVICE FORM ==========
+let currentStep = 1;
+const totalSteps = 4;
+function initEnhancedServiceForm() {
+  currentStep = 1;
+  updateFormSteps();
+  
+  $('nextStepBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    goToNextStep();
+  });
+  
+  $('prevStepBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    goToPreviousStep();
+  });
+  
+  const serviceForm = $('enhancedServiceForm');
+  if (serviceForm) {
+    serviceForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      publishService();
+    });
+  }
+  
+  initFormElements();
+}
+
+function initFormElements() {
+  document.querySelectorAll('.package-tier').forEach(tier => {
+    tier.addEventListener('click', function() {
+      document.querySelectorAll('.package-tier').forEach(t => {
+        t.classList.remove('selected');
+      });
+      this.classList.add('selected');
+    });
+  });
+  
+  document.querySelectorAll('.delivery-option').forEach(option => {
+    option.addEventListener('click', function() {
+      document.querySelectorAll('.delivery-option').forEach(o => {
+        o.classList.remove('selected');
+      });
+      this.classList.add('selected');
+    });
+  });
+  
+  document.querySelectorAll('.revision-option').forEach(option => {
+    option.addEventListener('click', function() {
+      document.querySelectorAll('.revision-option').forEach(o => {
+        o.classList.remove('selected');
+      });
+      this.classList.add('selected');
+    });
+  });
+  
+  const descTextarea = $('serviceDescription');
+  if (descTextarea) {
+    descTextarea.addEventListener('input', function() {
+      const charCount = $('descCharCount');
+      if (charCount) {
+        charCount.textContent = `${this.value.length}/1200`;
+      }
+    });
+  }
+}
+
+function goToNextStep() {
+  if (currentStep < totalSteps) {
+    if (!validateStep(currentStep)) {
+      showToast('Please complete all required fields', 'error');
+      return;
+    }
+    
+    currentStep++;
+    updateFormSteps();
+  }
+}
+
+function goToPreviousStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    updateFormSteps();
+  }
+}
+
+function updateFormSteps() {
+  document.querySelectorAll('.form-step').forEach(step => {
+    step.classList.add('hidden');
+  });
+  
+  const currentStepElement = document.querySelector(`.form-step[data-step="${currentStep}"]`);
+  if (currentStepElement) {
+    currentStepElement.classList.remove('hidden');
+  }
+  
+  document.querySelectorAll('.progress-step').forEach((step, index) => {
+    const stepNum = index + 1;
+    step.classList.remove('active', 'completed');
+    
+    if (stepNum < currentStep) {
+      step.classList.add('completed');
+    } else if (stepNum === currentStep) {
+      step.classList.add('active');
+    }
+  });
+  
+  document.querySelectorAll('.progress-label').forEach((label, index) => {
+    const stepNum = index + 1;
+    label.classList.remove('active');
+    
+    if (stepNum === currentStep) {
+      label.classList.add('active');
+    }
+  });
+  
+  $('prevStepBtn').style.display = currentStep > 1 ? 'flex' : 'none';
+  $('nextStepBtn').style.display = currentStep < totalSteps ? 'flex' : 'none';
+  $('publishBtn').style.display = currentStep === totalSteps ? 'flex' : 'none';
+  
+  if (currentStep === 4) {
+    updateSummary();
+  }
+}
+
+function validateStep(step) {
+  switch(step) {
+    case 1:
+      const title = $('serviceTitle').value.trim();
+      const category = $('serviceCategory').value;
+      const description = $('serviceDescription').value.trim();
+      
+      if (!title || !description) {
+        return false;
+      }
+      return true;
+      
+    case 2:
+      return true;
+      
+    case 3:
+      return true;
+      
+    default:
+      return true;
+  }
+}
+
+function updateSummary() {
+  $('summaryTitle').textContent = $('serviceTitle').value;
+  $('summaryCategory').textContent = $('serviceCategory').value || 'Not selected';
+  
+  const selectedPackage = document.querySelector('.package-tier.selected');
+  $('summaryPackages').textContent = selectedPackage ? 
+    selectedPackage.querySelector('.tier-name').textContent + ' - ' + 
+    selectedPackage.querySelector('.tier-price').textContent : 'Not selected';
+  
+  const selectedDelivery = document.querySelector('.delivery-option.selected');
+  $('summaryDelivery').textContent = selectedDelivery ? 
+    selectedDelivery.querySelector('.delivery-days').textContent + ' days' : 'Not selected';
+  
+  const selectedRevisions = document.querySelector('.revision-option.selected');
+  $('summaryRevisions').textContent = selectedRevisions ? 
+    selectedRevisions.querySelector('.revision-count').textContent + ' revisions' : 'Not selected';
+}
+
+function addTag(tag) {
+  if (!tag) return;
+  
+  const tagsList = $('serviceTagsList');
+  const existingTags = Array.from(tagsList.querySelectorAll('.tag-item'))
+    .map(tagItem => tagItem.textContent.replace('×', '').trim());
+  
+  if (existingTags.includes(tag)) {
+    showToast('Tag already added', 'warning');
+    return;
+  }
+  
+  const tagItem = document.createElement('div');
+  tagItem.className = 'tag-item';
+  tagItem.innerHTML = `
+    ${tag}
+    <button type="button" class="remove-tag" onclick="this.parentElement.remove()">×</button>
+  `;
+  
+  tagsList.appendChild(tagItem);
+}
+
+function handleGalleryUpload() {
+  const files = Array.from($('serviceImages').files);
+  const galleryPreview = $('galleryPreview');
+  
+  if (files.length === 0) return;
+  
+  const validFiles = files.filter(file => {
+    const maxSize = 5 * 1024 * 1024;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    
+    if (!validTypes.includes(file.type)) {
+      showToast(`Invalid file type: ${file.name}. Only JPG, PNG, GIF allowed.`, 'error');
+      return false;
+    }
+    
+    if (file.size > maxSize) {
+      showToast(`File too large: ${file.name}. Max 5MB.`, 'error');
+      return false;
+    }
+    
+    return true;
+  });
+  
+  if (validFiles.length === 0) return;
+  
+  const currentImages = galleryPreview.children.length;
+  if (currentImages + validFiles.length > 10) {
+    showToast('Maximum 10 images allowed', 'error');
+    return;
+  }
+  
+  validFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const galleryItem = document.createElement('div');
+      galleryItem.className = 'gallery-item';
+      galleryItem.innerHTML = `
+        <img src="${e.target.result}" alt="Gallery image">
+        <button type="button" class="remove-gallery-item" onclick="this.parentElement.remove()">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      galleryPreview.appendChild(galleryItem);
+    };
+    reader.readAsDataURL(file);
+  });
+  
+  showToast(`${validFiles.length} image(s) added to gallery`, 'success');
+}
+
+function addRequirement() {
+  const container = document.querySelector('.requirements-container');
+  const requirementItem = document.createElement('div');
+  requirementItem.className = 'requirement-item';
+  requirementItem.innerHTML = `
+    <div class="requirement-input">
+      <input type="text" class="form-input-enhanced" placeholder="What information do you need from buyers?">
+    </div>
+    <button type="button" class="btn btn-secondary" onclick="removeRequirement(this)">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  container.appendChild(requirementItem);
+}
+
+function removeRequirement(button) {
+  button.closest('.requirement-item').remove();
+}
+
+async function publishService() {
+  try {
+    for (let i = 1; i <= totalSteps; i++) {
+      if (!validateStep(i)) {
+        showToast(`Please complete step ${i}`, 'error');
+        goToStep(i);
+        return;
+      }
+    }
+    
+    if (!$('acceptTerms').checked) {
+      showToast('Please accept the terms of service', 'error');
+      return;
+    }
+    
+    const formData = {
+      title: $('serviceTitle').value.trim(),
+      category: $('serviceCategory').value,
+      description: $('serviceDescription').value.trim(),
+      tags: getTags(),
+      package: getSelectedPackage(),
+      delivery_time: getSelectedDelivery(),
+      revisions: getSelectedRevisions(),
+      hourly_rate: $('hourlyRate').value || null,
+      fixed_price: $('fixedPrice').value || null,
+      video_url: $('serviceVideo').value || null,
+      requirements: getRequirements(),
+      publish_option: document.querySelector('input[name="publishOption"]:checked').value
+    };
+    
+    const publishBtn = $('publishBtn');
+    const originalText = publishBtn.innerHTML;
+    publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+    publishBtn.disabled = true;
+    
+    const response = await fetch('/api/services/enhanced', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(formData)
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to publish service');
+    }
+    
+    showToast('✅ Service published successfully!', 'success');
+    
+    setTimeout(() => {
+      hideCreateServiceForm();
+      loadMyServices();
+    }, 1500);
+    
+  } catch (error) {
+    showToast('❌ Failed to publish service: ' + error.message, 'error');
+    
+    const publishBtn = $('publishBtn');
+    if (publishBtn) {
+      publishBtn.innerHTML = '<i class="fas fa-rocket"></i> Publish Service';
+      publishBtn.disabled = false;
+    }
+  }
+}
+
+function getTags() {
+  const tags = Array.from($('serviceTagsList').querySelectorAll('.tag-item'))
+    .map(tagItem => tagItem.textContent.replace('×', '').trim());
+  return tags;
+}
+
+function getSelectedPackage() {
+  const selected = document.querySelector('.package-tier.selected');
+  if (selected) {
+    return {
+      tier: selected.getAttribute('data-tier'),
+      name: selected.querySelector('.tier-name').textContent,
+      price: selected.querySelector('.tier-price').textContent.replace('$', '')
+    };
+  }
+  return null;
+}
+
+function getSelectedDelivery() {
+  const selected = document.querySelector('.delivery-option.selected');
+  return selected ? selected.getAttribute('data-days') : null;
+}
+
+function getSelectedRevisions() {
+  const selected = document.querySelector('.revision-option.selected');
+  return selected ? selected.getAttribute('data-revisions') : null;
+}
+
+function getRequirements() {
+  const requirements = Array.from(document.querySelectorAll('.requirement-item input'))
+    .map(input => input.value.trim())
+    .filter(value => value);
+  return requirements;
+}
+
+function goToStep(step) {
+  currentStep = step;
+  updateFormSteps();
+}
+
+// Certificate viewer functions
+let currentZoom = 1;
+let currentCertificateUrl = '';
+
+function openCertificateViewer(certUrl, index) {
+  currentCertificateUrl = certUrl;
+  currentZoom = 1;
+  
+  const modal = $('certificateViewerModal');
+  const image = $('certificateImage');
+  const container = $('certificateContainer');
+  
+  if (modal && image) {
+    image.src = certUrl;
+    image.style.transform = `scale(${currentZoom})`;
+    
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    
+    setupZoomControls();
+  }
+}
+
+function viewCertificateFull(certUrl, event) {
+  event.stopPropagation();
+  openCertificateViewer(certUrl, 0);
+}
+
+function setupZoomControls() {
+  const zoomInBtn = $('zoomInBtn');
+  const zoomOutBtn = $('zoomOutBtn');
+  const resetBtn = $('resetZoomBtn');
+  const image = $('certificateImage');
+  
+  if (zoomInBtn) {
+    zoomInBtn.onclick = function() {
+      currentZoom = Math.min(currentZoom + 0.25, 3);
+      image.style.transform = `scale(${currentZoom})`;
+    };
+  }
+  
+  if (zoomOutBtn) {
+    zoomOutBtn.onclick = function() {
+      currentZoom = Math.max(currentZoom - 0.25, 0.5);
+      image.style.transform = `scale(${currentZoom})`;
+    };
+  }
+  
+  if (resetBtn) {
+    resetBtn.onclick = function() {
+      currentZoom = 1;
+      image.style.transform = `scale(${currentZoom})`;
+    };
+  }
+  
+  const container = $('certificateContainer');
+  if (container) {
+    container.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          currentZoom = Math.min(currentZoom + 0.1, 3);
+        } else {
+          currentZoom = Math.max(currentZoom - 0.1, 0.5);
+        }
+        image.style.transform = `scale(${currentZoom})`;
+      }
+    });
+  }
+}
+
+function closeCertificateViewer() {
+  const modal = $('certificateViewerModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+}
+
+function downloadCertificate() {
+  if (!currentCertificateUrl) return;
+  
+  const link = document.createElement('a');
+  link.href = currentCertificateUrl;
+  link.download = `certificate-${Date.now()}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Certificate download started', 'success');
 }
 
 // ========== AUTHENTICATION & ROLE MANAGEMENT ==========
@@ -3355,29 +3822,23 @@ async function checkAuthStatus() {
     updateHeader();
     updateUIForUserRole();
 
-    // Show role modal if user role not set
     if (!userRole && $('roleModal')) {
       setTimeout(() => openModal($('roleModal')), 1000);
     }
 
-    // Load freelancer-specific data if needed
     if (userRole === 'freelancer') {
       loadSubscriptionStatus().catch(err => console.error(err));
       loadMyServices().catch(err => console.error(err));
     }
 
-    // Load all services asynchronously without blocking login
     loadServices().catch(err => console.error(err));
 
-    // Start checking for unread messages
     if (currentUser) {
       checkUnreadMessages();
-      // Check every 10 seconds
       setInterval(checkUnreadMessages, 10000);
     }
 
   } catch (err) {
-    console.error('Auth check error:', err);
     currentUser = null;
     userRole = null;
     updateHeader();
@@ -3385,7 +3846,6 @@ async function checkAuthStatus() {
   }
 }
 
-// Update Header / UI with Inbox Button
 function updateHeader() {
   const headerAuth = $('headerAuthButtons');
   const freelancerActions = $('freelancerQuickActions');
@@ -3402,7 +3862,6 @@ function updateHeader() {
       <button class="auth-btn" onclick="logout()">Logout</button>
     `;
 
-    // Freelancer UI
     if (userRole === 'freelancer' && freelancerActions) {
       freelancerActions.classList.remove('hidden');
     } else if (freelancerActions) {
@@ -3424,7 +3883,6 @@ function updateHeader() {
   }
 }
 
-// Load all services
 async function loadServices() {
   const servicesList = $('servicesList');
   if (!servicesList) return;
@@ -3440,14 +3898,9 @@ async function loadServices() {
 
     services = data;
 
-    console.log("📦 Loaded services:", services.length);
-    console.log("🖼️ First service profile picture:", services[0]?.provider_profile_picture);
-
-    // Render services
     filterAndRenderServices();
 
   } catch (err) {
-    console.error('❌ Error loading services:', err);
     servicesList.innerHTML = `
       <div class="text-error" style="text-align: center; padding: 40px; grid-column: 1 / -1;">
         <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
@@ -3460,50 +3913,35 @@ async function loadServices() {
   }
 }
 
-// Load My Services (Freelancer-specific)
 async function loadMyServices() {
   const myServicesList = $('myServicesList');
   if (!myServicesList) {
-    console.error("❌ myServicesList element not found!");
     return;
   }
 
   try {
-    console.log("🔍 [MY-SERVICES] Starting to load my services...");
     showLoading('myServicesList');
 
-    console.log("📡 [MY-SERVICES] Fetching from /api/services/my-services...");
     const response = await fetch('/api/services/my-services');
     
-    console.log("📊 [MY-SERVICES] Response status:", response.status);
-    
     if (!response.ok) {
-      console.error("❌ [MY-SERVICES] HTTP error:", response.status);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const myServices = await response.json();
-    console.log("📦 [MY-SERVICES] Data received:", myServices);
     
     if (!Array.isArray(myServices)) {
-      console.error("❌ [MY-SERVICES] Data is not an array:", typeof myServices);
       throw new Error('Invalid data: myServices is not an array');
     }
 
-    console.log(`✅ [MY-SERVICES] Found ${myServices.length} services`);
-    
-    // Show/hide views
     const providerServicesView = $('providerServicesView');
     const clientServicesView = $('clientServicesView');
     
-    console.log("👁️ [MY-SERVICES] Toggling views...");
     if (providerServicesView) {
       providerServicesView.classList.remove('hidden');
-      console.log("✅ Showed provider view");
     }
     if (clientServicesView) {
       clientServicesView.classList.add('hidden');
-      console.log("✅ Hid client view");
     }
 
     if (myServices.length === 0) {
@@ -3522,7 +3960,6 @@ async function loadMyServices() {
         const providerName = service.username || 'You';
         const profilePicture = service.profile_picture || service.provider_profile_picture;
         
-        // Create provider picture HTML
         let providerPictureHtml = '';
         if (profilePicture) {
           providerPictureHtml = `
@@ -3549,7 +3986,6 @@ async function loadMyServices() {
               </div>
             </div>
             
-            <!-- ADD PROFILE PICTURE SECTION -->
             <div class="service-provider-info">
               ${providerPictureHtml}
               <div>
@@ -3573,12 +4009,7 @@ async function loadMyServices() {
       }).join('');
     }
 
-    console.log("✅ [MY-SERVICES] Function completed successfully");
-
   } catch (err) {
-    console.error('❌ [MY-SERVICES] Error loading my services:', err);
-    
-    // Show better error message
     myServicesList.innerHTML = `
       <div class="text-error" style="text-align: center; padding: 40px; grid-column: 1 / -1;">
         <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
@@ -3632,7 +4063,6 @@ async function selectRole(role) {
     }
     
   } catch (error) {
-    console.error('Role selection error:', error);
     alert('Failed to set role. Please try again.');
     const roleOptions = document.querySelectorAll('.role-option');
     roleOptions.forEach(opt => opt.classList.remove('selected'));
@@ -3689,7 +4119,6 @@ async function loadCategories() {
       populateCategoryDropdowns();
     }
   } catch (error) {
-    console.error('Error loading categories:', error);
     categories = [];
   }
 }
@@ -3778,7 +4207,6 @@ async function loadClientServices() {
     if ($('clientServicesView')) $('clientServicesView').classList.remove('hidden');
     
   } catch (error) {
-    console.error('Error loading client services:', error);
     const clientServicesList = $('clientServicesList');
     if (clientServicesList) {
       clientServicesList.innerHTML = '<div class="text-error">Failed to load your service providers</div>';
@@ -3797,7 +4225,6 @@ async function loadMyClients() {
       `;
     }
   } catch (error) {
-    console.error('Error loading clients:', error);
     const clientsList = $('clientsList');
     if (clientsList) {
       clientsList.innerHTML = '<div class="text-error">Failed to load your clients</div>';
@@ -3840,7 +4267,6 @@ async function loadSubscriptionStatus() {
     
     subscriptionStatusEl.innerHTML = statusHtml;
   } catch (error) {
-    console.error('Error loading subscription status:', error);
     const subscriptionStatusEl = $('subscriptionStatus');
     if (subscriptionStatusEl) {
       subscriptionStatusEl.innerHTML = '<div class="text-error">Failed to load subscription status</div>';
@@ -3960,17 +4386,14 @@ function setupEventListeners() {
     $('sortFilter').addEventListener('change', filterAndRenderServices);
   }
   
-  // Service form submission
   if ($('serviceForm')) {
     $('serviceForm').addEventListener('submit', handleServiceFormSubmit);
   }
   
-  // Login form submission
   if ($('loginForm')) {
     $('loginForm').addEventListener('submit', handleLoginSubmit);
   }
   
-  // Signup form submission
   if ($('signupForm')) {
     $('signupForm').addEventListener('submit', handleSignupSubmit);
   }
@@ -4034,7 +4457,6 @@ async function handleLoginSubmit(e) {
     }, 1500);
     
   } catch (err) {
-    console.error('Login error:', err);
     if ($('loginMsg')) {
       $('loginMsg').innerHTML = `<div class="text-error">Login failed. Please try again.</div>`;
     }
@@ -4097,7 +4519,6 @@ async function handleSignupSubmit(e) {
     }, 2000);
     
   } catch (err) {
-    console.error('Signup error:', err);
     if ($('signupMsg')) {
       $('signupMsg').innerHTML = `<div class="text-error">Signup failed. Please try again.</div>`;
     }
@@ -4125,42 +4546,30 @@ async function subscribe(planType) {
       alert(data.error || 'Subscription failed');
     }
   } catch (error) {
-    console.error('Subscription error:', error);
     alert('Subscription failed. Please try again.');
   }
 }
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log("🚀 Initializing application...");
-  
   try {
-    // Initialize modals first
     initModals();
     
-    // Check authentication status
     await checkAuthStatus();
     
-    // Load categories for dropdowns
     await loadCategories();
     
-    // Initialize enhanced category selection
     setupEnhancedCategorySelection();
     
-    // Initialize profile section
     initProfileSection();
     
-    // Setup message form
+    initEnhancedServiceForm();
+    
     setupMessageForm();
     
-    // Set up other event listeners
     setupEventListeners();
     
-    console.log("✅ Application initialized completely");
-    
   } catch (error) {
-    console.error("❌ Application initialization failed:", error);
-    // Show basic content even if initialization fails
     const servicesBrowser = $('servicesBrowser');
     if (servicesBrowser) {
       servicesBrowser.classList.remove('hidden');
@@ -4178,16 +4587,13 @@ async function logout() {
     updateUIForUserRole();
     location.reload();
   } catch (error) {
-    console.error('Logout error:', error);
   }
 }
 
-// Helper function to get the selected category from the enhanced form
 function getSelectedCategoryFromEnhancedForm() {
   const newCategoryInput = $('newCategory');
   const categorySelect = $('serviceCategory');
   
-  // Check which tab is active
   const activeTab = document.querySelector('.category-tab-btn.active');
   const isNewCategoryTab = activeTab && activeTab.getAttribute('data-tab') === 'new';
   
@@ -4201,8 +4607,6 @@ function getSelectedCategoryFromEnhancedForm() {
 }
 
 function updateSelectedCategory(value, displayText) {
-  console.log("📝 Updating selected category:", value, displayText);
-  
   const display = document.querySelector('.selected-category-display');
   const textElement = $('selectedCategoryText');
   
@@ -4211,11 +4615,9 @@ function updateSelectedCategory(value, displayText) {
     display.classList.remove('hidden');
   }
   
-  // Show toast notification
   showToast(`Category selected: ${displayText}`, 'success');
 }
 
-// Placeholder functions for future implementation
 function editService(serviceId) {
   alert('Edit service: ' + serviceId);
 }
@@ -4233,7 +4635,16 @@ function contactProvider(userId) {
 }
 
 async function updateServicesWithNewProfilePicture(profilePictureUrl) {
-  // This function would update all existing services with the new profile picture
-  // Implementation depends on your backend API
-  console.log("🔄 Updating services with new profile picture:", profilePictureUrl);
+}
+
+function initRecruitmentSystem() {
+}
+
+function initClientRequestSystem() {
+}
+
+function viewFreelancerServices(freelancerId) {
+}
+
+function startConversationWithFreelancer(userId, username) {
 }

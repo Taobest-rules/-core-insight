@@ -1,4 +1,4 @@
-// index.js - COMPLETE VERSION with Enhanced Authentication Features
+// index.js - PRODUCTION VERSION
 const dotenv = require("dotenv");
 
 dotenv.config({
@@ -19,16 +19,11 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const MySQLStore = require("express-mysql-session")(session);
 
-
-
-// ========================= FLUTTERWAVE SETUP =========================
 const Flutterwave = require('flutterwave-node-v3');
 
-// Enhanced initialization with better error handling
 let flw;
 try {
     if (!process.env.FLW_PUBLIC_KEY || !process.env.FLW_SECRET_KEY) {
-        console.error("❌ Flutterwave keys missing in environment variables");
         throw new Error("Flutterwave API keys are required");
     }
     
@@ -36,25 +31,19 @@ try {
         process.env.FLW_PUBLIC_KEY,
         process.env.FLW_SECRET_KEY
     );
-    console.log("✅ Flutterwave initialized successfully");
 } catch (error) {
-    console.error("❌ Flutterwave initialization failed:", error.message);
+    console.error("Flutterwave initialization failed:", error.message);
 }
 
-// ========================= PAYSTACK SETUP =========================
 let paystackInitialized = false;
 try {
     if (process.env.PAYSTACK_SECRET_KEY) {
         paystackInitialized = true;
-        console.log("✅ Paystack initialized successfully");
-    } else {
-        console.warn("⚠️ Paystack secret key missing in environment variables");
     }
 } catch (error) {
-    console.error("❌ Paystack initialization failed:", error.message);
+    console.error("Paystack initialization failed:", error.message);
 }
 
-// ========================= BIGINT SERIALIZATION FIX =========================
 BigInt.prototype.toJSON = function() {
     return this.toString();
 };
@@ -65,16 +54,12 @@ const safeJSON = (data) => {
     }));
 };
 
-console.log("🚀 Starting Core Insight Server...");
-
-// ========================= ENHANCED MIDDLEWARE =========================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Configure MySQL session store
 let sessionStore;
 
 if (isProduction) {
@@ -99,12 +84,10 @@ if (isProduction) {
   });
 }
 
-
-// Session middleware with MySQL store
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
-    store: isProduction ? sessionStore : undefined, // 🔥 FIX
+    store: isProduction ? sessionStore : undefined,
     resave: false,
     saveUninitialized: false,
     proxy: true,
@@ -117,12 +100,10 @@ app.use(
   })
 );
 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
-// ========================= NODEMAILER SETUP =========================
-// ========================= EMAIL SETUP =========================
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -130,32 +111,27 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS
   },
   tls: {
-    rejectUnauthorized: false // ✅ Fixes "self-signed certificate" issue
+    rejectUnauthorized: false
   }
 });
 
-// Create uploads directory
 const uploadDir = "uploads/courses";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("✅ Created uploads directory:", uploadDir);
 }
 
-// ========================= MULTER CONFIG =========================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir); // All files go to same directory
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Create unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     const baseName = path.basename(file.originalname, ext)
       .replace(/[^a-zA-Z0-9]/g, '-')
-      .substring(0, 50); // Limit length
+      .substring(0, 50);
     
     const filename = `${uniqueSuffix}-${baseName}${ext}`;
-    console.log(`📄 Generated filename: ${filename} for ${file.fieldname}`);
     cb(null, filename);
   }
 });
@@ -163,11 +139,11 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-    files: 2 // Max 2 files (course + thumbnail)
+    fileSize: 100 * 1024 * 1024,
+    files: 2
   }
 });
-// ========================= COURSE ACCESS MIDDLEWARE =========================
+
 const checkCourseAccess = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to access this course" });
@@ -177,7 +153,6 @@ const checkCourseAccess = async (req, res, next) => {
     const courseId = req.params.id;
     const userId = req.session.user.id;
 
-    // Check if user has access to the course (free or paid)
     const accessCheck = await db.query(
       `SELECT c.*, uc.payment_status 
        FROM courses c 
@@ -199,36 +174,20 @@ const checkCourseAccess = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error("❌ Course access check error:", err);
     res.status(500).json({ error: "Error checking course access" });
   }
 };
-// Add this BEFORE your other routes
-app.get("/api/test-my-services", (req, res) => {
-  res.json({ 
-    message: "Test route works!",
-    sessionUser: req.session.user,
-    timestamp: new Date().toISOString()
-  });
-});
-// ========================= ROUTES =========================
+
 app.get("/api/products", async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM products ORDER BY created_at DESC");
     const products = Array.isArray(result) ? result : result[0];
     res.json(products);
   } catch (err) {
-    console.error("❌ Error fetching products:", err);
     res.status(500).json({ error: "Error fetching products." });
   }
 });
 
-// Test route
-app.get("/api/test", (req, res) => {
-  res.json({ message: "✅ Server is working!", database: process.env.DB_NAME });
-});
-
-// Health check
 app.get("/api/health", async (req, res) => {
   try {
     await db.query("SELECT 1 as healthy");
@@ -238,12 +197,7 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// ========================= ENHANCED AUTHENTICATION ROUTES =========================
-
-// Register new user with email verification
 app.post("/api/signup", async (req, res) => {
-  console.log("📝 Signup attempt:", req.body.username);
-  
   try {
     const { username, password, email } = req.body;
     
@@ -251,7 +205,6 @@ app.post("/api/signup", async (req, res) => {
       return res.status(400).json({ error: "Username, email, and password are required" });
     }
 
-    // Check if username or email exists
     const existingUsers = await db.query(
       "SELECT id FROM users WHERE username = ? OR email = ?", 
       [username, email]
@@ -276,9 +229,7 @@ app.post("/api/signup", async (req, res) => {
       [username, email, hashedPassword, verifyToken]
     );
 
-    // Send verification email
-    const verifyLink = `https://core-insight-7.onrender.com/api/verify/${verifyToken}
-}`;
+    const verifyLink = `https://core-insight-7.onrender.com/api/verify/${verifyToken}`;
     await transporter.sendMail({
       to: email,
       subject: "Verify your Core Insight account",
@@ -294,12 +245,9 @@ app.post("/api/signup", async (req, res) => {
       `
     });
 
-    console.log("✅ User registered:", username);
     res.json({ message: "Registration successful! Please check your email to verify your account." });
     
   } catch (err) {
-    console.error("❌ Signup error:", err);
-    
     if (err.code === 'ER_DUP_ENTRY') {
       res.status(400).json({ error: "Username or email already exists" });
     } else {
@@ -308,7 +256,6 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
-// Verify email endpoint
 app.get("/api/verify/:token", async (req, res) => {
   const { token } = req.params;
   try {
@@ -336,24 +283,18 @@ app.get("/api/verify/:token", async (req, res) => {
       </div>
     `);
   } catch (err) {
-    console.error("❌ Email verification error:", err);
     res.status(500).send("Error verifying email");
   }
 });
 
-// Enhanced login with email OR username support
 app.post("/api/login", async (req, res) => {
-  console.log("🔐 Login attempt:", req.body.username || req.body.email);
-  
   try {
     const { username, email, password } = req.body;
     
-    // Validate that at least one identifier is provided
     if ((!username && !email) || !password) {
       return res.status(400).json({ error: "Username/email and password are required" });
     }
 
-    // Find user by username OR email
     let user = null;
     let query = "";
     let params = [];
@@ -368,7 +309,6 @@ app.post("/api/login", async (req, res) => {
 
     const users = await db.query(query, params);
     
-    // Extract user from different possible result structures
     if (Array.isArray(users) && users.length > 0) {
       user = users[0];
     } else if (users && users[0] && Array.isArray(users[0]) && users[0].length > 0) {
@@ -380,7 +320,6 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: `User with ${username ? 'username' : 'email'} "${identifier}" not found` });
     }
 
-    // Check if email is verified
     if (!user.verified) {
       return res.status(403).json({ 
         error: "Please verify your email before logging in. Check your email for the verification link." 
@@ -400,17 +339,13 @@ app.post("/api/login", async (req, res) => {
       role: user.role || 'user'
     };
 
-    const identifier = username || email;
-    console.log("✅ Login successful:", identifier);
     res.json({ message: "Login successful!", user: req.session.user });
     
   } catch (err) {
-    console.error("❌ Login error:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
 
-// Forgot password request
 app.post("/api/forgot-password", async (req, res) => {
   const { email } = req.body;
   
@@ -420,21 +355,17 @@ app.post("/api/forgot-password", async (req, res) => {
 
   try {
     const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 3600000); // 1 hour
+    const expires = new Date(Date.now() + 3600000);
 
     const result = await db.query(
       "UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?",
       [token, expires, email]
     );
 
-
-    // Always respond the same for security
     const message = "If that email address exists in our system, we've sent a password reset link to it.";
 
-    // Send the email only if a row was updated
     if (result.affectedRows > 0) {
-      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}
-`;
+      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}`;
 
       await transporter.sendMail({
         from: `"Core Insight" <${process.env.EMAIL_USER}>`,
@@ -456,17 +387,13 @@ app.post("/api/forgot-password", async (req, res) => {
       });
     }
 
-    // Always respond success message regardless of whether the email existed
     res.json({ message });
 
   } catch (err) {
-    console.error("❌ Forgot password error:", err);
     res.status(500).json({ error: "Error sending reset email" });
   }
 });
 
-
-// Reset password
 app.post("/api/reset-password", async (req, res) => {
   const { token, password } = req.body;
   
@@ -475,7 +402,6 @@ app.post("/api/reset-password", async (req, res) => {
   }
 
   try {
-    // Check for valid, non-expired token
     const users = await db.query(
       "SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()",
       [token]
@@ -495,12 +421,10 @@ app.post("/api/reset-password", async (req, res) => {
     res.json({ message: "Password reset successfully! You can now login with your new password." });
     
   } catch (err) {
-    console.error("❌ Reset password error:", err);
     res.status(500).json({ error: "Error resetting password" });
   }
 });
 
-// Admin password change
 app.post("/api/admin/change-password", async (req, res) => {
   if (!req.session.user || req.session.user.role !== 'admin') {
     return res.status(403).json({ error: "Unauthorized: Admin access required" });
@@ -536,32 +460,23 @@ app.post("/api/admin/change-password", async (req, res) => {
     res.json({ message: "Password updated successfully" });
     
   } catch (err) {
-    console.error("❌ Admin password change error:", err);
     res.status(500).json({ error: "Error changing password" });
   }
 });
 
-// Logout
 app.post("/api/logout", (req, res) => {
   req.session.destroy();
   res.json({ message: "Logged out" });
 });
 
-// Get current user
 app.get("/api/me", (req, res) => {
   res.json(req.session.user || null);
 });
-// ================= COMPLAINT EMAIL ROUTE =================
-// Add this AFTER your existing routes but BEFORE app.listen
 
-// ================= COMPLAINT EMAIL ROUTE =================
 app.post('/api/send-complaint', async (req, res) => {
   try {
-    console.log('📧 Complaint API called:', req.body);
-    
     const { name, email, subject, priority, message, orderId } = req.body;
     
-    // Validation
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ 
         success: false, 
@@ -569,7 +484,6 @@ app.post('/api/send-complaint', async (req, res) => {
       });
     }
     
-    // Simple email check
     if (!email.includes('@')) {
       return res.status(400).json({ 
         success: false, 
@@ -577,7 +491,6 @@ app.post('/api/send-complaint', async (req, res) => {
       });
     }
     
-    // Send email using your existing transporter
     const mailOptions = {
       from: `"Core Insight Support" <${process.env.EMAIL_USER}>`,
       to: 'suppourtcoreinsight@gmail.com',
@@ -611,11 +524,8 @@ app.post('/api/send-complaint', async (req, res) => {
       `
     };
     
-    // Send email
-    const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent:', result.messageId);
+    await transporter.sendMail(mailOptions);
     
-    // Return success
     res.json({
       success: true,
       message: 'Complaint submitted successfully!',
@@ -623,28 +533,21 @@ app.post('/api/send-complaint', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Email error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to submit complaint. Please try again.'
     });
   }
 });
-// ========================= COURSES =========================
-// ========================= UPLOAD COURSE ROUTE =========================
+
 app.post("/api/courses", upload.fields([
   { name: 'file', maxCount: 1 },
   { name: 'thumbnail', maxCount: 1 }
 ]), async (req, res) => {
-  console.log("📤 Upload attempt by:", req.session.user?.username);
-  console.log("📁 Files received:", req.files);
-  console.log("📝 Form data:", req.body);
-  
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to upload courses" });
   }
 
-  // Check both files exist
   if (!req.files || !req.files['file'] || req.files['file'].length === 0) {
     return res.status(400).json({ error: "Course file is required" });
   }
@@ -668,50 +571,36 @@ app.post("/api/courses", upload.fields([
       return res.status(400).json({ error: "Title is required" });
     }
 
-    // Get file objects
     const courseFile = req.files['file'][0];
     const thumbnailFile = req.files['thumbnail'][0];
     
-    // Store just the filenames
     const courseFilename = courseFile.filename;
     const thumbnailFilename = thumbnailFile.filename;
-    
-    console.log("📄 Course filename:", courseFilename);
-    console.log("🖼️ Thumbnail filename:", thumbnailFilename);
-    console.log("📁 Full paths - Course:", courseFile.path, "Thumbnail:", thumbnailFile.path);
 
-    // ==================== CONTENT TYPE LOGIC ====================
     let finalPrice = 0;
     let bookType = 'free';
     let finalContentType = 'book';
     
-    // Content type validation
     const validContentTypes = ['book', 'video', 'document', 'presentation'];
     if (validContentTypes.includes(content_type)) {
       finalContentType = content_type;
     }
     
-    // Price logic - only admin can set prices
     if (user.role === 'admin' && price && parseFloat(price) > 0) {
       finalPrice = parseFloat(price);
       bookType = 'paid';
     }
     
-    // Auto-detect video files
     const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv'];
     const fileExtension = path.extname(courseFile.originalname).toLowerCase();
     const isVideoFile = videoExtensions.includes(fileExtension);
     
-    // Override content type if file is a video
     if (isVideoFile) {
-      console.log("🎥 Auto-detected video file");
       finalContentType = 'video';
     }
     
-    // Handle optional author field
     const finalAuthor = author && author.trim() !== '' ? author.trim() : null;
 
-    // ==================== DATABASE INSERTION ====================
     const result = await db.query(
       `INSERT INTO courses (
         title, 
@@ -739,17 +628,7 @@ app.post("/api/courses", upload.fields([
     );
 
     const courseId = Number(result.insertId);
-    console.log("✅ Course uploaded successfully!");
-    console.log("📊 Details:", {
-      id: courseId,
-      title: title,
-      price: finalPrice,
-      type: bookType,
-      content_type: finalContentType,
-      thumbnail_filename: thumbnailFilename
-    });
     
-    // ==================== RESPONSE DATA ====================
     const responseData = {
       message: "Content uploaded successfully!",
       courseId: courseId,
@@ -761,30 +640,18 @@ app.post("/api/courses", upload.fields([
       download_url: `/api/download/${courseId}`
     };
     
-    console.log("📤 Response data:", responseData);
     res.json(responseData);
     
   } catch (err) {
-    console.error("❌ Upload error:", err);
-    
-    // Detailed error logging
-    if (err.code === 'ER_NO_SUCH_TABLE') {
-      console.error("Database table 'courses' does not exist!");
-    } else if (err.code === 'ER_BAD_FIELD_ERROR') {
-      console.error("Database column error:", err.message);
-    }
-    
     res.status(500).json({ 
       error: "Error uploading content", 
       details: err.message
     });
   }
 });
-// ========================= GET ALL COURSES ROUTE =========================
+
 app.get("/api/courses", async (req, res) => {
   try {
-    console.log("📥 Fetching all courses...");
-    
     const courses = await db.query(`
       SELECT 
         c.*, 
@@ -794,11 +661,7 @@ app.get("/api/courses", async (req, res) => {
       ORDER BY c.created_at DESC
     `);
     
-    console.log(`📚 Found ${courses.length} courses`);
-    
-    // Process courses and add URLs
     const processedCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
-      // Convert BigInt to Number
       if (course.id && typeof course.id === 'bigint') {
         course.id = Number(course.id);
       }
@@ -806,55 +669,37 @@ app.get("/api/courses", async (req, res) => {
         course.user_id = Number(course.user_id);
       }
       
-      // ========== FIXED: THUMBNAIL URL GENERATION ==========
       if (course.thumbnail_path) {
-        console.log(`🔄 Processing thumbnail path for "${course.title}": ${course.thumbnail_path}`);
-        
-        // Start with the stored path
         let thumbnailPath = course.thumbnail_path;
         
-        // CASE 1: If path is just a filename (no directory)
         if (!thumbnailPath.includes('/') && !thumbnailPath.includes('\\')) {
-          // Just a filename, so prepend "uploads/courses/"
           course.thumbnail_url = `/uploads/courses/${thumbnailPath}`;
         }
-        // CASE 2: If path already has "uploads/courses/" but maybe duplicated
         else if (thumbnailPath.includes('uploads/courses/')) {
-          // Remove any duplicate "uploads/courses/uploads/courses/"
           thumbnailPath = thumbnailPath.replace(/uploads\/courses\/uploads\/courses\//, 'uploads/courses/');
           
-          // Make sure it starts with "uploads/courses/"
           if (!thumbnailPath.startsWith('uploads/courses/')) {
             thumbnailPath = `uploads/courses/${path.basename(thumbnailPath)}`;
           }
           
           course.thumbnail_url = `/${thumbnailPath}`;
         }
-        // CASE 3: If path has "uploads/uploads/courses/" (double uploads)
         else if (thumbnailPath.includes('uploads/uploads/courses/')) {
           thumbnailPath = thumbnailPath.replace('uploads/uploads/courses/', 'uploads/courses/');
           course.thumbnail_url = `/${thumbnailPath}`;
         }
-        // CASE 4: If path is relative or has some other structure
         else {
-          // Extract just the filename
           const filename = path.basename(thumbnailPath);
           course.thumbnail_url = `/uploads/courses/${filename}`;
         }
-        
-        console.log(`✅ Final thumbnail URL: ${course.thumbnail_url}`);
       } else {
-        console.log(`⚠️ No thumbnail_path for ${course.title}`);
         course.thumbnail_url = null;
       }
       
-      // ========== FIXED: FILE URL GENERATION (similar logic) ==========
       if (course.file_path) {
         let filePath = course.file_path;
         
-        // Apply similar logic for file paths
         if (!filePath.includes('/') && !filePath.includes('\\')) {
-          // Just filename, prepend directory
           course.file_url = `/uploads/courses/${filePath}`;
         } else if (filePath.includes('uploads/courses/')) {
           filePath = filePath.replace(/uploads\/courses\/uploads\/courses\//, 'uploads/courses/');
@@ -871,22 +716,13 @@ app.get("/api/courses", async (req, res) => {
         }
       }
       
-      // Set download URL
       course.download_url = `/api/download/${course.id}`;
-      
-      // Debug output
-      console.log(`📖 Course: ${course.title}`);
-      console.log(`   - Stored thumbnail_path: ${course.thumbnail_path}`);
-      console.log(`   - Generated thumbnail_url: ${course.thumbnail_url}`);
-      console.log(`   - Stored file_path: ${course.file_path}`);
-      console.log(`   - Generated file_url: ${course.file_url || course.download_url}`);
       
       return course;
     });
     
     res.json(processedCourses);
   } catch (err) {
-    console.error("❌ Courses error:", err);
     res.status(500).json({ 
       error: "Error fetching courses", 
       details: err.message
@@ -894,8 +730,6 @@ app.get("/api/courses", async (req, res) => {
   }
 });
 
-// ========================= DOWNLOAD ENDPOINT =========================
-// ========================= DOWNLOAD ENDPOINT =========================
 app.get("/api/download/:id", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -903,7 +737,6 @@ app.get("/api/download/:id", async (req, res) => {
     }
     
     const courseId = req.params.id;
-    console.log("📥 Download requested for course:", courseId);
     
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     let course = null;
@@ -918,19 +751,12 @@ app.get("/api/download/:id", async (req, res) => {
       return res.status(404).json({ error: "Course not found" });
     }
     
-    // ========== FIXED: Build correct file path ==========
     let filePath = course.file_path;
     
-    // Log the original path for debugging
-    console.log(`📁 Original file_path: ${filePath}`);
-    
-    // CASE 1: Just a filename
     if (!filePath.includes('/') && !filePath.includes('\\')) {
       filePath = path.join(__dirname, "uploads/courses", filePath);
     }
-    // CASE 2: Already has full or relative path
     else {
-      // Remove any duplicate prefixes
       if (filePath.includes('uploads/uploads/courses/')) {
         filePath = filePath.replace('uploads/uploads/courses/', '');
       }
@@ -941,27 +767,19 @@ app.get("/api/download/:id", async (req, res) => {
         filePath = filePath.replace('uploads/', '');
       }
       
-      // Now build the full path
       filePath = path.join(__dirname, "uploads/courses", path.basename(filePath));
     }
     
-    console.log("📄 Looking for file at:", filePath);
-    
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.error("❌ File not found at:", filePath);
-      
-      // Try alternative paths
       const alternatives = [
-        path.join(__dirname, "uploads", path.basename(course.file_path)), // In root uploads
-        path.join(__dirname, "uploads/courses", path.basename(course.file_path)), // In courses
-        path.join(__dirname, course.file_path) // As absolute path
+        path.join(__dirname, "uploads", path.basename(course.file_path)),
+        path.join(__dirname, "uploads/courses", path.basename(course.file_path)),
+        path.join(__dirname, course.file_path)
       ];
       
       let found = false;
       for (const altPath of alternatives) {
         if (fs.existsSync(altPath)) {
-          console.log("✅ Found file at alternative location:", altPath);
           filePath = altPath;
           found = true;
           break;
@@ -970,17 +788,11 @@ app.get("/api/download/:id", async (req, res) => {
       
       if (!found) {
         return res.status(404).json({ 
-          error: "File not found on server",
-          attemptedPath: filePath,
-          alternatives: alternatives
+          error: "File not found on server"
         });
       }
     }
     
-    console.log("✅ Course download by:", req.session.user.username);
-    console.log("📄 Downloading file from:", filePath);
-    
-    // Set filename for download
     const safeFilename = encodeURIComponent(
       course.title.replace(/[^a-zA-Z0-9._-]/g, '_') + path.extname(filePath)
     );
@@ -988,12 +800,10 @@ app.get("/api/download/:id", async (req, res) => {
     res.download(filePath, safeFilename);
     
   } catch (err) {
-    console.error("❌ Download error:", err);
     res.status(500).json({ error: "Error downloading file", details: err.message });
   }
 });
 
-// ========================= CHECK ACCESS ENDPOINT =========================
 app.get("/api/check-access/:id", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -1002,8 +812,6 @@ app.get("/api/check-access/:id", async (req, res) => {
     
     const courseId = req.params.id;
     const userId = req.session.user.id;
-    
-    console.log("🔍 Checking access for user:", userId, "to course:", courseId);
     
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     let course = null;
@@ -1018,26 +826,21 @@ app.get("/api/check-access/:id", async (req, res) => {
       return res.json({ hasAccess: false, error: "Course not found" });
     }
     
-    // Check various access conditions
     let hasAccess = false;
     let reason = "";
     
-    // Free content
     if (course.price === 0 && course.type !== 'paid') {
       hasAccess = true;
       reason = "Content is free";
     }
-    // User is admin
     else if (req.session.user.role === 'admin') {
       hasAccess = true;
       reason = "User is admin";
     }
-    // User is uploader
     else if (req.session.user.id === course.user_id) {
       hasAccess = true;
       reason = "User is uploader";
     }
-    // Check purchase
     else {
       const purchaseCheck = await db.query(
         "SELECT * FROM purchases WHERE user_id = ? AND course_id = ? AND status = 'completed'",
@@ -1054,8 +857,6 @@ app.get("/api/check-access/:id", async (req, res) => {
         reason = "User has not purchased this content";
       }
     }
-    
-    console.log("🔓 Access check result:", { hasAccess, reason, userId, courseId });
     
     res.json({
       hasAccess: hasAccess,
@@ -1075,7 +876,6 @@ app.get("/api/check-access/:id", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("❌ Access check error:", err);
     res.status(500).json({ 
       hasAccess: false, 
       error: "Error checking access", 
@@ -1084,53 +884,17 @@ app.get("/api/check-access/:id", async (req, res) => {
   }
 });
 
-// ========================= STATIC FILE SERVING =========================
-// Serve uploaded files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Debug endpoint to check uploads
-app.get("/api/debug/uploads", (req, res) => {
-  const uploadsDir = path.join(__dirname, "uploads");
-  
-  try {
-    if (!fs.existsSync(uploadsDir)) {
-      return res.json({ error: "Uploads directory doesn't exist", path: uploadsDir });
-    }
-    
-    const files = fs.readdirSync(uploadsDir);
-    const fileDetails = files.map(file => {
-      const filePath = path.join(uploadsDir, file);
-      const stats = fs.statSync(filePath);
-      return {
-        name: file,
-        size: stats.size,
-        isDirectory: stats.isDirectory(),
-        created: stats.birthtime,
-        url: `/uploads/${file}`
-      };
-    });
-    
-    res.json({
-      uploadsDirectory: uploadsDir,
-      files: fileDetails,
-      totalFiles: files.length,
-      note: "Files are accessible at /uploads/filename.ext"
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Error reading uploads directory", details: err.message });
-  }
-});
-
-// Add this route to your backend
 app.get('/api/currency-rates', (req, res) => {
   const rates = {
     NGN: 1,
-    USD: 0.0011,  // 1 NGN = 0.0011 USD
-    EUR: 0.0010,  // 1 NGN = 0.0010 EUR
-    GBP: 0.00085, // 1 NGN = 0.00085 GBP
-    KES: 0.15,    // 1 NGN = 0.15 KES
-    GHS: 0.013,   // 1 NGN = 0.013 GHS
-    ZAR: 0.021    // 1 NGN = 0.021 ZAR
+    USD: 0.0011,
+    EUR: 0.0010,
+    GBP: 0.00085,
+    KES: 0.15,
+    GHS: 0.013,
+    ZAR: 0.021
   };
   
   res.json({
@@ -1139,12 +903,10 @@ app.get('/api/currency-rates', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-// ====== PRODUCT UPLOAD SETUP ======
-// Create products upload directory FIRST
+
 const productsUploadDir = path.join(__dirname, 'uploads', 'products');
 if (!fs.existsSync(productsUploadDir)) {
   fs.mkdirSync(productsUploadDir, { recursive: true });
-  console.log("✅ Created products upload directory:", productsUploadDir);
 }
 
 const productStorage = multer.diskStorage({
@@ -1152,34 +914,28 @@ const productStorage = multer.diskStorage({
     cb(null, productsUploadDir);
   },
   filename: function (req, file, cb) {
-    // Sanitize filename to remove special characters
     const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filename = Date.now() + "-" + sanitizedName;
-    console.log("📁 Saving file:", filename);
     cb(null, filename);
   },
 });
 
-// ✅ Handle multiple files: main file + multiple images
 const productUpload = multer({ 
   storage: productStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limit
+    fileSize: 50 * 1024 * 1024
   }
 }).fields([
-  { name: 'file', maxCount: 1 },        // Main file
-  { name: 'images[]', maxCount: 10 }    // Multiple images
+  { name: 'file', maxCount: 1 },
+  { name: 'images[]', maxCount: 10 }
 ]);
 
-// ====== UPLOAD PRODUCT ======
 app.post("/api/upload-product", productUpload, async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to upload products." });
   }
 
   try {
-    console.log("📦 Upload product request received from user:", req.session.user.id);
-    
     const { 
       title, 
       description, 
@@ -1191,48 +947,62 @@ app.post("/api/upload-product", productUpload, async (req, res) => {
       delivery_locations, 
       delivery_fee, 
       payment_option,
-      paymentProvider
-    } = req.body;
-    
-    console.log("📋 Product data:", { 
-      title, 
-      price, 
-      type,
       paymentProvider,
-      category
-    });
-    console.log("📁 Files received:", {
-      mainFile: req.files['file'] ? req.files['file'][0] : null,
-      images: req.files['images[]'] ? req.files['images[]'] : []
-    });
+      delivery_days
+    } = req.body;
 
-    // Validation
     if (!title || !price || !type || !paymentProvider) {
       return res.status(400).json({ 
         error: "Title, price, type, and payment provider are required." 
       });
     }
 
+    if (type === 'physical') {
+      if (!delivery_days || isNaN(parseInt(delivery_days)) || parseInt(delivery_days) < 1) {
+        return res.status(400).json({ 
+          error: "Please provide valid delivery days (minimum 1 day) for physical products." 
+        });
+      }
+      
+      if (!payment_option) {
+        req.body.payment_option = 'pay_on_delivery';
+      }
+    }
+
     let filePath = null;
     let images = [];
 
-    // Handle main file
     if (req.files['file'] && req.files['file'][0]) {
       const mainFile = req.files['file'][0];
       filePath = `/uploads/products/${mainFile.filename}`;
-      console.log("📍 Main file path:", filePath);
     }
 
-    // Handle multiple images
     if (req.files['images[]']) {
       images = req.files['images[]'].map(file => `/uploads/products/${file.filename}`);
-      console.log("🖼️ Images uploaded:", images.length);
     }
 
-    // Insert into database
+    const estimatedDeliveryDays = type === 'physical' 
+      ? parseInt(delivery_days) || 7 
+      : null;
+
     const result = await db.query(
-      `INSERT INTO products (user_id, title, description, price, category, type, file_path, images, affiliate_link, delivery_type, delivery_locations, delivery_fee, payment_option, seller_payment_provider)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (
+        user_id, 
+        title, 
+        description, 
+        price, 
+        category, 
+        type, 
+        file_path, 
+        images, 
+        affiliate_link, 
+        delivery_type, 
+        delivery_locations, 
+        delivery_fee, 
+        payment_option, 
+        seller_payment_provider,
+        estimated_delivery_days
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.session.user.id,
         title,
@@ -1247,66 +1017,68 @@ app.post("/api/upload-product", productUpload, async (req, res) => {
         delivery_locations || null,
         delivery_fee ? parseFloat(delivery_fee) : null,
         payment_option || null,
-        paymentProvider
+        paymentProvider,
+        estimatedDeliveryDays
       ]
     );
-
-    console.log("✅ Product uploaded successfully with ID:", result.insertId);
+    
     res.json({ 
       message: "✅ Product uploaded successfully!",
       productId: result.insertId,
-      payment_provider: paymentProvider
+      payment_provider: paymentProvider,
+      estimated_delivery_days: estimatedDeliveryDays
     });
 
   } catch (err) {
-    console.error("❌ Product upload error:", err);
-    
     if (err.code === 'ER_NO_SUCH_TABLE') {
-      console.error("❌ Products table doesn't exist");
-      return res.status(500).json({ error: "Database configuration error. Please contact administrator." });
+      return res.status(500).json({ 
+        error: "Database configuration error. Please contact administrator." 
+      });
     }
     
     if (err.code === 'ER_BAD_FIELD_ERROR') {
-      console.error("❌ Missing database column:", err.message);
-      return res.status(500).json({ error: "Database configuration error. Please contact administrator." });
+      if (err.message.includes('estimated_delivery_days')) {
+        return res.status(500).json({ 
+          error: "Database update required. Please add estimated_delivery_days column to products table.",
+          sql_fix: "ALTER TABLE products ADD COLUMN estimated_delivery_days INT DEFAULT 7;"
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: "Database configuration error. Please contact administrator." 
+      });
     }
     
-    res.status(500).json({ error: "Error uploading product: " + err.message });
+    if (err.code === 'ER_TRUNCATED_WRONG_VALUE_FOR_FIELD') {
+      return res.status(400).json({ 
+        error: "Invalid delivery days value. Please enter a number between 1 and 90." 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Error uploading product: " + err.message,
+      code: err.code
+    });
   }
 });
 
-// Add this function to your JavaScript:
-function getSelectedCategory() {
-  const select = $('p_category_select');
-  const newCat = $('p_category_new').value.trim();
-  
-  if (newCat) {
-    return newCat;
-  } else if (select.value) {
-    return select.value;
-  }
-  return '';
-}
-// Set user role (client or freelancer)
 app.post("/api/user/set-role", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to set role" });
   }
 
   try {
-    const { role } = req.body; // 'client' or 'freelancer'
+    const { role } = req.body;
     
     if (!['client', 'freelancer'].includes(role)) {
       return res.status(400).json({ error: "Invalid role. Must be 'client' or 'freelancer'" });
     }
 
-    // Update user role in database
     await db.query(
       "UPDATE users SET role = ? WHERE id = ?",
       [role, req.session.user.id]
     );
 
-    // Update session
     req.session.user.role = role;
 
     res.json({ 
@@ -1315,14 +1087,10 @@ app.post("/api/user/set-role", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Set role error:", err);
     res.status(500).json({ error: "Error setting role: " + err.message });
   }
 });
 
-// ========================= SERVICES SECTION ROUTES =========================
-
-// Service upload directory
 const servicesUploadDir = path.join(__dirname, 'uploads', 'services');
 if (!fs.existsSync(servicesUploadDir)) {
   fs.mkdirSync(servicesUploadDir, { recursive: true });
@@ -1338,17 +1106,11 @@ const serviceStorage = multer.diskStorage({
 
 const serviceUpload = multer({ 
   storage: serviceStorage,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+  limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-// Get services for current user (service provider)
-// ========================= SERVICES GET ROUTE =========================
-// Get all services - SINGLE CORRECTED VERSION
 app.get("/api/services", async (req, res) => {
   try {
-    console.log("📡 Fetching all services...");
-    
-    // Use consistent query structure for MariaDB
     const result = await db.query(`
       SELECT 
         s.*, 
@@ -1362,45 +1124,31 @@ app.get("/api/services", async (req, res) => {
       ORDER BY s.created_at DESC
     `);
     
-    // Handle MariaDB response format
     let services = [];
     if (Array.isArray(result)) {
       if (result.length > 0 && Array.isArray(result[0])) {
-        // Format: [[rows]]
         services = result[0];
       } else {
-        // Format: [rows]
         services = result;
       }
     }
     
-    console.log(`✅ Found ${services.length} services`);
-    
-    // Always return an array
     res.json(services);
     
   } catch (err) {
-    console.error("❌ Error fetching services:", err);
     res.status(500).json({ 
       error: "Error fetching services",
       details: err.message 
     });
   }
 });
-// ========================= GET USER'S SERVICES =========================
+
 app.get("/api/services/my-services", async (req, res) => {
   try {
-    console.log("📋 [MY-SERVICES] Fetching services for user...");
-    
-    // Check if user is logged in
     if (!req.session.user) {
-      console.log("❌ [MY-SERVICES] No user session");
       return res.status(401).json({ error: "Please login to view your services" });
     }
 
-    console.log("👤 [MY-SERVICES] User ID:", req.session.user.id, "Username:", req.session.user.username);
-
-    // Query services for the current logged-in user
     const result = await db.query(`
       SELECT 
         s.*, 
@@ -1414,32 +1162,25 @@ app.get("/api/services/my-services", async (req, res) => {
       ORDER BY s.created_at DESC
     `, [req.session.user.id]);
 
-    console.log("📊 [MY-SERVICES] Database result:", result);
-
-    // Handle MariaDB response format
     let services = [];
     if (Array.isArray(result)) {
       if (result.length > 0 && Array.isArray(result[0])) {
-        services = result[0]; // Format: [[rows]]
+        services = result[0];
       } else {
-        services = result; // Format: [rows]
+        services = result;
       }
     }
-
-    console.log(`✅ [MY-SERVICES] Found ${services.length} services for user ${req.session.user.id}`);
     
-    // Always return an array
     res.json(services);
 
   } catch (err) {
-    console.error("❌ [MY-SERVICES] Error fetching user services:", err);
     res.status(500).json({ 
       error: "Error fetching your services",
       details: err.message 
     });
   }
 });
-// Get all categories (for dropdown)
+
 app.get("/api/services/categories", async (req, res) => {
   try {
     const categories = await db.query(`
@@ -1455,14 +1196,10 @@ app.get("/api/services/categories", async (req, res) => {
     
     res.json(categoryList);
   } catch (err) {
-    console.error("❌ Categories error:", err);
     res.status(500).json({ error: "Error fetching categories" });
   }
 });
 
-// ========================= SERVICES ROUTES =========================
-
-// Create new service - MERGED WITH PROFILE PICTURE
 app.post("/api/services", upload.none(), async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to create a service" });
@@ -1471,20 +1208,13 @@ app.post("/api/services", upload.none(), async (req, res) => {
   try {
     const { title, description, category, hourly_rate, fixed_price } = req.body;
 
-    console.log("📝 Creating service for user:", req.session.user.id);
-    console.log("📦 Service data:", { title, category, hourly_rate, fixed_price });
-
     if (!title || !description) {
       return res.status(400).json({ error: "Title and description are required" });
     }
 
-    // Determine price
     const price = fixed_price ? parseFloat(fixed_price) :
                   hourly_rate ? parseFloat(hourly_rate) : 0;
 
-    console.log("💰 Final price:", price);
-
-    // STEP 1: Get user's current profile picture
     const profileResult = await db.query(
       "SELECT profile_picture FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
@@ -1496,9 +1226,7 @@ app.post("/api/services", upload.none(), async (req, res) => {
     }
 
     const profilePicture = profilePictures.length > 0 ? profilePictures[0].profile_picture : null;
-    console.log("🖼️ Profile picture found:", profilePicture || "None");
 
-    // STEP 2: Insert service with profile picture
     const result = await db.query(`
       INSERT INTO services 
       (user_id, title, description, price, category, provider_profile_picture)
@@ -1512,12 +1240,9 @@ app.post("/api/services", upload.none(), async (req, res) => {
       profilePicture
     ]);
 
-    // Get service ID
     const serviceId = result.insertId || result[0]?.insertId;
     if (!serviceId) throw new Error("Could not get service ID after creation");
-    console.log("✅ Service created with ID:", serviceId);
 
-    // STEP 3: Check if user has an active subscription/trial
     const subscriptionCheck = await db.query(`
       SELECT * FROM service_subscriptions 
       WHERE user_id = ? AND (status = 'active' OR trial_ends_at > CURDATE())
@@ -1529,12 +1254,8 @@ app.post("/api/services", upload.none(), async (req, res) => {
       (subscriptionCheck && Array.isArray(subscriptionCheck[0]) && subscriptionCheck[0].length > 0)
     ) {
       hasActiveSubscription = true;
-      console.log("📊 User has existing subscription/trial");
-    } else {
-      console.log("📊 No existing subscription found - starting trial");
     }
 
-    // STEP 4: Create trial if needed
     if (!hasActiveSubscription) {
       const trialStarted = new Date();
       const trialEnds = new Date();
@@ -1542,8 +1263,6 @@ app.post("/api/services", upload.none(), async (req, res) => {
 
       const trialStartedDate = trialStarted.toISOString().split('T')[0];
       const trialEndsDate = trialEnds.toISOString().split('T')[0];
-
-      console.log("📅 Trial dates:", { started: trialStartedDate, ends: trialEndsDate });
 
       try {
         await db.query(`
@@ -1557,15 +1276,9 @@ app.post("/api/services", upload.none(), async (req, res) => {
           trialEndsDate,
           'active'
         ]);
-        console.log("✅ Trial subscription created successfully");
-      } catch (subscriptionError) {
-        console.error("❌ Failed to create trial subscription:", subscriptionError);
-        console.log("⚠️ Service created but trial subscription failed");
-      }
+      } catch (subscriptionError) {}
     }
 
-    // STEP 5: Return success
-    console.log("🎉 Service creation process completed successfully");
     res.json({
       message: "Service created successfully! You're on a 90-day free trial.",
       serviceId: serviceId,
@@ -1574,84 +1287,17 @@ app.post("/api/services", upload.none(), async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Create service error:", err);
     res.status(500).json({ error: "Error creating service: " + err.message });
   }
 });
 
-// Upload service product (course/file)
-app.post("/api/services", upload.single("service_image"), async (req, res) => {
-
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Please login to upload service products" });
-  }
-
-  try {
-    const serviceId = req.params.id;
-    const { title, description, price, type } = req.body;
-
-    // Verify service ownership
-    const services = await db.query(
-      "SELECT * FROM services WHERE id = ? AND user_id = ?",
-      [serviceId, req.session.user.id]
-    );
-
-    if (!services.length) {
-      return res.status(403).json({ error: "You don't own this service" });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: "File is required" });
-    }
-
-    const result = await db.query(`
-      INSERT INTO service_products 
-      (service_id, title, description, file_path, price, type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [
-      serviceId,
-      title,
-      description,
-      `/uploads/services/${req.file.filename}`,
-      parseFloat(price || 0),
-      type || 'digital'
-    ]);
-
-    res.json({
-      message: "Service product uploaded successfully",
-      productId: result.insertId
-    });
-
-  } catch (err) {
-    console.error("❌ Service product upload error:", err);
-    res.status(500).json({ error: "Error uploading service product: " + err.message });
-  }
-});
-
-// Get service products
-app.get("/api/services/:id/products", async (req, res) => {
-  try {
-    const products = await db.query(`
-      SELECT * FROM service_products 
-      WHERE service_id = ?
-      ORDER BY is_featured DESC, created_at DESC
-    `, [req.params.id]);
-
-    res.json(Array.isArray(products) ? products : (products[0] || []));
-  } catch (err) {
-    console.error("❌ Get service products error:", err);
-    res.status(500).json({ error: "Error fetching service products" });
-  }
-});
-
-// Subscribe to service (monthly/yearly payment) - CORRECTED & CLEAN
 app.post("/api/services/subscribe", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to subscribe" });
   }
 
   try {
-    const { planType } = req.body; // 'monthly' or 'yearly'
+    const { planType } = req.body;
     
     const prices = {
       monthly: 5.00,
@@ -1663,7 +1309,6 @@ app.post("/api/services/subscribe", async (req, res) => {
       return res.status(400).json({ error: "Invalid plan type" });
     }
 
-    // Check if user is still on trial
     const trialCheck = await db.query(`
       SELECT * FROM service_subscriptions 
       WHERE user_id = ? AND trial_ends_at > CURDATE()
@@ -1671,7 +1316,6 @@ app.post("/api/services/subscribe", async (req, res) => {
 
     let hasActiveTrial = false;
     
-    // Handle different MariaDB response formats
     if (Array.isArray(trialCheck) && trialCheck.length > 0) {
       hasActiveTrial = true;
     } else if (trialCheck && trialCheck[0] && Array.isArray(trialCheck[0]) && trialCheck[0].length > 0) {
@@ -1684,9 +1328,6 @@ app.post("/api/services/subscribe", async (req, res) => {
       });
     }
 
-    console.log("💰 Creating subscription payment for user:", req.session.user.id, "Amount:", amount);
-
-    // Create subscription payment
     const payload = {
       tx_ref: `service-sub-${req.session.user.id}-${Date.now()}`,
       amount: amount,
@@ -1707,8 +1348,6 @@ app.post("/api/services/subscribe", async (req, res) => {
       }
     };
 
-    console.log("📤 Flutterwave payload:", payload);
-
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
       payload,
@@ -1720,9 +1359,6 @@ app.post("/api/services/subscribe", async (req, res) => {
       }
     );
 
-    console.log("📥 Flutterwave response:", response.data);
-
-    // CORRECTED: Flutterwave returns 'success' status at root level, not in data
     if (response.data.status === 'success' && response.data.data && response.data.data.link) {
       res.json({
         link: response.data.data.link,
@@ -1730,34 +1366,22 @@ app.post("/api/services/subscribe", async (req, res) => {
         provider: 'flutterwave'
       });
     } else {
-      // More detailed error information
-      console.error("❌ Flutterwave API error:", response.data);
       throw new Error(response.data.message || `Flutterwave returned status: ${response.data.status}`);
     }
 
   } catch (err) {
-    console.error("❌ Service subscription error:", err);
-    
-    // More detailed error handling
     if (err.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error("❌ Flutterwave API error response:", err.response.data);
       res.status(500).json({ 
         error: `Payment gateway error: ${err.response.data.message || err.message}` 
       });
     } else if (err.request) {
-      // The request was made but no response was received
-      console.error("❌ No response from Flutterwave:", err.request);
       res.status(500).json({ error: "No response from payment gateway. Please check your internet connection." });
     } else {
-      // Something happened in setting up the request that triggered an Error
       res.status(500).json({ error: "Error creating subscription: " + err.message });
     }
   }
 });
 
-// Buy service product
 app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to buy service products" });
@@ -1766,7 +1390,6 @@ app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) =>
   try {
     const { serviceId, productId } = req.params;
     
-    // Get product details
     const products = await db.query(`
       SELECT sp.*, s.user_id as seller_id 
       FROM service_products sp
@@ -1780,7 +1403,6 @@ app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) =>
 
     const product = products[0];
     
-    // Create payment
     const payload = {
       tx_ref: `service-product-${productId}-${Date.now()}`,
       amount: product.price,
@@ -1824,12 +1446,10 @@ app.post("/api/services/:serviceId/products/:productId/buy", async (req, res) =>
     }
 
   } catch (err) {
-    console.error("❌ Service product purchase error:", err);
     res.status(500).json({ error: "Error purchasing service product: " + err.message });
   }
 });
 
-// Add service review
 app.post("/api/services/:id/reviews", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to review services" });
@@ -1843,7 +1463,6 @@ app.post("/api/services/:id/reviews", async (req, res) => {
       return res.status(400).json({ error: "Rating must be between 1 and 5" });
     }
 
-    // Check if user already reviewed this service
     const existingReview = await db.query(
       "SELECT id FROM service_reviews WHERE user_id = ? AND service_id = ?",
       [req.session.user.id, serviceId]
@@ -1858,7 +1477,6 @@ app.post("/api/services/:id/reviews", async (req, res) => {
       [serviceId, req.session.user.id, rating, comment]
     );
 
-    // Update service rating
     const ratingResult = await db.query(`
       SELECT AVG(rating) as avg_rating, COUNT(*) as review_count 
       FROM service_reviews WHERE service_id = ?
@@ -1880,12 +1498,10 @@ app.post("/api/services/:id/reviews", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Service review error:", err);
     res.status(500).json({ error: "Error submitting review: " + err.message });
   }
 });
 
-// Get service reviews
 app.get("/api/services/:id/reviews", async (req, res) => {
   try {
     const reviews = await db.query(`
@@ -1902,12 +1518,10 @@ app.get("/api/services/:id/reviews", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Get service reviews error:", err);
     res.status(500).json({ error: "Error loading reviews" });
   }
 });
 
-// Get user's service subscription status
 app.get("/api/services/subscription/status", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login" });
@@ -1940,12 +1554,10 @@ app.get("/api/services/subscription/status", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Subscription status error:", err);
     res.status(500).json({ error: "Error checking subscription status" });
   }
 });
 
-// Service payment callback handler
 app.get("/services-payment-callback", async (req, res) => {
   try {
     const { transaction_id, status } = req.query;
@@ -1956,12 +1568,10 @@ app.get("/services-payment-callback", async (req, res) => {
     
     res.redirect('/services-payment-failed.html');
   } catch (err) {
-    console.error("❌ Services payment callback error:", err);
     res.redirect('/services-payment-failed.html');
   }
 });
 
-// Verify service payment - UPDATED FOR YOUR SCHEMA
 app.get("/api/verify-service-payment/:transaction_id", async (req, res) => {
   try {
     const { transaction_id } = req.params;
@@ -1972,7 +1582,6 @@ app.get("/api/verify-service-payment/:transaction_id", async (req, res) => {
       const meta = response.data.meta;
       
       if (meta.subscription) {
-        // Handle subscription payment - update trial end date
         const newTrialEnds = new Date();
         if (meta.plan_type === 'monthly') {
           newTrialEnds.setMonth(newTrialEnds.getMonth() + 1);
@@ -1985,11 +1594,8 @@ app.get("/api/verify-service-payment/:transaction_id", async (req, res) => {
           SET trial_ends_at = ?, status = 'active'
           WHERE user_id = ?
         `, [newTrialEnds, meta.user_id]);
-
-        console.log("✅ Service subscription extended for user:", meta.user_id);
         
       } else if (meta.type === 'service_product') {
-        // Handle service product purchase
         await db.query(`
           INSERT INTO service_orders 
           (service_id, product_id, buyer_id, amount, status, transaction_id)
@@ -2001,8 +1607,6 @@ app.get("/api/verify-service-payment/:transaction_id", async (req, res) => {
           response.data.amount,
           transaction_id
         ]);
-
-        console.log("✅ Service product purchase completed");
       }
 
       res.json({ 
@@ -2017,17 +1621,110 @@ app.get("/api/verify-service-payment/:transaction_id", async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("❌ Service payment verification error:", err);
     res.status(500).json({ error: "Error verifying payment: " + err.message });
   }
 });
-// ========================= FREELANCER PROFILE ROUTES =========================
 
-// Create profiles upload directory
+app.get("/api/users/:userId/profile", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await db.query(
+      `SELECT 
+        u.id,
+        u.username,
+        u.created_at,
+        fp.headline,
+        fp.description,
+        fp.hourly_rate,
+        fp.skills,
+        fp.languages,
+        fp.experience_level,
+        fp.website,
+        fp.location,
+        fp.phone,
+        fp.education,
+        fp.certifications,
+        fp.availability,
+        fp.profile_picture
+      FROM users u
+      JOIN freelancer_profiles fp ON u.id = fp.user_id
+      WHERE u.id = ?`,
+      [userId]
+    );
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
+
+    const data = result[0];
+    
+    const serviceCountResult = await db.query(
+      "SELECT COUNT(*) as service_count FROM services WHERE user_id = ?",
+      [userId]
+    );
+    const serviceCount = serviceCountResult[0]?.service_count || 0;
+    
+    let reviewCount = 0;
+    let avgRating = 0.0;
+    
+    try {
+      const reviewsResult = await db.query(
+        `SELECT COUNT(*) as review_count, AVG(rating) as avg_rating 
+         FROM service_reviews sr
+         JOIN services s ON sr.service_id = s.id
+         WHERE s.user_id = ?`,
+        [userId]
+      );
+      reviewCount = reviewsResult[0]?.review_count || 0;
+      avgRating = parseFloat(reviewsResult[0]?.avg_rating) || 0.0;
+    } catch (reviewError) {}
+    
+    let skills = [];
+    try {
+      if (data.skills && typeof data.skills === 'string') {
+        skills = JSON.parse(data.skills);
+      } else if (Array.isArray(data.skills)) {
+        skills = data.skills;
+      }
+    } catch (error) {
+      skills = [];
+    }
+
+    const publicProfile = {
+      id: data.id,
+      username: data.username,
+      headline: data.headline || 'Professional Freelancer',
+      description: data.description || 'No description provided.',
+      profile_picture: data.profile_picture,
+      hourly_rate: data.hourly_rate || 0,
+      location: data.location,
+      phone: data.phone,
+      website: data.website,
+      education: data.education,
+      certifications: data.certifications,
+      experience_level: data.experience_level,
+      availability: data.availability || 'available',
+      skills: skills,
+      created_at: data.created_at,
+      service_count: serviceCount,
+      review_count: reviewCount,
+      avg_rating: avgRating,
+      completed_orders: 0
+    };
+
+    res.json(publicProfile);
+    
+  } catch (err) {
+    res.status(500).json({ 
+      error: "Error loading user profile"
+    });
+  }
+});
+
 const profilesUploadDir = path.join(__dirname, 'uploads', 'profiles');
 if (!fs.existsSync(profilesUploadDir)) {
   fs.mkdirSync(profilesUploadDir, { recursive: true });
-  console.log("✅ Created profiles upload directory");
 }
 
 const profilePictureStorage = multer.diskStorage({
@@ -2040,50 +1737,36 @@ const profilePictureStorage = multer.diskStorage({
 
 const profilePictureUpload = multer({ 
   storage: profilePictureStorage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// Get freelancer profile - FIXED FOR MARIADB RESPONSE FORMAT
 app.get("/api/freelancer/profile", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to view profile" });
   }
 
   try {
-    console.log("🔍 Fetching profile for user:", req.session.user.id);
-    
-    // Check if profile exists - HANDLE MARIADB RESPONSE FORMAT
     const profileResult = await db.query(
       "SELECT * FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
     );
 
-    // Handle MariaDB response format - it could be [rows] or [[rows]] or {rows: []}
     let profiles = [];
     if (Array.isArray(profileResult)) {
       if (profileResult.length > 0 && Array.isArray(profileResult[0])) {
-        // Format: [[rows]]
         profiles = profileResult[0];
       } else {
-        // Format: [rows]
         profiles = profileResult;
       }
     } else if (profileResult && Array.isArray(profileResult.rows)) {
-      // Format: {rows: []}
       profiles = profileResult.rows;
     }
-
-    console.log("📊 Profiles found:", profiles.length);
-    console.log("📋 Profile data structure:", profiles);
 
     let userProfile;
 
     if (profiles.length > 0) {
-      // Profile exists - get enhanced data
       const profile = profiles[0];
-      console.log("✅ Using existing profile ID:", profile.id);
       
-      // Get enhanced profile data with stats
       const enhancedResult = await db.query(`
         SELECT 
           u.id as user_id, 
@@ -2122,7 +1805,6 @@ app.get("/api/freelancer/profile", async (req, res) => {
         GROUP BY u.id, fp.id
       `, [req.session.user.id, profile.id]);
 
-      // Handle MariaDB response format for enhanced result
       let enhancedProfile = [];
       if (Array.isArray(enhancedResult)) {
         if (enhancedResult.length > 0 && Array.isArray(enhancedResult[0])) {
@@ -2133,21 +1815,14 @@ app.get("/api/freelancer/profile", async (req, res) => {
       }
 
       userProfile = enhancedProfile[0] || profile;
-      console.log("✅ Enhanced profile loaded");
       
     } else {
-      // No profile exists - but we know one exists because of duplicate errors
-      // Let's try a different approach: force get the profile
-      console.log("🔄 No profiles found in query, but duplicate errors suggest profile exists. Trying direct fetch...");
-      
       try {
-        // Try to get the profile with a simpler query
         const directResult = await db.query(
           "SELECT fp.*, u.username, u.email, u.created_at as user_created_at FROM freelancer_profiles fp JOIN users u ON fp.user_id = u.id WHERE fp.user_id = ?",
           [req.session.user.id]
         );
 
-        // Handle MariaDB response format
         let directProfiles = [];
         if (Array.isArray(directResult)) {
           if (directResult.length > 0 && Array.isArray(directResult[0])) {
@@ -2159,11 +1834,7 @@ app.get("/api/freelancer/profile", async (req, res) => {
 
         if (directProfiles.length > 0) {
           userProfile = directProfiles[0];
-          console.log("✅ Found profile via direct query:", userProfile.id);
         } else {
-          // Really no profile exists - create one with error handling
-          console.log("🆕 Creating new profile for user:", req.session.user.id);
-          
           try {
             const insertResult = await db.query(`
               INSERT INTO freelancer_profiles (user_id, headline, description, hourly_rate, skills, languages, experience_level)
@@ -2178,15 +1849,11 @@ app.get("/api/freelancer/profile", async (req, res) => {
               'intermediate'
             ]);
 
-            console.log("✅ New profile created");
-
-            // Get the newly created profile
             const [newProfile] = await db.query(
               "SELECT fp.*, u.username, u.email, u.created_at as user_created_at FROM freelancer_profiles fp JOIN users u ON fp.user_id = u.id WHERE fp.user_id = ?",
               [req.session.user.id]
             );
 
-            // Handle MariaDB response format
             let newProfiles = [];
             if (Array.isArray(newProfile)) {
               if (newProfile.length > 0 && Array.isArray(newProfile[0])) {
@@ -2199,16 +1866,11 @@ app.get("/api/freelancer/profile", async (req, res) => {
             userProfile = newProfiles[0];
             
           } catch (insertError) {
-            console.error("❌ Failed to create profile:", insertError);
-            
-            // If insert fails due to duplicate, the profile exists but we can't find it
-            // Return basic user info as fallback
             const userResult = await db.query(
               "SELECT id as user_id, username, email, role, created_at as user_created_at FROM users WHERE id = ?",
               [req.session.user.id]
             );
 
-            // Handle MariaDB response format
             let users = [];
             if (Array.isArray(userResult)) {
               if (userResult.length > 0 && Array.isArray(userResult[0])) {
@@ -2228,11 +1890,9 @@ app.get("/api/freelancer/profile", async (req, res) => {
               experience_level: 'intermediate',
               availability: 'available'
             };
-            console.log("⚠️ Using fallback profile data");
           }
         }
       } catch (directError) {
-        console.error("❌ Direct query failed:", directError);
         throw new Error("Cannot access profile data");
       }
     }
@@ -2241,18 +1901,14 @@ app.get("/api/freelancer/profile", async (req, res) => {
       throw new Error("Failed to load or create profile");
     }
 
-    console.log("✅ Returning profile data for user:", req.session.user.id);
     res.json(userProfile);
     
   } catch (err) {
-    console.error("❌ Get freelancer profile error:", err);
     res.status(500).json({ error: "Error loading profile: " + err.message });
   }
 });
 
-
-// Update freelancer profile - ENHANCED WITH CERTIFICATE IMAGES
-app.put("/api/freelancer/profile", async (req, res) => {
+app.put("/api/freelancer/update-profile", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to update profile" });
   }
@@ -2262,141 +1918,110 @@ app.put("/api/freelancer/profile", async (req, res) => {
       headline,
       description,
       hourly_rate,
-      skills,
-      languages,
       experience_level,
-      website,
+      availability,
       location,
       phone,
+      website,
       education,
       certifications,
-      availability,
-      certificate_images
+      languages,
+      skills
     } = req.body;
 
-    console.log("📝 Updating profile for user:", req.session.user.id);
+    const updateFields = [];
+    const updateValues = [];
 
-    // Check if profile exists
-    const existingResult = await db.query(
-      "SELECT id FROM freelancer_profiles WHERE user_id = ?",
+    if (headline !== undefined) {
+      updateFields.push("headline = ?");
+      updateValues.push(headline);
+    }
+    
+    if (description !== undefined) {
+      updateFields.push("description = ?");
+      updateValues.push(description);
+    }
+    
+    if (hourly_rate !== undefined) {
+      updateFields.push("hourly_rate = ?");
+      updateValues.push(parseFloat(hourly_rate) || 0);
+    }
+    
+    if (experience_level !== undefined) {
+      updateFields.push("experience_level = ?");
+      updateValues.push(experience_level);
+    }
+    
+    if (availability !== undefined) {
+      updateFields.push("availability = ?");
+      updateValues.push(availability);
+    }
+    
+    if (location !== undefined) {
+      updateFields.push("location = ?");
+      updateValues.push(location);
+    }
+    
+    if (phone !== undefined) {
+      updateFields.push("phone = ?");
+      updateValues.push(phone);
+    }
+    
+    if (website !== undefined) {
+      updateFields.push("website = ?");
+      updateValues.push(website);
+    }
+    
+    if (education !== undefined) {
+      updateFields.push("education = ?");
+      updateValues.push(education);
+    }
+    
+    if (certifications !== undefined) {
+      updateFields.push("certifications = ?");
+      updateValues.push(certifications);
+    }
+    
+    if (languages !== undefined) {
+      updateFields.push("languages = ?");
+      updateValues.push(languages);
+    }
+    
+    if (skills !== undefined) {
+      updateFields.push("skills = ?");
+      updateValues.push(skills);
+    }
+
+    updateFields.push("updated_at = CURRENT_TIMESTAMP");
+    updateValues.push(req.session.user.id);
+
+    const updateQuery = `
+      UPDATE freelancer_profiles 
+      SET ${updateFields.join(", ")}
+      WHERE user_id = ?
+    `;
+
+    const result = await db.query(updateQuery, updateValues);
+
+    const [updatedProfile] = await db.query(
+      "SELECT * FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
     );
 
-    // Handle MariaDB response format
-    let existing = [];
-    if (Array.isArray(existingResult)) {
-      if (existingResult.length > 0 && Array.isArray(existingResult[0])) {
-        existing = existingResult[0];
-      } else {
-        existing = existingResult;
-      }
-    }
-
-    let result;
-
-    if (existing.length > 0) {
-      // UPDATE existing profile
-      console.log("🔄 Updating existing profile...");
-      result = await db.query(`
-        UPDATE freelancer_profiles SET
-          headline = ?, 
-          description = ?, 
-          hourly_rate = ?, 
-          skills = ?, 
-          languages = ?,
-          experience_level = ?, 
-          website = ?, 
-          location = ?, 
-          phone = ?, 
-          education = ?,
-          certifications = ?, 
-          availability = ?, 
-          certificate_images = ?,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-      `, [
-        headline || 'New Freelancer',
-        description || 'Tell clients about yourself and your services...',
-        parseFloat(hourly_rate) || 25,
-        JSON.stringify(skills || []),
-        JSON.stringify(languages || []),
-        experience_level || 'intermediate',
-        website || '',
-        location || '',
-        phone || '',
-        education || '',
-        certifications || '',
-        availability || 'available',
-        JSON.stringify(certificate_images || []),
-        req.session.user.id
-      ]);
-
-    } else {
-      // CREATE new profile
-      console.log("🆕 Creating new profile...");
-      result = await db.query(`
-        INSERT INTO freelancer_profiles (
-          user_id, headline, description, hourly_rate, skills, languages,
-          experience_level, website, location, phone, education, certifications, 
-          availability, certificate_images
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        req.session.user.id,
-        headline || 'New Freelancer',
-        description || 'Tell clients about yourself and your services...',
-        parseFloat(hourly_rate) || 25,
-        JSON.stringify(skills || []),
-        JSON.stringify(languages || []),
-        experience_level || 'intermediate',
-        website || '',
-        location || '',
-        phone || '',
-        education || '',
-        certifications || '',
-        availability || 'available',
-        JSON.stringify(certificate_images || [])
-      ]);
-    }
-
-    // Update all services with the current profile picture
-    const profileResult = await db.query(
-      "SELECT profile_picture FROM freelancer_profiles WHERE user_id = ?",
-      [req.session.user.id]
-    );
-
-    let profilePictures = [];
-    if (Array.isArray(profileResult)) {
-      if (profileResult.length > 0 && Array.isArray(profileResult[0])) {
-        profilePictures = profileResult[0];
-      } else {
-        profilePictures = profileResult;
-      }
-    }
-
-    if (profilePictures.length > 0 && profilePictures[0].profile_picture) {
-      await db.query(
-        "UPDATE services SET provider_profile_picture = ? WHERE user_id = ?",
-        [profilePictures[0].profile_picture, req.session.user.id]
-      );
-      console.log("✅ Updated profile picture for all services");
-    }
-
-    res.json({ 
+    res.json({
       success: true,
-      message: "Profile updated successfully"
+      message: "Profile updated successfully",
+      profile: updatedProfile[0]
     });
 
   } catch (err) {
-    console.error("❌ Update freelancer profile error:", err);
     res.status(500).json({ 
       success: false,
       error: "Error updating profile: " + err.message 
     });
   }
-}); 
+});
 
-
-// Upload certificate images
 app.post("/api/freelancer/certificate-images", profilePictureUpload.array("certificate_images", 5), async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to upload certificates" });
@@ -2408,34 +2033,43 @@ app.post("/api/freelancer/certificate-images", profilePictureUpload.array("certi
     }
 
     const certificatePaths = req.files.map(file => `/uploads/profiles/${file.filename}`);
-    console.log("📜 Uploading certificate images:", certificatePaths);
 
-    // Get current certificate images
     const [currentProfile] = await db.query(
       "SELECT certificate_images FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
     );
 
     let currentCertificates = [];
+    
     if (currentProfile && currentProfile.length > 0 && currentProfile[0].certificate_images) {
-      try {
-        currentCertificates = JSON.parse(currentProfile[0].certificate_images);
-      } catch (e) {
-        console.log("❌ Error parsing current certificates:", e);
+      const certData = currentProfile[0].certificate_images;
+      
+      if (certData && certData.trim() !== '') {
+        try {
+          if (certData.startsWith('[')) {
+            currentCertificates = JSON.parse(certData);
+          } else {
+            currentCertificates = [certData];
+          }
+        } catch (e) {
+          currentCertificates = [];
+        }
       }
     }
 
-    // Add new certificates to existing ones
     const updatedCertificates = [...currentCertificates, ...certificatePaths];
+    
+    if (updatedCertificates.length > 5) {
+      return res.status(400).json({ 
+        error: "Maximum 5 certificates allowed. Please remove some existing certificates first." 
+      });
+    }
 
-    // Update profile with new certificate images
     await db.query(`
       UPDATE freelancer_profiles 
       SET certificate_images = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE user_id = ?
     `, [JSON.stringify(updatedCertificates), req.session.user.id]);
-
-    console.log("✅ Certificate images updated, total:", updatedCertificates.length);
 
     res.json({ 
       success: true,
@@ -2443,7 +2077,6 @@ app.post("/api/freelancer/certificate-images", profilePictureUpload.array("certi
       certificate_images: updatedCertificates
     });
   } catch (err) {
-    console.error("❌ Certificate images upload error:", err);
     res.status(500).json({ 
       success: false,
       error: "Error uploading certificate images: " + err.message 
@@ -2451,7 +2084,85 @@ app.post("/api/freelancer/certificate-images", profilePictureUpload.array("certi
   }
 });
 
-// Upload profile picture
+app.get("/api/services/:id/details", async (req, res) => {
+  try {
+    const serviceId = req.params.id;
+    
+    const [serviceRows] = await db.query(`
+      SELECT s.*, u.username, u.email, 
+             fp.profile_picture as provider_profile_picture,
+             fp.headline as provider_headline
+      FROM services s
+      LEFT JOIN users u ON s.user_id = u.id
+      LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
+      WHERE s.id = ?
+    `, [serviceId]);
+    
+    if (!serviceRows || serviceRows.length === 0) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+    
+    const service = serviceRows[0];
+    
+    const [products] = await db.query(`
+      SELECT * FROM service_products 
+      WHERE service_id = ?
+      ORDER BY created_at DESC
+    `, [serviceId]);
+    
+    const [reviews] = await db.query(`
+      SELECT sr.*, u.username
+      FROM service_reviews sr
+      JOIN users u ON sr.user_id = u.id
+      WHERE sr.service_id = ?
+      ORDER BY sr.created_at DESC
+    `, [serviceId]);
+    
+    res.json({
+      ...service,
+      products: products || [],
+      reviews: reviews || [],
+      avg_rating: service.rating || 0,
+      review_count: service.review_count || 0
+    });
+    
+  } catch (err) {
+    res.status(500).json({ error: "Error loading service details" });
+  }
+});
+
+app.get("/api/users/:userId/certificates", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await db.query(
+      `SELECT certificate_images FROM freelancer_profiles WHERE user_id = ?`,
+      [userId]
+    );
+    
+    let certificates = [];
+    if (Array.isArray(result) && result.length > 0) {
+      const profile = result[0];
+      if (profile.certificate_images) {
+        try {
+          certificates = JSON.parse(profile.certificate_images);
+        } catch (e) {}
+      }
+    }
+    
+    res.json({
+      success: true,
+      certificate_images: certificates
+    });
+    
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      error: "Error loading certificates" 
+    });
+  }
+});
+
 app.post("/api/freelancer/profile-picture", profilePictureUpload.single("profile_picture"), async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to upload picture" });
@@ -2463,16 +2174,12 @@ app.post("/api/freelancer/profile-picture", profilePictureUpload.single("profile
     }
 
     const profilePicturePath = `/uploads/profiles/${req.file.filename}`;
-    console.log("📸 Uploading profile picture:", profilePicturePath);
 
-    // Update profile with picture path
     const result = await db.query(`
       UPDATE freelancer_profiles 
       SET profile_picture = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE user_id = ?
     `, [profilePicturePath, req.session.user.id]);
-
-    console.log("✅ Profile picture updated, affected rows:", result.affectedRows);
 
     res.json({ 
       success: true,
@@ -2480,7 +2187,6 @@ app.post("/api/freelancer/profile-picture", profilePictureUpload.single("profile
       profile_picture: profilePicturePath
     });
   } catch (err) {
-    console.error("❌ Profile picture upload error:", err);
     res.status(500).json({ 
       success: false,
       error: "Error uploading profile picture: " + err.message 
@@ -2488,7 +2194,6 @@ app.post("/api/freelancer/profile-picture", profilePictureUpload.single("profile
   }
 });
 
-// Get freelancer dashboard stats
 app.get("/api/freelancer/dashboard-stats", async (req, res) => {
   if (!req.session.user || req.session.user.role !== 'freelancer') {
     return res.status(401).json({ error: "Freelancer access required" });
@@ -2512,7 +2217,6 @@ app.get("/api/freelancer/dashboard-stats", async (req, res) => {
       WHERE u.id = ?
     `, [req.session.user.id]);
 
-    // Recent orders
     const [recentOrders] = await db.query(`
       SELECT 
         so.id as order_id,
@@ -2536,55 +2240,15 @@ app.get("/api/freelancer/dashboard-stats", async (req, res) => {
       recent_orders: recentOrders
     });
   } catch (err) {
-    console.error("❌ Dashboard stats error:", err);
     res.status(500).json({ error: "Error loading dashboard stats" });
   }
 });
 
-// Debug route to check profile state
-app.get("/api/debug/profile", async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Please login" });
-  }
-
-  try {
-    console.log("🐛 DEBUG: Checking profile state for user:", req.session.user.id);
-    
-    // Check users table
-    const [users] = await db.query("SELECT id, username, email, role FROM users WHERE id = ?", [req.session.user.id]);
-    console.log("👤 User data:", users[0]);
-    
-    // Check freelancer_profiles table
-    const [profiles] = await db.query("SELECT * FROM freelancer_profiles WHERE user_id = ?", [req.session.user.id]);
-    console.log("📊 Profile data:", profiles);
-    
-    // Check for duplicates
-    const [duplicates] = await db.query("SELECT COUNT(*) as count FROM freelancer_profiles WHERE user_id = ?", [req.session.user.id]);
-    console.log("🔍 Duplicate check - profiles count:", duplicates[0].count);
-    
-    res.json({
-      user: users[0],
-      profiles: profiles,
-      profileCount: duplicates[0].count,
-      hasProfile: profiles.length > 0
-    });
-    
-  } catch (err) {
-    console.error("❌ Debug error:", err);
-    res.status(500).json({ error: "Debug failed" });
-  }
-});
-// ========================= ADMIN DELETE SERVICE ROUTE =========================
 app.delete("/api/admin/services/:id", async (req, res) => {
   try {
     const serviceId = Number(req.params.id);
     const { reason, provider_user_id } = req.body;
 
-    console.log("🚨 ADMIN DELETE REQUEST");
-    console.log("Service ID:", serviceId);
-    console.log("Reason:", reason);
-
-    // 1️⃣ Auth check
     if (!req.session.user || req.session.user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
@@ -2593,7 +2257,6 @@ app.delete("/api/admin/services/:id", async (req, res) => {
       return res.status(400).json({ error: "Reason must be at least 10 characters" });
     }
 
-    // 2️⃣ Fetch service
     const serviceRows = await db.query(
       "SELECT id, user_id FROM services WHERE id = ?",
       [serviceId]
@@ -2607,11 +2270,8 @@ app.delete("/api/admin/services/:id", async (req, res) => {
       return res.status(404).json({ error: "Service not found" });
     }
 
-    // 3️⃣ Delete service
     await db.query("DELETE FROM services WHERE id = ?", [serviceId]);
-    console.log("🗑️ Service deleted");
 
-    // 4️⃣ LOG DELETION  ✅✅✅ THIS WAS MISSING
     await db.query(
       `
       INSERT INTO deleted_services
@@ -2627,23 +2287,16 @@ app.delete("/api/admin/services/:id", async (req, res) => {
       ]
     );
 
-    console.log("📦 Deleted service logged");
-
-    // 5️⃣ Respond LAST
     res.json({
       success: true,
       message: "Service deleted and logged successfully"
     });
 
   } catch (err) {
-    console.error("❌ ADMIN DELETE ERROR:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-
-
-//admin deleted
 app.get("/api/admin/deleted-services", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== "admin") {
@@ -2658,78 +2311,74 @@ app.get("/api/admin/deleted-services", async (req, res) => {
 
     res.json(rows || []);
   } catch (err) {
-    console.error("❌ Load deleted services error:", err);
     res.status(500).json({ error: "Failed to load deleted services" });
   }
 });
 
-
-
-
-// Helper function to get remaining deletes
-async function getRemainingDeletes(userId) {
+async function checkAndEnforceDeleteLimits(userId) {
   try {
     const today = new Date().toISOString().split('T')[0];
-    console.log("🔍 Getting remaining deletes for user:", userId);
-    
+
     const [userRows] = await db.query(
       "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
       [userId]
     );
-    
+
     if (!userRows || userRows.length === 0) {
-      console.log("⚠️ User not found, returning default 3");
-      return 3;
+      throw new Error("User not found for delete limit check");
     }
-    
+
     const user = userRows[0];
-    
-    // Handle null values
-    const lastDeleteDate = user.last_delete_date ? 
-      new Date(user.last_delete_date).toISOString().split('T')[0] : 
-      null;
+    const lastDeleteDate = user.last_delete_date
+      ? new Date(user.last_delete_date).toISOString().split('T')[0]
+      : null;
     const dailyCount = user.daily_delete_count || 0;
-    
-    if (!lastDeleteDate || lastDeleteDate !== today) {
-      console.log("📅 New day or first delete, returning 3");
-      return 3;
+
+    let remainingDeletes = 3;
+
+    if (lastDeleteDate === today) {
+      remainingDeletes = 3 - dailyCount;
     }
-    
-    const remaining = Math.max(0, 3 - dailyCount);
-    console.log("✅ Remaining deletes:", remaining);
-    return remaining;
-    
-  } catch (error) {
-    console.error("❌ Error getting remaining deletes:", error);
-    return 3; // Default if error
+
+    if (remainingDeletes <= 0) {
+      throw new Error("You have reached your daily delete limit (3 per day).");
+    }
+
+    if (lastDeleteDate === today) {
+      await db.query(
+        "UPDATE users SET daily_delete_count = daily_delete_count + 1 WHERE id = ?",
+        [userId]
+      );
+    } else {
+      await db.query(
+        "UPDATE users SET daily_delete_count = 1, last_delete_date = ? WHERE id = ?",
+        [today, userId]
+      );
+    }
+
+    return remainingDeletes;
+  } catch (err) {
+    throw err;
   }
 }
-// Helper function to log deletions
+
 async function logServiceDeletion({ serviceId, userId, serviceTitle, reason, deletedBy, isFlagged = false }) {
   try {
-    // Log to service_delete_tracking table
     await db.query(`
       INSERT INTO service_delete_tracking 
       (user_id, service_id, delete_reason, flagged)
       VALUES (?, ?, ?, ?)
     `, [userId, serviceId, reason, isFlagged]);
     
-    console.log("📝 Deletion logged for monitoring");
-    
-    // If flagged, create/update monitoring entry
     if (isFlagged) {
       await updateUserMonitoring(userId);
     }
     
-  } catch (error) {
-    console.error("Error logging deletion:", error);
-  }
+  } catch (error) {}
 }
 
-// Helper function to update user monitoring
 async function updateUserMonitoring(userId) {
   try {
-    // Get user info
     const [userRows] = await db.query(
       "SELECT username, email FROM users WHERE id = ?",
       [userId]
@@ -2739,7 +2388,6 @@ async function updateUserMonitoring(userId) {
     
     const user = userRows[0];
     
-    // Count deletions in last 7 days
     const [deleteCountRows] = await db.query(`
       SELECT COUNT(*) as count FROM service_delete_tracking 
       WHERE user_id = ? AND deleted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
@@ -2747,21 +2395,18 @@ async function updateUserMonitoring(userId) {
     
     const deleteCount = deleteCountRows[0].count;
     
-    // Check if monitoring entry exists
     const [monitoringRows] = await db.query(
       "SELECT id FROM user_delete_monitoring WHERE user_id = ?",
       [userId]
     );
     
     if (monitoringRows.length === 0) {
-      // Create new monitoring entry
       await db.query(`
         INSERT INTO user_delete_monitoring 
         (user_id, username, email, delete_count_last_7_days, is_flagged, flagged_reason, flagged_at)
         VALUES (?, ?, ?, ?, TRUE, ?, NOW())
       `, [userId, user.username, user.email, deleteCount, 'Multiple service deletions detected']);
     } else {
-      // Update existing entry
       await db.query(`
         UPDATE user_delete_monitoring 
         SET delete_count_last_7_days = ?, 
@@ -2773,65 +2418,9 @@ async function updateUserMonitoring(userId) {
       `, [deleteCount, userId]);
     }
     
-    console.log(`🚩 User ${userId} flagged for admin monitoring`);
-    
-  } catch (error) {
-    console.error("Error updating user monitoring:", error);
-  }
-}
-//checkAndenforce
-async function checkAndEnforceDeleteLimits(userId) {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Fetch user's delete stats
-    const [userRows] = await db.query(
-      "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
-      [userId]
-    );
-
-    if (!userRows || userRows.length === 0) {
-      throw new Error("User not found for delete limit check");
-    }
-
-    const user = userRows[0]; // Make sure user exists
-    const lastDeleteDate = user.last_delete_date
-      ? new Date(user.last_delete_date).toISOString().split('T')[0]
-      : null;
-    const dailyCount = user.daily_delete_count || 0;
-
-    let remainingDeletes = 3; // default
-
-    if (lastDeleteDate === today) {
-      remainingDeletes = 3 - dailyCount;
-    }
-
-    if (remainingDeletes <= 0) {
-      throw new Error("You have reached your daily delete limit (3 per day).");
-    }
-
-    // Increment daily_delete_count
-    if (lastDeleteDate === today) {
-      await db.query(
-        "UPDATE users SET daily_delete_count = daily_delete_count + 1 WHERE id = ?",
-        [userId]
-      );
-    } else {
-      // Reset count for a new day
-      await db.query(
-        "UPDATE users SET daily_delete_count = 1, last_delete_date = ? WHERE id = ?",
-        [today, userId]
-      );
-    }
-
-    return remainingDeletes;
-  } catch (err) {
-    console.error("❌ Delete limit error:", err);
-    throw err; // propagate to caller
-  }
+  } catch (error) {}
 }
 
-// Get flagged users for admin monitoring
 app.get("/api/admin/flagged-users", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -2853,7 +2442,6 @@ app.get("/api/admin/flagged-users", async (req, res) => {
       ORDER BY um.flagged_at DESC
     `);
     
-    // Get detailed delete history for each flagged user
     for (let user of flaggedUsers) {
       const [deleteHistory] = await db.query(`
         SELECT sdt.*, s.title as service_title, s.category as service_category
@@ -2874,12 +2462,10 @@ app.get("/api/admin/flagged-users", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("Error fetching flagged users:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Mark user as reviewed
 app.post("/api/admin/flagged-users/:userId/review", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -2900,7 +2486,6 @@ app.post("/api/admin/flagged-users/:userId/review", async (req, res) => {
       WHERE user_id = ?
     `, [notes || 'No notes provided', action || 'reviewed', userId]);
     
-    // If action is 'clear_flag', also clear the user's flag
     if (action === 'clear_flag') {
       await db.query(
         "UPDATE users SET delete_warning_flag = FALSE WHERE id = ?",
@@ -2914,13 +2499,10 @@ app.post("/api/admin/flagged-users/:userId/review", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("Error updating user review:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// Get user's delete limits - UPDATED for object results
 app.get("/api/user/delete-limits", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -2931,16 +2513,12 @@ app.get("/api/user/delete-limits", async (req, res) => {
     
     const userId = req.session.user.id;
     const today = new Date().toISOString().split('T')[0];
-    console.log("📊 Getting delete limits for user:", userId);
     
     const userResult = await db.query(
       "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
       [userId]
     );
     
-    console.log("📋 Full user query result:", userResult);
-    
-    // Extract user data
     let user;
     
     if (userResult && typeof userResult === 'object') {
@@ -2953,11 +2531,7 @@ app.get("/api/user/delete-limits", async (req, res) => {
       }
     }
     
-    console.log("👤 Extracted user data:", user);
-    
-    // Default values if user not found or data is missing
     if (!user) {
-      console.log("⚠️ User not found, returning default limits");
       return res.json({
         daily_limit: 3,
         remaining_deletes: 3,
@@ -2966,23 +2540,16 @@ app.get("/api/user/delete-limits", async (req, res) => {
       });
     }
     
-    // Handle null/undefined values
     const lastDeleteDate = user.last_delete_date ? 
       new Date(user.last_delete_date).toISOString().split('T')[0] : 
       null;
     const dailyCount = user.daily_delete_count || 0;
     
-    console.log("📅 Last delete date:", lastDeleteDate);
-    console.log("🔢 Daily count:", dailyCount);
-    
     let remaining = 3;
     
-    // Check if it's the same day
     if (lastDeleteDate === today) {
       remaining = Math.max(0, 3 - dailyCount);
     }
-    
-    console.log("✅ Remaining deletes:", remaining);
     
     res.json({
       daily_limit: 3,
@@ -2992,225 +2559,18 @@ app.get("/api/user/delete-limits", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("❌ Error getting delete limits:", err);
-    console.error("Error stack:", err.stack);
     res.status(500).json({ 
       error: "Error getting delete limits: " + err.message 
     });
   }
 });
-app.get("/api/debug/user/:id", async (req, res) => {
-  try {
-    const [userRows] = await db.query(
-      "SELECT id, username, role, daily_delete_count, last_delete_date FROM users WHERE id = ?",
-      [req.params.id]
-    );
-    
-    res.json({
-      user: userRows[0] || null,
-      rowCount: userRows.length
-    });
-    
-  } catch (error) {
-    console.error("Debug error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// Helper function to extract data from database results
-function extractFirstRow(result) {
-  if (!result) return null;
-  
-  if (typeof result === 'object') {
-    // Check different possible formats
-    if (result.id !== undefined || result.daily_delete_count !== undefined) {
-      // Direct object with data
-      return result;
-    } else if (Array.isArray(result) && result[0]) {
-      // Array with objects
-      return result[0];
-    } else if (result[0] && typeof result[0] === 'object' && result[0].id !== undefined) {
-      // Nested array (MySQL2 style)
-      return result[0];
-    } else if (result.rows && result.rows[0]) {
-      // PostgreSQL style
-      return result.rows[0];
-    }
-  }
-  
-  return null;
-}
-// Add this to your index.js (not inside services.html)
-app.get("/api/test-db-format", async (req, res) => {
-  try {
-    // Test query
-    const result = await db.query("SELECT 1 as test, 'hello' as message, NOW() as now");
-    
-    console.log("=== DATABASE DRIVER FORMAT TEST ===");
-    console.log("Full result:", JSON.stringify(result, null, 2));
-    console.log("Type:", typeof result);
-    console.log("Is array?", Array.isArray(result));
-    
-    // Try to understand the structure
-    let analysis = {
-      type: typeof result,
-      isArray: Array.isArray(result),
-      rawResult: result
-    };
-    
-    if (result) {
-      if (typeof result === 'object') {
-        analysis.keys = Object.keys(result);
-        
-        // Check if it's a RowDataPacket or similar
-        if (result.test !== undefined) {
-          analysis.directObject = true;
-          analysis.data = result;
-        }
-        
-        // Check nested structure
-        if (Array.isArray(result)) {
-          analysis.arrayLength = result.length;
-          if (result.length > 0) {
-            analysis.firstElementType = typeof result[0];
-            analysis.firstElementKeys = Object.keys(result[0]);
-          }
-        } else if (result[0] && Array.isArray(result[0])) {
-          analysis.nestedArray = true;
-          analysis.innerArrayLength = result[0].length;
-          if (result[0].length > 0) {
-            analysis.firstRow = result[0][0];
-          }
-        }
-      }
-    }
-    
-    console.log("Analysis:", analysis);
-    
-    res.json(analysis);
-    
-  } catch (error) {
-    console.error("Test error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-//check and delete 
-async function checkAndEnforceDeleteLimits(userId) {
-  console.log("📊 Getting delete limits for user:", userId);
-
-  const result = await db.query(
-    "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
-    [userId]
-  );
-
-  console.log("📋 Full user query result:", result);
-
-  // ✅ CORRECT extraction for MariaDB
-  let user;
-
-  if (Array.isArray(result) && result.length > 0) {
-    user = result[0];
-  }
-
-  if (!user) {
-    throw new Error("User not found for delete limit check");
-  }
-
-  console.log("👤 Extracted user data:", user);
-
-  const today = new Date().toISOString().split("T")[0];
-  const lastDeleteDate = user.last_delete_date;
-  let dailyCount = user.daily_delete_count || 0;
-
-  console.log("📅 Last delete date:", lastDeleteDate);
-  console.log("🔢 Daily count:", dailyCount);
-
-  // Reset count if new day
-  if (lastDeleteDate !== today) {
-    dailyCount = 0;
-  }
-
-  const MAX_DELETES_PER_DAY = 3;
-
-  if (dailyCount >= MAX_DELETES_PER_DAY) {
-    throw new Error("Daily delete limit reached");
-  }
-
-  console.log("✅ Remaining deletes:", MAX_DELETES_PER_DAY - dailyCount);
-
-  return {
-    dailyCount,
-    today
-  };
-}
-
-
-//Freelancer delete route 
-// -----------------------------
-// FREELANCER DELETE SERVICE ROUTE
-// -----------------------------
-// Helper: check and enforce delete limits for freelancers
-async function checkAndEnforceDeleteLimits(userId) {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Fetch user delete info
-    const [userRows] = await db.query(
-      "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
-      [userId]
-    );
-
-    if (!userRows || userRows.length === 0) {
-      console.log("⚠️ User not found for delete limit check");
-      throw new Error("User not found");
-    }
-
-    const user = userRows[0];
-    const lastDeleteDate = user.last_delete_date ? user.last_delete_date.toISOString().split('T')[0] : null;
-    let dailyCount = user.daily_delete_count || 0;
-
-    console.log("📊 Getting delete limits for user:", userId);
-    console.log("👤 Extracted user data:", user);
-    console.log("📅 Last delete date:", lastDeleteDate);
-    console.log("🔢 Daily count:", dailyCount);
-
-    // Reset count if last delete date is not today
-    if (lastDeleteDate !== today) {
-      dailyCount = 0;
-    }
-
-    const remainingDeletes = 3 - dailyCount;
-    console.log("✅ Remaining deletes:", remainingDeletes);
-
-    if (remainingDeletes <= 0) {
-      throw new Error("You have reached the maximum of 3 deletes for today");
-    }
-
-    // Increment the delete count and update last_delete_date
-    await db.query(
-      "UPDATE users SET daily_delete_count = ?, last_delete_date = ? WHERE id = ?",
-      [dailyCount + 1, today, userId]
-    );
-
-    return remainingDeletes - 1;
-
-  } catch (err) {
-    console.error("❌ Delete limit error:", err.message);
-    throw err;
-  }
-}
-
-// Freelancer delete endpoint
 app.delete("/api/services/:id", async (req, res) => {
   try {
     const serviceId = Number(req.params.id);
     const { reason } = req.body;
     const userId = req.session.user?.id;
 
-    console.log("🚨 DELETE REQUEST RECEIVED =========================");
-    console.log("📋 Request details:", { serviceId, userId, reason });
-
-    // 1️⃣ Auth check
     if (!userId) {
       return res.status(401).json({ error: "Not authenticated. Please log in." });
     }
@@ -3219,14 +2579,12 @@ app.delete("/api/services/:id", async (req, res) => {
       return res.status(400).json({ error: "Detailed reason required (min 10 chars)." });
     }
 
-    // 2️⃣ Check delete limits
     try {
       await checkAndEnforceDeleteLimits(userId);
     } catch (limitErr) {
       return res.status(403).json({ error: limitErr.message });
     }
 
-    // 3️⃣ Fetch service
     const queryResult = await db.query(
       "SELECT id, title, user_id FROM services WHERE id = ? AND user_id = ?",
       [serviceId, userId]
@@ -3239,12 +2597,8 @@ app.delete("/api/services/:id", async (req, res) => {
       return res.status(404).json({ error: "Service not found or not owned by you." });
     }
 
-    // 4️⃣ Delete service
     await db.query("DELETE FROM services WHERE id = ?", [serviceId]);
 
-    console.log(`🗑️ Service deleted successfully: ${service.title} (${service.id})`);
-
-    // 5️⃣ Log deletion in deleted_services table
     await db.query(
       "INSERT INTO deleted_services (service_id, service_owner_id, deleted_by, deleted_by_role, reason) VALUES (?, ?, ?, ?, ?)",
       [service.id, userId, userId, 'user', reason]
@@ -3261,15 +2615,10 @@ app.delete("/api/services/:id", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ UNEXPECTED ERROR:", err);
     res.status(500).json({ error: "Internal server error: " + err.message });
   }
 });
 
-
-// ====== REVIEW SYSTEM ROUTES ======
-
-// Submit a review
 app.post("/api/reviews", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to submit a review." });
@@ -3286,7 +2635,6 @@ app.post("/api/reviews", async (req, res) => {
       return res.status(400).json({ error: "Rating must be between 1 and 5." });
     }
 
-    // Check if user already reviewed this product
     const existingReview = await db.query(
       "SELECT id FROM reviews WHERE user_id = ? AND product_id = ?",
       [req.session.user.id, productId]
@@ -3296,13 +2644,11 @@ app.post("/api/reviews", async (req, res) => {
       return res.status(400).json({ error: "You have already reviewed this product." });
     }
 
-    // Insert review
     await db.query(
       "INSERT INTO reviews (user_id, product_id, rating, comment) VALUES (?, ?, ?, ?)",
       [req.session.user.id, productId, rating, comment]
     );
 
-    // Update product rating and review count
     const ratingResult = await db.query(
       `SELECT AVG(rating) as avg_rating, COUNT(*) as review_count 
        FROM reviews WHERE product_id = ?`,
@@ -3317,7 +2663,6 @@ app.post("/api/reviews", async (req, res) => {
       [avgRating, reviewCount, productId]
     );
 
-    console.log("✅ Review submitted for product:", productId);
     res.json({ 
       success: true, 
       message: "Review submitted successfully",
@@ -3326,12 +2671,10 @@ app.post("/api/reviews", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Review submission error:", err);
     res.status(500).json({ error: "Error submitting review: " + err.message });
   }
 });
 
-// Get reviews for a product
 app.get("/api/reviews/:productId", async (req, res) => {
   try {
     const { productId } = req.params;
@@ -3352,12 +2695,10 @@ app.get("/api/reviews/:productId", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Get reviews error:", err);
     res.status(500).json({ error: "Error loading reviews: " + err.message });
   }
 });
 
-// ====== PAYSTACK PAYMENT ROUTE ======
 app.post("/api/paystack/pay", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to buy products." });
@@ -3370,9 +2711,6 @@ app.post("/api/paystack/pay", async (req, res) => {
       return res.status(400).json({ error: "Product ID is required." });
     }
 
-    /* =========================
-       1️⃣ FETCH PRODUCT
-    ========================= */
     const [productRows] = await db.query(
       "SELECT * FROM products WHERE id = ?",
       [productId]
@@ -3388,9 +2726,6 @@ app.post("/api/paystack/pay", async (req, res) => {
       return res.status(400).json({ error: "Invalid product price." });
     }
 
-    /* =========================
-       2️⃣ AFFILIATE PRODUCT
-    ========================= */
     if (product.type === "affiliate" && product.affiliate_link) {
       return res.json({
         type: "affiliate",
@@ -3398,54 +2733,41 @@ app.post("/api/paystack/pay", async (req, res) => {
       });
     }
 
-    /* =========================
-       3️⃣ GET SELLER PAYSTACK SUBACCOUNT
-    ========================= */
-  // Get seller subaccount
-const [sellerRows] = await db.query(
-  "SELECT paystack_subaccount_code FROM sellers WHERE user_id = ?",
-  [product.user_id]
-);
+    const [sellerRows] = await db.query(
+      "SELECT paystack_subaccount_code FROM sellers WHERE user_id = ?",
+      [product.user_id]
+    );
 
-if (!sellerRows.length) {
-  return res.status(400).json({ error: "Seller payment account not set up" });
-}
+    if (!sellerRows.length) {
+      return res.status(400).json({ error: "Seller payment account not set up" });
+    }
 
-const sellerSubaccount = sellerRows[0].paystack_subaccount_code;
+    const sellerSubaccount = sellerRows[0].paystack_subaccount_code;
 
-const amountInKobo = Math.round(product.price * 100);
-const reference = `product-${product.id}-${Date.now()}`;
+    const amountInKobo = Math.round(product.price * 100);
+    const reference = `product-${product.id}-${Date.now()}`;
 
-const payload = {
-  email: req.session.user.email,
-  amount: amountInKobo,
-  currency: "NGN",
-  reference,
-  subaccount: sellerSubaccount,
-  transaction_charge: Math.round(amountInKobo * 0.10), // 10% platform fee
-  callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
-  metadata: {
-    product_id: product.id,
-    seller_id: product.user_id,
-    buyer_id: req.session.user.id,
-    type: "digital"
-  }
-};
+    const payload = {
+      email: req.session.user.email,
+      amount: amountInKobo,
+      currency: "NGN",
+      reference,
+      subaccount: sellerSubaccount,
+      transaction_charge: Math.round(amountInKobo * 0.10),
+      callback_url: "https://core-insight-7.onrender.com/order-success.html",
+      metadata: {
+        product_id: product.id,
+        seller_id: product.user_id,
+        buyer_id: req.session.user.id,
+        type: "digital"
+      }
+    };
 
-
-    /* =========================
-       4️⃣ PAYSTACK PAYMENT
-    ========================= */
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return res.status(500).json({
         error: "Paystack not configured"
       });
     }
-
-   
-    
-   
-    console.log("💰 Paystack payload:", payload);
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
@@ -3459,9 +2781,6 @@ const payload = {
     );
 
     if (response.data.status && response.data.data && response.data.data.authorization_url) {
-      /* =========================
-         5️⃣ SAVE PENDING ORDER
-      ========================= */
       await db.query(
         `INSERT INTO orders 
          (user_id, product_id, tx_ref, amount, status, provider)
@@ -3476,9 +2795,6 @@ const payload = {
         ]
       );
 
-      /* =========================
-         6️⃣ RETURN PAYMENT LINK
-      ========================= */
       res.json({
         type: "payment",
         provider: "paystack",
@@ -3491,101 +2807,57 @@ const payload = {
     }
 
   } catch (err) {
-    console.error("❌ Paystack payment error:", err);
     res.status(500).json({
       error: "Payment initialization failed: " + (err.message || "Unknown error")
     });
   }
 });
-app.post("/api/webhook/paystack", async (req, res) => {
+
+app.post("/api/webhooks/paystack", express.json({ type: "*/*" }), async (req, res) => {
   try {
     const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_WEBHOOK_SECRET)
+      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest("hex");
 
     if (hash !== req.headers["x-paystack-signature"]) {
-      console.warn("❌ Invalid Paystack webhook signature");
       return res.sendStatus(401);
     }
 
     const event = req.body;
 
-    console.log("📩 Paystack Webhook:", event.event);
+    if (event.event === "charge.success") {
+      const data = event.data;
 
-    if (event.event !== "charge.success") {
-      return res.sendStatus(200);
-    }
+      const reference = data.reference;
+      const amountPaid = data.amount / 100;
+      const metadata = data.metadata;
 
-    const data = event.data;
-    const reference = data.reference;
-    const amount = data.amount / 100; // Kobo → Naira
+      const { product_id, buyer_id, seller_id, type } = metadata;
 
-    /* =========================
-       1️⃣ FIND ORDER
-    ========================= */
-    const [orders] = await db.query(
-      "SELECT * FROM orders WHERE tx_ref = ?",
-      [reference]
-    );
-
-    if (orders.length === 0) {
-      console.warn("⚠️ Order not found:", reference);
-      return res.sendStatus(200);
-    }
-
-    const order = orders[0];
-
-    if (order.status === "completed") {
-      console.log("🔁 Order already completed:", reference);
-      return res.sendStatus(200);
-    }
-
-    /* =========================
-       2️⃣ VERIFY AMOUNT
-    ========================= */
-    if (Number(order.amount) !== Number(amount)) {
-      console.error("❌ Amount mismatch:", {
-        expected: order.amount,
-        received: amount
-      });
-      return res.sendStatus(200);
-    }
-
-    /* =========================
-       3️⃣ COMPLETE ORDER
-    ========================= */
-    await db.query(
-      "UPDATE orders SET status='completed' WHERE id=?",
-      [order.id]
-    );
-
-    /* =========================
-       4️⃣ GRANT DIGITAL ACCESS
-    ========================= */
-    const [access] = await db.query(
-      "SELECT id FROM user_products WHERE user_id=? AND product_id=?",
-      [order.user_id, order.product_id]
-    );
-
-    if (access.length === 0) {
       await db.query(
-        `INSERT INTO user_products (user_id, product_id, granted_at)
-         VALUES (?, ?, NOW())`,
-        [order.user_id, order.product_id]
+        `UPDATE orders 
+         SET status = 'completed' 
+         WHERE tx_ref = ?`,
+        [reference]
       );
-    }
 
-    console.log("✅ Paystack payment processed:", reference);
+      if (type === "digital") {
+        await db.query(
+          `INSERT INTO user_products (user_id, product_id, status)
+           VALUES (?, ?, 'paid')
+           ON DUPLICATE KEY UPDATE status='paid'`,
+          [buyer_id, product_id]
+        );
+      }
+    }
 
     res.sendStatus(200);
-
   } catch (err) {
-    console.error("❌ Paystack webhook error:", err);
     res.sendStatus(500);
   }
 });
-// ====== BUY PRODUCT (FLUTTERWAVE) - UPDATED TO SUPPORT BOTH ======
+
 app.post("/api/buy-product", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to buy products." });
@@ -3598,9 +2870,6 @@ app.post("/api/buy-product", async (req, res) => {
       return res.status(400).json({ error: "Product ID is required." });
     }
 
-    /* =========================
-       1️⃣ FETCH PRODUCT
-    ========================= */
     const [productRows] = await db.query(
       "SELECT * FROM products WHERE id = ?",
       [productId]
@@ -3616,9 +2885,6 @@ app.post("/api/buy-product", async (req, res) => {
       return res.status(400).json({ error: "Invalid product price." });
     }
 
-    /* =========================
-       2️⃣ AFFILIATE PRODUCT
-    ========================= */
     if (product.type === "affiliate" && product.affiliate_link) {
       return res.json({
         type: "affiliate",
@@ -3626,57 +2892,51 @@ app.post("/api/buy-product", async (req, res) => {
       });
     }
 
-  // Get seller subaccount
-const [sellerRows] = await db.query(
-  "SELECT subaccount_id FROM sellers WHERE user_id = ? AND provider = 'flutterwave'",
-  [product.user_id]
-);
+    const [sellerRows] = await db.query(
+      "SELECT subaccount_id FROM sellers WHERE user_id = ? AND provider = 'flutterwave'",
+      [product.user_id]
+    );
 
-if (!sellerRows.length) {
-  return res.status(400).json({ error: "Seller has not set up payment account" });
-}
-
-const sellerSubaccountId = sellerRows[0].subaccount_id;
-
-const payload = {
-  tx_ref: `product-${product.id}-${Date.now()}`,
-  amount: product.price,
-  currency: "USD",
-  redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
-  customer: {
-    email: req.session.user.email,
-    name: req.session.user.username
-  },
-  subaccounts: [
-    {
-      id: sellerSubaccountId,
-      transaction_split_ratio: 90
+    if (!sellerRows.length) {
+      return res.status(400).json({ error: "Seller has not set up payment account" });
     }
-  ],
-  customizations: {
-    title: "Core Insight Marketplace",
-    description: `Payment for ${product.title}`
-  },
-  meta: {
-    product_id: product.id,
-    seller_id: product.user_id,
-    buyer_id: req.session.user.id,
-    type: "digital"
-  }
-};
 
+    const sellerSubaccountId = sellerRows[0].subaccount_id;
 
-    /* =========================
-       4️⃣ FLUTTERWAVE PAYMENT
-    ========================= */
+    const txRef = `product-${product.id}-${Date.now()}`;
+
+    const payload = {
+      tx_ref: txRef,
+      amount: product.price,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/order-success.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username
+      },
+      subaccounts: [
+        {
+          id: sellerSubaccountId,
+          transaction_split_ratio: 90
+        }
+      ],
+      customizations: {
+        title: "Core Insight Marketplace",
+        description: `Payment for ${product.title}`
+      },
+      meta: {
+        product_id: product.id,
+        seller_id: product.user_id,
+        buyer_id: req.session.user.id,
+        type: "digital"
+      }
+    };
+
     if (!process.env.FLW_SECRET_KEY) {
       return res.status(500).json({
         error: "Flutterwave not configured"
       });
     }
-
-   
-
 
     const response = await axios.post(
       "https://api.flutterwave.com/v3/payments",
@@ -3696,9 +2956,6 @@ const payload = {
       throw new Error("Flutterwave payment initialization failed");
     }
 
-    /* =========================
-       5️⃣ SAVE PENDING ORDER
-    ========================= */
     await db.query(
       `INSERT INTO orders 
        (user_id, product_id, tx_ref, amount, status, provider)
@@ -3713,9 +2970,6 @@ const payload = {
       ]
     );
 
-    /* =========================
-       6️⃣ RETURN PAYMENT LINK
-    ========================= */
     res.json({
       type: "payment",
       provider: "flutterwave",
@@ -3723,7 +2977,6 @@ const payload = {
     });
 
   } catch (err) {
-    console.error("❌ Buy product error:", err);
     res.status(500).json({
       error: "Payment initialization failed"
     });
@@ -3735,17 +2988,12 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
     const secretHash = process.env.FLW_WEBHOOK_SECRET;
     const signature = req.headers["verif-hash"];
 
-    // 🔐 Verify webhook signature
     if (!signature || signature !== secretHash) {
-      console.warn("❌ Invalid Flutterwave webhook signature");
       return res.status(401).send("Unauthorized");
     }
 
     const payload = req.body;
 
-    console.log("📩 Flutterwave Webhook Received:", payload);
-
-    // Only handle successful payments
     if (
       payload.event !== "charge.completed" ||
       payload.data.status !== "successful"
@@ -3755,51 +3003,31 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
 
     const txRef = payload.data.tx_ref;
     const paidAmount = payload.data.amount;
-    const currency = payload.data.currency;
 
-    /* =========================
-       1️⃣ FIND ORDER
-    ========================= */
     const [orderRows] = await db.query(
       "SELECT * FROM orders WHERE tx_ref = ?",
       [txRef]
     );
 
     if (orderRows.length === 0) {
-      console.warn("⚠️ Order not found:", txRef);
       return res.sendStatus(200);
     }
 
     const order = orderRows[0];
 
-    // Prevent double processing
     if (order.status === "completed") {
-      console.log("🔁 Order already completed:", txRef);
       return res.sendStatus(200);
     }
 
-    /* =========================
-       2️⃣ VERIFY AMOUNT
-    ========================= */
     if (Number(order.amount) !== Number(paidAmount)) {
-      console.error("❌ Amount mismatch", {
-        expected: order.amount,
-        received: paidAmount
-      });
       return res.sendStatus(200);
     }
 
-    /* =========================
-       3️⃣ MARK ORDER COMPLETED
-    ========================= */
     await db.query(
       "UPDATE orders SET status = 'completed' WHERE id = ?",
       [order.id]
     );
 
-    /* =========================
-       4️⃣ GRANT PRODUCT ACCESS
-    ========================= */
     const [existingAccess] = await db.query(
       "SELECT id FROM user_products WHERE user_id = ? AND product_id = ?",
       [order.user_id, order.product_id]
@@ -3813,44 +3041,81 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
       );
     }
 
-    console.log("✅ Payment processed successfully:", txRef);
-
     res.sendStatus(200);
 
   } catch (err) {
-    console.error("❌ Webhook error:", err);
     res.sendStatus(500);
   }
 });
 
-// ✅ FUNCTION TO GET LIVE EXCHANGE RATE (MOVE THIS OUTSIDE THE ROUTE)
-async function getLiveExchangeRate() {
-  const axios = require('axios');
+app.get("/api/verify/flutterwave/:tx_ref", async (req, res) => {
   try {
-    const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
-    const rate = response.data.rates.NGN;
-    console.log(`🌍 Live exchange rate fetched: 1 USD = ${rate} NGN`);
-    return rate;
-  } catch (error) {
-    console.error('❌ Failed to get live exchange rate, using fallback:', error.message);
-    return 1500; // Fallback rate
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${req.params.tx_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`
+        }
+      }
+    );
+
+    if (response.data.status === "success" &&
+        response.data.data.status === "successful") {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false });
   }
-}
-// Product payment callback handler
+});
+
+app.get("/api/download-product/:id", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).send("Login required");
+  }
+
+  const [access] = await db.query(
+    `SELECT p.file_path
+     FROM products p
+     JOIN user_products up ON up.product_id = p.id
+     WHERE up.user_id = ? AND p.id = ? AND up.status = 'paid'`,
+    [req.session.user.id, req.params.id]
+  );
+
+  if (!access.length) {
+    return res.status(403).send("No access");
+  }
+
+  res.download(access[0].file_path);
+});
+
+app.get("/api/check-product-access/:productId", async (req, res) => {
+  if (!req.session.user) {
+    return res.json({ hasAccess: false });
+  }
+
+  const { productId } = req.params;
+
+  const [rows] = await db.query(
+    `SELECT * FROM user_products 
+     WHERE user_id = ? AND product_id = ? AND status = 'paid'`,
+    [req.session.user.id, productId]
+  );
+
+  res.json({ hasAccess: rows.length > 0 });
+});
+
 app.get("/product-payment-callback", async (req, res) => {
   try {
     const { transaction_id, status, tx_ref } = req.query;
     
-    console.log("🔄 Product payment callback:", { transaction_id, status, tx_ref });
-    
     if (status === 'successful') {
-      // Verify the transaction
       const verification = await flw.Transaction.verify({ id: transaction_id });
       
       if (verification.data.status === "successful") {
         const meta = verification.data.meta;
         
-        // Record the sale in your database
         await db.query(
           `INSERT INTO product_sales (product_id, seller_id, buyer_id, amount, transaction_id, status) 
            VALUES (?, ?, ?, ?, ?, 'completed')`,
@@ -3863,24 +3128,17 @@ app.get("/product-payment-callback", async (req, res) => {
           ]
         );
         
-        console.log("✅ Product sale recorded successfully");
         return res.redirect('/payment-success.html');
       }
     }
     
-    // If payment failed
     res.redirect('/payment-failed.html');
     
   } catch (err) {
-    console.error("❌ Product payment callback error:", err);
     res.redirect('/payment-failed.html');
   }
 });
 
-// ✅ this must be OUTSIDE, not inside the route
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// ====== FAVORITE TOGGLE ======
 app.post("/api/favorites", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to favorite products." });
@@ -3892,26 +3150,22 @@ app.post("/api/favorites", async (req, res) => {
       return res.status(400).json({ error: "Product ID is required." });
     }
 
-    // Query favorites
     const result = await db.query(
       "SELECT * FROM favorites WHERE user_id = ? AND product_id = ?",
       [req.session.user.id, productId]
     );
 
-    // Handle MariaDB response format
     const existing = Array.isArray(result)
       ? (Array.isArray(result[0]) ? result[0] : result)
       : [];
 
     if (existing.length > 0) {
-      // Remove from favorites
       await db.query(
         "DELETE FROM favorites WHERE user_id = ? AND product_id = ?",
         [req.session.user.id, productId]
       );
       return res.json({ success: true, action: "removed" });
     } else {
-      // Add to favorites
       await db.query(
         "INSERT INTO favorites (user_id, product_id) VALUES (?, ?)",
         [req.session.user.id, productId]
@@ -3919,11 +3173,10 @@ app.post("/api/favorites", async (req, res) => {
       return res.json({ success: true, action: "added" });
     }
   } catch (err) {
-    console.error("❌ Favorites error:", err);
     res.status(500).json({ error: "Error updating favorites." });
   }
 });
-// ====== GET USER FAVORITES ======
+
 app.get("/api/favorites", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to view favorites." });
@@ -3935,7 +3188,6 @@ app.get("/api/favorites", async (req, res) => {
       [req.session.user.id]
     );
 
-    // Handle different MariaDB response formats
     let favorites;
     if (Array.isArray(result) && result.length > 0) {
       if (Array.isArray(result[0])) {
@@ -3947,15 +3199,12 @@ app.get("/api/favorites", async (req, res) => {
       favorites = [];
     }
 
-    console.log(`⭐ Loaded ${favorites.length} favorites for user ${req.session.user.id}`);
     res.json({ favorites });
   } catch (err) {
-    console.error("❌ Get favorites error:", err);
     res.status(500).json({ error: "Error loading favorites." });
   }
-}); 
+});
 
-// Payment callback handler
 app.get("/api/payment-callback", async (req, res) => {
   try {
     const { transaction_id, status } = req.query;
@@ -3966,13 +3215,10 @@ app.get("/api/payment-callback", async (req, res) => {
     
     res.redirect('/payment-failed.html');
   } catch (err) {
-    console.error("❌ Payment callback error:", err);
     res.redirect('/payment-failed.html');
   }
 });
-// ========================= MESSAGING ROUTES (FIXED & CLEAN) =========================
 
-// 1️⃣ UNREAD MESSAGE COUNT
 app.get("/api/messages/unread-count", async (req, res) => {
   try {
     if (!req.session.user) return res.json({ count: 0 });
@@ -3991,13 +3237,10 @@ app.get("/api/messages/unread-count", async (req, res) => {
     res.json({ count: rows.length ? rows[0].unread_count : 0 });
 
   } catch (err) {
-    console.error("❌ Unread count error:", err);
     res.json({ count: 0 });
   }
 });
 
-
-// 2️⃣ GET CONVERSATIONS
 app.get("/api/messages/conversations", async (req, res) => {
   try {
     if (!req.session.user) return res.json([]);
@@ -4025,21 +3268,46 @@ app.get("/api/messages/conversations", async (req, res) => {
     res.json(conversations);
 
   } catch (err) {
-    console.error("❌ Conversations error:", err);
     res.json([]);
   }
 });
 
+app.get("/api/conversation-info/:conversationId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Login required" });
+    }
 
-// 3️⃣ START CONVERSATION
-// ====== START CONVERSATION - COMPLETE VERSION ======
-// ====== FIXED START CONVERSATION ROUTE ======
-// ====== UPDATED START CONVERSATION - FIXED VERSION ======
-// ====== START CONVERSATION WITH TIMESTAMP ======
+    const conversationId = req.params.conversationId;
+    
+    const [conversationRows] = await db.query(
+      `SELECT c.*, 
+              CASE 
+                WHEN c.client_id = ? THEN c.freelancer_id
+                ELSE c.client_id
+              END as other_user_id
+       FROM conversations c
+       WHERE c.id = ?`,
+      [req.session.user.id, conversationId]
+    );
+
+    if (!conversationRows || conversationRows.length === 0) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    res.json({
+      conversation: conversationRows[0],
+      currentUserId: req.session.user.id,
+      other_user_id: conversationRows[0].other_user_id
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.post("/api/messages/start", async (req, res) => {
   try {
-    console.log("💬 [START] Starting conversation request:", req.body);
-    
     if (!req.session.user) {
       return res.status(401).json({ 
         success: false,
@@ -4047,7 +3315,6 @@ app.post("/api/messages/start", async (req, res) => {
       });
     }
     
-    // ✅ ADD TIMESTAMP TO DESTRUCTURING
     const { serviceId, freelancerId, timestamp } = req.body;
     const clientId = req.session.user.id;
     
@@ -4058,10 +3325,6 @@ app.post("/api/messages/start", async (req, res) => {
       });
     }
     
-    console.log("👥 Participants:", { clientId, freelancerId });
-    console.log("⏰ Timestamp received:", timestamp || "No timestamp"); // ✅ ADD THIS
-    
-    // Check if user is messaging themselves
     if (parseInt(clientId) === parseInt(freelancerId)) {
       return res.status(400).json({ 
         success: false,
@@ -4069,13 +3332,11 @@ app.post("/api/messages/start", async (req, res) => {
       });
     }
     
-    // Get service info to verify
     const serviceQuery = await db.query(
       "SELECT user_id as freelancerId FROM services WHERE id = ?",
       [serviceId]
     );
     
-    // Handle MariaDB response format
     let serviceRows = [];
     if (Array.isArray(serviceQuery)) {
       serviceRows = Array.isArray(serviceQuery[0]) ? serviceQuery[0] : serviceQuery;
@@ -4090,17 +3351,8 @@ app.post("/api/messages/start", async (req, res) => {
     
     const actualFreelancerId = serviceRows[0].freelancerId;
     
-    // Verify the freelancer ID matches
-    if (parseInt(actualFreelancerId) !== parseInt(freelancerId)) {
-      console.warn("⚠️ Freelancer ID mismatch:", { 
-        requested: freelancerId, 
-        actual: actualFreelancerId 
-      });
-      // Continue anyway, but log the warning
-    }
+    if (parseInt(actualFreelancerId) !== parseInt(freelancerId)) {}
     
-    // ✅ MODIFIED: Check for conversation with timestamp consideration
-    // Look for conversation where current user is one of the participants
     const existingQuery = await db.query(
       `SELECT id FROM conversations 
        WHERE service_id = ? 
@@ -4111,7 +3363,6 @@ app.post("/api/messages/start", async (req, res) => {
       [serviceId, clientId, freelancerId, freelancerId, clientId]
     );
     
-    // Handle MariaDB response format
     let existingConv = [];
     if (Array.isArray(existingQuery)) {
       existingConv = Array.isArray(existingQuery[0]) ? existingQuery[0] : existingQuery;
@@ -4121,12 +3372,9 @@ app.post("/api/messages/start", async (req, res) => {
     let alreadyExists = false;
     
     if (existingConv.length > 0) {
-      // Use existing conversation ONLY if current user is part of it
       conversationId = existingConv[0].id;
       alreadyExists = true;
-      console.log("✅ [START] Using existing conversation:", conversationId);
     } else {
-      // Create new conversation
       const insertQuery = await db.query(
         `INSERT INTO conversations 
          (service_id, client_id, freelancer_id, created_at)
@@ -4134,7 +3382,6 @@ app.post("/api/messages/start", async (req, res) => {
         [serviceId, clientId, freelancerId]
       );
       
-      // Get the insert ID
       if (insertQuery && insertQuery.insertId) {
         conversationId = insertQuery.insertId;
       } else if (Array.isArray(insertQuery) && insertQuery[0] && insertQuery[0].insertId) {
@@ -4142,9 +3389,6 @@ app.post("/api/messages/start", async (req, res) => {
       } else {
         throw new Error("Could not get conversation ID");
       }
-      
-      console.log("🆕 [START] Created new conversation:", conversationId);
-      console.log("⏰ Associated timestamp:", timestamp); // ✅ ADD THIS
     }
     
     res.json({
@@ -4153,101 +3397,65 @@ app.post("/api/messages/start", async (req, res) => {
       alreadyExists: alreadyExists,
       clientId: clientId,
       freelancerId: freelancerId,
-      timestamp: timestamp, // ✅ ADD THIS TO RESPONSE
+      timestamp: timestamp,
       message: alreadyExists ? "Using existing conversation" : "Created new conversation"
     });
     
   } catch (err) {
-    console.error("❌ [START] Start conversation error:", err);
     res.status(500).json({ 
       success: false,
       error: "Server error: " + err.message 
     });
   }
 });
-// 4️⃣ SEND MESSAGE
-// In your index.js, look for the messages/send route:
-// ====== FIXED SEND MESSAGE ENDPOINT ======
+
 app.post("/api/messages/send", async (req, res) => {
   try {
-    console.log("📨 [SEND] Sending message request:", req.body);
-    
     if (!req.session.user) {
-      console.log("❌ [SEND] No user session");
       return res.status(401).json({ error: "Login required" });
     }
 
     const { conversation_id, message } = req.body;
     const senderId = req.session.user.id;
 
-    console.log("👤 [SEND] Sender:", senderId, "Conversation:", conversation_id);
-
     if (!conversation_id || !message?.trim()) {
-      console.log("❌ [SEND] Missing data");
       return res.status(400).json({ error: "Missing data" });
     }
 
-    // ✅ FIXED: Access check with proper MariaDB handling
-    const convResult = await db.query(
-      `SELECT id, client_id, freelancer_id FROM conversations
-       WHERE id = ?`,
-      [conversation_id]
+    const [conversation] = await db.query(
+      `SELECT c.* FROM conversations c
+       WHERE c.id = ? AND (c.client_id = ? OR c.freelancer_id = ?)`,
+      [conversation_id, senderId, senderId]
     );
 
-    // Handle MariaDB response format
-    let conversation = null;
-    if (Array.isArray(convResult)) {
-      if (convResult.length > 0 && Array.isArray(convResult[0])) {
-        conversation = convResult[0][0];
-      } else if (convResult.length > 0) {
-        conversation = convResult[0];
-      }
+    if (!conversation || conversation.length === 0) {
+      return res.status(403).json({ error: "Access denied to conversation" });
     }
 
-    if (!conversation) {
-      console.log("❌ [SEND] Conversation not found:", conversation_id);
-      return res.status(404).json({ error: "Conversation not found" });
-    }
-
-    console.log("📊 [SEND] Conversation found:", {
-      id: conversation.id,
-      client_id: conversation.client_id,
-      freelancer_id: conversation.freelancer_id
-    });
-
-    // Check if current user is part of the conversation
-    const isClient = parseInt(conversation.client_id) === parseInt(senderId);
-    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(senderId);
-    
-    if (!isClient && !isFreelancer) {
-      console.log("❌ [SEND] Access denied. User", senderId, "not in conversation");
-      console.log("Expected client:", conversation.client_id, "or freelancer:", conversation.freelancer_id);
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    console.log("✅ [SEND] User authorized. Inserting message...");
-
-    // Insert the message
-    const insertResult = await db.query(
-      `INSERT INTO messages (conversation_id, sender_id, message, created_at)
-       VALUES (?, ?, ?, NOW())`,
+    const result = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read)
+       VALUES (?, ?, ?, NOW(), 0)`,
       [conversation_id, senderId, message.trim()]
     );
 
-    console.log("✅ [SEND] Message inserted successfully");
+    const [newMessage] = await db.query(`
+      SELECT m.*, u.username as sender_name
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.id = ?
+    `, [result.insertId]);
 
     res.json({ 
       success: true,
-      message: "Message sent successfully"
+      message: "Message sent successfully",
+      data: newMessage[0]
     });
 
   } catch (err) {
-    console.error("❌ [SEND] Send message error:", err);
     res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
-// 5️⃣ MARK MESSAGES AS READ
 app.post("/api/messages/mark-read", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -4268,20 +3476,13 @@ app.post("/api/messages/mark-read", async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-    console.error("❌ Mark read error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-// 6️⃣ GET MESSAGES (MUST BE LAST)
-// ====== FIXED GET MESSAGES ROUTE ======
 app.get("/api/messages/:conversationId", async (req, res) => {
   try {
-    console.log("📨 GET messages for conversation:", req.params.conversationId);
-    
     if (!req.session.user) {
-      console.log("❌ No user session");
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -4292,16 +3493,12 @@ app.get("/api/messages/:conversationId", async (req, res) => {
       return res.status(400).json({ error: "Invalid conversation ID" });
     }
 
-    console.log("👤 User checking messages:", userId, "for conversation:", conversationId);
-
-    // Check if user has access to this conversation
     const convResult = await db.query(
       `SELECT id, client_id, freelancer_id FROM conversations
        WHERE id = ?`,
       [conversationId]
     );
 
-    // Handle MariaDB response format
     let conversation = null;
     if (Array.isArray(convResult)) {
       if (convResult.length > 0 && Array.isArray(convResult[0])) {
@@ -4312,28 +3509,16 @@ app.get("/api/messages/:conversationId", async (req, res) => {
     }
 
     if (!conversation) {
-      console.log("❌ Conversation not found:", conversationId);
       return res.status(404).json({ error: "Conversation not found" });
     }
 
-    console.log("📊 Conversation found:", {
-      id: conversation.id,
-      client_id: conversation.client_id,
-      freelancer_id: conversation.freelancer_id,
-      current_user: userId
-    });
-
-    // Check if current user is part of the conversation
     const isClient = parseInt(conversation.client_id) === parseInt(userId);
     const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(userId);
     
     if (!isClient && !isFreelancer) {
-      console.log("❌ User", userId, "is not part of conversation", conversationId);
-      console.log("Expected client:", conversation.client_id, "or freelancer:", conversation.freelancer_id);
       return res.status(403).json({ error: "Access denied" });
     }
 
-    // Get messages
     const messagesResult = await db.query(`
       SELECT m.*, u.username AS sender_name
       FROM messages m
@@ -4342,7 +3527,6 @@ app.get("/api/messages/:conversationId", async (req, res) => {
       ORDER BY m.created_at ASC
     `, [conversationId]);
 
-    // Handle MariaDB response format
     let messages = [];
     if (Array.isArray(messagesResult)) {
       if (messagesResult.length > 0 && Array.isArray(messagesResult[0])) {
@@ -4352,21 +3536,14 @@ app.get("/api/messages/:conversationId", async (req, res) => {
       }
     }
 
-    console.log("✅ Returning", messages.length, "messages for conversation", conversationId);
     res.json(messages);
 
   } catch (err) {
-    console.error("❌ Get messages error:", err);
     res.status(500).json({ error: "Server error" });
   }
-});;
+});
 
-//delete route for products
 app.delete("/api/products/:id", async (req, res) => {
-  console.log("=== 🗑️ PRODUCTS DELETE DEBUG ===");
-  console.log("1. Request received for product ID:", req.params.id);
-  console.log("2. Session user:", req.session.user);
-
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login first" });
@@ -4375,9 +3552,6 @@ app.delete("/api/products/:id", async (req, res) => {
     const productId = req.params.id;
     const { id: userId, role: userRole } = req.session.user;
 
-    console.log("3. User ID:", userId, "Role:", userRole);
-
-    // Check product
     const products = await db.query(
       "SELECT user_id FROM products WHERE id = ?",
       [productId]
@@ -4388,27 +3562,19 @@ app.delete("/api/products/:id", async (req, res) => {
     }
 
     const productOwnerId = products[0].user_id;
-    console.log("6. Product owner ID:", productOwnerId);
 
-    // Authorization
     if (userRole !== "admin" && Number(productOwnerId) !== Number(userId)) {
       return res.status(403).json({ error: "Not allowed" });
     }
 
-    // 🔥 HARD DELETE
-    console.log("8. Executing HARD DELETE query...");
     const result = await db.query(
       "DELETE FROM products WHERE id = ?",
       [productId]
     );
 
-    console.log("9. Delete result:", result);
-
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Delete failed" });
     }
-
-    console.log("✅ Product HARD-DELETED");
 
     return res.json({
       success: true,
@@ -4417,7 +3583,6 @@ app.delete("/api/products/:id", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ DELETE ERROR:", err.message);
     return res.status(500).json({
       error: "Failed to delete product",
       details: err.message
@@ -4425,36 +3590,6 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 });
 
-// Add this endpoint to see actual data
-app.get("/api/debug/products/:id", async (req, res) => {
-  try {
-    const [product] = await db.pool.execute(
-      "SELECT id, user_id, name FROM products WHERE id = ?", 
-      [req.params.id]
-    );
-    
-    const [allProducts] = await db.pool.execute(
-      "SELECT id, user_id, name FROM products LIMIT 10"
-    );
-    
-    res.json({
-      requestedId: req.params.id,
-      product: product[0] || null,
-      sampleProducts: allProducts,
-      totalProducts: allProducts.length
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-app.get("/api/debug/session", (req, res) => {
-  res.json({
-    sessionId: req.sessionID,
-    user: req.session.user,
-    session: req.session
-  });
-});
-// Verify payment
 app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   try {
     const { transaction_id } = req.params;
@@ -4466,7 +3601,6 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
       const courseId = response.data.meta.course_id;
       const userId = response.data.meta.user_id;
       
-      // Store payment record in database
       await db.query(
         `INSERT INTO payments (transaction_id, transaction_ref, course_id, user_id, amount, status, flutterwave_response) 
          VALUES (?, ?, ?, ?, ?, 'completed', ?)`,
@@ -4480,7 +3614,6 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
         ]
       );
 
-      // Grant course access to user
       await db.query(
         `INSERT INTO user_courses (user_id, course_id, payment_status) 
          VALUES (?, ?, 'completed') 
@@ -4488,7 +3621,6 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
         [userId, courseId]
       );
 
-      console.log("✅ Payment verified and access granted for user:", userId);
       res.json({ 
         status: "success", 
         message: "Payment verified successfully",
@@ -4501,12 +3633,10 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("❌ Payment verification error:", err);
     res.status(500).json({ error: "Error verifying payment: " + err.message });
   }
 });
 
-// Get user's purchased courses
 app.get("/api/my-courses", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to view your courses" });
@@ -4533,11 +3663,10 @@ app.get("/api/my-courses", async (req, res) => {
 
     res.json(safeCourses);
   } catch (err) {
-    console.error("❌ My courses error:", err);
     res.status(500).json({ error: "Error fetching your courses" });
   }
 });
-// Verify product payment (for products section)
+
 app.get("/api/verify-product-payment/:transaction_id", async (req, res) => {
   try {
     const { transaction_id } = req.params;
@@ -4551,7 +3680,6 @@ app.get("/api/verify-product-payment/:transaction_id", async (req, res) => {
       const buyerId = response.data.meta.buyer_id;
       const amount = response.data.amount;
 
-      // Save sale record
       const saleResult = await db.query(
         `INSERT INTO product_sales (product_id, seller_id, buyer_id, amount, transaction_id) 
          VALUES (?, ?, ?, ?, ?)`,
@@ -4562,14 +3690,11 @@ app.get("/api/verify-product-payment/:transaction_id", async (req, res) => {
       const platformCut = amount * 0.10;
       const sellerEarning = amount - platformCut;
 
-      // Save commission details
       await db.query(
         `INSERT INTO platform_commissions (sale_id, seller_id, total_amount, seller_earning, platform_earning)
          VALUES (?, ?, ?, ?, ?)`,
         [saleId, sellerId, amount, sellerEarning, platformCut]
       );
-
-      console.log("✅ Product sale verified and recorded.");
 
       res.json({
         status: "success",
@@ -4584,11 +3709,10 @@ app.get("/api/verify-product-payment/:transaction_id", async (req, res) => {
       res.status(400).json({ status: "failed", message: "Payment not successful" });
     }
   } catch (err) {
-    console.error("❌ Product payment verification error:", err);
     res.status(500).json({ error: "Error verifying product payment: " + err.message });
   }
 });
-// ====== SELLER PAYMENT SETUP ======
+
 app.post("/api/seller/setup-payments", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in." });
@@ -4597,7 +3721,6 @@ app.post("/api/seller/setup-payments", async (req, res) => {
   try {
     const { provider, country, currency, payout_method } = req.body;
     
-    // Store seller's preferred payout method
     const [existing] = await db.query(
       `SELECT * FROM seller_profiles WHERE user_id = ?`,
       [req.session.user.id]
@@ -4625,205 +3748,7 @@ app.post("/api/seller/setup-payments", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Seller payment setup error:", err);
     res.status(500).json({ error: "Error setting up payments: " + err.message });
-  }
-});
-
-
-// ========================= FRONTEND ROUTES =========================
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-app.get("/signup", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "signup.html"));
-});
-
-app.get("/courses", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "courses.html"));
-});
-
-app.get("/payment-callback.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "payment-callback.html"));
-});
-
-app.get("/payment-verification.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "payment-verification.html"));
-});
-
-app.get("/payment-failed.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "payment-failed.html"));
-});
-
-app.get("/forgot-password.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "forgot-password.html"));
-});
-
-app.get("/reset-password.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "reset-password.html"));
-});
-
-// ========================= DIRECT API PAYMENT ROUTE =========================
-app.post("/api/initiate-payment", async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Please login to make payment" });
-  }
-
-  try {
-    const { courseId } = req.body;
-
-    // Verify course exists
-    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
-    const course = Array.isArray(courses) && courses.length > 0
-      ? courses[0]
-      : (courses[0] && courses[0][0]) || null;
-
-    if (!course) {
-      return res.status(404).json({ error: "Course not found" });
-    }
-
-    if (course.price <= 0) {
-      return res.status(400).json({ error: "This course is free. No payment required." });
-    }
-
-    const payload = {
-      tx_ref: "coreinsight_" + Date.now() + "_" + courseId,
-      amount: course.price,
-      currency: "NGN",
-      payment_options: "card, banktransfer, ussd",
-      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
-      customer: {
-        email: req.session.user.email || `${req.session.user.username}@example.com`,
-        name: req.session.user.username,
-      },
-      customizations: {
-        title: "Core Insight Courses",
-        description: `Payment for ${course.title}`,
-        logo: "https://your-logo-url.com/logo.png",
-      },
-      meta: {
-        course_id: courseId,
-        user_id: req.session.user.id,
-        course_title: course.title,
-      }
-    };
-
-    console.log("💰 Payment payload:", payload);
-
-    // ✅ DIRECT API CALL
-    const response = await axios.post(
-      'https://api.flutterwave.com/v3/payments',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    console.log("💰 Flutterwave response:", response.data);
-
-    if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      res.json({
-        paymentLink: response.data.data.link,
-        transactionRef: payload.tx_ref,
-        status: "success",
-      });
-    } else {
-      console.error("❌ Flutterwave API error:", response.data);
-      res.status(500).json({
-        error: "Payment initiation failed: " + (response.data.message || "Unknown error"),
-      });
-    }
-
-  } catch (err) {
-    console.error("❌ Payment initiation error:", err);
-    res.status(500).json({ error: "Error initiating payment: " + err.message });
-  }
-});
-
-app.delete('/api/courses/:id', async (req, res) => {
-  try {
-    const user = req.session.user;
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized - Please log in' });
-    }
-
-
-    const courseId = req.params.id;
-
-    // Get course details with consistent query handling
-    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
-    
-    let course = null;
-    if (Array.isArray(courses) && courses.length > 0) {
-      course = courses[0];
-    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
-      course = courses[0][0];
-    }
-
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found' });
-    }
-
-    console.log('🔍 Delete attempt:', {
-      user: { id: user.id, role: user.role },
-      course: { id: course.id, user_id: course.user_id, author_id: course.author_id }
-    });
-
-    // Check permissions - use user_id from courses table
-    const canDelete = user.role === 'admin' || user.id === course.user_id;
-    
-    if (!canDelete) {
-      return res.status(403).json({ 
-        error: 'Permission denied - You can only delete your own courses' 
-      });
-    }
-
-    // Delete file from filesystem
-    try {
-      if (course.file_path && fs.existsSync(course.file_path)) {
-        fs.unlinkSync(course.file_path);
-        console.log('✅ Deleted file:', course.file_path);
-      }
-    } catch (fileError) {
-      console.warn('⚠️ Could not delete file, continuing with database deletion:', fileError.message);
-    }
-
-    // Remove from database
-    await db.query('DELETE FROM courses WHERE id = ?', [courseId]);
-
-    console.log('✅ Course deleted successfully:', courseId);
-    res.json({ message: 'Course deleted successfully' });
-
-  } catch (error) {
-    console.error('❌ Error deleting course:', error);
-    res.status(500).json({ error: 'Internal server error: ' + error.message });
-  }
-});
-// sellers account
-app.post('/api/seller/payment-accounts', async (req, res) => {
-  try {
-    const userId = req.session.userId;
-    const { flutterwave, paystack } = req.body;
-
-    if (!userId) return res.status(401).json({ error: 'Not logged in' });
-
-    await db.query(
-      "UPDATE users SET flutterwave_account=?, paystack_account=? WHERE id=?",
-      [flutterwave, paystack, userId]
-    );
-
-    res.json({ success: true, message: "Accounts saved" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -4863,7 +3788,7 @@ app.post("/api/seller/paystack-subaccount", async (req, res) => {
         business_name,
         settlement_bank: bank_code,
         account_number,
-        percentage_charge // 10
+        percentage_charge
       },
       {
         headers: {
@@ -4888,10 +3813,10 @@ app.post("/api/seller/paystack-subaccount", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Paystack subaccount error:", err.response?.data || err);
     res.status(500).json({ error: "Failed to create Paystack subaccount" });
   }
 });
+
 app.post("/api/seller/flutterwave-subaccount", async (req, res) => {
   if (!req.session.user)
     return res.status(401).json({ error: "Login required" });
@@ -4912,7 +3837,7 @@ app.post("/api/seller/flutterwave-subaccount", async (req, res) => {
         account_number,
         bank_code,
         split_type: "percentage",
-        split_value: 10 // 🔥 PLATFORM COMMISSION
+        split_value: 10
       },
       {
         headers: {
@@ -4942,49 +3867,13 @@ app.post("/api/seller/flutterwave-subaccount", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Flutterwave subaccount error:", err.response?.data || err);
     res.status(500).json({ error: "Flutterwave subaccount creation failed" });
   }
 });
 
-    
-// Add this test route to your index.js
-app.get("/api/test-payment-config", async (req, res) => {
-  try {
-    console.log("🔑 Testing payment configuration...");
-    
-    const config = {
-      flutterwave: {
-        publicKey: !!process.env.FLW_PUBLIC_KEY,
-        secretKey: !!process.env.FLW_SECRET_KEY
-      },
-      paystack: {
-        publicKey: !!process.env.PAYSTACK_PUBLIC_KEY,
-        secretKey: !!process.env.PAYSTACK_SECRET_KEY
-      }
-    };
-
-    console.log("💰 Payment Config:", config);
-    
-    res.json({
-      status: "Payment configuration check",
-      config: config,
-      note: "Make sure both providers have their keys configured in .env file"
-    });
-    
-  } catch (err) {
-    console.error("❌ Payment config test error:", err);
-    res.status(500).json({ error: "Config test failed: " + err.message });
-  }
-});
-
-// ========================= PRODUCT DASHBOARD ROUTES =========================
-
-// Get products by seller ID
 app.get("/api/products/seller/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
-    
 
     const products = await db.query(
       "SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC",
@@ -4993,17 +3882,14 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
     
     res.json(Array.isArray(products) ? products : []);
   } catch (err) {
-    console.error("❌ Error fetching seller products:", err);
     res.status(500).json({ error: "Error fetching seller products" });
   }
 });
 
-// Get sales by seller ID (compatible with your orders table)
 app.get("/api/orders/seller/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
     
-    // Using your existing orders table structure
     const salesResult = await db.query(
       `SELECT o.*, p.title as product_name, p.price, 
               u1.username as buyer_name, u1.email as buyer_email,
@@ -5019,30 +3905,25 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
     
     res.json(Array.isArray(salesResult) ? salesResult : []);
   } catch (err) {
-    console.error("❌ Error fetching seller sales:", err);
     res.status(500).json({ error: "Error fetching seller sales" });
   }
 });
 
-// Get seller statistics (compatible with your system)
 app.get("/api/seller/stats/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
     
-    // Get product count
     const productsResult = await db.query(
       "SELECT COUNT(*) as product_count FROM products WHERE user_id = ?",
       [sellerId]
     );
     
-    // Get sales count and total revenue from your orders table
     const salesResult = await db.query(
       `SELECT COUNT(*) as sales_count, SUM(price) as total_revenue
        FROM orders WHERE seller_id = ?`,
       [sellerId]
     );
     
-    // Get average rating (if you have reviews table)
     const ratingResult = await db.query(
       `SELECT AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
        FROM reviews r
@@ -5061,17 +3942,12 @@ app.get("/api/seller/stats/:sellerId", async (req, res) => {
     
     res.json({ success: true, stats });
   } catch (err) {
-    console.error("❌ Error fetching seller stats:", err);
     res.status(500).json({ error: "Error fetching seller statistics" });
   }
 });
 
-// ========================= ADMIN DASHBOARD ROUTES =========================
-
-// Get all users (admin only) - Updated for your system
 app.get("/api/admin/users", async (req, res) => {
   try {
-    // Check admin authentication
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.status(403).json({ error: "Admin access required" });
     }
@@ -5087,12 +3963,10 @@ app.get("/api/admin/users", async (req, res) => {
     
     res.json(Array.isArray(usersResult) ? usersResult : []);
   } catch (err) {
-    console.error("❌ Error fetching users:", err);
     res.status(500).json({ error: "Error fetching users" });
   }
 });
 
-// Get user statistics (admin only)
 app.get("/api/admin/users/stats", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5132,12 +4006,10 @@ app.get("/api/admin/users/stats", async (req, res) => {
       summary: Array.isArray(summaryResult) && summaryResult[0] ? summaryResult[0] : {}
     });
   } catch (err) {
-    console.error("❌ Error fetching user stats:", err);
     res.status(500).json({ error: "Error fetching user statistics" });
   }
 });
 
-// Get platform statistics (admin only) - Updated for your orders table
 app.get("/api/admin/platform/stats", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5161,19 +4033,17 @@ app.get("/api/admin/platform/stats", async (req, res) => {
     
     res.json({ success: true, stats });
   } catch (err) {
-    console.error("❌ Error fetching platform stats:", err);
     res.status(500).json({ error: "Error fetching platform statistics" });
   }
 });
 
-// Get sales analytics (admin only) - Updated for your orders table
 app.get("/api/admin/analytics/sales", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
       return res.status(403).json({ error: "Admin access required" });
     }
     
-    const period = req.query.period || 'month'; // day, week, month, year
+    const period = req.query.period || 'month';
     
     let dateFormat, interval;
     switch(period) {
@@ -5189,7 +4059,7 @@ app.get("/api/admin/analytics/sales", async (req, res) => {
         dateFormat = '%Y-%m';
         interval = '1 YEAR';
         break;
-      default: // month
+      default:
         dateFormat = '%Y-%m-%d';
         interval = '30 DAY';
     }
@@ -5226,12 +4096,10 @@ app.get("/api/admin/analytics/sales", async (req, res) => {
       category_distribution: Array.isArray(categoryResult) ? categoryResult : []
     });
   } catch (err) {
-    console.error("❌ Error fetching sales analytics:", err);
     res.status(500).json({ error: "Error fetching sales analytics" });
   }
 });
 
-// Admin search users
 app.get("/api/admin/search/users", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5256,12 +4124,10 @@ app.get("/api/admin/search/users", async (req, res) => {
     
     res.json(Array.isArray(usersResult) ? usersResult : []);
   } catch (err) {
-    console.error("❌ Error searching users:", err);
     res.status(500).json({ error: "Error searching users" });
   }
 });
 
-// Admin search products
 app.get("/api/admin/search/products", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5295,12 +4161,10 @@ app.get("/api/admin/search/products", async (req, res) => {
     
     res.json(Array.isArray(productsResult) ? productsResult : []);
   } catch (err) {
-    console.error("❌ Error searching products:", err);
     res.status(500).json({ error: "Error searching products" });
   }
 });
 
-// Suspend/unsuspend product (admin only) - Updated
 app.put("/api/admin/products/:id/suspend", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5310,7 +4174,6 @@ app.put("/api/admin/products/:id/suspend", async (req, res) => {
     const { id } = req.params;
     const { suspended, reason } = req.body;
     
-    // First check if product exists
     const productResult = await db.query("SELECT id FROM products WHERE id = ?", [id]);
     
     if (!Array.isArray(productResult) || productResult.length === 0) {
@@ -5318,7 +4181,6 @@ app.put("/api/admin/products/:id/suspend", async (req, res) => {
     }
     
     if (suspended) {
-      // Suspend product
       await db.query(
         "UPDATE products SET status = 'suspended' WHERE id = ?",
         [id]
@@ -5326,7 +4188,6 @@ app.put("/api/admin/products/:id/suspend", async (req, res) => {
       
       res.json({ success: true, message: "Product suspended successfully" });
     } else {
-      // Unsuspend product
       await db.query(
         "UPDATE products SET status = 'active' WHERE id = ?",
         [id]
@@ -5335,12 +4196,10 @@ app.put("/api/admin/products/:id/suspend", async (req, res) => {
       res.json({ success: true, message: "Product unsuspended successfully" });
     }
   } catch (err) {
-    console.error("❌ Error suspending product:", err);
     res.status(500).json({ error: "Error suspending product" });
   }
 });
 
-// Delete user (admin only)
 app.delete("/api/admin/users/:id", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5349,29 +4208,24 @@ app.delete("/api/admin/users/:id", async (req, res) => {
     
     const { id } = req.params;
     
-    // Prevent admin from deleting themselves
     if (parseInt(id) === req.session.user.id) {
       return res.status(400).json({ error: "Cannot delete your own account" });
     }
     
-    // Check if user exists
     const userResult = await db.query("SELECT id, username FROM users WHERE id = ?", [id]);
     
     if (!Array.isArray(userResult) || userResult.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
     
-    // Delete user
     await db.query("DELETE FROM users WHERE id = ?", [id]);
     
     res.json({ success: true, message: "User deleted successfully" });
   } catch (err) {
-    console.error("❌ Error deleting user:", err);
     res.status(500).json({ error: "Error deleting user" });
   }
 });
 
-// Toggle user status (admin only)
 app.put("/api/admin/users/:id/status", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5381,7 +4235,6 @@ app.put("/api/admin/users/:id/status", async (req, res) => {
     const { id } = req.params;
     const { active } = req.body;
     
-    // Prevent admin from deactivating themselves
     if (parseInt(id) === req.session.user.id) {
       return res.status(400).json({ error: "Cannot modify your own status" });
     }
@@ -5396,12 +4249,10 @@ app.put("/api/admin/users/:id/status", async (req, res) => {
       message: `User ${active ? 'activated' : 'deactivated'} successfully` 
     });
   } catch (err) {
-    console.error("❌ Error toggling user status:", err);
     res.status(500).json({ error: "Error toggling user status" });
   }
 });
 
-// Get admin dashboard summary - Updated for your system
 app.get("/api/admin/dashboard/summary", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -5409,7 +4260,6 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
     }
     
     const [usersStats, productsStats, salesStats, recentActivities] = await Promise.all([
-      // Users stats
       db.query(`
         SELECT 
           COUNT(*) as total,
@@ -5419,7 +4269,6 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
         FROM users
       `),
       
-      // Products stats
       db.query(`
         SELECT 
           COUNT(*) as total,
@@ -5430,7 +4279,6 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
         FROM products
       `),
       
-      // Sales stats (using your orders table)
       db.query(`
         SELECT 
           COUNT(*) as total,
@@ -5441,7 +4289,6 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
         FROM orders
       `),
       
-      // Recent activities
       db.query(`
         (SELECT 'sale' as type, created_at, CONCAT('Sale: $', price) as description, buyer_id as user_id
          FROM orders ORDER BY created_at DESC LIMIT 5)
@@ -5465,20 +4312,10 @@ app.get("/api/admin/dashboard/summary", async (req, res) => {
     
     res.json({ success: true, summary });
   } catch (err) {
-    console.error("❌ Error fetching admin dashboard:", err);
     res.status(500).json({ error: "Error fetching dashboard data" });
   }
-  
-});
-app.get("/api/products", async (req, res) => {
-  const [rows] = await db.query("SELECT * FROM products");
-  console.log("PRODUCT ROWS COUNT:", rows.length);
-  res.json(rows);
 });
 
-// ========================= ORDER SYSTEM ROUTES =========================
-
-// Create new physical product order
 app.post('/api/orders/create', async (req, res) => {
   try {
     const {
@@ -5500,7 +4337,6 @@ app.post('/api/orders/create', async (req, res) => {
       notes
     } = req.body;
 
-    // Validation
     if (!product_name || !price || !customer_name || !customer_email || !shipping_address) {
       return res.status(400).json({
         success: false,
@@ -5527,14 +4363,12 @@ app.post('/api/orders/create', async (req, res) => {
       ]
     );
 
-    // Create initial tracking entry
     await db.query(
       `INSERT INTO order_tracking (order_id, status, description)
        VALUES (?, ?, ?)`,
       [result.insertId, 'pending', 'Order received and is being processed']
     );
 
-    // Send confirmation email
     try {
       await transporter.sendMail({
         from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
@@ -5560,15 +4394,12 @@ app.post('/api/orders/create', async (req, res) => {
               <p>${country}</p>
             </div>
             
-            <p>You can track your order status at: <a href="https://core-insight-7.onrender.com/order-tracking
-">Order Tracking</a></p>
+            <p>You can track your order status at: <a href="https://core-insight-7.onrender.com/order-tracking">Order Tracking</a></p>
             <p>Thank you for shopping with Core Insight!</p>
           </div>
         `
       });
-    } catch (emailError) {
-      console.error("❌ Failed to send order confirmation email:", emailError);
-    }
+    } catch (emailError) {}
 
     res.status(201).json({
       success: true,
@@ -5581,7 +4412,6 @@ app.post('/api/orders/create', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Create order error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create order'
@@ -5589,7 +4419,6 @@ app.post('/api/orders/create', async (req, res) => {
   }
 });
 
-// Get all orders
 app.get('/api/orders', async (req, res) => {
   try {
     const { status, email, limit = 50, page = 1 } = req.query;
@@ -5613,7 +4442,6 @@ app.get('/api/orders', async (req, res) => {
     
     const orders = await db.query(query, params);
     
-    // Get total count for pagination
     let countQuery = 'SELECT COUNT(*) as total FROM physical_orders WHERE 1=1';
     const countParams = [];
     
@@ -5642,7 +4470,6 @@ app.get('/api/orders', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get orders error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch orders'
@@ -5650,7 +4477,6 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// Get single order by ID
 app.get('/api/orders/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -5672,7 +4498,6 @@ app.get('/api/orders/:id', async (req, res) => {
       });
     }
     
-    // Get tracking history
     const trackingResult = await db.query(
       `SELECT status, description, location, estimated_delivery, created_at
        FROM order_tracking 
@@ -5689,7 +4514,6 @@ app.get('/api/orders/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get order error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch order'
@@ -5697,7 +4521,6 @@ app.get('/api/orders/:id', async (req, res) => {
   }
 });
 
-// Update order status
 app.put('/api/orders/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
@@ -5710,13 +4533,11 @@ app.put('/api/orders/:id/status', async (req, res) => {
       });
     }
     
-    // Update order status
     await db.query(
       'UPDATE physical_orders SET order_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [status, id]
     );
     
-    // Add tracking entry
     if (description) {
       await db.query(
         `INSERT INTO order_tracking (order_id, status, description, location, estimated_delivery)
@@ -5731,7 +4552,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Update order status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update order status'
@@ -5739,7 +4559,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
   }
 });
 
-// Update payment status
 app.put('/api/orders/:id/payment', async (req, res) => {
   try {
     const { id } = req.params;
@@ -5763,7 +4582,6 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Update payment status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update payment status'
@@ -5771,7 +4589,6 @@ app.put('/api/orders/:id/payment', async (req, res) => {
   }
 });
 
-// Search orders
 app.get('/api/orders/search/:query', async (req, res) => {
   try {
     const { query } = req.params;
@@ -5792,7 +4609,6 @@ app.get('/api/orders/search/:query', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Search orders error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to search orders'
@@ -5800,7 +4616,6 @@ app.get('/api/orders/search/:query', async (req, res) => {
   }
 });
 
-// Get order statistics
 app.get('/api/orders/stats/overview', async (req, res) => {
   try {
     const statsResult = await db.query(`
@@ -5833,145 +4648,942 @@ app.get('/api/orders/stats/overview', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get order stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch order statistics'
     });
   }
 });
-// Test database endpoint
-app.get('/api/test-db', async (req, res) => {
+
+app.get("/api/products/:id/delivery-days", async (req, res) => {
   try {
-    const connection = await pool.getConnection();
+    const [productRows] = await db.query(
+      "SELECT estimated_delivery_days FROM products WHERE id = ?",
+      [req.params.id]
+    );
     
-    // Test query
-    const [rows] = await connection.query('SELECT 1 as test, NOW() as time, DATABASE() as db, USER() as user');
+    if (productRows.length === 0) {
+      return res.json({ estimated_delivery_days: 7 });
+    }
     
-    connection.release();
-    
-    res.json({
-      success: true,
-      message: 'Database connection successful',
-      data: rows[0],
-      timestamp: new Date().toISOString()
+    res.json({ 
+      estimated_delivery_days: productRows[0].estimated_delivery_days || 7 
     });
-  } catch (error) {
-    console.error('Database test failed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Database connection failed',
-      error: error.message,
-      code: error.code,
-      errno: error.errno
-    });
+  } catch (err) {
+    res.json({ estimated_delivery_days: 7 });
   }
 });
-// DEBUG ROUTE - Add this to index.js
-app.get('/api/debug/db-info', async (req, res) => {
+// ====== PHYSICAL ORDER CREATION - COMPLETE FORM ======
+app.post("/api/order-product", async (req, res) => {
   try {
-    // Test database connection
-    const connection = await pool.getConnection();
+    console.log("📦 ORDER REQUEST RECEIVED:", req.body);
     
-    // Get database info
-    const [dbInfo] = await connection.query('SELECT DATABASE() as db, USER() as user');
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to place an order" });
+    }
+
+    const {
+      productId,
+      productTitle,
+      price,
+      quantity = 1,
+      deliveryAddress,
+      city,
+      state,
+      country,
+      deliveryPhone,
+      deliveryDays = 7,
+      notes = ''
+    } = req.body;
+
+    // Validation
+    if (!productId || !productTitle || !price) {
+      return res.status(400).json({ error: "Missing product information" });
+    }
+
+    if (!deliveryAddress || !deliveryPhone) {
+      return res.status(400).json({ error: "Delivery details required" });
+    }
+
+    // Get product and seller info
+    const productResult = await db.query(
+      "SELECT user_id as seller_id FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (!productResult || productResult.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const sellerId = productResult[0].seller_id;
+    const buyerId = req.session.user.id;
+
+    // Calculate totals
+    const qty = parseInt(quantity, 10);
+    const unitPrice = parseFloat(price);
     
-    // Get table counts
-    let productsCount = 0;
-    let usersCount = 0;
-    let coursesCount = 0;
+    if (isNaN(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: "Invalid quantity" });
+    }
     
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+      return res.status(400).json({ error: "Invalid price" });
+    }
+
+    const totalAmount = qty * unitPrice;
+    const platformFee = totalAmount * 0.10; // 10% platform fee
+    const sellerEarnings = totalAmount - platformFee;
+
+    console.log("💰 CALCULATIONS:", {
+      totalAmount,
+      platformFee,
+      sellerEarnings,
+      quantity: qty,
+      unitPrice
+    });
+
+  const result = await db.query(
+  `INSERT INTO physical_orders (
+    product_id, seller_id, buyer_id,
+    product_name, product_type, quantity, price, total_amount,
+    customer_name, customer_email, customer_phone,
+    shipping_address, city, state, country,
+    payment_method, payment_status, order_status,
+    notes, estimated_delivery_days, platform_fee, seller_earnings
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [
+    productId,
+    sellerId,
+    buyerId,
+    productTitle,
+    'physical',
+    qty,
+    unitPrice,
+    totalAmount,
+    req.session.user.username || 'Buyer',
+    req.session.user.email,
+    deliveryPhone,
+    deliveryAddress,
+    city || '',
+    state || '',
+    country || '',
+    'pay_on_delivery',
+    'pending',
+    'pending',
+    notes || '',
+    parseInt(deliveryDays) || 7,
+    platformFee,
+    sellerEarnings
+  ]
+);
+
+
+    const orderId = result.insertId;
+
+    // Create initial tracking entry
+    await db.query(
+      `INSERT INTO order_tracking (order_id, status, description)
+       VALUES (?, ?, ?)`,
+      [orderId, 'pending', 'Order received and is being processed']
+    );
+
+    // 🔔 CREATE NOTIFICATION - using only existing columns
+    await db.query(
+      `INSERT INTO seller_notifications 
+       (seller_id, order_id, notification_type, title, message)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        sellerId,
+        orderId,
+        'new_order',
+        'New Order Received!',
+        `New order #${orderId} for "${productTitle}" - ${qty} x $${unitPrice} = $${totalAmount}. Buyer: ${req.session.user.username || 'Buyer'}, Phone: ${deliveryPhone}`
+      ]
+    );
+
+    // Send detailed email to seller
     try {
-      const [products] = await db.query('SELECT COUNT(*) as count FROM products');
-      productsCount = products[0].count;
-    } catch (e) {}
-    
+      const sellerResult = await db.query(
+        "SELECT email, username FROM users WHERE id = ?",
+        [sellerId]
+      );
+      
+      if (sellerResult && sellerResult.length > 0) {
+        const seller = sellerResult[0];
+        
+        await transporter.sendMail({
+          from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+          to: seller.email,
+          subject: `📦 New Order #${orderId} - ${productTitle}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+              <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h1 style="color: #0f172a; margin-bottom: 20px;">🎉 New Order Received!</h1>
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                  <h2 style="margin: 0; font-size: 24px;">Order #${orderId}</h2>
+                  <p style="margin: 10px 0 0 0; opacity: 0.9;">${productTitle}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                  <div style="background: #f1f5f9; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #475569; margin-top: 0;">📋 Order Details</h3>
+                    <p><strong>Product:</strong> ${productTitle}</p>
+                    <p><strong>Quantity:</strong> ${qty}</p>
+                    <p><strong>Unit Price:</strong> $${unitPrice.toFixed(2)}</p>
+                    <p><strong>Total Amount:</strong> <span style="color: #10b981; font-weight: bold;">$${totalAmount.toFixed(2)}</span></p>
+                    <p><strong>Your Earnings:</strong> <span style="color: #10b981; font-weight: bold;">$${sellerEarnings.toFixed(2)}</span></p>
+                    <p><strong>Platform Fee (10%):</strong> $${platformFee.toFixed(2)}</p>
+                  </div>
+                  
+                  <div style="background: #f1f5f9; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #475569; margin-top: 0;">👤 Buyer Information</h3>
+                    <p><strong>Name:</strong> ${req.session.user.username || 'Buyer'}</p>
+                    <p><strong>Email:</strong> ${req.session.user.email}</p>
+                    <p><strong>Phone:</strong> ${deliveryPhone}</p>
+                  </div>
+                </div>
+                
+                <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                  <h3 style="color: #475569; margin-top: 0;">📍 Delivery Address</h3>
+                  <p style="margin: 5px 0;">${deliveryAddress}</p>
+                  <p style="margin: 5px 0;">${city}${state ? ', ' + state : ''}${country ? ', ' + country : ''}</p>
+                  <p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${deliveryDays} days</p>
+                </div>
+                
+                <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px;">
+                  <p style="text-align: center; margin-bottom: 20px;">
+                    <a href="https://core-insight-7.onrender.com/products.html#dashboard" 
+                       style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                              color: white; padding: 12px 30px; text-decoration: none; 
+                              border-radius: 6px; font-weight: bold; display: inline-block;">
+                      📊 View in Dashboard
+                    </a>
+                  </p>
+                  <p style="text-align: center; color: #64748b; font-size: 14px;">
+                    This order is marked as <strong style="color: #f59e0b;">Pending</strong>. 
+                    Please update the status when you process or ship the order.
+                  </p>
+                </div>
+              </div>
+            </div>
+          `
+        });
+        console.log(`📧 Detailed email sent to seller: ${seller.email}`);
+      }
+    } catch (emailError) {
+      console.error("❌ Email sending failed:", emailError);
+    }
+
+    // Send confirmation email to buyer
     try {
-      const [users] = await db.query('SELECT COUNT(*) as count FROM users');
-      usersCount = users[0].count;
-    } catch (e) {}
-    
-    try {
-      const [courses] = await db.query('SELECT COUNT(*) as count FROM courses');
-      coursesCount = courses[0].count;
-    } catch (e) {}
-    
-    connection.release();
-    
+      await transporter.sendMail({
+        from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+        to: req.session.user.email,
+        subject: `✅ Order Confirmation #${orderId}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #10b981;">✅ Order Confirmed!</h2>
+            <p>Thank you for your order. The seller has been notified.</p>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3>Order Summary</h3>
+              <p><strong>Order ID:</strong> #${orderId}</p>
+              <p><strong>Product:</strong> ${productTitle}</p>
+              <p><strong>Quantity:</strong> ${qty}</p>
+              <p><strong>Total:</strong> $${totalAmount.toFixed(2)}</p>
+              <p><strong>Payment Method:</strong> Pay on Delivery</p>
+              <p><strong>Estimated Delivery:</strong> ${deliveryDays} days</p>
+            </div>
+            
+            <p>You will receive updates about your order via email.</p>
+          </div>
+        `
+      });
+    } catch (buyerEmailError) {
+      console.error("❌ Buyer email failed:", buyerEmailError);
+    }
+
+    console.log(`✅ Order created: ID ${orderId} for seller ${sellerId}`);
+
     res.json({
       success: true,
-      message: 'Database connection successful',
-      environment: process.env.NODE_ENV || 'development',
-      database: {
-        host: process.env.DB_HOST || 'localhost',
-        name: dbInfo[0].db,
-        user: dbInfo[0].user,
-        port: process.env.DB_PORT || 3306
-      },
-      data: {
-        products: productsCount,
-        users: usersCount,
-        courses: coursesCount
-      },
-      config: {
-        NODE_ENV: process.env.NODE_ENV,
-        DB_HOST: process.env.DB_HOST,
-        DB_NAME: process.env.DB_NAME,
-        DB_PORT: process.env.DB_PORT
-      }
+      message: "Order placed successfully!",
+      orderId: orderId,
+      totalAmount: totalAmount,
+      sellerEarnings: sellerEarnings
     });
-    
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Database connection failed',
-      error: error.message,
-      errorCode: error.code,
-      config: {
-        NODE_ENV: process.env.NODE_ENV,
-        DB_HOST: process.env.DB_HOST,
-        DB_NAME: process.env.DB_NAME,
-        DB_PORT: process.env.DB_PORT,
-        NODE_ENV_set: process.env.NODE_ENV ? 'YES' : 'NO'
-      }
+
+  } catch (err) {
+    console.error("❌ Order creation error:", err);
+    res.status(500).json({ 
+      error: "Failed to place order",
+      details: err.message 
     });
   }
 });
 
-// Simple database test
-app.get('/api/test-db', async (req, res) => {
+app.get("/api/seller/notifications", async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT 1 as test');
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    const [notifications] = await db.query(
+      `SELECT n.*, o.product_name, o.total_amount, o.order_status,
+              DATE_FORMAT(n.created_at, '%Y-%m-%d %H:%i') as formatted_time
+       FROM seller_notifications n
+       JOIN physical_orders o ON n.order_id = o.id
+       WHERE n.seller_id = ?
+       ORDER BY n.created_at DESC
+       LIMIT 20`,
+      [req.session.user.id]
+    );
+
+    const [[unread]] = await db.query(
+      `SELECT COUNT(*) AS count
+       FROM seller_notifications
+       WHERE seller_id = ? AND is_read = FALSE`,
+      [req.session.user.id]
+    );
+
+    res.json({
+      success: true,
+      notifications,
+      unreadCount: unread.count
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load notifications" });
+  }
+});
+
+app.post("/api/seller/notifications/:id/read", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    await db.query(
+      `UPDATE seller_notifications
+       SET is_read = TRUE
+       WHERE id = ? AND seller_id = ?`,
+      [req.params.id, req.session.user.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed" });
+  }
+});
+// ====== SELLER DASHBOARD ENDPOINTS ======
+
+// 1. Get seller's orders with complete form data
+app.get("/api/seller/orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    const { status, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT 
+        o.*,
+        p.images as product_images,
+        p.category as product_category,
+        u.username as buyer_username,
+        u.email as buyer_email,
+        DATE_FORMAT(o.created_at, '%Y-%m-%d %H:%i') as order_date_formatted,
+        CASE 
+          WHEN o.order_status = 'pending' THEN 1
+          WHEN o.order_status = 'processing' THEN 2
+          WHEN o.order_status = 'shipped' THEN 3
+          WHEN o.order_status = 'delivered' THEN 4
+          ELSE 5
+        END as status_order
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ?
+    `;
+
+    const params = [req.session.user.id];
+
+    if (status && status !== "all") {
+      query += " AND o.order_status = ?";
+      params.push(status);
+    }
+
+    query += " ORDER BY status_order ASC, o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [orders] = await db.query(query, params);
+
+    // Get total count
+    let countQuery = "SELECT COUNT(*) as total FROM physical_orders WHERE seller_id = ?";
+    const countParams = [req.session.user.id];
+
+    if (status && status !== "all") {
+      countQuery += " AND order_status = ?";
+      countParams.push(status);
+    }
+
+    const [countResult] = await db.query(countQuery, countParams);
+    const total = countResult[0]?.total || 0;
+
+    // Process images
+    const processedOrders = Array.isArray(orders)
+      ? orders.map((order) => {
+          if (order.product_images && typeof order.product_images === "string") {
+            try {
+              order.product_images = JSON.parse(order.product_images);
+            } catch (e) {
+              order.product_images = [];
+            }
+          }
+          return order;
+        })
+      : [];
+
+    res.json({
+      success: true,
+      orders: processedOrders,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("❌ Get seller orders error:", err);
+    res.status(500).json({ error: "Failed to load orders" });
+  }
+});
+
+
+// 2. Get single order with complete details
+app.get("/api/seller/orders/:orderId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    const orderId = req.params.orderId;
+
+    const [orderResult] = await db.query(
+      `
+      SELECT 
+        o.*,
+        p.images as product_images,
+        p.description as product_description,
+        u.username as buyer_username,
+        u.email as buyer_email,
+        s.username as seller_username,
+        DATE_FORMAT(o.created_at, '%Y-%m-%d %H:%i') as order_date_formatted
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      LEFT JOIN users s ON o.seller_id = s.id
+      WHERE o.id = ? AND o.seller_id = ?
+      `,
+      [orderId, req.session.user.id]
+    );
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult[0];
+
+    // Get tracking history
+    const [trackingResult] = await db.query(
+      `SELECT * FROM order_tracking WHERE order_id = ? ORDER BY created_at DESC`,
+      [orderId]
+    );
+
+    // Get similar products
+    const [similarProducts] = await db.query(
+      `SELECT id, title, price, images 
+       FROM products 
+       WHERE user_id = ? AND id != ? 
+       LIMIT 4`,
+      [req.session.user.id, order.product_id]
+    );
+
+    res.json({
+      success: true,
+      order,
+      tracking: Array.isArray(trackingResult) ? trackingResult : [],
+      similarProducts: Array.isArray(similarProducts) ? similarProducts : [],
+    });
+  } catch (err) {
+    console.error("❌ Get order error:", err);
+    res.status(500).json({ error: "Failed to load order" });
+  }
+});
+
+
+// 3. Update order status
+app.put("/api/seller/orders/:orderId/status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    const orderId = req.params.orderId;
+    const { status, trackingNumber, notes } = req.body;
+
+    // Verify seller owns this order
+    const orderCheck = await db.query(
+      "SELECT id, product_name FROM physical_orders WHERE id = ? AND seller_id = ?",
+      [orderId, req.session.user.id]
+    );
+
+    if (!orderCheck || orderCheck.length === 0) {
+      return res.status(404).json({ error: "Order not found or access denied" });
+    }
+
+    const order = orderCheck[0];
+
+    // Update order
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = ?, 
+           tracking_number = ?,
+           updated_at = NOW()
+       WHERE id = ?`,
+      [status, trackingNumber || null, orderId]
+    );
+
+    // Add tracking entry
+    const statusMessages = {
+      'processing': 'Seller is preparing your order',
+      'shipped': 'Order has been shipped',
+      'delivered': 'Order has been delivered',
+      'cancelled': 'Order has been cancelled'
+    };
+
+    await db.query(
+      `INSERT INTO order_tracking (order_id, status, description)
+       VALUES (?, ?, ?)`,
+      [orderId, status, statusMessages[status] || `Order status updated to ${status}`]
+    );
+
+    // Create notification for buyer
+    await db.query(
+      `INSERT INTO seller_notifications 
+       (seller_id, order_id, notification_type, title, message)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        req.session.user.id,
+        orderId,
+        'order_update',
+        'Order Status Updated',
+        `Order "${order.product_name}" is now ${status}`
+      ]
+    );
+
+    // Send email to buyer
+    try {
+      const buyerResult = await db.query(
+        "SELECT buyer_email FROM physical_orders WHERE id = ?",
+        [orderId]
+      );
+      
+      if (buyerResult && buyerResult.length > 0) {
+        await transporter.sendMail({
+          from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+          to: buyerResult[0].buyer_email,
+          subject: `📦 Order Update - ${order.product_name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #3b82f6;">Order Status Updated</h2>
+              <p>Your order status has been updated by the seller.</p>
+              
+              <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Order Details</h3>
+                <p><strong>Order ID:</strong> #${orderId}</p>
+                <p><strong>Product:</strong> ${order.product_name}</p>
+                <p><strong>Status:</strong> <span style="color: ${status === 'shipped' ? '#10b981' : '#f59e0b'}">${status}</span></p>
+                ${trackingNumber ? `<p><strong>Tracking Number:</strong> ${trackingNumber}</p>` : ''}
+              </div>
+              
+              <p>You can track your order from your account.</p>
+            </div>
+          `
+        });
+      }
+    } catch (emailError) {
+      console.error("❌ Status update email failed:", emailError);
+    }
+
+    res.json({
+      success: true,
+      message: `Order status updated to ${status}`
+    });
+
+  } catch (err) {
+    console.error("❌ Update order status error:", err);
+    res.status(500).json({ error: "Failed to update order status" });
+  }
+});
+
+// 4. Get seller dashboard analytics
+app.get("/api/seller/dashboard/analytics", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+
+    const sellerId = req.session.user.id;
+
+    // All-time stats
+    const [allTimeStats] = await db.query(
+      `
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
+        SUM(CASE WHEN order_status = 'processing' THEN 1 ELSE 0 END) as processing_orders,
+        SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END) as shipped_orders,
+        SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
+        SUM(total_amount) as total_revenue,
+        SUM(seller_earnings) as total_earnings,
+        SUM(platform_fee) as total_platform_fee,
+        AVG(estimated_delivery_days) as avg_delivery_time
+      FROM physical_orders
+      WHERE seller_id = ?
+      `,
+      [sellerId]
+    );
+
+    // Today's stats
+    const [todayStats] = await db.query(
+      `
+      SELECT 
+        COUNT(*) AS today_orders,
+        COALESCE(SUM(total_amount), 0) AS today_revenue
+      FROM physical_orders
+      WHERE seller_id = ? AND DATE(created_at) = CURDATE()
+      `,
+      [sellerId]
+    );
+
+    // Weekly trends
+    const [weeklyTrends] = await db.query(
+      `
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as order_count,
+        SUM(total_amount) as daily_revenue
+      FROM physical_orders
+      WHERE seller_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date
+      `,
+      [sellerId]
+    );
+
+    // Top products
+    const [topProducts] = await db.query(
+      `
+      SELECT 
+        p.title as product_name,
+        COUNT(o.id) as order_count,
+        SUM(o.total_amount) as revenue
+      FROM physical_orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.seller_id = ?
+      GROUP BY o.product_id
+      ORDER BY revenue DESC
+      LIMIT 5
+      `,
+      [sellerId]
+    );
+
+    // Recent orders
+    const [recentOrders] = await db.query(
+      `
+      SELECT 
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.total_amount,
+        o.order_status,
+        o.customer_name as buyer_name,
+        DATE_FORMAT(o.created_at, '%b %d') as order_date_short
+      FROM physical_orders o
+      WHERE o.seller_id = ?
+      ORDER BY o.created_at DESC
+      LIMIT 5
+      `,
+      [sellerId]
+    );
+
+    res.json({
+      success: true,
+      analytics: {
+        allTime: allTimeStats || {},
+        today: todayStats || {},
+        weeklyTrends: Array.isArray(weeklyTrends) ? weeklyTrends : [],
+        topProducts: Array.isArray(topProducts) ? topProducts : [],
+        recentOrders: Array.isArray(recentOrders) ? recentOrders : [],
+      },
+    });
+  } catch (err) {
+    console.error("❌ Dashboard analytics error:", err);
+    res.status(500).json({ error: "Failed to load analytics" });
+  }
+});
+
+
+// 5. Mark notification as read
+app.post("/api/seller/notifications/:id/read", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    await db.query(
+      `UPDATE seller_notifications
+       SET is_read = TRUE
+       WHERE id = ? AND seller_id = ?`,
+      [req.params.id, req.session.user.id]
+    );
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("❌ Mark notification read error:", err);
+    res.status(500).json({ error: "Failed to update notification" });
+  }
+});
+
+// 6. Get unread notification count
+app.get("/api/seller/notifications/unread-count", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({ count: 0 });
+    }
+
+    const result = await db.query(
+      `SELECT COUNT(*) as count
+       FROM seller_notifications
+       WHERE seller_id = ? AND is_read = FALSE`,
+      [req.session.user.id]
+    );
+
+    const count = result[0]?.count || 0;
+
+    res.json({ count: count });
+
+  } catch (err) {
+    console.error("❌ Unread count error:", err);
+    res.json({ count: 0 });
+  }
+});
+
+app.put("/api/seller/orders/:id/status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in" });
+    }
+
+    const { status, trackingNumber, notes } = req.body;
+
+    const [orderCheck] = await db.query(
+      `SELECT o.*, p.user_id as seller_user_id 
+       FROM physical_orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND p.user_id = ?`,
+      [req.params.id, req.session.user.id]
+    );
+
+    if (orderCheck.length === 0) {
+      return res.status(404).json({ error: "Order not found or access denied" });
+    }
+
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = ?, tracking_id = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [status, trackingNumber || null, notes || null, req.params.id]
+    );
+
+    const order = orderCheck[0];
+    
+    await db.query(
+      `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message)
+       VALUES (?, ?, 'order_update', 'Order Status Updated', ?)`,
+      [
+        req.session.user.id,
+        req.params.id,
+        `Your order "${order.product_name}" status has been updated to: ${status}`
+      ]
+    );
+
     res.json({ 
       success: true, 
-      message: 'Database is working',
-      data: rows[0]
+      message: `Order status updated to ${status}` 
     });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update order status" });
+  }
+});
+
+app.post("/api/initiate-payment", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to make payment" });
+  }
+
+  try {
+    const { courseId } = req.body;
+
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    const course = Array.isArray(courses) && courses.length > 0
+      ? courses[0]
+      : (courses[0] && courses[0][0]) || null;
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    if (course.price <= 0) {
+      return res.status(400).json({ error: "This course is free. No payment required." });
+    }
+
+    const payload = {
+      tx_ref: "coreinsight_" + Date.now() + "_" + courseId,
+      amount: course.price,
+      currency: "NGN",
+      payment_options: "card, banktransfer, ussd",
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
+      customer: {
+        email: req.session.user.email || `${req.session.user.username}@example.com`,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight Courses",
+        description: `Payment for ${course.title}`,
+        logo: "https://your-logo-url.com/logo.png",
+      },
+      meta: {
+        course_id: courseId,
+        user_id: req.session.user.id,
+        course_title: course.title,
+      }
+    };
+
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      res.json({
+        paymentLink: response.data.data.link,
+        transactionRef: payload.tx_ref,
+        status: "success",
+      });
+    } else {
+      res.status(500).json({
+        error: "Payment initiation failed: " + (response.data.message || "Unknown error"),
+      });
+    }
+
+  } catch (err) {
+    res.status(500).json({ error: "Error initiating payment: " + err.message });
+  }
+});
+
+app.delete('/api/courses/:id', async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized - Please log in' });
+    }
+
+    const courseId = req.params.id;
+
+    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    
+    let course = null;
+    if (Array.isArray(courses) && courses.length > 0) {
+      course = courses[0];
+    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
+      course = courses[0][0];
+    }
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const canDelete = user.role === 'admin' || user.id === course.user_id;
+    
+    if (!canDelete) {
+      return res.status(403).json({ 
+        error: 'Permission denied - You can only delete your own courses' 
+      });
+    }
+
+    try {
+      if (course.file_path && fs.existsSync(course.file_path)) {
+        fs.unlinkSync(course.file_path);
+      }
+    } catch (fileError) {}
+
+    await db.query('DELETE FROM courses WHERE id = ?', [courseId]);
+
+    res.json({ message: 'Course deleted successfully' });
+
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Database error',
-      error: error.message
-    });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
-// Add at the END of your index.js, just before app.listen()
-console.log("\n📋 ========== REGISTERED ROUTES ==========");
-app._router.stack.forEach((middleware, i) => {
-  if (middleware.route) {
-    const methods = Object.keys(middleware.route.methods).map(m => m.toUpperCase()).join(', ');
-    console.log(`   ${methods.padEnd(10)} ${middleware.route.path}`);
-  } else if (middleware.name === 'router') {
-    console.log(`   ⚡ Router: ${middleware.regexp}`);
-  }
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-console.log("=======================================\n");
-// ========================= START SERVER =========================
+
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/signup", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "signup.html"));
+});
+
+app.get("/courses", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "courses.html"));
+});
+
+app.get("/payment-callback.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "payment-callback.html"));
+});
+
+app.get("/payment-verification.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "payment-verification.html"));
+});
+
+app.get("/payment-failed.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "payment-failed.html"));
+});
+
+app.get("/forgot-password.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "forgot-password.html"));
+});
+
+app.get("/reset-password.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "reset-password.html"));
+});
+
 app.listen(PORT, () => {
-  console.log(`🎉 Server running at http://localhost:${PORT}`);
-  console.log(`🔧 Test: http://localhost:${PORT}/api/test`);
-  console.log(`📚 Courses: http://localhost:${PORT}/courses`);
-  console.log(`💰 Payment Callback: http://localhost:${PORT}/payment-callback.html`);
-  console.log(`🔐 Forgot Password: http://localhost:${PORT}/forgot-password.html`);
- 
+  console.log(`Server running at http://localhost:${PORT}`);
 });

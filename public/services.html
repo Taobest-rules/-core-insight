@@ -1826,6 +1826,215 @@
         display: none !important;
     }
 }
+/* Add to your CSS */
+.profile-card-compact {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.profile-avatar-wrapper.compact {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+}
+
+.profile-stats.compact {
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item.compact .stat-value {
+    font-size: 1.2rem;
+}
+
+.stat-item.compact .stat-label {
+    font-size: 0.8rem;
+}
+/* Inbox Styles */
+.inbox-container {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 20px;
+    height: 70vh;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.inbox-sidebar {
+    border-right: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.inbox-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.conversation-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.conversation-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.conversation-item.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid var(--accent-blue);
+}
+
+.conversation-user {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.conversation-preview {
+    color: var(--text-gray);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-time {
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    margin-top: 5px;
+}
+
+.inbox-main {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.chat-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    position: relative;
+}
+
+.message.sent {
+    align-self: flex-end;
+    background: var(--accent-blue);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message.received {
+    align-self: flex-start;
+    background: var(--secondary-dark);
+    color: var(--text-light);
+    border-bottom-left-radius: 4px;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+.chat-input {
+    padding: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--secondary-dark);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: var(--text-light);
+}
+
+.input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+}
+
+.inbox-sidebar-right {
+    border-left: 1px solid rgba(255,255,255,0.1);
+    padding: 20px;
+}
+
+.user-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.empty-chat {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-gray);
+}
+
+.empty-chat i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
   </style>
 </head>
 <body>
@@ -2153,7 +2362,104 @@
                 </div>
                 
               </div>
-              
+              <!-- Add to HTML -->
+<div id="clientRequestForm" class="form-section hidden">
+    <h3>Post a Service Request</h3>
+    <form id="requestForm">
+        <div class="form-grid">
+            <div class="form-group" style="grid-column: span 2;">
+                <label>What service are you looking for? *</label>
+                <input type="text" id="requestTitle" required placeholder="e.g., Need a website for my bakery">
+            </div>
+            
+            <div class="form-group">
+                <label>Category *</label>
+                <select id="requestCategory" required>
+                    <option value="">Select category</option>
+                    <option value="web-design">Web Design</option>
+                    <option value="graphic-design">Graphic Design</option>
+                    <option value="writing">Writing</option>
+                    <option value="marketing">Marketing</option>
+                    <!-- Add more categories -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Budget Range (USD)</label>
+                <select id="requestBudget">
+                    <option value="">Select budget</option>
+                    <option value="0-100">$0 - $100</option>
+                    <option value="100-500">$100 - $500</option>
+                    <option value="500-1000">$500 - $1,000</option>
+                    <option value="1000-5000">$1,000 - $5,000</option>
+                    <option value="5000+">$5,000+</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="grid-column: span 2;">
+                <label>Detailed Requirements *</label>
+                <textarea id="requestDescription" required rows="6" placeholder="Describe exactly what you need..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Educational Level Required</label>
+                <select id="requestEducation">
+                    <option value="">Any</option>
+                    <option value="high-school">High School</option>
+                    <option value="associate">Associate Degree</option>
+                    <option value="bachelor">Bachelor's Degree</option>
+                    <option value="master">Master's Degree</option>
+                    <option value="phd">PhD</option>
+                    <option value="certification">Certification</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Experience Level Required</label>
+                <select id="requestExperience">
+                    <option value="">Any</option>
+                    <option value="entry">Entry Level (0-2 years)</option>
+                    <option value="intermediate">Intermediate (2-5 years)</option>
+                    <option value="expert">Expert (5+ years)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Timeline (Days)</label>
+                <input type="number" id="requestTimeline" min="1" max="365" placeholder="e.g., 30">
+            </div>
+            
+            <div class="form-group">
+                <label>Required Skills/Tools</label>
+                <input type="text" id="requestSkills" placeholder="e.g., React, Figma, SEO">
+            </div>
+            
+            <div class="form-group" style="grid-column: span 2;">
+                <label>Additional Requirements</label>
+                <textarea id="requestAdditional" rows="4" placeholder="Any other requirements..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Attach Files (Optional)</label>
+                <input type="file" id="requestFiles" multiple>
+                <small>Max 5 files, 10MB each</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Visibility</label>
+                <select id="requestVisibility">
+                    <option value="public">Public (Visible to all freelancers)</option>
+                    <option value="private">Private (Only invited freelancers)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Post Request</button>
+            <button type="button" class="btn btn-secondary" onclick="hideClientRequestForm()">Cancel</button>
+        </div>
+    </form>
+</div>
               <!-- Selected Category Display -->
               <div class="selected-category-display hidden">
                 <div class="selected-category">
@@ -2571,6 +2877,81 @@
         </div>
       </div>
     </div>
+    <!-- Add this to your HTML after the existing sections -->
+<div id="inboxPage" class="hidden">
+    <div class="inbox-container">
+        <div class="inbox-sidebar">
+            <div class="inbox-header">
+                <h3>Messages</h3>
+                <button class="btn btn-primary" onclick="startNewConversation()">
+                    <i class="fas fa-plus"></i> New
+                </button>
+            </div>
+            <div class="conversation-list" id="conversationList">
+                <!-- Conversations will be loaded here -->
+            </div>
+        </div>
+        
+        <div class="inbox-main">
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-user-info">
+                    <div class="chat-user-avatar" id="chatUserAvatar"></div>
+                    <div>
+                        <h4 id="chatUserName">Select a conversation</h4>
+                        <div class="chat-user-status" id="chatUserStatus"></div>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="btn btn-secondary" onclick="toggleUserInfo()">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="empty-chat">
+                    <i class="fas fa-comments"></i>
+                    <p>Select a conversation to start messaging</p>
+                </div>
+            </div>
+            
+            <div class="chat-input" id="messageInputArea" style="display: none;">
+                <form id="sendMessageForm">
+                    <div class="input-group">
+                        <button type="button" class="btn btn-secondary" onclick="attachFile()">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <input type="text" id="messageInput" placeholder="Type your message..." maxlength="1000">
+                        <button type="button" class="btn btn-secondary" onclick="toggleEmojiPicker()">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span id="charCount">0/1000</span>
+                        <button type="button" class="btn btn-secondary" onclick="recordAudio()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="inbox-sidebar-right" id="userInfoPanel" style="display: none;">
+            <div class="user-info-header">
+                <h4>User Information</h4>
+                <button class="btn btn-secondary" onclick="toggleUserInfo()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="userInfoContent">
+                <!-- User info will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
   </main>
 
   <script src="service.js"></script>

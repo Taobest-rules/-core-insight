@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* ALL CSS STYLES REMAIN EXACTLY AS PROVIDED */
     :root {
       --primary-dark: #0f172a;
       --secondary-dark: #1e293b;
@@ -2775,6 +2776,7 @@
 </head>
 <body>
 
+  <!-- HEADER SECTION -->
   <header>
     <div style="display:flex;gap:12px;align-items:center">
       <div class="logo">
@@ -2792,6 +2794,14 @@
     </nav>
 
     <div class="header-actions">
+      <div id="notificationBadge" style="position:relative;display:inline-block;margin-right:10px;">
+        <button id="notificationBtn" class="auth-btn" style="background:transparent;border:none;padding:8px;">
+          <i class="fas fa-bell"></i>
+          <span id="notificationCount" 
+                style="position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border-radius:50%;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center;">
+          </span>
+        </button>
+      </div>
       <div id="headerAuthButtons">
         <button id="loginOpen" class="auth-btn">Login</button>
         <button id="signupOpen" class="auth-btn signup">Sign Up</button>
@@ -2799,7 +2809,9 @@
     </div>
   </header>
 
+  <!-- MAIN CONTENT -->
   <main>
+    <!-- HERO SECTION -->
     <section class="hero">
       <div class="left">
         <h1>Discover Digital & Physical Products</h1>
@@ -2813,6 +2825,7 @@
       </div>
     </section>
 
+    <!-- CONTROLS SECTION -->
     <section class="controls">
       <input id="searchInput" class="search-input" placeholder="Search products, categories..." />
       <select id="filterType" class="select">
@@ -2831,16 +2844,17 @@
         <option value="favorites">Most favorited</option>
       </select>
       
+      <!-- Currency Selector -->
       <div class="currency-selector">
         <label for="currencyHeader">Currency:</label>
         <select id="currencyHeader" title="Display currency">
-          <option value="USD">USD</option>
-          <option value="NGN">NGN</option>
-          <option value="EUR">EUR</option>
-          <option value="GBP">GBP</option>
-          <option value="KES">KES</option>
-          <option value="GHS">GHS</option>
-          <option value="ZAR">ZAR</option>
+          <option value="USD">USD ($)</option>
+          <option value="NGN">NGN (₦)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="KES">KES (KSh)</option>
+          <option value="GHS">GHS (GH₵)</option>
+          <option value="ZAR">ZAR (R)</option>
         </select>
       </div>
 
@@ -2852,7 +2866,7 @@
       </div>
     </section>
 
-    <!-- ================= PROFESSIONAL SELLER FORM ================= -->
+    <!-- SELLER FORM SECTION -->
     <section id="sellerView" class="upload-section" aria-hidden="true">
       <div class="form-header">
         <h3><i class="fas fa-upload"></i> List Your Product</h3>
@@ -2955,7 +2969,7 @@
               </div>
             </div>
           </div>
-
+          
           <div id="physicalBlock" class="conditional-section">
             <div class="form-section">
               <div class="form-section-header">
@@ -2967,7 +2981,6 @@
                 <div class="form-group">
                   <label class="form-label">Delivery Method</label>
                   <select id="p_deliveryType" class="form-select">
-                    <option value="pickup">Customer Pickup</option>
                     <option value="delivery">Home Delivery</option>
                   </select>
                 </div>
@@ -2975,25 +2988,32 @@
                 <div class="form-group">
                   <label class="form-label">Payment Option</label>
                   <select id="p_paymentOption" class="form-select">
-                    <option value="pay_before">Pay Before Delivery</option>
                     <option value="pay_on_delivery">Pay On Delivery</option>
-                    <option value="both">Both Options Available</option>
                   </select>
                 </div>
               </div>
               
-              <div id="deliveryExtra" class="conditional-section" style="margin-top: 20px;">
+             <div class="form-row">
+  <div class="form-group">
+    <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
+    <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" 
+           placeholder="Number of days for delivery" required />
+    <span class="form-help">How many days it typically takes to deliver this product</span>
+  </div>
+  
+  <div class="form-group">
+    <label class="form-label">Delivery Fee (USD)</label>
+    <input type="number" id="p_deliveryFee" class="form-input" step="0.01" min="0" placeholder="0.00" />
+    <span class="form-help">Additional delivery charge</span>
+  </div>
+</div>
+              
+              <div id="deliveryExtra" class="conditional-section show" style="margin-top: 20px;">
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Delivery Locations</label>
                     <input type="text" id="p_deliveryLocations" class="form-input" placeholder="e.g. USA, UK, Nigeria" />
                     <span class="form-help">Comma separated countries or cities</span>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label class="form-label">Delivery Fee (USD)</label>
-                    <input type="number" id="p_deliveryFee" class="form-input" step="0.01" min="0" placeholder="0.00" />
-                    <span class="form-help">Additional delivery charge</span>
                   </div>
                 </div>
               </div>
@@ -3184,7 +3204,7 @@
       </div>
     </section>
 
-    <!-- ================= PRODUCTS GRID ================= -->
+    <!-- PRODUCTS GRID SECTION -->
     <section id="buyerView">
       <div id="productsGrid" class="grid"></div>
       <div id="noProducts" style="display:none;">
@@ -3194,7 +3214,7 @@
       </div>
     </section>
 
-    <!-- ================= REVIEWS SECTION ================= -->
+    <!-- REVIEWS SECTION -->
     <div id="productReviewsSection" class="reviews-section">
       <h3>Customer Reviews</h3>
 
@@ -3228,8 +3248,158 @@
         <p id="reviewMessage" class="form-message"></p>
       </div>
     </div>
+<!-- Add this section to your HTML, after the reviews section -->
+<section id="ordersDashboard" class="dashboard-section" style="display: none;">
+  <div class="dashboard-header">
+    <div class="dashboard-title">
+      <h2><i class="fas fa-shopping-bag"></i> Orders Dashboard</h2>
+      <span id="dashboardRoleBadge" class="role-badge">Seller</span>
+    </div>
+    
+    <div class="dashboard-actions">
+      <button id="closeDashboard" class="btn secondary">
+        <i class="fas fa-times"></i> Close
+      </button>
+      <button id="refreshDashboard" class="btn primary">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
 
-    <!-- ================= DASHBOARD SECTION ================= -->
+  <!-- Analytics Overview -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
+        <i class="fas fa-shopping-cart" style="color: var(--accent);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalOrders">0</h3>
+        <p>Total Orders</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+        <i class="fas fa-money-bill-wave" style="color: var(--success);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalRevenue">$0</h3>
+        <p>Total Revenue</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
+        <i class="fas fa-wallet" style="color: var(--warning);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalEarnings">$0</h3>
+        <p>Your Earnings</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
+        <i class="fas fa-clock" style="color: var(--digital);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="avgDelivery">0 days</h3>
+        <p>Avg Delivery Time</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Tabs -->
+  <div class="dashboard-tabs">
+    <div class="tabs-header">
+      <button class="tab-btn active" data-tab="orders">All Orders</button>
+      <button class="tab-btn" data-tab="analytics">Analytics</button>
+      <button class="tab-btn" data-tab="notifications">Notifications</button>
+    </div>
+    
+    <div class="tabs-content">
+      <!-- Orders Tab -->
+      <div id="ordersTab" class="tab-content active">
+        <div class="tab-header">
+          <h3><i class="fas fa-list"></i> Order Management</h3>
+          <div class="tab-actions">
+            <select id="orderStatusFilter" class="select">
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+            </select>
+            <input type="text" id="searchOrders" placeholder="Search orders..." class="search-input">
+          </div>
+        </div>
+        
+        <div id="ordersListContainer">
+          <!-- Orders will be loaded here -->
+        </div>
+      </div>
+      
+      <!-- Analytics Tab -->
+      <div id="analyticsTab" class="tab-content">
+        <div class="analytics-grid">
+          <div class="analytics-card" style="grid-column: span 2;">
+            <h3><i class="fas fa-chart-line"></i> Revenue Trends</h3>
+            <div class="chart-container">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="analytics-card">
+            <h3><i class="fas fa-chart-pie"></i> Order Status</h3>
+            <div class="chart-container">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="analytics-card">
+            <h3><i class="fas fa-trophy"></i> Top Products</h3>
+            <div id="topProductsList">
+              <!-- Top products will be listed here -->
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Notifications Tab -->
+      <div id="notificationsTab" class="tab-content">
+        <div class="tab-header">
+          <h3><i class="fas fa-bell"></i> Notifications</h3>
+          <div class="tab-actions">
+            <button id="markAllRead" class="btn secondary">Mark All Read</button>
+          </div>
+        </div>
+        
+        <div id="notificationsList">
+          <!-- Notifications will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div id="orderDetailModal" class="modal">
+  <div class="modal-card" style="max-width: 800px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-receipt"></i>
+        <span>Order Details</span>
+        <span id="orderBadge" class="product-status" style="margin-left: 10px;"></span>
+      </h3>
+      <span class="close-x" onclick="closeOrderDetail()">&times;</span>
+    </div>
+    
+    <div id="orderDetailContent">
+      <!-- Order details will be loaded here -->
+    </div>
+  </div>
+</div>
+    <!-- DASHBOARD SECTION -->
     <section id="dashboardSection" class="dashboard-section" style="display: none;">
       <div class="dashboard-header">
         <div class="dashboard-title">
@@ -3516,7 +3686,8 @@
     </section>
   </main>
 
-  <!-- ================= MODALS ================= -->
+  <!-- MODALS SECTION -->
+  <!-- Login Modal -->
   <div id="loginModal" class="modal" aria-hidden="true">
     <div class="modal-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3553,6 +3724,7 @@
     </div>
   </div>
 
+  <!-- Signup Modal -->
   <div id="signupModal" class="modal" aria-hidden="true">
     <div class="modal-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3582,8 +3754,1019 @@
     </div>
   </div>
 
+<!-- Updated Address Modal -->
+<div id="addressModal" class="modal" aria-hidden="true">
+  <div class="modal-card" style="max-width: 500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="margin:0">Delivery Information</h3>
+      <span id="closeAddressModal" class="close-x">&times;</span>
+    </div>
+
+    <form id="addressForm">
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
+          Delivery Address <span style="color:var(--danger)">*</span>
+        </label>
+        <textarea 
+          id="deliveryAddress" 
+          class="form-input" 
+          placeholder="Full street address, apartment/suite number"
+          rows="3"
+          required
+        ></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">City</label>
+          <input type="text" id="city" class="form-input" placeholder="City" />
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">State</label>
+          <input type="text" id="state" class="form-input" placeholder="State/Province" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">Country</label>
+        <input type="text" id="country" class="form-input" placeholder="Country" />
+      </div>
+
+      <!-- REMOVED POSTAL CODE FIELD -->
+
+      <div style="margin-bottom:24px">
+        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
+          Phone Number or Email <span style="color:var(--danger)">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="deliveryPhone" 
+          class="form-input" 
+          placeholder="Phone number OR email for delivery updates"
+          required
+        />
+        <small style="color:var(--text-gray);font-size:12px;margin-top:4px;">
+          Enter your phone number or email address for delivery notifications
+        </small>
+      </div>
+
+      <div style="margin-bottom:24px">
+        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
+          Quantity
+        </label>
+        <input 
+          type="number" 
+          id="orderQuantity" 
+          class="form-input" 
+          value="1" 
+          min="1" 
+          max="10"
+        />
+      </div>
+
+      <div id="addressFormMessage" style="margin-bottom:20px"></div>
+
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn primary" style="flex:2">
+          <i class="fas fa-shipping-fast"></i> Confirm Order
+        </button>
+        <button type="button" id="cancelAddress" class="btn" style="flex:1">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+ 
+  <!-- SCRIPTS SECTION -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    // ================= DASHBOARD STATE =================
+    let dashboardData = {
+      orders: [],
+      analytics: {},
+      notifications: []
+    };
+
+    // ================= DASHBOARD FUNCTIONS =================
+    
+    // Open dashboard when clicking notification icon
+    document.getElementById('notificationBtn')?.addEventListener('click', function() {
+      openDashboard();
+    });
+
+    // Close dashboard button
+    document.getElementById('closeDashboard')?.addEventListener('click', function() {
+      closeDashboard();
+    });
+
+    // Refresh dashboard button
+    document.getElementById('refreshDashboard')?.addEventListener('click', function() {
+      loadDashboardData();
+    });
+
+    // Tab switching
+    document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        
+        // Update active tab
+        document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => 
+          b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Show selected tab
+        document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => 
+          content.classList.remove('active'));
+        document.getElementById(tabId + 'Tab').classList.add('active');
+        
+        // Load tab data
+        loadTabData(tabId);
+      });
+    });
+
+    // Dashboard functions
+    function openDashboard() {
+      if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+      }
+      
+      // Hide other sections
+      document.getElementById('buyerView').style.display = 'none';
+      document.getElementById('sellerView').style.display = 'none';
+      
+      // Show dashboard
+      document.getElementById('ordersDashboard').style.display = 'block';
+      
+      // Load dashboard data
+      loadDashboardData();
+    }
+
+    function closeDashboard() {
+      document.getElementById('ordersDashboard').style.display = 'none';
+      document.getElementById('buyerView').style.display = 'block';
+    }
+
+    async function loadDashboardData() {
+      try {
+        showLoading('Loading dashboard...');
+        
+        // Load analytics
+        const analyticsRes = await fetch('/api/seller/dashboard/analytics');
+        const analyticsData = await analyticsRes.json();
+        
+        if (analyticsData.success) {
+          dashboardData.analytics = analyticsData.analytics;
+          updateAnalyticsDisplay();
+        }
+        
+        // Load orders
+        await loadOrders();
+        
+        // Load notifications
+        await loadNotifications();
+        
+        hideLoading();
+        
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        hideLoading();
+      }
+    }
+
+    function updateAnalyticsDisplay() {
+      const analytics = dashboardData.analytics.allTime;
+      
+      // Update stats cards
+      document.getElementById('totalOrders').textContent = analytics.total_orders || 0;
+      document.getElementById('totalRevenue').textContent = `$${(analytics.total_revenue || 0).toFixed(2)}`;
+      document.getElementById('totalEarnings').textContent = `$${(analytics.total_earnings || 0).toFixed(2)}`;
+      document.getElementById('avgDelivery').textContent = `${Math.round(analytics.avg_delivery_time || 0)} days`;
+      
+      // Update charts
+      updateCharts();
+    }
+
+    async function loadOrders() {
+      try {
+        const statusFilter = document.getElementById('orderStatusFilter').value;
+        const response = await fetch(`/api/seller/orders?status=${statusFilter}&limit=50`);
+        const data = await response.json();
+        
+        if (data.success) {
+          dashboardData.orders = data.orders;
+          renderOrders();
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      }
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersListContainer');
+      
+      if (!dashboardData.orders || dashboardData.orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h4>No orders yet</h4>
+            <p>When customers order your products, they'll appear here</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <div class="products-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Buyer</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      dashboardData.orders.forEach(order => {
+        const statusClass = `status-${order.order_status}`;
+        const statusText = order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1);
+        
+        html += `
+          <tr>
+            <td>
+              <strong style="color: var(--accent);">#${order.id}</strong>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                ${order.product_images && order.product_images.length > 0 ? `
+                  <img src="${order.product_images[0]}" 
+                       alt="${order.product_name}" 
+                       style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">
+                ` : `
+                  <div style="width: 40px; height: 40px; border-radius: 6px; background: var(--secondary-dark); 
+                           display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-box" style="color: var(--text-gray);"></i>
+                  </div>
+                `}
+                <div>
+                  <div style="color: var(--text-light); font-weight: 500;">${order.product_name}</div>
+                  <small style="color: var(--text-gray);">Qty: ${order.quantity}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div style="color: var(--text-light);">${order.buyer_name}</div>
+              <small style="color: var(--text-gray);">${order.buyer_email}</small>
+            </td>
+            <td>
+              <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong>
+              <div style="font-size: 11px; color: var(--text-gray);">
+                You earn: $${parseFloat(order.seller_earnings).toFixed(2)}
+              </div>
+            </td>
+            <td>
+              <span class="product-status ${statusClass}">${statusText}</span>
+            </td>
+            <td>
+              <small style="color: var(--text-gray);">${order.order_date_formatted}</small>
+            </td>
+            <td>
+              <div style="display: flex; gap: 8px;">
+                <button class="action-btn view" onclick="viewOrderDetail(${order.id})">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn edit" onclick="updateOrderStatus(${order.id})">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
+    }
+
+    async function viewOrderDetail(orderId) {
+      try {
+        showLoading('Loading order details...');
+        
+        const response = await fetch(`/api/seller/orders/${orderId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const order = data.order;
+          
+          let html = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+              <!-- Left Column: Order Info -->
+              <div>
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                  <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--accent);">
+                    <i class="fas fa-shopping-bag"></i> Order Information
+                  </h4>
+                  
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Order ID</label>
+                      <p style="margin: 5px 0; color: var(--text-light); font-weight: 500;">#${order.id}</p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Order Date</label>
+                      <p style="margin: 5px 0; color: var(--text-light);">${order.order_date_formatted}</p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Product</label>
+                      <p style="margin: 5px 0; color: var(--text-light); font-weight: 500;">${order.product_name}</p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Quantity</label>
+                      <p style="margin: 5px 0; color: var(--text-light);">${order.quantity}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Delivery Address -->
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                  <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--accent);">
+                    <i class="fas fa-map-marker-alt"></i> Delivery Address
+                  </h4>
+                  <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px;">
+                    <p style="margin: 5px 0; color: var(--text-light);">${order.shipping_address}</p>
+                    <p style="margin: 5px 0; color: var(--text-light);">
+                      ${order.city}${order.state ? ', ' + order.state : ''}${order.country ? ', ' + order.country : ''}
+                    </p>
+                    <hr style="border-color: var(--border); margin: 15px 0;">
+                    <p style="margin: 5px 0;">
+                      <strong style="color: var(--text-light);">Estimated Delivery:</strong>
+                      <span style="color: var(--warning); margin-left: 5px;">${order.estimated_delivery_days} days</span>
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Payment Information -->
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 10px;">
+                  <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--accent);">
+                    <i class="fas fa-credit-card"></i> Payment Information
+                  </h4>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Total Amount</label>
+                      <p style="margin: 5px 0; color: var(--success); font-size: 18px; font-weight: bold;">
+                        $${parseFloat(order.total_amount).toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Your Earnings</label>
+                      <p style="margin: 5px 0; color: var(--success); font-size: 18px; font-weight: bold;">
+                        $${parseFloat(order.seller_earnings).toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Platform Fee (10%)</label>
+                      <p style="margin: 5px 0; color: var(--text-light);">$${parseFloat(order.platform_fee).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <label style="color: var(--text-gray); font-size: 12px;">Payment Method</label>
+                      <p style="margin: 5px 0; color: var(--text-light);">${order.payment_method}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right Column: Status & Actions -->
+              <div>
+                <!-- Order Status -->
+                <div style="background: var(--card-bg); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 20px;">
+                  <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--accent);">
+                    <i class="fas fa-truck"></i> Order Status
+                  </h4>
+                  
+                  <div style="margin-bottom: 20px;">
+                    <span class="product-status status-${order.order_status}" style="display: inline-block; margin-bottom: 15px;">
+                      ${order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}
+                    </span>
+                    
+                    <!-- Status Update Form -->
+                    <div id="statusUpdateForm" style="display: none;">
+                      <select id="newOrderStatus" class="select" style="width: 100%; margin-bottom: 10px;">
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                      <input type="text" id="trackingNumber" class="form-input" placeholder="Tracking Number (Optional)" style="width: 100%; margin-bottom: 10px;">
+                      <div style="display: flex; gap: 10px;">
+                        <button onclick="submitStatusUpdate(${order.id})" class="btn primary" style="flex: 1;">
+                          Update
+                        </button>
+                        <button onclick="cancelStatusUpdate()" class="btn secondary" style="flex: 1;">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <button onclick="showStatusUpdateForm()" class="btn primary" style="width: 100%;">
+                      <i class="fas fa-edit"></i> Update Status
+                    </button>
+                  </div>
+                  
+                  <!-- Tracking History -->
+                  <h5 style="color: var(--text-light); margin-bottom: 10px;">Tracking History</h5>
+                  <div id="trackingHistory" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Tracking will be loaded here -->
+                  </div>
+                </div>
+                
+                <!-- Buyer Information -->
+                <div style="background: var(--card-bg); padding: 20px; border-radius: var(--radius-lg);">
+                  <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--accent);">
+                    <i class="fas fa-user"></i> Buyer Information
+                  </h4>
+                  
+                  <div style="margin-bottom: 10px;">
+                    <label style="color: var(--text-gray); font-size: 12px;">Name</label>
+                    <p style="margin: 5px 0; color: var(--text-light);">${order.buyer_name}</p>
+                  </div>
+                  
+                  <div style="margin-bottom: 10px;">
+                    <label style="color: var(--text-gray); font-size: 12px;">Email</label>
+                    <p style="margin: 5px 0; color: var(--text-light);">${order.buyer_email}</p>
+                  </div>
+                  
+                  <div style="margin-bottom: 10px;">
+                    <label style="color: var(--text-gray); font-size: 12px;">Phone</label>
+                    <p style="margin: 5px 0; color: var(--text-light);">${order.buyer_phone}</p>
+                  </div>
+                  
+                  <button onclick="sendMessageToBuyer(${order.buyer_id})" class="btn secondary" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-envelope"></i> Message Buyer
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          document.getElementById('orderDetailContent').innerHTML = html;
+          document.getElementById('orderBadge').textContent = order.order_status.toUpperCase();
+          document.getElementById('orderBadge').className = `product-status status-${order.order_status}`;
+          
+          // Load tracking history
+          if (data.tracking && data.tracking.length > 0) {
+            let trackingHtml = '';
+            data.tracking.forEach(track => {
+              trackingHtml += `
+                <div style="border-left: 3px solid var(--accent); padding-left: 15px; margin-bottom: 15px;">
+                  <div style="color: var(--text-light); font-weight: 500;">${track.status}</div>
+                  <div style="color: var(--text-gray); font-size: 12px;">${track.description}</div>
+                  <div style="color: var(--text-muted); font-size: 11px; margin-top: 5px;">
+                    ${new Date(track.created_at).toLocaleString()}
+                  </div>
+                </div>
+              `;
+            });
+            document.getElementById('trackingHistory').innerHTML = trackingHtml;
+          }
+          
+          // Show modal
+          document.getElementById('orderDetailModal').classList.add('open');
+        }
+        
+        hideLoading();
+        
+      } catch (error) {
+        console.error('Error loading order detail:', error);
+        hideLoading();
+      }
+    }
+
+    // Status update functions
+    function showStatusUpdateForm() {
+      document.getElementById('statusUpdateForm').style.display = 'block';
+    }
+
+    function cancelStatusUpdate() {
+      document.getElementById('statusUpdateForm').style.display = 'none';
+    }
+
+    async function submitStatusUpdate(orderId) {
+      const newStatus = document.getElementById('newOrderStatus').value;
+      const trackingNumber = document.getElementById('trackingNumber').value;
+      
+      try {
+        const response = await fetch(`/api/seller/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: newStatus,
+            trackingNumber: trackingNumber
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast('Status updated successfully', 'success');
+          cancelStatusUpdate();
+          viewOrderDetail(orderId); // Refresh the view
+          loadOrders(); // Refresh orders list
+          loadDashboardData(); // Refresh analytics
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+        showToast('Failed to update status', 'danger');
+      }
+    }
+
+    // Notification functions
+    async function loadNotifications() {
+      try {
+        const response = await fetch('/api/seller/notifications');
+        const data = await response.json();
+        
+        if (data.success) {
+          dashboardData.notifications = data.notifications;
+          renderNotifications();
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notificationsList');
+      
+      if (!dashboardData.notifications || dashboardData.notifications.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-bell-slash"></i>
+            <h4>No notifications</h4>
+            <p>You're all caught up!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      
+      dashboardData.notifications.forEach(notification => {
+        const isRead = notification.is_read ? 'opacity: 0.7;' : '';
+        
+        html += `
+          <div class="review-item" style="${isRead}" onclick="markNotificationRead(${notification.id}, ${notification.order_id})">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <strong style="color: var(--accent); display: block; margin-bottom: 5px;">
+                  ${notification.title}
+                </strong>
+                <p style="margin: 0; color: var(--text-light);">${notification.message}</p>
+                ${notification.metadata ? `
+                  <div style="margin-top: 10px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 6px;">
+                    <small style="color: var(--text-gray);">
+                      Order details included
+                    </small>
+                  </div>
+                ` : ''}
+              </div>
+              ${!notification.is_read ? `
+                <span style="background: var(--accent); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
+                  NEW
+                </span>
+              ` : ''}
+            </div>
+            <small style="color: var(--text-gray); display: block; margin-top: 10px;">
+              ${notification.formatted_time || new Date(notification.created_at).toLocaleString()}
+            </small>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    async function markNotificationRead(notificationId, orderId) {
+      try {
+        await fetch(`/api/seller/notifications/${notificationId}/read`, {
+          method: 'POST'
+        });
+        
+        // View the order if clicked
+        viewOrderDetail(orderId);
+        
+        // Refresh notifications
+        loadNotifications();
+        
+      } catch (error) {
+        console.error('Error marking notification read:', error);
+      }
+    }
+
+    // Chart functions
+    function updateCharts() {
+      // Revenue Chart
+      const revenueCtx = document.getElementById('revenueChart');
+      if (revenueCtx) {
+        const weeklyData = dashboardData.analytics.weeklyTrends || [];
+        
+        new Chart(revenueCtx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: weeklyData.map(day => day.date),
+            datasets: [{
+              label: 'Daily Revenue',
+              data: weeklyData.map(day => day.daily_revenue || 0),
+              backgroundColor: 'rgba(59, 130, 246, 0.5)',
+              borderColor: 'var(--accent)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: 'var(--text-light)'
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  color: 'var(--border)'
+                },
+                ticks: {
+                  color: 'var(--text-gray)'
+                }
+              },
+              y: {
+                grid: {
+                  color: 'var(--border)'
+                },
+                ticks: {
+                  color: 'var(--text-gray)',
+                  callback: function(value) {
+                    return '$' + value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // Status Chart
+      const statusCtx = document.getElementById('statusChart');
+      if (statusCtx) {
+        const analytics = dashboardData.analytics.allTime || {};
+        
+        new Chart(statusCtx.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Pending', 'Processing', 'Shipped', 'Delivered'],
+            datasets: [{
+              data: [
+                analytics.pending_orders || 0,
+                analytics.processing_orders || 0,
+                analytics.shipped_orders || 0,
+                analytics.delivered_orders || 0
+              ],
+              backgroundColor: [
+                'var(--warning)',
+                'var(--accent)',
+                'var(--success)',
+                'var(--digital)'
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: 'var(--text-light)'
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // Top Products List
+      const topProductsList = document.getElementById('topProductsList');
+      if (topProductsList) {
+        const topProducts = dashboardData.analytics.topProducts || [];
+        
+        if (topProducts.length === 0) {
+          topProductsList.innerHTML = '<p style="color: var(--text-gray); text-align: center;">No data yet</p>';
+        } else {
+          let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+          topProducts.forEach((product, index) => {
+            html += `
+              <div style="display: flex; justify-content: space-between; align-items: center; 
+                          padding: 12px; background: var(--card-bg); border-radius: 8px;">
+                <div>
+                  <div style="color: var(--text-light); font-weight: 500;">${product.product_name}</div>
+                  <div style="color: var(--text-gray); font-size: 12px;">
+                    ${product.order_count} orders
+                  </div>
+                </div>
+                <div style="color: var(--success); font-weight: bold;">
+                  $${parseFloat(product.revenue).toFixed(2)}
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          topProductsList.innerHTML = html;
+        }
+      }
+    }
+
+    // Utility functions
+    function showLoading(message) {
+      // Implement loading overlay
+      const loading = document.createElement('div');
+      loading.className = 'loading-overlay';
+      loading.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); 
+                    display: flex; align-items: center; justify-content: center; z-index: 9999;">
+          <div style="background: var(--card-bg); padding: 30px; border-radius: var(--radius-lg); text-align: center;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--accent); margin-bottom: 15px;"></i>
+            <p style="color: var(--text-light); margin: 0;">${message}</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(loading);
+    }
+
+    function hideLoading() {
+      const loading = document.querySelector('.loading-overlay');
+      if (loading) {
+        loading.remove();
+      }
+    }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                         type === 'warning' ? 'exclamation-triangle' : 
+                         type === 'danger' ? 'times-circle' : 'info-circle'}"></i>
+        <div class="toast-content">
+          <div class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close">&times;</button>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Show toast
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Close button
+      toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      });
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.remove();
+          }
+        }, 300);
+      }, 5000);
+    }
+
+    // Poll for new notifications every 30 seconds
+    setInterval(() => {
+      if (document.getElementById('ordersDashboard').style.display !== 'none') {
+        loadDashboardData();
+      }
+    }, 30000);
+
+    // Close order detail modal
+    function closeOrderDetail() {
+      document.getElementById('orderDetailModal').classList.remove('open');
+    }
+
+    // Send message to buyer
+    function sendMessageToBuyer(buyerId) {
+      showToast('Messaging feature coming soon!', 'info');
+    }
+
+    // ================= CURRENCY CONVERSION SYSTEM =================
+    // Variables for currency conversion
+    let userCurrency = 'NGN'; // Default currency
+    let exchangeRates = {};
+    let isLoadingRates = false;
+    
+    // Currency symbols mapping
+    const currencySymbols = {
+      'USD': '$',
+      'NGN': '₦',
+      'EUR': '€',
+      'GBP': '£',
+      'KES': 'KSh',
+      'GHS': 'GH₵',
+      'ZAR': 'R'
+    };
+    
+    // Default exchange rates (fallback)
+    const defaultRates = {
+      NGN: 1,
+      USD: 0.0011,  // 1 NGN = 0.0011 USD
+      EUR: 0.0010,  // 1 NGN = 0.0010 EUR
+      GBP: 0.00085, // 1 NGN = 0.00085 GBP
+      KES: 0.15,    // 1 NGN = 0.15 KES
+      GHS: 0.013,   // 1 NGN = 0.013 GHS
+      ZAR: 0.021    // 1 NGN = 0.021 ZAR
+    };
+    
+    // Detect user's currency based on IP
+    async function detectUserCurrency() {
+      try {
+        console.log("🌍 Detecting user currency...");
+        
+        // Try to get from browser or IP detection
+        const response = await fetch('https://ipapi.co/currency/', {
+          timeout: 5000 // Add timeout
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const currency = await response.text();
+        if (currency && currency.length === 3) {
+          userCurrency = currency;
+          console.log("🌍 Detected currency:", userCurrency);
+        }
+      } catch (error) {
+        console.log('Using default currency:', userCurrency);
+        // Set a default currency
+        userCurrency = 'NGN';
+      }
+      await loadExchangeRates();
+    }
+    
+    // Load exchange rates from server
+    async function loadExchangeRates() {
+      try {
+        showLoading();
+        const response = await fetch('/api/currency-rates');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.rates) {
+          exchangeRates = data.rates;
+          updateCurrencySelector();
+          updateAllPrices();
+        } else {
+          // Use default rates if API returns invalid data
+          exchangeRates = defaultRates;
+          console.log("Using default exchange rates");
+        }
+        
+        hideLoading();
+      } catch (error) {
+        console.error('Error loading exchange rates:', error);
+        // Use default rates
+        exchangeRates = defaultRates;
+        hideLoading();
+      }
+    }
+    
+    // Update currency selector dropdown
+    function updateCurrencySelector() {
+      const currencySelect = document.getElementById('currencyHeader');
+      if (currencySelect) {
+        // Set the selected currency
+        currencySelect.value = userCurrency;
+      }
+    }
+    
+    // Convert price from USD to selected currency
+    function convertPrice(priceInUSD) {
+      if (!priceInUSD || priceInUSD <= 0) return 0;
+      
+      // If rates aren't loaded yet, return the original price
+      if (Object.keys(exchangeRates).length === 0) {
+        return priceInUSD;
+      }
+      
+      // Convert from USD to NGN first (since our base is NGN)
+      const priceInNGN = priceInUSD / exchangeRates.USD;
+      
+      // Then convert from NGN to target currency
+      if (userCurrency === 'NGN') {
+        return priceInNGN;
+      }
+      
+      const rate = exchangeRates[userCurrency];
+      if (!rate) {
+        return priceInNGN; // Fallback to NGN
+      }
+      
+      return priceInNGN * rate;
+    }
+    
+    // Format price with currency symbol
+    function formatPrice(amount) {
+      const symbol = currencySymbols[userCurrency] || userCurrency;
+      const convertedAmount = convertPrice(amount);
+      
+      // Format the number based on currency
+      let formattedAmount;
+      if (userCurrency === 'NGN' || userCurrency === 'KES' || userCurrency === 'GHS' || userCurrency === 'ZAR') {
+        // African currencies: no decimal places
+        formattedAmount = Math.round(convertedAmount).toLocaleString();
+      } else {
+        // Other currencies: 2 decimal places
+        formattedAmount = convertedAmount.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      
+      return `${symbol}${formattedAmount}`;
+    }
+    
+    // Update all prices on the page
+    function updateAllPrices() {
+      // Update product cards
+      document.querySelectorAll('.product-card .price').forEach(priceElement => {
+        const productId = priceElement.closest('.product-card')?.getAttribute('data-id');
+        if (productId) {
+          const product = products.find(p => p.id == productId);
+          if (product) {
+            priceElement.textContent = formatPrice(product.price);
+          }
+        }
+      });
+      
+      // Update dashboard stats
+      updateDashboardPrices();
+      
+      // Update seller form price display
+      updateSellerFormPriceDisplay();
+    }
+    
+    // Update dashboard prices
+    function updateDashboardPrices() {
+      const totalRevenue = document.getElementById('totalRevenue');
+      const totalSalesValue = document.getElementById('totalSalesValue');
+      const yourEarnings = document.getElementById('yourEarnings');
+      const platformFee = document.getElementById('platformFee');
+      const platformRevenue = document.getElementById('platformRevenue');
+      
+      if (totalRevenue && totalRevenue.textContent.includes('$')) {
+        const amount = parseFloat(totalRevenue.textContent.replace('$', ''));
+        totalRevenue.textContent = formatPrice(amount);
+      }
+      
+      // Similar updates for other price elements...
+    }
+    
+    // Update seller form price display
+    function updateSellerFormPriceDisplay() {
+      const priceInput = document.getElementById('p_price');
+      if (priceInput && priceInput.value) {
+        // You could add a real-time conversion display here
+      }
+    }
+    
     // ================= MOBILE NAVIGATION =================
     document.addEventListener('DOMContentLoaded', function() {
       // Create mobile navigation elements
@@ -3662,50 +4845,36 @@
         resizeTimer = setTimeout(updateNavigation, 250);
       });
     });
-
-    // ================= TOAST NOTIFICATION SYSTEM =================
-    function showToast(title, message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 
-                         type === 'warning' ? 'exclamation-triangle' : 
-                         type === 'danger' ? 'times-circle' : 'info-circle'}"></i>
-        <div class="toast-content">
-          <div class="toast-title">${title}</div>
-          <div class="toast-message">${message}</div>
-        </div>
-        <button class="toast-close">&times;</button>
-      `;
-      
-      document.body.appendChild(toast);
-      
-      // Show toast
-      setTimeout(() => {
-        toast.classList.add('show');
-      }, 10);
-      
-      // Close button
-      toast.querySelector('.toast-close').addEventListener('click', () => {
-        hideToast(toast);
-      });
-      
-      // Auto-remove after 5 seconds
-      setTimeout(() => {
-        hideToast(toast);
-      }, 5000);
-    }
     
-    function hideToast(toast) {
-      toast.classList.remove('show');
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
+    // ================= NOTIFICATION SYSTEM =================
+    async function loadSellerNotifications() {
+      try {
+        if (!currentUser) return;
+        
+        const response = await fetch('/api/seller/notifications');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Update notification badge
+          const notificationCount = document.getElementById('notificationCount');
+          if (notificationCount && data.unreadCount > 0) {
+            notificationCount.textContent = data.unreadCount;
+            notificationCount.style.display = 'flex';
+          } else if (notificationCount) {
+            notificationCount.style.display = 'none';
+          }
+          
+          // Store notifications for display in dashboard
+          window.sellerNotifications = data.notifications;
         }
-      }, 300);
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
     }
 
     // ================= PRODUCT ORDER SYSTEM =================
+    let currentOrderProduct = null;
+
     async function orderPhysicalProduct(productId) {
       if (!currentUser) {
         openModal(document.getElementById('loginModal'));
@@ -3719,48 +4888,139 @@
           return;
         }
         
-        // Show confirmation modal
-        const confirmOrder = confirm(`Order "${product.title}"?\n\nPrice: ${fmtPrice(product.price)}\nDelivery: ${product.delivery_type || 'pickup'}\nPayment: Pay on Delivery\n\nThis will notify the seller of your interest.`);
+        // Store product for order
+        currentOrderProduct = product;
         
-        if (!confirmOrder) return;
+        // Show address collection modal instead of immediate confirmation
+        openModal(document.getElementById('addressModal'));
         
-        // Send order request to server
-        const response = await fetch('/api/order-product', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': getCSRFToken() 
-          },
-          body: JSON.stringify({
-            productId: productId,
-            sellerId: product.user_id,
-            productTitle: product.title,
-            price: product.price,
-            deliveryType: product.delivery_type || 'pickup'
-          })
-        });
+        // Clear any previous messages
+        document.getElementById('addressFormMessage').textContent = '';
         
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Show success toast
-          showToast('Order Placed!', 'The seller has been notified of your interest. They will contact you soon.', 'success');
-          
-          // Also show success message
-          alert(`✅ Order placed successfully!\n\nThe seller "${product.seller_name}" has been notified of your interest in "${product.title}".\n\nThey will contact you to arrange delivery and payment.`);
-          
-          console.log('Order placed:', data);
-        } else {
-          const error = await response.json();
-          alert(error.error || 'Failed to place order');
-        }
       } catch(error) {
         console.error('Order failed:', error);
-        alert('Failed to place order. Please try again.');
+        alert('Failed to prepare order. Please try again.');
       }
     }
-    
+
+    // Update the global function reference
     window.orderPhysicalProduct = orderPhysicalProduct;
+
+    // Add modal handlers for the address modal
+    document.getElementById('closeAddressModal').addEventListener('click', () => {
+      closeModal(document.getElementById('addressModal'));
+    });
+
+    document.getElementById('cancelAddress').addEventListener('click', () => {
+      closeModal(document.getElementById('addressModal'));
+      currentOrderProduct = null;
+    });
+
+  
+// Update the address form submission handler
+document.getElementById('addressForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  if (!currentOrderProduct) {
+    alert('No product selected for ordering');
+    return;
+  }
+  
+  const messageEl = document.getElementById('addressFormMessage');
+  messageEl.textContent = 'Placing order...';
+  messageEl.style.color = 'var(--text-gray)';
+  
+  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+  const deliveryContact = document.getElementById('deliveryPhone').value.trim();
+  
+  // Validate required fields
+  if (!deliveryAddress) {
+    messageEl.textContent = 'Please enter a delivery address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  if (!deliveryContact) {
+    messageEl.textContent = 'Please enter a phone number or email address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  // Validate it's either email or phone-like format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+  
+  if (!emailRegex.test(deliveryContact) && !phoneRegex.test(deliveryContact)) {
+    messageEl.textContent = 'Please enter a valid phone number or email address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  try {
+    // FIXED: Match the field names expected by the backend
+    const orderData = {
+      productId: currentOrderProduct.id,
+      productTitle: currentOrderProduct.title,
+      price: currentOrderProduct.price,
+      quantity: parseInt(document.getElementById('orderQuantity').value) || 1,
+      deliveryAddress: deliveryAddress,
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      deliveryPhone: deliveryContact,  // This can be phone OR email
+      deliveryDays: currentOrderProduct.estimated_delivery_days || currentOrderProduct.delivery_days || 7
+    };
+    
+    console.log('📤 Sending order data:', orderData); // Debug log
+    
+    const response = await fetch('/api/order-product', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCSRFToken() 
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    console.log('📥 Response status:', response.status); // Debug log
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Close the modal
+      closeModal(document.getElementById('addressModal'));
+      
+      // Show success toast
+      showToast('Order Placed!', 'The seller has been notified of your order.', 'success');
+      
+      // Show success message
+      alert(`✅ Order placed successfully!\n\nOrder ID: #${data.orderId}\nProduct: "${currentOrderProduct.title}"\nDelivery Address: ${deliveryAddress}\n\nThe seller has been notified and will contact you to arrange delivery.`);
+      
+      // Reset form
+      document.getElementById('addressForm').reset();
+      currentOrderProduct = null;
+      
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Server error:', errorText); // Debug log
+      let errorMessage = 'Failed to place order';
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      
+      messageEl.textContent = errorMessage;
+      messageEl.style.color = 'var(--danger)';
+    }
+  } catch(error) {
+    console.error('❌ Order placement failed:', error);
+    messageEl.textContent = 'Network error. Please try again.';
+    messageEl.style.color = 'var(--danger)';
+  }
+});
 
     // ================= FORM INITIALIZATION =================
     document.addEventListener('DOMContentLoaded', function() {
@@ -3906,7 +5166,6 @@
     let currentUser = null;
     let products = [];
     let categoriesSet = new Set();
-    let currentCurrency = localStorage.getItem('ci_currency') || 'USD';
     let userFavorites = new Set();
     let sellerMode = false;
     let currentProductId = null; // For reviews
@@ -3925,11 +5184,8 @@
     }
 
     function fmtPrice(amount){
-      try {
-        return new Intl.NumberFormat('en-US',{style:'currency',currency:currentCurrency}).format(Number(amount||0));
-      } catch(e){
-        return `${currentCurrency} ${Number(amount||0).toFixed(2)}`;
-      }
+      // Use our new formatPrice function for currency conversion
+      return formatPrice(Number(amount||0));
     }
 
     function showSkeletonLoader(count = 6) {
@@ -3987,6 +5243,14 @@
         currentUser = u || null;
         updateHeader();
         updateReviewFormVisibility();
+        
+        // Load notifications if user is logged in
+        if (currentUser) {
+          await loadSellerNotifications();
+          
+          // Poll for new notifications every 30 seconds
+          setInterval(loadSellerNotifications, 30000);
+        }
       } catch(err){
         console.error('loadUser', err);
         currentUser = null;
@@ -4021,41 +5285,50 @@
       }
     }
 
-    function updateHeader(){
-      const hb = $('headerAuthButtons');
-      if (currentUser && currentUser.id){
-        hb.innerHTML = `
-          <span style="color:var(--text-gray);margin-right:.5rem">Welcome, ${escapeHtml(currentUser.username || currentUser.email || 'User')}</span>
-          <button id="logoutBtn" class="auth-btn">Logout</button>
-        `;
-        $('logoutBtn').addEventListener('click', async ()=>{ 
-          await fetch('/api/logout',{method:'POST'}); 
-          currentUser=null; 
-          userFavorites=new Set(); 
-          updateHeader(); 
-          updateReviewFormVisibility();
-          loadProducts(); 
-        });
-      } else {
-        hb.innerHTML = `
-          <button id="loginOpen" class="auth-btn">Login</button>
-          <button id="signupOpen" class="auth-btn signup">Sign Up</button>
-        `;
-        // rebind newly created nodes
-        $('loginOpen').addEventListener('click', ()=> openModal(loginModal));
-        $('signupOpen').addEventListener('click', ()=> openModal(signupModal));
+   function updateHeader(){
+  const hb = $('headerAuthButtons');
+  if (currentUser && currentUser.id){
+    hb.innerHTML = `
+      <span style="color:var(--text-gray);margin-right:.5rem">Welcome, ${escapeHtml(currentUser.username || currentUser.email || 'User')}</span>
+      <button id="logoutBtn" class="auth-btn">Logout</button>
+    `;
+    $('logoutBtn').addEventListener('click', async ()=>{ 
+      await fetch('/api/logout',{method:'POST'}); 
+      currentUser=null; 
+      userFavorites=new Set(); 
+      updateHeader(); 
+      updateReviewFormVisibility();
+      loadProducts(); 
+    });
+  } else {
+    hb.innerHTML = `
+      <button id="loginOpen" class="auth-btn">Login</button>
+      <button id="signupOpen" class="auth-btn signup">Sign Up</button>
+    `;
+    
+    // RE-BIND the event listeners after creating the buttons
+    setTimeout(() => {
+      const loginOpen = document.getElementById('loginOpen');
+      const signupOpen = document.getElementById('signupOpen');
+      
+      if (loginOpen) {
+        loginOpen.addEventListener('click', () => openModal(loginModal));
       }
-      // show/hide seller view depending on sellerMode and login
-      if (sellerMode && currentUser) {
-        $('sellerView').classList.add('active');
-      } else {
-        $('sellerView').classList.remove('active');
+      if (signupOpen) {
+        signupOpen.addEventListener('click', () => openModal(signupModal));
       }
-      $('sellerView').setAttribute('aria-hidden', !(sellerMode && currentUser));
-      $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
-    }
-
-    // Add this function to your products.html <script> section
+    }, 0);
+  }
+  
+  // show/hide seller view depending on sellerMode and login
+  if (sellerMode && currentUser) {
+    $('sellerView').classList.add('active');
+  } else {
+    $('sellerView').classList.remove('active');
+  }
+  $('sellerView').setAttribute('aria-hidden', !(sellerMode && currentUser));
+  $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
+}
 
     // ================= REVIEWS FUNCTIONS =================
     async function loadProductReviews(productId) {
@@ -4297,15 +5570,6 @@
 
     $('useAffiliate').addEventListener('change',toggleAffiliateFields);
 
-    $('p_deliveryType').addEventListener('change', (e)=>{ 
-      const deliveryExtra = $('deliveryExtra');
-      if (e.target.value === 'delivery') {
-        deliveryExtra.classList.add('show');
-      } else {
-        deliveryExtra.classList.remove('show');
-      }
-    });
-
     // ---------- Fetch & render products ----------
     async function loadProducts(){
       try {
@@ -4333,9 +5597,9 @@
           p.favorite_count = Number(p.favorite_count || p.favorites || 0);
           p.review_count = Number(p.review_count || p.reviews || 0);
           
-          // Set default delivery type for physical products
+          // Set default delivery type for physical products to 'delivery' (Home Delivery)
           if (p.type === 'physical' && !p.delivery_type) {
-            p.delivery_type = 'pickup';
+            p.delivery_type = 'delivery';
           }
           
           return p;
@@ -4398,12 +5662,19 @@
                           p.type === 'physical' ? 'badge-physical' : 
                           'badge-affiliate';
 
-        // Delivery and payment info for physical products
+        // Get estimated delivery days for physical products
+        const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+        
+        // Delivery and payment info for physical products (UPDATED WITH DELIVERY DAYS)
         const deliveryInfo = isPhysical ? `
           <div class="product-details">
             <div class="detail-item">
               <i class="fas fa-truck"></i>
               <span><strong>Delivery:</strong> ${p.delivery_type === 'delivery' ? 'Home Delivery' : 'Customer Pickup'}</span>
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-calendar-day"></i>
+              <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
             </div>
             <div class="detail-item">
               <i class="fas fa-money-bill-wave"></i>
@@ -4415,6 +5686,12 @@
                 <span><strong>Locations:</strong> ${escapeHtml(p.delivery_locations)}</span>
               </div>
             ` : ''}
+            ${p.delivery_fee && parseFloat(p.delivery_fee) > 0 ? `
+              <div class="detail-item">
+                <i class="fas fa-tag"></i>
+                <span><strong>Delivery Fee:</strong> ${fmtPrice(p.delivery_fee)}</span>
+              </div>
+            ` : ''}
           </div>
         ` : '';
 
@@ -4422,12 +5699,19 @@
         const paymentBadge = isPhysical ? `<div class="payment-badge">${p.payment_option || 'Pay on Delivery'}</div>` : '';
         const deliveryBadge = isPhysical && p.delivery_type ? 
           `<div class="delivery-badge">${p.delivery_type === 'delivery' ? 'Home Delivery' : 'Pickup'}</div>` : '';
+        
+        // Delivery days badge (NEW)
+        const deliveryDaysBadge = isPhysical ? 
+          `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
+            <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
+          </div>` : '';
 
         return `
           <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
             <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
             ${paymentBadge}
             ${deliveryBadge}
+            ${deliveryDaysBadge}
             <div class="card-media">
               <img id="mainimg-${p.id}" src="${escapeHtml(img)}" alt="${title}" loading="lazy">
               ${p._imageList && p._imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
@@ -4454,6 +5738,11 @@
               <div class="price-row">
                 <div>
                   <div class="price">${price}</div>
+                  ${p.delivery_fee && parseFloat(p.delivery_fee) > 0 ? `
+                    <div style="font-size: 12px; color: var(--text-gray); margin-top: 4px;">
+                      + ${fmtPrice(p.delivery_fee)} delivery fee
+                    </div>
+                  ` : ''}
                 </div>
                 <div class="card-actions">
                   ${ isAffiliate ? `
@@ -4461,7 +5750,7 @@
                       <i class="fas fa-external-link-alt"></i> Visit
                     </button>
                   ` : isPhysical ? `
-                    <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})">
+                    <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
                       <i class="fas fa-shopping-cart"></i> Order Now
                     </button>
                   ` : `
@@ -4491,7 +5780,8 @@
       initializeProductOwnership();
       startProductCarousels();
     }
-
+      
+      
     // Function to select product for reviews
     function selectProductForReviews(productId) {
       currentProductId = productId;
@@ -4665,108 +5955,109 @@
     }
     window.buyProduct = buyProduct;
 
-  async function deleteProduct(id) {
-  console.log("🗑️ deleteProduct called for ID:", id);
+    async function deleteProduct(id) {
+      console.log("🗑️ deleteProduct called for ID:", id);
 
-  try {
-    // Check auth
-    const userCheck = await fetch('/api/me', { credentials: 'include' });
-    const user = await userCheck.json();
+      try {
+        // Check auth
+        const userCheck = await fetch('/api/me', { credentials: 'include' });
+        const user = await userCheck.json();
 
-    if (!user || !user.id) {
-      openModal($('loginModal'));
-      return;
+        if (!user || !user.id) {
+          openModal($('loginModal'));
+          return;
+        }
+
+        if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+          return;
+        }
+
+        const res = await fetch(`/api/products/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showToast('Error', data.error || 'Failed to delete product', 'danger');
+          return;
+        }
+
+        // ✅ SUCCESS
+        showToast('Success', data.message || 'Product deleted', 'success');
+
+        // 🔥 REMOVE FROM DOM INSTANTLY
+        removeProductFromDOM(id);
+
+      } catch (err) {
+        console.error('deleteProduct error:', err);
+        showToast('Error', 'Error deleting product: ' + err.message, 'danger');
+      }
     }
 
-    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) {
-      return;
-    }
-
-    const res = await fetch(`/api/products/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast('Error', data.error || 'Failed to delete product', 'danger');
-      return;
-    }
-
-    // ✅ SUCCESS
-    showToast('Success', data.message || 'Product deleted', 'success');
-
-    // 🔥 REMOVE FROM DOM INSTANTLY
-    removeProductFromDOM(id);
-
-  } catch (err) {
-    console.error('deleteProduct error:', err);
-    showToast('Error', 'Error deleting product: ' + err.message, 'danger');
-  }
-}
-
-// Helper function to remove product from DOM
-function removeProductFromDOM(productId) {
-  console.log(`Removing product ${productId} from DOM`);
-  
-  // Try multiple selectors
-  const selectors = [
-    `#product-${productId}`,
-    `.product-card[data-id="${productId}"]`,
-    `[data-product-id="${productId}"]`,
-    `div[onclick*="selectProductForReviews(${productId})"]`
-  ];
-  
-  let productElement = null;
-  
-  for (const selector of selectors) {
-    const el = document.querySelector(selector);
-    if (el) {
-      productElement = el;
-      console.log(`Found product with selector: ${selector}`);
-      break;
-    }
-  }
-  
-  if (productElement) {
-    // Add fade-out animation
-    productElement.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-    productElement.style.opacity = '0';
-    productElement.style.transform = 'scale(0.95) translateY(20px)';
-    productElement.style.maxHeight = '0';
-    productElement.style.margin = '0';
-    productElement.style.padding = '0';
-    productElement.style.border = 'none';
-    productElement.style.overflow = 'hidden';
-    
-    // Remove after animation
-    setTimeout(() => {
-      productElement.remove();
+    // Helper function to remove product from DOM
+    function removeProductFromDOM(productId) {
+      console.log(`Removing product ${productId} from DOM`);
       
-      // Check if grid is now empty
-      const grid = document.getElementById('productsGrid');
-      const noProducts = document.getElementById('noProducts');
+      // Try multiple selectors
+      const selectors = [
+        `#product-${productId}`,
+        `.product-card[data-id="${productId}"]`,
+        `[data-product-id="${productId}"]`,
+        `div[onclick*="selectProductForReviews(${productId})"]`
+      ];
       
-      if (grid && grid.children.length === 0 && noProducts) {
-        noProducts.style.display = 'block';
+      let productElement = null;
+      
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (el) {
+          productElement = el;
+          console.log(`Found product with selector: ${selector}`);
+          break;
+        }
       }
       
-      // Update dashboard if open
-      if (typeof loadMyProducts === 'function') {
-        setTimeout(() => loadMyProducts(), 100);
+      if (productElement) {
+        // Add fade-out animation
+        productElement.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        productElement.style.opacity = '0';
+        productElement.style.transform = 'scale(0.95) translateY(20px)';
+        productElement.style.maxHeight = '0';
+        productElement.style.margin = '0';
+        productElement.style.padding = '0';
+        productElement.style.border = 'none';
+        productElement.style.overflow = 'hidden';
+        
+        // Remove after animation
+        setTimeout(() => {
+          productElement.remove();
+          
+          // Check if grid is now empty
+          const grid = document.getElementById('productsGrid');
+          const noProducts = document.getElementById('noProducts');
+          
+          if (grid && grid.children.length === 0 && noProducts) {
+            noProducts.style.display = 'block';
+          }
+          
+          // Update dashboard if open
+          if (typeof loadMyProducts === 'function') {
+            setTimeout(() => loadMyProducts(), 100);
+          }
+          
+        }, 400);
+        
+      } else {
+        console.log(`Could not find product ${productId} in DOM, reloading...`);
+        // If we can't find the element, reload the products
+        if (typeof loadProducts === 'function') {
+          setTimeout(() => loadProducts(), 500);
+        }
       }
-      
-    }, 400);
-    
-  } else {
-    console.log(`Could not find product ${productId} in DOM, reloading...`);
-    // If we can't find the element, reload the products
-    if (typeof loadProducts === 'function') {
-      setTimeout(() => loadProducts(), 500);
     }
-  }
-}
+
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);
@@ -4800,8 +6091,8 @@ function removeProductFromDOM(productId) {
       
       // Set delivery type for physical products
       if (product.type === 'physical') {
-        document.getElementById('p_deliveryType').value = product.delivery_type || 'pickup';
-        document.getElementById('p_deliveryType').dispatchEvent(new Event('change'));
+        // Always set to 'delivery' (Home Delivery)
+        document.getElementById('p_deliveryType').value = 'delivery';
         
         if (product.delivery_type === 'delivery') {
           document.getElementById('p_deliveryLocations').value = product.delivery_locations || '';
@@ -4816,150 +6107,158 @@ function removeProductFromDOM(productId) {
     window.editProduct = editProduct;
 
     // ========== UPLOAD PRODUCT FUNCTION ==========
-    $('uploadProductBtn').addEventListener('click', async (e) => {
-      e.preventDefault();
-      console.log("🟢 Upload button CLICKED!");
+   $('uploadProductBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  console.log("🟢 Upload button CLICKED!");
 
-      // Validate form first
-      if (!validateProductForm()) {
-        console.log("❌ Form validation failed");
-        return;
-      }
+  // Validate form first
+  if (!validateProductForm()) {
+    console.log("❌ Form validation failed");
+    return;
+  }
 
-      // Check if user is logged in
-      if (!currentUser){ 
-        console.log("❌ No user - opening login modal");
-        openModal(loginModal); 
-        return; 
-      }
-      console.log("✅ User is logged in:", currentUser.id);
+  // Check if user is logged in
+  if (!currentUser){ 
+    console.log("❌ No user - opening login modal");
+    openModal(loginModal); 
+    return; 
+  }
+  console.log("✅ User is logged in:", currentUser.id);
 
-      // Get form values
-      const title = $('p_title').value.trim();
-      const description = $('p_description').value.trim();
-      const category = getSelectedCategory();
-      const price = $('p_price').value || 0;
-      const type = $('p_type').value;
-      const paymentProvider = $('p_paymentProvider').value;
-      
-      console.log("📦 Form values:", { title, description, category, price, type, paymentProvider });
+  // Get form values
+  const title = $('p_title').value.trim();
+  const description = $('p_description').value.trim();
+  const category = getSelectedCategory();
+  const price = $('p_price').value || 0;
+  const type = $('p_type').value;
+  const paymentProvider = $('p_paymentProvider').value;
+  
+  // FIX: Get delivery days for physical products
+  const deliveryDays = type === 'physical' ? $('p_deliveryDays').value || '7' : '';
+  
+  console.log("📦 Form values:", { title, description, category, price, type, paymentProvider, deliveryDays });
 
-      const fd = new FormData();
-      fd.append('title', title);
-      fd.append('description', description);
-      fd.append('category', category);
-      fd.append('price', price);
-      fd.append('type', type);
-      fd.append('paymentProvider', paymentProvider);
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('description', description);
+  fd.append('category', category);
+  fd.append('price', price);
+  fd.append('type', type);
+  fd.append('paymentProvider', paymentProvider);
+  
+  // FIX: Add delivery_days for physical products
+  if (type === 'physical') {
+    fd.append('delivery_days', deliveryDays);
+  }
 
-      // Digital / affiliate
-      if (type === 'affiliate' || document.getElementById('useAffiliate').checked) {
-        const aff = $('p_affiliate').value.trim();
-        console.log("🔗 Affiliate link:", aff);
-        fd.append('affiliate_link', aff);
-      } else if (type === 'digital') {
-        const file = $('p_file').files[0];
-        console.log("💾 Digital file:", file);
-        if (file) fd.append('file', file);
-      }
+  // Digital / affiliate
+  if (type === 'affiliate' || document.getElementById('useAffiliate').checked) {
+    const aff = $('p_affiliate').value.trim();
+    console.log("🔗 Affiliate link:", aff);
+    fd.append('affiliate_link', aff);
+  } else if (type === 'digital') {
+    const file = $('p_file').files[0];
+    console.log("💾 Digital file:", file);
+    if (file) fd.append('file', file);
+  }
 
-      // Physical products
-      if (type === 'physical') {
-        const deliveryType = $('p_deliveryType').value;
-        fd.append('delivery_type', deliveryType);
-        // Default to Pay on Delivery for physical products
-        fd.append('payment_option', $('p_paymentOption').value || 'pay_on_delivery');
-        
-        console.log("📦 Physical product delivery:", deliveryType);
-        if (deliveryType === 'delivery') {
-          fd.append('delivery_locations', $('p_deliveryLocations').value.trim());
-          fd.append('delivery_fee', $('p_deliveryFee').value || 0);
-        }
-      }
+  // Physical products
+  if (type === 'physical') {
+    // Always set delivery type to 'delivery' (Home Delivery)
+    fd.append('delivery_type', 'delivery');
+    // Default to Pay on Delivery for physical products
+    fd.append('payment_option', $('p_paymentOption').value || 'pay_on_delivery');
+    
+    console.log("📦 Physical product delivery: Home Delivery");
+    
+    // Always show delivery extra for home delivery
+    fd.append('delivery_locations', $('p_deliveryLocations').value.trim());
+    fd.append('delivery_fee', $('p_deliveryFee').value || 0);
+  }
 
-      // Business information
-      fd.append('businessName', $('p_businessName').value.trim());
-      fd.append('businessEmail', $('p_businessEmail').value.trim());
-      fd.append('businessPhone', $('p_businessPhone').value.trim());
-      fd.append('country', $('p_country').value.trim());
-      fd.append('bankName', $('p_bankName').value.trim());
-      fd.append('bankCode', $('p_bankCode').value.trim());
-      fd.append('accountNumber', $('p_accountNumber').value.trim());
-      fd.append('accountName', $('p_accountName').value.trim());
+  // Business information
+  fd.append('businessName', $('p_businessName').value.trim());
+  fd.append('businessEmail', $('p_businessEmail').value.trim());
+  fd.append('businessPhone', $('p_businessPhone').value.trim());
+  fd.append('country', $('p_country').value.trim());
+  fd.append('bankName', $('p_bankName').value.trim());
+  fd.append('bankCode', $('p_bankCode').value.trim());
+  fd.append('accountNumber', $('p_accountNumber').value.trim());
+  fd.append('accountName', $('p_accountName').value.trim());
 
-      // Multiple images
-      const images = $('p_images').files;
-      console.log("🖼️ Images:", images.length);
-      if (images && images.length) {
-        for (let i = 0; i < images.length; i++) {
-          fd.append('images[]', images[i]);
-        }
-      }
+  // Multiple images
+  const images = $('p_images').files;
+  console.log("🖼️ Images:", images.length);
+  if (images && images.length) {
+    for (let i = 0; i < images.length; i++) {
+      fd.append('images[]', images[i]);
+    }
+  }
 
-      // Debug FormData
-      console.log("📤 FormData contents:");
-      for (let pair of fd.entries()) {
-        console.log(`${pair[0]}:`, pair[1]);
-      }
+  // Debug FormData
+  console.log("📤 FormData contents:");
+  for (let pair of fd.entries()) {
+    console.log(`${pair[0]}:`, pair[1]);
+  }
 
-      $('uploadMessage').innerHTML = '<div class="form-success" style="color:var(--text-gray)">Uploading product...</div>';
-      $('uploadMessage').classList.add('show');
+  $('uploadMessage').innerHTML = '<div class="form-success" style="color:var(--text-gray)">Uploading product...</div>';
+  $('uploadMessage').classList.add('show');
 
-      try {
-        console.log("🚀 Sending request to /api/upload-product...");
-        const res = await fetch('/api/upload-product', { 
-          method: 'POST', 
-          body: fd 
-        });
-        
-        console.log("📨 Response status:", res.status);
-        const data = await res.json();
-        console.log("📨 Response data:", data);
+  try {
+    console.log("🚀 Sending request to /api/upload-product...");
+    const res = await fetch('/api/upload-product', { 
+      method: 'POST', 
+      body: fd 
+    });
+    
+    console.log("📨 Response status:", res.status);
+    const data = await res.json();
+    console.log("📨 Response data:", data);
 
-        if (!res.ok) { 
-          console.log("❌ Upload failed:", data.error);
-          $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--danger)">${escapeHtml(data.error || 'Upload failed')}</div>`; 
-          return; 
-        }
+    if (!res.ok) { 
+      console.log("❌ Upload failed:", data.error);
+      $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--danger)">${escapeHtml(data.error || 'Upload failed')}</div>`; 
+      return; 
+    }
 
-        console.log("✅ Upload successful!");
-        $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--success)">✅ Product uploaded successfully!</div>`;
+    console.log("✅ Upload successful!");
+    $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--success)">✅ Product uploaded successfully!</div>`;
 
-        // Reset form
-        document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(element => {
-          if (element.type !== 'button' && element.id !== 'uploadProductBtn') {
-            element.value = '';
-          }
-        });
-
-        // Reset checkboxes
-        $('useAffiliate').checked = false;
-        toggleAffiliateFields();
-
-        // Reset provider selection
-        document.querySelectorAll('.provider-option').forEach(opt => opt.classList.remove('selected'));
-        $('p_paymentProvider').value = '';
-        document.getElementById('businessInfo').classList.remove('show');
-
-        // Hide conditional sections
-        document.getElementById('digitalBlock').classList.remove('show');
-        document.getElementById('physicalBlock').classList.remove('show');
-        document.getElementById('deliveryExtra').classList.remove('show');
-
-        setTimeout(async () => {
-          sellerMode = false; 
-          becomeBtn.textContent = 'Become a Seller'; 
-          $('sellerView').classList.remove('active');
-          $('uploadMessage').classList.remove('show');
-          await loadProducts();
-        }, 3000);
-
-      } catch(err) {
-        console.error('❌ Upload error:', err);
-        const message = handleApiError(err, 'Upload product');
-        $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--danger)">${escapeHtml(message)}</div>`;
+    // Reset form
+    document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(element => {
+      if (element.type !== 'button' && element.id !== 'uploadProductBtn') {
+        element.value = '';
       }
     });
+
+    // Reset checkboxes
+    $('useAffiliate').checked = false;
+    toggleAffiliateFields();
+
+    // Reset provider selection
+    document.querySelectorAll('.provider-option').forEach(opt => opt.classList.remove('selected'));
+    $('p_paymentProvider').value = '';
+    document.getElementById('businessInfo').classList.remove('show');
+
+    // Hide conditional sections
+    document.getElementById('digitalBlock').classList.remove('show');
+    document.getElementById('physicalBlock').classList.remove('show');
+    document.getElementById('deliveryExtra').classList.remove('show');
+
+    setTimeout(async () => {
+      sellerMode = false; 
+      becomeBtn.textContent = 'Become a Seller'; 
+      $('sellerView').classList.remove('active');
+      $('uploadMessage').classList.remove('show');
+      await loadProducts();
+    }, 3000);
+
+  } catch(err) {
+    console.error('❌ Upload error:', err);
+    const message = handleApiError(err, 'Upload product');
+    $('uploadMessage').innerHTML = `<div class="form-success" style="color:var(--danger)">${escapeHtml(message)}</div>`;
+  }
+});
 
     // Save as draft button
     document.getElementById('saveDraftBtn')?.addEventListener('click', function(e) {
@@ -4996,11 +6295,20 @@ function removeProductFromDOM(productId) {
 
     // ---------- Currency selector ----------
     const currencySelect = $('currencyHeader');
-    currencySelect.value = currentCurrency;
-    currencySelect.addEventListener('change', (e)=>{
-      currentCurrency = e.target.value;
-      localStorage.setItem('ci_currency', currentCurrency);
-      renderProducts();
+    
+    // Set initial currency
+    currencySelect.value = userCurrency;
+    
+    // Handle currency change
+    currencySelect.addEventListener('change', async (e)=>{
+      userCurrency = e.target.value;
+      localStorage.setItem('ci_currency', userCurrency);
+      
+      // Update all prices immediately
+      updateAllPrices();
+      
+      // Reload exchange rates to ensure we have the latest
+      await loadExchangeRates();
     });
 
     // ================= DASHBOARD FUNCTIONALITY =================
@@ -5031,7 +6339,6 @@ function removeProductFromDOM(productId) {
     
     // Initialize dashboard
     let isDashboardVisible = false;
-    let dashboardData = null;
     
     // Dashboard toggle functionality
     if (toggleDashboardBtn) {
@@ -5046,17 +6353,20 @@ function removeProductFromDOM(productId) {
       });
     }
     
-    // Tab switching
-    tabBtns.forEach(btn => {
+    // Tab switching for main dashboard
+    const mainTabBtns = document.querySelectorAll('#dashboardSection .tab-btn');
+    const mainTabContents = document.querySelectorAll('#dashboardSection .tab-content');
+    
+    mainTabBtns.forEach(btn => {
       btn.addEventListener('click', function() {
         const tabId = this.getAttribute('data-tab');
         
         // Update active tab button
-        tabBtns.forEach(b => b.classList.remove('active'));
+        mainTabBtns.forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         
         // Show selected tab content
-        tabContents.forEach(content => {
+        mainTabContents.forEach(content => {
           content.classList.remove('active');
           if (content.id === tabId + 'Tab' || content.id === tabId + 'TabContent') {
             content.classList.add('active');
@@ -5064,7 +6374,7 @@ function removeProductFromDOM(productId) {
         });
         
         // Load data for the selected tab
-        loadTabData(tabId);
+        loadMainTabData(tabId);
       });
     });
     
@@ -5077,6 +6387,7 @@ function removeProductFromDOM(productId) {
         dashboardSection.style.display = 'block';
         buyerView.style.display = 'none';
         sellerView.style.display = 'none';
+        document.getElementById('ordersDashboard').style.display = 'none';
         
         // Update button text
         if (toggleDashboardBtn) toggleDashboardBtn.innerHTML = '<i class="fas fa-store"></i> Products';
@@ -5085,7 +6396,7 @@ function removeProductFromDOM(productId) {
         }
         
         // Load dashboard data
-        loadDashboardData();
+        loadMainDashboardData();
       } else {
         // Hide dashboard, show products view
         dashboardSection.style.display = 'none';
@@ -5099,7 +6410,7 @@ function removeProductFromDOM(productId) {
       }
     }
     
-    async function loadDashboardData() {
+    async function loadMainDashboardData() {
       if (!currentUser) {
         showToast('Please login to view dashboard', 'warning');
         toggleDashboardView();
@@ -5108,20 +6419,23 @@ function removeProductFromDOM(productId) {
       
       try {
         // Show loading state
-        showLoadingState();
+        showLoading('Loading dashboard...');
         
         // Load dashboard statistics
         await loadDashboardStats();
         
         // Load initial tab data
-        loadTabData('products');
+        loadMainTabData('products');
         
+        hideLoading();
       } catch (error) {
         console.error('Error loading dashboard:', error);
         showToast('Failed to load dashboard data', 'danger');
+        hideLoading();
       }
     }
 
+    
     async function loadDashboardStats() {
       try {
         let stats;
@@ -5149,6 +6463,9 @@ function removeProductFromDOM(productId) {
           document.getElementById('platformTotalSales').textContent = stats.totalSales;
           document.getElementById('platformRevenue').textContent = `$${(platformData.stats?.platform_revenue || 0).toFixed(2)}`;
           
+          // Show admin tab
+          document.getElementById('adminTab').style.display = 'block';
+          document.getElementById('adminControls').style.display = 'block';
         } else {
           // Regular user gets their own stats
           const statsRes = await fetch(`/api/seller/stats/${currentUser.id}`);
@@ -5519,22 +6836,6 @@ function removeProductFromDOM(productId) {
       });
     }
 
-    function showLoadingState() {
-      // Add loading state to dashboard
-      const containers = ['myProductsList', 'salesList', 'usersTable tbody', 'allProductsTable tbody'];
-      containers.forEach(selector => {
-        const element = document.getElementById(selector) || document.querySelector(selector);
-        if (element) {
-          element.innerHTML = `
-            <div style="padding: 40px; text-align: center; color: var(--text-gray);">
-              <div class="skeleton" style="width: 100%; height: 20px; margin-bottom: 12px;"></div>
-              <div class="skeleton" style="width: 80%; height: 20px; margin: 0 auto;"></div>
-            </div>
-          `;
-        }
-      });
-    }
-
     // Event listeners for dashboard filters
     document.getElementById('salesPeriod')?.addEventListener('change', () => loadSalesHistory());
     document.getElementById('salesStatus')?.addEventListener('change', () => loadSalesHistory());
@@ -5556,21 +6857,8 @@ function removeProductFromDOM(productId) {
       
       // You would implement actual search API calls here
     }
-    
-    // Utility function for debouncing
-    function debounce(func, wait) {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
-    }
 
-    function loadTabData(tabId) {
+    function loadMainTabData(tabId) {
       switch(tabId) {
         case 'products':
           loadMyProducts();
@@ -5791,6 +7079,10 @@ function removeProductFromDOM(productId) {
 
     // ---------- Initial load ----------
     document.addEventListener('DOMContentLoaded', async ()=>{
+      // Load currency conversion system first
+      await detectUserCurrency();
+      
+      // Then load user and products
       await loadUser();
       await loadUserFavorites();
       await loadProducts();

@@ -19,6 +19,8 @@
             background: #1e293b;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
         }
         .success { color: #4CAF50; }
         .error { color: #f44336; }
@@ -31,64 +33,126 @@
             border-radius: 30px;
             margin-top: 1rem;
             font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #FFD700;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .debug-info {
+            text-align: left;
+            background: #2d3748;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Processing Your Payment...</h2>
+        <div class="loading-spinner"></div>
         <p>Please wait while we verify your payment.</p>
         <div id="paymentStatus"></div>
+        
+        <button class="btn" onclick="goToCourses()" style="display: none;" id="goToCoursesBtn">
+            Go to My Courses
+        </button>
+        
+        <button class="btn" onclick="goToCourses()" style="display: none;" id="tryAgainBtn">
+            Return to Courses
+        </button>
     </div>
     
     <script>
         // Get transaction ID from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const transactionId = urlParams.get('transaction_id');
+        const status = urlParams.get('status');
         
-        if (transactionId) {
+        console.log('Payment callback - Transaction ID:', transactionId);
+        console.log('Payment callback - Status:', status);
+        
+        if (transactionId && status === 'successful') {
+            verifyPayment(transactionId);
+        } else if (transactionId) {
+            // Transaction ID exists but status might be in different format
             verifyPayment(transactionId);
         } else {
             document.getElementById('paymentStatus').innerHTML = 
                 '<p class="error">No transaction ID found. Please contact support.</p>';
+            document.getElementById('tryAgainBtn').style.display = 'inline-block';
         }
         
         async function verifyPayment(transactionId) {
             try {
+                console.log('Verifying payment for transaction:', transactionId);
+                
                 const response = await fetch(`/api/verify-payment/${transactionId}`);
                 const data = await response.json();
+                
+                console.log('Verification response:', data);
                 
                 if (data.status === 'success') {
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="success">
                             <h3>Payment Successful! 🎉</h3>
                             <p>You now have access to the course.</p>
-                            <p>Redirecting to courses page...</p>
+                            <p>Course: ${data.data?.meta?.course_title || 'Your course'}</p>
                         </div>
                     `;
-                    // Redirect to courses page after 3 seconds
+                    
+                    // Store in localStorage for immediate access
+                    if (data.data && data.data.meta && data.data.meta.course_id) {
+                        localStorage.setItem('purchased_course_' + data.data.meta.course_id, 'true');
+                        localStorage.setItem('last_purchased_course', data.data.meta.course_id);
+                    }
+                    
+                    // Show the button to go to courses
+                    document.getElementById('goToCoursesBtn').style.display = 'inline-block';
+                    
+                    // Auto-redirect after 3 seconds
                     setTimeout(() => {
                         window.location.href = '/courses.html';
                     }, 3000);
+                    
                 } else {
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="error">
-                            <h3>Payment Failed</h3>
-                            <p>${data.message}</p>
-                            <a href="/courses.html" class="btn">Return to Courses</a>
+                            <h3>Payment Verification Failed</h3>
+                            <p>${data.message || 'Please contact support if you were charged.'}</p>
                         </div>
                     `;
+                    document.getElementById('tryAgainBtn').style.display = 'inline-block';
                 }
+                
             } catch (error) {
                 console.error('Verification error:', error);
                 document.getElementById('paymentStatus').innerHTML = `
                     <div class="error">
                         <h3>Verification Error</h3>
                         <p>Please contact support if the issue persists.</p>
-                        <a href="/courses.html" class="btn">Return to Courses</a>
                     </div>
                 `;
+                document.getElementById('tryAgainBtn').style.display = 'inline-block';
             }
+        }
+        
+        function goToCourses() {
+            window.location.href = '/courses.html';
         }
     </script>
 </body>

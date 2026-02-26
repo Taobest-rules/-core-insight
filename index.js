@@ -1755,6 +1755,8 @@ app.get("/api/check-access/:id", async (req, res) => {
     const courseId = req.params.id;
     const userId = req.session.user.id;
     
+    console.log(`Checking access for user ${userId} to course ${courseId}`);
+    
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     let course = null;
     
@@ -1779,26 +1781,84 @@ app.get("/api/check-access/:id", async (req, res) => {
       hasAccess = true;
       reason = "User is admin";
     }
-    else if (req.session.user.id === course.user_id) {
+    else if (parseInt(req.session.user.id) === parseInt(course.user_id)) {
       hasAccess = true;
       reason = "User is uploader";
     }
     else {
-      const purchaseCheck = await db.query(
-        "SELECT * FROM purchases WHERE user_id = ? AND course_id = ? AND status = 'completed'",
+      // Check user_courses table first
+      const userCourseCheck = await db.query(
+        "SELECT * FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed'",
         [userId, courseId]
       );
       
-      const hasPurchased = purchaseCheck.length > 0 || 
-                          (purchaseCheck[0] && purchaseCheck[0].length > 0);
+      let userCourseExists = false;
+      if (userCourseCheck) {
+        if (Array.isArray(userCourseCheck) && userCourseCheck.length > 0) {
+          userCourseExists = true;
+        } else if (userCourseCheck[0] && Array.isArray(userCourseCheck[0]) && userCourseCheck[0].length > 0) {
+          userCourseExists = true;
+        }
+      }
       
-      if (hasPurchased) {
+      // Check purchases table as fallback
+      let purchaseExists = false;
+      if (!userCourseExists) {
+        const purchaseCheck = await db.query(
+          "SELECT * FROM purchases WHERE user_id = ? AND course_id = ? AND status = 'completed'",
+          [userId, courseId]
+        );
+        
+        if (purchaseCheck) {
+          if (Array.isArray(purchaseCheck) && purchaseCheck.length > 0) {
+            purchaseExists = true;
+          } else if (purchaseCheck[0] && Array.isArray(purchaseCheck[0]) && purchaseCheck[0].length > 0) {
+            purchaseExists = true;
+          }
+        }
+      }
+      
+      // Check payments table as another fallback
+      let paymentExists = false;
+      if (!userCourseExists && !purchaseExists) {
+        const paymentCheck = await db.query(
+          "SELECT * FROM payments WHERE user_id = ? AND course_id = ? AND status = 'completed'",
+          [userId, courseId]
+        );
+        
+        if (paymentCheck) {
+          if (Array.isArray(paymentCheck) && paymentCheck.length > 0) {
+            paymentExists = true;
+          } else if (paymentCheck[0] && Array.isArray(paymentCheck[0]) && paymentCheck[0].length > 0) {
+            paymentExists = true;
+          }
+        }
+      }
+      
+      if (userCourseExists || purchaseExists || paymentExists) {
         hasAccess = true;
         reason = "User has purchased this content";
+        
+        // Ensure record exists in user_courses
+        if (!userCourseExists && (purchaseExists || paymentExists)) {
+          try {
+            await db.query(
+              `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at) 
+               VALUES (?, ?, 'completed', NOW()) 
+               ON DUPLICATE KEY UPDATE payment_status='completed'`,
+              [userId, courseId]
+            );
+            console.log(`Created missing user_courses record for user ${userId}, course ${courseId}`);
+          } catch (syncError) {
+            console.error('Error syncing user_courses:', syncError);
+          }
+        }
       } else {
         reason = "User has not purchased this content";
       }
     }
+    
+    console.log(`Access result for user ${userId} to course ${courseId}: ${hasAccess} (${reason})`);
     
     res.json({
       hasAccess: hasAccess,
@@ -1813,16 +1873,52 @@ app.get("/api/check-access/:id", async (req, res) => {
       user: {
         id: userId,
         role: req.session.user.role,
-        isUploader: req.session.user.id === course.user_id
+        isUploader: parseInt(req.session.user.id) === parseInt(course.user_id)
       }
     });
     
   } catch (err) {
+    console.error('Error checking access:', err);
     res.status(500).json({ 
       hasAccess: false, 
       error: "Error checking access", 
       details: err.message 
     });
+  }
+});
+
+// Temporary debug endpoint - remove after fixing
+app.get("/api/debug/user-courses/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    const result = await db.query(
+      `SELECT uc.*, c.title, c.price 
+       FROM user_courses uc
+       JOIN courses c ON uc.course_id = c.id
+       WHERE uc.user_id = ?`,
+      [userId]
+    );
+    
+    let courses = [];
+    if (result) {
+      if (Array.isArray(result)) {
+        if (result.length === 2 && Array.isArray(result[0])) {
+          courses = result[0];
+        } else if (result.length > 0) {
+          courses = result;
+        }
+      }
+    }
+    
+    res.json({
+      user_id: userId,
+      course_count: courses.length,
+      courses: courses
+    });
+    
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -3778,32 +3874,110 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   try {
     const { transaction_id } = req.params;
     
+    console.log(`Verifying payment for transaction: ${transaction_id}`);
+    
     const response = await flw.Transaction.verify({ id: transaction_id });
+    
+    console.log('Flutterwave verification response:', JSON.stringify(response.data, null, 2));
     
     if (response.data.status === "successful") {
       const transactionRef = response.data.tx_ref;
-      const courseId = response.data.meta.course_id;
-      const userId = response.data.meta.user_id;
+      const courseId = response.data.meta?.course_id;
+      const userId = response.data.meta?.user_id;
+      const courseTitle = response.data.meta?.course_title || 'Course';
       
-      await db.query(
-        `INSERT INTO payments (transaction_id, transaction_ref, course_id, user_id, amount, status, flutterwave_response) 
-         VALUES (?, ?, ?, ?, ?, 'completed', ?)`,
-        [
-          transaction_id,
-          transactionRef,
-          courseId,
-          userId,
-          response.data.amount,
-          JSON.stringify(response.data)
-        ]
-      );
+      console.log(`Payment successful for course ${courseId}, user ${userId}`);
+      
+      if (!courseId || !userId) {
+        console.error('Missing course_id or user_id in meta:', response.data.meta);
+        return res.status(400).json({ 
+          status: "failed", 
+          message: "Missing course or user information in payment metadata" 
+        });
+      }
+      
+      // Insert into payments table
+      try {
+        await db.query(
+          `INSERT INTO payments (transaction_id, transaction_ref, course_id, user_id, amount, status, flutterwave_response) 
+           VALUES (?, ?, ?, ?, ?, 'completed', ?)`,
+          [
+            transaction_id,
+            transactionRef,
+            courseId,
+            userId,
+            response.data.amount || 0,
+            JSON.stringify(response.data)
+          ]
+        );
+        console.log('Payment record inserted');
+      } catch (paymentError) {
+        console.error('Error inserting payment record:', paymentError);
+        // Continue even if payment record fails - the important part is user_courses
+      }
 
-      await db.query(
-        `INSERT INTO user_courses (user_id, course_id, payment_status) 
-         VALUES (?, ?, 'completed') 
-         ON DUPLICATE KEY UPDATE payment_status='completed'`,
-        [userId, courseId]
-      );
+      // Insert into user_courses table
+      try {
+        // Check if record already exists
+        const existing = await db.query(
+          `SELECT * FROM user_courses WHERE user_id = ? AND course_id = ?`,
+          [userId, courseId]
+        );
+        
+        let existingRows = [];
+        if (existing) {
+          if (Array.isArray(existing)) {
+            if (existing.length === 2 && Array.isArray(existing[0])) {
+              existingRows = existing[0];
+            } else if (existing.length > 0) {
+              existingRows = existing;
+            }
+          }
+        }
+        
+        if (existingRows.length > 0) {
+          // Update existing record
+          await db.query(
+            `UPDATE user_courses SET payment_status = 'completed', purchased_at = NOW() WHERE user_id = ? AND course_id = ?`,
+            [userId, courseId]
+          );
+          console.log('User_courses record updated');
+        } else {
+          // Insert new record
+          await db.query(
+            `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at) 
+             VALUES (?, ?, 'completed', NOW())`,
+            [userId, courseId]
+          );
+          console.log('User_courses record inserted');
+        }
+        
+        // Double-check that it was inserted
+        const verifyCheck = await db.query(
+          `SELECT * FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed'`,
+          [userId, courseId]
+        );
+        
+        let verifyRows = [];
+        if (verifyCheck) {
+          if (Array.isArray(verifyCheck)) {
+            if (verifyCheck.length === 2 && Array.isArray(verifyCheck[0])) {
+              verifyRows = verifyCheck[0];
+            } else if (verifyCheck.length > 0) {
+              verifyRows = verifyCheck;
+            }
+          }
+        }
+        
+        console.log(`Access record exists: ${verifyRows.length > 0}`);
+        
+      } catch (userCourseError) {
+        console.error('Error updating user_courses:', userCourseError);
+        return res.status(500).json({ 
+          status: "failed", 
+          message: "Error updating course access" 
+        });
+      }
 
       res.json({ 
         status: "success", 
@@ -3817,6 +3991,7 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
       });
     }
   } catch (err) {
+    console.error('Error verifying payment:', err);
     res.status(500).json({ error: "Error verifying payment: " + err.message });
   }
 });

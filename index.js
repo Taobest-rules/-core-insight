@@ -1880,6 +1880,121 @@ app.get("/api/debug/file/:id", async (req, res) => {
   }
 });
 
+// File recovery endpoint - run this once to fix file paths
+app.get("/api/admin/recover-files", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const results = {
+      files_found: [],
+      files_missing: [],
+      updates: [],
+      errors: []
+    };
+
+    // Get all courses
+    const coursesResult = await db.query("SELECT id, title, file_path FROM courses");
+    let courses = [];
+    
+    if (Array.isArray(coursesResult)) {
+      if (coursesResult.length === 2 && Array.isArray(coursesResult[0])) {
+        courses = coursesResult[0];
+      } else {
+        courses = coursesResult;
+      }
+    }
+
+    // Check uploads directory
+    const uploadDir = path.join(__dirname, "uploads/courses");
+    if (!fs.existsSync(uploadDir)) {
+      return res.json({ error: "Upload directory not found", path: uploadDir });
+    }
+
+    const actualFiles = fs.readdirSync(uploadDir);
+    console.log(`Found ${actualFiles.length} files in uploads/courses:`);
+    actualFiles.forEach(f => console.log(`  - ${f}`));
+
+    // Check each course
+    for (const course of courses) {
+      const dbPath = course.file_path;
+      const dbFilename = path.basename(dbPath);
+      
+      // Look for the file
+      let found = false;
+      let foundPath = null;
+      
+      // Check if exact filename exists
+      if (actualFiles.includes(dbFilename)) {
+        found = true;
+        foundPath = path.join(uploadDir, dbFilename);
+        results.files_found.push({
+          course_id: course.id,
+          title: course.title,
+          db_filename: dbFilename,
+          status: "exact_match"
+        });
+      } else {
+        // Look for similar files (might have timestamp differences)
+        const similar = actualFiles.filter(f => 
+          f.includes('beyond-good-and-evil') || 
+          f.includes(course.title.toLowerCase().replace(/[^a-z0-9]/g, '-'))
+        );
+        
+        if (similar.length > 0) {
+          found = true;
+          foundPath = path.join(uploadDir, similar[0]);
+          
+          // Update database with correct filename
+          try {
+            await db.query(
+              "UPDATE courses SET file_path = ? WHERE id = ?",
+              [similar[0], course.id]
+            );
+            results.updates.push({
+              course_id: course.id,
+              old: dbFilename,
+              new: similar[0]
+            });
+          } catch (updateError) {
+            results.errors.push({
+              course_id: course.id,
+              error: updateError.message
+            });
+          }
+          
+          results.files_found.push({
+            course_id: course.id,
+            title: course.title,
+            db_filename: dbFilename,
+            actual_filename: similar[0],
+            status: "updated"
+          });
+        } else {
+          results.files_missing.push({
+            course_id: course.id,
+            title: course.title,
+            db_filename: dbFilename
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      upload_directory: uploadDir,
+      total_files_in_directory: actualFiles.length,
+      files_in_directory: actualFiles,
+      results: results
+    });
+
+  } catch (err) {
+    console.error("Recovery error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/check-access/:id", async (req, res) => {
   try {
     if (!req.session.user) {

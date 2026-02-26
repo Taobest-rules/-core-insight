@@ -6613,7 +6613,54 @@ app.get("/api/test-insert", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Debug directories endpoint
+app.get("/api/debug/directories", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
 
+    const directories = {
+      current_dir: __dirname,
+      uploads_courses: path.join(__dirname, "uploads/courses"),
+      public_uploads: path.join(__dirname, "public/uploads"),
+      public_uploads_courses: path.join(__dirname, "public/uploads/courses")
+    };
+
+    const results = {};
+    
+    for (const [name, dir] of Object.entries(directories)) {
+      try {
+        if (fs.existsSync(dir)) {
+          const stats = fs.statSync(dir);
+          results[name] = {
+            exists: true,
+            isDirectory: stats.isDirectory(),
+            files: fs.readdirSync(dir).slice(0, 20) // First 20 files
+          };
+        } else {
+          results[name] = {
+            exists: false,
+            error: "Directory does not exist"
+          };
+        }
+      } catch (err) {
+        results[name] = {
+          exists: false,
+          error: err.message
+        };
+      }
+    }
+
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// =================== ADMIN FILE MANAGEMENT PAGE ===================
+app.get("/admin-files.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-files.html"));
+});
 // =================== SERVER START ===================
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

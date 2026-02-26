@@ -1679,6 +1679,150 @@ app.get("/api/download/:id", async (req, res) => {
     }
     
     const courseId = req.params.id;
+    const userId = req.session.user.id;
+    
+    console.log(`Download request - Course ID: ${courseId}, User ID: ${userId}`);
+    
+    // First check if user has access
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    let course = null;
+    
+    if (Array.isArray(courses) && courses.length > 0) {
+      course = courses[0];
+    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
+      course = courses[0][0];
+    }
+    
+    if (!course) {
+      console.log(`Course ${courseId} not found`);
+      return res.status(404).json({ error: "Course not found" });
+    }
+    
+    // Check access
+    let hasAccess = false;
+    
+    if (course.price === 0 && course.type !== 'paid') {
+      hasAccess = true;
+    }
+    else if (req.session.user.role === 'admin') {
+      hasAccess = true;
+    }
+    else if (parseInt(req.session.user.id) === parseInt(course.user_id)) {
+      hasAccess = true;
+    }
+    else {
+      // Check user_courses
+      const accessCheck = await db.query(
+        "SELECT * FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed'",
+        [userId, courseId]
+      );
+      
+      if (Array.isArray(accessCheck) && accessCheck.length > 0) {
+        hasAccess = true;
+      } else if (accessCheck && accessCheck[0] && Array.isArray(accessCheck[0]) && accessCheck[0].length > 0) {
+        hasAccess = true;
+      }
+    }
+    
+    if (!hasAccess) {
+      console.log(`User ${userId} does not have access to course ${courseId}`);
+      return res.status(403).json({ error: "You don't have access to this file" });
+    }
+    
+    // Find the file
+    let filePath = course.file_path;
+    console.log(`Original file path from DB: ${filePath}`);
+    
+    // Handle different path formats
+    if (!filePath) {
+      return res.status(404).json({ error: "File path not found in database" });
+    }
+    
+    // Extract just the filename if it's a full path
+    let filename = path.basename(filePath);
+    console.log(`Extracted filename: ${filename}`);
+    
+    // List of possible locations to check
+    const possiblePaths = [
+      path.join(__dirname, "uploads/courses", filename),
+      path.join(__dirname, "uploads", filename),
+      path.join(__dirname, "uploads/courses", filePath),
+      path.join(__dirname, filePath),
+      path.join(__dirname, "public/uploads/courses", filename),
+      `/opt/render/project/src/uploads/courses/${filename}`, // Render specific path
+      `/opt/render/project/src/uploads/${filename}`,
+    ];
+    
+    // Add paths with the original filePath if it's different
+    if (filePath !== filename) {
+      possiblePaths.push(path.join(__dirname, filePath));
+      possiblePaths.push(`/opt/render/project/src/${filePath}`);
+    }
+    
+    let foundPath = null;
+    for (const testPath of possiblePaths) {
+      console.log(`Checking: ${testPath}`);
+      if (fs.existsSync(testPath)) {
+        foundPath = testPath;
+        console.log(`✅ Found file at: ${foundPath}`);
+        break;
+      }
+    }
+    
+    if (!foundPath) {
+      console.log(`❌ File not found in any location`);
+      
+      // List directory contents for debugging
+      try {
+        const uploadDir = path.join(__dirname, "uploads/courses");
+        if (fs.existsSync(uploadDir)) {
+          const files = fs.readdirSync(uploadDir);
+          console.log(`Files in uploads/courses:`, files);
+        }
+      } catch (dirError) {
+        console.log("Could not list directory:", dirError);
+      }
+      
+      return res.status(404).json({ 
+        error: "File not found on server",
+        debug: {
+          filename: filename,
+          originalPath: filePath,
+          checked: possiblePaths
+        }
+      });
+    }
+    
+    // Get file stats
+    const stats = fs.statSync(foundPath);
+    console.log(`File size: ${stats.size} bytes`);
+    
+    // Set proper headers
+    const safeFilename = encodeURIComponent(
+      course.title.replace(/[^a-zA-Z0-9._-]/g, '_') + path.extname(foundPath)
+    );
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stats.size);
+    
+    // Send the file
+    res.sendFile(foundPath);
+    
+  } catch (err) {
+    console.error("Download error:", err);
+    res.status(500).json({ error: "Error downloading file", details: err.message });
+  }
+});
+
+// Debug endpoint to check file paths
+app.get("/api/debug/file/:id", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const courseId = req.params.id;
     
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     let course = null;
@@ -1693,56 +1837,46 @@ app.get("/api/download/:id", async (req, res) => {
       return res.status(404).json({ error: "Course not found" });
     }
     
-    let filePath = course.file_path;
+    const filePath = course.file_path;
+    const filename = path.basename(filePath);
     
-    if (!filePath.includes('/') && !filePath.includes('\\')) {
-      filePath = path.join(__dirname, "uploads/courses", filePath);
-    }
-    else {
-      if (filePath.includes('uploads/uploads/courses/')) {
-        filePath = filePath.replace('uploads/uploads/courses/', '');
-      }
-      if (filePath.includes('uploads/courses/')) {
-        filePath = filePath.replace('uploads/courses/', '');
-      }
-      if (filePath.includes('uploads/')) {
-        filePath = filePath.replace('uploads/', '');
-      }
-      
-      filePath = path.join(__dirname, "uploads/courses", path.basename(filePath));
+    const possiblePaths = [
+      path.join(__dirname, "uploads/courses", filename),
+      path.join(__dirname, "uploads", filename),
+      path.join(__dirname, "uploads/courses", filePath),
+      path.join(__dirname, filePath),
+      `/opt/render/project/src/uploads/courses/${filename}`,
+      `/opt/render/project/src/uploads/${filename}`,
+    ];
+    
+    const results = {};
+    for (const testPath of possiblePaths) {
+      results[testPath] = fs.existsSync(testPath);
     }
     
-    if (!fs.existsSync(filePath)) {
-      const alternatives = [
-        path.join(__dirname, "uploads", path.basename(course.file_path)),
-        path.join(__dirname, "uploads/courses", path.basename(course.file_path)),
-        path.join(__dirname, course.file_path)
-      ];
-      
-      let found = false;
-      for (const altPath of alternatives) {
-        if (fs.existsSync(altPath)) {
-          filePath = altPath;
-          found = true;
-          break;
-        }
+    // List directory contents
+    let directoryContents = {};
+    try {
+      const uploadDir = path.join(__dirname, "uploads/courses");
+      if (fs.existsSync(uploadDir)) {
+        directoryContents[uploadDir] = fs.readdirSync(uploadDir);
       }
-      
-      if (!found) {
-        return res.status(404).json({ 
-          error: "File not found on server"
-        });
-      }
+    } catch (e) {
+      directoryContents.error = e.message;
     }
     
-    const safeFilename = encodeURIComponent(
-      course.title.replace(/[^a-zA-Z0-9._-]/g, '_') + path.extname(filePath)
-    );
-    
-    res.download(filePath, safeFilename);
+    res.json({
+      course_id: courseId,
+      course_title: course.title,
+      file_path_db: filePath,
+      filename: filename,
+      current_dir: __dirname,
+      file_exists_check: results,
+      directory_contents: directoryContents
+    });
     
   } catch (err) {
-    res.status(500).json({ error: "Error downloading file", details: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 

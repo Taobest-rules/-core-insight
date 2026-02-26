@@ -1896,26 +1896,31 @@ async function loadCourses() {
     }
 
     // ========================= CHECK ACCESS FUNCTION =========================
-   // ========================= CHECK ACCESS FUNCTION =========================
+  // ========================= CHECK ACCESS FUNCTION =========================
 async function checkAccess(courseId, isVideo = false) {
   try {
+    showLoading();
     const response = await fetch(`/api/check-access/${courseId}`);
     const data = await response.json();
     
+    console.log('Access check result:', data);
+    
     if (data.hasAccess) {
-      const action = isVideo ? 'download' : 'download'; // Changed from 'watch' to 'download'
-      const confirmAction = confirm(`You have access to this content! Would you like to ${action} it now?`);
+      const action = isVideo ? 'download' : 'download';
+      const confirmAction = confirm(`You have access to this content! Would you like to download it now?`);
       
       if (confirmAction) {
-        // Always download, never stream
+        // Direct download - use window.location
         window.location.href = `/api/download/${courseId}`;
       }
     } else {
       alert('You do not have access to this content. Please purchase it first.');
     }
+    hideLoading();
   } catch (error) {
     console.error('Access check error:', error);
-    alert('Error checking content access');
+    alert('Error checking content access: ' + error.message);
+    hideLoading();
   }
 }
 

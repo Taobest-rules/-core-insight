@@ -104,7 +104,10 @@ const imageUpload = multer({
     }
   }
 });
-
+// =================== ADMIN FILE MANAGEMENT PAGE ===================
+app.get("/admin-files.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-files.html"));
+});
 // Flutterwave initialization
 let flw;
 try {
@@ -6657,10 +6660,7 @@ app.get("/api/debug/directories", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// =================== ADMIN FILE MANAGEMENT PAGE ===================
-app.get("/admin-files.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin-files.html"));
-});
+
 // =================== SERVER START ===================
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

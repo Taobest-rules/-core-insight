@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Management - Core Insight</title>
+    <style>
+        body { 
+            background: #0f172a; 
+            color: #e0e0e0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+            padding: 20px; 
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        h1 { 
+            color: #64ffda; 
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        h2 {
+            color: #e0e0e0;
+            margin-top: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        button { 
+            background: #64ffda; 
+            color: #0f172a; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 0;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(100, 255, 218, 0.2);
+        }
+        button.secondary {
+            background: transparent;
+            color: #64ffda;
+            border: 1px solid #64ffda;
+        }
+        button.secondary:hover {
+            background: rgba(100, 255, 218, 0.1);
+        }
+        .file-item { 
+            background: #1e293b; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid #64ffda;
+        }
+        .success { 
+            color: #4caf50; 
+            background: rgba(76, 175, 80, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error { 
+            color: #f44336; 
+            background: rgba(244, 67, 54, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre { 
+            background: #2d3748; 
+            padding: 20px; 
+            border-radius: 8px; 
+            overflow: auto; 
+            border: 1px solid #4a5568;
+            font-size: 0.9rem;
+            max-height: 500px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            color: #64ffda;
+            font-weight: bold;
+        }
+        .stat-label {
+            color: #a0aec0;
+            margin-top: 10px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(100, 255, 218, 0.3);
+            border-radius: 50%;
+            border-top-color: #64ffda;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .file-link {
+            color: #64ffda;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .file-link:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-success {
+            background: #4caf50;
+            color: white;
+        }
+        .badge-warning {
+            background: #ff9800;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 File Management Dashboard</h1>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCourses">-</div>
+                <div class="stat-label">Total Courses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="filesFound">-</div>
+                <div class="stat-label">Files Found</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="filesMissing">-</div>
+                <div class="stat-label">Files Missing</div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="recoverFiles()">
+                🔄 Run Auto-Recovery
+            </button>
+            <button onclick="listFiles()" class="secondary">
+                📋 List All Files
+            </button>
+            <button onclick="checkDirectories()" class="secondary">
+                📂 Check Directories
+            </button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function checkDirectories() {
+            const results = document.getElementById('results');
+            const status = document.getElementById('status');
+            
+            status.innerHTML = '<div class="loading"></div> Checking directories...';
+            
+            try {
+                // Check if we can access the uploads directory
+                const response = await fetch('/api/debug/directories');
+                const data = await response.json();
+                
+                status.innerHTML = '';
+                results.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function recoverFiles() {
+            const results = document.getElementById('results');
+            const status = document.getElementById('status');
+            const stats = document.getElementById('stats');
+            
+            status.innerHTML = '<div class="loading"></div> Running file recovery...';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/admin/recover-files');
+                const data = await response.json();
+                
+                if (data.error) {
+                    status.innerHTML = `<div class="error">❌ Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                status.innerHTML = '<div class="success">✅ Recovery completed!</div>';
+                
+                // Update stats
+                document.getElementById('totalCourses').textContent = data.results?.files_found?.length + data.results?.files_missing?.length || '-';
+                document.getElementById('filesFound').textContent = data.results?.files_found?.length || '0';
+                document.getElementById('filesMissing').textContent = data.results?.files_missing?.length || '0';
+                
+                // Display results
+                let html = '<h2>Recovery Results</h2>';
+                
+                if (data.files_in_directory && data.files_in_directory.length > 0) {
+                    html += '<h3>Files in Upload Directory:</h3>';
+                    html += '<div class="file-item">';
+                    data.files_in_directory.forEach(file => {
+                        html += `<div>📄 ${file}</div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                if (data.results?.files_found?.length > 0) {
+                    html += '<h3>✅ Files Found:</h3>';
+                    data.results.files_found.forEach(item => {
+                        const status = item.status === 'updated' ? 
+                            '<span class="badge badge-success">UPDATED</span>' : 
+                            '<span class="badge badge-success">FOUND</span>';
+                        html += `<div class="file-item">
+                            <strong>${item.title}</strong> ${status}<br>
+                            <small>DB: ${item.db_filename}</small><br>
+                            ${item.actual_filename ? `<small>Actual: ${item.actual_filename}</small><br>` : ''}
+                            <a href="/api/direct-file/${item.actual_filename || item.db_filename}" 
+                               class="file-link" target="_blank">⬇️ Download</a>
+                        </div>`;
+                    });
+                }
+                
+                if (data.results?.files_missing?.length > 0) {
+                    html += '<h3>❌ Files Missing:</h3>';
+                    data.results.files_missing.forEach(item => {
+                        html += `<div class="file-item" style="border-left-color: #f44336;">
+                            <strong>${item.title}</strong><br>
+                            <small>DB: ${item.db_filename}</small><br>
+                            <span class="badge badge-warning">MISSING</span>
+                        </div>`;
+                    });
+                }
+                
+                if (data.results?.updates?.length > 0) {
+                    html += '<h3>📝 Database Updates:</h3>';
+                    data.results.updates.forEach(update => {
+                        html += `<div class="file-item">
+                            Course #${update.course_id}:<br>
+                            <small>Old: ${update.old}</small><br>
+                            <small>New: ${update.new}</small>
+                        </div>`;
+                    });
+                }
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                console.error('Recovery error:', error);
+            }
+        }
+
+        async function listFiles() {
+            const results = document.getElementById('results');
+            const status = document.getElementById('status');
+            
+            status.innerHTML = '<div class="loading"></div> Loading courses...';
+            
+            try {
+                const coursesRes = await fetch('/api/courses');
+                const courses = await coursesRes.json();
+                
+                status.innerHTML = `<div class="success">✅ Found ${courses.length} courses</div>`;
+                
+                let html = '<h2>Courses and Files</h2>';
+                
+                for (const course of courses) {
+                    const filename = course.file_path ? course.file_path.split(/[\/\\]/).pop() : 'No file';
+                    
+                    html += `<div class="file-item">
+                        <strong>${course.title || 'Untitled'}</strong><br>
+                        <small>ID: ${course.id}</small><br>
+                        <small>DB Path: ${course.file_path || 'Not set'}</small><br>
+                        <small>Filename: ${filename}</small><br>
+                        <a href="/api/direct-file/${filename}" class="file-link" target="_blank">⬇️ Try Direct Download</a><br>
+                        <a href="/api/download/${course.id}" class="file-link" target="_blank">⬇️ Try Regular Download</a>
+                    </div>`;
+                }
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-load stats on page load
+        window.onload = function() {
+            // You can auto-run recoverFiles() here if you want
+            // recoverFiles();
+        };
+    </script>
+</body>
+</html>

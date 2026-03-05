@@ -18,13 +18,22 @@ const fs = require("fs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const MySQLStore = require("express-mysql-session")(session);
-
 const Flutterwave = require('flutterwave-node-v3');
+
+// Cloudinary imports (AFTER dotenv config so env vars are loaded)
+const cloudinary = require('./cloudinary.config');
+const { 
+  uploadCourse, 
+  uploadThumbnail, 
+  uploadProductImages,
+  uploadProfilePicture,
+  uploadChatImage,
+  uploadMultipleProducts 
+} = require('./cloudinary-storage');
 
 // Create app
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -645,6 +654,75 @@ app.post("/api/admin/change-password", async (req, res) => {
     res.status(500).json({ error: "Error changing password" });
   }
 });
+
+app.post("/api/courses", upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'thumbnail', maxCount: 1 }
+]), async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to upload courses" });
+  }
+
+  try {
+    const { title, description, price, author, content_type = 'book' } = req.body;
+    const user = req.session.user;
+    
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    let thumbnailUrl = null;
+    let fileUrl = null;
+
+    // Handle thumbnail upload
+    if (req.files['thumbnail'] && req.files['thumbnail'][0]) {
+      thumbnailUrl = req.files['thumbnail'][0].path; // Cloudinary URL
+    }
+
+    // Handle file upload
+    if (req.files['file'] && req.files['file'][0]) {
+      fileUrl = req.files['file'][0].path; // Cloudinary URL
+    }
+
+    let finalPrice = 0;
+    let bookType = 'free';
+    
+    if (user.role === 'admin' && price && parseFloat(price) > 0) {
+      finalPrice = parseFloat(price);
+      bookType = 'paid';
+    }
+
+    const result = await db.query(
+      `INSERT INTO courses (
+        title, description, file_url, thumbnail_url, 
+        price, type, user_id, author, content_type, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        title.trim(),
+        description ? description.trim() : '',
+        fileUrl,
+        thumbnailUrl,
+        finalPrice,
+        bookType,
+        user.id,
+        author || null,
+        content_type
+      ]
+    );
+
+    res.json({
+      message: "Content uploaded successfully!",
+      courseId: result.insertId,
+      thumbnail_url: thumbnailUrl,
+      file_url: fileUrl
+    });
+    
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: "Error uploading content" });
+  }
+});
+
 // Debug endpoint to check all conversations for a user
 app.get("/api/debug/user-conversations", async (req, res) => {
   try {
@@ -1485,115 +1563,7 @@ app.get("/api/debug/conversation-access/:conversationId", async (req, res) => {
 });
 
 // =================== COURSES ENDPOINTS ===================
-app.post("/api/courses", upload.fields([
-  { name: 'file', maxCount: 1 },
-  { name: 'thumbnail', maxCount: 1 }
-]), async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Please login to upload courses" });
-  }
 
-  if (!req.files || !req.files['file'] || req.files['file'].length === 0) {
-    return res.status(400).json({ error: "Course file is required" });
-  }
-  
-  if (!req.files['thumbnail'] || req.files['thumbnail'].length === 0) {
-    return res.status(400).json({ error: "Thumbnail image is required" });
-  }
-
-  try {
-    const { 
-      title, 
-      description, 
-      price, 
-      author, 
-      content_type = 'book'
-    } = req.body;
-    
-    const user = req.session.user;
-    
-    if (!title || title.trim() === '') {
-      return res.status(400).json({ error: "Title is required" });
-    }
-
-    const courseFile = req.files['file'][0];
-    const thumbnailFile = req.files['thumbnail'][0];
-    
-    const courseFilename = courseFile.filename;
-    const thumbnailFilename = thumbnailFile.filename;
-
-    let finalPrice = 0;
-    let bookType = 'free';
-    let finalContentType = 'book';
-    
-    const validContentTypes = ['book', 'video', 'document', 'presentation'];
-    if (validContentTypes.includes(content_type)) {
-      finalContentType = content_type;
-    }
-    
-    if (user.role === 'admin' && price && parseFloat(price) > 0) {
-      finalPrice = parseFloat(price);
-      bookType = 'paid';
-    }
-    
-    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv'];
-    const fileExtension = path.extname(courseFile.originalname).toLowerCase();
-    const isVideoFile = videoExtensions.includes(fileExtension);
-    
-    if (isVideoFile) {
-      finalContentType = 'video';
-    }
-    
-    const finalAuthor = author && author.trim() !== '' ? author.trim() : null;
-
-    const result = await db.query(
-      `INSERT INTO courses (
-        title, 
-        description, 
-        file_path, 
-        thumbnail_path, 
-        price, 
-        type, 
-        user_id, 
-        author, 
-        content_type,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        title.trim(), 
-        description ? description.trim() : '', 
-        courseFilename,
-        thumbnailFilename,
-        finalPrice, 
-        bookType, 
-        user.id, 
-        finalAuthor, 
-        finalContentType
-      ]
-    );
-
-    const courseId = Number(result.insertId);
-    
-    const responseData = {
-      message: "Content uploaded successfully!",
-      courseId: courseId,
-      title: title,
-      price: finalPrice,
-      type: bookType,
-      content_type: finalContentType,
-      thumbnail_url: `/uploads/${thumbnailFilename}`,
-      download_url: `/api/download/${courseId}`
-    };
-    
-    res.json(responseData);
-    
-  } catch (err) {
-    res.status(500).json({ 
-      error: "Error uploading content", 
-      details: err.message
-    });
-  }
-});
 
 app.get("/api/courses", async (req, res) => {
   try {
@@ -2260,79 +2230,32 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-app.post("/api/upload-product", productUpload, async (req, res) => {
+app.post("/api/upload-product", uploadMultipleProducts, async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Please log in to upload products." });
   }
 
   try {
-    const { 
-      title, 
-      description, 
-      price, 
-      category, 
-      type, 
-      affiliate_link, 
-      delivery_type, 
-      delivery_locations, 
-      delivery_fee, 
-      payment_option,
-      paymentProvider,
-      delivery_days
-    } = req.body;
+    const { title, description, price, category, type, affiliate_link } = req.body;
 
-    if (!title || !price || !type || !paymentProvider) {
-      return res.status(400).json({ 
-        error: "Title, price, type, and payment provider are required." 
-      });
-    }
+    let fileUrl = null;
+    let imageUrls = [];
 
-    if (type === 'physical') {
-      if (!delivery_days || isNaN(parseInt(delivery_days)) || parseInt(delivery_days) < 1) {
-        return res.status(400).json({ 
-          error: "Please provide valid delivery days (minimum 1 day) for physical products." 
-        });
-      }
+    // Handle main file
+    if (req.files && req.files.length > 0) {
+      fileUrl = req.files[0].path; // Cloudinary URL
       
-      if (!payment_option) {
-        req.body.payment_option = 'pay_on_delivery';
+      // Rest are product images
+      for (let i = 1; i < req.files.length; i++) {
+        imageUrls.push(req.files[i].path);
       }
     }
-
-    let filePath = null;
-    let images = [];
-
-    if (req.files['file'] && req.files['file'][0]) {
-      const mainFile = req.files['file'][0];
-      filePath = `/uploads/products/${mainFile.filename}`;
-    }
-
-    if (req.files['images[]']) {
-      images = req.files['images[]'].map(file => `/uploads/products/${file.filename}`);
-    }
-
-    const estimatedDeliveryDays = type === 'physical' 
-      ? parseInt(delivery_days) || 7 
-      : null;
 
     const result = await db.query(
       `INSERT INTO products (
-        user_id, 
-        title, 
-        description, 
-        price, 
-        category, 
-        type, 
-        file_path, 
-        images, 
-        affiliate_link, 
-        delivery_type, 
-        delivery_locations, 
-        delivery_fee, 
-        payment_option, 
-        seller_payment_provider,
-        estimated_delivery_days
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        user_id, title, description, price, category, type, 
+        file_url, image_urls, affiliate_link, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         req.session.user.id,
         title,
@@ -2340,55 +2263,22 @@ app.post("/api/upload-product", productUpload, async (req, res) => {
         parseFloat(price),
         category || '',
         type || 'digital',
-        filePath,
-        images.length > 0 ? JSON.stringify(images) : null,
-        affiliate_link || null,
-        delivery_type || null,
-        delivery_locations || null,
-        delivery_fee ? parseFloat(delivery_fee) : null,
-        payment_option || null,
-        paymentProvider,
-        estimatedDeliveryDays
+        fileUrl,
+        JSON.stringify(imageUrls),
+        affiliate_link || null
       ]
     );
     
     res.json({ 
       message: "✅ Product uploaded successfully!",
       productId: result.insertId,
-      payment_provider: paymentProvider,
-      estimated_delivery_days: estimatedDeliveryDays
+      file_url: fileUrl,
+      image_urls: imageUrls
     });
 
   } catch (err) {
-    if (err.code === 'ER_NO_SUCH_TABLE') {
-      return res.status(500).json({ 
-        error: "Database configuration error. Please contact administrator." 
-      });
-    }
-    
-    if (err.code === 'ER_BAD_FIELD_ERROR') {
-      if (err.message.includes('estimated_delivery_days')) {
-        return res.status(500).json({ 
-          error: "Database update required. Please add estimated_delivery_days column to products table.",
-          sql_fix: "ALTER TABLE products ADD COLUMN estimated_delivery_days INT DEFAULT 7;"
-        });
-      }
-      
-      return res.status(500).json({ 
-        error: "Database configuration error. Please contact administrator." 
-      });
-    }
-    
-    if (err.code === 'ER_TRUNCATED_WRONG_VALUE_FOR_FIELD') {
-      return res.status(400).json({ 
-        error: "Invalid delivery days value. Please enter a number between 1 and 90." 
-      });
-    }
-    
-    res.status(500).json({ 
-      error: "Error uploading product: " + err.message,
-      code: err.code
-    });
+    console.error('Product upload error:', err);
+    res.status(500).json({ error: "Error uploading product: " + err.message });
   }
 });
 
@@ -2803,7 +2693,64 @@ app.post("/api/services", upload.none(), async (req, res) => {
     res.status(500).json({ error: "Error creating service: " + err.message });
   }
 });
+// Middleware to check if user has active service subscription or trial
+const checkServiceAccess = async (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to use services" });
+  }
 
+  try {
+    const userId = req.session.user.id;
+    
+    // Check for active subscription or trial
+    const subscriptionCheck = await db.query(`
+      SELECT * FROM service_subscriptions 
+      WHERE user_id = ? AND (status = 'active' OR trial_ends_at > CURDATE())
+    `, [userId]);
+
+    let hasAccess = false;
+    if (Array.isArray(subscriptionCheck) && subscriptionCheck.length > 0) {
+      hasAccess = true;
+    } else if (subscriptionCheck && subscriptionCheck[0] && 
+               Array.isArray(subscriptionCheck[0]) && subscriptionCheck[0].length > 0) {
+      hasAccess = true;
+    }
+
+    if (!hasAccess) {
+      // Check if this is a new user (less than 90 days old)
+      const userCheck = await db.query(`
+        SELECT created_at FROM users WHERE id = ?
+      `, [userId]);
+      
+      let userCreatedAt = null;
+      if (Array.isArray(userCheck) && userCheck.length > 0) {
+        userCreatedAt = new Date(userCheck[0].created_at);
+      } else if (userCheck && userCheck[0] && userCheck[0].created_at) {
+        userCreatedAt = new Date(userCheck[0].created_at);
+      }
+      
+      if (userCreatedAt) {
+        const trialEndDate = new Date(userCreatedAt);
+        trialEndDate.setDate(trialEndDate.getDate() + 90);
+        const today = new Date();
+        
+        if (today <= trialEndDate) {
+          // User is still within trial period
+          return next();
+        }
+      }
+      
+      return res.status(403).json({ 
+        error: "Your free trial has expired. Please subscribe to continue using services.",
+        requiresSubscription: true 
+      });
+    }
+
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Error checking service access: " + err.message });
+  }
+};
 app.get("/api/services/:id/details", async (req, res) => {
   try {
     const serviceId = req.params.id;

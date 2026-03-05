@@ -3117,7 +3117,7 @@
                   
                   <div class="form-group">
                     <label class="form-label">Account Holder <span class="required">*</span></label>
-                    <input type="text" id="p_accountName" class="form-input" placeholder="e.g. John Doe" required />
+                    <input type="text" id="p_accountName" class="form-input" placeholder="e.g. Name" required />
                     <div id="p_accountName_error" class="form-error"></div>
                   </div>
                 </div>
@@ -3841,6 +3841,89 @@
   <!-- SCRIPTS SECTION -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    // ================= CLOUDINARY HELPER FUNCTIONS =================
+    
+    /**
+     * Get optimized Cloudinary image URL with transformations
+     * @param {string} url - Original Cloudinary URL
+     * @param {Object} options - Transformation options (width, height, crop, quality)
+     * @returns {string} - Optimized URL
+     */
+    function getOptimizedImageUrl(url, options = {}) {
+      if (!url) return url;
+      
+      // If it's not a Cloudinary URL, return as-is (fallback for local files during migration)
+      if (!url.includes('cloudinary.com')) {
+        return url;
+      }
+      
+      // Default options
+      const width = options.width || 400;
+      const height = options.height || 300;
+      const crop = options.crop || 'fill';
+      const quality = options.quality || 'auto';
+      const format = options.format || 'auto';
+      
+      // Build transformations string
+      const transformations = [
+        `w_${width}`,
+        `h_${height}`,
+        `c_${crop}`,
+        `q_${quality}`,
+        `f_${format}`
+      ];
+      
+      // Insert transformations after '/upload/'
+      return url.replace('/upload/', `/upload/${transformations.join(',')}/`);
+    }
+    
+    /**
+     * Get responsive srcset for Cloudinary images
+     * @param {string} url - Original Cloudinary URL
+     * @param {Array} widths - Array of widths for responsive images
+     * @returns {string} - srcset attribute value
+     */
+    function getResponsiveSrcSet(url, widths = [400, 600, 800, 1200]) {
+      if (!url || !url.includes('cloudinary.com')) {
+        return '';
+      }
+      
+      return widths.map(width => {
+        const optimizedUrl = getOptimizedImageUrl(url, { width, height: Math.round(width * 0.75) });
+        return `${optimizedUrl} ${width}w`;
+      }).join(', ');
+    }
+    
+    /**
+     * Get image URL with fallback for local paths during migration
+     * @param {string|Array} images - Image URL(s) from product
+     * @param {number} index - Index of image to get
+     * @returns {string} - Image URL
+     */
+    function getProductImage(images, index = 0) {
+      if (!images) return null;
+      
+      let imageArray = [];
+      
+      // Handle different formats
+      if (typeof images === 'string') {
+        try {
+          // Try to parse as JSON
+          imageArray = JSON.parse(images);
+        } catch (e) {
+          // If not JSON, treat as single URL
+          imageArray = [images];
+        }
+      } else if (Array.isArray(images)) {
+        imageArray = images;
+      }
+      
+      const imageUrl = imageArray[index] || null;
+      
+      // Return optimized Cloudinary URL or original (for local files during migration)
+      return imageUrl ? getOptimizedImageUrl(imageUrl, { width: 400, height: 300 }) : null;
+    }
+
     // ================= DASHBOARD STATE =================
     let dashboardData = {
       orders: [],
@@ -3998,6 +4081,9 @@
         const statusClass = `status-${order.order_status}`;
         const statusText = order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1);
         
+        // Get product image using Cloudinary helper
+        const productImage = getProductImage(order.product_images, 0);
+        
         html += `
           <tr>
             <td>
@@ -4005,10 +4091,12 @@
             </td>
             <td>
               <div style="display: flex; align-items: center; gap: 10px;">
-                ${order.product_images && order.product_images.length > 0 ? `
-                  <img src="${order.product_images[0]}" 
+                ${productImage ? `
+                  <img src="${productImage}" 
                        alt="${order.product_name}" 
-                       style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">
+                       style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;"
+                       loading="lazy"
+                       srcset="${getResponsiveSrcSet(productImage, [40, 80])}">
                 ` : `
                   <div style="width: 40px; height: 40px; border-radius: 6px; background: var(--secondary-dark); 
                            display: flex; align-items: center; justify-content: center;">
@@ -5579,17 +5667,27 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
         products = await r.json() || [];
         products = products.map(p => {
           p.price = Number(p.price || 0);
-          if (p.images && typeof p.images === 'string') {
-            try { p.images = JSON.parse(p.images); } catch(e) {}
+          
+          // Handle images - now using Cloudinary URLs from database
+          if (p.image_urls) {
+            try {
+              p.images = JSON.parse(p.image_urls);
+            } catch(e) {
+              p.images = [p.image_urls];
+            }
+          } else if (p.images && typeof p.images === 'string') {
+            try { 
+              p.images = JSON.parse(p.images); 
+            } catch(e) {
+              p.images = [p.images];
+            }
           }
-          p._imageList = Array.isArray(p.images) && p.images.length ? p.images :
-                         (p.file_path ? [p.file_path] : (p.image ? [p.image] : []));
-          p._imageList = p._imageList.map(src=>{
-            if (!src) return null;
-            if (src.startsWith('/')) return src;
-            if (src.startsWith('http')) return src;
-            return '/'+src;
-          }).filter(Boolean);
+          
+          // Build image list with Cloudinary optimization
+          p._imageList = Array.isArray(p.images) && p.images.length ? 
+            p.images.map(img => getOptimizedImageUrl(img, { width: 400, height: 300 })) :
+            (p.file_url ? [getOptimizedImageUrl(p.file_url, { width: 400, height: 300 })] : []);
+          
           p.rating = Number(p.rating||0);
           p.seller_name = p.seller_name || p.username || p.seller || 'Seller';
           p.type = p.type || p.product_type || (p._imageList.length && p.price>0 ? 'digital' : 'physical');
@@ -5650,7 +5748,13 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
 
       grid.innerHTML = list.map(p => {
         const img = p._imageList && p._imageList.length ? p._imageList[0] : 'https://via.placeholder.com/400x250?text=No+image';
-        const thumbHtml = (p._imageList||[]).slice(0,3).map((t, idx)=>`<img src="${escapeHtml(t)}" alt="thumb${idx}" onclick="switchMainImage(${p.id}, ${idx})">`).join('');
+        
+        // Generate thumbnails with Cloudinary optimization
+        const thumbHtml = (p._imageList||[]).slice(0,3).map((t, idx)=> {
+          const thumbUrl = getOptimizedImageUrl(t, { width: 40, height: 40, crop: 'fill' });
+          return `<img src="${escapeHtml(thumbUrl)}" alt="thumb${idx}" onclick="switchMainImage(${p.id}, ${idx})" loading="lazy">`;
+        }).join('');
+        
         const seller = escapeHtml(p.seller_name || 'Seller');
         const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
         const desc = escapeHtml((p.description||'').slice(0,120));
@@ -5665,7 +5769,7 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
         // Get estimated delivery days for physical products
         const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
         
-        // Delivery and payment info for physical products (UPDATED WITH DELIVERY DAYS)
+        // Delivery and payment info for physical products
         const deliveryInfo = isPhysical ? `
           <div class="product-details">
             <div class="detail-item">
@@ -5700,7 +5804,7 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
         const deliveryBadge = isPhysical && p.delivery_type ? 
           `<div class="delivery-badge">${p.delivery_type === 'delivery' ? 'Home Delivery' : 'Pickup'}</div>` : '';
         
-        // Delivery days badge (NEW)
+        // Delivery days badge
         const deliveryDaysBadge = isPhysical ? 
           `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
             <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
@@ -5713,7 +5817,8 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
             ${deliveryBadge}
             ${deliveryDaysBadge}
             <div class="card-media">
-              <img id="mainimg-${p.id}" src="${escapeHtml(img)}" alt="${title}" loading="lazy">
+              <img id="mainimg-${p.id}" src="${escapeHtml(img)}" alt="${title}" loading="lazy"
+                   srcset="${getResponsiveSrcSet(img, [200, 400, 600])}">
               ${p._imageList && p._imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
               <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})">
                 <i class="fas fa-heart"></i>
@@ -6544,6 +6649,9 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
         `;
         
         sales.forEach(sale => {
+          // Get product image using Cloudinary helper
+          const productImage = sale.images ? getProductImage(sale.images, 0) : null;
+          
           html += `
             <tr>
               <td>
@@ -6551,7 +6659,13 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
               </td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--secondary-dark);"></div>
+                  ${productImage ? `
+                    <img src="${productImage}" alt="${sale.product_name}" 
+                         style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;"
+                         loading="lazy">
+                  ` : `
+                    <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--secondary-dark);"></div>
+                  `}
                   <span style="color: var(--text-light); font-size: 13px;">${sale.product_name || sale.product_title || 'Product'}</span>
                 </div>
               </td>
@@ -6680,13 +6794,18 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
           // Get seller info (you might need to fetch this separately)
           const sellerName = product.user_id === currentUser.id ? 'You' : `Seller ${product.user_id}`;
           
+          // Get product image using Cloudinary helper
+          const productImage = getProductImage(product.images, 0);
+          
           html += `
             <tr>
               <td>
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                    ${product.images ? 
-                      `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                    ${productImage ? 
+                      `<img src="${productImage}" alt="${product.title}" 
+                            style="width: 100%; height: 100%; object-fit: cover;"
+                            loading="lazy">` :
                       `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
                         <i class="fas fa-box"></i>
                       </div>`
@@ -6964,18 +7083,23 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
         products.forEach(product => {
           console.log('📋 Processing product:', product.id, product.title);
           
-          // You need to add the status logic here too:
-          const status = getProductStatus(product); // Make sure this function exists!
-          const statusClass = `status-${status}`;
-          const statusDisplay = formatStatusDisplay(status); // Add this helper function
+          // Get product image using Cloudinary helper
+          const productImage = getProductImage(product.images, 0);
+          
+          const status = getProductStatus(product);
+          const statusClass = getStatusClass(status);
+          const statusDisplay = formatStatusDisplay(status);
           
           html += `
             <tr>
               <td>
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                    ${product.images ? 
-                      `<img src="${JSON.parse(product.images)[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                    ${productImage ? 
+                      `<img src="${productImage}" alt="${product.title}" 
+                            style="width: 100%; height: 100%; object-fit: cover;"
+                            loading="lazy"
+                            srcset="${getResponsiveSrcSet(productImage, [40, 80])}">` :
                       `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
                         <i class="fas fa-box"></i>
                       </div>`

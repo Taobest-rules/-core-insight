@@ -42,11 +42,9 @@
       line-height: 1.6;
       overflow-x: hidden;
       min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
     
-    /* Improved Header for Mobile */
+    /* Header */
     header { 
       background-color: rgba(10, 25, 47, 0.98); 
       padding: 0 1.5rem; 
@@ -63,7 +61,6 @@
       border-bottom: 1px solid rgba(100, 255, 218, 0.1);
     }
     
-    /* Mobile Navigation Toggle */
     .mobile-menu-toggle {
       display: none;
       background: none;
@@ -93,7 +90,6 @@
       align-items: center; 
       font-size: 1.2rem;
       color: var(--primary-dark);
-      flex-shrink: 0;
     }
     
     .logo-text { 
@@ -150,7 +146,6 @@
       align-items: center;
     }
     
-    /* Button Styles - Mobile Optimized */
     .btn { 
       padding: 0.75rem 1.5rem; 
       border-radius: 30px; 
@@ -162,21 +157,17 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
       font-size: 0.9rem;
-      letter-spacing: 0.5px;
       min-height: 44px;
-      touch-action: manipulation;
     }
     
     .btn-login { 
       background: transparent; 
       color: var(--accent-primary); 
       border: 1px solid var(--accent-primary);
-      white-space: nowrap;
     }
     
-    .btn-login:hover, .btn-login:active { 
+    .btn-login:hover { 
       background: rgba(100, 255, 218, 0.1);
       transform: translateY(-2px);
     }
@@ -185,10 +176,9 @@
       background: var(--gradient-primary); 
       color: var(--primary-dark);
       font-weight: 700;
-      white-space: nowrap;
     }
     
-    .btn-signup:hover, .btn-signup:active { 
+    .btn-signup:hover { 
       transform: translateY(-2px); 
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -209,7 +199,7 @@
       margin-top: auto;
     }
     
-    .btn-primary:hover, .btn-primary:active {
+    .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -231,7 +221,7 @@
       margin-top: 0.75rem;
     }
     
-    .btn-secondary:hover, .btn-secondary:active {
+    .btn-secondary:hover {
       background: rgba(100, 255, 218, 0.1);
       transform: translateY(-2px);
     }
@@ -243,7 +233,7 @@
       width: 100%;
     }
     
-    /* Hero Section - Mobile Optimized */
+    /* Hero Section */
     .hero { 
       min-height: 60vh; 
       display: flex; 
@@ -285,7 +275,23 @@
       padding: 0 1rem;
     }
     
-    /* Search Section - Mobile Optimized */
+    /* Upload Prompt - NEW */
+    .upload-prompt {
+      background: linear-gradient(135deg, rgba(100,255,218,0.1), rgba(0,180,216,0.1));
+      padding: 20px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--accent-primary);
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .upload-prompt .btn-primary {
+      width: auto;
+      padding: 12px 30px;
+      display: inline-flex;
+    }
+    
+    /* Search Section */
     .search-section { 
       background: var(--secondary-dark); 
       padding: 1.5rem; 
@@ -361,10 +367,9 @@
       font-size: 0.95rem;
       flex: 1;
       min-height: 50px;
-      touch-action: manipulation;
     }
     
-    .search-actions button:hover, .search-actions button:active {
+    .search-actions button:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(100, 255, 218, 0.25);
     }
@@ -389,8 +394,321 @@
       box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
     }
     
-    #currencySelect:hover {
+    /* Upload Section */
+    #uploadSection { 
+      display: none; 
+      background: var(--card-bg); 
+      padding: 2rem 1.5rem; 
+      border-radius: var(--border-radius); 
+      margin: 2rem auto; 
+      max-width: 800px;
+      width: 100%;
+      border: 1px solid rgba(100, 255, 218, 0.1);
+      box-shadow: var(--shadow);
+    }
+    
+    #uploadSection h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--text-light);
+      flex-wrap: wrap;
+    }
+    
+    #uploadSection h2 i {
+      color: var(--accent-primary);
+      background: rgba(100, 255, 218, 0.1);
+      padding: 0.75rem;
+      border-radius: 12px;
+    }
+    
+    #uploadForm { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 1.25rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .form-group label {
+      color: var(--text-gray);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    
+    #uploadForm input, #uploadForm textarea, #uploadForm select { 
+      padding: 1rem; 
+      border-radius: 12px; 
+      border: 1px solid rgba(100, 255, 218, 0.2); 
+      background: var(--secondary-dark); 
+      color: var(--text-light);
+      font-size: 1rem;
+      transition: var(--transition);
+      min-height: 50px;
+      width: 100%;
+    }
+    
+    #uploadForm input:focus, #uploadForm textarea:focus, #uploadForm select:focus {
+      outline: none;
       border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+    }
+    
+    #uploadForm textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    /* Image Uploader */
+    .image-upload-container {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    
+    .image-upload-container input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .image-upload-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      background: var(--secondary-dark);
+      border: 2px dashed rgba(100, 255, 218, 0.3);
+      border-radius: 12px;
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+      min-height: 120px;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+    
+    .image-upload-label:hover {
+      border-color: var(--accent-primary);
+      background: rgba(100, 255, 218, 0.05);
+    }
+    
+    .image-upload-label i {
+      font-size: 1.5rem;
+      color: var(--accent-primary);
+    }
+    
+    /* Image Preview */
+    .image-preview-container {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .image-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid rgba(100, 255, 218, 0.2);
+    }
+    
+    .image-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .remove-preview {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(255, 51, 102, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: var(--transition);
+    }
+    
+    .remove-preview:hover {
+      transform: scale(1.1);
+    }
+    
+    /* File Input */
+    .file-input-container {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .file-input-container input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      background: var(--secondary-dark);
+      border: 2px dashed rgba(100, 255, 218, 0.3);
+      border-radius: 12px;
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+      min-height: 100px;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+    
+    .file-input-label:hover {
+      border-color: var(--accent-primary);
+      background: rgba(100, 255, 218, 0.05);
+    }
+    
+    .file-input-label i {
+      font-size: 1.5rem;
+      color: var(--accent-primary);
+    }
+    
+    /* Content Type Tags */
+    .content-type-tags {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    
+    .tag-option {
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    .tag-option input[type="radio"] {
+      display: none;
+    }
+    
+    .tag-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      border: 2px solid rgba(100, 255, 218, 0.2);
+      border-radius: 12px;
+      background: var(--secondary-dark);
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      font-weight: 600;
+      min-height: 60px;
+    }
+    
+    .tag-box i {
+      color: var(--accent-primary);
+      font-size: 1.1rem;
+    }
+    
+    .tag-option input[type="radio"]:checked + .tag-box {
+      background: var(--gradient-primary);
+      color: var(--primary-dark);
+      border-color: transparent;
+    }
+    
+    .tag-option input[type="radio"]:checked + .tag-box i {
+      color: var(--primary-dark);
+    }
+    
+    .tag-box:hover {
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+    }
+    
+    /* Book Type Selector (Admin Only) */
+    .book-type-selector {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .book-type-btn {
+      padding: 0.75rem 1.25rem;
+      border: 1px solid rgba(100, 255, 218, 0.2);
+      background: transparent;
+      color: var(--text-gray);
+      border-radius: 30px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 600;
+      flex: 1;
+      min-width: 120px;
+      min-height: 44px;
+    }
+    
+    .book-type-btn.active {
+      background: var(--gradient-primary);
+      color: var(--primary-dark);
+      border-color: transparent;
+    }
+    
+    /* Messages */
+    .message {
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    
+    .success { 
+      background: rgba(100, 255, 218, 0.1); 
+      color: var(--accent-primary); 
+      border: 1px solid rgba(100, 255, 218, 0.3);
+    }
+    
+    .error { 
+      background: rgba(255, 100, 100, 0.1); 
+      color: #ff6b6b; 
+      border: 1px solid rgba(255, 100, 100, 0.3);
+    }
+    
+    /* Loading States */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
     }
     
     /* Course Section */
@@ -419,7 +737,6 @@
       background: rgba(100, 255, 218, 0.1);
       padding: 0.75rem;
       border-radius: 12px;
-      flex-shrink: 0;
     }
     
     .course-count {
@@ -468,7 +785,7 @@
       color: var(--accent-primary);
     }
     
-    /* Improved Course Grid */
+    /* Course Grid */
     .grid { 
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); 
@@ -476,7 +793,7 @@
       width: 100%;
     }
     
-    /* Course Cards - Mobile Optimized */
+    /* Course Cards */
     .card { 
       background: var(--card-bg); 
       border-radius: var(--border-radius); 
@@ -489,7 +806,7 @@
       flex-direction: column;
     }
     
-    .card:hover, .card:focus-within {
+    .card:hover {
       transform: translateY(-8px);
       border-color: rgba(100, 255, 218, 0.3);
       box-shadow: 0 20px 40px -15px rgba(2, 12, 27, 0.8);
@@ -509,7 +826,7 @@
       background: var(--secondary-dark);
     }
     
-    .card:hover .card-header img, .card:focus-within .card-header img {
+    .card:hover .card-header img {
       transform: scale(1.05);
     }
     
@@ -611,7 +928,6 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      white-space: nowrap;
     }
     
     .author i {
@@ -639,347 +955,39 @@
       line-height: 1.7;
     }
     
-    /* Upload Section - Mobile Optimized */
-    #uploadSection { 
-      display: none; 
-      background: var(--card-bg); 
-      padding: 2rem 1.5rem; 
-      border-radius: var(--border-radius); 
-      margin: 2rem auto; 
-      max-width: 800px;
-      width: 100%;
-      border: 1px solid rgba(100, 255, 218, 0.1);
-      box-shadow: var(--shadow);
-    }
-    
-    #uploadSection h2 {
-      font-size: 1.75rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      color: var(--text-light);
-      flex-wrap: wrap;
-    }
-    
-    #uploadSection h2 i {
-      color: var(--accent-primary);
-      background: rgba(100, 255, 218, 0.1);
-      padding: 0.75rem;
-      border-radius: 12px;
-      flex-shrink: 0;
-    }
-    
-    #uploadForm { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 1.25rem;
-    }
-    
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    
-    .form-group label {
-      color: var(--text-gray);
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-    
-    #uploadForm input, #uploadForm textarea, #uploadForm select { 
-      padding: 1rem; 
-      border-radius: 12px; 
-      border: 1px solid rgba(100, 255, 218, 0.2); 
-      background: var(--secondary-dark); 
-      color: var(--text-light);
-      font-size: 1rem;
-      transition: var(--transition);
-      min-height: 50px;
-      width: 100%;
-    }
-    
-    #uploadForm input:focus, #uploadForm textarea:focus, #uploadForm select:focus {
-      outline: none;
-      border-color: var(--accent-primary);
-      box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
-    }
-    
-    #uploadForm textarea {
-      min-height: 120px;
-      resize: vertical;
-      line-height: 1.6;
-    }
-    
-    /* Image Uploader Container */
-    .image-upload-container {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-      width: 100%;
-      margin-top: 0.5rem;
-    }
-    
-    .image-upload-container input[type="file"] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
-    
-    .image-upload-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      padding: 1.5rem;
-      background: var(--secondary-dark);
-      border: 2px dashed rgba(100, 255, 218, 0.3);
-      border-radius: 12px;
-      color: var(--text-gray);
-      cursor: pointer;
-      transition: var(--transition);
-      min-height: 120px;
-      text-align: center;
-      flex-wrap: wrap;
-    }
-    
-    .image-upload-label:hover, .image-upload-label:active {
-      border-color: var(--accent-primary);
-      background: rgba(100, 255, 218, 0.05);
-    }
-    
-    .image-upload-label i {
-      font-size: 1.5rem;
-      color: var(--accent-primary);
-      flex-shrink: 0;
-    }
-    
-    /* Image Preview */
-    .image-preview-container {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .image-preview {
-      width: 120px;
-      height: 120px;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      border: 2px solid rgba(100, 255, 218, 0.2);
-    }
-    
-    .image-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .remove-preview {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      background: rgba(255, 51, 102, 0.9);
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: #10b981;
       color: white;
-      border: none;
-      border-radius: 50%;
-      width: 25px;
-      height: 25px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 0.8rem;
-      transition: var(--transition);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
     }
     
-    .remove-preview:hover {
-      transform: scale(1.1);
+    .toast.error {
+      background: #ef4444;
     }
     
-    /* File Input Container */
-    .file-input-container {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-      width: 100%;
+    .toast.info {
+      background: #3b82f6;
     }
     
-    .file-input-container input[type="file"] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
     
-    .file-input-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      padding: 1.5rem;
-      background: var(--secondary-dark);
-      border: 2px dashed rgba(100, 255, 218, 0.3);
-      border-radius: 12px;
-      color: var(--text-gray);
-      cursor: pointer;
-      transition: var(--transition);
-      min-height: 100px;
-      text-align: center;
-      flex-wrap: wrap;
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
     }
     
-    .file-input-label:hover, .file-input-label:active {
-      border-color: var(--accent-primary);
-      background: rgba(100, 255, 218, 0.05);
-    }
-    
-    .file-input-label i {
-      font-size: 1.5rem;
-      color: var(--accent-primary);
-      flex-shrink: 0;
-    }
-    
-    /* Content Type Tags */
-    .content-type-tags {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-      margin-top: 0.5rem;
-    }
-    
-    .tag-option {
-      flex: 1;
-      min-width: 120px;
-    }
-    
-    .tag-option input[type="radio"] {
-      display: none;
-    }
-    
-    .tag-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 1rem;
-      border: 2px solid rgba(100, 255, 218, 0.2);
-      border-radius: 12px;
-      background: var(--secondary-dark);
-      color: var(--text-gray);
-      cursor: pointer;
-      transition: var(--transition);
-      text-align: center;
-      font-weight: 600;
-      min-height: 60px;
-    }
-    
-    .tag-box i {
-      color: var(--accent-primary);
-      font-size: 1.1rem;
-    }
-    
-    .tag-option input[type="radio"]:checked + .tag-box {
-      background: var(--gradient-primary);
-      color: var(--primary-dark);
-      border-color: transparent;
-    }
-    
-    .tag-option input[type="radio"]:checked + .tag-box i {
-      color: var(--primary-dark);
-    }
-    
-    .tag-box:hover {
-      border-color: var(--accent-primary);
-      transform: translateY(-2px);
-    }
-    
-    /* Book Type Selector */
-    .book-type-selector {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .book-type-btn {
-      padding: 0.75rem 1.25rem;
-      border: 1px solid rgba(100, 255, 218, 0.2);
-      background: transparent;
-      color: var(--text-gray);
-      border-radius: 30px;
-      cursor: pointer;
-      transition: var(--transition);
-      font-weight: 600;
-      flex: 1;
-      min-width: 120px;
-      min-height: 44px;
-      touch-action: manipulation;
-    }
-    
-    .book-type-btn.active {
-      background: var(--gradient-primary);
-      color: var(--primary-dark);
-      border-color: transparent;
-    }
-    
-    /* Messages */
-    .message {
-      padding: 1rem;
-      border-radius: 12px;
-      margin: 1rem 0;
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-    
-    .success { 
-      background: rgba(100, 255, 218, 0.1); 
-      color: var(--accent-primary); 
-      border: 1px solid rgba(100, 255, 218, 0.3);
-    }
-    
-    .error { 
-      background: rgba(255, 100, 100, 0.1); 
-      color: #ff6b6b; 
-      border: 1px solid rgba(255, 100, 100, 0.3);
-    }
-    
-    /* Loading States */
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-    
-    /* Scrollbar Styling */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: var(--primary-dark);
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: var(--secondary-dark);
-      border-radius: 5px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--card-bg);
-    }
-    
-    /* Responsive Design - Tablet (768px to 1024px) */
+    /* Responsive Design */
     @media screen and (min-width: 768px) {
       .hero h1 {
         font-size: 3rem;
@@ -1032,7 +1040,6 @@
       }
     }
     
-    /* Responsive Design - Mobile (up to 767px) */
     @media screen and (max-width: 767px) {
       header {
         height: var(--mobile-header-height);
@@ -1062,7 +1069,6 @@
         display: flex;
       }
       
-      /* Auth buttons now visible on mobile */
       .auth-buttons {
         display: flex;
         flex-direction: column;
@@ -1111,15 +1117,6 @@
         min-height: auto;
       }
       
-      .card-actions {
-        margin-top: 0.5rem;
-      }
-      
-      .btn, .btn-primary, .btn-secondary {
-        padding: 0.85rem 1rem;
-        font-size: 0.9rem;
-      }
-      
       #uploadSection {
         padding: 1.5rem 1rem;
         margin: 1.5rem auto;
@@ -1127,11 +1124,6 @@
       
       #uploadSection h2 {
         font-size: 1.5rem;
-      }
-      
-      .book-type-btn {
-        min-width: 100px;
-        padding: 0.75rem 1rem;
       }
       
       .filter-btn {
@@ -1151,52 +1143,6 @@
       .tag-box {
         padding: 0.75rem;
         font-size: 0.85rem;
-      }
-    }
-    
-    /* Large Desktop (above 1200px) */
-    @media screen and (min-width: 1200px) {
-      .hero h1 {
-        font-size: 3.5rem;
-      }
-      
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-      }
-    }
-    
-    /* Extra Small Devices */
-    @media screen and (max-width: 380px) {
-      .logo-text {
-        font-size: 1.3rem;
-      }
-      
-      .logo-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
-      }
-      
-      .hero h1 {
-        font-size: 1.75rem;
-      }
-      
-      .card-content {
-        padding: 1.25rem;
-      }
-      
-      .section-header h2 {
-        font-size: 1.5rem;
-      }
-      
-      .filter-btn {
-        padding: 0.6rem 0.8rem;
-        font-size: 0.8rem;
-      }
-      
-      .tag-box {
-        padding: 0.5rem;
-        font-size: 0.8rem;
       }
     }
   </style>
@@ -1221,7 +1167,6 @@
       <a href="products.html">Products</a>
     </nav>
     
-    <!-- Auth Buttons -->
     <div class="auth-buttons" id="headerAuthButtons">
       <a href="login.html" class="btn btn-login">Login</a>
       <a href="signup.html" class="btn btn-signup">Sign Up</a>
@@ -1260,7 +1205,15 @@
     </div>
   </section>
 
-  <!-- Upload Section (admin) -->
+  <!-- Upload Prompt (shown when logged in) -->
+  <div id="uploadPrompt" class="upload-prompt container" style="display: none;">
+    <button onclick="document.getElementById('uploadSection').scrollIntoView({behavior: 'smooth'});" 
+            class="btn-primary">
+      <i class="fas fa-cloud-upload-alt"></i> Upload Your Course
+    </button>
+  </div>
+
+  <!-- Upload Section (shown to all logged-in users) -->
   <div id="uploadSection" class="container">
     <h2><i class="fas fa-cloud-upload-alt"></i> Upload New Content</h2>
     <form id="uploadForm" enctype="multipart/form-data">
@@ -1275,7 +1228,7 @@
       </div>
       
       <div class="form-group">
-        <label for="author">Author Name       </label>
+        <label for="author">Author Name</label>
         <input type="text" id="author" name="author" placeholder="Author or instructor name">
       </div>
       
@@ -1312,7 +1265,7 @@
       
       <!-- Image Uploader for Thumbnail -->
       <div class="form-group">
-        <label>Thumbnail Image (Required for all content)</label>
+        <label>Thumbnail Image (Required)</label>
         <div class="image-upload-container">
           <input type="file" id="thumbnail" name="thumbnail" accept="image/*" required>
           <div class="image-upload-label">
@@ -1363,7 +1316,6 @@
       <div class="course-count" id="courseCount">Loading...</div>
     </div>
     
-    <!-- FILTER BUTTONS -->
     <div class="filter-buttons">
       <button class="filter-btn active" data-filter="all">
         <i class="fas fa-th"></i> All
@@ -1414,663 +1366,313 @@
     </div>
   </footer>
 
-  <!-- JavaScript -->
-<script>
-  // ==================== GLOBAL VARIABLES ====================
-  let userCurrency = 'NGN';
-  let exchangeRates = {};
-  let currentUser = null;
+  <script>
+    // ========================= CORE FUNCTIONALITY =========================
+    
+    // Mobile menu toggle
+    document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+      const nav = document.querySelector('nav');
+      const icon = this.querySelector('i');
+      
+      nav.classList.toggle('active');
+      icon.classList.toggle('fa-bars');
+      icon.classList.toggle('fa-times');
+    });
 
-  // ==================== HELPER FUNCTIONS ====================
-  
-  // Show/hide loading
-  function showLoading() {
-    document.body.classList.add('loading');
-  }
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+      const nav = document.querySelector('nav');
+      const toggle = document.querySelector('.mobile-menu-toggle');
+      
+      if (nav.classList.contains('active') && 
+          !nav.contains(event.target) && 
+          !toggle.contains(event.target)) {
+        nav.classList.remove('active');
+        toggle.querySelector('i').classList.add('fa-bars');
+        toggle.querySelector('i').classList.remove('fa-times');
+      }
+    });
 
-  function hideLoading() {
-    document.body.classList.remove('loading');
-  }
-
-  // Escape HTML to prevent XSS
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // Format currency
-  function formatCurrency(amount, currency) {
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency
-      }).format(amount);
-    } catch (error) {
-      return `${currency} ${parseFloat(amount).toFixed(2)}`;
+    // Loading states
+    function showLoading() {
+      document.body.classList.add('loading');
     }
-  }
 
-  // ==================== CURRENCY FUNCTIONS ====================
-  
-  async function detectUserCurrency() {
-    try {
-      const response = await fetch('https://ipapi.co/currency/', {
-        timeout: 5000
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const currency = await response.text();
-      if (currency && currency.length === 3) {
-        userCurrency = currency;
-        console.log("🌍 Detected currency:", userCurrency);
-      }
-    } catch (error) {
-      console.log('Using default currency:', userCurrency);
-      userCurrency = 'NGN';
+    function hideLoading() {
+      document.body.classList.remove('loading');
     }
-    await loadExchangeRates();
-  }
 
-  async function loadExchangeRates() {
-    try {
-      const response = await fetch('/api/currency-rates');
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, 3000);
+    }
+
+    // ========================= CURRENCY CONVERSION =========================
+    let userCurrency = 'NGN';
+    let exchangeRates = {};
+
+    async function detectUserCurrency() {
+      try {
+        const response = await fetch('https://ipapi.co/currency/', {
+          timeout: 5000
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const currency = await response.text();
+        if (currency && currency.length === 3) {
+          userCurrency = currency;
+          console.log("🌍 Detected currency:", userCurrency);
+        }
+      } catch (error) {
+        console.log('Using default currency:', userCurrency);
+        userCurrency = 'NGN';
       }
-      
-      const data = await response.json();
-      
-      if (data && data.rates) {
-        exchangeRates = data.rates;
-        updateCurrencySelector();
-        updateAllPrices();
-      } else {
+      await loadExchangeRates();
+    }
+
+    async function loadExchangeRates() {
+      try {
+        showLoading();
+        const response = await fetch('/api/currency-rates');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.rates) {
+          exchangeRates = data.rates;
+          updateCurrencySelector();
+          updateAllPrices();
+        } else {
+          exchangeRates = { NGN: 1, USD: 0.0011, EUR: 0.0010, GBP: 0.00085 };
+          console.log("Using default exchange rates");
+        }
+        
+        hideLoading();
+      } catch (error) {
+        console.error('Error loading exchange rates:', error);
         exchangeRates = { NGN: 1, USD: 0.0011, EUR: 0.0010, GBP: 0.00085 };
-        console.log("Using default exchange rates");
-      }
-      
-    } catch (error) {
-      console.error('Error loading exchange rates:', error);
-      exchangeRates = { NGN: 1, USD: 0.0011, EUR: 0.0010, GBP: 0.00085 };
-    }
-  }
-
-  function updateCurrencySelector() {
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-      currencySelect.value = userCurrency;
-    }
-  }
-
-  // ==================== COURSE IMAGE HELPER ====================
-  
-  function getCourseImageUrl(course) {
-    // Try thumbnail_url first
-    if (course.thumbnail_url) {
-      // If it's already a full URL
-      if (course.thumbnail_url.startsWith('http')) {
-        return course.thumbnail_url;
-      }
-      // If it starts with /, it's a local path
-      if (course.thumbnail_url.startsWith('/')) {
-        return course.thumbnail_url;
-      }
-      return '/' + course.thumbnail_url;
-    }
-    
-    // Try thumbnail_path next
-    if (course.thumbnail_path) {
-      if (course.thumbnail_path.startsWith('/')) {
-        return course.thumbnail_path;
-      }
-      return '/' + course.thumbnail_path;
-    }
-    
-    // Generate a placeholder with course title
-    const colors = ['1e293b', '172a45', '112240', '0a192f'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const title = (course.title || 'Course').substring(0, 30).replace(/[^\w\s]/gi, '');
-    return `https://placehold.co/600x400/${color}/64ffda?text=${encodeURIComponent(title)}&font=montserrat`;
-  }
-
-  // ==================== COURSE DOWNLOAD FUNCTION (FIXED) ====================
-  
-  async function handleDownload(courseId) {
-    try {
-      showLoading();
-      
-      // Check if user is logged in
-      const userRes = await fetch('/api/me');
-      if (!userRes.ok) {
-        alert('Please login to download content');
-        window.location.href = 'login.html';
-        return;
-      }
-      
-      const user = await userRes.json();
-      console.log(`📥 Downloading course ${courseId} for user ${user.id}`);
-      
-      // Use the download API endpoint
-      window.location.href = `/api/download/${courseId}`;
-      
-      // The page will navigate away, so we don't need to hide loading
-      
-    } catch (error) {
-      console.error('Download error:', error);
-      alert('Error downloading file: ' + error.message);
-      hideLoading();
-    }
-  }
-
-  // ==================== CHECK ACCESS FUNCTION (FIXED) ====================
-  
-  async function checkAccess(courseId, isVideo = false) {
-    try {
-      showLoading();
-      
-      // Check if user is logged in
-      const userRes = await fetch('/api/me');
-      if (!userRes.ok) {
-        alert('Please login to access this content');
-        window.location.href = 'login.html';
-        return;
-      }
-      
-      const response = await fetch(`/api/check-access/${courseId}`);
-      const data = await response.json();
-      
-      console.log('Access check result:', data);
-      
-      if (data.hasAccess) {
-        const action = isVideo ? 'watch' : 'download';
-        if (confirm(`You have access to this content! Would you like to ${action} it now?`)) {
-          window.location.href = `/api/download/${courseId}`;
-        }
-      } else {
-        alert('You do not have access to this content. Please purchase it first.');
-      }
-      
-      hideLoading();
-    } catch (error) {
-      console.error('Access check error:', error);
-      alert('Error checking content access: ' + error.message);
-      hideLoading();
-    }
-  }
-
-  // ==================== PAYMENT FUNCTION ====================
-  
-  async function initiatePayment(courseId, price, title, isVideo = false) {
-    try {
-      const userRes = await fetch('/api/me');
-      if (!userRes.ok) {
-        alert('Please login to purchase content');
-        window.location.href = 'login.html';
-        return;
-      }
-      
-      const user = await userRes.json();
-      
-      const convertedPrice = price * (exchangeRates[userCurrency] || 1);
-      const userFriendlyPrice = formatCurrency(convertedPrice, userCurrency);
-      const action = isVideo ? 'watch' : 'download';
-      
-      if (!confirm(`Purchase "${title}" for ${userFriendlyPrice} to ${action}?`)) {
-        return;
-      }
-      
-      showLoading();
-      
-      const response = await fetch('/api/initiate-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          courseId: courseId,
-          amount: price,
-          email: user.email || `${user.username}@example.com`,
-          isVideo: isVideo
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.status === 'success' && data.paymentLink) {
-        // Store payment info for after redirect
-        localStorage.setItem('pendingPayment', JSON.stringify({
-          courseId: courseId,
-          isVideo: isVideo,
-          title: title
-        }));
-        
-        window.location.href = data.paymentLink;
-      } else {
-        alert('Error: ' + (data.error || 'Failed to initiate payment'));
         hideLoading();
       }
-      
-    } catch (error) {
-      console.error('Purchase error:', error);
-      alert('Error initiating purchase. Please try again.');
-      hideLoading();
-    }
-  }
-
-  // ==================== DELETE COURSE FUNCTION ====================
-  
-  async function deleteCourse(courseId) {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
     }
 
-    try {
-      showLoading();
-      
-      const response = await fetch(`/api/courses/${courseId}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('✅ Course deleted successfully!');
-        loadCourses(); // Reload courses
-      } else {
-        alert('❌ Error: ' + (data.error || 'Failed to delete course.'));
-        hideLoading();
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Error deleting course. Please try again.');
-      hideLoading();
-    }
-  }
-
-  // ==================== LOAD USER FUNCTION ====================
-  
-  async function loadUser() {
-    try {
-      const res = await fetch('/api/me');
-      if (!res.ok) {
-        currentUser = null;
-        updateHeader();
-        return;
-      }
-      
-      const user = await res.json();
-      currentUser = user;
-      updateHeader();
-      
-    } catch (error) {
-      console.error('Error loading user:', error);
-      currentUser = null;
-      updateHeader();
-    }
-  }
-
-  // ==================== UPDATE HEADER FUNCTION ====================
-  
-  function updateHeader() {
-    const headerAuth = document.getElementById('headerAuthButtons');
-    
-    if (currentUser) {
-      headerAuth.innerHTML = `
-        <span style="color: var(--accent-gold); margin-right: 1rem; font-size: 0.9rem;">
-          Welcome, ${currentUser.role === 'admin' ? '<strong>Admin</strong>' : escapeHtml(currentUser.username)}
-        </span>
-        <a href="#" class="btn btn-login" onclick="logout(); return false;">Logout</a>
-      `;
-      
-      // Show upload section for admins
-      const uploadSection = document.getElementById('uploadSection');
-      if (uploadSection) {
-        uploadSection.style.display = currentUser.role === 'admin' ? 'block' : 'none';
-      }
-      
-    } else {
-      headerAuth.innerHTML = `
-        <a href="login.html" class="btn btn-login">Login</a>
-        <a href="signup.html" class="btn btn-signup">Sign Up</a>
-      `;
-      
-      const uploadSection = document.getElementById('uploadSection');
-      if (uploadSection) {
-        uploadSection.style.display = 'none';
-      }
-    }
-  }
-
-  // ==================== LOGOUT FUNCTION ====================
-  
-  async function logout() {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-      window.location.reload();
-    } catch (error) {
-      console.error('Logout error:', error);
-      window.location.reload();
-    }
-  }
-
-  // ==================== LOAD COURSES FUNCTION (FIXED) ====================
-  
-  async function loadCourses() {
-    try {
-      showLoading();
-      
-      const res = await fetch('/api/courses');
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const courses = await res.json();
-      const grid = document.getElementById('coursesGrid');
-      const courseCount = document.getElementById('courseCount');
-      
-      courseCount.textContent = `${courses.length} Courses`;
-      
-      if (courses.length === 0) {
-        grid.innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
-            <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-            <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
-            <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
-          </div>
-        `;
-        hideLoading();
-        return;
-      }
-      
-      // Generate course cards
-      grid.innerHTML = courses.map(course => {
-        // Determine content type
-        const isVideo = 
-          (course.content_type === 'video') ||
-          (course.file_url && course.file_url.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv)$/i)) ||
-          (course.file_path && course.file_path.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv)$/i));
-        
-        const isFree = course.price === 0 || course.type === 'free';
-        const isPremium = course.price > 0 && course.type !== 'free';
-        
-        // Determine badge
-        let badgeClass = 'badge-free';
-        let badgeIcon = 'fas fa-book';
-        let badgeText = 'FREE';
-        
-        if (isPremium) {
-          badgeClass = 'badge-premium';
-          badgeIcon = 'fas fa-crown';
-          badgeText = 'PREMIUM';
-        }
-        
-        if (isVideo) {
-          badgeClass = 'badge-video';
-          badgeIcon = 'fas fa-video';
-          badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
-        }
-        
-        // Get image URL using our helper
-        const imageUrl = getCourseImageUrl(course);
-        
-        // Format price
-        const priceDisplay = course.price > 0 
-          ? formatCurrency(course.price * (exchangeRates[userCurrency] || 1), userCurrency)
-          : 'FREE';
-        
-        return `
-          <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${course.content_type || 'book'}">
-            <div class="card-header">
-              <img src="${imageUrl}" 
-                   alt="${escapeHtml(course.title)}" 
-                   loading="lazy" 
-                   onerror="this.onerror=null; this.src='https://placehold.co/600x400/1e293b/64ffda?text=Image+Not+Found&font=montserrat';">
-              <div class="card-badge ${badgeClass}">
-                <i class="${badgeIcon} type-icon"></i> ${badgeText}
-              </div>
-            </div>
-            <div class="card-content">
-              <h3>${escapeHtml(course.title)}</h3>
-              <p>${escapeHtml(course.description || 'No description available')}</p>
-              <div class="card-meta">
-                <div class="price">${priceDisplay}</div>
-                ${course.author ? `
-                  <div class="author">
-                    <i class="fas fa-user"></i>
-                    <span>${escapeHtml(course.author)}</span>
-                  </div>
-                ` : ''}
-              </div>
-              <div class="card-actions">
-                ${isPremium ? `
-                  <button onclick="initiatePayment(${course.id}, ${course.price}, '${escapeHtml(course.title).replace(/'/g, "\\'")}', ${isVideo})" 
-                          class="btn-primary">
-                    <i class="fas fa-shopping-cart"></i> Buy Now
-                  </button>
-                  <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
-                    <i class="fas fa-lock"></i> Check Access
-                  </button>
-                ` : `
-                  <button onclick="handleDownload(${course.id})" class="btn-primary">
-                    <i class="fas fa-download"></i> 
-                    Download Free
-                  </button>
-                `}
-                ${currentUser && (currentUser.role === 'admin' || currentUser.id === course.user_id) ? `
-                  <button onclick="deleteCourse(${course.id})" 
-                          class="btn-secondary" 
-                          style="background: #ff4444; color: white; border: none;">
-                    <i class="fas fa-trash"></i> Delete
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-      
-      // Update all prices after rendering
-      updateAllPrices();
-      
-      hideLoading();
-      
-    } catch (error) {
-      console.error('Error loading courses:', error);
-      document.getElementById('coursesGrid').innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
-          <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
-          <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
-          <p style="color: var(--text-gray);">${error.message}</p>
-          <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
-            <i class="fas fa-redo"></i> Retry
-          </button>
-        </div>
-      `;
-      hideLoading();
-    }
-  }
-
-  // ==================== FILTER FUNCTIONS ====================
-  
-  function setupFilters() {
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        filterButtons.forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        const filter = this.dataset.filter;
-        filterCourses(filter);
-      });
-    });
-  }
-
-  function filterCourses(filter) {
-    const cards = document.querySelectorAll('#coursesGrid .card');
-    let visibleCount = 0;
-    
-    cards.forEach(card => {
-      const type = card.dataset.type;
-      const isVideo = card.dataset.isVideo === 'true';
-      const contentType = card.dataset.contentType;
-      
-      let showCard = false;
-      
-      if (filter === 'all') {
-        showCard = true;
-      } else if (filter === 'free' && type === 'free') {
-        showCard = true;
-      } else if (filter === 'premium' && type === 'premium') {
-        showCard = true;
-      } else if (filter === 'video' && (isVideo || contentType === 'video')) {
-        showCard = true;
-      }
-      
-      if (showCard) {
-        card.style.display = 'flex';
-        visibleCount++;
-      } else {
-        card.style.display = 'none';
-      }
-    });
-    
-    console.log(`Filter "${filter}" showing ${visibleCount} courses`);
-  }
-
-  // ==================== SEARCH FUNCTION ====================
-  
-  function setupSearch() {
-    const searchBtn = document.getElementById('searchBtn');
-    const searchInput = document.getElementById('searchInput');
-    
-    searchBtn.addEventListener('click', () => {
-      const query = searchInput.value.toLowerCase().trim();
-      const cards = document.querySelectorAll('#coursesGrid .card');
-      
-      cards.forEach(card => {
-        if (card.style.display === 'none') return;
-        
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        const desc = card.querySelector('p').textContent.toLowerCase();
-        
-        if (title.includes(query) || desc.includes(query) || query === '') {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
+    function updateAllPrices() {
+      const priceElements = document.querySelectorAll('.price[data-original-price]');
+      priceElements.forEach(element => {
+        const originalPrice = element.getAttribute('data-original-price');
+        if (originalPrice && exchangeRates[userCurrency]) {
+          const convertedPrice = originalPrice * exchangeRates[userCurrency];
+          element.textContent = formatCurrency(convertedPrice, userCurrency);
         }
       });
-    });
-    
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        searchBtn.click();
+    }
+
+    function formatCurrency(amount, currency) {
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currency
+        }).format(amount);
+      } catch (error) {
+        return `${currency} ${parseFloat(amount).toFixed(2)}`;
       }
-    });
-  }
+    }
 
-  // ==================== UPDATE ALL PRICES ====================
-  
-  function updateAllPrices() {
-    // This will be called when currency changes
-    // The prices are already formatted correctly in the course cards
-  }
+    function updateCurrencySelector() {
+      const currencySelect = document.getElementById('currencySelect');
+      if (currencySelect) {
+        currencySelect.value = userCurrency;
+      }
+    }
 
-  // ==================== MOBILE MENU ====================
-  
-  function setupMobileMenu() {
-    const toggle = document.querySelector('.mobile-menu-toggle');
-    const nav = document.querySelector('nav');
-    
-    if (toggle && nav) {
-      toggle.addEventListener('click', function() {
-        const icon = this.querySelector('i');
-        nav.classList.toggle('active');
-        
-        if (icon) {
-          icon.classList.toggle('fa-bars');
-          icon.classList.toggle('fa-times');
-        }
-      });
-      
-      // Close menu when clicking outside
-      document.addEventListener('click', function(event) {
-        if (nav.classList.contains('active') && 
-            !nav.contains(event.target) && 
-            !toggle.contains(event.target)) {
-          nav.classList.remove('active');
-          const icon = toggle.querySelector('i');
-          if (icon) {
-            icon.classList.add('fa-bars');
-            icon.classList.remove('fa-times');
+    // ========================= USER AUTHENTICATION - FIXED =========================
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/me');
+        const user = await res.json();
+        const headerAuthButtons = document.getElementById('headerAuthButtons');
+        const uploadSection = document.getElementById('uploadSection');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const bookTypeSection = document.getElementById('bookTypeSection');
+        const priceField = document.getElementById('priceField');
+
+        if (user) {
+          // User is logged in
+          headerAuthButtons.innerHTML = `
+            <span style="color: var(--accent-gold); margin-right: 1rem; font-size: 0.9rem;">
+              Welcome, ${user.username || 'User'}
+              ${user.role === 'admin' ? '<span style="background: #64ffda; color: #0a192f; padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 11px;">ADMIN</span>' : ''}
+            </span>
+            <a href="#" class="btn btn-login" onclick="logout()">Logout</a>
+          `;
+          
+          // FIX: Show upload section for ALL logged-in users
+          uploadSection.style.display = 'block';
+          if (uploadPrompt) uploadPrompt.style.display = 'block';
+          
+          // Only show book type selector and price field for admin
+          if (user.role === 'admin') {
+            bookTypeSection.style.display = 'block';
+            setupBookTypeSelector();
+          } else {
+            bookTypeSection.style.display = 'none';
+            priceField.style.display = 'none';
           }
+          
+          console.log('✅ User loaded:', user.username, 'Role:', user.role);
+          
+        } else {
+          // No user logged in
+          headerAuthButtons.innerHTML = `
+            <a href="login.html" class="btn btn-login">Login</a>
+            <a href="signup.html" class="btn btn-signup">Sign Up</a>
+          `;
+          uploadSection.style.display = 'none';
+          if (uploadPrompt) uploadPrompt.style.display = 'none';
+          console.log('👤 No user logged in');
+        }
+      } catch (error) {
+        console.error('❌ Error loading user:', error);
+      }
+    }
+
+    // Book type selector for admin only
+    function setupBookTypeSelector() {
+      const buttons = document.querySelectorAll('.book-type-btn');
+      const priceField = document.getElementById('priceField');
+      
+      buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          if (btn.dataset.type === 'paid') {
+            priceField.style.display = 'block';
+            document.getElementById('price').required = true;
+          } else {
+            priceField.style.display = 'none';
+            document.getElementById('price').required = false;
+          }
+        });
+      });
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.reload();
+      } catch (error) {
+        console.error('Logout error:', error);
+        window.location.reload();
+      }
+    }
+
+    // ========================= IMAGE UPLOAD PREVIEW =========================
+    function setupImagePreview() {
+      const thumbnailInput = document.getElementById('thumbnail');
+      const thumbnailPreview = document.getElementById('thumbnailPreview');
+      
+      thumbnailInput.addEventListener('change', function(e) {
+        thumbnailPreview.innerHTML = '';
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            img.alt = 'Thumbnail Preview';
+            
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'image-preview';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-preview';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.onclick = function() {
+              previewDiv.remove();
+              thumbnailInput.value = '';
+            };
+            
+            previewDiv.appendChild(img);
+            previewDiv.appendChild(removeBtn);
+            thumbnailPreview.appendChild(previewDiv);
+          };
+          reader.readAsDataURL(file);
         }
       });
     }
-  }
 
-  // ==================== UPLOAD FORM SETUP ====================
-  
-  function setupUploadForm() {
-    const form = document.getElementById('uploadForm');
-    if (!form) return;
-    
-    // Book type selector
-    const bookTypeBtns = document.querySelectorAll('.book-type-btn');
-    const priceField = document.getElementById('priceField');
-    
-    bookTypeBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        bookTypeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        if (btn.dataset.type === 'paid') {
-          priceField.style.display = 'block';
-          document.getElementById('price').required = true;
-        } else {
-          priceField.style.display = 'none';
-          document.getElementById('price').required = false;
-        }
-      });
-    });
-    
-    // Thumbnail preview
-    const thumbnailInput = document.getElementById('thumbnail');
-    const thumbnailPreview = document.getElementById('thumbnailPreview');
-    
-    thumbnailInput.addEventListener('change', function() {
-      thumbnailPreview.innerHTML = '';
-      const file = this.files[0];
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const preview = document.createElement('div');
-          preview.className = 'image-preview';
-          preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-          thumbnailPreview.appendChild(preview);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-    
-    // Form submission
-    form.addEventListener('submit', async (e) => {
+    // ========================= UPLOAD FORM - FIXED =========================
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      // Check if user is logged in first
+      try {
+        const userRes = await fetch('/api/me');
+        const user = await userRes.json();
+        
+        if (!user) {
+          alert('Please login to upload courses');
+          window.location.href = 'login.html';
+          return;
+        }
+      } catch (error) {
+        alert('Please login to upload courses');
+        window.location.href = 'login.html';
+        return;
+      }
       
       const formData = new FormData();
       formData.append('title', document.getElementById('title').value);
       formData.append('description', document.getElementById('description').value);
       formData.append('author', document.getElementById('author').value);
-      formData.append('content_type', document.querySelector('input[name="content_type"]:checked').value);
-      formData.append('thumbnail', document.getElementById('thumbnail').files[0]);
-      formData.append('file', document.getElementById('file').files[0]);
       
+      // Get content type
+      const contentType = document.querySelector('input[name="content_type"]:checked');
+      if (contentType) {
+        formData.append('content_type', contentType.value);
+      }
+      
+      // Handle thumbnail
+      const thumbnailFile = document.getElementById('thumbnail').files[0];
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      } else {
+        alert('Please select a thumbnail image');
+        return;
+      }
+      
+      // Handle course file
+      const fileFile = document.getElementById('file').files[0];
+      if (fileFile) {
+        formData.append('file', fileFile);
+      } else {
+        alert('Please select a file to upload');
+        return;
+      }
+      
+      // Add price if it's a paid course (admin only)
       const activeType = document.querySelector('.book-type-btn.active');
       if (activeType && activeType.dataset.type === 'paid') {
         const price = document.getElementById('price').value;
@@ -2081,6 +1683,7 @@
       
       try {
         showLoading();
+        
         const response = await fetch('/api/courses', {
           method: 'POST',
           body: formData
@@ -2089,11 +1692,10 @@
         const result = await response.json();
         
         if (response.ok) {
-          alert('✅ Upload successful!');
-          form.reset();
+          showToast('✅ Course uploaded successfully!', 'success');
+          document.getElementById('uploadForm').reset();
           document.getElementById('thumbnailPreview').innerHTML = '';
-          priceField.style.display = 'none';
-          loadCourses();
+          loadCourses(); // Reload courses
         } else {
           alert('❌ Error: ' + (result.error || 'Upload failed'));
         }
@@ -2104,53 +1706,368 @@
         hideLoading();
       }
     });
-  }
 
-  // ==================== INITIALIZATION ====================
-  
-  document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Courses page initializing...');
-    
-    // Set up mobile menu
-    setupMobileMenu();
-    
-    // Load user data
-    await loadUser();
-    
-    // Detect currency and load exchange rates
-    await detectUserCurrency();
-    
-    // Load courses
-    await loadCourses();
-    
-    // Set up filters
-    setupFilters();
-    
-    // Set up search
-    setupSearch();
-    
-    // Set up upload form
-    setupUploadForm();
-    
-    // Currency selector change handler
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-      currencySelect.addEventListener('change', function(e) {
-        userCurrency = e.target.value;
-        loadCourses(); // Reload courses with new currency
+    // ========================= FILTER FUNCTIONALITY =========================
+    function setupFilters() {
+      const filterButtons = document.querySelectorAll('.filter-btn');
+      filterButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+          filterButtons.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          const filter = this.dataset.filter;
+          filterCourses(filter);
+        });
       });
     }
-    
-    console.log('Courses page initialized');
-  });
 
-  // Make functions globally available
-  window.handleDownload = handleDownload;
-  window.checkAccess = checkAccess;
-  window.initiatePayment = initiatePayment;
-  window.deleteCourse = deleteCourse;
-  window.logout = logout;
-  window.loadCourses = loadCourses;
-</script>
+    function filterCourses(filter) {
+      const cards = document.querySelectorAll('#coursesGrid .card');
+      let visibleCount = 0;
+      
+      console.log(`Applying filter: ${filter}`);
+      
+      cards.forEach(card => {
+        const type = card.dataset.type;
+        const isVideo = card.dataset.isVideo === 'true';
+        const contentType = card.dataset.contentType;
+        
+        let showCard = false;
+        
+        if (filter === 'all') {
+          showCard = true;
+        } else if (filter === 'free' && type === 'free') {
+          showCard = true;
+        } else if (filter === 'premium' && type === 'premium') {
+          showCard = true;
+        } else if (filter === 'video') {
+          if (isVideo === true || contentType === 'video') {
+            showCard = true;
+          }
+        }
+        
+        if (showCard) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+      
+      console.log(`Filter "${filter}" showing ${visibleCount} courses`);
+    }
+
+    // ========================= COURSE LOADING =========================
+    async function loadCourses() {
+      try {
+        showLoading();
+        const res = await fetch('/api/courses');
+        const courses = await res.json();
+        const grid = document.getElementById('coursesGrid');
+        
+        document.getElementById('courseCount').textContent = `${courses.length} Courses`;
+        
+        const userRes = await fetch('/api/me');
+        const user = await userRes.json();
+        
+        if (courses.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+              <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+              <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
+              <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
+            </div>
+          `;
+          hideLoading();
+          return;
+        }
+        
+        // Generate course cards
+        grid.innerHTML = courses.map(course => {
+          // Determine content type
+          const fileUrl = course.file_url || course.download_url || '';
+          const fileName = course.file_path || '';
+          
+          // Video detection
+          const isVideo = 
+            (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+            (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+            (course.content_type === 'video');
+          
+          const isFree = course.price === 0 || course.type === 'free';
+          const isPremium = course.price > 0 && course.type !== 'free';
+          
+          // Determine badge
+          let badgeClass = 'badge-free';
+          let badgeIcon = 'fas fa-book';
+          let badgeText = 'FREE';
+          
+          if (isPremium) {
+            badgeClass = 'badge-premium';
+            badgeIcon = 'fas fa-crown';
+            badgeText = 'PREMIUM';
+          }
+          
+          if (isVideo) {
+            badgeClass = 'badge-video';
+            badgeIcon = 'fas fa-video';
+            badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
+          }
+          
+          // Get thumbnail URL
+          let thumbnailSrc;
+          if (course.thumbnail_url) {
+            thumbnailSrc = course.thumbnail_url;
+          } else {
+            const colors = ['1e293b', '172a45', '112240'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const cleanTitle = (course.title || '').substring(0, 25).replace(/[^\w\s]/gi, '');
+            thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
+          }
+          
+          return `
+            <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${course.content_type || 'book'}">
+              <div class="card-header">
+                <img src="${thumbnailSrc}" 
+                     alt="${course.title}" 
+                     loading="lazy" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
+                <div class="card-badge ${badgeClass}">
+                  <i class="${badgeIcon} type-icon"></i> ${badgeText}
+                </div>
+              </div>
+              <div class="card-content">
+                <h3>${course.title}</h3>
+                <p>${course.description || 'No description available'}</p>
+                <div class="card-meta">
+                  <div class="price" data-original-price="${course.price}">
+                    ${course.price > 0 ? formatCurrency(course.price, userCurrency) : 'FREE'}
+                  </div>
+                  ${course.author ? `
+                    <div class="author">
+                      <i class="fas fa-user"></i>
+                      <span>${course.author}</span>
+                    </div>
+                  ` : ''}
+                </div>
+                <div class="card-actions">
+                  ${isPremium ? `
+                    <button onclick="initiatePayment(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}', ${isVideo})" 
+                            class="btn-primary">
+                      <i class="fas fa-shopping-cart"></i> Buy Now
+                    </button>
+                    <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
+                      <i class="fas fa-lock"></i> Check Access
+                    </button>
+                  ` : `
+                    <button onclick="handleDownload(${course.id})" class="btn-primary">
+                      <i class="fas fa-download"></i> Download Free
+                    </button>
+                  `}
+                  ${user && (user.role === 'admin' || user.id === course.user_id) ? `
+                    <button onclick="deleteCourse(${course.id})" 
+                            class="btn-secondary" 
+                            style="background: #ff4444; color: white; border: none;">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        // Setup filters AFTER loading courses
+        setupFilters();
+        // Update prices
+        setTimeout(updateAllPrices, 100);
+        hideLoading();
+      } catch (error) {
+        console.error('Error loading courses:', error);
+        document.getElementById('coursesGrid').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
+            <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
+            <p style="color: var(--text-gray);">Please try again later or check your connection.</p>
+            <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
+              <i class="fas fa-redo"></i> Retry
+            </button>
+          </div>
+        `;
+        hideLoading();
+      }
+    }
+
+    // ========================= PAYMENT FUNCTION =========================
+    async function initiatePayment(courseId, price, title, isVideo = false) {
+      try {
+        const userRes = await fetch('/api/me');
+        const user = await userRes.json();
+        
+        if (!user) {
+          alert('Please login to purchase content');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const userFriendlyPrice = formatCurrency(price * (exchangeRates[userCurrency] || 1), userCurrency);
+        const action = isVideo ? 'watch' : 'download';
+        const confirmPayment = confirm(`Purchase "${title}" for ${userFriendlyPrice} to ${action}?`);
+        
+        if (confirmPayment) {
+          showLoading();
+          
+          const response = await fetch('/api/initiate-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              courseId: courseId,
+              amount: price,
+              email: user.email || `${user.username}@example.com`,
+              isVideo: isVideo
+            })
+          });
+
+          const data = await response.json();
+          hideLoading();
+          
+          if (data.status === 'success' && data.paymentLink) {
+            localStorage.setItem('pendingPayment', JSON.stringify({
+              courseId: courseId,
+              isVideo: isVideo,
+              title: title
+            }));
+            
+            window.location.href = data.paymentLink;
+          } else {
+            alert('Error: ' + (data.error || 'Failed to initiate payment'));
+          }
+        }
+      } catch (error) {
+        console.error('Purchase error:', error);
+        hideLoading();
+        alert('Error initiating purchase. Please try again.');
+      }
+    }
+
+    // ========================= CHECK ACCESS FUNCTION =========================
+    async function checkAccess(courseId, isVideo = false) {
+      try {
+        showLoading();
+        
+        console.log(`🔍 Checking access for course ${courseId}`);
+        
+        const response = await fetch(`/api/check-access/${courseId}`);
+        const data = await response.json();
+        
+        console.log('Access check result:', data);
+        
+        if (data.hasAccess) {
+          const confirmAction = confirm(`You have access to this course! Would you like to download it now?`);
+          
+          if (confirmAction) {
+            window.location.href = `/api/download/${courseId}`;
+          }
+        } else {
+          alert('You do not have access to this content. Please purchase it first.');
+        }
+        
+        hideLoading();
+      } catch (error) {
+        console.error('❌ Access check error:', error);
+        alert('Error checking content access: ' + error.message);
+        hideLoading();
+      }
+    }
+
+    // ========================= HANDLE DOWNLOAD =========================
+    async function handleDownload(courseId) {
+      try {
+        showLoading();
+        
+        console.log(`📥 Initiating download for course ${courseId}`);
+        
+        // First check if user has access
+        const accessResponse = await fetch(`/api/check-access/${courseId}`);
+        const accessData = await accessResponse.json();
+        
+        console.log('Access check result:', accessData);
+        
+        if (!accessData.hasAccess) {
+          hideLoading();
+          alert('You do not have access to this content. Please purchase it first.');
+          return;
+        }
+        
+        // Direct download
+        window.location.href = `/api/download/${courseId}`;
+        showToast('Download started!', 'success');
+        
+        return true;
+      } catch (error) {
+        console.error('❌ Download error:', error);
+        alert('Error downloading file: ' + error.message);
+        return false;
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // ========================= DELETE COURSE =========================
+    async function deleteCourse(courseId) {
+      if (!confirm('Are you sure you want to delete this upload? This action cannot be undone.')) return;
+
+      try {
+        const response = await fetch(`/api/courses/${courseId}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast('✅ Course deleted successfully!', 'success');
+          loadCourses();
+        } else {
+          alert('❌ Error: ' + (data.error || 'Failed to delete course.'));
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Error deleting course. Please try again.');
+      }
+    }
+
+    // ========================= SEARCH FUNCTIONALITY =========================
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('#coursesGrid .card');
+      cards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        const desc = card.querySelector('p').textContent.toLowerCase();
+        card.style.display = (title.includes(query) || desc.includes(query)) ? 'flex' : 'none';
+      });
+    });
+
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('searchBtn').click();
+      }
+    });
+
+    // ========================= CURRENCY SELECTOR =========================
+    document.getElementById('currencySelect').addEventListener('change', function(e) {
+      userCurrency = e.target.value;
+      updateAllPrices();
+    });
+
+    // ========================= INITIALIZATION =========================
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUser();
+      detectUserCurrency();
+      loadCourses();
+      setupImagePreview();
+    });
+  </script>
 </body>
 </html>

@@ -1,105 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Payment Processing - Core Insight</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Payment - Core Insight</title>
     <style>
-        body { 
-            background-color: #0f172a; 
-            color: #e0e0e0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a192f;
+            color: #e6f1ff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
+        
         .container {
             text-align: center;
             padding: 2rem;
-            background: #1e293b;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            background: #112240;
+            border-radius: 16px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
             max-width: 500px;
-            width: 90%;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
-        .success { color: #4CAF50; }
-        .error { color: #f44336; }
-        .btn { 
-            display: inline-block;
-            padding: 10px 20px;
-            background: #FFD700;
-            color: #000;
-            text-decoration: none;
-            border-radius: 30px;
-            margin-top: 1rem;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: #FFD700;
+        
+        .spinner {
+            border: 4px solid rgba(100, 255, 218, 0.3);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            border-top: 4px solid #64ffda;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
             margin: 20px auto;
         }
+        
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .debug-info {
-            text-align: left;
-            background: #2d3748;
+        
+        .success { 
+            color: #64ffda;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .error { 
+            color: #ff6b6b;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-primary {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #64ffda;
+            color: #0a192f;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(100, 255, 218, 0.2);
+        }
+        
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        p {
+            color: #a8b2d1;
+            margin-bottom: 1rem;
+        }
+        
+        .payment-details {
+            background: #0a192f;
             padding: 1rem;
             border-radius: 8px;
-            margin-top: 1rem;
+            margin: 1rem 0;
+            text-align: left;
+        }
+        
+        .payment-details p {
+            margin: 0.5rem 0;
             font-size: 0.9rem;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Processing Your Payment...</h2>
-        <div class="loading-spinner"></div>
+    <div class="container" id="paymentContainer">
+        <div class="spinner"></div>
+        <h1>Processing Your Payment...</h1>
         <p>Please wait while we verify your payment.</p>
-        <div id="paymentStatus"></div>
-        
-        <button class="btn" onclick="goToCourses()" style="display: none;" id="goToCoursesBtn">
-            Go to My Courses
-        </button>
-        
-        <button class="btn" onclick="goToCourses()" style="display: none;" id="tryAgainBtn">
-            Return to Courses
-        </button>
+        <p style="font-size: 0.8rem; color: #8892b0;">Do not close this page</p>
     </div>
-    
+
     <script>
-        // Get transaction ID from URL parameters
+        // Get transaction ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         const transactionId = urlParams.get('transaction_id');
         const status = urlParams.get('status');
+        const tx_ref = urlParams.get('tx_ref');
         
         console.log('Payment callback - Transaction ID:', transactionId);
         console.log('Payment callback - Status:', status);
+        console.log('Payment callback - tx_ref:', tx_ref);
         
-        if (transactionId && status === 'successful') {
-            verifyPayment(transactionId);
-        } else if (transactionId) {
-            // Transaction ID exists but status might be in different format
-            verifyPayment(transactionId);
-        } else {
-            document.getElementById('paymentStatus').innerHTML = 
-                '<p class="error">No transaction ID found. Please contact support.</p>';
-            document.getElementById('tryAgainBtn').style.display = 'inline-block';
-        }
+        const container = document.getElementById('paymentContainer');
         
         async function verifyPayment(transactionId) {
             try {
-                console.log('Verifying payment for transaction:', transactionId);
+                console.log('Verifying payment:', transactionId);
                 
                 const response = await fetch(`/api/verify-payment/${transactionId}`);
                 const data = await response.json();
@@ -107,52 +133,73 @@
                 console.log('Verification response:', data);
                 
                 if (data.status === 'success') {
-                    document.getElementById('paymentStatus').innerHTML = `
-                        <div class="success">
-                            <h3>Payment Successful! 🎉</h3>
-                            <p>You now have access to the course.</p>
-                            <p>Course: ${data.data?.meta?.course_title || 'Your course'}</p>
+                    container.innerHTML = `
+                        <div class="success">✓</div>
+                        <h1 class="success">Payment Successful!</h1>
+                        <p>Your payment has been verified successfully.</p>
+                        <div class="payment-details">
+                            <p><strong>Transaction ID:</strong> ${transactionId}</p>
+                            <p><strong>Amount:</strong> $${data.data?.amount || 'N/A'}</p>
                         </div>
+                        <p>You now have access to your course.</p>
+                        <a href="/courses.html" class="btn-primary">Return to Courses</a>
                     `;
                     
-                    // Store in localStorage for immediate access
-                    if (data.data && data.data.meta && data.data.meta.course_id) {
-                        localStorage.setItem('purchased_course_' + data.data.meta.course_id, 'true');
-                        localStorage.setItem('last_purchased_course', data.data.meta.course_id);
-                    }
-                    
-                    // Show the button to go to courses
-                    document.getElementById('goToCoursesBtn').style.display = 'inline-block';
-                    
-                    // Auto-redirect after 3 seconds
+                    // Redirect after 3 seconds
                     setTimeout(() => {
                         window.location.href = '/courses.html';
                     }, 3000);
-                    
                 } else {
-                    document.getElementById('paymentStatus').innerHTML = `
-                        <div class="error">
-                            <h3>Payment Verification Failed</h3>
-                            <p>${data.message || 'Please contact support if you were charged.'}</p>
-                        </div>
+                    container.innerHTML = `
+                        <div class="error">✗</div>
+                        <h1 class="error">Payment Verification Failed</h1>
+                        <p>We could not verify your payment.</p>
+                        <p>If you were charged, please contact support with your transaction ID:</p>
+                        <p><strong>${transactionId}</strong></p>
+                        <a href="/courses.html" class="btn-primary">Return to Courses</a>
+                        <a href="/contact.html" class="btn-primary" style="background: #ff6b6b; margin-left: 10px;">Contact Support</a>
                     `;
-                    document.getElementById('tryAgainBtn').style.display = 'inline-block';
                 }
-                
             } catch (error) {
                 console.error('Verification error:', error);
-                document.getElementById('paymentStatus').innerHTML = `
-                    <div class="error">
-                        <h3>Verification Error</h3>
-                        <p>Please contact support if the issue persists.</p>
-                    </div>
+                container.innerHTML = `
+                    <div class="error">✗</div>
+                    <h1 class="error">Verification Error</h1>
+                    <p>An error occurred while verifying your payment.</p>
+                    <p>Please contact support with your transaction ID:</p>
+                    <p><strong>${transactionId}</strong></p>
+                    <a href="/courses.html" class="btn-primary">Return to Courses</a>
+                    <a href="/contact.html" class="btn-primary" style="background: #ff6b6b; margin-left: 10px;">Contact Support</a>
                 `;
-                document.getElementById('tryAgainBtn').style.display = 'inline-block';
             }
         }
         
-        function goToCourses() {
-            window.location.href = '/courses.html';
+        if (status === 'successful' && transactionId) {
+            verifyPayment(transactionId);
+        } else if (status === 'cancelled') {
+            container.innerHTML = `
+                <div class="error">✗</div>
+                <h1 class="error">Payment Cancelled</h1>
+                <p>You cancelled the payment. No charges were made.</p>
+                <a href="/courses.html" class="btn-primary">Return to Courses</a>
+            `;
+        } else if (tx_ref) {
+            // Try to verify by tx_ref
+            console.log('Trying to verify by tx_ref:', tx_ref);
+            // You might need to add an endpoint to verify by tx_ref
+            container.innerHTML = `
+                <div class="spinner"></div>
+                <h1>Processing Payment...</h1>
+                <p>Please wait while we verify your payment.</p>
+                <a href="/courses.html" class="btn-primary">Return to Courses</a>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="error">✗</div>
+                <h1 class="error">Invalid Payment Response</h1>
+                <p>No transaction information found.</p>
+                <a href="/courses.html" class="btn-primary">Return to Courses</a>
+            `;
         }
     </script>
 </body>

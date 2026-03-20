@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0"/>
   <title>Courses | Core Insight</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://checkout.flutterwave.com/v3.js"></script>
+  
   <style>
     :root {
       --primary-dark: #0a192f;
@@ -1967,8 +1967,11 @@ async function refreshCoursesAfterPurchase() {
 }
 
    // ========================= FIXED PAYMENT FUNCTION =========================
+// ========================= FIXED FLUTTERWAVE PAYMENT =========================
 async function initiatePayment(courseId, price, title, isVideo = false) {
   try {
+    console.log('🚀 Starting payment initiation for:', { courseId, price, title, isVideo });
+    
     const userRes = await fetch('/api/me');
     const user = await userRes.json();
     
@@ -1990,45 +1993,43 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     showLoading();
     
     try {
-      // CORRECT: Send only courseId to the server
+      console.log('📤 Sending payment request to server...');
+      
       const response = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          courseId: courseId  // Only send courseId
+          courseId: courseId
         })
       });
 
       const data = await response.json();
+      console.log('📦 Server response:', data);
+      
       hideLoading();
       
-      if (data.status === 'success' && data.paymentLink) {
-        // Store payment info for callback handling
-        localStorage.setItem('pendingPayment', JSON.stringify({
-          courseId: courseId,
-          isVideo: isVideo,
-          title: title,
-          transactionRef: data.transactionRef
-        }));
-        
-        // Redirect to payment page
+      if (response.ok && data.status === 'success' && data.paymentLink) {
+        console.log('✅ Redirecting to:', data.paymentLink);
+        // Simply redirect to Flutterwave payment page
         window.location.href = data.paymentLink;
       } else {
+        console.error('❌ Payment initiation failed:', data);
         alert('Error: ' + (data.error || 'Failed to initiate payment. Please try again.'));
       }
     } catch (fetchError) {
-      console.error('Fetch error:', fetchError);
+      console.error('❌ Fetch error:', fetchError);
       hideLoading();
-      alert('Network error. Please check your connection and try again.');
+      alert('Network error: ' + fetchError.message);
     }
   } catch (error) {
-    console.error('Purchase error:', error);
+    console.error('❌ Purchase error:', error);
     hideLoading();
     alert('Error initiating purchase: ' + error.message);
   }
 }
+ 
     // ========================= CHECK ACCESS FUNCTION =========================
     async function checkAccess(courseId, isVideo = false) {
       try {

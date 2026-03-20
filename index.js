@@ -9193,19 +9193,31 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
   }
 }); 
 
-// =================== PAYMENT ENDPOINTS ===================
 app.post("/api/initiate-payment", async (req, res) => {
+  console.log('💳 Payment initiation request received');
+  
   if (!req.session.user) {
     return res.status(401).json({ error: "Please login to make payment" });
   }
 
   try {
     const { courseId } = req.body;
+    
+    if (!courseId) {
+      return res.status(400).json({ error: "Course ID is required" });
+    }
 
+    // Get course details
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
-    const course = Array.isArray(courses) && courses.length > 0
-      ? courses[0]
-      : (courses[0] && courses[0][0]) || null;
+    
+    let course = null;
+    if (courses && Array.isArray(courses)) {
+      if (courses.length === 2 && Array.isArray(courses[0])) {
+        course = courses[0][0];
+      } else if (courses.length > 0) {
+        course = courses[0];
+      }
+    }
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
@@ -9215,28 +9227,38 @@ app.post("/api/initiate-payment", async (req, res) => {
       return res.status(400).json({ error: "This course is free. No payment required." });
     }
 
+    // Check if Flutterwave is configured
+    if (!process.env.FLW_SECRET_KEY) {
+      console.error('❌ FLW_SECRET_KEY is missing!');
+      return res.status(500).json({ 
+        error: "Payment system not configured. Please contact support."
+      });
+    }
+    
+    const tx_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    const amount = parseFloat(course.price);
+    
     const payload = {
-      tx_ref: "coreinsight_" + Date.now() + "_" + courseId,
-      amount: course.price,
+      tx_ref: tx_ref,
+      amount: amount,
       currency: "NGN",
-      payment_options: "card, banktransfer, ussd",
       redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email || `${req.session.user.username}@example.com`,
         name: req.session.user.username,
       },
       customizations: {
-        title: "Core Insight Courses",
+        title: "Core Insight",
         description: `Payment for ${course.title}`,
-        logo: "https://your-logo-url.com/logo.png",
       },
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
-        course_title: course.title,
       }
     };
-
+    
+    console.log('📤 Sending to Flutterwave...');
+    
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
       payload,
@@ -9244,24 +9266,41 @@ app.post("/api/initiate-payment", async (req, res) => {
         headers: {
           Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 15000
       }
     );
-
+    
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      console.log('✅ Payment link created');
+      
+      // Store pending payment
+      await db.query(
+        `INSERT INTO payments (user_id, course_id, tx_ref, amount, status, created_at)
+         VALUES (?, ?, ?, ?, 'pending', NOW())`,
+        [req.session.user.id, courseId, tx_ref, amount]
+      );
+      
       res.json({
-        paymentLink: response.data.data.link,
-        transactionRef: payload.tx_ref,
         status: "success",
+        paymentLink: response.data.data.link,
+        transactionRef: tx_ref
       });
     } else {
-      res.status(500).json({
-        error: "Payment initiation failed: " + (response.data.message || "Unknown error"),
+      console.error('❌ Flutterwave error:', response.data);
+      res.status(500).json({ 
+        error: response.data.message || "Payment initiation failed" 
       });
     }
-
+    
   } catch (err) {
-    res.status(500).json({ error: "Error initiating payment: " + err.message });
+    console.error('❌ Payment error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({ 
+      error: "Error initiating payment: " + err.message
+    });
   }
 });
 

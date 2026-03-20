@@ -27,6 +27,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            padding: 1rem;
         }
         
         .container {
@@ -58,7 +59,13 @@
             font-weight: 600;
         }
         
-        input[type="text"], input[type="email"], input[type="password"] {
+        .input-wrapper {
+            position: relative;
+        }
+        
+        input[type="text"], 
+        input[type="email"], 
+        input[type="password"] {
             width: 100%;
             padding: 0.8rem;
             border: 1px solid var(--text-gray);
@@ -77,7 +84,7 @@
             position: relative;
         }
         
-        .password-wrapper button {
+        .password-toggle {
             position: absolute;
             right: 10px;
             top: 50%;
@@ -86,7 +93,69 @@
             border: none;
             color: var(--text-gray);
             cursor: pointer;
-            padding: 5px;
+        }
+        
+        /* Password strength indicator */
+        .strength-meter {
+            margin-top: 0.5rem;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+        
+        .strength-fill.weak {
+            width: 33.33%;
+            background: #ff4444;
+        }
+        
+        .strength-fill.medium {
+            width: 66.66%;
+            background: var(--accent-gold);
+        }
+        
+        .strength-fill.strong {
+            width: 100%;
+            background: #00C851;
+        }
+        
+        .validation-message {
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            color: var(--text-gray);
+        }
+        
+        .validation-message.error {
+            color: #ff4444;
+        }
+        
+        .validation-message.success {
+            color: #00C851;
+        }
+        
+        /* Terms checkbox - simplified */
+        .terms-group {
+            margin: 1rem 0;
+        }
+        
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-gold);
         }
         
         button[type="submit"] {
@@ -103,8 +172,13 @@
             margin-top: 1rem;
         }
         
-        button[type="submit"]:hover {
+        button[type="submit"]:hover:not(:disabled) {
             transform: translateY(-2px);
+        }
+        
+        button[type="submit"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .message {
@@ -125,7 +199,9 @@
         
         .links {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--text-gray);
         }
         
         .links a {
@@ -136,37 +212,78 @@
         .links a:hover {
             text-decoration: underline;
         }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Create Account</h2>
+        
         <form id="signupForm">
             <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Choose a username" required>
+                <div class="validation-message" id="username-validation"></div>
             </div>
             
             <div class="form-group">
-                <label for="email">Email Address:</label>
-                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+                <div class="validation-message" id="email-validation"></div>
             </div>
             
             <div class="form-group">
-                <label for="password">Password:</label>
+                <label>Password</label>
                 <div class="password-wrapper">
-                    <input type="password" id="password" name="password" placeholder="Create a password" required minlength="6">
-                    <button type="button" onclick="togglePassword('password')">👁️</button>
+                    <input type="password" id="password" placeholder="Create a password" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')">👁️</button>
+                </div>
+                
+                <!-- Strength meter -->
+                <div class="strength-meter">
+                    <div class="strength-fill" id="strength-fill"></div>
+                </div>
+                
+                <div class="validation-message" id="password-validation"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirm-password" placeholder="Confirm your password" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirm-password')">👁️</button>
+                </div>
+                <div class="validation-message" id="confirm-validation"></div>
+            </div>
+            
+            <!-- Simplified terms - just one checkbox -->
+            <div class="terms-group">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">I agree to the Terms of Service</label>
                 </div>
             </div>
             
-            <button type="submit">Sign Up</button>
+            <button type="submit" id="submitBtn">Sign Up</button>
         </form>
         
         <div id="message"></div>
         
         <div class="links">
-            <a href="/login">Already have an account? Login</a>
+            <a href="login.html">Already have an account? Login</a>
         </div>
     </div>
 
@@ -176,15 +293,149 @@
             const field = document.getElementById(id);
             field.type = field.type === "password" ? "text" : "password";
         }
-
-        // Form submission handler
+        
+        // Email validation
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        // Username validation
+        function validateUsername(username) {
+            return username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
+        }
+        
+        // Real-time username validation
+        document.getElementById('username').addEventListener('input', function() {
+            const username = this.value;
+            const validation = document.getElementById('username-validation');
+            
+            if (username.length === 0) {
+                validation.textContent = '';
+            } else if (validateUsername(username)) {
+                validation.textContent = '✅ Username is valid';
+                validation.className = 'validation-message success';
+            } else {
+                validation.textContent = '❌ Username must be 3+ chars (letters, numbers, underscores only)';
+                validation.className = 'validation-message error';
+            }
+        });
+        
+        // Real-time email validation
+        document.getElementById('email').addEventListener('input', function() {
+            const email = this.value;
+            const validation = document.getElementById('email-validation');
+            
+            if (email.length === 0) {
+                validation.textContent = '';
+            } else if (validateEmail(email)) {
+                validation.textContent = '✅ Email is valid';
+                validation.className = 'validation-message success';
+            } else {
+                validation.textContent = '❌ Please enter a valid email';
+                validation.className = 'validation-message error';
+            }
+        });
+        
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthFill = document.getElementById('strength-fill');
+            const validation = document.getElementById('password-validation');
+            
+            // Check strength
+            if (password.length === 0) {
+                strengthFill.className = 'strength-fill';
+                validation.textContent = '';
+            } else if (password.length < 6) {
+                strengthFill.className = 'strength-fill weak';
+                validation.textContent = '❌ Password is too weak';
+                validation.className = 'validation-message error';
+            } else if (password.length < 8) {
+                strengthFill.className = 'strength-fill medium';
+                validation.textContent = '⚠️ Password is okay';
+                validation.className = 'validation-message';
+            } else {
+                strengthFill.className = 'strength-fill strong';
+                validation.textContent = '✅ Strong password';
+                validation.className = 'validation-message success';
+            }
+            
+            // Also check confirm password if it has value
+            const confirm = document.getElementById('confirm-password').value;
+            if (confirm) {
+                checkPasswordMatch();
+            }
+        });
+        
+        // Confirm password validation
+        document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
+        
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const validation = document.getElementById('confirm-validation');
+            
+            if (confirm.length === 0) {
+                validation.textContent = '';
+            } else if (password === confirm) {
+                validation.textContent = '✅ Passwords match';
+                validation.className = 'validation-message success';
+            } else {
+                validation.textContent = '❌ Passwords do not match';
+                validation.className = 'validation-message error';
+            }
+        }
+        
+        // Form submission
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const terms = document.getElementById('terms').checked;
+            const submitBtn = document.getElementById('submitBtn');
             const messageDiv = document.getElementById('message');
+            
+            // Clear previous messages
+            messageDiv.innerHTML = '';
+            
+            // Validate all fields
+            if (!username || !email || !password || !confirm) {
+                messageDiv.innerHTML = '<div class="message error">❌ Please fill in all fields</div>';
+                return;
+            }
+            
+            if (!validateUsername(username)) {
+                messageDiv.innerHTML = '<div class="message error">❌ Invalid username format</div>';
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                messageDiv.innerHTML = '<div class="message error">❌ Invalid email format</div>';
+                return;
+            }
+            
+            if (password.length < 6) {
+                messageDiv.innerHTML = '<div class="message error">❌ Password must be at least 6 characters</div>';
+                return;
+            }
+            
+            if (password !== confirm) {
+                messageDiv.innerHTML = '<div class="message error">❌ Passwords do not match</div>';
+                return;
+            }
+            
+            if (!terms) {
+                messageDiv.innerHTML = '<div class="message error">❌ You must agree to the Terms of Service</div>';
+                return;
+            }
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Creating Account...';
             
             try {
                 const response = await fetch('/api/signup', {
@@ -198,15 +449,24 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Use rich HTML message with icon
-                    messageDiv.innerHTML = `<div class="message success">✅ ${data.message}</div>`;
-                    // Reset the form on success
+                    messageDiv.innerHTML = '<div class="message success">✅ Account created! Redirecting to login...</div>';
+                    
+                    // Clear form
                     document.getElementById('signupForm').reset();
+                    
+                    // Redirect to login page
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
                 } else {
-                    messageDiv.innerHTML = `<div class="message error">❌ ${data.error}</div>`;
+                    messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Error creating account'}</div>`;
                 }
             } catch (error) {
-                messageDiv.innerHTML = `<div class="message error">⚠️ Error creating account. Please try again.</div>`;
+                console.error('Signup error:', error);
+                messageDiv.innerHTML = '<div class="message error">⚠️ Network error. Please try again.</div>';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Sign Up';
             }
         });
     </script>

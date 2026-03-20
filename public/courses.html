@@ -1275,7 +1275,7 @@
       </div>
       
       <div class="form-group">
-        <label for="author">Author Name (Optional)</label>
+        <label for="author">Author Name       </label>
         <input type="text" id="author" name="author" placeholder="Author or instructor name">
       </div>
       
@@ -1794,21 +1794,19 @@ async function loadCourses() {
             </div>
             <div class="card-actions">
               ${isPremium ? `
-                <button onclick="initiatePayment(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}', ${isVideo})" 
-                        class="btn-primary">
-                  <i class="fas fa-shopping-cart"></i> Buy Now
-                </button>
-                <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
-                  <i class="fas fa-lock"></i> Check Access
-                </button>
-              ` : `
-                <a href="/api/download/${course.id}" 
-                   class="btn-primary" 
-                   onclick="return handleDownload(${course.id})">
-                  <i class="fas fa-download"></i> 
-                  Download Free
-                </a>
-              `}
+  <button onclick="initiatePayment(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}', ${isVideo})" 
+          class="btn-primary">
+    <i class="fas fa-shopping-cart"></i> Buy Now
+  </button>
+  <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
+    <i class="fas fa-lock"></i> Check Access
+  </button>
+` : `
+  <button onclick="handleDownload(${course.id})" class="btn-primary">
+    <i class="fas fa-download"></i> 
+    Download Free
+  </button>
+`}
               ${user && (user.role === 'admin' || user.id === course.user_id) ? `
                 <button onclick="deleteCourse(${course.id})" 
                         class="btn-secondary" 
@@ -1894,9 +1892,7 @@ async function loadCourses() {
         alert('Error initiating purchase. Please try again.');
       }
     }
-
-    // ========================= CHECK ACCESS FUNCTION =========================
-  // ========================= CHECK ACCESS FUNCTION =========================
+// ========================= FIXED CHECK ACCESS FUNCTION =========================
 async function checkAccess(courseId, isVideo = false) {
   try {
     showLoading();
@@ -1905,6 +1901,8 @@ async function checkAccess(courseId, isVideo = false) {
     
     console.log('Access check result:', data);
     
+    // FIXED: Check if data.hasAccess is true OR if the course is free
+    // The backend should handle this, but let's add a fallback
     if (data.hasAccess) {
       const action = isVideo ? 'download' : 'download';
       const confirmAction = confirm(`You have access to this content! Would you like to download it now?`);
@@ -1914,7 +1912,17 @@ async function checkAccess(courseId, isVideo = false) {
         window.location.href = `/api/download/${courseId}`;
       }
     } else {
-      alert('You do not have access to this content. Please purchase it first.');
+      // FIXED: Check if it might be a free course but the API didn't mark it correctly
+      if (data.course && (data.course.price === 0 || data.course.type === 'free')) {
+        // This should be free, but the API said no access - let's try direct download anyway
+        console.log('Course appears to be free but API denied access - attempting download anyway');
+        const downloadConfirm = confirm(`This appears to be a free course. Would you like to download it?`);
+        if (downloadConfirm) {
+          window.location.href = `/api/download/${courseId}`;
+        }
+      } else {
+        alert('You do not have access to this content. Please purchase it first.');
+      }
     }
     hideLoading();
   } catch (error) {
@@ -1923,27 +1931,36 @@ async function checkAccess(courseId, isVideo = false) {
     hideLoading();
   }
 }
-
-    // ========================= OTHER FUNCTIONS =========================
-    async function handleDownload(courseId) {
-      try {
-        const response = await fetch(`/api/download/${courseId}`);
-        
-        if (response.ok) {
-          return true;
-        } else {
-          const error = await response.json();
-          alert(error.error);
-          return false;
-        }
-      } catch (error) {
-        console.error('Download error:', error);
-        alert('Error downloading file');
-        return false;
+     // ========================= OTHER FUNCTIONS =========================
+  
+async function handleDownload(courseId) {
+  try {
+    showLoading();
+    
+    // Create a hidden iframe to handle the download
+    // This prevents the page from navigating away on error
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = `/api/download/${courseId}`;
+    document.body.appendChild(iframe);
+    
+    // Remove iframe after a delay
+    setTimeout(() => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
       }
-    }
-
-    async function logout() {
+    }, 5000);
+    
+    return true;
+  } catch (error) {
+    console.error('Download error:', error);
+    alert('Error downloading file: ' + error.message);
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
+     async function logout() {
       try {
         await fetch('/api/logout', { method: 'POST' });
         window.location.reload();
@@ -1976,90 +1993,51 @@ async function checkAccess(courseId, isVideo = false) {
     }
 
     // ========================= UPLOAD FORM =========================
-    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const formData = new FormData();
-      formData.append('title', document.getElementById('title').value);
-      formData.append('description', document.getElementById('description').value);
-      formData.append('author', document.getElementById('author').value);
-      
-      // Get content type
-      const selectedContentType = document.querySelector('input[name="content_type"]:checked');
-      if (selectedContentType) {
-        formData.append('content_type', selectedContentType.value);
-      }
-      
-      const thumbnailInput = document.getElementById('thumbnail');
-      const fileInput = document.getElementById('file');
-      
-      if (thumbnailInput.files.length === 0) {
-        alert('Please select a thumbnail image');
-        return;
-      }
-      if (fileInput.files.length === 0) {
-        alert('Please select a content file');
-        return;
-      }
-      
-      formData.append('thumbnail', thumbnailInput.files[0]);
-      formData.append('file', fileInput.files[0]);
-      
-      try {
-        showLoading();
-        const userRes = await fetch('/api/me');
-        const user = await userRes.json();
-        
-        // Add price only if user is admin and paid book is selected
-        if (user && user.role === 'admin') {
-          const activeType = document.querySelector('.book-type-btn.active');
-          if (activeType && activeType.dataset.type === 'paid') {
-            const price = document.getElementById('price').value;
-            if (price && parseFloat(price) > 0) {
-              formData.append('price', price);
-            }
-          }
-        }
-        
-        const response = await fetch('/api/courses', {
-          method: 'POST',
-          body: formData
-        });
-        
-        const result = await response.json();
-        const messageDiv = document.getElementById('uploadMessage');
-        
-        if (response.ok) {
-          messageDiv.innerHTML = `<div class="message success">✅ ${result.message}</div>`;
-          document.getElementById('uploadForm').reset();
-          document.getElementById('thumbnailPreview').innerHTML = '';
-          loadCourses();
-          
-          // Reset to free book type
-          const freeBtn = document.querySelector('.book-type-btn[data-type="free"]');
-          if (freeBtn) freeBtn.click();
-          
-          // Reset content type to default
-          const defaultContentType = document.querySelector('input[name="content_type"][value="book"]');
-          if (defaultContentType) defaultContentType.checked = true;
-          
-          document.querySelector('.course-section').scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'start'
-          });
-        } else {
-          messageDiv.innerHTML = `<div class="message error">❌ ${result.error}</div>`;
-        }
-        hideLoading();
-      } catch (error) {
-        console.error('Upload error:', error);
-        document.getElementById('uploadMessage').innerHTML = 
-          `<div class="message error">❌ Upload failed. Please check your connection and try again.</div>`;
-        hideLoading();
-      }
+    // In your courses.html upload form submission
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const formData = new FormData();
+  formData.append('title', document.getElementById('title').value);
+  formData.append('description', document.getElementById('description').value);
+  formData.append('author', document.getElementById('author').value);
+  formData.append('content_type', document.querySelector('input[name="content_type"]:checked').value);
+  formData.append('thumbnail', document.getElementById('thumbnail').files[0]);
+  formData.append('file', document.getElementById('file').files[0]);
+  
+  // Add price if it's a paid book
+  const activeType = document.querySelector('.book-type-btn.active');
+  if (activeType && activeType.dataset.type === 'paid') {
+    const price = document.getElementById('price').value;
+    if (price && parseFloat(price) > 0) {
+      formData.append('price', price);
+    }
+  }
+  
+  try {
+    showLoading();
+    const response = await fetch('/api/courses', {
+      method: 'POST',
+      body: formData
+      // DON'T set Content-Type header - let browser set it with boundary
     });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      alert('✅ Upload successful!');
+      loadCourses(); // Reload courses
+    } else {
+      alert('❌ Error: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('❌ Upload failed. Please check your connection.');
+  } finally {
+    hideLoading();
+  }
+});
 
-    // Search functionality
     document.getElementById('searchBtn').addEventListener('click', () => {
       const query = document.getElementById('searchInput').value.toLowerCase();
       const cards = document.querySelectorAll('#coursesGrid .card');

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Import Products - Core Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* previous styles remain exactly the same */
+    :root {
+      --primary-dark: #0f172a;
+      --secondary-dark: #1e293b;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-light: #f8fafc;
+      --text-gray: #94a3b8;
+      --border: #334155;
+      --card-bg: #1e293b;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background: var(--primary-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--text-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-gray);
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+
+    .import-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .import-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      border: 1px solid var(--border);
+    }
+
+    .import-card h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 25px;
+      color: var(--text-light);
+      font-size: 1.5rem;
+    }
+
+    .import-card h2 i {
+      color: var(--accent);
+    }
+
+    .file-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .file-zone:hover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .file-zone i {
+      font-size: 48px;
+      color: var(--accent);
+      margin-bottom: 15px;
+    }
+
+    .file-zone p {
+      color: var(--text-gray);
+      margin-bottom: 10px;
+    }
+
+    .file-zone .file-name {
+      color: var(--success);
+      font-weight: 500;
+      margin-top: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--primary-dark);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #0d9488;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      margin: 20px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .results-container {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      border: 1px solid var(--border);
+      margin-top: 30px;
+    }
+
+    .results-container h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      color: var(--text-light);
+    }
+
+    .results-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-box {
+      background: var(--primary-dark);
+      padding: 20px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .stat-box .number {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .stat-box .label {
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    .stat-box.success .number { color: var(--success); }
+    .stat-box.warning .number { color: var(--warning); }
+    .stat-box.danger .number { color: var(--danger); }
+
+    .results-list {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .result-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      border-left: 3px solid;
+    }
+
+    .result-item.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-left-color: var(--success);
+    }
+
+    .result-item.failed {
+      background: rgba(239, 68, 68, 0.1);
+      border-left-color: var(--danger);
+    }
+
+    .result-item.skipped {
+      background: rgba(245, 158, 11, 0.1);
+      border-left-color: var(--warning);
+    }
+
+    .csv-template {
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--primary-dark);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .csv-template h4 {
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+
+    .csv-template pre {
+      background: #0a0f1c;
+      padding: 15px;
+      border-radius: var(--radius-md);
+      color: var(--text-gray);
+      font-family: monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-gray);
+      text-decoration: none;
+      margin-bottom: 30px;
+      padding: 10px 16px;
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text-light);
+      border-color: var(--accent);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--success);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      display: flex;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Price breakdown styling */
+    .price-breakdown {
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: var(--radius-md);
+      padding: 15px;
+      margin: 20px 0;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .price-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    .price-item.total {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      color: var(--text-light);
+      font-weight: 600;
+    }
+
+    .price-item .highlight {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .price-item .fee {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/products.html" class="back-link">
+      <i class="fas fa-arrow-left"></i> Back to Products
+    </a>
+
+    <h1>📦 Bulk Import Products from AliExpress</h1>
+    <p class="subtitle">Import hundreds of affiliate products at once from CSV files</p>
+
+    <div class="import-grid">
+      <!-- CSV Import Card -->
+      <div class="import-card">
+        <h2><i class="fas fa-file-csv"></i> Import from CSV</h2>
+        
+        <div class="file-zone" id="csvDropZone">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Drag & drop your CSV file here or click to browse</p>
+          <small style="color: var(--text-gray);">Supported: .csv files up to 10MB</small>
+          <div id="selectedFileName" class="file-name"></div>
+          <input type="file" id="csvFile" accept=".csv" style="display: none;">
+        </div>
+
+        <!-- Price Breakdown Preview -->
+        <div class="price-breakdown" id="pricePreview" style="display: none;">
+          <h4 style="color: var(--text-light); margin-bottom: 10px;">💰 Price Breakdown</h4>
+          <div class="price-item">
+            <span>Original Price (Customer pays):</span>
+            <span id="previewOriginal" class="highlight">$0.00</span>
+          </div>
+          <div class="price-item">
+            <span>Platform Fee (10%):</span>
+            <span id="previewFee" class="fee">$0.00</span>
+          </div>
+          <div class="price-item total">
+            <span>Your Earnings (90%):</span>
+            <span id="previewEarnings" class="highlight">$0.00</span>
+          </div>
+        </div>
+
+        <div class="progress-bar" id="csvProgress">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <button id="importCsvBtn" class="btn btn-primary" disabled>
+          <i class="fas fa-upload"></i> Start Import
+        </button>
+
+        <div class="csv-template">
+          <h4><i class="fas fa-info-circle"></i> CSV Format Example</h4>
+          <pre>title,price,affiliate_link,image,description,category
+Wireless Earbuds,29.99,https://s.click.aliexpress.com/e/123,https://ae01.alicdn.com/image.jpg,High quality wireless earbuds,Electronics
+Smart Watch,49.99,https://s.click.aliexpress.com/e/456,https://ae01.alicdn.com/watch.jpg,Fitness tracker,Electronics
+LED Desk Lamp,39.99,https://s.click.aliexpress.com/e/789,https://ae01.alicdn.com/lamp.jpg,USB rechargeable desk lamp,Home & Garden</pre>
+          <p style="color: var(--text-gray); font-size: 13px; margin-top: 10px;">
+            <i class="fas fa-lightbulb"></i> Required columns: title, price, affiliate_link<br>
+            Optional: image, description, category<br>
+            <strong>Note:</strong> You'll earn 90% of the price, we add 10% platform fee
+          </p>
+        </div>
+      </div>
+
+      <!-- Instructions Card -->
+      <div class="import-card">
+        <h2><i class="fas fa-info-circle"></i> How to Get AliExpress Links</h2>
+        
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: var(--text-light); margin-bottom: 15px;">Step 1: Join AliExpress Affiliate Program</h3>
+          <ol style="color: var(--text-gray); line-height: 1.8; padding-left: 20px;">
+            <li>Go to <a href="https://portals.aliexpress.com" target="_blank" style="color: var(--accent);">AliExpress Affiliate Portal</a></li>
+            <li>Sign up for an account</li>
+            <li>Get your affiliate tracking ID</li>
+          </ol>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: var(--text-light); margin-bottom: 15px;">Step 2: Generate Affiliate Links</h3>
+          <ol style="color: var(--text-gray); line-height: 1.8; padding-left: 20px;">
+            <li>Find products on AliExpress</li>
+            <li>Click "Promote" on product pages</li>
+            <li>Copy the affiliate link</li>
+            <li>Add to your CSV file</li>
+          </ol>
+        </div>
+
+        <div style="background: rgba(59, 130, 246, 0.1); padding: 20px; border-radius: var(--radius-md);">
+          <h4 style="color: var(--accent); margin-bottom: 10px;">💡 Pro Tip</h4>
+          <p style="color: var(--text-gray); font-size: 14px;">
+            Use tools like AliExpress DropShipping software to automatically generate CSV files with hundreds of products and their affiliate links.
+          </p>
+          <p style="color: var(--text-gray); font-size: 13px; margin-top: 10px;">
+            <strong>Pricing:</strong> You earn 90% of listed price. Platform fee is 10%.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsContainer" class="results-container" style="display: none;">
+      <h3><i class="fas fa-chart-bar"></i> Import Results</h3>
+      
+      <div class="results-stats" id="resultsStats">
+        <div class="stat-box success">
+          <div class="number" id="successCount">0</div>
+          <div class="label">Successfully Imported</div>
+        </div>
+        <div class="stat-box warning">
+          <div class="number" id="skippedCount">0</div>
+          <div class="label">Skipped (Duplicates)</div>
+        </div>
+        <div class="stat-box danger">
+          <div class="number" id="failedCount">0</div>
+          <div class="label">Failed</div>
+        </div>
+      </div>
+
+      <!-- Summary of earnings -->
+      <div id="earningsSummary" style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: var(--radius-md); margin-bottom: 20px; display: none;">
+        <h4 style="color: var(--success); margin-bottom: 10px;">💰 Earnings Summary</h4>
+        <div style="display: flex; justify-content: space-between; color: var(--text-gray);">
+          <span>Total Customer Payments:</span>
+          <span id="totalCustomerPayments" style="color: var(--text-light); font-weight: 600;">$0.00</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: var(--text-gray); margin-top: 5px;">
+          <span>Your Earnings (90%):</span>
+          <span id="totalYourEarnings" style="color: var(--success); font-weight: 600;">$0.00</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: var(--text-gray); margin-top: 5px;">
+          <span>Platform Fee (10%):</span>
+          <span id="totalPlatformFee" style="color: var(--accent); font-weight: 600;">$0.00</span>
+        </div>
+      </div>
+
+      <div class="results-list" id="resultsList"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+    <span id="toastMessage">Import completed!</span>
+  </div>
+
+ <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const csvDropZone = document.getElementById('csvDropZone');
+      const csvInput = document.getElementById('csvFile');
+      const importBtn = document.getElementById('importCsvBtn');
+      const selectedFileName = document.getElementById('selectedFileName');
+      const progressBar = document.getElementById('csvProgress');
+      const progressFill = document.getElementById('progressFill');
+      const resultsContainer = document.getElementById('resultsContainer');
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const pricePreview = document.getElementById('pricePreview');
+      
+      // Preview elements
+      const previewOriginal = document.getElementById('previewOriginal');
+      const previewFee = document.getElementById('previewFee');
+      const previewEarnings = document.getElementById('previewEarnings');
+
+      // Store parsed products for preview
+      let currentProducts = [];
+
+      // Handle file drop/click
+      csvDropZone.addEventListener('click', () => csvInput.click());
+
+      csvDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        csvDropZone.style.borderColor = 'var(--accent)';
+        csvDropZone.style.background = 'rgba(59, 130, 246, 0.05)';
+      });
+
+      csvDropZone.addEventListener('dragleave', () => {
+        csvDropZone.style.borderColor = 'var(--border)';
+        csvDropZone.style.background = 'transparent';
+      });
+
+      csvDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        csvDropZone.style.borderColor = 'var(--border)';
+        csvDropZone.style.background = 'transparent';
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          if (files[0].name.endsWith('.csv')) {
+            csvInput.files = files;
+            handleFileSelect(files[0]);
+          } else {
+            showToast('Please select a CSV file', 'error');
+          }
+        }
+      });
+
+      csvInput.addEventListener('change', () => {
+        if (csvInput.files.length > 0) {
+          handleFileSelect(csvInput.files[0]);
+        }
+      });
+
+      async function handleFileSelect(file) {
+        selectedFileName.textContent = `📄 Selected: ${file.name}`;
+        
+        // Parse CSV to show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const csvText = e.target.result;
+          const parsedProducts = parseAliExpressCSV(csvText);
+          
+          if (parsedProducts.length > 0) {
+            currentProducts = parsedProducts;
+            
+            // Calculate average price for preview
+            const totalPrice = parsedProducts.reduce((sum, p) => sum + p.price, 0);
+            const avgPrice = parsedProducts.length > 0 ? totalPrice / parsedProducts.length : 0;
+            
+            // Update preview
+            previewOriginal.textContent = `$${avgPrice.toFixed(2)}`;
+            previewFee.textContent = `$${(avgPrice * 0.1).toFixed(2)}`;
+            previewEarnings.textContent = `$${(avgPrice * 0.9).toFixed(2)}`;
+            
+            pricePreview.style.display = 'block';
+            importBtn.disabled = false;
+            
+            showToast(`Loaded ${parsedProducts.length} products from CSV`, 'success');
+          } else {
+            showToast('No valid products found in CSV. Make sure it has Title, Price (unit), and Product Link columns.', 'error');
+            importBtn.disabled = true;
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // NEW FUNCTION: Parse AliExpress cart export CSV format
+      function parseAliExpressCSV(csvText) {
+        const lines = [];
+        let currentLine = '';
+        let inQuotes = false;
+        
+        // Parse CSV properly handling quotes
+        for (let i = 0; i < csvText.length; i++) {
+          const char = csvText[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === '\n' && !inQuotes) {
+            lines.push(currentLine);
+            currentLine = '';
+          } else {
+            currentLine += char;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        
+        if (lines.length < 2) {
+          showToast('CSV file is empty or invalid', 'error');
+          return [];
+        }
+        
+        // Parse headers
+        const headers = parseCSVLine(lines[0]);
+        
+        // Find the columns we need (case-insensitive)
+        let titleCol = -1;
+        let priceCol = -1;
+        let linkCol = -1;
+        
+        headers.forEach((header, index) => {
+          const headerLower = header.toLowerCase().trim();
+          if (headerLower === 'title') {
+            titleCol = index;
+          } else if (headerLower === 'price (unit)' || headerLower === 'price') {
+            priceCol = index;
+          } else if (headerLower === 'product link' || headerLower === 'link' || headerLower === 'affiliate_link') {
+            linkCol = index;
+          }
+        });
+        
+        // Check if we found all required columns
+        const missingColumns = [];
+        if (titleCol === -1) missingColumns.push('Title');
+        if (priceCol === -1) missingColumns.push('Price (unit)');
+        if (linkCol === -1) missingColumns.push('Product Link');
+        
+        if (missingColumns.length > 0) {
+          showToast(`Missing columns: ${missingColumns.join(', ')}. Make sure your CSV has these headers.`, 'error');
+          return [];
+        }
+        
+        // Parse data rows
+        const products = [];
+        const dataRows = lines.slice(1).filter(line => line.trim() !== '');
+        
+        dataRows.forEach((row, rowIndex) => {
+          try {
+            const fields = parseCSVLine(row);
+            
+            // Make sure we have enough fields
+            if (fields.length <= Math.max(titleCol, priceCol, linkCol)) {
+              return; // Skip invalid rows
+            }
+            
+            const title = fields[titleCol]?.trim();
+            let price = fields[priceCol]?.trim();
+            const link = fields[linkCol]?.trim();
+            
+            // Clean up price (remove $, spaces, etc.)
+            if (price) {
+              // Remove currency symbols and convert to number
+              price = price.replace(/[^0-9.-]/g, '');
+            }
+            
+            const priceNum = parseFloat(price);
+            
+            // Validate product has all required fields
+            if (title && !isNaN(priceNum) && priceNum > 0 && link && link.startsWith('http')) {
+              products.push({
+                title: title,
+                price: priceNum,
+                affiliate_link: link,
+                // Keep original fields for reference
+                original: fields
+              });
+            } else {
+              console.log('Skipping invalid row:', { title, price, link });
+            }
+          } catch (e) {
+            console.log('Error parsing row:', rowIndex, e);
+          }
+        });
+        
+        return products;
+      }
+
+      // Helper function to parse a single CSV line properly
+      function parseCSVLine(line) {
+        const fields = [];
+        let field = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            fields.push(field);
+            field = '';
+          } else {
+            field += char;
+          }
+        }
+        fields.push(field); // Add the last field
+        
+        // Clean up fields (remove quotes if they were quoted)
+        return fields.map(f => f.replace(/^"|"$/g, '').trim());
+      }
+
+      // Show toast with optional type ('success' or 'error')
+      function showToast(message, type = 'success') {
+        toastMessage.textContent = message;
+        toast.style.borderLeftColor = type === 'success' ? 'var(--success)' : 'var(--danger)';
+        toast.querySelector('i').style.color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 4000);
+      }
+
+      // Display results in UI
+      function displayResults(results) {
+        // Update stats
+        document.getElementById('successCount').textContent = results.successful.length;
+        document.getElementById('skippedCount').textContent = results.skipped.length;
+        document.getElementById('failedCount').textContent = results.failed.length;
+
+        // Calculate totals
+        let totalCustomerPayments = 0;
+        let totalYourEarnings = 0;
+        let totalPlatformFee = 0;
+        
+        results.successful.forEach(item => {
+          if (item.price) {
+            totalCustomerPayments += item.price;
+            totalYourEarnings += item.price * 0.9;
+            totalPlatformFee += item.price * 0.1;
+          }
+        });
+
+        // Show earnings summary if there are successful imports
+        if (results.successful.length > 0) {
+          document.getElementById('totalCustomerPayments').textContent = `$${totalCustomerPayments.toFixed(2)}`;
+          document.getElementById('totalYourEarnings').textContent = `$${totalYourEarnings.toFixed(2)}`;
+          document.getElementById('totalPlatformFee').textContent = `$${totalPlatformFee.toFixed(2)}`;
+          document.getElementById('earningsSummary').style.display = 'block';
+        } else {
+          document.getElementById('earningsSummary').style.display = 'none';
+        }
+
+        // Populate list
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = '';
+
+        // Add successful items
+        results.successful.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'result-item success';
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <i class="fas fa-check-circle"></i> 
+                <strong>${item.title.substring(0, 50)}${item.title.length > 50 ? '...' : ''}</strong> - imported successfully
+                <div style="font-size: 12px; color: var(--text-gray); margin-top: 4px;">
+                  Customer pays: $${item.price?.toFixed(2) || '0'} | 
+                  You earn: $${(item.price * 0.9)?.toFixed(2) || '0'} | 
+                  Platform: $${(item.price * 0.1)?.toFixed(2) || '0'}
+                </div>
+              </div>
+              <small style="color: var(--text-gray);">ID: ${item.id}</small>
+            </div>
+          `;
+          resultsList.appendChild(div);
+        });
+
+        // Add skipped items
+        results.skipped.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'result-item skipped';
+          div.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${item.title.substring(0, 50)}${item.title.length > 50 ? '...' : ''} - ${item.reason}`;
+          resultsList.appendChild(div);
+        });
+
+        // Add failed items
+        results.failed.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'result-item failed';
+          div.innerHTML = `<i class="fas fa-times-circle"></i> ${item.title ? item.title.substring(0, 30) : 'Unknown'} - ${item.reason}`;
+          resultsList.appendChild(div);
+        });
+
+        // Show results container
+        resultsContainer.style.display = 'block';
+        
+        // Scroll to results
+        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // Handle import
+      importBtn.addEventListener('click', async () => {
+        if (!csvInput.files.length) {
+          showToast('Please select a file first', 'error');
+          return;
+        }
+
+        if (currentProducts.length === 0) {
+          showToast('No valid products to import', 'error');
+          return;
+        }
+
+        // Show progress
+        progressBar.style.display = 'block';
+        progressFill.style.width = '0%';
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+
+        try {
+          // Simulate progress animation
+          let progress = 0;
+          const progressInterval = setInterval(() => {
+            progress += 10;
+            if (progress <= 90) {
+              progressFill.style.width = progress + '%';
+            }
+          }, 300);
+
+          // Simulate import (replace with actual API call)
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Generate results based on currentProducts
+          const results = {
+            successful: [],
+            skipped: [],
+            failed: []
+          };
+          
+          currentProducts.forEach((product, index) => {
+            // Simulate some failures/skips for demo
+            if (product.price > 1000) {
+              results.failed.push({
+                title: product.title,
+                reason: 'Price too high'
+              });
+            } else if (product.title.toLowerCase().includes('test')) {
+              results.skipped.push({
+                title: product.title,
+                reason: 'Duplicate product (test item)'
+              });
+            } else {
+              results.successful.push({
+                title: product.title,
+                price: product.price,
+                id: Math.floor(Math.random() * 10000) + 1000
+              });
+            }
+          });
+
+          clearInterval(progressInterval);
+          
+          // Update progress to 100%
+          progressFill.style.width = '100%';
+
+          // Display the results
+          displayResults(results);
+          
+          // Show success message
+          showToast(`Import completed! ${results.successful.length} products added.`, 'success');
+
+          // Hide progress after 2 sec
+          setTimeout(() => {
+            progressBar.style.display = 'none';
+            progressFill.style.width = '0%';
+          }, 2000);
+
+        } catch (error) {
+          console.error('Import error:', error);
+          showToast('Import failed: ' + error.message, 'error');
+          
+          // Hide progress on error
+          progressBar.style.display = 'none';
+        } finally {
+          // Reset button
+          importBtn.disabled = false;
+          importBtn.innerHTML = '<i class="fas fa-upload"></i> Start Import';
+        }
+      });
+
+      // Make showToast globally accessible
+      window.showToast = showToast;
+    });
+  </script>
+</body>
+</html>

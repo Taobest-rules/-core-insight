@@ -3374,82 +3374,129 @@ async function loadDeletedServices() {
 /*********************
  *  Service Form Submission *
  *********************/
+// Update handleServiceFormSubmit to check for subscription errors
 async function handleServiceFormSubmit(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    const finalCategory = getSelectedCategoryFromEnhancedForm();
+  const finalCategory = getSelectedCategoryFromEnhancedForm();
 
-    if (!finalCategory) {
-        alert('❌ Please either select an existing category or enter a new one');
+  if (!finalCategory) {
+    showToast('❌ Please either select an existing category or enter a new one', 'error');
+    return;
+  }
+
+  const serviceData = {
+    title: $("serviceTitle").value.trim(),
+    description: $("serviceDescription").value.trim(),
+    category: finalCategory,
+    hourly_rate: $("hourlyRate").value || null,
+    fixed_price: $("fixedPrice").value || null
+  };
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+  submitBtn.disabled = true;
+
+  try {
+    const response = await fetch('/api/services', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(serviceData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Check if it's a subscription error
+      if (data.requiresSubscription) {
+        showToast('❌ Your free trial has expired. Please subscribe to continue.', 'error');
+        // Show subscription modal
+        showSubscriptionModal();
         return;
+      }
+      throw new Error(data.error || 'Failed to create service');
     }
 
-    let providerProfilePicture = null;
+    showToast('🎉 Service created successfully!', 'success');
+    $("serviceForm").reset();
+    hideCreateServiceForm();
+    await loadCategories();
+    if (userRole === 'freelancer') await loadMyServices();
+    await loadServices();
 
-    if (freelancerProfile && freelancerProfile.profile_picture) {
-        providerProfilePicture = freelancerProfile.profile_picture;
-    } else {
-        const cachedPicture = localStorage.getItem('profile_picture_url');
-        if (cachedPicture) providerProfilePicture = cachedPicture;
-    }
-
-    const serviceData = {
-        title: $("serviceTitle").value.trim(),
-        description: $("serviceDescription").value.trim(),
-        category: finalCategory,
-        hourly_rate: $("hourlyRate").value || null,
-        fixed_price: $("fixedPrice").value || null,
-        provider_profile_picture: providerProfilePicture
-    };
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/services', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(serviceData)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            alert(data.error || 'Failed to create service');
-            return;
-        }
-
-        alert('🎉 Service created successfully!');
-
-        $("serviceForm").reset();
-        hideCreateServiceForm();
-
-        await loadCategories();
-        if (userRole === 'freelancer') await loadMyServices();
-        await loadServices();
-
-    } catch (error) {
-        alert("Failed to create service. Please try again.");
-    }
-
+  } catch (error) {
+    showToast("❌ Failed to create service: " + error.message, 'error');
+  } finally {
     submitBtn.innerHTML = originalText;
     submitBtn.disabled = false;
+  }
+}
+
+// Add subscription modal function
+function showSubscriptionModal() {
+  const modalHtml = `
+    <div id="subscriptionModal" class="modal" style="display: flex;">
+      <div class="modal-card" style="max-width: 500px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;color:var(--text-light);">Subscription Required</h3>
+          <span onclick="closeSubscriptionModal()" class="close-x" style="cursor:pointer">&times;</span>
+        </div>
+        
+        <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin:0;color:#ff9800;font-weight:500;">
+            <i class="fas fa-exclamation-triangle"></i> Free Trial Expired
+          </p>
+          <p style="margin:10px 0 0 0;color:var(--text-light);">
+            Your 90-day free trial has ended. To continue using services, please subscribe to one of our plans.
+          </p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+          <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
+            <h4 style="color: var(--text-light); margin-bottom: 10px;">Monthly</h4>
+            <div style="font-size: 2rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 10px;">$5</div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">per month</p>
+            <button onclick="subscribe('monthly')" class="btn btn-primary" style="width: 100%;">Subscribe</button>
+          </div>
+          
+          <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
+            <h4 style="color: var(--text-light); margin-bottom: 10px;">Yearly</h4>
+            <div style="font-size: 2rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 10px;">$57.50</div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">per year (save 4%)</p>
+            <button onclick="subscribe('yearly')" class="btn btn-primary" style="width: 100%;">Subscribe</button>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:12px;margin-top:20px;">
+          <button onclick="closeSubscriptionModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+            <i class="fas fa-times"></i> Later
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeSubscriptionModal() {
+  const modal = document.getElementById('subscriptionModal');
+  if (modal) modal.remove();
 }
 
 /*********************
  *  Render Services  *
  *********************/
+// =================== RENDER SERVICES - FIXED ===================
 function renderServices(servicesToRender) {
     const container = $('servicesList');
     const noServices = $('noServices');
 
-    if (!container) {
-        return;
-    }
+    if (!container) return;
 
     if (!servicesToRender || servicesToRender.length === 0) {
         container.innerHTML = '';
@@ -3460,30 +3507,86 @@ function renderServices(servicesToRender) {
     if (noServices) noServices.style.display = 'none';
 
     container.innerHTML = servicesToRender.map(service => {
-        const serviceId = service.id || service.service_id;
+        const serviceId = service.id;
         const title = service.title || 'Untitled Service';
         const description = service.description || 'No description available';
-        const price = service.price || service.hourly_rate || 0;
-        const providerName = service.username || service.provider_name || 'Unknown';
-        const userId = service.user_id || service.provider_id;
-        const profilePicture = service.profile_picture || service.provider_profile_picture;
+        const price = service.price || 0;
+        const providerName = service.username || 'Unknown';
+        const userId = service.user_id;
 
-        console.log("Rendering service:", { serviceId, userId, service }); // Add this for debugging
-
-        const providerPictureHtml = profilePicture ?
-            `
-            <div class="profile-picture-wrapper">
-                <img src="${profilePicture}"
-                     alt="${providerName}"
-                     class="provider-profile-picture"
+        const providerPictureHtml = service.profile_picture_url ?
+            `<div class="profile-picture-wrapper">
+                <img src="${service.profile_picture_url}" alt="${providerName}" class="provider-profile-picture"
                      onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'provider-initials\\'>${providerName.charAt(0).toUpperCase()}</div>';">
-            </div>
-        ` :
+            </div>` :
             `<div class="provider-initials">${providerName.charAt(0).toUpperCase()}</div>`;
 
-        let serviceCardHTML = `
-            <div class="service-card" data-service-id="${serviceId}">
+        // Check if user is logged in and their role
+        const isLoggedIn = !!currentUser;
+        const isClient = currentUser?.role === 'client';
+        const isFreelancer = currentUser?.role === 'freelancer';
+        const isAdmin = currentUser?.role === 'admin';
+        const isOwner = currentUser?.id === userId;
 
+        let actionButtons = '';
+
+        // Always show Chat and View Profile for everyone
+        actionButtons += `
+            <button class="btn chat-btn" onclick="startConversationWithService(${serviceId}, ${userId})">
+                <i class="fas fa-comments"></i> Chat
+            </button>
+            <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                <i class="fas fa-user"></i> View Profile
+            </button>
+        `;
+
+        // Add Recruit button for clients
+        if (isLoggedIn && isClient && !isOwner) {
+            actionButtons += `
+                <button class="btn recruit-btn" onclick="recruitFreelancer(${userId}, ${serviceId})">
+                    <i class="fas fa-user-plus"></i> Recruit
+                </button>
+            `;
+        }
+
+        // Add Favorite button for logged-in users (except owners)
+        if (isLoggedIn && !isOwner) {
+            actionButtons += `
+                <button class="btn favorite-btn" onclick="toggleServiceFavorite(${serviceId})" data-service-id="${serviceId}">
+                    <i class="far fa-heart"></i>
+                </button>
+            `;
+        }
+
+        // Add Review button for clients who have used this service
+        if (isLoggedIn && isClient) {
+            actionButtons += `
+                <button class="btn btn-secondary" onclick="showReviewModal(${serviceId}, '${escapeHtml(title)}')">
+                    <i class="fas fa-star"></i> Review
+                </button>
+            `;
+        }
+
+        // Add Delete button for owners and admins
+        if (isLoggedIn && (isOwner || isAdmin)) {
+            actionButtons += `
+                <button class="btn btn-danger" onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, ${isOwner})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            `;
+        }
+
+        // Add rating display if available
+        const rating = service.rating || service.avg_rating || 0;
+        const reviewCount = service.review_count || 0;
+        const ratingHtml = rating > 0 ? 
+            `<div class="service-rating">
+                <span class="stars">${generateStars(rating)}</span>
+                <span class="rating-count">(${reviewCount})</span>
+            </div>` : '';
+
+        return `
+            <div class="service-card" data-service-id="${serviceId}">
                 <div class="service-header">
                     <h3 class="service-title">${escapeHtml(title)}</h3>
                     <div class="service-price">${price > 0 ? `$${price}` : 'Free'}</div>
@@ -3491,57 +3594,26 @@ function renderServices(servicesToRender) {
 
                 <div class="service-provider-info">
                     ${providerPictureHtml}
-                    <div>
+                    <div class="provider-info">
                         <div class="service-provider-name">${escapeHtml(providerName)}</div>
                         <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
+                        ${ratingHtml}
                     </div>
                 </div>
 
                 <div class="description-container">
-                    <p class="service-description">
-                        ${escapeHtml(description)}
-                    </p>
-                </div>`;
+                    <p class="service-description">${escapeHtml(description.substring(0, 150))}${description.length > 150 ? '...' : ''}</p>
+                </div>
 
-        if (currentUser && (currentUser.role === 'client' || currentUser.role === 'business')) {
-            serviceCardHTML += addRecruitButton(serviceCardHTML, serviceId, userId);
-        } else {
-            serviceCardHTML += `
                 <div class="service-actions">
-                    <button class="btn chat-btn" onclick="startConversationWithService(${serviceId}, ${userId})">
-                        <i class="fas fa-comments"></i> Chat
-                    </button>
-                    <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
-                        <i class="fas fa-user"></i> View Profile
-                    </button>
-                </div>`;
-        }
+                    ${actionButtons}
+                </div>
 
-        serviceCardHTML += `
-                <button class="btn btn-primary" onclick="viewServiceDetailsModal(${serviceId})">
+                <button class="btn btn-secondary view-details-btn" onclick="viewServiceDetailsModal(${serviceId})" style="width:100%; margin-top:10px;">
                     <i class="fas fa-info-circle"></i> View Details
-                </button>`;
-
-        if (currentUser?.role === 'admin') {
-            serviceCardHTML += `
-                <button class="btn btn-danger"
-                    onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, false)">
-                    <i class="fas fa-trash"></i> Admin Delete
-                </button>`;
-        }
-
-        if (currentUser?.id === userId) {
-            serviceCardHTML += `
-                <button class="btn btn-warning"
-                    onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, true)">
-                    <i class="fas fa-trash"></i> Delete My Service
-                </button>`;
-        }
-
-        serviceCardHTML += `
-            </div>`;
-
-        return serviceCardHTML;
+                </button>
+            </div>
+        `;
     }).join('');
 }
 
@@ -3779,21 +3851,109 @@ function createFreelancerDeleteModal(serviceId, serviceTitle, userId) {
         showToast('Error checking delete limits', 'error');
     });
 }
+async function logServiceDeletion({ serviceId, userId, serviceTitle, reason, deletedBy, isFlagged = false }) {
+  try {
+    await db.query(`
+      INSERT INTO service_delete_tracking 
+      (user_id, service_id, delete_reason, flagged)
+      VALUES (?, ?, ?, ?)
+    `, [userId, serviceId, reason, isFlagged]);
+    
+    if (isFlagged) {
+      await updateUserMonitoring(userId);
+    }
+    
+  } catch (error) {}
+}
 
-async function checkRemainingDeletes() {
+async function updateUserMonitoring(userId) {
+  try {
+    const [userRows] = await db.query(
+      "SELECT username, email FROM users WHERE id = ?",
+      [userId]
+    );
+    
+    if (userRows.length === 0) return;
+    
+    const user = userRows[0];
+    
+    const [deleteCountRows] = await db.query(`
+      SELECT COUNT(*) as count FROM service_delete_tracking 
+      WHERE user_id = ? AND deleted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    `, [userId]);
+    
+    const deleteCount = deleteCountRows[0].count;
+    
+    const [monitoringRows] = await db.query(
+      "SELECT id FROM user_delete_monitoring WHERE user_id = ?",
+      [userId]
+    );
+    
+    if (monitoringRows.length === 0) {
+      await db.query(`
+        INSERT INTO user_delete_monitoring 
+        (user_id, username, email, delete_count_last_7_days, is_flagged, flagged_reason, flagged_at)
+        VALUES (?, ?, ?, ?, TRUE, ?, NOW())
+      `, [userId, user.username, user.email, deleteCount, 'Multiple service deletions detected']);
+    } else {
+      await db.query(`
+        UPDATE user_delete_monitoring 
+        SET delete_count_last_7_days = ?, 
+            is_flagged = TRUE,
+            flagged_reason = CONCAT(COALESCE(flagged_reason, ''), ' | Multiple deletions detected on ', NOW()),
+            flagged_at = NOW(),
+            reviewed = FALSE
+        WHERE user_id = ?
+      `, [deleteCount, userId]);
+    }
+    
+  } catch (error) {}
+}
+
+async function checkAndEnforceDeleteLimits(userId) {
     try {
-        const response = await fetch('/api/user/delete-limits', {
-            credentials: 'include'
-        });
+        const today = new Date().toISOString().split('T')[0];
 
-        if (response.ok) {
-            const data = await response.json();
-            return data.remaining_deletes || 0;
+        const [userRows] = await db.query(
+            "SELECT daily_delete_count, last_delete_date FROM users WHERE id = ?",
+            [userId]
+        );
+
+        if (!userRows || userRows.length === 0) {
+            throw new Error("User not found for delete limit check");
         }
 
-        return 3;
-    } catch (error) {
-        return 3;
+        const user = userRows[0];
+        const lastDeleteDate = user.last_delete_date
+            ? new Date(user.last_delete_date).toISOString().split('T')[0]
+            : null;
+        const dailyCount = user.daily_delete_count || 0;
+
+        let remainingDeletes = 3;
+
+        if (lastDeleteDate === today) {
+            remainingDeletes = 3 - dailyCount;
+        }
+
+        if (remainingDeletes <= 0) {
+            throw new Error("You have reached your daily delete limit (3 per day).");
+        }
+
+        if (lastDeleteDate === today) {
+            await db.query(
+                "UPDATE users SET daily_delete_count = daily_delete_count + 1 WHERE id = ?",
+                [userId]
+            );
+        } else {
+            await db.query(
+                "UPDATE users SET daily_delete_count = 1, last_delete_date = ? WHERE id = ?",
+                [today, userId]
+            );
+        }
+
+        return remainingDeletes;
+    } catch (err) {
+        throw err;
     }
 }
 
@@ -3867,7 +4027,165 @@ function closeAdminDeleteModal() {
     const modal = $('adminDeleteModal');
     if (modal) modal.remove();
 }
+// Add review for a service
+async function addServiceReview(serviceId, rating, comment) {
+    if (!currentUser) {
+        showToast('Please login to review', 'warning');
+        return;
+    }
 
+    try {
+        const response = await fetch(`/api/services/${serviceId}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ rating, comment })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to add review');
+        }
+
+        showToast('✅ Review added successfully!', 'success');
+        return data;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+    }
+}
+
+// Load service reviews
+async function loadServiceReviews(serviceId) {
+    try {
+        const response = await fetch(`/api/services/${serviceId}/reviews`, {
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load reviews');
+        }
+
+        return data.reviews || [];
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        return [];
+    }
+}
+// Load service packages
+async function loadServicePackages(serviceId) {
+    try {
+        const response = await fetch(`/api/services/${serviceId}/packages`, {
+            credentials: 'include'
+        });
+
+        const packages = await response.json();
+        return packages || [];
+    } catch (error) {
+        console.error('Error loading packages:', error);
+        return [];
+    }
+}
+
+// Order a service package
+async function orderServicePackage(serviceId, packageId, requirements) {
+    if (!currentUser) {
+        showToast('Please login to order', 'warning');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}/order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ package_id: packageId, requirements })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to place order');
+        }
+
+        showToast('✅ Order placed successfully!', 'success');
+        return data;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+    }
+}
+// Load freelancer notifications
+async function loadFreelancerNotifications() {
+    if (!currentUser || currentUser.role !== 'freelancer') return [];
+
+    try {
+        const response = await fetch('/api/freelancer/notifications', {
+            credentials: 'include'
+        });
+
+        const notifications = await response.json();
+        return notifications || [];
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        return [];
+    }
+}
+
+// Mark notification as read
+async function markNotificationRead(notificationId) {
+    try {
+        const response = await fetch(`/api/freelancer/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            credentials: 'include'
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        return false;
+    }
+}
+// Load freelancer dashboard stats
+async function loadFreelancerDashboard() {
+    if (!currentUser || currentUser.role !== 'freelancer') return null;
+
+    try {
+        const response = await fetch('/api/freelancer/dashboard', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        
+        // Update dashboard UI elements
+        if (data.services) {
+            safeSetText('dashboardServices', data.services.active_services || 0);
+            safeSetText('totalServices', data.services.total_services || 0);
+        }
+        
+        if (data.orders) {
+            safeSetText('dashboardEarnings', `$${data.orders.net_earnings || 0}`);
+            safeSetText('totalEarnings', `$${data.orders.total_revenue || 0}`);
+        }
+        
+        if (data.clients) {
+            safeSetText('dashboardClients', data.clients.length || 0);
+        }
+        
+        if (data.services) {
+            safeSetText('dashboardRating', (data.services.avg_rating || 0).toFixed(1));
+            safeSetText('avgRating', (data.services.avg_rating || 0).toFixed(1));
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        return null;
+    }
+}
 /*********************
  *  Profile Functionality *
  *********************/
@@ -4656,6 +4974,1396 @@ async function testChatFlow() {
 
     alert("Check console for test results");
 }
+// Add these functions to your service.js file
+
+/*********************
+ *  Service Reviews System
+ *********************/
+// =================== REVIEW MODAL - FIXED ===================
+function showReviewModal(serviceId, serviceTitle) {
+    const modalHtml = `
+        <div id="reviewModal" class="modal" style="display: flex;">
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="margin:0;color:var(--text-light);">Review Service</h3>
+                    <span onclick="closeReviewModal()" class="close-x" style="cursor:pointer">&times;</span>
+                </div>
+                
+                <p style="color: var(--text-gray); margin-bottom: 15px;">Reviewing: <strong>${escapeHtml(serviceTitle)}</strong></p>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="color: var(--text-light); display: block; margin-bottom: 10px;">Rating</label>
+                    <div class="star-rating" style="display: flex; gap: 10px; font-size: 2rem;">
+                        ${[1,2,3,4,5].map(num => `
+                            <span class="star" data-rating="${num}" onclick="setRating(${num})" 
+                                  style="cursor: pointer; color: var(--text-gray); transition: color 0.2s;">★</span>
+                        `).join('')}
+                    </div>
+                    <input type="hidden" id="reviewRating" value="0">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="color: var(--text-light); display: block; margin-bottom: 10px;">Your Review</label>
+                    <textarea id="reviewComment" rows="4" style="width:100%;padding:12px;border-radius:8px;background:var(--card-bg);border:2px solid rgba(255,255,255,0.1);color:var(--text-light);" placeholder="Share your experience..."></textarea>
+                </div>
+                
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button onclick="submitReview(${serviceId})" class="btn btn-primary" style="flex:1;padding:14px;">
+                        <i class="fas fa-star"></i> Submit Review
+                    </button>
+                    <button onclick="closeReviewModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add hover effects for stars
+    document.querySelectorAll('.star').forEach(star => {
+        star.addEventListener('mouseover', function() {
+            const rating = this.dataset.rating;
+            highlightStars(rating);
+        });
+        star.addEventListener('mouseout', function() {
+            const currentRating = document.getElementById('reviewRating').value;
+            highlightStars(currentRating);
+        });
+    });
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    if (modal) modal.remove();
+}
+
+let currentRating = 0;
+
+function setRating(rating) {
+    currentRating = rating;
+    document.getElementById('reviewRating').value = rating;
+    highlightStars(rating);
+}
+
+function highlightStars(rating) {
+    document.querySelectorAll('.star').forEach((star, index) => {
+        if (index < rating) {
+            star.style.color = 'var(--accent-gold)';
+        } else {
+            star.style.color = 'var(--text-gray)';
+        }
+    });
+}
+
+async function submitReview(serviceId) {
+    const rating = document.getElementById('reviewRating').value;
+    const comment = document.getElementById('reviewComment').value.trim();
+
+    if (rating === '0') {
+        showToast('Please select a rating', 'error');
+        return;
+    }
+
+    if (!comment) {
+        showToast('Please write a review comment', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ rating: parseInt(rating), comment })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to add review');
+        }
+
+        showToast('✅ Review added successfully!', 'success');
+        closeReviewModal();
+        
+        // Refresh service details if modal is open
+        if (window.currentServiceId === serviceId) {
+            loadServiceDetails(serviceId);
+        }
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+    }
+}
+
+// =================== CONFIRM DELETE - FIXED ===================
+function confirmDeleteService(serviceId, serviceTitle, userId, isOwner) {
+    const isAdmin = currentUser && currentUser.role === 'admin';
+    const canDelete = isAdmin || isOwner || (currentUser && currentUser.id === userId);
+
+    if (!canDelete) {
+        showToast('You can only delete your own services', 'error');
+        return;
+    }
+
+    if (isAdmin) {
+        createAdminDeleteModal(serviceId, serviceTitle, userId);
+    } else if (isOwner) {
+        createFreelancerDeleteModal(serviceId, serviceTitle, userId);
+    }
+}
+
+/*********************
+ *  Service Products System
+ *********************/
+
+// Load products for a service
+async function loadServiceProducts(serviceId) {
+    try {
+        const response = await fetch(`/api/services/${serviceId}/products`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load products');
+        
+        const products = await response.json();
+        return products || [];
+    } catch (error) {
+        console.error('Error loading service products:', error);
+        return [];
+    }
+}
+
+// Buy a service product
+async function buyServiceProduct(serviceId, productId) {
+    if (!currentUser) {
+        showToast('Please login to purchase', 'warning');
+        openModal($('loginModal'));
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}/products/${productId}/buy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to process purchase');
+        }
+
+        if (data.link) {
+            window.location.href = data.link;
+        } else {
+            showToast('✅ Purchase successful!', 'success');
+        }
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+    }
+}
+
+// Show service products modal
+function showServiceProductsModal(serviceId, serviceTitle) {
+    loadServiceProducts(serviceId).then(products => {
+        const modalHtml = `
+            <div id="serviceProductsModal" class="modal" style="display: flex;">
+                <div class="modal-card" style="max-width: 600px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="margin:0;color:var(--text-light);">Service Products</h3>
+                        <span onclick="closeServiceProductsModal()" class="close-x" style="cursor:pointer">&times;</span>
+                    </div>
+                    
+                    <p style="color: var(--text-gray); margin-bottom: 20px;">Service: <strong>${escapeHtml(serviceTitle)}</strong></p>
+                    
+                    <div id="productsList" style="max-height: 400px; overflow-y: auto;">
+                        ${products.length === 0 ? `
+                            <div style="text-align: center; padding: 40px;">
+                                <i class="fas fa-box-open" style="font-size: 3rem; color: var(--text-gray); margin-bottom: 15px;"></i>
+                                <p style="color: var(--text-gray);">No products available for this service yet.</p>
+                            </div>
+                        ` : products.map(product => `
+                            <div style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                    <h4 style="color: var(--text-light); margin: 0;">${escapeHtml(product.title)}</h4>
+                                    <span style="background: var(--accent-gold); color: #000; padding: 5px 12px; border-radius: 20px; font-weight: 600;">
+                                        $${product.price}
+                                    </span>
+                                </div>
+                                <p style="color: var(--text-gray); margin-bottom: 15px;">${escapeHtml(product.description || 'No description')}</p>
+                                <button onclick="buyServiceProduct(${serviceId}, ${product.id})" class="btn btn-primary" style="width: 100%;">
+                                    <i class="fas fa-shopping-cart"></i> Purchase Now
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="display:flex;gap:12px;margin-top:20px;">
+                        <button onclick="closeServiceProductsModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    });
+}
+
+function closeServiceProductsModal() {
+    const modal = document.getElementById('serviceProductsModal');
+    if (modal) modal.remove();
+}
+
+/*********************
+ *  Service Orders System
+ *********************/
+
+// Load client orders
+async function loadClientOrders() {
+    if (!currentUser) return [];
+
+    try {
+        const response = await fetch('/api/orders/client', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load orders');
+        
+        const orders = await response.json();
+        return orders || [];
+    } catch (error) {
+        console.error('Error loading client orders:', error);
+        return [];
+    }
+}
+
+// Load freelancer orders
+async function loadFreelancerOrders() {
+    if (!currentUser) return [];
+
+    try {
+        const response = await fetch('/api/orders/freelancer', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load orders');
+        
+        const orders = await response.json();
+        return orders || [];
+    } catch (error) {
+        console.error('Error loading freelancer orders:', error);
+        return [];
+    }
+}
+
+// Load order details
+async function loadOrderDetails(orderId) {
+    try {
+        const response = await fetch(`/api/orders/${orderId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load order');
+        
+        const order = await response.json();
+        return order;
+    } catch (error) {
+        console.error('Error loading order details:', error);
+        return null;
+    }
+}
+
+// Update order status
+async function updateOrderStatus(orderId, status) {
+    if (!currentUser) return false;
+
+    try {
+        const response = await fetch(`/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to update order');
+        }
+
+        showToast('✅ Order status updated!', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Deliver order
+async function deliverOrder(orderId, message, files) {
+    if (!currentUser) return false;
+
+    const formData = new FormData();
+    formData.append('message', message);
+    files.forEach(file => formData.append('files', file));
+
+    try {
+        const response = await fetch(`/api/orders/${orderId}/deliver`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to submit delivery');
+        }
+
+        showToast('✅ Delivery submitted!', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Review delivery
+async function reviewDelivery(deliveryId, status, feedback, rating) {
+    if (!currentUser) return false;
+
+    try {
+        const response = await fetch(`/api/deliveries/${deliveryId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status, feedback, rating })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to review delivery');
+        }
+
+        showToast('✅ Delivery reviewed!', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Raise dispute
+async function raiseDispute(orderId, reason, evidence) {
+    if (!currentUser) return false;
+
+    try {
+        const response = await fetch(`/api/orders/${orderId}/dispute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ reason, evidence })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to raise dispute');
+        }
+
+        showToast('✅ Dispute raised! Admin will review.', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Show order details modal
+function showOrderDetailsModal(orderId) {
+    loadOrderDetails(orderId).then(order => {
+        if (!order) {
+            showToast('Failed to load order details', 'error');
+            return;
+        }
+
+        const isClient = order.client_id === currentUser?.id;
+        const isFreelancer = order.freelancer_id === currentUser?.id;
+
+        const modalHtml = `
+            <div id="orderDetailsModal" class="modal" style="display: flex;">
+                <div class="modal-card" style="max-width: 700px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="margin:0;color:var(--text-light);">Order #${order.order_number}</h3>
+                        <span onclick="closeOrderDetailsModal()" class="close-x" style="cursor:pointer">&times;</span>
+                    </div>
+                    
+                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <div style="color: var(--text-gray); font-size: 0.85rem;">Status</div>
+                                <div style="color: var(--text-light); font-weight: 600;">${order.status}</div>
+                            </div>
+                            <div>
+                                <div style="color: var(--text-gray); font-size: 0.85rem;">Amount</div>
+                                <div style="color: var(--accent-gold); font-weight: 600;">$${order.amount}</div>
+                            </div>
+                            <div>
+                                <div style="color: var(--text-gray); font-size: 0.85rem;">Service</div>
+                                <div style="color: var(--text-light);">${escapeHtml(order.service_title)}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--text-gray); font-size: 0.85rem;">Client</div>
+                            <div style="color: var(--text-light);">${escapeHtml(order.client_name)}</div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: var(--text-gray); font-size: 0.85rem;">Freelancer</div>
+                            <div style="color: var(--text-light);">${escapeHtml(order.freelancer_name)}</div>
+                        </div>
+                        
+                        ${order.requirements ? `
+                            <div>
+                                <div style="color: var(--text-gray); font-size: 0.85rem;">Requirements</div>
+                                <div style="color: var(--text-light);">${escapeHtml(order.requirements)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${order.deliveries && order.deliveries.length > 0 ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--text-light); margin-bottom: 15px;">Deliveries</h4>
+                            ${order.deliveries.map(delivery => `
+                                <div style="background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                        <span style="color: var(--accent-blue);">Delivery #${delivery.revision_number}</span>
+                                        <span style="color: var(--text-gray);">${new Date(delivery.delivered_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <p style="color: var(--text-light); margin-bottom: 10px;">${escapeHtml(delivery.delivery_message)}</p>
+                                    ${delivery.files && delivery.files.length > 0 ? `
+                                        <div style="margin-top: 10px;">
+                                            <span style="color: var(--text-gray); font-size: 0.85rem;">Attachments:</span>
+                                            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                                ${JSON.parse(delivery.files).map(file => `
+                                                    <a href="${file}" target="_blank" style="color: var(--accent-blue);">📎 File</a>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${order.dispute ? `
+                        <div style="background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                            <h4 style="color: #ef4444; margin-bottom: 10px;">Dispute Active</h4>
+                            <p style="color: var(--text-light);">Reason: ${escapeHtml(order.dispute.reason)}</p>
+                            <p style="color: var(--text-gray);">Status: ${order.dispute.status}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        ${isFreelancer && order.status === 'active' ? `
+                            <button onclick="showDeliverModal(${order.id})" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Submit Delivery
+                            </button>
+                        ` : ''}
+                        
+                        ${(isClient || isFreelancer) && order.status !== 'disputed' && order.status !== 'completed' ? `
+                            <button onclick="showDisputeModal(${order.id})" class="btn btn-danger">
+                                <i class="fas fa-gavel"></i> Raise Dispute
+                            </button>
+                        ` : ''}
+                        
+                        ${isFreelancer && order.status === 'pending' ? `
+                            <button onclick="updateOrderStatus(${order.id}, 'active')" class="btn btn-success">
+                                <i class="fas fa-play"></i> Start Order
+                            </button>
+                        ` : ''}
+                        
+                        ${isClient && order.status === 'delivered' ? `
+                            <button onclick="showReviewDeliveryModal(${order.id})" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Review Delivery
+                            </button>
+                        ` : ''}
+                        
+                        <button onclick="closeOrderDetailsModal()" class="btn btn-secondary">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    });
+}
+
+function closeOrderDetailsModal() {
+    const modal = document.getElementById('orderDetailsModal');
+    if (modal) modal.remove();
+}
+
+function showDeliverModal(orderId) {
+    const modalHtml = `
+        <div id="deliverModal" class="modal" style="display: flex;">
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="margin:0;color:var(--text-light);">Submit Delivery</h3>
+                    <span onclick="closeDeliverModal()" class="close-x" style="cursor:pointer">&times;</span>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="color: var(--text-light); display: block; margin-bottom: 10px;">Delivery Message</label>
+                    <textarea id="deliveryMessage" rows="4" style="width:100%;padding:12px;border-radius:8px;background:var(--card-bg);border:2px solid rgba(255,255,255,0.1);color:var(--text-light);" placeholder="Describe what you've delivered..."></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="color: var(--text-light); display: block; margin-bottom: 10px;">Attach Files</label>
+                    <input type="file" id="deliveryFiles" multiple style="width:100%;padding:12px;border-radius:8px;background:var(--card-bg);color:var(--text-light);">
+                </div>
+                
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button onclick="submitDelivery(${orderId})" class="btn btn-primary" style="flex:1;padding:14px;">
+                        <i class="fas fa-paper-plane"></i> Submit Delivery
+                    </button>
+                    <button onclick="closeDeliverModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeDeliverModal() {
+    const modal = document.getElementById('deliverModal');
+    if (modal) modal.remove();
+}
+
+async function submitDelivery(orderId) {
+    const message = document.getElementById('deliveryMessage').value.trim();
+    const files = document.getElementById('deliveryFiles').files;
+
+    if (!message) {
+        showToast('Please enter a delivery message', 'error');
+        return;
+    }
+
+    const success = await deliverOrder(orderId, message, files);
+    if (success) {
+        closeDeliverModal();
+        closeOrderDetailsModal();
+    }
+}
+
+function showDisputeModal(orderId) {
+    const modalHtml = `
+        <div id="disputeModal" class="modal" style="display: flex;">
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="margin:0;color:#ef4444;">Raise a Dispute</h3>
+                    <span onclick="closeDisputeModal()" class="close-x" style="cursor:pointer">&times;</span>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="color: var(--text-light); display: block; margin-bottom: 10px;">Reason for Dispute</label>
+                    <textarea id="disputeReason" rows="4" style="width:100%;padding:12px;border-radius:8px;background:var(--card-bg);border:2px solid rgba(239,68,68,0.3);color:var(--text-light);" placeholder="Explain why you're raising this dispute..."></textarea>
+                </div>
+                
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button onclick="submitDispute(${orderId})" class="btn btn-danger" style="flex:1;padding:14px;">
+                        <i class="fas fa-gavel"></i> Raise Dispute
+                    </button>
+                    <button onclick="closeDisputeModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeDisputeModal() {
+    const modal = document.getElementById('disputeModal');
+    if (modal) modal.remove();
+}
+
+async function submitDispute(orderId) {
+    const reason = document.getElementById('disputeReason').value.trim();
+
+    if (!reason) {
+        showToast('Please provide a reason for the dispute', 'error');
+        return;
+    }
+
+    const success = await raiseDispute(orderId, reason, []);
+    if (success) {
+        closeDisputeModal();
+        closeOrderDetailsModal();
+    }
+}
+
+/*********************
+ *  Service Favorites System
+ *********************/
+
+// Toggle favorite
+async function toggleServiceFavorite(serviceId) {
+    if (!currentUser) {
+        showToast('Please login to favorite services', 'warning');
+        openModal($('loginModal'));
+        return false;
+    }
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}/favorite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to toggle favorite');
+        }
+
+        const isFavorited = data.favorited;
+        showToast(isFavorited ? '✅ Added to favorites!' : 'Removed from favorites', isFavorited ? 'success' : 'info');
+        
+        // Update favorite button if present
+        updateFavoriteButton(serviceId, isFavorited);
+        
+        return isFavorited;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Check if service is favorited
+async function checkServiceFavorite(serviceId) {
+    if (!currentUser) return false;
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}/is-favorited`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        return data.favorited || false;
+    } catch (error) {
+        console.error('Error checking favorite:', error);
+        return false;
+    }
+}
+
+// Load user favorites
+async function loadUserFavorites() {
+    if (!currentUser) return [];
+
+    try {
+        const response = await fetch('/api/services/favorites', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load favorites');
+
+        const favorites = await response.json();
+        return favorites || [];
+    } catch (error) {
+        console.error('Error loading favorites:', error);
+        return [];
+    }
+}
+
+// Show favorites modal
+function showFavoritesModal() {
+    loadUserFavorites().then(favorites => {
+        const modalHtml = `
+            <div id="favoritesModal" class="modal" style="display: flex;">
+                <div class="modal-card" style="max-width: 600px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="margin:0;color:var(--text-light);">My Favorite Services</h3>
+                        <span onclick="closeFavoritesModal()" class="close-x" style="cursor:pointer">&times;</span>
+                    </div>
+                    
+                    <div id="favoritesList" style="max-height: 400px; overflow-y: auto;">
+                        ${favorites.length === 0 ? `
+                            <div style="text-align: center; padding: 40px;">
+                                <i class="fas fa-heart" style="font-size: 3rem; color: var(--text-gray); margin-bottom: 15px;"></i>
+                                <p style="color: var(--text-gray);">No favorite services yet.</p>
+                                <p style="color: var(--text-gray); font-size: 0.9rem;">Click the heart icon on any service to add it to your favorites.</p>
+                            </div>
+                        ` : favorites.map(fav => `
+                            <div style="background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--text-light); margin: 0 0 5px 0;">${escapeHtml(fav.title)}</h4>
+                                    <p style="color: var(--text-gray); font-size: 0.9rem;">Provider: ${escapeHtml(fav.username)}</p>
+                                    <span style="color: var(--accent-gold); font-weight: 600;">$${fav.price}</span>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="viewServiceDetails(${fav.service_id})" class="btn btn-secondary" style="padding: 8px 16px;">
+                                        View
+                                    </button>
+                                    <button onclick="toggleServiceFavorite(${fav.service_id})" class="btn btn-danger" style="padding: 8px 16px;">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="display:flex;gap:12px;margin-top:20px;">
+                        <button onclick="closeFavoritesModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    });
+}
+
+function closeFavoritesModal() {
+    const modal = document.getElementById('favoritesModal');
+    if (modal) modal.remove();
+}
+
+// Update favorite button
+function updateFavoriteButton(serviceId, isFavorited) {
+    const button = document.querySelector(`.favorite-btn[data-service-id="${serviceId}"]`);
+    if (button) {
+        if (isFavorited) {
+            button.innerHTML = '<i class="fas fa-heart" style="color: #ef4444;"></i>';
+            button.classList.add('favorited');
+        } else {
+            button.innerHTML = '<i class="far fa-heart"></i>';
+            button.classList.remove('favorited');
+        }
+    }
+}
+
+/*********************
+ *  Advanced Search System
+ *********************/
+
+// Advanced search for services
+async function advancedSearchServices(params) {
+    try {
+        const queryParams = new URLSearchParams();
+        
+        if (params.q) queryParams.append('q', params.q);
+        if (params.category) queryParams.append('category', params.category);
+        if (params.min_price) queryParams.append('min_price', params.min_price);
+        if (params.max_price) queryParams.append('max_price', params.max_price);
+        if (params.min_rating) queryParams.append('min_rating', params.min_rating);
+        if (params.delivery_time) queryParams.append('delivery_time', params.delivery_time);
+        if (params.sort) queryParams.append('sort', params.sort);
+        if (params.page) queryParams.append('page', params.page);
+        if (params.limit) queryParams.append('limit', params.limit);
+
+        const response = await fetch(`/api/services/search?${queryParams.toString()}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to search services');
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error searching services:', error);
+        return { services: [], pagination: { total: 0, pages: 0 } };
+    }
+}
+
+// Get search suggestions
+async function getSearchSuggestions(query) {
+    if (!query || query.length < 2) return [];
+
+    try {
+        const response = await fetch(`/api/services/suggestions?q=${encodeURIComponent(query)}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) return [];
+
+        const suggestions = await response.json();
+        return suggestions || [];
+    } catch (error) {
+        console.error('Error getting suggestions:', error);
+        return [];
+    }
+}
+
+// Show advanced search modal
+function showAdvancedSearchModal() {
+    const modalHtml = `
+        <div id="advancedSearchModal" class="modal" style="display: flex;">
+            <div class="modal-card" style="max-width: 600px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="margin:0;color:var(--text-light);">Advanced Search</h3>
+                    <span onclick="closeAdvancedSearchModal()" class="close-x" style="cursor:pointer">&times;</span>
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: var(--text-light);">Keywords</label>
+                    <input type="text" id="searchKeywords" class="form-input-enhanced" placeholder="Search by title or description...">
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: var(--text-light);">Category</label>
+                    <select id="searchCategory" class="form-select-enhanced">
+                        <option value="">All Categories</option>
+                        ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label style="color: var(--text-light);">Min Price ($)</label>
+                        <input type="number" id="searchMinPrice" class="form-input-enhanced" min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: var(--text-light);">Max Price ($)</label>
+                        <input type="number" id="searchMaxPrice" class="form-input-enhanced" min="0" step="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: var(--text-light);">Minimum Rating</label>
+                    <select id="searchMinRating" class="form-select-enhanced">
+                        <option value="">Any Rating</option>
+                        <option value="4">4+ Stars</option>
+                        <option value="3">3+ Stars</option>
+                        <option value="2">2+ Stars</option>
+                        <option value="1">1+ Star</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: var(--text-light);">Delivery Time (max days)</label>
+                    <input type="number" id="searchDeliveryTime" class="form-input-enhanced" min="1" step="1" placeholder="e.g., 7">
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: var(--text-light);">Sort By</label>
+                    <select id="searchSort" class="form-select-enhanced">
+                        <option value="relevance">Relevance</option>
+                        <option value="newest">Newest First</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                    </select>
+                </div>
+                
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button onclick="performAdvancedSearch()" class="btn btn-primary" style="flex:1;padding:14px;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button onclick="closeAdvancedSearchModal()" class="btn btn-secondary" style="flex:1;padding:14px;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeAdvancedSearchModal() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (modal) modal.remove();
+}
+
+async function performAdvancedSearch() {
+    const params = {
+        q: document.getElementById('searchKeywords')?.value,
+        category: document.getElementById('searchCategory')?.value,
+        min_price: document.getElementById('searchMinPrice')?.value,
+        max_price: document.getElementById('searchMaxPrice')?.value,
+        min_rating: document.getElementById('searchMinRating')?.value,
+        delivery_time: document.getElementById('searchDeliveryTime')?.value,
+        sort: document.getElementById('searchSort')?.value
+    };
+
+    // Remove empty values
+    Object.keys(params).forEach(key => {
+        if (!params[key]) delete params[key];
+    });
+
+    const results = await advancedSearchServices(params);
+    
+    closeAdvancedSearchModal();
+    
+    // Update services list with results
+    if (results.services) {
+        services = results.services;
+        renderServices(services);
+        
+        // Show result count
+        showToast(`Found ${results.pagination.total} services`, 'info');
+    }
+}
+
+/*********************
+ *  Admin Controls
+ *********************/
+
+// Load deleted services (admin only)
+async function loadDeletedServices() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    try {
+        const response = await fetch('/api/admin/deleted-services', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load deleted services');
+
+        const services = await response.json();
+        return services || [];
+    } catch (error) {
+        console.error('Error loading deleted services:', error);
+        return [];
+    }
+}
+
+// Load flagged users (admin only)
+async function loadFlaggedUsers() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    try {
+        const response = await fetch('/api/admin/flagged-users', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load flagged users');
+
+        const data = await response.json();
+        return data.flagged_users || [];
+    } catch (error) {
+        console.error('Error loading flagged users:', error);
+        return [];
+    }
+}
+
+// Review flagged user (admin only)
+async function reviewFlaggedUser(userId, action, notes) {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+
+    try {
+        const response = await fetch(`/api/admin/flagged-users/${userId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action, notes })
+        });
+
+        if (!response.ok) throw new Error('Failed to review user');
+
+        showToast('✅ User reviewed successfully', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Restore deleted service (admin only)
+async function restoreDeletedService(serviceId) {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+
+    try {
+        const response = await fetch(`/api/admin/services/${serviceId}/restore`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to restore service');
+
+        showToast('✅ Service restored successfully', 'success');
+        return true;
+    } catch (error) {
+        showToast('❌ ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Show admin dashboard
+function showAdminDashboard() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showToast('Admin access required', 'error');
+        return;
+    }
+
+    Promise.all([
+        loadDeletedServices(),
+        loadFlaggedUsers()
+    ]).then(([deletedServices, flaggedUsers]) => {
+        const modalHtml = `
+            <div id="adminDashboardModal" class="modal" style="display: flex;">
+                <div class="modal-card" style="max-width: 800px; width: 90%;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="margin:0;color:var(--text-light);">Admin Dashboard</h3>
+                        <span onclick="closeAdminDashboard()" class="close-x" style="cursor:pointer">&times;</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- Deleted Services -->
+                        <div>
+                            <h4 style="color: var(--text-light); margin-bottom: 15px;">Deleted Services</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${deletedServices.length === 0 ? `
+                                    <p style="color: var(--text-gray);">No deleted services</p>
+                                ` : deletedServices.map(service => `
+                                    <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <h5 style="color: var(--text-light); margin: 0 0 5px 0;">${escapeHtml(service.service_title)}</h5>
+                                                <p style="color: var(--text-gray); font-size: 0.85rem;">Deleted: ${new Date(service.deleted_at).toLocaleDateString()}</p>
+                                                <p style="color: var(--text-gray); font-size: 0.85rem;">Reason: ${escapeHtml(service.reason)}</p>
+                                            </div>
+                                            <button onclick="restoreDeletedService(${service.service_id})" class="btn btn-success" style="padding: 8px 16px;">
+                                                Restore
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Flagged Users -->
+                        <div>
+                            <h4 style="color: var(--text-light); margin-bottom: 15px;">Flagged Users</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${flaggedUsers.length === 0 ? `
+                                    <p style="color: var(--text-gray);">No flagged users</p>
+                                ` : flaggedUsers.map(user => `
+                                    <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                        <div>
+                                            <h5 style="color: var(--text-light); margin: 0 0 5px 0;">${escapeHtml(user.username)}</h5>
+                                            <p style="color: var(--text-gray); font-size: 0.85rem;">Delete count: ${user.delete_count_last_7_days}</p>
+                                            <p style="color: var(--text-gray); font-size: 0.85rem;">Reason: ${escapeHtml(user.flagged_reason)}</p>
+                                        </div>
+                                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                            <button onclick="reviewFlaggedUser(${user.user_id}, 'clear_flag', 'Cleared by admin')" class="btn btn-success" style="padding: 8px 16px;">
+                                                Clear Flag
+                                            </button>
+                                            <button onclick="reviewFlaggedUser(${user.user_id}, 'warning', 'Warning issued')" class="btn btn-warning" style="padding: 8px 16px;">
+                                                Issue Warning
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="closeAdminDashboard()" class="btn btn-secondary" style="width: 100%; padding: 14px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    });
+}
+
+function closeAdminDashboard() {
+    const modal = document.getElementById('adminDashboardModal');
+    if (modal) modal.remove();
+}
+
+/*********************
+ *  Delete Limits Display
+ *********************/
+
+// Check remaining deletes
+async function checkRemainingDeletes() {
+    if (!currentUser) return 3;
+
+    try {
+        const response = await fetch('/api/user/delete-limits', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) return 3;
+
+        const data = await response.json();
+        return data.remaining_deletes;
+    } catch (error) {
+        console.error('Error checking delete limits:', error);
+        return 3;
+    }
+}
+
+// Show delete limits info
+function showDeleteLimitsInfo() {
+    checkRemainingDeletes().then(remaining => {
+        showToast(`You have ${remaining} service deletions remaining today`, 'info');
+    });
+}
+
+/*********************
+ *  Dashboard Statistics
+ *********************/
+
+// Load client dashboard stats
+async function loadClientDashboardStats() {
+    if (!currentUser || currentUser.role !== 'client') return null;
+
+    try {
+        const response = await fetch('/api/client/dashboard', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load dashboard');
+
+        const stats = await response.json();
+        return stats;
+    } catch (error) {
+        console.error('Error loading client dashboard:', error);
+        return null;
+    }
+}
+
+// Load freelancer dashboard stats
+async function loadFreelancerDashboardStats() {
+    if (!currentUser || currentUser.role !== 'freelancer') return null;
+
+    try {
+        const response = await fetch('/api/freelancer/dashboard', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load dashboard');
+
+        const stats = await response.json();
+        return stats;
+    } catch (error) {
+        console.error('Error loading freelancer dashboard:', error);
+        return null;
+    }
+}
+
+// Load seller analytics
+async function loadSellerAnalytics() {
+    if (!currentUser) return null;
+
+    try {
+        const response = await fetch('/api/seller/dashboard/analytics', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to load analytics');
+
+        const analytics = await response.json();
+        return analytics;
+    } catch (error) {
+        console.error('Error loading seller analytics:', error);
+        return null;
+    }
+}
+
+// Show seller dashboard
+async function showSellerDashboard() {
+    if (!currentUser) {
+        showToast('Please login', 'warning');
+        return;
+    }
+
+    const analytics = await loadSellerAnalytics();
+    if (!analytics) {
+        showToast('Failed to load analytics', 'error');
+        return;
+    }
+
+    const modalHtml = `
+        <div id="sellerDashboardModal" class="modal" style="display: flex;">
+            <div class="modal-card" style="max-width: 700px; width: 90%;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="margin:0;color:var(--text-light);">Seller Dashboard</h3>
+                    <span onclick="closeSellerDashboard()" class="close-x" style="cursor:pointer">&times;</span>
+                </div>
+                
+                <!-- Overview Stats -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">${analytics.analytics?.allTime?.total_orders || 0}</div>
+                        <div style="color: var(--text-gray);">Total Orders</div>
+                    </div>
+                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">$${analytics.analytics?.allTime?.total_revenue || 0}</div>
+                        <div style="color: var(--text-gray);">Revenue</div>
+                    </div>
+                    <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">${analytics.analytics?.today?.today_orders || 0}</div>
+                        <div style="color: var(--text-gray);">Today's Orders</div>
+                    </div>
+                </div>
+                
+                <!-- Recent Orders -->
+                <h4 style="color: var(--text-light); margin-bottom: 15px;">Recent Orders</h4>
+                <div style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                    ${analytics.analytics?.recentOrders?.length === 0 ? `
+                        <p style="color: var(--text-gray); text-align: center;">No recent orders</p>
+                    ` : analytics.analytics?.recentOrders?.map(order => `
+                        <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="color: var(--text-light); font-weight: 500;">${escapeHtml(order.product_name)}</div>
+                                <div style="color: var(--text-gray); font-size: 0.85rem;">${order.order_date_short}</div>
+                            </div>
+                            <div>
+                                <span style="color: var(--accent-gold); font-weight: 600;">$${order.total_amount}</span>
+                                <span style="color: var(--text-gray); margin-left: 10px;">(${order.quantity})</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Top Products -->
+                <h4 style="color: var(--text-light); margin-bottom: 15px;">Top Products</h4>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    ${analytics.analytics?.topProducts?.length === 0 ? `
+                        <p style="color: var(--text-gray); text-align: center;">No products sold yet</p>
+                    ` : analytics.analytics?.topProducts?.map(product => `
+                        <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-light);">${escapeHtml(product.product_name)}</span>
+                                <span style="color: var(--accent-gold); font-weight: 600;">$${product.revenue}</span>
+                            </div>
+                            <div style="color: var(--text-gray); font-size: 0.85rem;">${product.order_count} orders</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button onclick="closeSellerDashboard()" class="btn btn-secondary" style="width: 100%; padding: 14px;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeSellerDashboard() {
+    const modal = document.getElementById('sellerDashboardModal');
+    if (modal) modal.remove();
+}
+
+// Initialize all new features
+function initNewFeatures() {
+    // Add favorite buttons to service cards
+    document.querySelectorAll('.service-card').forEach(card => {
+        const serviceId = card.dataset.serviceId;
+        if (serviceId) {
+            const actionsDiv = card.querySelector('.service-actions');
+            if (actionsDiv) {
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.className = 'btn favorite-btn';
+                favoriteBtn.setAttribute('data-service-id', serviceId);
+                favoriteBtn.innerHTML = '<i class="far fa-heart"></i>';
+                favoriteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleServiceFavorite(serviceId);
+                };
+                actionsDiv.appendChild(favoriteBtn);
+            }
+        }
+    });
+
+    // Add advanced search button
+    const searchContainer = document.querySelector('#browseTab > div');
+    if (searchContainer) {
+        const advancedSearchBtn = document.createElement('button');
+        advancedSearchBtn.className = 'btn btn-secondary';
+        advancedSearchBtn.innerHTML = '<i class="fas fa-sliders-h"></i> Advanced';
+        advancedSearchBtn.onclick = showAdvancedSearchModal;
+        advancedSearchBtn.style.marginLeft = '10px';
+        searchContainer.appendChild(advancedSearchBtn);
+    }
+
+    // Add favorites link to header if user is logged in
+    if (currentUser) {
+        const headerAuth = document.getElementById('headerAuthButtons');
+        if (headerAuth) {
+            const favoritesLink = document.createElement('button');
+            favoritesLink.className = 'auth-btn';
+            favoritesLink.innerHTML = '<i class="fas fa-heart"></i> Favorites';
+            favoritesLink.onclick = showFavoritesModal;
+            headerAuth.insertBefore(favoritesLink, headerAuth.firstChild);
+        }
+    }
+
+    // Add admin dashboard link for admin users
+    if (currentUser?.role === 'admin') {
+        const headerAuth = document.getElementById('headerAuthButtons');
+        if (headerAuth) {
+            const adminLink = document.createElement('button');
+            adminLink.className = 'auth-btn';
+            adminLink.innerHTML = '<i class="fas fa-shield-alt"></i> Admin';
+            adminLink.onclick = showAdminDashboard;
+            headerAuth.insertBefore(adminLink, headerAuth.firstChild);
+        }
+    }
+
+    // Add seller dashboard link for sellers
+    if (currentUser?.role === 'seller' || currentUser?.role === 'freelancer') {
+        const headerAuth = document.getElementById('headerAuthButtons');
+        if (headerAuth) {
+            const sellerLink = document.createElement('button');
+            sellerLink.className = 'auth-btn';
+            sellerLink.innerHTML = '<i class="fas fa-chart-line"></i> Analytics';
+            sellerLink.onclick = showSellerDashboard;
+            headerAuth.insertBefore(sellerLink, headerAuth.firstChild);
+        }
+    }
+
+    // Add delete limits info to service delete modals
+    const originalDeleteService = window.deleteService;
+    window.deleteService = async function(serviceId, serviceTitle, userId, isOwner) {
+        if (isOwner) {
+            const remaining = await checkRemainingDeletes();
+            if (remaining <= 0) {
+                showToast('You have reached your daily delete limit (3 per day)', 'error');
+                return;
+            }
+        }
+        originalDeleteService(serviceId, serviceTitle, userId, isOwner);
+    };
+}
+
+// Call initialization when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // ... existing initialization code ...
+    setTimeout(initNewFeatures, 1000);
+});
 
 /*********************
  *  Enhanced Service Form *
@@ -5277,8 +6985,7 @@ async function loadMyServices() {
         } else {
             myServicesList.innerHTML = myServices.map(service => {
                 const providerName = service.username || 'You';
-                const profilePicture = service.profile_picture || service.provider_profile_picture;
-
+               const profilePicture = service.profile_picture_url || service.provider_profile_picture;
                 let providerPictureHtml = '';
                 if (profilePicture) {
                     providerPictureHtml = `

@@ -3816,29 +3816,50 @@
      * @param {number} index - Index of image to get
      * @returns {string} - Image URL
      */
-    function getProductImage(images, index = 0) {
-      if (!images) return null;
-      
-      let imageArray = [];
-      
-      // Handle different formats
-      if (typeof images === 'string') {
-        try {
-          // Try to parse as JSON
-          imageArray = JSON.parse(images);
-        } catch (e) {
-          // If not JSON, treat as single URL
-          imageArray = [images];
-        }
-      } else if (Array.isArray(images)) {
-        imageArray = images;
-      }
-      
-      const imageUrl = imageArray[index] || null;
-      
-      // Return optimized Cloudinary URL or original (for local files during migration)
-      return imageUrl ? getOptimizedImageUrl(imageUrl, { width: 400, height: 300 }) : null;
+   function getProductImage(images, index = 0) {
+  if (!images) return null;
+  
+  let imageArray = [];
+  
+  // Parse images if they're stored as JSON string or array
+  if (typeof images === 'string') {
+    try {
+      imageArray = JSON.parse(images);
+    } catch (e) {
+      // If it's a single string, treat as array with one item
+      imageArray = [images];
     }
+  } else if (Array.isArray(images)) {
+    imageArray = images;
+  }
+  
+  // Get the specific image at index
+  const imagePath = imageArray[index] || null;
+  if (!imagePath) return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+  
+  // Clean the path - remove any leading dots or extra slashes
+  let cleanPath = imagePath;
+  
+  // If it starts with './' or '/', keep as is but ensure it's properly formatted
+  if (cleanPath.startsWith('./')) {
+    cleanPath = cleanPath.substring(1); // Remove the dot
+  }
+  
+  // Ensure the path starts with a single slash
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+  
+  // Construct the full URL
+  // For Render, your base URL is your app's domain
+  const baseUrl = window.location.origin; // This gets https://your-app.onrender.com
+  const fullUrl = baseUrl + cleanPath;
+  
+  console.log('🖼️ Image path:', cleanPath);
+  console.log('🌐 Full URL:', fullUrl);
+  
+  return fullUrl;
+}
 
     // ================= CURRENCY CONVERSION SYSTEM =================
     // Variables for currency conversion
@@ -5973,166 +5994,182 @@ async function loadProducts(){
   }
   $('noProducts').style.display='none';
 
-  grid.innerHTML = list.map(p => {
-    // FIXED: Use proper placeholder URLs
-    let img = 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
+   // In your products.html, find where products are rendered (around line where products.map is used)
+// Replace that entire section with this code:
+
+// Generate product cards
+grid.innerHTML = list.map(p => {
+  // Get the first image using the fixed function
+  const productImage = getProductImage(p.images, 0);
+  
+  // Generate thumbnails for additional images
+  const thumbHtml = (() => {
+    if (!p.images) return '';
     
-    if (p._imageList && p._imageList.length) {
-      const firstImage = p._imageList[0];
-      // Make sure it's a valid URL
-      if (firstImage && typeof firstImage === 'string' && 
-          (firstImage.startsWith('http') || firstImage.startsWith('https'))) {
-        img = firstImage;
+    let imageArray = [];
+    if (typeof p.images === 'string') {
+      try {
+        imageArray = JSON.parse(p.images);
+      } catch (e) {
+        imageArray = [p.images];
       }
+    } else if (Array.isArray(p.images)) {
+      imageArray = p.images;
     }
     
-    // Generate thumbnails with working URLs
-    const thumbHtml = (p._imageList || []).slice(0,3).map((t, idx)=> {
-      let thumbUrl = 'https://placehold.co/40x40/1e293b/3b82f6/png?text=+';
-      if (t && typeof t === 'string' && (t.startsWith('http') || t.startsWith('https'))) {
-        thumbUrl = t;
-      }
-      return `<img src="${escapeHtml(thumbUrl)}" alt="thumb${idx}" onclick="switchMainImage(${p.id}, ${idx})" loading="lazy">`;
+    // Take first 3 images for thumbnails (excluding the main one)
+    return imageArray.slice(1, 4).map((thumbPath, idx) => {
+      const thumbUrl = getProductImage([thumbPath], 0);
+      return `<img src="${thumbUrl}" alt="thumb${idx + 1}" 
+                    onclick="switchMainImage(${p.id}, ${idx + 1})" 
+                    loading="lazy"
+                    onerror="this.onerror=null; this.style.display='none';">`;
     }).join('');
-    
-    const seller = escapeHtml(p.seller_name || 'Seller');
-    const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
-    const desc = escapeHtml((p.description||'').slice(0,120));
-    
-    // Calculate prices
-    const totalPrice = p.original_price || p.price;
-    const platformFee = p.platform_fee || (totalPrice * 0.1);
-    const sellerPrice = totalPrice - platformFee;
-    
-    const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
-    const isFavorite = userFavorites.has(p.id);
-    const isPhysical = p.type === 'physical';
-    const badgeClass = p.type === 'digital' ? 'badge-digital' : 
-                      p.type === 'physical' ? 'badge-physical' : 
-                      'badge-affiliate';
+  })();
+  
+  const seller = escapeHtml(p.seller_name || 'Seller');
+  const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
+  const desc = escapeHtml((p.description || '').slice(0, 120));
+  
+  // Calculate prices
+  const totalPrice = p.original_price || p.price;
+  const platformFee = p.platform_fee || (totalPrice * 0.1);
+  const sellerPrice = totalPrice - platformFee;
+  
+  const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
+  const isFavorite = userFavorites.has(p.id);
+  const isPhysical = p.type === 'physical';
+  const badgeClass = p.type === 'digital' ? 'badge-digital' : 
+                    p.type === 'physical' ? 'badge-physical' : 
+                    'badge-affiliate';
 
-    // Get estimated delivery days for physical products
-    const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
-    
-    // Delivery and payment info for physical products
-    const deliveryInfo = isPhysical ? `
-      <div class="product-details">
-        <div class="detail-item">
-          <i class="fas fa-truck"></i>
-          <span><strong>Delivery:</strong> Home Delivery</span>
+  // Get estimated delivery days for physical products
+  const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+  
+  // Delivery and payment info for physical products
+  const deliveryInfo = isPhysical ? `
+    <div class="product-details">
+      <div class="detail-item">
+        <i class="fas fa-truck"></i>
+        <span><strong>Delivery:</strong> Home Delivery</span>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-calendar-day"></i>
+        <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+      </div>
+      <div class="payment-breakdown" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+        <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Seller Price:</span>
+          <span style="color: var(--text-light);">${fmtPrice(sellerPrice)}</span>
         </div>
-        <div class="detail-item">
-          <i class="fas fa-calendar-day"></i>
-          <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+        <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Platform Fee (10%):</span>
+          <span style="color: var(--accent);">${fmtPrice(platformFee)}</span>
         </div>
-        <div class="payment-breakdown" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
-          <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span>Seller Price:</span>
-            <span style="color: var(--text-light);">${fmtPrice(sellerPrice)}</span>
-          </div>
-          <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span>Platform Fee (10%):</span>
-            <span style="color: var(--accent);">${fmtPrice(platformFee)}</span>
-          </div>
-          <div class="breakdown-item total" style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border);">
-            <span>Total You Pay:</span>
-            <span style="color: var(--success);">${fmtPrice(totalPrice)}</span>
-          </div>
+        <div class="breakdown-item total" style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border);">
+          <span>Total You Pay:</span>
+          <span style="color: var(--success);">${fmtPrice(totalPrice)}</span>
         </div>
       </div>
-    ` : '';
+    </div>
+  ` : '';
 
-    // Badges for physical products
-    const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
-    const deliveryBadge = isPhysical && p.delivery_type ? 
-      `<div class="delivery-badge">Home Delivery</div>` : '';
-    
-    // Delivery days badge
-    const deliveryDaysBadge = isPhysical ? 
-      `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
-        <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
-      </div>` : '';
+  // Badges for physical products
+  const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
+  const deliveryBadge = isPhysical && p.delivery_type ? 
+    `<div class="delivery-badge">Home Delivery</div>` : '';
+  
+  // Delivery days badge
+  const deliveryDaysBadge = isPhysical ? 
+    `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
+      <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
+    </div>` : '';
 
-    return `
-      <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
-        <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
-        ${paymentBadge}
-        ${deliveryBadge}
-        ${deliveryDaysBadge}
-        <div class="card-media">
-          <img id="mainimg-${p.id}" src="${escapeHtml(img)}" alt="${title}" loading="lazy">
-          ${p._imageList && p._imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
-          
-          <!-- Favorite button with visible count - shows TOTAL likes across all users -->
-          <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
-            <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
-              <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
-            </button>
-            <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
+  return `
+    <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
+      <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
+      ${paymentBadge}
+      ${deliveryBadge}
+      ${deliveryDaysBadge}
+      <div class="card-media">
+        <img id="mainimg-${p.id}" 
+             src="${productImage}" 
+             alt="${title}" 
+             loading="lazy"
+             onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
+        
+        ${p._imageList && p._imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
+        
+        <!-- Favorite button with visible count - shows TOTAL likes across all users -->
+        <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
+          <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
+            <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
+          </button>
+          <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
+        </div>
+        
+        <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+      <div class="card-body">
+        <h3>${title}</h3>
+        <div class="seller-info">
+          <i class="fas fa-user"></i>
+          <span>By ${seller}</span>
+        </div>
+        <div class="meta">${desc}</div>
+        ${deliveryInfo}
+        <div class="rating">
+          <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating))}</span>
+          <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
+          <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
+        </div>
+        <div class="price-row">
+          <div>
+            <div class="price">${fmtPrice(sellerPrice)}</div>
+            <div style="font-size: 12px; color: var(--text-gray);">
+              + ${fmtPrice(platformFee)} platform fee
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              Total: ${fmtPrice(totalPrice)}
+            </div>
           </div>
-          
-          <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product">
-            <i class="fas fa-trash"></i>
+          <div class="card-actions">
+            ${ isAffiliate ? `
+              <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link||p.external_link||'')}')">
+                <i class="fas fa-external-link-alt"></i> Visit
+              </button>
+            ` : isPhysical ? `
+              <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
+                <i class="fas fa-shopping-cart"></i> Order Now
+                <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px;">
+                  +${fmtPrice(platformFee)}
+                </span>
+              </button>
+            ` : `
+              <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
+                <i class="fas fa-shopping-cart"></i> Buy Now
+              </button>
+            `}
+            <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
+              <i class="fas fa-eye"></i> View
+            </button>
+          </div>
+        </div>
+        <div class="owner-controls">
+          <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})">
+            <i class="fas fa-trash"></i> Delete
           </button>
         </div>
-        <div class="card-body">
-          <h3>${title}</h3>
-          <div class="seller-info">
-            <i class="fas fa-user"></i>
-            <span>By ${seller}</span>
-          </div>
-          <div class="meta">${desc}</div>
-          ${deliveryInfo}
-          <div class="rating">
-            <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating))}</span>
-            <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
-            <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
-          </div>
-          <div class="price-row">
-            <div>
-              <div class="price">${fmtPrice(sellerPrice)}</div>
-              <div style="font-size: 12px; color: var(--text-gray);">
-                + ${fmtPrice(platformFee)} platform fee
-              </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                Total: ${fmtPrice(totalPrice)}
-              </div>
-            </div>
-            <div class="card-actions">
-              ${ isAffiliate ? `
-                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link||p.external_link||'')}')">
-                  <i class="fas fa-external-link-alt"></i> Visit
-                </button>
-              ` : isPhysical ? `
-                <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
-                  <i class="fas fa-shopping-cart"></i> Order Now
-                  <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px;">
-                    +${fmtPrice(platformFee)}
-                  </span>
-                </button>
-              ` : `
-                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
-                  <i class="fas fa-shopping-cart"></i> Buy Now
-                </button>
-              `}
-              <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
-                <i class="fas fa-eye"></i> View
-              </button>
-            </div>
-          </div>
-          <div class="owner-controls">
-            <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
-              <i class="fas fa-edit"></i> Edit
-            </button>
-            <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})">
-              <i class="fas fa-trash"></i> Delete
-            </button>
-          </div>
-        </div>
       </div>
-    `;
-  }).join('');
-  
+    </div>
+  `;
+}).join('');
+
   // Initialize product ownership after rendering
   initializeProductOwnership();
   startProductCarousels();

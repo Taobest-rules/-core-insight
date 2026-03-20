@@ -1982,127 +1982,109 @@ app.get("/api/courses", async (req, res) => {
 });
 
 // =================== COMPLETELY FIXED DOWNLOAD ENDPOINT ===================
-app.get("/api/download/:id", async (req, res) => {
+app.get('/api/download/:courseId', async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login to download files" });
-    }
-
-    const courseId = parseInt(req.params.id);
-    const userId = req.session.user.id;
-
-    console.log(`📥 Download request - Course: ${courseId}, User: ${userId}`);
-
-    // SIMPLE QUERY - just get the course by ID, don't filter by user_id
-    const result = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    const courseId = req.params.courseId;
+    const userId = req.session?.userId;
     
-    // Handle different result formats
-    let course = null;
-    if (Array.isArray(result)) {
-      if (result.length === 2 && Array.isArray(result[0]) && result[0].length > 0) {
-        course = result[0][0];
-      } else if (result.length > 0) {
-        course = result[0];
-      }
+    console.log(`📥 Download request - Course: ${courseId}, User: ${userId || 'Not logged in'}`);
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Please login first' });
     }
-
-    if (!course) {
-      console.log(`❌ Course ${courseId} not found in database`);
-      return res.status(404).json({ error: "Course not found" });
+    
+    // Get course details
+    const [courses] = await db.query(
+      'SELECT * FROM courses WHERE id = ?',
+      [courseId]
+    );
+    
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
     }
-
+    
+    const course = courses[0];
     console.log(`✅ Course found: ${course.title}`);
-    console.log(`📁 File path: ${course.file_path}`);
-
-    // Check access - ALL COURSES ARE FREE right now
-    let hasAccess = false;
     
-    // Since all your courses are free, grant access
-    if (course.price == 0 || course.type === 'free') {
-      hasAccess = true;
-    }
-    // Also grant access if user is admin
-    else if (req.session.user.role === 'admin') {
-      hasAccess = true;
-    }
-    // Or if user owns the course
-    else if (parseInt(userId) === parseInt(course.user_id)) {
-      hasAccess = true;
-    }
-    // Check if purchased
-    else {
-      const accessResult = await db.query(
-        "SELECT id FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed'",
-        [userId, courseId]
-      );
-      
-      let hasPurchase = false;
-      if (Array.isArray(accessResult)) {
-        if (accessResult.length === 2 && Array.isArray(accessResult[0]) && accessResult[0].length > 0) {
-          hasPurchase = true;
-        } else if (accessResult.length > 0) {
-          hasPurchase = true;
-        }
-      }
-      hasAccess = hasPurchase;
-    }
-
+    // Check if user has access (free or purchased)
+    let hasAccess = course.price === 0 || course.type === 'free';
+    
     if (!hasAccess) {
-      return res.status(403).json({ error: "You don't have access to this course" });
+      const [payments] = await db.query(
+        'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
+        [courseId, userId]
+      );
+      hasAccess = payments.length > 0;
     }
-
-    if (!course.file_path) {
-      return res.status(404).json({ error: "File path not found" });
-    }
-
-    // Build file path
-    const filename = path.basename(course.file_path);
-    const fullPath = path.join(__dirname, 'uploads', 'courses', filename);
     
-    console.log(`🔍 Looking for file at: ${fullPath}`);
-
-    // Check if file exists
-    if (!fs.existsSync(fullPath)) {
-      console.log(`❌ File not found at: ${fullPath}`);
-      
-      // List files in directory to help debug
-      const coursesDir = path.join(__dirname, 'uploads', 'courses');
-      if (fs.existsSync(coursesDir)) {
-        const files = fs.readdirSync(coursesDir);
-        console.log('📁 Available files:', files.slice(0, 10));
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'You do not have access to this content' });
+    }
+    
+    // Determine file path - try multiple possibilities
+    let filePath = course.file_url || course.file_path;
+    
+    if (!filePath) {
+      console.error('No file path in database for course:', courseId);
+      return res.status(404).json({ error: 'File path not found in database' });
+    }
+    
+    console.log(`📁 File path from DB: ${filePath}`);
+    
+    // Extract just the filename from the path
+    let filename = path.basename(filePath);
+    console.log(`📁 Extracted filename: ${filename}`);
+    
+    // Check multiple possible locations
+    const possiblePaths = [
+      path.join(__dirname, 'uploads', 'courses', filename),
+      path.join(__dirname, 'uploads', filename),
+      path.join(__dirname, 'uploads', filePath.replace(/^\/+/, '')),
+      path.join(__dirname, filePath.replace(/^\/+/, ''))
+    ];
+    
+    let foundPath = null;
+    for (const testPath of possiblePaths) {
+      console.log(`🔍 Checking: ${testPath}`);
+      if (fs.existsSync(testPath)) {
+        foundPath = testPath;
+        console.log(`✅ Found file at: ${testPath}`);
+        break;
+      }
+    }
+    
+    if (!foundPath) {
+      // List available files to help debug
+      const uploadsDir = path.join(__dirname, 'uploads', 'courses');
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        console.log('📁 Available files:', files);
       }
       
       return res.status(404).json({ 
-        error: "File not found on server",
-        path: fullPath
+        error: 'File not found on server',
+        searched: possiblePaths,
+        filename: filename
       });
     }
-
-    console.log(`✅ File found, sending: ${filename}`);
-
-    // Set proper headers
-    const ext = path.extname(filename).toLowerCase();
-    let contentType = 'application/octet-stream';
-    if (ext === '.pdf') contentType = 'application/pdf';
-    else if (ext === '.mp4') contentType = 'video/mp4';
-    else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-    else if (ext === '.png') contentType = 'image/png';
-
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(course.title || filename)}${ext}"`);
-    res.setHeader('Content-Type', contentType);
     
     // Send file
-    res.sendFile(fullPath, (err) => {
+    res.download(foundPath, filename, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        console.error('Download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Error downloading file' });
+        }
       }
     });
-
-  } catch (err) {
-    console.error("Download error:", err);
-    res.status(500).json({ error: err.message });
+    
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Server error: ' + error.message });
   }
-});app.get("/api/debug/courses-list", async (req, res) => {
+});
+
+app.get("/api/debug/courses-list", async (req, res) => {
   try {
     const result = await db.query("SELECT id, title, user_id FROM courses ORDER BY id");
     
@@ -3176,96 +3158,41 @@ app.get("/api/admin/recover-files", async (req, res) => {
 });
 
 // =================== FIXED CHECK ACCESS ENDPOINT ===================
-app.get("/api/check-access/:id", async (req, res) => {
+app.get('/api/check-access/:courseId', async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.json({ hasAccess: false, error: "Please login first" });
+    const courseId = req.params.courseId;
+    const userId = req.session?.userId;
+    
+    const [courses] = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
     }
     
-    const courseId = req.params.id;
-    const userId = req.session.user.id;
+    const course = courses[0];
+    let hasAccess = course.price === 0 || course.type === 'free';
     
-    console.log(`Checking access for user ${userId} to course ${courseId}`);
-    
-    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
-    let course = null;
-    
-    if (Array.isArray(courses) && courses.length > 0) {
-      course = courses[0];
-    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
-      course = courses[0][0];
-    }
-    
-    if (!course) {
-      return res.json({ hasAccess: false, error: "Course not found" });
-    }
-    
-    let hasAccess = false;
-    let reason = "";
-    
-    // FIXED: Check for free content FIRST
-    if (course.price === 0 || course.type === 'free') {
-      hasAccess = true;
-      reason = "Content is free";
-    }
-    else if (req.session.user.role === 'admin') {
-      hasAccess = true;
-      reason = "User is admin";
-    }
-    else if (parseInt(req.session.user.id) === parseInt(course.user_id)) {
-      hasAccess = true;
-      reason = "User is uploader";
-    }
-    else {
-      // Check user_courses table first
-      const userCourseCheck = await db.query(
-        "SELECT * FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed'",
-        [userId, courseId]
+    if (!hasAccess && userId) {
+      const [payments] = await db.query(
+        'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
+        [courseId, userId]
       );
-      
-      let userCourseExists = false;
-      if (userCourseCheck) {
-        if (Array.isArray(userCourseCheck) && userCourseCheck.length > 0) {
-          userCourseExists = true;
-        } else if (userCourseCheck[0] && Array.isArray(userCourseCheck[0]) && userCourseCheck[0].length > 0) {
-          userCourseExists = true;
-        }
-      }
-      
-      if (userCourseExists) {
-        hasAccess = true;
-        reason = "User has purchased this content";
-      } else {
-        reason = "User has not purchased this content";
-      }
+      hasAccess = payments.length > 0;
     }
-    
-    console.log(`Access result for user ${userId} to course ${courseId}: ${hasAccess} (${reason})`);
     
     res.json({
-      hasAccess: hasAccess,
-      reason: reason,
+      hasAccess,
       course: {
         id: course.id,
         title: course.title,
         price: course.price,
-        type: course.type,
-        content_type: course.content_type
-      },
-      user: {
-        id: userId,
-        role: req.session.user.role,
-        isUploader: parseInt(req.session.user.id) === parseInt(course.user_id)
+        type: course.type
       }
     });
     
-  } catch (err) {
-    console.error('Error checking access:', err);
-    res.status(500).json({ 
-      hasAccess: false, 
-      error: "Error checking access", 
-      details: err.message 
-    });
+  } catch (error) {
+    console.error('Access check error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

@@ -154,15 +154,29 @@ const safeJSON = (data) => {
     }));
 };
 
-// =================== EMAIL CONFIGURATION - UPDATED ===================
+// =================== EMAIL CONFIGURATION - PROPER ===================
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD  // Use App Password, not regular password
+    pass: process.env.EMAIL_APP_PASSWORD  // Use APP PASSWORD, not regular password
   },
   tls: {
     rejectUnauthorized: false
+  },
+  // Add these for better reliability
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000
+});
+
+// Test email configuration on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Email transporter error:", error.message);
+    console.log("⚠️ Email sending will not work. Check EMAIL_APP_PASSWORD in environment variables");
+  } else {
+    console.log("✅ Email transporter ready to send messages");
   }
 });
 
@@ -551,7 +565,7 @@ app.get("/api/currency-rates", (req, res) => {
 });
 
 // =================== UPDATED SIGNUP WITH ROLE ===================
-// =================== FIXED SIGNUP ENDPOINT ===================
+// =================== SIGNUP WITH PROPER VERIFICATION ===================
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, password, email, role } = req.body;
@@ -566,8 +580,6 @@ app.post("/api/signup", async (req, res) => {
     // Validate role - if not provided, default to 'client'
     let userRole = role;
     if (!userRole) {
-      // If no role provided, check if there's a default or ask user to choose
-      console.log("⚠️ No role provided, defaulting to 'client'");
       userRole = 'client';
     }
     
@@ -589,104 +601,102 @@ app.post("/api/signup", async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date();
+    tokenExpiry.setHours(tokenExpiry.getHours() + 24); // Token expires in 24 hours
     
-    // Insert user with role - CHECK IF ROLE COLUMN EXISTS
-    let insertQuery = "";
-    let insertValues = [];
-    
-    // First, check if role column exists in the users table
-    try {
-      const tableInfo = await db.query("SHOW COLUMNS FROM users LIKE 'role'");
-      const hasRoleColumn = tableInfo && tableInfo.length > 0;
-      
-      if (hasRoleColumn) {
-        insertQuery = `
-          INSERT INTO users (username, email, password, role, verified, verify_token, created_at) 
-          VALUES (?, ?, ?, ?, 0, ?, NOW())
-        `;
-        insertValues = [username, email, hashedPassword, userRole, verifyToken];
-      } else {
-        // If role column doesn't exist, insert without role
-        insertQuery = `
-          INSERT INTO users (username, email, password, verified, verify_token, created_at) 
-          VALUES (?, ?, ?, 0, ?, NOW())
-        `;
-        insertValues = [username, email, hashedPassword, verifyToken];
-      }
-    } catch (err) {
-      console.log("⚠️ Error checking role column:", err.message);
-      // Fallback - insert without role
-      insertQuery = `
-        INSERT INTO users (username, email, password, verified, verify_token, created_at) 
-        VALUES (?, ?, ?, 0, ?, NOW())
-      `;
-      insertValues = [username, email, hashedPassword, verifyToken];
-    }
-    
-    console.log("📝 Inserting user with query:", insertQuery);
-    const result = await db.query(insertQuery, insertValues);
+    // Insert user - NOT VERIFIED YET
+    const result = await db.query(
+      `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, created_at) 
+       VALUES (?, ?, ?, ?, 0, ?, ?, NOW())`,
+      [username, email, hashedPassword, userRole, verifyToken, tokenExpiry]
+    );
     
     const userId = result.insertId;
-    console.log(`✅ User created with ID: ${userId}, Role: ${userRole}`);
-    
-    // If freelancer, set up trial subscription (90 days)
-    if (userRole === 'freelancer') {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 90);
-      
-      // Check if freelancer_profiles table exists before inserting
-      try {
-        await db.query(
-          `UPDATE users SET 
-             trial_start_date = NOW(),
-             trial_end_date = ?,
-             subscription_status = 'active',
-             subscription_plan = 'free_trial'
-           WHERE id = ?`,
-          [trialEnd, userId]
-        );
-        
-        // Also create freelancer profile
-        await db.query(
-          `INSERT INTO freelancer_profiles (user_id, headline, created_at) 
-           VALUES (?, 'New Freelancer', NOW())`,
-          [userId]
-        );
-        
-        console.log(`✅ Freelancer setup complete for user ${userId}`);
-      } catch (err) {
-        console.log("⚠️ Freelancer setup warning:", err.message);
-        // Continue even if freelancer setup fails - user can still use client features
-      }
-    }
+    console.log(`✅ User created with ID: ${userId}, Role: ${userRole}, Pending verification`);
     
     // Send verification email
-    const verifyLink = `https://core-insight-7.onrender.com/api/verify/${verifyToken}`;
-    try {
-      await transporter.sendMail({
-        to: email,
-        subject: "Verify your Core Insight account",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Core Insight!</h2>
-            <p>You've signed up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
-            <p>Please verify your email address by clicking the link below:</p>
-            <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              Verify Email Address
-            </a>
+    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Verify Your Email - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #0a192f, #172a45); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header h1 { color: #64ffda; margin: 0; }
+          .content { background: #f5f5f5; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; padding: 12px 24px; background: #64ffda; color: #0a192f; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+          .button:hover { background: #4cd8b5; }
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+          .token-box { background: #e0e0e0; padding: 10px; border-radius: 5px; font-family: monospace; word-break: break-all; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎓 Core Insight</h1>
+          </div>
+          <div class="content">
+            <h2>Welcome ${username}!</h2>
+            <p>Thank you for signing up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
+            <p>Please verify your email address to activate your account:</p>
+            
+            <div style="text-align: center;">
+              <a href="${verifyLink}" class="button">✅ Verify My Email</a>
+            </div>
+            
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <div class="token-box">${verifyLink}</div>
+            
+            <p>Or enter this verification code on our website:</p>
+            <div class="token-box" style="font-size: 18px; font-weight: bold;">${verifyToken}</div>
+            
+            <p><strong>⚠️ This link will expire in 24 hours.</strong></p>
+            
             <p>If you didn't create an account, please ignore this email.</p>
           </div>
-        `
+          <div class="footer">
+            <p>© 2024 Core Insight. All rights reserved.</p>
+            <p>Need help? Contact us at support@coreinsight.com</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    try {
+      await transporter.sendMail({
+        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify Your Email - Core Insight",
+        html: emailHtml
       });
-      console.log(`📧 Verification email sent to ${email}`);
-    } catch (emailErr) {
-      console.error("⚠️ Email sending failed:", emailErr.message);
-      // Continue even if email fails - user can still log in if verified flag is 0
+      console.log(`✅ Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error("❌ Email sending failed:", emailError.message);
+      // Store the token in session so user can verify manually
+      req.session.pendingVerification = {
+        userId: userId,
+        token: verifyToken,
+        email: email
+      };
+      // Return with message about manual verification
+      return res.status(202).json({ 
+        message: "Account created but verification email could not be sent. Please use the manual verification page.",
+        requiresManualVerification: true,
+        userId: userId,
+        token: verifyToken
+      });
     }
     
     res.json({ 
-      message: "Registration successful! Please check your email to verify your account.",
-      role: userRole,
+      message: "Account created! Please check your email to verify your account.",
+      requiresVerification: true,
+      email: email,
       userId: userId
     });
     
@@ -694,46 +704,162 @@ app.post("/api/signup", async (req, res) => {
     console.error("❌ Signup error:", err);
     if (err.code === 'ER_DUP_ENTRY') {
       res.status(400).json({ error: "Username or email already exists" });
-    } else if (err.code === 'ER_BAD_FIELD_ERROR') {
-      // Handle missing column errors
-      res.status(500).json({ error: "Database schema issue. Please contact support." });
     } else {
       res.status(500).json({ error: "Registration failed. Please try again." });
     }
   }
 });
 
+// =================== VERIFICATION ENDPOINTS ===================
+
+// GET verification (from email link)
 app.get("/api/verify/:token", async (req, res) => {
-  const { token } = req.params;
   try {
-    const result = await db.query(
-      "UPDATE users SET verified = 1, verify_token = NULL WHERE verify_token = ?", 
+    const { token } = req.params;
+    
+    const users = await db.query(
+      "SELECT id, email, username FROM users WHERE verify_token = ? AND (verify_token_expiry IS NULL OR verify_token_expiry > NOW())",
       [token]
     );
     
-    if (result.affectedRows === 0) {
+    if (!users || users.length === 0) {
       return res.send(`
-        <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-          <h2 style="color: #ff4444;">Invalid or expired verification token</h2>
-          <p>The verification link is invalid or has expired.</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head><title>Verification Failed - Core Insight</title></head>
+        <body style="background:#0a192f; color:#e6f1ff; font-family:Arial; text-align:center; padding:50px;">
+          <h1 style="color:#ff6b6b;">❌ Verification Failed</h1>
+          <p>Invalid or expired verification link.</p>
+          <a href="/verify.html" style="color:#64ffda;">Request a new verification link →</a>
+        </body>
+        </html>
       `);
     }
     
+    const user = users[0];
+    
+    await db.query(
+      "UPDATE users SET verified = 1, verify_token = NULL, verify_token_expiry = NULL WHERE id = ?",
+      [user.id]
+    );
+    
     res.send(`
-      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-        <h2 style="color: #4CAF50;">Email Verified Successfully! ✅</h2>
-        <p>Your email has been verified. You can now log in to your account.</p>
-        <a href="/login" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 20px;">
-          Go to Login
-        </a>
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head><title>Email Verified! - Core Insight</title></head>
+      <body style="background:#0a192f; color:#e6f1ff; font-family:Arial; text-align:center; padding:50px;">
+        <h1 style="color:#64ffda;">✅ Email Verified Successfully!</h1>
+        <p>Your account is now active.</p>
+        <a href="/login.html" style="background:#64ffda; color:#0a192f; padding:12px 24px; text-decoration:none; border-radius:5px; display:inline-block; margin-top:20px;">Login Now →</a>
+      </body>
+      </html>
     `);
+    
   } catch (err) {
+    console.error("Verification error:", err);
     res.status(500).send("Error verifying email");
   }
 });
 
+// POST verification (from form)
+app.post("/api/verify", async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: "Verification token required" });
+    }
+    
+    const users = await db.query(
+      "SELECT id, email, username FROM users WHERE verify_token = ? AND (verify_token_expiry IS NULL OR verify_token_expiry > NOW())",
+      [token]
+    );
+    
+    if (!users || users.length === 0) {
+      return res.status(400).json({ error: "Invalid or expired verification token" });
+    }
+    
+    const user = users[0];
+    
+    await db.query(
+      "UPDATE users SET verified = 1, verify_token = NULL, verify_token_expiry = NULL WHERE id = ?",
+      [user.id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: "Email verified successfully!",
+      username: user.username
+    });
+    
+  } catch (err) {
+    console.error("Verification error:", err);
+    res.status(500).json({ error: "Error verifying email" });
+  }
+});
+
+// Resend verification email
+app.post("/api/resend-verification", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
+    }
+    
+    const users = await db.query(
+      "SELECT id, username, email, verify_token FROM users WHERE email = ? AND verified = 0",
+      [email]
+    );
+    
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: "No unverified account found with this email" });
+    }
+    
+    const user = users[0];
+    const verifyToken = user.verify_token || crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date();
+    tokenExpiry.setHours(tokenExpiry.getHours() + 24);
+    
+    // Update token if needed
+    if (!user.verify_token) {
+      await db.query(
+        "UPDATE users SET verify_token = ?, verify_token_expiry = ? WHERE id = ?",
+        [verifyToken, tokenExpiry, user.id]
+      );
+    }
+    
+    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+    
+    await transporter.sendMail({
+      from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verify Your Email - Core Insight",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Verify Your Email</h2>
+          <p>Click the link below to verify your account:</p>
+          <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Verify Email
+          </a>
+          <p>Or enter this code: <strong>${verifyToken}</strong></p>
+          <p>This link expires in 24 hours.</p>
+        </div>
+      `
+    });
+    
+    res.json({ 
+      success: true, 
+      message: "Verification email sent. Please check your inbox." 
+    });
+    
+  } catch (err) {
+    console.error("Resend error:", err);
+    res.status(500).json({ error: "Error sending verification email" });
+  }
+});
+
+// =================== LOGIN WITH VERIFICATION CHECK ===================
 app.post("/api/login", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -756,10 +882,8 @@ app.post("/api/login", async (req, res) => {
 
     const users = await db.query(query, params);
     
-    if (Array.isArray(users) && users.length > 0) {
+    if (users && users.length > 0) {
       user = users[0];
-    } else if (users && users[0] && Array.isArray(users[0]) && users[0].length > 0) {
-      user = users[0][0];
     }
 
     if (!user) {
@@ -767,9 +891,12 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: `User with ${username ? 'username' : 'email'} "${identifier}" not found` });
     }
 
+    // Check if email is verified
     if (!user.verified) {
       return res.status(403).json({ 
-        error: "Please verify your email before logging in. Check your email for the verification link." 
+        error: "Please verify your email before logging in.",
+        unverified: true,
+        email: user.email
       });
     }
 
@@ -779,46 +906,18 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid password" });
     }
 
-    // Get subscription info for freelancers
-    let subscriptionInfo = null;
-    if (user.role === 'freelancer') {
-      const today = new Date();
-      const trialEnd = user.trial_end_date ? new Date(user.trial_end_date) : null;
-      const subEnd = user.subscription_end_date ? new Date(user.subscription_end_date) : null;
-      
-      let isActive = false;
-      let daysLeft = 0;
-      
-      if (user.subscription_status === 'active') {
-        if (trialEnd && today <= trialEnd) {
-          isActive = true;
-          daysLeft = Math.ceil((trialEnd - today) / (1000 * 60 * 60 * 24));
-        } else if (subEnd && today <= subEnd) {
-          isActive = true;
-          daysLeft = Math.ceil((subEnd - today) / (1000 * 60 * 60 * 24));
-        }
-      }
-      
-      subscriptionInfo = {
-        status: user.subscription_status,
-        plan: user.subscription_plan,
-        daysLeft: daysLeft,
-        trialEnds: user.trial_end_date,
-        subscriptionEnds: user.subscription_end_date
-      };
-    }
-
     req.session.user = {
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role || 'client'
+      role: user.role || 'client',
+      verified: user.verified
     };
 
     res.json({ 
       message: "Login successful!", 
       user: req.session.user,
-      subscription: subscriptionInfo
+      verified: true
     });
     
   } catch (err) {

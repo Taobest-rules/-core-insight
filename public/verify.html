@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Core Insight</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #112240;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #64ffda;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .success-icon { color: #10b981; }
+        .error-icon { color: #ef4444; }
+        .info-icon { color: #64ffda; }
+        
+        p {
+            color: #a8b2d1;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .token-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #64ffda;
+            background: #0a192f;
+            color: white;
+            font-size: 16px;
+            font-family: monospace;
+            margin: 20px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        
+        .token-input:focus {
+            outline: none;
+            border-color: #4cd8b5;
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #64ffda, #4cd8b5);
+            color: #0a192f;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .message.info {
+            background: rgba(100, 255, 218, 0.1);
+            color: #64ffda;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+        }
+        
+        .resend-link {
+            margin-top: 20px;
+            color: #64ffda;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+        }
+        
+        .resend-link:hover {
+            color: #4cd8b5;
+        }
+        
+        .login-link {
+            margin-top: 20px;
+            display: inline-block;
+            color: #64ffda;
+            text-decoration: none;
+        }
+        
+        .login-link:hover {
+            text-decoration: underline;
+        }
+        
+        hr {
+            border-color: rgba(100, 255, 218, 0.2);
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(10, 25, 47, 0.3);
+            border-radius: 50%;
+            border-top-color: #0a192f;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <span id="icon" class="info-icon">📧</span>
+        </div>
+        
+        <h1 id="title">Verify Your Email</h1>
+        <p id="description">Enter the verification code sent to your email to activate your account.</p>
+        
+        <input type="text" id="tokenInput" class="token-input" placeholder="Paste verification code here">
+        
+        <button id="verifyBtn" onclick="verifyEmail()">Verify Account</button>
+        
+        <div id="message"></div>
+        
+        <div class="resend-link" onclick="resendVerification()">Didn't receive the email? Click to resend</div>
+        
+        <hr>
+        
+        <a href="login.html" class="login-link">← Back to Login</a>
+    </div>
+
+    <script>
+        // Get token from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+        
+        if (urlToken) {
+            document.getElementById('tokenInput').value = urlToken;
+            verifyEmail();
+        }
+        
+        async function verifyEmail() {
+            const token = document.getElementById('tokenInput').value.trim();
+            const messageDiv = document.getElementById('message');
+            const verifyBtn = document.getElementById('verifyBtn');
+            const title = document.getElementById('title');
+            const icon = document.getElementById('icon');
+            const description = document.getElementById('description');
+            
+            if (!token) {
+                showMessage('Please enter your verification code', 'error');
+                return;
+            }
+            
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    icon.innerHTML = '✅';
+                    icon.className = 'success-icon';
+                    title.innerHTML = 'Email Verified! 🎉';
+                    description.innerHTML = 'Your account has been successfully verified.';
+                    messageDiv.innerHTML = '';
+                    verifyBtn.style.display = 'none';
+                    
+                    showMessage('Redirecting to login page...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/login.html?verified=true';
+                    }, 2000);
+                } else {
+                    icon.innerHTML = '❌';
+                    icon.className = 'error-icon';
+                    title.innerHTML = 'Verification Failed';
+                    description.innerHTML = 'Invalid or expired verification code.';
+                    showMessage(data.error || 'The verification link is invalid or has expired. Please request a new one.', 'error');
+                    verifyBtn.innerHTML = 'Try Again';
+                    verifyBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                showMessage('Network error. Please try again.', 'error');
+                verifyBtn.innerHTML = 'Try Again';
+                verifyBtn.disabled = false;
+            }
+        }
+        
+        async function resendVerification() {
+            const email = prompt('Enter your email address to receive a new verification link:');
+            
+            if (!email) return;
+            
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                showMessage('Sending verification email...', 'info');
+                
+                const response = await fetch('/api/resend-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Verification email sent! Please check your inbox.', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to send verification email.', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            }
+        }
+        
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
+            
+            setTimeout(() => {
+                if (messageDiv.innerHTML.includes(msg)) {
+                    messageDiv.innerHTML = '';
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

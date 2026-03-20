@@ -1758,200 +1758,277 @@
     }
 
     // ========================= COURSE LOADING =========================
-    async function loadCourses() {
+   
+      // ========================= COURSE LOADING WITH PURCHASE CHECK =========================
+async function loadCourses() {
+  try {
+    showLoading();
+    
+    // Get user info and purchased courses in parallel
+    const [res, userRes] = await Promise.all([
+      fetch('/api/courses'),
+      fetch('/api/me')
+    ]);
+    
+    const courses = await res.json();
+    const user = await userRes.json();
+    const grid = document.getElementById('coursesGrid');
+    
+    document.getElementById('courseCount').textContent = `${courses.length} Courses`;
+    
+    // Get purchased courses if user is logged in
+    let purchasedCourses = new Set();
+    if (user) {
       try {
-        showLoading();
-        const res = await fetch('/api/courses');
-        const courses = await res.json();
-        const grid = document.getElementById('coursesGrid');
-        
-        document.getElementById('courseCount').textContent = `${courses.length} Courses`;
-        
-        const userRes = await fetch('/api/me');
-        const user = await userRes.json();
-        
-        if (courses.length === 0) {
-          grid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
-              <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-              <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
-              <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
-            </div>
-          `;
-          hideLoading();
-          return;
-        }
-        
-        // Generate course cards
-        grid.innerHTML = courses.map(course => {
-          // Determine content type
-          const fileUrl = course.file_url || course.download_url || '';
-          const fileName = course.file_path || '';
-          
-          // Video detection
-          const isVideo = 
-            (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-            (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-            (course.content_type === 'video');
-          
-          const isFree = course.price === 0 || course.type === 'free';
-          const isPremium = course.price > 0 && course.type !== 'free';
-          
-          // Determine badge
-          let badgeClass = 'badge-free';
-          let badgeIcon = 'fas fa-book';
-          let badgeText = 'FREE';
-          
-          if (isPremium) {
-            badgeClass = 'badge-premium';
-            badgeIcon = 'fas fa-crown';
-            badgeText = 'PREMIUM';
-          }
-          
-          if (isVideo) {
-            badgeClass = 'badge-video';
-            badgeIcon = 'fas fa-video';
-            badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
-          }
-          
-          // Get thumbnail URL
-          let thumbnailSrc;
-          if (course.thumbnail_url) {
-            thumbnailSrc = course.thumbnail_url;
-          } else {
-            const colors = ['1e293b', '172a45', '112240'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const cleanTitle = (course.title || '').substring(0, 25).replace(/[^\w\s]/gi, '');
-            thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
-          }
-          
-          return `
-            <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${course.content_type || 'book'}">
-              <div class="card-header">
-                <img src="${thumbnailSrc}" 
-                     alt="${course.title}" 
-                     loading="lazy" 
-                     onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
-                <div class="card-badge ${badgeClass}">
-                  <i class="${badgeIcon} type-icon"></i> ${badgeText}
-                </div>
-              </div>
-              <div class="card-content">
-                <h3>${course.title}</h3>
-                <p>${course.description || 'No description available'}</p>
-                <div class="card-meta">
-                  <div class="price" data-original-price="${course.price}">
-                    ${course.price > 0 ? formatCurrency(course.price, userCurrency) : 'FREE'}
-                  </div>
-                  ${course.author ? `
-                    <div class="author">
-                      <i class="fas fa-user"></i>
-                      <span>${course.author}</span>
-                    </div>
-                  ` : ''}
-                </div>
-                <div class="card-actions">
-                  ${isPremium ? `
-                    <button onclick="initiatePayment(${course.id}, ${course.price}, '${course.title.replace(/'/g, "\\'")}', ${isVideo})" 
-                            class="btn-primary">
-                      <i class="fas fa-shopping-cart"></i> Buy Now
-                    </button>
-                    <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
-                      <i class="fas fa-lock"></i> Check Access
-                    </button>
-                  ` : `
-                    <button onclick="handleDownload(${course.id})" class="btn-primary">
-                      <i class="fas fa-download"></i> Download Free
-                    </button>
-                  `}
-                  ${user && (user.role === 'admin' || user.id === course.user_id) ? `
-                    <button onclick="deleteCourse(${course.id})" 
-                            class="btn-secondary" 
-                            style="background: #ff4444; color: white; border: none;">
-                      <i class="fas fa-trash"></i> Delete
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-        
-        // Setup filters AFTER loading courses
-        setupFilters();
-        // Update prices
-        setTimeout(updateAllPrices, 100);
-        hideLoading();
+        const purchasedRes = await fetch('/api/my-courses');
+        const purchased = await purchasedRes.json();
+        purchased.forEach(course => {
+          purchasedCourses.add(Number(course.id));
+        });
+        console.log('📚 Purchased courses:', Array.from(purchasedCourses));
       } catch (error) {
-        console.error('Error loading courses:', error);
-        document.getElementById('coursesGrid').innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
-            <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
-            <p style="color: var(--text-gray);">Please try again later or check your connection.</p>
-            <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
-              <i class="fas fa-redo"></i> Retry
-            </button>
+        console.error('Error loading purchased courses:', error);
+      }
+    }
+    
+    if (courses.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+          <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+          <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
+          <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
+        </div>
+      `;
+      hideLoading();
+      return;
+    }
+    
+    // Generate course cards with purchase status
+    grid.innerHTML = courses.map(course => {
+      // Determine content type
+      const fileUrl = course.file_url || course.download_url || '';
+      const fileName = course.file_path || '';
+      
+      // Video detection
+      const isVideo = 
+        (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+        (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+        (course.content_type === 'video');
+      
+      const isFree = course.price === 0 || course.type === 'free';
+      const isPremium = course.price > 0 && course.type !== 'free';
+      
+      // Check if user has access (free OR purchased)
+      const hasAccess = isFree || purchasedCourses.has(Number(course.id));
+      
+      // Determine badge
+      let badgeClass = 'badge-free';
+      let badgeIcon = 'fas fa-book';
+      let badgeText = 'FREE';
+      
+      if (isPremium) {
+        badgeClass = 'badge-premium';
+        badgeIcon = 'fas fa-crown';
+        badgeText = 'PREMIUM';
+      }
+      
+      if (isVideo) {
+        badgeClass = 'badge-video';
+        badgeIcon = 'fas fa-video';
+        badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
+      }
+      
+      // Get thumbnail URL
+      let thumbnailSrc;
+      if (course.thumbnail_url) {
+        thumbnailSrc = course.thumbnail_url;
+      } else {
+        const colors = ['1e293b', '172a45', '112240'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const cleanTitle = (course.title || '').substring(0, 25).replace(/[^\w\s]/gi, '');
+        thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
+      }
+      
+      // Generate price display
+      let priceDisplay = '';
+      if (hasAccess) {
+        priceDisplay = '<span style="color: #64ffda;">✓ OWNED</span>';
+      } else if (isFree) {
+        priceDisplay = 'FREE';
+      } else {
+        priceDisplay = formatCurrency(course.price, userCurrency);
+      }
+      
+      return `
+        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${course.content_type || 'book'}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+          <div class="card-header">
+            <img src="${thumbnailSrc}" 
+                 alt="${course.title}" 
+                 loading="lazy" 
+                 onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
+            <div class="card-badge ${badgeClass}">
+              <i class="${badgeIcon} type-icon"></i> ${badgeText}
+            </div>
+            ${hasAccess ? `
+              <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
+                <i class="fas fa-check-circle"></i> Owned
+              </div>
+            ` : ''}
           </div>
-        `;
-        hideLoading();
-      }
+          <div class="card-content">
+            <h3>${escapeHtml(course.title)}</h3>
+            <p>${escapeHtml(course.description || 'No description available')}</p>
+            <div class="card-meta">
+              <div class="price" data-original-price="${course.price}">
+                ${priceDisplay}
+              </div>
+              ${course.author ? `
+                <div class="author">
+                  <i class="fas fa-user"></i>
+                  <span>${escapeHtml(course.author)}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="card-actions">
+              ${hasAccess ? `
+                <button onclick="handleDownload(${course.id})" class="btn-primary">
+                  <i class="fas fa-download"></i> Download Now
+                </button>
+                ${isVideo ? `
+                  <button onclick="watchVideo(${course.id}, '${escapeHtml(course.title).replace(/'/g, "\\'")}')" class="btn-secondary">
+                    <i class="fas fa-play"></i> Watch Now
+                  </button>
+                ` : ''}
+              ` : (isPremium ? `
+                <button onclick="initiatePayment(${course.id}, ${course.price}, '${escapeHtml(course.title).replace(/'/g, "\\'")}', ${isVideo})" 
+                        class="btn-primary">
+                  <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
+                </button>
+                <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
+                  <i class="fas fa-lock"></i> Check Access
+                </button>
+              ` : `
+                <button onclick="handleDownload(${course.id})" class="btn-primary">
+                  <i class="fas fa-download"></i> Download Free
+                </button>
+              `)}
+              ${user && (user.role === 'admin' || user.id === course.user_id) ? `
+                <button onclick="deleteCourse(${course.id})" 
+                        class="btn-secondary" 
+                        style="background: #ff4444; color: white; border: none;">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Setup filters AFTER loading courses
+    setupFilters();
+    
+    // Update prices with current currency
+    setTimeout(updateAllPrices, 100);
+    
+    hideLoading();
+    
+  } catch (error) {
+    console.error('Error loading courses:', error);
+    document.getElementById('coursesGrid').innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
+        <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
+        <p style="color: var(--text-gray);">Please try again later or check your connection.</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</p>
+        <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
+          <i class="fas fa-redo"></i> Retry
+        </button>
+      </div>
+    `;
+    hideLoading();
+  }
+}
+// ========================= REFRESH COURSES AFTER PURCHASE =========================
+async function refreshCoursesAfterPurchase() {
+  // Reload the courses to update the "Owned" status
+  await loadCourses();
+  
+  // Show success message
+  showToast('✅ Purchase successful! Your new content is now available.', 'success');
+}
+
+   // ========================= FIXED PAYMENT FUNCTION =========================
+async function initiatePayment(courseId, price, title, isVideo = false) {
+  try {
+    const userRes = await fetch('/api/me');
+    const user = await userRes.json();
+    
+    if (!user) {
+      alert('Please login to purchase content');
+      window.location.href = 'login.html';
+      return;
     }
 
-    // ========================= PAYMENT FUNCTION =========================
-    async function initiatePayment(courseId, price, title, isVideo = false) {
-      try {
-        const userRes = await fetch('/api/me');
-        const user = await userRes.json();
-        
-        if (!user) {
-          alert('Please login to purchase content');
-          window.location.href = 'login.html';
-          return;
-        }
+    // Show price in user's currency
+    const convertedPrice = price * (exchangeRates[userCurrency] || 1);
+    const userFriendlyPrice = formatCurrency(convertedPrice, userCurrency);
+    const action = isVideo ? 'watch' : 'download';
+    
+    const confirmPayment = confirm(`Purchase "${title}" for ${userFriendlyPrice} to ${action}?`);
+    
+    if (!confirmPayment) return;
+    
+    showLoading();
+    
+    try {
+      // CORRECT: Send only courseId to the server
+      const response = await fetch('/api/initiate-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          courseId: courseId  // Only send courseId
+        })
+      });
 
-        const userFriendlyPrice = formatCurrency(price * (exchangeRates[userCurrency] || 1), userCurrency);
-        const action = isVideo ? 'watch' : 'download';
-        const confirmPayment = confirm(`Purchase "${title}" for ${userFriendlyPrice} to ${action}?`);
+      const data = await response.json();
+      hideLoading();
+      
+      if (data.status === 'success' && data.paymentLink) {
+        // Store payment info for callback handling
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          courseId: courseId,
+          isVideo: isVideo,
+          title: title,
+          transactionRef: data.transactionRef
+        }));
         
-        if (confirmPayment) {
-          showLoading();
-          
-          const response = await fetch('/api/initiate-payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              courseId: courseId,
-              amount: price,
-              email: user.email || `${user.username}@example.com`,
-              isVideo: isVideo
-            })
-          });
-
-          const data = await response.json();
-          hideLoading();
-          
-          if (data.status === 'success' && data.paymentLink) {
-            localStorage.setItem('pendingPayment', JSON.stringify({
-              courseId: courseId,
-              isVideo: isVideo,
-              title: title
-            }));
-            
-            window.location.href = data.paymentLink;
-          } else {
-            alert('Error: ' + (data.error || 'Failed to initiate payment'));
-          }
-        }
-      } catch (error) {
-        console.error('Purchase error:', error);
-        hideLoading();
-        alert('Error initiating purchase. Please try again.');
+        // Redirect to payment page
+        window.location.href = data.paymentLink;
+      } else {
+        alert('Error: ' + (data.error || 'Failed to initiate payment. Please try again.'));
       }
+    } catch (fetchError) {
+      console.error('Fetch error:', fetchError);
+      hideLoading();
+      alert('Network error. Please check your connection and try again.');
     }
-
+  } catch (error) {
+    console.error('Purchase error:', error);
+    hideLoading();
+    alert('Error initiating purchase: ' + error.message);
+  }
+}
     // ========================= CHECK ACCESS FUNCTION =========================
     async function checkAccess(courseId, isVideo = false) {
       try {
@@ -1981,7 +2058,83 @@
         hideLoading();
       }
     }
-
+// ========================= CHECK PENDING PAYMENT ON PAGE LOAD =========================
+// Update the checkPendingPayment function to refresh courses after successful payment
+async function checkPendingPayment() {
+  const pendingPayment = localStorage.getItem('pendingPayment');
+  if (!pendingPayment) return;
+  
+  // Check URL parameters for transaction_id
+  const urlParams = new URLSearchParams(window.location.search);
+  const transactionId = urlParams.get('transaction_id');
+  const status = urlParams.get('status');
+  
+  if (status === 'successful' && transactionId) {
+    console.log('✅ Payment successful, verifying...');
+    showLoading();
+    
+    try {
+      // Verify payment with server
+      const verifyResponse = await fetch(`/api/verify-payment/${transactionId}`);
+      const verifyData = await verifyResponse.json();
+      
+      if (verifyData.status === 'success') {
+        // Clear pending payment
+        localStorage.removeItem('pendingPayment');
+        
+        // Show success message
+        const paymentData = JSON.parse(pendingPayment);
+        showToast(`✅ Payment successful! You now have access to "${paymentData.title}"`, 'success');
+        
+        // IMPORTANT: Refresh courses to show "Download Now" instead of "Buy Now"
+        await refreshCoursesAfterPurchase();
+        
+        // Optionally redirect to remove query params
+        if (window.location.search) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } else {
+        showToast('❌ Payment verification failed. Please contact support.', 'error');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      showToast('Error verifying payment. Please contact support.', 'error');
+    } finally {
+      hideLoading();
+    }
+  } else if (status === 'cancelled') {
+    localStorage.removeItem('pendingPayment');
+    showToast('Payment was cancelled.', 'info');
+    
+    // Clear URL parameters
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+}
+// ========================= CHECK IF USER ALREADY PURCHASED COURSE =========================
+async function checkUserPurchasedCourses() {
+  try {
+    const userRes = await fetch('/api/me');
+    const user = await userRes.json();
+    
+    if (!user) return {};
+    
+    const response = await fetch('/api/my-courses');
+    const purchasedCourses = await response.json();
+    
+    // Create a Set of purchased course IDs for quick lookup
+    const purchasedSet = new Set();
+    purchasedCourses.forEach(course => {
+      purchasedSet.add(Number(course.id));
+    });
+    
+    return purchasedSet;
+  } catch (error) {
+    console.error('Error checking purchased courses:', error);
+    return new Set();
+  }
+}
     // ========================= HANDLE DOWNLOAD =========================
     async function handleDownload(courseId) {
       try {

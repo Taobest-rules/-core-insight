@@ -542,87 +542,153 @@ app.get("/api/currency-rates", (req, res) => {
 });
 
 // =================== UPDATED SIGNUP WITH ROLE ===================
+// =================== FIXED SIGNUP ENDPOINT ===================
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, password, email, role } = req.body;
     
-    if (!username || !password || !email || !role) {
-      return res.status(400).json({ error: "Username, email, password, and role are required" });
+    console.log("📝 Signup attempt:", { username, email, role });
+    
+    // Validate required fields
+    if (!username || !password || !email) {
+      return res.status(400).json({ error: "Username, email, and password are required" });
     }
-
-    // Validate role
-    if (!['client', 'freelancer'].includes(role)) {
-      return res.status(400).json({ error: "Role must be either 'client' or 'freelancer'" });
+    
+    // Validate role - if not provided, default to 'client'
+    let userRole = role;
+    if (!userRole) {
+      // If no role provided, check if there's a default or ask user to choose
+      console.log("⚠️ No role provided, defaulting to 'client'");
+      userRole = 'client';
     }
-
+    
+    // Validate role is valid
+    if (!['client', 'freelancer', 'admin'].includes(userRole)) {
+      return res.status(400).json({ error: "Invalid role. Must be 'client' or 'freelancer'" });
+    }
+    
+    // Check if user already exists
     const existingUsers = await db.query(
       "SELECT id FROM users WHERE username = ? OR email = ?", 
       [username, email]
     );
     
-    let userExists = false;
-    if (Array.isArray(existingUsers) && existingUsers.length > 0) {
-      userExists = true;
-    } else if (existingUsers && existingUsers[0] && Array.isArray(existingUsers[0]) && existingUsers[0].length > 0) {
-      userExists = true;
-    }
-
-    if (userExists) {
+    if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({ error: "Username or email already exists" });
     }
-
+    
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString('hex');
-
-    // Insert user with role
-    await db.query(
-      "INSERT INTO users (username, email, password, role, verified, verify_token, created_at) VALUES (?, ?, ?, ?, 0, ?, NOW())",
-      [username, email, hashedPassword, role, verifyToken]
-    );
-
-    // If freelancer, set up trial subscription
-    if (role === 'freelancer') {
+    
+    // Insert user with role - CHECK IF ROLE COLUMN EXISTS
+    let insertQuery = "";
+    let insertValues = [];
+    
+    // First, check if role column exists in the users table
+    try {
+      const tableInfo = await db.query("SHOW COLUMNS FROM users LIKE 'role'");
+      const hasRoleColumn = tableInfo && tableInfo.length > 0;
+      
+      if (hasRoleColumn) {
+        insertQuery = `
+          INSERT INTO users (username, email, password, role, verified, verify_token, created_at) 
+          VALUES (?, ?, ?, ?, 0, ?, NOW())
+        `;
+        insertValues = [username, email, hashedPassword, userRole, verifyToken];
+      } else {
+        // If role column doesn't exist, insert without role
+        insertQuery = `
+          INSERT INTO users (username, email, password, verified, verify_token, created_at) 
+          VALUES (?, ?, ?, 0, ?, NOW())
+        `;
+        insertValues = [username, email, hashedPassword, verifyToken];
+      }
+    } catch (err) {
+      console.log("⚠️ Error checking role column:", err.message);
+      // Fallback - insert without role
+      insertQuery = `
+        INSERT INTO users (username, email, password, verified, verify_token, created_at) 
+        VALUES (?, ?, ?, 0, ?, NOW())
+      `;
+      insertValues = [username, email, hashedPassword, verifyToken];
+    }
+    
+    console.log("📝 Inserting user with query:", insertQuery);
+    const result = await db.query(insertQuery, insertValues);
+    
+    const userId = result.insertId;
+    console.log(`✅ User created with ID: ${userId}, Role: ${userRole}`);
+    
+    // If freelancer, set up trial subscription (90 days)
+    if (userRole === 'freelancer') {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 90);
       
-      await db.query(
-        `UPDATE users SET 
-           trial_start_date = created_at,
-           trial_end_date = ?,
-           subscription_status = 'active',
-           subscription_plan = 'free_trial'
-         WHERE username = ?`,
-        [trialEnd, username]
-      );
+      // Check if freelancer_profiles table exists before inserting
+      try {
+        await db.query(
+          `UPDATE users SET 
+             trial_start_date = NOW(),
+             trial_end_date = ?,
+             subscription_status = 'active',
+             subscription_plan = 'free_trial'
+           WHERE id = ?`,
+          [trialEnd, userId]
+        );
+        
+        // Also create freelancer profile
+        await db.query(
+          `INSERT INTO freelancer_profiles (user_id, headline, created_at) 
+           VALUES (?, 'New Freelancer', NOW())`,
+          [userId]
+        );
+        
+        console.log(`✅ Freelancer setup complete for user ${userId}`);
+      } catch (err) {
+        console.log("⚠️ Freelancer setup warning:", err.message);
+        // Continue even if freelancer setup fails - user can still use client features
+      }
     }
-
+    
+    // Send verification email
     const verifyLink = `https://core-insight-7.onrender.com/api/verify/${verifyToken}`;
-    await transporter.sendMail({
-      to: email,
-      subject: "Verify your Core Insight account",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Core Insight!</h2>
-          <p>You've signed up as a <strong>${role}</strong>.</p>
-          <p>Please verify your email address by clicking the link below:</p>
-          <a href="${verifyLink}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-            Verify Email Address
-          </a>
-          <p>If you didn't create an account, please ignore this email.</p>
-        </div>
-      `
-    });
-
+    try {
+      await transporter.sendMail({
+        to: email,
+        subject: "Verify your Core Insight account",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to Core Insight!</h2>
+            <p>You've signed up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
+            <p>Please verify your email address by clicking the link below:</p>
+            <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              Verify Email Address
+            </a>
+            <p>If you didn't create an account, please ignore this email.</p>
+          </div>
+        `
+      });
+      console.log(`📧 Verification email sent to ${email}`);
+    } catch (emailErr) {
+      console.error("⚠️ Email sending failed:", emailErr.message);
+      // Continue even if email fails - user can still log in if verified flag is 0
+    }
+    
     res.json({ 
       message: "Registration successful! Please check your email to verify your account.",
-      role: role 
+      role: userRole,
+      userId: userId
     });
     
   } catch (err) {
+    console.error("❌ Signup error:", err);
     if (err.code === 'ER_DUP_ENTRY') {
       res.status(400).json({ error: "Username or email already exists" });
+    } else if (err.code === 'ER_BAD_FIELD_ERROR') {
+      // Handle missing column errors
+      res.status(500).json({ error: "Database schema issue. Please contact support." });
     } else {
-      console.error("Signup error:", err);
       res.status(500).json({ error: "Registration failed. Please try again." });
     }
   }

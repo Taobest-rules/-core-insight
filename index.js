@@ -90,6 +90,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get("/admin-files.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-files.html"));
 });
+// =================== TERMS OF SERVICE ENDPOINT ===================
+app.get('/api/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
 // Configure multer for image uploads
 const imageStorage = multer.diskStorage({
   destination: function (req, file, cb) {

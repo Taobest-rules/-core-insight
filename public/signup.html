@@ -36,16 +36,26 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
         }
         
         h2 {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+        }
+        
+        .role-info {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-bottom: 1.5rem;
+            padding: 0.5rem;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 8px;
         }
         
         .form-group {
@@ -75,7 +85,22 @@
             font-size: 16px;
         }
         
-        input:focus {
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--text-gray);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        select option {
+            background: var(--secondary-dark);
+        }
+        
+        input:focus, select:focus {
             outline: none;
             border-color: var(--accent-gold);
         }
@@ -139,7 +164,49 @@
             color: #00C851;
         }
         
-        /* Terms checkbox - simplified */
+        /* Role cards */
+        .role-cards {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .role-card {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid var(--text-gray);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .role-card.selected {
+            border-color: var(--accent-gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .role-card:hover {
+            border-color: var(--accent-gold);
+        }
+        
+        .role-card i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .role-card h4 {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .role-card p {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            margin: 0;
+        }
+        
         .terms-group {
             margin: 1rem 0;
         }
@@ -226,11 +293,21 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        hr {
+            border-color: var(--text-gray);
+            margin: 1rem 0;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h2>Create Account</h2>
+        
+        <div class="role-info">
+            <i class="fas fa-info-circle"></i> Choose your account type
+        </div>
         
         <form id="signupForm">
             <div class="form-group">
@@ -251,12 +328,9 @@
                     <input type="password" id="password" placeholder="Create a password" required>
                     <button type="button" class="password-toggle" onclick="togglePassword('password')">👁️</button>
                 </div>
-                
-                <!-- Strength meter -->
                 <div class="strength-meter">
                     <div class="strength-fill" id="strength-fill"></div>
                 </div>
-                
                 <div class="validation-message" id="password-validation"></div>
             </div>
             
@@ -269,11 +343,28 @@
                 <div class="validation-message" id="confirm-validation"></div>
             </div>
             
-            <!-- Simplified terms - just one checkbox -->
+            <div class="form-group">
+                <label>I want to:</label>
+                <div class="role-cards">
+                    <div class="role-card" data-role="client" onclick="selectRole('client')">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h4>Buyer</h4>
+                        <p>Purchase products & courses</p>
+                    </div>
+                    <div class="role-card" data-role="freelancer" onclick="selectRole('freelancer')">
+                        <i class="fas fa-briefcase"></i>
+                        <h4>Seller</h4>
+                        <p>Sell services & earn money</p>
+                    </div>
+                </div>
+                <input type="hidden" id="role" name="role" required>
+                <div class="validation-message" id="role-validation"></div>
+            </div>
+            
             <div class="terms-group">
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to the Terms of Service</label>
+                    <label for="terms">I agree to the <a href="#" onclick="openTermsModal(); return false;">Terms of Service</a></label>
                 </div>
             </div>
             
@@ -286,21 +377,46 @@
             <a href="login.html">Already have an account? Login</a>
         </div>
     </div>
+    
+    <!-- Terms of Service Modal -->
+    <div id="termsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: var(--secondary-dark); max-width: 600px; max-height: 80vh; overflow-y: auto; border-radius: 12px; padding: 2rem; margin: 2rem;">
+            <h2 style="color: var(--accent-gold);">Terms of Service</h2>
+            <div id="termsContent"></div>
+            <button onclick="closeTermsModal()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent-gold); border: none; border-radius: 4px; cursor: pointer;">Close</button>
+        </div>
+    </div>
 
     <script>
-        // Toggle password visibility
+        let selectedRole = null;
+        
+        function selectRole(role) {
+            selectedRole = role;
+            document.getElementById('role').value = role;
+            
+            // Update UI
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.getAttribute('data-role') === role) {
+                    card.classList.add('selected');
+                }
+            });
+            
+            // Clear validation
+            document.getElementById('role-validation').textContent = '';
+            document.getElementById('role-validation').classList.remove('error');
+        }
+        
         function togglePassword(id) {
             const field = document.getElementById(id);
             field.type = field.type === "password" ? "text" : "password";
         }
         
-        // Email validation
         function validateEmail(email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
         
-        // Username validation
         function validateUsername(username) {
             return username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
         }
@@ -343,17 +459,16 @@
             const strengthFill = document.getElementById('strength-fill');
             const validation = document.getElementById('password-validation');
             
-            // Check strength
             if (password.length === 0) {
                 strengthFill.className = 'strength-fill';
                 validation.textContent = '';
             } else if (password.length < 6) {
                 strengthFill.className = 'strength-fill weak';
-                validation.textContent = '❌ Password is too weak';
+                validation.textContent = '❌ Password must be at least 6 characters';
                 validation.className = 'validation-message error';
             } else if (password.length < 8) {
                 strengthFill.className = 'strength-fill medium';
-                validation.textContent = '⚠️ Password is okay';
+                validation.textContent = '⚠️ Password is okay, but could be stronger';
                 validation.className = 'validation-message';
             } else {
                 strengthFill.className = 'strength-fill strong';
@@ -361,15 +476,11 @@
                 validation.className = 'validation-message success';
             }
             
-            // Also check confirm password if it has value
             const confirm = document.getElementById('confirm-password').value;
             if (confirm) {
                 checkPasswordMatch();
             }
         });
-        
-        // Confirm password validation
-        document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
         
         function checkPasswordMatch() {
             const password = document.getElementById('password').value;
@@ -387,6 +498,8 @@
             }
         }
         
+        document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
+        
         // Form submission
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -395,11 +508,11 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm-password').value;
+            const role = document.getElementById('role').value;
             const terms = document.getElementById('terms').checked;
             const submitBtn = document.getElementById('submitBtn');
             const messageDiv = document.getElementById('message');
             
-            // Clear previous messages
             messageDiv.innerHTML = '';
             
             // Validate all fields
@@ -428,12 +541,18 @@
                 return;
             }
             
+            if (!role) {
+                messageDiv.innerHTML = '<div class="message error">❌ Please select whether you want to be a Buyer or Seller</div>';
+                document.getElementById('role-validation').textContent = 'Please select a role';
+                document.getElementById('role-validation').classList.add('error');
+                return;
+            }
+            
             if (!terms) {
                 messageDiv.innerHTML = '<div class="message error">❌ You must agree to the Terms of Service</div>';
                 return;
             }
             
-            // Show loading
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner"></span> Creating Account...';
             
@@ -443,21 +562,18 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, email, password })
+                    body: JSON.stringify({ username, email, password, role })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="message success">✅ Account created! Redirecting to login...</div>';
-                    
-                    // Clear form
+                    messageDiv.innerHTML = '<div class="message success">✅ Account created! Please check your email to verify your account. Redirecting...</div>';
                     document.getElementById('signupForm').reset();
                     
-                    // Redirect to login page
                     setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 2000);
+                    }, 3000);
                 } else {
                     messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Error creating account'}</div>`;
                 }
@@ -469,6 +585,71 @@
                 submitBtn.innerHTML = 'Sign Up';
             }
         });
+        
+        // Terms Modal Functions
+        function openTermsModal() {
+            const modal = document.getElementById('termsModal');
+            const termsContent = document.getElementById('termsContent');
+            
+            // Load terms content
+            fetch('/api/terms')
+                .then(res => res.text())
+                .catch(() => {
+                    // If API fails, show default terms
+                    return fetch('/terms.html').then(res => res.text());
+                })
+                .then(html => {
+                    termsContent.innerHTML = html || getDefaultTerms();
+                    modal.style.display = 'flex';
+                })
+                .catch(() => {
+                    termsContent.innerHTML = getDefaultTerms();
+                    modal.style.display = 'flex';
+                });
+        }
+        
+        function closeTermsModal() {
+            document.getElementById('termsModal').style.display = 'none';
+        }
+        
+        function getDefaultTerms() {
+            return `
+                <h3>1. Acceptance of Terms</h3>
+                <p>By registering for Core Insight, you agree to these Terms of Service.</p>
+                
+                <h3>2. Account Types</h3>
+                <p><strong>Buyers:</strong> Can purchase products and courses. No subscription required.</p>
+                <p><strong>Sellers:</strong> Can offer services, sell products, and earn money. Subject to platform fees.</p>
+                
+                <h3>3. Platform Fees</h3>
+                <p>Core Insight charges a 10% platform fee on all sales. This fee is automatically deducted from each transaction.</p>
+                
+                <h3>4. Content Guidelines</h3>
+                <p>Users are responsible for the content they upload. Prohibited content includes illegal materials, hate speech, and copyright violations.</p>
+                
+                <h3>5. Payments</h3>
+                <p>All payments are processed through secure third-party payment providers (Flutterwave, Paystack).</p>
+                
+                <h3>6. Termination</h3>
+                <p>Core Insight reserves the right to suspend or terminate accounts that violate these terms.</p>
+                
+                <h3>7. Changes to Terms</h3>
+                <p>Terms may be updated from time to time. Continued use constitutes acceptance of changes.</p>
+                
+                <h3>8. Contact</h3>
+                <p>For questions, contact: support@coreinsight.com</p>
+                
+                <p><strong>Last Updated:</strong> March 2025</p>
+            `;
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('termsModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
     </script>
 </body>
 </html>

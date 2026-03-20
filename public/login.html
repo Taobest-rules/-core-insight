@@ -11,6 +11,9 @@
       --accent-gold: #FFD700;
       --text-light: #e0e0e0;
       --text-gray: #a0a0a0;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
     }
     
     * {
@@ -174,8 +177,9 @@
       text-align: center;
     }
     
-    .success { background: rgba(0, 255, 0, 0.1); color: lightgreen; }
-    .error { background: rgba(255, 0, 0, 0.1); color: lightcoral; }
+    .success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .error { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
     
     .links {
       text-align: center;
@@ -251,6 +255,39 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    
+    /* Verification Help Box */
+    .verification-help {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(100, 255, 218, 0.1);
+      border: 1px solid rgba(100, 255, 218, 0.3);
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .verification-help p {
+      margin-bottom: 0.5rem;
+      color: var(--accent-gold);
+    }
+    
+    .verification-help a {
+      color: var(--accent-gold);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    
+    .resend-link {
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: var(--accent-gold);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .resend-link:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -297,6 +334,14 @@
     
     <div id="loginMessage"></div>
     
+    <!-- Verification Help Section (Hidden by default) -->
+    <div id="verificationHelp" class="verification-help" style="display: none;">
+      <p>⚠️ Account Not Verified</p>
+      <p>Please verify your email before logging in.</p>
+      <a href="/verify-manual.html">Click here to verify your account</a>
+      <div class="resend-link" onclick="resendVerification()">Resend verification email</div>
+    </div>
+    
     <div class="links">
       <a href="signup.html">Don't have an account? Sign Up</a>
     </div>
@@ -323,6 +368,8 @@
   </div>
 
   <script>
+    let unverifiedEmail = null;
+    
     // Toggle password visibility
     function togglePassword(id) {
       const field = document.getElementById(id);
@@ -360,7 +407,40 @@
       document.getElementById('resetEmail').value = '';
     }
 
-    // LOGIN FORM HANDLER - FIXED
+    // Resend verification function
+    async function resendVerification() {
+      if (!unverifiedEmail) {
+        alert('Please enter your email to resend verification');
+        return;
+      }
+      
+      const messageDiv = document.getElementById('loginMessage');
+      messageDiv.innerHTML = '<div class="message info">📧 Sending verification email...</div>';
+      
+      try {
+        const response = await fetch('/api/resend-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: unverifiedEmail })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          if (data.token) {
+            messageDiv.innerHTML = `<div class="message success">✅ Verification code: <strong>${data.token}</strong><br>Use this code at <a href="/verify-manual.html" style="color: var(--success);">verify-manual.html</a></div>`;
+          } else {
+            messageDiv.innerHTML = '<div class="message success">✅ Verification email sent! Check your inbox.</div>';
+          }
+        } else {
+          messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Error sending verification'}</div>`;
+        }
+      } catch (error) {
+        messageDiv.innerHTML = '<div class="message error">⚠️ Network error. Please try again.</div>';
+      }
+    }
+
+    // LOGIN FORM HANDLER - FIXED WITH VERIFICATION HANDLING
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -370,9 +450,12 @@
       const rememberMe = document.getElementById('rememberMe').checked;
       const loginBtn = document.getElementById('loginBtn');
       const messageDiv = document.getElementById('loginMessage');
+      const verificationHelp = document.getElementById('verificationHelp');
 
-      // Clear previous messages
+      // Clear previous messages and hide verification help
       messageDiv.innerHTML = '';
+      verificationHelp.style.display = 'none';
+      unverifiedEmail = null;
 
       // Validate password
       if (!password) {
@@ -414,12 +497,18 @@
         if (res.ok) {
           messageDiv.innerHTML = '<div class="message success">✅ Login successful! Redirecting...</div>';
           
-          // Redirect to the page that was working before
           setTimeout(() => {
-            window.location.href = 'courses.html'; // Changed from dashboard.html to courses.html
+            window.location.href = 'courses.html';
           }, 1500);
         } else {
-          messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Invalid credentials'}</div>`;
+          // Check if it's an unverified account error
+          if (data.unverified || (data.error && data.error.includes('verify'))) {
+            unverifiedEmail = data.email || (useUsername ? null : email);
+            verificationHelp.style.display = 'block';
+            messageDiv.innerHTML = '<div class="message warning">⚠️ Please verify your email before logging in.</div>';
+          } else {
+            messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Invalid credentials'}</div>`;
+          }
         }
       } catch (err) {
         console.error('Login error:', err);
@@ -484,11 +573,17 @@
         const user = await res.json();
         
         if (user && user.id) {
-          window.location.href = 'courses.html'; // Changed to courses.html
+          window.location.href = 'courses.html';
         }
       } catch (error) {
         // User not logged in, stay on login page
       }
+    }
+
+    // Check if there's a verified parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('verified') === 'true') {
+      document.getElementById('loginMessage').innerHTML = '<div class="message success">✅ Email verified! You can now login.</div>';
     }
 
     // Check authentication on page load

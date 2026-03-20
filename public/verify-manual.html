@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Account - Core Insight</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #112240;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #64ffda;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        p {
+            color: #a8b2d1;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .input-group {
+            margin: 20px 0;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #64ffda;
+            background: #0a192f;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4cd8b5;
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #64ffda, #4cd8b5);
+            color: #0a192f;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .message.info {
+            background: rgba(100, 255, 218, 0.1);
+            color: #64ffda;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #8892b0;
+            margin-top: 10px;
+        }
+        
+        hr {
+            border-color: rgba(100, 255, 218, 0.2);
+            margin: 20px 0;
+        }
+        
+        .login-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #64ffda;
+            text-decoration: none;
+        }
+        
+        .login-link:hover {
+            text-decoration: underline;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(10, 25, 47, 0.3);
+            border-radius: 50%;
+            border-top-color: #0a192f;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: rgba(100, 255, 218, 0.05);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .info-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .code-highlight {
+            background: #0a192f;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: center;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔐</div>
+        <h1>Verify Your Account</h1>
+        
+        <div class="info-box" id="infoBox">
+            <p><strong>📧 Check your email</strong> for a verification link.</p>
+            <p>Didn't receive it? You can verify manually below:</p>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="emailInput" placeholder="Enter your email address" autocomplete="off">
+        </div>
+        
+        <button id="getCodeBtn" onclick="getVerificationCode()">Get Verification Code</button>
+        
+        <div id="codeSection" style="display: none;">
+            <hr>
+            <div class="info-box">
+                <p><strong>📋 Your Verification Code</strong></p>
+                <div id="codeDisplay" class="code-highlight"></div>
+                <p style="font-size: 12px;">Enter this code to verify your account</p>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="codeInput" placeholder="Enter verification code" autocomplete="off">
+            </div>
+            
+            <button onclick="verifyWithCode()">Verify Account</button>
+        </div>
+        
+        <div id="message"></div>
+        
+        <hr>
+        
+        <div class="help-text">
+            <p>Having trouble? Contact support: support@coreinsight.com</p>
+        </div>
+        
+        <a href="login.html" class="login-link">← Back to Login</a>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentEmail = null;
+        
+        async function getVerificationCode() {
+            const email = document.getElementById('emailInput').value.trim();
+            const messageDiv = document.getElementById('message');
+            const getCodeBtn = document.getElementById('getCodeBtn');
+            
+            if (!email) {
+                showMessage('Please enter your email address', 'error');
+                return;
+            }
+            
+            getCodeBtn.disabled = true;
+            getCodeBtn.innerHTML = '<span class="spinner"></span> Sending...';
+            
+            try {
+                const response = await fetch('/api/resend-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    currentToken = data.token;
+                    currentEmail = email;
+                    
+                    // Show the code section
+                    document.getElementById('codeSection').style.display = 'block';
+                    document.getElementById('codeDisplay').innerHTML = data.token;
+                    document.getElementById('codeInput').value = data.token;
+                    
+                    showMessage('✅ Verification code generated! You can now verify your account.', 'success');
+                    document.getElementById('infoBox').innerHTML = `
+                        <p><strong>✅ Verification code ready!</strong></p>
+                        <p>Use the code below to verify your account.</p>
+                    `;
+                } else if (response.ok) {
+                    // If token not returned, just show message
+                    showMessage('Verification code sent to your email! Check your inbox.', 'success');
+                    document.getElementById('infoBox').innerHTML = `
+                        <p><strong>📧 Email sent!</strong></p>
+                        <p>Check your inbox for the verification code. You can also verify manually below.</p>
+                    `;
+                } else {
+                    showMessage(data.error || 'Error getting verification code', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                getCodeBtn.disabled = false;
+                getCodeBtn.innerHTML = 'Get Verification Code';
+            }
+        }
+        
+        async function verifyWithCode() {
+            const code = document.getElementById('codeInput').value.trim();
+            const messageDiv = document.getElementById('message');
+            const verifyBtn = event.target;
+            
+            if (!code) {
+                showMessage('Please enter the verification code', 'error');
+                return;
+            }
+            
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token: code })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showMessage('✅ Account verified successfully! Redirecting to login...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login.html?verified=true';
+                    }, 2000);
+                } else {
+                    showMessage(data.error || 'Invalid verification code', 'error');
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = 'Verify Account';
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                showMessage('Network error. Please try again.', 'error');
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Verify Account';
+            }
+        }
+        
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
+            
+            setTimeout(() => {
+                if (messageDiv.innerHTML.includes(msg)) {
+                    messageDiv.innerHTML = '';
+                }
+            }, 5000);
+        }
+        
+        // Check if there's a token in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenParam = urlParams.get('token');
+        if (tokenParam) {
+            document.getElementById('codeInput').value = tokenParam;
+            verifyWithCode();
+        }
+    </script>
+</body>
+</html>

@@ -743,7 +743,7 @@ app.get("/api/verify/:token", async (req, res) => {
   }
 });
 
-// POST verification (from form)
+// =================== VERIFY ENDPOINT ===================
 app.post("/api/verify", async (req, res) => {
   try {
     const { token } = req.body;
@@ -752,6 +752,7 @@ app.post("/api/verify", async (req, res) => {
       return res.status(400).json({ error: "Verification token required" });
     }
     
+    // Find user with this token
     const users = await db.query(
       "SELECT id, email, username FROM users WHERE verify_token = ? AND verified = 0",
       [token]
@@ -763,6 +764,7 @@ app.post("/api/verify", async (req, res) => {
     
     const user = users[0];
     
+    // Verify the user
     await db.query(
       "UPDATE users SET verified = 1, verify_token = NULL WHERE id = ?",
       [user.id]
@@ -780,7 +782,7 @@ app.post("/api/verify", async (req, res) => {
   }
 });
 
-// Resend verification email
+// =================== RESEND VERIFICATION (RETURNS TOKEN) ===================
 app.post("/api/resend-verification", async (req, res) => {
   try {
     const { email } = req.body;
@@ -809,33 +811,41 @@ app.post("/api/resend-verification", async (req, res) => {
       );
     }
     
-    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+    const verifyLink = `https://core-insight-7.onrender.com/verify-manual.html?token=${verifyToken}`;
     
-    await transporter.sendMail({
-      from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Verify Your Email - Core Insight",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Verify Your Email</h2>
-          <p>Click the link below to verify your account:</p>
-          <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-            Verify Email
-          </a>
-          <p>Or enter this code: <strong>${verifyToken}</strong></p>
-          <p>This link will be valid until you verify your account.</p>
-        </div>
-      `
-    });
+    // Try to send email
+    try {
+      await transporter.sendMail({
+        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify Your Email - Core Insight",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Verify Your Email</h2>
+            <p>Click the link below to verify your account:</p>
+            <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              Verify Email
+            </a>
+            <p>Or enter this code: <strong>${verifyToken}</strong></p>
+            <p><a href="${verifyLink}">${verifyLink}</a></p>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.log("Email send failed, returning token for manual verification");
+    }
     
+    // ALWAYS return the token so user can verify manually
     res.json({ 
       success: true, 
-      message: "Verification email sent. Please check your inbox." 
+      message: "Verification code ready",
+      token: verifyToken,
+      link: verifyLink
     });
     
   } catch (err) {
     console.error("Resend error:", err);
-    res.status(500).json({ error: "Error sending verification email" });
+    res.status(500).json({ error: "Error processing request" });
   }
 });
 

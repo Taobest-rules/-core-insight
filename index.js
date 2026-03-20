@@ -1982,10 +1982,11 @@ app.get("/api/courses", async (req, res) => {
 });
 
 // =================== COMPLETELY FIXED DOWNLOAD ENDPOINT ===================
+// =================== FIXED COURSE DOWNLOAD ENDPOINT ===================
 app.get('/api/download/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const userId = req.session?.userId;
+    const userId = req.session?.user?.id;
     
     console.log(`📥 Download request - Course: ${courseId}, User: ${userId || 'Not logged in'}`);
     
@@ -1994,7 +1995,7 @@ app.get('/api/download/:courseId', async (req, res) => {
     }
     
     // Get course details
-    const [courses] = await db.query(
+    const courses = await db.query(
       'SELECT * FROM courses WHERE id = ?',
       [courseId]
     );
@@ -2009,23 +2010,34 @@ app.get('/api/download/:courseId', async (req, res) => {
     // Check if user has access (free or purchased)
     let hasAccess = course.price === 0 || course.type === 'free';
     
-    if (!hasAccess) {
-      const [payments] = await db.query(
+    if (!hasAccess && userId) {
+      // Check if user purchased this course
+      const payments = await db.query(
         'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
         [courseId, userId]
       );
-      hasAccess = payments.length > 0;
+      
+      // Also check user_courses table
+      const userCourses = await db.query(
+        'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
+        [courseId, userId]
+      );
+      
+      hasAccess = (payments && payments.length > 0) || (userCourses && userCourses.length > 0);
     }
     
     if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have access to this content' });
+      console.log(`❌ User ${userId} does not have access to course ${courseId}`);
+      return res.status(403).json({ error: 'You do not have access to this content. Please purchase it first.' });
     }
+    
+    console.log(`✅ User ${userId} has access to course ${courseId}`);
     
     // Determine file path - try multiple possibilities
     let filePath = course.file_url || course.file_path;
     
     if (!filePath) {
-      console.error('No file path in database for course:', courseId);
+      console.error('❌ No file path in database for course:', courseId);
       return res.status(404).json({ error: 'File path not found in database' });
     }
     
@@ -2037,10 +2049,21 @@ app.get('/api/download/:courseId', async (req, res) => {
     
     // Check multiple possible locations
     const possiblePaths = [
+      // Absolute paths
       path.join(__dirname, 'uploads', 'courses', filename),
       path.join(__dirname, 'uploads', filename),
-      path.join(__dirname, 'uploads', filePath.replace(/^\/+/, '')),
-      path.join(__dirname, filePath.replace(/^\/+/, ''))
+      path.join(__dirname, 'public', 'uploads', 'courses', filename),
+      path.join(__dirname, 'public', 'uploads', filename),
+      
+      // Paths with the original structure
+      path.join(__dirname, filePath.replace(/^\//, '')),
+      path.join(__dirname, 'public', filePath.replace(/^\//, '')),
+      
+      // Render.com specific paths
+      `/opt/render/project/src/uploads/courses/${filename}`,
+      `/opt/render/project/src/uploads/${filename}`,
+      `/opt/render/project/src/public/uploads/courses/${filename}`,
+      `/opt/render/project/src/public/uploads/${filename}`
     ];
     
     let foundPath = null;
@@ -2056,30 +2079,72 @@ app.get('/api/download/:courseId', async (req, res) => {
     if (!foundPath) {
       // List available files to help debug
       const uploadsDir = path.join(__dirname, 'uploads', 'courses');
+      const publicUploadsDir = path.join(__dirname, 'public', 'uploads', 'courses');
+      
+      console.log('📁 Available files in uploads/courses:');
       if (fs.existsSync(uploadsDir)) {
         const files = fs.readdirSync(uploadsDir);
-        console.log('📁 Available files:', files);
+        files.forEach(f => console.log(`  - ${f}`));
+      }
+      
+      console.log('📁 Available files in public/uploads/courses:');
+      if (fs.existsSync(publicUploadsDir)) {
+        const files = fs.readdirSync(publicUploadsDir);
+        files.forEach(f => console.log(`  - ${f}`));
       }
       
       return res.status(404).json({ 
         error: 'File not found on server',
-        searched: possiblePaths,
+        message: 'The course file could not be located. Please contact support.',
         filename: filename
       });
     }
     
+    // Set proper headers for download
+    const ext = path.extname(filename).toLowerCase();
+    let contentType = 'application/octet-stream';
+    
+    if (ext === '.pdf') contentType = 'application/pdf';
+    else if (ext === '.epub') contentType = 'application/epub+zip';
+    else if (ext === '.mobi') contentType = 'application/x-mobipocket-ebook';
+    else if (ext === '.mp4') contentType = 'video/mp4';
+    else if (ext === '.zip') contentType = 'application/zip';
+    else if (ext === '.doc' || ext === '.docx') contentType = 'application/msword';
+    else if (ext === '.txt') contentType = 'text/plain';
+    
+    // Create a safe filename for download
+    const safeFilename = course.title 
+      ? course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ext
+      : filename;
+    
+    console.log(`📤 Sending file: ${safeFilename} (${contentType})`);
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', fs.statSync(foundPath).size);
+    
     // Send file
-    res.download(foundPath, filename, (err) => {
+    res.sendFile(foundPath, (err) => {
       if (err) {
-        console.error('Download error:', err);
+        console.error('❌ Error sending file:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Error downloading file' });
+        }
+      } else {
+        console.log(`✅ File sent successfully: ${safeFilename}`);
+        
+        // Track download in database (optional)
+        if (userId) {
+          db.query(
+            'INSERT INTO course_downloads (course_id, user_id, downloaded_at) VALUES (?, ?, NOW())',
+            [courseId, userId]
+          ).catch(err => console.error('Error tracking download:', err));
         }
       }
     });
     
   } catch (error) {
-    console.error('Download error:', error);
+    console.error('❌ Download error:', error);
     res.status(500).json({ error: 'Server error: ' + error.message });
   }
 });
@@ -3158,26 +3223,49 @@ app.get("/api/admin/recover-files", async (req, res) => {
 });
 
 // =================== FIXED CHECK ACCESS ENDPOINT ===================
+// =================== FIXED CHECK ACCESS ENDPOINT ===================
 app.get('/api/check-access/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const userId = req.session?.userId;
+    const userId = req.session?.user?.id;
     
-    const [courses] = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    if (!userId) {
+      return res.status(401).json({ 
+        hasAccess: false,
+        error: 'Please login first' 
+      });
+    }
+    
+    // Get course details
+    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
     
     if (!courses || courses.length === 0) {
-      return res.status(404).json({ error: 'Course not found' });
+      return res.status(404).json({ 
+        hasAccess: false,
+        error: 'Course not found' 
+      });
     }
     
     const course = courses[0];
+    
+    // Check if free course
     let hasAccess = course.price === 0 || course.type === 'free';
     
+    // If not free, check if purchased
     if (!hasAccess && userId) {
-      const [payments] = await db.query(
+      // Check payments table
+      const payments = await db.query(
         'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
         [courseId, userId]
       );
-      hasAccess = payments.length > 0;
+      
+      // Check user_courses table
+      const userCourses = await db.query(
+        'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
+        [courseId, userId]
+      );
+      
+      hasAccess = (payments && payments.length > 0) || (userCourses && userCourses.length > 0);
     }
     
     res.json({
@@ -3191,8 +3279,11 @@ app.get('/api/check-access/:courseId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Access check error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Access check error:', error);
+    res.status(500).json({ 
+      hasAccess: false,
+      error: 'Server error' 
+    });
   }
 });
 
@@ -3312,8 +3403,10 @@ app.delete('/api/courses/:id', async (req, res) => {
 // =================== FIXED PRODUCTS GET ENDPOINT ===================
 app.get("/api/products", async (req, res) => {
   try {
+    console.log('📦 Fetching products...');
+    
     // Get all products including imported ones
-    const result = await db.query(`
+    const products = await db.query(`
       SELECT 
         p.*,
         u.username as seller_name
@@ -3323,22 +3416,10 @@ app.get("/api/products", async (req, res) => {
       ORDER BY p.created_at DESC
     `);
     
-    // Handle the result format from mysql2
-    let products = [];
-    if (Array.isArray(result)) {
-      if (result.length === 2 && Array.isArray(result[0])) {
-        products = result[0];
-      } else if (result.length > 0) {
-        products = result;
-      }
-    } else if (result && result.rows) {
-      products = result.rows;
-    }
-
     console.log(`📦 Found ${products.length} products in database`);
     
     // Process each product
-    products = products.map(product => {
+    const processedProducts = products.map(product => {
       // Convert price to number
       product.price = parseFloat(product.price || 0);
       
@@ -3361,27 +3442,49 @@ app.get("/api/products", async (req, res) => {
         ? product.original_price - product.platform_fee 
         : product.price;
       
-      // Handle image URLs
+      // CRITICAL FIX: Handle image_urls which is JSON type in MySQL
       if (product.image_urls) {
         try {
-          product.images = JSON.parse(product.image_urls);
-          // Filter out any invalid image URLs
-          product.images = product.images.filter(img => 
-            img && typeof img === 'string' && img.startsWith('http')
-          );
-        } catch (e) {
-          if (typeof product.image_urls === 'string' && product.image_urls.startsWith('http')) {
-            product.images = [product.image_urls];
+          // If it's a string, try to parse it
+          if (typeof product.image_urls === 'string') {
+            // Check if it looks like JSON
+            if (product.image_urls.startsWith('[') || product.image_urls.startsWith('{')) {
+              product.images = JSON.parse(product.image_urls);
+            } else {
+              // It's a single URL string
+              product.images = [product.image_urls];
+            }
+          } else if (Array.isArray(product.image_urls)) {
+            // It's already an array (from JSON type)
+            product.images = product.image_urls;
           } else {
             product.images = [];
           }
+          
+          // Filter out any invalid image URLs
+          product.images = product.images.filter(img => 
+            img && typeof img === 'string' && img.length > 0
+          );
+        } catch (e) {
+          console.log(`⚠️ Error parsing image_urls for product ${product.id}:`, e.message);
+          // If parsing fails, treat as single URL
+          product.images = product.image_urls ? [product.image_urls] : [];
         }
       } else {
-        product.images = [];
+        // Handle legacy images field if it exists
+        if (product.images && typeof product.images === 'string') {
+          try {
+            product.images = JSON.parse(product.images);
+          } catch (e) {
+            product.images = [product.images];
+          }
+        } else if (!product.images) {
+          product.images = [];
+        }
       }
       
       // If no images, add a default based on category
-      if (product.images.length === 0) {
+      if (!product.images || product.images.length === 0) {
         const categoryDefaultImages = {
           'electronics': 'https://placehold.co/400x250/2563eb/ffffff/png?text=Electronics',
           'clothing': 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Clothing',
@@ -3417,7 +3520,9 @@ app.get("/api/products", async (req, res) => {
       return product;
     });
     
-    res.json(products);
+    // Set proper content type
+    res.setHeader('Content-Type', 'application/json');
+    res.json(processedProducts);
     
   } catch (err) {
     console.error('❌ Error fetching products:', err);
@@ -3427,7 +3532,6 @@ app.get("/api/products", async (req, res) => {
     });
   }
 });
-
 
 // =================== FIXED PRODUCT UPLOAD ENDPOINT ===================
 app.post("/api/upload-product", (req, res) => {

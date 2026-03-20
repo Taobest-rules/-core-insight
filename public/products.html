@@ -3810,23 +3810,24 @@
       }).join(', ');
     }
     
-    /**
-     * Get image URL with fallback for local paths during migration
-     * @param {string|Array} images - Image URL(s) from product
-     * @param {number} index - Index of image to get
-     * @returns {string} - Image URL
-     */
-   function getProductImage(images, index = 0) {
-  if (!images) return null;
+ /**
+ * Get image URL with fallback for local paths during migration
+ * @param {string|Array} images - Image URL(s) from product
+ * @param {number} index - Index of image to get
+ * @returns {string} - Image URL
+ */
+function getProductImage(images, index = 0) {
+  if (!images) return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
   
   let imageArray = [];
   
   // Parse images if they're stored as JSON string or array
   if (typeof images === 'string') {
     try {
+      // Try to parse as JSON first
       imageArray = JSON.parse(images);
     } catch (e) {
-      // If it's a single string, treat as array with one item
+      // If it's not JSON, treat as a single URL string
       imageArray = [images];
     }
   } else if (Array.isArray(images)) {
@@ -3834,8 +3835,16 @@
   }
   
   // Get the specific image at index
-  const imagePath = imageArray[index] || null;
-  if (!imagePath) return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+  const imagePath = imageArray[index] || imageArray[0] || null;
+  
+  if (!imagePath) {
+    return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+  }
+  
+  // If it's already a full URL (starts with http or https), return it
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
   
   // Clean the path - remove any leading dots or extra slashes
   let cleanPath = imagePath;
@@ -3851,7 +3860,6 @@
   }
   
   // Construct the full URL
-  // For Render, your base URL is your app's domain
   const baseUrl = window.location.origin; // This gets https://your-app.onrender.com
   const fullUrl = baseUrl + cleanPath;
   
@@ -3861,6 +3869,14 @@
   return fullUrl;
 }
 
+window.switchMainImage = function(productId, thumbIndex) {
+  const prod = products.find(p => p.id == productId);
+  if (!prod || !prod._imageList || !prod._imageList[thumbIndex]) return;
+  const main = document.getElementById('mainimg-' + productId);
+  if (main) {
+    main.src = prod._imageList[thumbIndex];
+  }
+};
     // ================= CURRENCY CONVERSION SYSTEM =================
     // Variables for currency conversion
     let userCurrency = 'NGN'; // Default currency
@@ -5884,17 +5900,20 @@ function createAffiliateBlock() {
 }
 
 // ---------- Fetch & render products ----------
-async function loadProducts(){
+
+  async function loadProducts() {
   try {
     showSkeletonLoader();
-    const r = await fetch('/api/products');
-    if (!r.ok) { 
+    const response = await fetch('/api/products');
+    
+    if (!response.ok) { 
       products = []; 
       renderProducts(); 
       return; 
     }
     
-    products = await r.json() || [];
+    const data = await response.json();
+    products = data || [];
     
     // Also load favorite counts if user is logged in
     if (currentUser) {
@@ -5904,25 +5923,29 @@ async function loadProducts(){
     products = products.map(p => {
       p.price = Number(p.price || 0);
       
-      // Handle images - now using Cloudinary URLs from database
-      if (p.image_urls) {
+      // Handle images - IMPORTANT: This now uses the processed images from backend
+      // But we still need to ensure _imageList is set
+      if (p.images && Array.isArray(p.images)) {
+        p._imageList = p.images;
+      } else if (p.image_urls) {
+        // Fallback in case backend didn't process it
         try {
-          p.images = JSON.parse(p.image_urls);
-        } catch(e) {
-          p.images = [p.image_urls];
+          if (typeof p.image_urls === 'string') {
+            p._imageList = JSON.parse(p.image_urls);
+          } else {
+            p._imageList = p.image_urls;
+          }
+        } catch (e) {
+          p._imageList = [p.image_urls];
         }
-      } else if (p.images && typeof p.images === 'string') {
-        try { 
-          p.images = JSON.parse(p.images); 
-        } catch(e) {
-          p.images = [p.images];
-        }
+      } else {
+        p._imageList = [];
       }
       
-      // Build image list with Cloudinary optimization
-      p._imageList = Array.isArray(p.images) && p.images.length ? 
-        p.images.map(img => getOptimizedImageUrl(img, { width: 400, height: 300 })) :
-        (p.file_url ? [getOptimizedImageUrl(p.file_url, { width: 400, height: 300 })] : []);
+      // Ensure we have at least one image
+      if (!p._imageList || p._imageList.length === 0) {
+        p._imageList = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+      }
       
       p.rating = Number(p.rating || 0);
       p.seller_name = p.seller_name || p.username || p.seller || 'Seller';
@@ -5931,35 +5954,27 @@ async function loadProducts(){
       // Add category to set for dropdown
       if (p.category) categoriesSet.add(p.category);
       
-      // IMPORTANT: Use favorite_count from database if available, otherwise use favoriteCounts from API
-      // This ensures total likes across all users is shown
+      // Use favorite_count from database
       p.favorite_count = Number(p.favorite_count || p.favorites || 0);
       
-      // Override with actual count from favoriteCounts if available (more accurate)
+      // Override with actual count from favoriteCounts if available
       if (favoriteCounts && favoriteCounts[p.id] !== undefined) {
         p.favorite_count = favoriteCounts[p.id];
       }
       
-      // Review count - this should already be total from database
       p.review_count = Number(p.review_count || p.reviews || 0);
-      
-      // Set default delivery type for physical products to 'delivery' (Home Delivery)
-      if (p.type === 'physical' && !p.delivery_type) {
-        p.delivery_type = 'delivery';
-      }
       
       return p;
     });
     
     populateCategoryFilter();
     renderProducts();
-  } catch(err){
-    console.error('loadProducts', err);
+  } catch (err) {
+    console.error('loadProducts error:', err);
     products = [];
     renderProducts();
   }
-}
-    function populateCategoryFilter(){
+}    function populateCategoryFilter(){
       const sel = $('filterCategory');
       const existing = new Set(Array.from(sel.options).map(o=>o.value));
       categoriesSet.forEach(cat=>{
@@ -5999,34 +6014,26 @@ async function loadProducts(){
 
 // Generate product cards
 grid.innerHTML = list.map(p => {
-  // Get the first image using the fixed function
-  const productImage = getProductImage(p.images, 0);
+ // Inside renderProducts, find where you generate the product card HTML
+// Replace the image section with this:
+
+// Get the first image
+const productImage = p._imageList && p._imageList.length > 0 
+  ? p._imageList[0] 
+  : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+
+// Generate thumbnails for additional images
+const thumbHtml = (() => {
+  if (!p._imageList || p._imageList.length <= 1) return '';
   
-  // Generate thumbnails for additional images
-  const thumbHtml = (() => {
-    if (!p.images) return '';
-    
-    let imageArray = [];
-    if (typeof p.images === 'string') {
-      try {
-        imageArray = JSON.parse(p.images);
-      } catch (e) {
-        imageArray = [p.images];
-      }
-    } else if (Array.isArray(p.images)) {
-      imageArray = p.images;
-    }
-    
-    // Take first 3 images for thumbnails (excluding the main one)
-    return imageArray.slice(1, 4).map((thumbPath, idx) => {
-      const thumbUrl = getProductImage([thumbPath], 0);
-      return `<img src="${thumbUrl}" alt="thumb${idx + 1}" 
-                    onclick="switchMainImage(${p.id}, ${idx + 1})" 
-                    loading="lazy"
-                    onerror="this.onerror=null; this.style.display='none';">`;
-    }).join('');
-  })();
-  
+  // Take first 3 images for thumbnails (excluding the main one)
+  return p._imageList.slice(1, 4).map((thumbPath, idx) => {
+    return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
+                  onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
+                  loading="lazy"
+                  onerror="this.onerror=null; this.style.display='none';">`;
+  }).join('');
+})();
   const seller = escapeHtml(p.seller_name || 'Seller');
   const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
   const desc = escapeHtml((p.description || '').slice(0, 120));

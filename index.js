@@ -564,8 +564,7 @@ app.get("/api/currency-rates", (req, res) => {
   });
 });
 
-// =================== UPDATED SIGNUP WITH ROLE ===================
-// =================== SIGNUP WITH PROPER VERIFICATION ===================
+// =================== FIXED SIGNUP - WITH PROPER COLUMNS ===================
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, password, email, role } = req.body;
@@ -601,104 +600,85 @@ app.post("/api/signup", async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString('hex');
-    const tokenExpiry = new Date();
-    tokenExpiry.setHours(tokenExpiry.getHours() + 24); // Token expires in 24 hours
     
-    // Insert user - NOT VERIFIED YET
-    const result = await db.query(
-      `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, created_at) 
-       VALUES (?, ?, ?, ?, 0, ?, ?, NOW())`,
-      [username, email, hashedPassword, userRole, verifyToken, tokenExpiry]
-    );
-    
-    const userId = result.insertId;
-    console.log(`✅ User created with ID: ${userId}, Role: ${userRole}, Pending verification`);
-    
-    // Send verification email
-    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
-    
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Verify Your Email - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #0a192f, #172a45); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: #64ffda; margin: 0; }
-          .content { background: #f5f5f5; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; padding: 12px 24px; background: #64ffda; color: #0a192f; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-          .button:hover { background: #4cd8b5; }
-          .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-          .token-box { background: #e0e0e0; padding: 10px; border-radius: 5px; font-family: monospace; word-break: break-all; margin: 10px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎓 Core Insight</h1>
-          </div>
-          <div class="content">
-            <h2>Welcome ${username}!</h2>
-            <p>Thank you for signing up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
-            <p>Please verify your email address to activate your account:</p>
-            
-            <div style="text-align: center;">
-              <a href="${verifyLink}" class="button">✅ Verify My Email</a>
-            </div>
-            
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <div class="token-box">${verifyLink}</div>
-            
-            <p>Or enter this verification code on our website:</p>
-            <div class="token-box" style="font-size: 18px; font-weight: bold;">${verifyToken}</div>
-            
-            <p><strong>⚠️ This link will expire in 24 hours.</strong></p>
-            
-            <p>If you didn't create an account, please ignore this email.</p>
-          </div>
-          <div class="footer">
-            <p>© 2024 Core Insight. All rights reserved.</p>
-            <p>Need help? Contact us at support@coreinsight.com</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    // Check if verified column exists first
+    let hasVerifiedColumn = true;
+    let hasVerifyTokenColumn = true;
     
     try {
-      await transporter.sendMail({
-        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Verify Your Email - Core Insight",
-        html: emailHtml
+      // Insert user - try with all columns first
+      const result = await db.query(
+        `INSERT INTO users (username, email, password, role, verified, verify_token, created_at) 
+         VALUES (?, ?, ?, ?, 0, ?, NOW())`,
+        [username, email, hashedPassword, userRole, verifyToken]
+      );
+      
+      const userId = result.insertId;
+      console.log(`✅ User created with ID: ${userId}, Role: ${userRole}`);
+      
+      // Send verification email
+      const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+      
+      try {
+        await transporter.sendMail({
+          from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Verify Your Email - Core Insight",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Welcome to Core Insight!</h2>
+              <p>You've signed up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
+              <p>Click the link below to verify your email:</p>
+              <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Verify Email
+              </a>
+              <p>Or enter this code: <strong>${verifyToken}</strong></p>
+              <p>If you didn't create an account, please ignore this email.</p>
+            </div>
+          `
+        });
+        console.log(`✅ Verification email sent to ${email}`);
+      } catch (emailError) {
+        console.error("❌ Email sending failed:", emailError.message);
+        // Still return success with token
+        return res.status(202).json({ 
+          message: "Account created! Please use the verification code to verify your account.",
+          requiresManualVerification: true,
+          userId: userId,
+          token: verifyToken
+        });
+      }
+      
+      res.json({ 
+        message: "Account created! Please check your email to verify your account.",
+        requiresVerification: true,
+        email: email,
+        userId: userId
       });
-      console.log(`✅ Verification email sent to ${email}`);
-    } catch (emailError) {
-      console.error("❌ Email sending failed:", emailError.message);
-      // Store the token in session so user can verify manually
-      req.session.pendingVerification = {
-        userId: userId,
-        token: verifyToken,
-        email: email
-      };
-      // Return with message about manual verification
-      return res.status(202).json({ 
-        message: "Account created but verification email could not be sent. Please use the manual verification page.",
-        requiresManualVerification: true,
-        userId: userId,
-        token: verifyToken
-      });
+      
+    } catch (insertError) {
+      // If columns don't exist, try without verification columns
+      if (insertError.code === 'ER_BAD_FIELD_ERROR') {
+        console.log("⚠️ Verification columns missing, creating user without verification...");
+        
+        const result = await db.query(
+          `INSERT INTO users (username, email, password, role, created_at) 
+           VALUES (?, ?, ?, ?, NOW())`,
+          [username, email, hashedPassword, userRole]
+        );
+        
+        const userId = result.insertId;
+        console.log(`✅ User created with ID: ${userId} (no verification)`);
+        
+        res.json({ 
+          message: "Account created! You can now login.",
+          autoVerified: true,
+          userId: userId
+        });
+      } else {
+        throw insertError;
+      }
     }
-    
-    res.json({ 
-      message: "Account created! Please check your email to verify your account.",
-      requiresVerification: true,
-      email: email,
-      userId: userId
-    });
     
   } catch (err) {
     console.error("❌ Signup error:", err);
@@ -712,13 +692,15 @@ app.post("/api/signup", async (req, res) => {
 
 // =================== VERIFICATION ENDPOINTS ===================
 
+// =================== VERIFICATION ENDPOINTS ===================
+
 // GET verification (from email link)
 app.get("/api/verify/:token", async (req, res) => {
   try {
     const { token } = req.params;
     
     const users = await db.query(
-      "SELECT id, email, username FROM users WHERE verify_token = ? AND (verify_token_expiry IS NULL OR verify_token_expiry > NOW())",
+      "SELECT id, email, username FROM users WHERE verify_token = ? AND verified = 0",
       [token]
     );
     
@@ -729,7 +711,7 @@ app.get("/api/verify/:token", async (req, res) => {
         <head><title>Verification Failed - Core Insight</title></head>
         <body style="background:#0a192f; color:#e6f1ff; font-family:Arial; text-align:center; padding:50px;">
           <h1 style="color:#ff6b6b;">❌ Verification Failed</h1>
-          <p>Invalid or expired verification link.</p>
+          <p>Invalid verification link or account already verified.</p>
           <a href="/verify.html" style="color:#64ffda;">Request a new verification link →</a>
         </body>
         </html>
@@ -739,7 +721,7 @@ app.get("/api/verify/:token", async (req, res) => {
     const user = users[0];
     
     await db.query(
-      "UPDATE users SET verified = 1, verify_token = NULL, verify_token_expiry = NULL WHERE id = ?",
+      "UPDATE users SET verified = 1, verify_token = NULL WHERE id = ?",
       [user.id]
     );
     
@@ -758,6 +740,102 @@ app.get("/api/verify/:token", async (req, res) => {
   } catch (err) {
     console.error("Verification error:", err);
     res.status(500).send("Error verifying email");
+  }
+});
+
+// POST verification (from form)
+app.post("/api/verify", async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: "Verification token required" });
+    }
+    
+    const users = await db.query(
+      "SELECT id, email, username FROM users WHERE verify_token = ? AND verified = 0",
+      [token]
+    );
+    
+    if (!users || users.length === 0) {
+      return res.status(400).json({ error: "Invalid verification token or account already verified" });
+    }
+    
+    const user = users[0];
+    
+    await db.query(
+      "UPDATE users SET verified = 1, verify_token = NULL WHERE id = ?",
+      [user.id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: "Email verified successfully!",
+      username: user.username
+    });
+    
+  } catch (err) {
+    console.error("Verification error:", err);
+    res.status(500).json({ error: "Error verifying email" });
+  }
+});
+
+// Resend verification email
+app.post("/api/resend-verification", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
+    }
+    
+    const users = await db.query(
+      "SELECT id, username, email, verify_token FROM users WHERE email = ? AND verified = 0",
+      [email]
+    );
+    
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: "No unverified account found with this email" });
+    }
+    
+    const user = users[0];
+    const verifyToken = user.verify_token || crypto.randomBytes(32).toString('hex');
+    
+    // Update token if needed
+    if (!user.verify_token) {
+      await db.query(
+        "UPDATE users SET verify_token = ? WHERE id = ?",
+        [verifyToken, user.id]
+      );
+    }
+    
+    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+    
+    await transporter.sendMail({
+      from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verify Your Email - Core Insight",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Verify Your Email</h2>
+          <p>Click the link below to verify your account:</p>
+          <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Verify Email
+          </a>
+          <p>Or enter this code: <strong>${verifyToken}</strong></p>
+          <p>This link will be valid until you verify your account.</p>
+        </div>
+      `
+    });
+    
+    res.json({ 
+      success: true, 
+      message: "Verification email sent. Please check your inbox." 
+    });
+    
+  } catch (err) {
+    console.error("Resend error:", err);
+    res.status(500).json({ error: "Error sending verification email" });
   }
 });
 

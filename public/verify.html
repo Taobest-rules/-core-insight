@@ -196,95 +196,49 @@
             document.getElementById('tokenInput').value = urlToken;
             verifyEmail();
         }
+        // In verify.html, update the verifyEmail function to handle the response properly
+async function verifyEmail() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const messageDiv = document.getElementById('message');
+    const verifyBtn = document.getElementById('verifyBtn');
+    
+    if (!token) {
+        showMessage('Please enter your verification code', 'error');
+        return;
+    }
+    
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+    
+    try {
+        const response = await fetch('/api/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token })
+        });
         
-        async function verifyEmail() {
-            const token = document.getElementById('tokenInput').value.trim();
-            const messageDiv = document.getElementById('message');
-            const verifyBtn = document.getElementById('verifyBtn');
-            const title = document.getElementById('title');
-            const icon = document.getElementById('icon');
-            const description = document.getElementById('description');
-            
-            if (!token) {
-                showMessage('Please enter your verification code', 'error');
-                return;
-            }
-            
-            verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
-            
-            try {
-                const response = await fetch('/api/verify', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    icon.innerHTML = '✅';
-                    icon.className = 'success-icon';
-                    title.innerHTML = 'Email Verified! 🎉';
-                    description.innerHTML = 'Your account has been successfully verified.';
-                    messageDiv.innerHTML = '';
-                    verifyBtn.style.display = 'none';
-                    
-                    showMessage('Redirecting to login page...', 'success');
-                    
-                    setTimeout(() => {
-                        window.location.href = '/login.html?verified=true';
-                    }, 2000);
-                } else {
-                    icon.innerHTML = '❌';
-                    icon.className = 'error-icon';
-                    title.innerHTML = 'Verification Failed';
-                    description.innerHTML = 'Invalid or expired verification code.';
-                    showMessage(data.error || 'The verification link is invalid or has expired. Please request a new one.', 'error');
-                    verifyBtn.innerHTML = 'Try Again';
-                    verifyBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Verification error:', error);
-                showMessage('Network error. Please try again.', 'error');
-                verifyBtn.innerHTML = 'Try Again';
-                verifyBtn.disabled = false;
-            }
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage('✅ Email verified successfully! Redirecting to login...', 'success');
+            setTimeout(() => {
+                window.location.href = '/login.html?verified=true';
+            }, 2000);
+        } else {
+            showMessage(data.error || 'Invalid or expired verification code', 'error');
+            verifyBtn.innerHTML = 'Try Again';
+            verifyBtn.disabled = false;
         }
-        
-        async function resendVerification() {
-            const email = prompt('Enter your email address to receive a new verification link:');
-            
-            if (!email) return;
-            
-            const messageDiv = document.getElementById('message');
-            
-            try {
-                showMessage('Sending verification email...', 'info');
-                
-                const response = await fetch('/api/resend-verification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showMessage('Verification email sent! Please check your inbox.', 'success');
-                } else {
-                    showMessage(data.error || 'Failed to send verification email.', 'error');
-                }
-            } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-            }
-        }
-        
-        function showMessage(msg, type) {
+    } catch (error) {
+        console.error('Verification error:', error);
+        showMessage('Network error. Please try again.', 'error');
+        verifyBtn.innerHTML = 'Try Again';
+        verifyBtn.disabled = false;
+    }
+}
+              function showMessage(msg, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
             

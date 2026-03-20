@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Courses - Admin</title>
+  <style>
+    body {
+      background: #0a192f;
+      color: #e6f1ff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .course-card {
+      background: #172a45;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #64ffda;
+    }
+    .course-card.missing {
+      border-left-color: #ff6b6b;
+    }
+    .course-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .course-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+    .status.exists {
+      background: #10b981;
+      color: white;
+    }
+    .status.missing {
+      background: #ef4444;
+      color: white;
+    }
+    .file-input {
+      margin: 10px 0;
+      padding: 10px;
+      background: #0a192f;
+      border: 1px solid #64ffda;
+      border-radius: 8px;
+      color: white;
+    }
+    button {
+      background: #64ffda;
+      color: #0a192f;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    button.danger {
+      background: #ef4444;
+      color: white;
+    }
+    .success {
+      color: #64ffda;
+    }
+    .error {
+      color: #ff6b6b;
+    }
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Fix Missing Course Files</h1>
+    <p>This page helps you re-upload missing course files.</p>
+    <button onclick="checkFiles()">🔍 Check All Files</button>
+    <button onclick="loadCourses()">🔄 Refresh</button>
+    <div id="courses"></div>
+  </div>
+
+  <script>
+    async function checkFiles() {
+      const res = await fetch('/api/debug/course-files');
+      const data = await res.json();
+      console.log('File check result:', data);
+      renderCourses(data.database_courses);
+    }
+    
+    async function loadCourses() {
+      const res = await fetch('/api/courses');
+      const courses = await res.json();
+      
+      // Check file existence
+      const fileCheck = await fetch('/api/debug/course-files');
+      const fileData = await fileCheck.json();
+      
+      renderCoursesWithFileCheck(courses, fileData.database_courses);
+    }
+    
+    function renderCoursesWithFileCheck(courses, fileCheck) {
+      const container = document.getElementById('courses');
+      
+      container.innerHTML = courses.map(course => {
+        const fileInfo = fileCheck.find(f => f.id === course.id);
+        const hasFile = fileInfo?.file_exists || false;
+        
+        return `
+          <div class="course-card ${!hasFile ? 'missing' : ''}">
+            <div class="course-header">
+              <span class="course-title">${course.title}</span>
+              <span class="status ${hasFile ? 'exists' : 'missing'}">
+                ${hasFile ? '✅ File exists' : '❌ File missing'}
+              </span>
+            </div>
+            <p><strong>Current file path:</strong> ${course.file_path || 'None'}</p>
+            ${!hasFile ? `
+              <form onsubmit="reuploadCourse(event, ${course.id})" enctype="multipart/form-data">
+                <div>
+                  <label>Course File (PDF, EPUB, MP4):</label><br>
+                  <input type="file" name="file" required accept=".pdf,.epub,.mp4,.mov,.zip" class="file-input">
+                </div>
+                <div style="margin-top: 10px;">
+                  <label>Thumbnail Image (optional):</label><br>
+                  <input type="file" name="thumbnail" accept="image/*" class="file-input">
+                </div>
+                <div style="margin-top: 15px;">
+                  <button type="submit">📤 Upload & Fix</button>
+                  <button type="button" class="danger" onclick="deleteCourse(${course.id})">🗑️ Delete Course</button>
+                </div>
+              </form>
+            ` : `
+              <div style="margin-top: 15px;">
+                <button onclick="window.location.href='/api/download/${course.id}'">⬇️ Download</button>
+                <button type="button" class="danger" onclick="deleteCourse(${course.id})">🗑️ Delete Course</button>
+              </div>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderCourses(courses) {
+      const container = document.getElementById('courses');
+      
+      container.innerHTML = courses.map(course => `
+        <div class="course-card ${!course.file_exists ? 'missing' : ''}">
+          <div class="course-header">
+            <span class="course-title">${course.title}</span>
+            <span class="status ${course.file_exists ? 'exists' : 'missing'}">
+              ${course.file_exists ? '✅ File exists' : '❌ File missing'}
+            </span>
+          </div>
+          <p><strong>Database path:</strong> ${course.db_path || 'None'}</p>
+          <p><strong>File location:</strong> ${course.file_location || 'Not found'}</p>
+          ${!course.file_exists ? `
+            <form onsubmit="reuploadCourse(event, ${course.id})" enctype="multipart/form-data">
+              <div>
+                <label>Course File:</label><br>
+                <input type="file" name="file" required accept=".pdf,.epub,.mp4,.mov,.zip" class="file-input">
+              </div>
+              <div style="margin-top: 10px;">
+                <label>Thumbnail (optional):</label><br>
+                <input type="file" name="thumbnail" accept="image/*" class="file-input">
+              </div>
+              <div style="margin-top: 15px;">
+                <button type="submit">📤 Upload & Fix</button>
+              </div>
+            </form>
+          ` : `
+            <button onclick="window.location.href='/api/download/${course.id}'">⬇️ Download</button>
+          `}
+        </div>
+      `).join('');
+    }
+    
+    async function reuploadCourse(event, courseId) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      
+      submitBtn.textContent = 'Uploading...';
+      submitBtn.disabled = true;
+      
+      try {
+        const res = await fetch(`/api/courses/${courseId}/reupload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert('✅ ' + data.message);
+          loadCourses();
+        } else {
+          alert('❌ Error: ' + (data.error || 'Upload failed'));
+        }
+      } catch (error) {
+        alert('❌ Upload failed: ' + error.message);
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+    
+    async function deleteCourse(courseId) {
+      if (!confirm('⚠️ Are you sure you want to delete this course? This cannot be undone!')) return;
+      
+      try {
+        const res = await fetch(`/api/courses/${courseId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert('✅ Course deleted successfully');
+          loadCourses();
+        } else {
+          alert('❌ Error: ' + (data.error || 'Delete failed'));
+        }
+      } catch (error) {
+        alert('❌ Error: ' + error.message);
+      }
+    }
+    
+    // Load on page load
+    checkFiles();
+  </script>
+</body>
+</html>

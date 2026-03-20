@@ -9192,7 +9192,6 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
     });
   }
 }); 
-
 app.post("/api/initiate-payment", async (req, res) => {
   console.log('💳 Payment initiation request received');
   
@@ -9235,11 +9234,11 @@ app.post("/api/initiate-payment", async (req, res) => {
       });
     }
     
-    const tx_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
     const amount = parseFloat(course.price);
     
     const payload = {
-      tx_ref: tx_ref,
+      tx_ref: transaction_ref,  // Flutterwave uses tx_ref
       amount: amount,
       currency: "NGN",
       redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
@@ -9274,17 +9273,24 @@ app.post("/api/initiate-payment", async (req, res) => {
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
       console.log('✅ Payment link created');
       
-      // Store pending payment
-      await db.query(
-        `INSERT INTO payments (user_id, course_id, tx_ref, amount, status, created_at)
-         VALUES (?, ?, ?, ?, 'pending', NOW())`,
-        [req.session.user.id, courseId, tx_ref, amount]
-      );
+      // Store pending payment with correct column names
+      try {
+        await db.query(
+          `INSERT INTO payments 
+           (user_id, course_id, transaction_ref, amount, status, created_at)
+           VALUES (?, ?, ?, ?, 'pending', NOW())`,
+          [req.session.user.id, courseId, transaction_ref, amount]
+        );
+        console.log('✅ Payment recorded in database');
+      } catch (dbError) {
+        console.error('⚠️ Could not save payment to database:', dbError.message);
+        // Don't fail the payment - just log the error
+      }
       
       res.json({
         status: "success",
         paymentLink: response.data.data.link,
-        transactionRef: tx_ref
+        transactionRef: transaction_ref
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);
@@ -9308,48 +9314,65 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   try {
     const { transaction_id } = req.params;
     
-    const response = await flw.Transaction.verify({ id: transaction_id });
+    console.log('🔍 Verifying payment:', transaction_id);
     
-    if (response.data.status === "successful") {
-      const transactionRef = response.data.tx_ref;
-      const productId = response.data.meta?.product_id;
-      const userId = response.data.meta?.user_id;
-      
-      // Get product details to verify amount
-      const product = await db.query(
-        "SELECT original_price FROM products WHERE id = ?",
-        [productId]
-      );
-      
-      const expectedAmount = product[0]?.original_price || response.data.amount;
-      
-      // Verify the paid amount matches the original price
-      if (Math.abs(response.data.amount - expectedAmount) > 0.01) {
-        console.error('Amount mismatch:', response.data.amount, expectedAmount);
-        return res.status(400).json({ error: "Payment amount mismatch" });
+    // Verify with Flutterwave
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        }
       }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const tx_ref = transaction.tx_ref;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
       
-      // Update order status
+      console.log('✅ Payment verified:', { tx_ref, amount, courseId, userId });
+      
+      // Update payment record
       await db.query(
-        `UPDATE physical_orders SET payment_status = 'completed' WHERE transaction_id = ?`,
-        [transaction_id]
+        `UPDATE payments 
+         SET status = 'completed', 
+             transaction_id = ?,
+             flutterwave_response = ?
+         WHERE transaction_ref = ?`,
+        [transaction_id, JSON.stringify(transaction), tx_ref]
       );
       
-      // Split the payment
-      const platformFee = response.data.amount * 0.1;
-      const sellerEarnings = response.data.amount - platformFee;
-      
-      // Record the split
+      // Grant course access to user
       await db.query(
-        `INSERT INTO payment_splits (order_id, total_amount, platform_fee, seller_earnings)
-         VALUES (?, ?, ?, ?)`,
-        [orderId, response.data.amount, platformFee, sellerEarnings]
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
       );
       
-      res.json({ status: "success" });
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        data: transaction
+      });
+    } else {
+      console.log('❌ Payment not successful:', response.data);
+      res.status(400).json({ 
+        status: "failed", 
+        message: "Payment not successful" 
+      });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Verification error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({ 
+      error: "Error verifying payment: " + err.message 
+    });
   }
 });
 

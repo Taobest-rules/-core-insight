@@ -4577,12 +4577,21 @@ app.post("/api/upload-product", (req, res) => {
       let originalPrice = listedPrice;
       let platformFee = 0;
       
-      if (type === 'physical') {
-        platformFee = listedPrice * 0.1;
-        sellerPrice = listedPrice - platformFee;
-        originalPrice = listedPrice;
-      }
-
+     // In the /api/upload-product endpoint, update the pricing section
+if (type === 'physical') {
+    const productCostValue = parseFloat(product_cost) || 3.00;
+    const profitMargin = originalPrice - productCostValue;
+    
+    // Base platform fee is 10% of profit margin
+    const basePlatformFee = profitMargin * 0.10;
+    
+    // Store in database
+    platformFee = basePlatformFee;
+    sellerPrice = originalPrice - platformFee - productCostValue;
+    
+    // Store product_cost for later use
+    // product_cost is already being stored
+}
       // Process images
       let imageUrls = [];
       if (req.files && req.files['images[]'] && req.files['images[]'].length > 0) {
@@ -4720,18 +4729,15 @@ app.get("/api/products/:id/delivery-days", async (req, res) => {
   }
 });
 
-// Create payment for physical order (before creating the actual order)
+// Create payment for physical order with new fee structure
 app.post("/api/create-physical-order-payment", async (req, res) => {
   try {
     console.log("💰 Creating physical order payment...");
     console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
     
     if (!req.session.user) {
-      console.log("❌ No user session");
       return res.status(401).json({ error: "Please log in to place an order" });
     }
-
-    console.log("👤 User:", req.session.user.id, req.session.user.email);
 
     const {
       productId,
@@ -4747,92 +4753,90 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
       notes = ''
     } = req.body;
 
-    // Validate required fields
-    if (!productId) {
-      console.log("❌ Missing productId");
-      return res.status(400).json({ error: "Product ID is required" });
-    }
+    // Validate
+    if (!productId) return res.status(400).json({ error: "Product ID is required" });
+    if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
+    if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
     
-    if (!deliveryAddress) {
-      console.log("❌ Missing delivery address");
-      return res.status(400).json({ error: "Delivery address is required" });
-    }
-    
-    if (!deliveryPhone) {
-      console.log("❌ Missing delivery phone");
-      return res.status(400).json({ error: "Delivery phone is required" });
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: "Quantity must be between 1 and 100" });
     }
 
-    // Get the full product details
-    console.log(`🔍 Fetching product ${productId} from database...`);
+    // Get product details
     const productResult = await db.query(
-      "SELECT user_id as seller_id, original_price, platform_fee, title, price as product_price FROM products WHERE id = ?",
+      `SELECT user_id as seller_id, original_price, platform_fee, product_cost, title 
+       FROM products WHERE id = ?`,
       [productId]
     );
-    
-    console.log("📊 Product query result:", JSON.stringify(productResult, null, 2));
 
     if (!productResult || productResult.length === 0) {
-      console.log("❌ Product not found");
       return res.status(404).json({ error: "Product not found" });
     }
 
     const sellerId = productResult[0].seller_id;
     const buyerId = req.session.user.id;
-    
-    // Use original_price if available, otherwise use product's price
-    const productOriginalPrice = parseFloat(productResult[0].original_price || productResult[0].product_price || price);
-    const productPlatformFee = parseFloat(productResult[0].platform_fee || (productOriginalPrice * 0.1));
+    const productOriginalPrice = parseFloat(productResult[0].original_price || price);
+    const productCost = parseFloat(productResult[0].product_cost || 3.00);
+    const profitMargin = productOriginalPrice - productCost;
 
-    const qty = parseInt(quantity, 10);
+    // Calculate fees
+    // 1. Base platform fee: 10% of profit margin
+    const basePlatformFee = profitMargin * 0.10;
     
-    if (isNaN(qty) || qty < 1 || qty > 100) {
-      console.log("❌ Invalid quantity:", qty);
-      return res.status(400).json({ error: "Invalid quantity" });
-    }
-
+    // 2. Bulk order fee: 0.2% per unit beyond first (max 10%)
+    const bulkFeeRate = Math.min((qty - 1) * 0.002, 0.10); // 0.2% per extra unit, capped at 10%
+    const bulkOrderFee = qty > 1 ? productOriginalPrice * bulkFeeRate : 0;
+    
+    // 3. Total platform fee
+    const totalPlatformFee = (basePlatformFee * qty) + bulkOrderFee;
+    
     // Calculate totals
-    const totalAmount = qty * productOriginalPrice;
-    const totalPlatformFee = qty * productPlatformFee;
-    const sellerEarnings = totalAmount - totalPlatformFee;
+    const subtotal = qty * productOriginalPrice;
+    const totalAmount = subtotal + totalPlatformFee; // Customer pays this
+    const sellerEarnings = (qty * (productOriginalPrice - productCost)) - (basePlatformFee * qty);
 
-    console.log("💰 Payment breakdown:", {
-      productOriginalPrice,
-      productPlatformFee,
-      qty,
-      totalAmount,
-      totalPlatformFee,
-      sellerEarnings
-    });
+    // Detailed breakdown for display
+    const feeBreakdown = {
+      productSubtotal: subtotal,
+      productCostTotal: qty * productCost,
+      basePlatformFee: basePlatformFee * qty,
+      bulkOrderFee: bulkOrderFee,
+      totalPlatformFee: totalPlatformFee,
+      sellerEarnings: sellerEarnings,
+      totalAmount: totalAmount
+    };
 
-    // Generate unique transaction reference
+    console.log("💰 Payment breakdown:", feeBreakdown);
+
+    // Generate transaction reference
     const transactionRef = `physical_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-    console.log(`📝 Transaction reference: ${transactionRef}`);
 
-    // Insert order with correct enum values: 'pending' not 'pending_payment'
+    // Insert order
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
         product_name, product_type, quantity, 
         price, platform_fee, seller_earnings,
-        total_amount,
+        total_amount, product_cost_total,
+        base_platform_fee, bulk_order_fee,
         customer_name, customer_email, customer_phone,
         shipping_address, city, state, country,
         payment_method, payment_status, order_status,
         notes, estimated_delivery_days,
         transaction_ref
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        productId,
-        sellerId,
-        buyerId,
+        productId, sellerId, buyerId,
         productTitle || productResult[0].title,
-        'physical',
-        qty,
-        productOriginalPrice,      // price column
-        totalPlatformFee,           // platform_fee column
-        sellerEarnings,             // seller_earnings column
-        totalAmount,                // total_amount column
+        'physical', qty,
+        productOriginalPrice,
+        totalPlatformFee,
+        sellerEarnings,
+        totalAmount,
+        qty * productCost,
+        basePlatformFee * qty,
+        bulkOrderFee,
         req.session.user.username || 'Buyer',
         req.session.user.email,
         deliveryPhone,
@@ -4841,38 +4845,26 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         state || '',
         country || '',
         'pay_online',
-        'pending',                  // FIXED: Use 'pending' instead of 'pending_payment'
-        'pending',                  // FIXED: Use 'pending' instead of 'pending_payment'
+        'pending',
+        'pending',
         notes || '',
         parseInt(deliveryDays) || 7,
         transactionRef
       ]
     );
 
-    let orderId = null;
-    if (result) {
-      if (result.insertId) {
-        orderId = result.insertId;
-      } else if (Array.isArray(result) && result[0] && result[0].insertId) {
-        orderId = result[0].insertId;
-      }
-    }
-
+    let orderId = result.insertId;
     if (!orderId) {
-      console.log("❌ Failed to insert order");
-      throw new Error("Failed to insert order into database");
+      throw new Error("Failed to insert order");
     }
 
-    console.log(`✅ Created pending order #${orderId} with transaction ref: ${transactionRef}`);
+    console.log(`✅ Created pending order #${orderId}`);
 
-    // Check Flutterwave configuration
+    // Initialize Flutterwave payment
     if (!process.env.FLW_SECRET_KEY) {
-      console.log("❌ FLW_SECRET_KEY not configured");
       return res.status(500).json({ error: "Payment system not configured" });
     }
 
-    console.log("🚀 Initializing Flutterwave payment...");
-    
     const payload = {
       tx_ref: transactionRef,
       amount: totalAmount,
@@ -4883,19 +4875,19 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         name: req.session.user.username,
       },
       customizations: {
-        title: "Core Insight - Physical Product",
-        description: `Payment for ${productTitle || productResult[0].title} (x${qty})`,
+        title: "Core Insight - Physical Product Order",
+        description: `${productTitle || productResult[0].title} (x${qty})`,
       },
       meta: {
         order_id: orderId,
         product_id: productId,
         buyer_id: buyerId,
         seller_id: sellerId,
-        type: 'physical_order'
+        type: 'physical_order',
+        quantity: qty,
+        fee_breakdown: JSON.stringify(feeBreakdown)
       }
     };
-
-    console.log("📤 Sending to Flutterwave:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
@@ -4909,44 +4901,346 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
       }
     );
 
-    console.log("📨 Flutterwave response status:", response.status);
-    console.log("📨 Flutterwave response data:", JSON.stringify(response.data, null, 2));
-
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      console.log(`✅ Payment link created for order #${orderId}`);
-      
       res.json({
         success: true,
         paymentLink: response.data.data.link,
         transactionRef: transactionRef,
         orderId: orderId,
-        totalAmount: totalAmount
+        totalAmount: totalAmount,
+        feeBreakdown: feeBreakdown
       });
     } else {
-      console.log("❌ Flutterwave returned error:", response.data);
-      // If payment creation fails, delete the pending order
       await db.query("DELETE FROM physical_orders WHERE id = ?", [orderId]);
       throw new Error(response.data.message || "Payment initialization failed");
     }
 
   } catch (err) {
     console.error("❌ Payment creation error:", err);
-    console.error("❌ Error stack:", err.stack);
-    
-    // Check if it's an Axios error with response
-    if (err.response) {
-      console.error("❌ Axios error response:", err.response.data);
-      console.error("❌ Axios error status:", err.response.status);
-    }
-    
     res.status(500).json({ 
       error: "Failed to create payment",
-      details: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      details: err.message 
     });
   }
 });
+// Seller marks order as delivered
+app.post("/api/orders/:orderId/deliver", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
 
+    const orderId = req.params.orderId;
+    const { tracking_number, delivery_photo, notes } = req.body;
+
+    // Check if user is the seller
+    const orderCheck = await db.query(
+      "SELECT seller_id, product_name, buyer_id FROM physical_orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (!orderCheck || orderCheck.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (orderCheck[0].seller_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Only the seller can mark orders as delivered" });
+    }
+
+    // Update order status
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'delivered',
+           delivered_at = NOW(),
+           tracking_number = ?,
+           delivery_notes = ?
+       WHERE id = ?`,
+      [tracking_number || null, notes || null, orderId]
+    );
+
+    // Add delivery confirmation record
+    await db.query(
+      `INSERT INTO order_tracking (order_id, status, description, created_at)
+       VALUES (?, 'delivered', ?, NOW())`,
+      [orderId, `Order marked as delivered by seller${tracking_number ? `. Tracking: ${tracking_number}` : ''}`]
+    );
+
+    // Notify buyer
+    await db.query(
+      `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message)
+       VALUES (?, ?, 'delivery', 'Order Delivered', 
+               CONCAT('Your order "', ?, '" has been delivered. Please confirm receipt if satisfied.'))`,
+      [orderCheck[0].buyer_id, orderId, orderCheck[0].product_name]
+    );
+
+    res.json({
+      success: true,
+      message: "Order marked as delivered. Buyer will be notified to confirm."
+    });
+
+  } catch (err) {
+    console.error("❌ Delivery update error:", err);
+    res.status(500).json({ error: "Failed to update delivery status" });
+  }
+});
+
+// Buyer confirms order receipt
+app.post("/api/orders/:orderId/confirm-receipt", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const orderId = req.params.orderId;
+    const { rating, review } = req.body;
+
+    // Check if user is the buyer
+    const orderCheck = await db.query(
+      "SELECT buyer_id, seller_id, product_name, product_id FROM physical_orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (!orderCheck || orderCheck.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (orderCheck[0].buyer_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Only the buyer can confirm receipt" });
+    }
+
+    // Update order status
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'completed',
+           completed_at = NOW(),
+           buyer_rating = ?,
+           buyer_review = ?
+       WHERE id = ?`,
+      [rating || null, review || null, orderId]
+    );
+
+    // Release funds to seller (if using escrow)
+    await db.query(
+      `INSERT INTO seller_payouts (seller_id, order_id, amount, status, created_at)
+       VALUES (?, ?, ?, 'pending', NOW())`,
+      [orderCheck[0].seller_id, orderId, 
+       await getSellerEarnings(orderId), // You'll need this function
+      ]
+    );
+
+    // Add review if provided
+    if (rating && review) {
+      await db.query(
+        `INSERT INTO product_reviews (product_id, user_id, order_id, rating, comment, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())`,
+        [orderCheck[0].product_id, req.session.user.id, orderId, rating, review]
+      );
+    }
+
+    // Notify seller
+    await db.query(
+      `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message)
+       VALUES (?, ?, 'completion', 'Order Completed', 
+               CONCAT('Buyer confirmed receipt for order #', ?, '. Funds will be released to your account.'))`,
+      [orderCheck[0].seller_id, orderId, orderId]
+    );
+
+    res.json({
+      success: true,
+      message: "Thank you for confirming receipt! The seller will receive their payment shortly."
+    });
+
+  } catch (err) {
+    console.error("❌ Confirmation error:", err);
+    res.status(500).json({ error: "Failed to confirm receipt" });
+  }
+});
+
+// Request refund
+app.post("/api/orders/:orderId/refund-request", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const orderId = req.params.orderId;
+    const { reason } = req.body;
+
+    if (!reason || reason.length < 10) {
+      return res.status(400).json({ error: "Please provide a detailed reason for refund (min 10 characters)" });
+    }
+
+    // Check if user is the buyer
+    const orderCheck = await db.query(
+      "SELECT buyer_id, seller_id, product_name, order_status, total_amount FROM physical_orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (!orderCheck || orderCheck.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (orderCheck[0].buyer_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Only the buyer can request a refund" });
+    }
+
+    // Check if refund is allowed
+    const allowedStatuses = ['pending', 'processing', 'shipped'];
+    if (!allowedStatuses.includes(orderCheck[0].order_status)) {
+      return res.status(400).json({ 
+        error: `Refund not allowed for orders with status "${orderCheck[0].order_status}". 
+                Please contact support if you have issues.` 
+      });
+    }
+
+    // Create refund request
+    const refundResult = await db.query(
+      `INSERT INTO refund_requests (order_id, buyer_id, seller_id, amount, reason, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
+      [orderId, req.session.user.id, orderCheck[0].seller_id, orderCheck[0].total_amount, reason]
+    );
+
+    // Notify seller
+    await db.query(
+      `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message)
+       VALUES (?, ?, 'refund', 'Refund Request', 
+               CONCAT('Buyer requested refund for order #', ?, '. Reason: ', ?))`,
+      [orderCheck[0].seller_id, orderId, orderId, reason.substring(0, 100)]
+    );
+
+    // Update order status
+    await db.query(
+      "UPDATE physical_orders SET order_status = 'refund_requested' WHERE id = ?",
+      [orderId]
+    );
+
+    res.json({
+      success: true,
+      refundId: refundResult.insertId,
+      message: "Refund request submitted. The seller has 48 hours to respond. We'll notify you of updates."
+    });
+
+  } catch (err) {
+    console.error("❌ Refund request error:", err);
+    res.status(500).json({ error: "Failed to submit refund request" });
+  }
+});
+
+// Admin/Seller approve refund
+app.post("/api/refunds/:refundId/process", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const refundId = req.params.refundId;
+    const { action, admin_notes } = req.body;
+
+    const refundCheck = await db.query(
+      `SELECT r.*, o.seller_id, o.buyer_id, o.transaction_ref 
+       FROM refund_requests r
+       JOIN physical_orders o ON r.order_id = o.id
+       WHERE r.id = ?`,
+      [refundId]
+    );
+
+    if (!refundCheck || refundCheck.length === 0) {
+      return res.status(404).json({ error: "Refund request not found" });
+    }
+
+    const refund = refundCheck[0];
+    const isSeller = refund.seller_id === req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+
+    if (!isSeller && !isAdmin) {
+      return res.status(403).json({ error: "Only the seller or admin can process refunds" });
+    }
+
+    if (action === 'approve') {
+      // Process refund through Flutterwave
+      try {
+        const refundResponse = await axios.post(
+          'https://api.flutterwave.com/v3/transactions/refund',
+          {
+            transaction_id: refund.transaction_ref,
+            amount: refund.amount,
+            full_refund: true,
+            narration: `Refund for order ${refund.order_id}`
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (refundResponse.data.status === 'success') {
+          // Update refund status
+          await db.query(
+            `UPDATE refund_requests 
+             SET status = 'approved', 
+                 processed_by = ?, 
+                 processed_at = NOW(),
+                 admin_notes = ?
+             WHERE id = ?`,
+            [req.session.user.id, admin_notes || null, refundId]
+          );
+
+          // Update order status
+          await db.query(
+            "UPDATE physical_orders SET order_status = 'refunded' WHERE id = ?",
+            [refund.order_id]
+          );
+
+          // Notify buyer
+          await db.query(
+            `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message)
+             VALUES (?, ?, 'refund', 'Refund Approved', 
+                     CONCAT('Your refund for order #', ?, ' has been approved. Please allow 5-10 business days for the refund to appear in your account.'))`,
+            [refund.buyer_id, refund.order_id, refund.order_id]
+          );
+
+          res.json({
+            success: true,
+            message: "Refund approved and processed successfully"
+          });
+        } else {
+          throw new Error(refundResponse.data.message || "Refund failed");
+        }
+      } catch (paymentError) {
+        console.error("Payment refund error:", paymentError);
+        return res.status(500).json({ error: "Failed to process refund through payment gateway" });
+      }
+    } else if (action === 'deny') {
+      // Deny refund
+      await db.query(
+        `UPDATE refund_requests 
+         SET status = 'denied', 
+             processed_by = ?, 
+             processed_at = NOW(),
+             admin_notes = ?
+         WHERE id = ?`,
+        [req.session.user.id, admin_notes || null, refundId]
+      );
+
+      // Update order status back to previous
+      await db.query(
+        "UPDATE physical_orders SET order_status = 'pending' WHERE id = ?",
+        [refund.order_id]
+      );
+
+      res.json({
+        success: true,
+        message: "Refund request denied"
+      });
+    }
+
+  } catch (err) {
+    console.error("❌ Refund processing error:", err);
+    res.status(500).json({ error: "Failed to process refund" });
+  }
+});
 // Verify physical order payment after callback
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {

@@ -2341,16 +2341,18 @@ app.get("/api/courses", async (req, res) => {
   }
 });
 
-// =================== FIXED DOWNLOAD ENDPOINT WITH BETTER DEBUGGING ===================
+
+// =================== FIXED DOWNLOAD ENDPOINT - PROPER ACCESS CHECK ===================
 app.get('/api/download/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const userId = req.session?.user?.id;
     
     console.log('='.repeat(50));
-    console.log(`📥 DOWNLOAD REQUEST - Course: ${courseId}`);
+    console.log(`📥 DOWNLOAD REQUEST - Course: ${courseId}, User: ${userId}`);
     console.log('='.repeat(50));
     
+    // Check if user is logged in
     if (!userId) {
       return res.status(401).json({ error: 'Please login first' });
     }
@@ -2364,24 +2366,48 @@ app.get('/api/download/:courseId', async (req, res) => {
     
     const course = courses[0];
     console.log(`✅ Course: "${course.title}"`);
-    console.log(`🗄️ Database file_path: ${course.file_path}`);
+    console.log(`💰 Price: ${course.price}, Type: ${course.type}`);
     
-    // Check access
-    let hasAccess = course.price === 0 || course.type === 'free';
+    // CRITICAL FIX: Check if course is FREE - if yes, allow access immediately
+    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
     
-    if (!hasAccess && userId) {
+    if (isFree) {
+      console.log('✅ Course is FREE - granting access immediately');
+      // Proceed to download without any payment checks
+    } else {
+      // Only check purchases for paid courses
+      console.log('💰 Paid course - checking purchase status');
+      
+      // Check if user has purchased this course
       const purchases = await db.query(
         'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
         [courseId, userId]
       );
-      hasAccess = purchases && purchases.length > 0;
+      
+      const hasPurchased = purchases && purchases.length > 0;
+      
+      if (!hasPurchased) {
+        // Also check payments table
+        const payments = await db.query(
+          'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
+          [courseId, userId]
+        );
+        
+        const hasPaid = payments && payments.length > 0;
+        
+        if (!hasPaid) {
+          console.log(`❌ User ${userId} has not purchased course ${courseId}`);
+          return res.status(403).json({ 
+            error: 'You do not have access to this course',
+            isPaidCourse: true,
+            price: course.price
+          });
+        }
+      }
+      console.log('✅ User has purchased this course');
     }
     
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have access to this course' });
-    }
-    
-    // Get the filename from database path
+    // Get the file path from database
     const dbFilePath = course.file_url || course.file_path;
     
     if (!dbFilePath) {
@@ -2393,7 +2419,8 @@ app.get('/api/download/:courseId', async (req, res) => {
     console.log(`📁 Looking for file: ${filename}`);
     
     // Build the absolute path where the file should be
-    const expectedPath = path.join(__dirname, 'uploads', 'courses', filename);
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const expectedPath = path.join(uploadDir, filename);
     console.log(`📍 Expected path: ${expectedPath}`);
     
     // Check if the file exists
@@ -2402,13 +2429,14 @@ app.get('/api/download/:courseId', async (req, res) => {
     
     if (!fileExists) {
       // List all files in the uploads directory for debugging
-      const uploadDir = path.join(__dirname, 'uploads', 'courses');
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
         console.log('📂 Files in uploads/courses:', files);
         
         // Try to find a file with similar name
-        const similarFile = files.find(f => f.includes(filename.substring(0, 30)) || filename.includes(f.substring(0, 30)));
+        const searchName = filename.replace(/^\d+-\d+-/, '');
+        const similarFile = files.find(f => f.includes(searchName) || searchName.includes(f.replace(/^\d+-\d+-/, '')));
+        
         if (similarFile) {
           console.log(`🔍 Found similar file: ${similarFile}`);
           // Update the database with the correct filename
@@ -2441,6 +2469,35 @@ app.get('/api/download/:courseId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+function sendFile(res, filePath, title) {
+  const stat = fs.statSync(filePath);
+  const filename = path.basename(filePath);
+  const ext = path.extname(filename);
+  
+  // Create a safe filename for download
+  const safeFilename = title 
+    ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ext
+    : filename;
+  
+  console.log(`📤 Sending file: ${safeFilename}`);
+  console.log(`📊 File size: ${stat.size} bytes`);
+  
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Length', stat.size);
+  
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('❌ Error sending file:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error sending file' });
+      }
+    } else {
+      console.log('✅ File sent successfully!');
+    }
+  });
+}
 
 function sendFile(res, filePath, title) {
   const stat = fs.statSync(filePath);
@@ -3678,7 +3735,6 @@ app.get("/api/admin/recover-files", async (req, res) => {
 });
 
 // =================== FIXED CHECK ACCESS ENDPOINT ===================
-// =================== FIXED CHECK ACCESS ENDPOINT ===================
 app.get('/api/check-access/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
@@ -3703,28 +3759,56 @@ app.get('/api/check-access/:courseId', async (req, res) => {
     
     const course = courses[0];
     
-    // Check if free course
-    let hasAccess = course.price === 0 || course.type === 'free';
+    // CRITICAL FIX: FREE courses are accessible to ALL logged-in users
+    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
     
-    // If not free, check if purchased
-    if (!hasAccess && userId) {
-      // Check payments table
+    if (isFree) {
+      return res.json({
+        hasAccess: true,
+        isFree: true,
+        course: {
+          id: course.id,
+          title: course.title,
+          price: course.price,
+          type: course.type
+        }
+      });
+    }
+    
+    // For paid courses, check if purchased
+    const purchases = await db.query(
+      'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
+      [courseId, userId]
+    );
+    
+    const hasPurchased = purchases && purchases.length > 0;
+    
+    if (!hasPurchased) {
       const payments = await db.query(
         'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
         [courseId, userId]
       );
       
-      // Check user_courses table
-      const userCourses = await db.query(
-        'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
-        [courseId, userId]
-      );
+      const hasPaid = payments && payments.length > 0;
       
-      hasAccess = (payments && payments.length > 0) || (userCourses && userCourses.length > 0);
+      if (!hasPaid) {
+        return res.json({
+          hasAccess: false,
+          isFree: false,
+          price: course.price,
+          course: {
+            id: course.id,
+            title: course.title,
+            price: course.price,
+            type: course.type
+          }
+        });
+      }
     }
     
     res.json({
-      hasAccess,
+      hasAccess: true,
+      isFree: false,
       course: {
         id: course.id,
         title: course.title,
@@ -3741,8 +3825,6 @@ app.get('/api/check-access/:courseId', async (req, res) => {
     });
   }
 });
-
-
 
 // =================== REUPLOAD COURSE FILE ===================
 app.post("/api/courses/:courseId/reupload", (req, res) => {

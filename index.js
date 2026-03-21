@@ -11169,7 +11169,6 @@ app.get('/api/orders/stats/overview', async (req, res) => {
     });
   }
 });
-
 app.post("/api/order-product", async (req, res) => {
   try {
     console.log("📦 ORDER REQUEST RECEIVED:", req.body);
@@ -11229,12 +11228,14 @@ app.post("/api/order-product", async (req, res) => {
       quantity: qty
     });
 
+    // FIXED: Using the correct column names from your table
+    // Your table has: price, platform_fee, seller_earnings (not unit_price and platform_fee_per_unit)
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
         product_name, product_type, quantity, 
-        unit_price, platform_fee_per_unit,
-        total_amount, total_platform_fee, seller_earnings,
+        price, platform_fee, seller_earnings,
+        total_amount,
         customer_name, customer_email, customer_phone,
         shipping_address, city, state, country,
         payment_method, payment_status, order_status,
@@ -11247,11 +11248,10 @@ app.post("/api/order-product", async (req, res) => {
         productTitle,
         'physical',
         qty,
-        unitPrice,           // Full price per unit
-        platformFeePerUnit,   // Your fee per unit
-        totalAmount,          // Total customer pays
-        totalPlatformFee,      // Total your fee
-        sellerEarnings,        // Total seller gets
+        unitPrice,              // price column (full price per unit)
+        totalPlatformFee,        // platform_fee column (total fee for this order)
+        sellerEarnings,          // seller_earnings column
+        totalAmount,             // total_amount column
         req.session.user.username || 'Buyer',
         req.session.user.email,
         deliveryPhone,
@@ -11259,7 +11259,7 @@ app.post("/api/order-product", async (req, res) => {
         city || '',
         state || '',
         country || '',
-        'pay_online',         // Changed from pay_on_delivery
+        'pay_online',
         'pending',
         'pending',
         notes || '',
@@ -11267,8 +11267,83 @@ app.post("/api/order-product", async (req, res) => {
       ]
     );
 
-    // Rest of your existing code...
-    
+    // Get the order ID
+    let orderId = null;
+    if (result) {
+      if (result.insertId) {
+        orderId = result.insertId;
+      } else if (Array.isArray(result) && result[0] && result[0].insertId) {
+        orderId = result[0].insertId;
+      }
+    }
+
+    console.log(`✅ Order created with ID: ${orderId}`);
+
+    // Create notification for seller
+    try {
+      await db.query(
+        `INSERT INTO seller_notifications 
+         (seller_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'new_order', 'New Order Received', 
+                 CONCAT('New order for ', ?, ' - $', ?, ' (Qty: ', ?, ')'), NOW())`,
+        [sellerId, orderId, productTitle, totalAmount, qty]
+      );
+      console.log(`✅ Notification created for seller ${sellerId}`);
+    } catch (notifError) {
+      console.error("⚠️ Failed to create notification:", notifError.message);
+      // Don't fail the order if notification fails
+    }
+
+    // Send confirmation email to buyer
+    try {
+      await transporter.sendMail({
+        from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+        to: req.session.user.email,
+        subject: `Order Confirmation #${orderId} - Core Insight`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #3b82f6;">Thank you for your order! 🎉</h2>
+            <p>Your order has been received and is being processed.</p>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 10px; margin: 20px 0;">
+              <h3>Order Details:</h3>
+              <p><strong>Order ID:</strong> #${orderId}</p>
+              <p><strong>Product:</strong> ${productTitle}</p>
+              <p><strong>Quantity:</strong> ${qty}</p>
+              <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+              ${totalPlatformFee > 0 ? `<p><strong>Platform Fee:</strong> $${totalPlatformFee.toFixed(2)}</p>` : ''}
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 10px; margin: 20px 0;">
+              <h3>Shipping Information:</h3>
+              <p><strong>Address:</strong> ${deliveryAddress}</p>
+              ${city ? `<p><strong>City:</strong> ${city}</p>` : ''}
+              ${state ? `<p><strong>State:</strong> ${state}</p>` : ''}
+              ${country ? `<p><strong>Country:</strong> ${country}</p>` : ''}
+              <p><strong>Contact:</strong> ${deliveryPhone}</p>
+              <p><strong>Estimated Delivery:</strong> ${deliveryDays} ${deliveryDays === 1 ? 'day' : 'days'}</p>
+            </div>
+            
+            <p>You can track your order status from your account.</p>
+            <p>Thank you for shopping with Core Insight!</p>
+          </div>
+        `
+      });
+      console.log(`✅ Confirmation email sent to ${req.session.user.email}`);
+    } catch (emailError) {
+      console.error("⚠️ Failed to send confirmation email:", emailError.message);
+      // Don't fail the order if email fails
+    }
+
+    res.json({
+      success: true,
+      message: "Order placed successfully!",
+      orderId: orderId,
+      totalAmount: totalAmount,
+      platformFee: totalPlatformFee,
+      sellerEarnings: sellerEarnings
+    });
+
   } catch (err) {
     console.error("❌ Order creation error:", err);
     res.status(500).json({ 

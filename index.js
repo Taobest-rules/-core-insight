@@ -4719,6 +4719,253 @@ app.get("/api/products/:id/delivery-days", async (req, res) => {
     res.json({ estimated_delivery_days: 7 });
   }
 });
+// Create payment for physical order (before creating the actual order)
+app.post("/api/create-physical-order-payment", async (req, res) => {
+  try {
+    console.log("💰 Creating physical order payment...");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to place an order" });
+    }
+
+    const {
+      productId,
+      productTitle,
+      price,
+      quantity = 1,
+      deliveryAddress,
+      city,
+      state,
+      country,
+      deliveryPhone,
+      deliveryDays = 7,
+      notes = ''
+    } = req.body;
+
+    // Get the full product details including original price
+    const productResult = await db.query(
+      "SELECT user_id as seller_id, original_price, platform_fee FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (!productResult || productResult.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const sellerId = productResult[0].seller_id;
+    const buyerId = req.session.user.id;
+    
+    // Use the original full price for payment
+    const unitPrice = parseFloat(productResult[0].original_price || price);
+    const platformFeePerUnit = parseFloat(productResult[0].platform_fee || (unitPrice * 0.1));
+
+    const qty = parseInt(quantity, 10);
+    
+    if (isNaN(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: "Invalid quantity" });
+    }
+
+    // Calculate totals
+    const totalAmount = qty * unitPrice;
+    const totalPlatformFee = qty * platformFeePerUnit;
+    const sellerEarnings = totalAmount - totalPlatformFee;
+
+    // Generate unique transaction reference
+    const transactionRef = `physical_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    
+    // Create pending order record with payment pending status
+    const result = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id,
+        product_name, product_type, quantity, 
+        price, platform_fee, seller_earnings,
+        total_amount,
+        customer_name, customer_email, customer_phone,
+        shipping_address, city, state, country,
+        payment_method, payment_status, order_status,
+        notes, estimated_delivery_days,
+        transaction_ref
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        productId,
+        sellerId,
+        buyerId,
+        productTitle,
+        'physical',
+        qty,
+        unitPrice,
+        totalPlatformFee,
+        sellerEarnings,
+        totalAmount,
+        req.session.user.username || 'Buyer',
+        req.session.user.email,
+        deliveryPhone,
+        deliveryAddress,
+        city || '',
+        state || '',
+        country || '',
+        'pay_online',
+        'pending_payment',  // Payment pending
+        'pending_payment',   // Order pending payment
+        notes || '',
+        parseInt(deliveryDays) || 7,
+        transactionRef
+      ]
+    );
+
+    let orderId = null;
+    if (result) {
+      if (result.insertId) {
+        orderId = result.insertId;
+      } else if (Array.isArray(result) && result[0] && result[0].insertId) {
+        orderId = result[0].insertId;
+      }
+    }
+
+    console.log(`📝 Created pending order #${orderId} with transaction ref: ${transactionRef}`);
+
+    // Initialize payment with Flutterwave
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({ error: "Payment system not configured" });
+    }
+
+    const payload = {
+      tx_ref: transactionRef,
+      amount: totalAmount,
+      currency: "USD",
+      redirect_url: `https://core-insight-7.onrender.com/physical-payment-callback.html`,
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Physical Product",
+        description: `Payment for ${productTitle} (x${qty})`,
+      },
+      meta: {
+        order_id: orderId,
+        product_id: productId,
+        buyer_id: buyerId,
+        seller_id: sellerId,
+        type: 'physical_order'
+      }
+    };
+
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      console.log(`✅ Payment link created for order #${orderId}`);
+      
+      res.json({
+        success: true,
+        paymentLink: response.data.data.link,
+        transactionRef: transactionRef,
+        orderId: orderId,
+        totalAmount: totalAmount
+      });
+    } else {
+      throw new Error(response.data.message || "Payment initialization failed");
+    }
+
+  } catch (err) {
+    console.error("❌ Payment creation error:", err);
+    res.status(500).json({ 
+      error: "Failed to create payment",
+      details: err.message 
+    });
+  }
+});
+
+// Verify physical order payment after callback
+app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
+  try {
+    const { transaction_ref } = req.params;
+    
+    console.log(`🔍 Verifying payment for transaction: ${transaction_ref}`);
+    
+    // Verify with Flutterwave
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const orderId = transaction.meta?.order_id;
+      const amount = transaction.amount;
+      
+      console.log(`✅ Payment verified for order #${orderId}`);
+      
+      // Update order status to paid
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid', 
+             order_status = 'pending',
+             transaction_id = ?,
+             updated_at = NOW()
+         WHERE id = ? AND transaction_ref = ?`,
+        [transaction.id, orderId, transaction_ref]
+      );
+      
+      // Create notification for seller
+      const orderResult = await db.query(
+        "SELECT product_name, seller_id FROM physical_orders WHERE id = ?",
+        [orderId]
+      );
+      
+      if (orderResult && orderResult.length > 0) {
+        await db.query(
+          `INSERT INTO seller_notifications 
+           (seller_id, order_id, notification_type, title, message, created_at)
+           VALUES (?, ?, 'new_order', 'New Order Paid', 
+                   CONCAT('Order for ', ?, ' has been paid - $', ?, ' received'), NOW())`,
+          [orderResult[0].seller_id, orderId, orderResult[0].product_name, amount]
+        );
+      }
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        orderId: orderId,
+        amount: amount
+      });
+    } else {
+      // Payment failed - delete the pending order
+      const transactionData = response.data.data;
+      if (transactionData && transactionData.meta && transactionData.meta.order_id) {
+        await db.query(
+          "DELETE FROM physical_orders WHERE id = ? AND payment_status = 'pending_payment'",
+          [transactionData.meta.order_id]
+        );
+      }
+      
+      res.status(400).json({
+        status: "failed",
+        message: "Payment not successful"
+      });
+    }
+    
+  } catch (err) {
+    console.error('❌ Verification error:', err);
+    res.status(500).json({ 
+      error: "Error verifying payment",
+      details: err.message 
+    });
+  }
+});
 
 // =================== FIXED SELLER PRODUCTS ENDPOINT ===================
 app.get("/api/products/seller/:sellerId", async (req, res) => {

@@ -4844,34 +4844,33 @@ window.switchMainImage = function(productId, thumbIndex) {
     // ================= PRODUCT ORDER SYSTEM =================
     let currentOrderProduct = null;
 
-    async function orderPhysicalProduct(productId) {
-      if (!currentUser) {
-        openModal(document.getElementById('loginModal'));
-        return;
-      }
-      
-      try {
-        const product = products.find(p => p.id === productId);
-        if (!product) {
-          alert('Product not found');
-          return;
-        }
-        
-        // Store product for order
-        currentOrderProduct = product;
-        
-        // Show address collection modal
-        openModal(document.getElementById('addressModal'));
-        
-        // Clear any previous messages
-        document.getElementById('addressFormMessage').textContent = '';
-        
-      } catch(error) {
-        console.error('Order failed:', error);
-        alert('Failed to prepare order. Please try again.');
-      }
+      async function orderPhysicalProduct(productId) {
+  if (!currentUser) {
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  
+  try {
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      alert('Product not found');
+      return;
     }
-
+    
+    // Store product for order
+    currentOrderProduct = product;
+    
+    // Show address collection modal FIRST
+    openModal(document.getElementById('addressModal'));
+    
+    // Clear any previous messages
+    document.getElementById('addressFormMessage').textContent = '';
+    
+  } catch(error) {
+    console.error('Order failed:', error);
+    alert('Failed to prepare order. Please try again.');
+  }
+}
     // Make the function global
     window.orderPhysicalProduct = orderPhysicalProduct;
 
@@ -4885,98 +4884,103 @@ window.switchMainImage = function(productId, thumbIndex) {
       currentOrderProduct = null;
     });
 
-    // Address form submission
-    document.getElementById('addressForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      if (!currentOrderProduct) {
-        alert('No product selected for ordering');
-        return;
-      }
-      
-      const messageEl = document.getElementById('addressFormMessage');
-      messageEl.textContent = 'Placing order...';
-      messageEl.style.color = 'var(--text-gray)';
-      
-      const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
-      const deliveryContact = document.getElementById('deliveryPhone').value.trim();
-      
-      // Validate required fields
-      if (!deliveryAddress) {
-        messageEl.textContent = 'Please enter a delivery address';
-        messageEl.style.color = 'var(--danger)';
-        return;
-      }
-      
-      if (!deliveryContact) {
-        messageEl.textContent = 'Please enter a phone number or email address';
-        messageEl.style.color = 'var(--danger)';
-        return;
-      }
-      
-      // Validate it's either email or phone-like format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-      
-      if (!emailRegex.test(deliveryContact) && !phoneRegex.test(deliveryContact)) {
-        messageEl.textContent = 'Please enter a valid phone number or email address';
-        messageEl.style.color = 'var(--danger)';
-        return;
-      }
-      
-      try {
-        const orderData = {
-          productId: currentOrderProduct.id,
-          productTitle: currentOrderProduct.title,
-          price: currentOrderProduct.price,
-          quantity: parseInt(document.getElementById('orderQuantity').value) || 1,
-          deliveryAddress: deliveryAddress,
-          city: document.getElementById('city').value.trim(),
-          state: document.getElementById('state').value.trim(),
-          country: document.getElementById('country').value.trim(),
-          deliveryPhone: deliveryContact,
-          deliveryDays: currentOrderProduct.estimated_delivery_days || currentOrderProduct.delivery_days || 7
-        };
-        
-        console.log('📤 Sending order data:', orderData);
-        
-        const response = await fetch('/api/order-product', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          closeModal(document.getElementById('addressModal'));
-          showToast('Order Placed Successfully!', 'The seller has been notified.', 'success');
-          
-          document.getElementById('addressForm').reset();
-          currentOrderProduct = null;
-          
-        } else {
-          const errorText = await response.text();
-          let errorMessage = 'Failed to place order';
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch (e) {
-            errorMessage = errorText || errorMessage;
-          }
-          
-          messageEl.textContent = errorMessage;
-          messageEl.style.color = 'var(--danger)';
-        }
-      } catch(error) {
-        console.error('❌ Order placement failed:', error);
-        messageEl.textContent = 'Network error. Please try again.';
-        messageEl.style.color = 'var(--danger)';
-      }
+    // Address form submission - Now creates payment first
+document.getElementById('addressForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  if (!currentOrderProduct) {
+    alert('No product selected for ordering');
+    return;
+  }
+  
+  const messageEl = document.getElementById('addressFormMessage');
+  messageEl.textContent = 'Preparing payment...';
+  messageEl.style.color = 'var(--text-gray)';
+  
+  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+  const deliveryContact = document.getElementById('deliveryPhone').value.trim();
+  
+  // Validate required fields
+  if (!deliveryAddress) {
+    messageEl.textContent = 'Please enter a delivery address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  if (!deliveryContact) {
+    messageEl.textContent = 'Please enter a phone number or email address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  // Validate it's either email or phone-like format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+  
+  if (!emailRegex.test(deliveryContact) && !phoneRegex.test(deliveryContact)) {
+    messageEl.textContent = 'Please enter a valid phone number or email address';
+    messageEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  try {
+    const orderData = {
+      productId: currentOrderProduct.id,
+      productTitle: currentOrderProduct.title,
+      price: currentOrderProduct.original_price || currentOrderProduct.price,
+      quantity: parseInt(document.getElementById('orderQuantity').value) || 1,
+      deliveryAddress: deliveryAddress,
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      deliveryPhone: deliveryContact,
+      deliveryDays: currentOrderProduct.estimated_delivery_days || currentOrderProduct.delivery_days || 7
+    };
+    
+    console.log('📤 Creating payment for order...', orderData);
+    
+    // STEP 1: Create payment intent
+    const paymentResponse = await fetch('/api/create-physical-order-payment', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+      credentials: 'include'
     });
-
+    
+    if (!paymentResponse.ok) {
+      const errorData = await paymentResponse.json();
+      throw new Error(errorData.error || 'Failed to create payment');
+    }
+    
+    const paymentData = await paymentResponse.json();
+    console.log('✅ Payment created:', paymentData);
+    
+    // STEP 2: Redirect to payment gateway
+    if (paymentData.paymentLink) {
+      // Store order data in session storage for after payment
+      sessionStorage.setItem('pendingPhysicalOrder', JSON.stringify({
+        orderId: paymentData.orderId,
+        productId: currentOrderProduct.id,
+        productTitle: currentOrderProduct.title,
+        quantity: orderData.quantity,
+        totalAmount: paymentData.totalAmount,
+        paymentReference: paymentData.paymentReference
+      }));
+      
+      // Redirect to payment
+      window.location.href = paymentData.paymentLink;
+    } else {
+      throw new Error('No payment link received');
+    }
+    
+  } catch(error) {
+    console.error('❌ Payment creation failed:', error);
+    messageEl.textContent = error.message || 'Network error. Please try again.';
+    messageEl.style.color = 'var(--danger)';
+  }
+});
     // ================= FORM INITIALIZATION =================
     document.addEventListener('DOMContentLoaded', function() {
       // Payment provider selection

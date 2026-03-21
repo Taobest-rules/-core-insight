@@ -154,41 +154,197 @@ const safeJSON = (data) => {
     }));
 };
 
-// =================== EMAIL CONFIGURATION - PROPER ===================
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD  // Use APP PASSWORD, not regular password
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  // Add these for better reliability
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000
-});
+// =================== EMAIL CONFIGURATION - COMPLETE ===================
 
-// Test email configuration on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter error:", error.message);
-    console.log("⚠️ Email sending will not work. Check EMAIL_APP_PASSWORD in environment variables");
-  } else {
-    console.log("✅ Email transporter ready to send messages");
+const nodemailer = require('nodemailer');
+
+// Email accounts
+const verificationEmailUser = process.env.EMAIL_USER || 'coreinsightmail@gmail.com';
+const verificationEmailPassword = process.env.EMAIL_APP_PASSWORD;
+const supportEmail = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
+const supportEmailPassword = process.env.SUPPORT_EMAIL_PASSWORD;
+
+// Create transporters
+let verificationTransporter = null;
+let supportTransporter = null;
+
+// ========== VERIFICATION EMAIL (for sending to users) ==========
+if (verificationEmailUser && verificationEmailPassword) {
+  console.log(`📧 Setting up verification email: ${verificationEmailUser}`);
+  
+  verificationTransporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: verificationEmailUser,
+      pass: verificationEmailPassword.replace(/\s/g, '') // Remove spaces if any
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+  });
+  
+  // Test connection
+  verificationTransporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ Verification email error:", error.message);
+      console.log("   Check: EMAIL_USER and EMAIL_APP_PASSWORD in environment variables");
+    } else {
+      console.log("✅ Verification email ready - " + verificationEmailUser);
+    }
+  });
+} else {
+  console.log("⚠️ Verification email not configured. Set EMAIL_USER and EMAIL_APP_PASSWORD");
+}
+
+// ========== SUPPORT EMAIL (for receiving contact form submissions) ==========
+if (supportEmail && supportEmailPassword) {
+  console.log(`📧 Setting up support email: ${supportEmail}`);
+  
+  supportTransporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: supportEmail,
+      pass: supportEmailPassword.replace(/\s/g, '') // Remove spaces if any
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+  });
+  
+  // Test connection
+  supportTransporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ Support email error:", error.message);
+      console.log("   Check: SUPPORT_EMAIL and SUPPORT_EMAIL_PASSWORD in environment variables");
+    } else {
+      console.log("✅ Support email ready - " + supportEmail);
+    }
+  });
+} else {
+  console.log("⚠️ Support email not configured. Set SUPPORT_EMAIL and SUPPORT_EMAIL_PASSWORD");
+}
+
+// ========== HELPER FUNCTIONS ==========
+
+/**
+ * Send verification email to users
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} html - Email HTML content
+ * @returns {Promise<object>} Result with success status
+ */
+async function sendVerificationEmail(to, subject, html) {
+  if (!verificationTransporter) {
+    console.log(`⚠️ Cannot send verification email to ${to}: Email not configured`);
+    return { success: false, error: "Verification email not configured" };
   }
-});
-
-// Verify email configuration on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter error:", error);
-  } else {
-    console.log("✅ Email transporter ready to send messages");
+  
+  try {
+    const info = await verificationTransporter.sendMail({
+      from: `"Core Insight" <${verificationEmailUser}>`,
+      to: to,
+      subject: subject,
+      html: html
+    });
+    console.log(`✅ Verification email sent to ${to}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send verification email to ${to}:`, error.message);
+    return { success: false, error: error.message };
   }
-});
+}
 
+/**
+ * Send support notification (from contact form to support email)
+ * @param {string} name - Sender name
+ * @param {string} email - Sender email
+ * @param {string} subject - Message subject
+ * @param {string} message - Message content
+ * @param {string|null} orderId - Optional order ID
+ * @returns {Promise<object>} Result with success status
+ */
+async function sendSupportEmail(name, email, subject, message, orderId = null) {
+  if (!supportTransporter) {
+    console.log(`⚠️ Cannot send support email: Support email not configured`);
+    return { success: false, error: "Support email not configured" };
+  }
+  
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>New Support Request</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #0a192f; padding: 20px; color: #64ffda; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f5f5f5; padding: 20px; border-radius: 0 0 10px 10px; }
+        .info { background: #e0e0e0; padding: 15px; margin: 15px 0; border-radius: 8px; }
+        .info p { margin: 5px 0; }
+        .message-box { background: white; padding: 15px; border-radius: 8px; margin-top: 15px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>📧 New Support Request</h2>
+        </div>
+        <div class="content">
+          <div class="info">
+            <p><strong>From:</strong> ${escapeHtml(name)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+            ${orderId ? `<p><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ''}
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <div class="message-box">
+            <h3>Message:</h3>
+            <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  try {
+    const info = await supportTransporter.sendMail({
+      from: `"Core Insight Support" <${supportEmail}>`,
+      to: supportEmail,
+      subject: `[Support] ${subject} - from ${name}`,
+      html: emailHtml,
+      replyTo: email
+    });
+    console.log(`✅ Support email sent from ${email}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send support email:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Export for use in routes
+module.exports = {
+  sendVerificationEmail,
+  sendSupportEmail
+};
 // Upload directories
 const uploadDir = "uploads/courses";
 if (!fs.existsSync(uploadDir)) {
@@ -615,30 +771,24 @@ app.get("/api/currency-rates", (req, res) => {
   });
 });
 
-// =================== FIXED SIGNUP - WITH PROPER COLUMNS ===================
+// =================== SIGNUP WITH VERIFICATION EMAIL ===================
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, password, email, role } = req.body;
     
     console.log("📝 Signup attempt:", { username, email, role });
     
-    // Validate required fields
+    // Validation
     if (!username || !password || !email) {
       return res.status(400).json({ error: "Username, email, and password are required" });
     }
     
-    // Validate role - if not provided, default to 'client'
-    let userRole = role;
-    if (!userRole) {
-      userRole = 'client';
-    }
-    
-    // Validate role is valid
+    let userRole = role || 'client';
     if (!['client', 'freelancer', 'admin'].includes(userRole)) {
-      return res.status(400).json({ error: "Invalid role. Must be 'client' or 'freelancer'" });
+      return res.status(400).json({ error: "Invalid role" });
     }
     
-    // Check if user already exists
+    // Check existing user
     const existingUsers = await db.query(
       "SELECT id FROM users WHERE username = ? OR email = ?", 
       [username, email]
@@ -651,85 +801,90 @@ app.post("/api/signup", async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date();
+    tokenExpiry.setHours(tokenExpiry.getHours() + 24);
     
-    // Check if verified column exists first
-    let hasVerifiedColumn = true;
-    let hasVerifyTokenColumn = true;
+    // Insert user
+    const result = await db.query(
+      `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, created_at) 
+       VALUES (?, ?, ?, ?, 0, ?, ?, NOW())`,
+      [username, email, hashedPassword, userRole, verifyToken, tokenExpiry]
+    );
     
-    try {
-      // Insert user - try with all columns first
-      const result = await db.query(
-        `INSERT INTO users (username, email, password, role, verified, verify_token, created_at) 
-         VALUES (?, ?, ?, ?, 0, ?, NOW())`,
-        [username, email, hashedPassword, userRole, verifyToken]
-      );
-      
-      const userId = result.insertId;
-      console.log(`✅ User created with ID: ${userId}, Role: ${userRole}`);
-      
-      // Send verification email
-      const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
-      
-      try {
-        await transporter.sendMail({
-          from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: "Verify Your Email - Core Insight",
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Welcome to Core Insight!</h2>
-              <p>You've signed up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
-              <p>Click the link below to verify your email:</p>
-              <a href="${verifyLink}" style="background-color: #64ffda; color: #0a192f; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-                Verify Email
-              </a>
-              <p>Or enter this code: <strong>${verifyToken}</strong></p>
-              <p>If you didn't create an account, please ignore this email.</p>
+    const userId = result.insertId;
+    console.log(`✅ User created with ID: ${userId}`);
+    
+    // Send verification email
+    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Verify Your Email - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #0a192f, #172a45); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header h1 { color: #64ffda; margin: 0; }
+          .content { background: #f5f5f5; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; padding: 12px 24px; background: #64ffda; color: #0a192f; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+          .code { background: #e0e0e0; padding: 10px; font-family: monospace; font-size: 14px; word-break: break-all; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎓 Core Insight</h1>
+          </div>
+          <div class="content">
+            <h2>Welcome ${username}!</h2>
+            <p>Thank you for signing up as a <strong>${userRole === 'client' ? 'Buyer' : 'Seller'}</strong>.</p>
+            <p>Please verify your email address to activate your account:</p>
+            
+            <div style="text-align: center;">
+              <a href="${verifyLink}" class="button">✅ Verify My Email</a>
             </div>
-          `
-        });
-        console.log(`✅ Verification email sent to ${email}`);
-      } catch (emailError) {
-        console.error("❌ Email sending failed:", emailError.message);
-        // Still return success with token
-        return res.status(202).json({ 
-          message: "Account created! Please use the verification code to verify your account.",
-          requiresManualVerification: true,
-          userId: userId,
-          token: verifyToken
-        });
-      }
-      
-      res.json({ 
-        message: "Account created! Please check your email to verify your account.",
-        requiresVerification: true,
-        email: email,
+            
+            <p>Or copy and paste this link:</p>
+            <div class="code">${verifyLink}</div>
+            
+            <p>Verification code: <strong>${verifyToken}</strong></p>
+            
+            <p><strong>⚠️ This link expires in 24 hours.</strong></p>
+            
+            <p>If you didn't create an account, please ignore this email.</p>
+            <hr>
+            <p style="font-size: 12px;">Need help? Contact us at suppourtcoreinsight@gmail.com</p>
+          </div>
+          <div class="footer">
+            <p>© 2024 Core Insight. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const emailResult = await sendVerificationEmail(email, "Verify Your Email - Core Insight", emailHtml);
+    
+    if (!emailResult.success) {
+      console.error(`❌ Failed to send email to ${email}: ${emailResult.error}`);
+      return res.status(202).json({ 
+        message: "Account created! However, we couldn't send the verification email. Please contact support.",
+        requiresManualVerification: true,
+        token: verifyToken,
         userId: userId
       });
-      
-    } catch (insertError) {
-      // If columns don't exist, try without verification columns
-      if (insertError.code === 'ER_BAD_FIELD_ERROR') {
-        console.log("⚠️ Verification columns missing, creating user without verification...");
-        
-        const result = await db.query(
-          `INSERT INTO users (username, email, password, role, created_at) 
-           VALUES (?, ?, ?, ?, NOW())`,
-          [username, email, hashedPassword, userRole]
-        );
-        
-        const userId = result.insertId;
-        console.log(`✅ User created with ID: ${userId} (no verification)`);
-        
-        res.json({ 
-          message: "Account created! You can now login.",
-          autoVerified: true,
-          userId: userId
-        });
-      } else {
-        throw insertError;
-      }
     }
+    
+    res.json({ 
+      message: "Account created! Please check your email to verify your account.",
+      requiresVerification: true,
+      email: email,
+      userId: userId
+    });
     
   } catch (err) {
     console.error("❌ Signup error:", err);

@@ -11228,8 +11228,7 @@ app.post("/api/order-product", async (req, res) => {
       quantity: qty
     });
 
-    // FIXED: Using the correct column names from your table
-    // Your table has: price, platform_fee, seller_earnings (not unit_price and platform_fee_per_unit)
+    // FIXED: Correct number of columns (22) matching values (22)
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
@@ -11240,30 +11239,30 @@ app.post("/api/order-product", async (req, res) => {
         shipping_address, city, state, country,
         payment_method, payment_status, order_status,
         notes, estimated_delivery_days
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        productId,
-        sellerId,
-        buyerId,
-        productTitle,
-        'physical',
-        qty,
-        unitPrice,              // price column (full price per unit)
-        totalPlatformFee,        // platform_fee column (total fee for this order)
-        sellerEarnings,          // seller_earnings column
-        totalAmount,             // total_amount column
-        req.session.user.username || 'Buyer',
-        req.session.user.email,
-        deliveryPhone,
-        deliveryAddress,
-        city || '',
-        state || '',
-        country || '',
-        'pay_online',
-        'pending',
-        'pending',
-        notes || '',
-        parseInt(deliveryDays) || 7
+        productId,                                    // 1
+        sellerId,                                     // 2
+        buyerId,                                      // 3
+        productTitle,                                 // 4
+        'physical',                                   // 5
+        qty,                                          // 6
+        unitPrice,                                    // 7 - price
+        totalPlatformFee,                             // 8 - platform_fee
+        sellerEarnings,                               // 9 - seller_earnings
+        totalAmount,                                  // 10 - total_amount
+        req.session.user.username || 'Buyer',        // 11 - customer_name
+        req.session.user.email,                      // 12 - customer_email
+        deliveryPhone,                               // 13 - customer_phone
+        deliveryAddress,                             // 14 - shipping_address
+        city || '',                                  // 15 - city
+        state || '',                                 // 16 - state
+        country || '',                               // 17 - country
+        'pay_online',                                // 18 - payment_method
+        'pending',                                   // 19 - payment_status
+        'pending',                                   // 20 - order_status
+        notes || '',                                 // 21 - notes
+        parseInt(deliveryDays) || 7                  // 22 - estimated_delivery_days
       ]
     );
 
@@ -11291,7 +11290,6 @@ app.post("/api/order-product", async (req, res) => {
       console.log(`✅ Notification created for seller ${sellerId}`);
     } catch (notifError) {
       console.error("⚠️ Failed to create notification:", notifError.message);
-      // Don't fail the order if notification fails
     }
 
     // Send confirmation email to buyer
@@ -11332,7 +11330,6 @@ app.post("/api/order-product", async (req, res) => {
       console.log(`✅ Confirmation email sent to ${req.session.user.email}`);
     } catch (emailError) {
       console.error("⚠️ Failed to send confirmation email:", emailError.message);
-      // Don't fail the order if email fails
     }
 
     res.json({

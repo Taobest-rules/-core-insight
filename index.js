@@ -9376,6 +9376,119 @@ app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   }
 });
 
+// =================== VERIFY PAYMENT BY REFERENCE ===================
+app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    
+    console.log('🔍 Verifying payment by reference:', tx_ref);
+    
+    // First check database
+    const paymentResult = await db.query(
+      "SELECT * FROM payments WHERE transaction_ref = ?",
+      [tx_ref]
+    );
+    
+    let payment = null;
+    if (Array.isArray(paymentResult) && paymentResult.length > 0) {
+      payment = paymentResult[0];
+    }
+    
+    if (payment && payment.status === 'completed') {
+      // Get course details
+      const courseResult = await db.query(
+        "SELECT title FROM courses WHERE id = ?",
+        [payment.course_id]
+      );
+      
+      let courseTitle = 'Your course';
+      if (Array.isArray(courseResult) && courseResult.length > 0) {
+        courseTitle = courseResult[0].title;
+      }
+      
+      return res.json({
+        status: "success",
+        message: "Payment already verified",
+        course_id: payment.course_id,
+        course_title: courseTitle,
+        amount: payment.amount
+      });
+    }
+    
+    // If not in database or not completed, verify with Flutterwave
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
+      
+      console.log('✅ Payment verified by reference:', { tx_ref, amount, courseId, userId });
+      
+      // Update or insert payment record
+      await db.query(
+        `INSERT INTO payments 
+         (user_id, course_id, transaction_ref, transaction_id, amount, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE 
+         status = 'completed', 
+         transaction_id = VALUES(transaction_id)`,
+        [userId, courseId, tx_ref, transaction.id, amount]
+      );
+      
+      // Grant course access
+      await db.query(
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
+      );
+      
+      // Get course title
+      const courseResult = await db.query(
+        "SELECT title FROM courses WHERE id = ?",
+        [courseId]
+      );
+      
+      let courseTitle = 'Your course';
+      if (Array.isArray(courseResult) && courseResult.length > 0) {
+        courseTitle = courseResult[0].title;
+      }
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        course_id: courseId,
+        course_title: courseTitle,
+        amount: amount
+      });
+    } else {
+      res.status(400).json({
+        status: "failed",
+        message: "Payment not successful or not found"
+      });
+    }
+    
+  } catch (err) {
+    console.error('❌ Verify by reference error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({
+      status: "error",
+      message: "Error verifying payment: " + err.message
+    });
+  }
+});
+
 app.get("/services-payment-callback", async (req, res) => {
   try {
     const { transaction_id, status } = req.query;

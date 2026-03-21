@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build": "mkdir -p uploads/courses uploads/products uploads/services uploads/profiles public/uploads/courses public/uploads/products",
+    "postinstall": "npm run build",
+    "integrity-check": "node scripts/check-integrity.js",
+    "health": "curl http://localhost:3000/api/health"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

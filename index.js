@@ -546,6 +546,57 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// =================== HEALTH CHECK WITH FILE SYSTEM ===================
+app.get("/api/health", async (req, res) => {
+  try {
+    // Check database connection
+    await db.query('SELECT 1 as healthy');
+    
+    // Check upload directory
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const uploadsExist = fs.existsSync(uploadDir);
+    
+    // Count files
+    let fileCount = 0;
+    if (uploadsExist) {
+      fileCount = fs.readdirSync(uploadDir).length;
+    }
+    
+    // Check a sample of courses
+    const courses = await db.query('SELECT COUNT(*) as count, SUM(CASE WHEN file_path IS NULL THEN 1 ELSE 0 END) as missing_path FROM courses');
+    const courseCount = courses[0]?.count || 0;
+    const missingPaths = courses[0]?.missing_path || 0;
+    
+    res.json({
+      status: "healthy",
+      database: "connected",
+      uploads_directory: uploadsExist,
+      file_count: fileCount,
+      course_count: courseCount,
+      courses_without_paths: missingPaths,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (err) {
+    res.status(500).json({ 
+      status: "unhealthy", 
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+// Run integrity check every 24 hours (optional)
+if (process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      console.log('🔍 Running automatic integrity check...');
+      const integrityCheck = require('./scripts/check-integrity');
+      await integrityCheck();
+    } catch (error) {
+      console.error('Auto integrity check failed:', error);
+    }
+  }, 24 * 60 * 60 * 1000); // 24 hours
+}
 app.get("/api/currency-rates", (req, res) => {
   const rates = {
     NGN: 1,
@@ -3582,14 +3633,85 @@ app.get("/api/admin/fix-all-paths", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// =================== FIXED COURSE UPLOAD WITH ABSOLUTE PATHS ===================
+
+// =================== FILE INTEGRITY CHECK ===================
+app.get("/api/admin/check-integrity", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const results = {
+      valid: [],
+      missing: [],
+      orphaned: []
+    };
+    
+    // Check database files against disk
+    for (const course of courses) {
+      if (course.file_path) {
+        const filename = path.basename(course.file_path);
+        const filePath = path.join(uploadDir, filename);
+        
+        if (fs.existsSync(filePath)) {
+          results.valid.push({
+            id: course.id,
+            title: course.title,
+            file_path: course.file_path,
+            size: fs.statSync(filePath).size
+          });
+        } else {
+          results.missing.push({
+            id: course.id,
+            title: course.title,
+            expected_path: course.file_path,
+            filename: filename
+          });
+        }
+      }
+    }
+    
+    // Check for orphaned files (files on disk not in database)
+    if (fs.existsSync(uploadDir)) {
+      const filesOnDisk = fs.readdirSync(uploadDir);
+      const dbFiles = courses.map(c => path.basename(c.file_path)).filter(Boolean);
+      
+      for (const file of filesOnDisk) {
+        if (!dbFiles.includes(file) && !file.startsWith('.')) {
+          results.orphaned.push({
+            filename: file,
+            path: path.join(uploadDir, file),
+            size: fs.statSync(path.join(uploadDir, file)).size
+          });
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      summary: {
+        total_courses: courses.length,
+        valid_files: results.valid.length,
+        missing_files: results.missing.length,
+        orphaned_files: results.orphaned.length
+      },
+      details: results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// =================== COURSE UPLOAD WITH VALIDATION ===================
 app.post("/api/courses", (req, res) => {
   console.log('📚 Course upload started');
   
-  // Use a consistent directory path that works on Render
   const uploadDir = path.join(__dirname, 'uploads', 'courses');
   
-  // Create directory if it doesn't exist
+  // Ensure directory exists
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
     console.log(`📁 Created upload directory: ${uploadDir}`);
@@ -3611,7 +3733,20 @@ app.post("/api/courses", (req, res) => {
         console.log(`📝 Generated filename: ${filename}`);
         cb(null, filename);
       }
-    })
+    }),
+    limits: {
+      fileSize: 100 * 1024 * 1024, // 100MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      // Allow only certain file types
+      const allowedTypes = ['.pdf', '.epub', '.mp4', '.mov', '.zip', '.doc', '.docx'];
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (allowedTypes.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`File type ${ext} not allowed. Allowed: ${allowedTypes.join(', ')}`));
+      }
+    }
   }).fields([
     { name: 'file', maxCount: 1 },
     { name: 'thumbnail', maxCount: 1 }
@@ -3627,8 +3762,6 @@ app.post("/api/courses", (req, res) => {
       if (!req.session.user) {
         return res.status(401).json({ error: "Please login to upload courses" });
       }
-
-      console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
 
       const { title, description, price, author, content_type } = req.body;
       const user = req.session.user;
@@ -3649,25 +3782,21 @@ app.post("/api/courses", (req, res) => {
       const courseFile = req.files.file[0];
       const thumbnailFile = req.files.thumbnail[0];
       
-      // Store the path that will work with our download endpoint
-      // Use a consistent relative path format
       const filePath = `/uploads/courses/${courseFile.filename}`;
       const thumbnailPath = `/uploads/courses/${thumbnailFile.filename}`;
       
-      // Also store the absolute path for debugging
       const absoluteFilePath = path.join(uploadDir, courseFile.filename);
       
-      console.log(`✅ File saved: ${courseFile.filename}`);
-      console.log(`📁 Full path: ${absoluteFilePath}`);
-      console.log(`🗄️ Database path: ${filePath}`);
+      // VERIFY: Wait a moment and check if file was actually saved
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Verify file was actually saved
       if (!fs.existsSync(absoluteFilePath)) {
         console.error(`❌ File not found after upload: ${absoluteFilePath}`);
         return res.status(500).json({ error: "File upload failed - file not saved" });
       }
       
-      console.log(`✅ File verified at: ${absoluteFilePath}`);
+      const fileStats = fs.statSync(absoluteFilePath);
+      console.log(`✅ File verified: ${courseFile.filename} (${fileStats.size} bytes)`);
 
       // Insert into database
       const result = await db.query(
@@ -3692,7 +3821,7 @@ app.post("/api/courses", (req, res) => {
         message: "✅ Course uploaded successfully!",
         courseId: result.insertId,
         file_path: filePath,
-        absolute_path: absoluteFilePath,
+        file_size: fileStats.size,
         download_url: `/api/download/${result.insertId}`
       });
 

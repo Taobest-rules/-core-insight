@@ -1759,12 +1759,24 @@
 
     // ========================= COURSE LOADING =========================
    
-      // ========================= COURSE LOADING WITH PURCHASE CHECK =========================
+    
+ // =================== ESCAPE HTML FUNCTION ===================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// =================== COMPLETE LOAD COURSES FUNCTION ===================
 async function loadCourses() {
   try {
     showLoading();
     
-    // Get user info and purchased courses in parallel
+    // Get user info and courses in parallel for better performance
     const [res, userRes] = await Promise.all([
       fetch('/api/courses'),
       fetch('/api/me')
@@ -1782,10 +1794,12 @@ async function loadCourses() {
       try {
         const purchasedRes = await fetch('/api/my-courses');
         const purchased = await purchasedRes.json();
-        purchased.forEach(course => {
-          purchasedCourses.add(Number(course.id));
-        });
-        console.log('📚 Purchased courses:', Array.from(purchasedCourses));
+        if (purchased && purchased.length > 0) {
+          purchased.forEach(course => {
+            purchasedCourses.add(Number(course.id));
+          });
+          console.log('📚 Purchased courses:', Array.from(purchasedCourses));
+        }
       } catch (error) {
         console.error('Error loading purchased courses:', error);
       }
@@ -1797,6 +1811,7 @@ async function loadCourses() {
           <i class="fas fa-book-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
           <h3 style="color: var(--text-light); margin-bottom: 1rem;">No Courses Available</h3>
           <p style="color: var(--text-gray);">Check back soon for new course offerings.</p>
+          ${user ? '<p style="margin-top: 1rem;"><a href="#" onclick="document.getElementById(\'uploadSection\').scrollIntoView({behavior: \'smooth\'})" style="color: var(--accent-primary);">Upload your first course →</a></p>' : ''}
         </div>
       `;
       hideLoading();
@@ -1815,8 +1830,9 @@ async function loadCourses() {
         (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
         (course.content_type === 'video');
       
-      const isFree = course.price === 0 || course.type === 'free';
-      const isPremium = course.price > 0 && course.type !== 'free';
+      // Check if course is free (price 0 OR type is 'free')
+      const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+      const isPremium = course.price > 0 && !isFree;
       
       // Check if user has access (free OR purchased)
       const hasAccess = isFree || purchasedCourses.has(Number(course.id));
@@ -1842,50 +1858,57 @@ async function loadCourses() {
       let thumbnailSrc;
       if (course.thumbnail_url) {
         thumbnailSrc = course.thumbnail_url;
+      } else if (course.thumbnail_path) {
+        thumbnailSrc = course.thumbnail_path;
       } else {
         const colors = ['1e293b', '172a45', '112240'];
         const color = colors[Math.floor(Math.random() * colors.length)];
-        const cleanTitle = (course.title || '').substring(0, 25).replace(/[^\w\s]/gi, '');
+        const cleanTitle = (course.title || 'Course').substring(0, 25).replace(/[^\w\s]/gi, '');
         thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
       }
       
       // Generate price display
       let priceDisplay = '';
-      if (hasAccess) {
-        priceDisplay = '<span style="color: #64ffda;">✓ OWNED</span>';
+      if (hasAccess && isPremium) {
+        priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
       } else if (isFree) {
-        priceDisplay = 'FREE';
+        priceDisplay = '<span style="color: #64ffda;">FREE</span>';
       } else {
         priceDisplay = formatCurrency(course.price, userCurrency);
       }
       
+      // Escape all user-generated content for safety
+      const safeTitle = escapeHtml(course.title);
+      const safeDescription = escapeHtml(course.description || 'No description available');
+      const safeAuthor = escapeHtml(course.author || '');
+      
       return `
-        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${course.content_type || 'book'}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
           <div class="card-header">
             <img src="${thumbnailSrc}" 
-                 alt="${course.title}" 
+                 alt="${safeTitle}" 
                  loading="lazy" 
                  onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
             <div class="card-badge ${badgeClass}">
               <i class="${badgeIcon} type-icon"></i> ${badgeText}
             </div>
-            ${hasAccess ? `
+            ${hasAccess && isPremium ? `
               <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
                 <i class="fas fa-check-circle"></i> Owned
               </div>
             ` : ''}
           </div>
           <div class="card-content">
-            <h3>${escapeHtml(course.title)}</h3>
-            <p>${escapeHtml(course.description || 'No description available')}</p>
+            <h3>${safeTitle}</h3>
+            <p>${safeDescription}</p>
             <div class="card-meta">
               <div class="price" data-original-price="${course.price}">
                 ${priceDisplay}
               </div>
-              ${course.author ? `
+              ${safeAuthor ? `
                 <div class="author">
                   <i class="fas fa-user"></i>
-                  <span>${escapeHtml(course.author)}</span>
+                  <span>${safeAuthor}</span>
                 </div>
               ` : ''}
             </div>
@@ -1895,12 +1918,12 @@ async function loadCourses() {
                   <i class="fas fa-download"></i> Download Now
                 </button>
                 ${isVideo ? `
-                  <button onclick="watchVideo(${course.id}, '${escapeHtml(course.title).replace(/'/g, "\\'")}')" class="btn-secondary">
+                  <button onclick="watchVideo(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" class="btn-secondary">
                     <i class="fas fa-play"></i> Watch Now
                   </button>
                 ` : ''}
               ` : (isPremium ? `
-                <button onclick="initiatePayment(${course.id}, ${course.price}, '${escapeHtml(course.title).replace(/'/g, "\\'")}', ${isVideo})" 
+                <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
                         class="btn-primary">
                   <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
                 </button>
@@ -1925,30 +1948,21 @@ async function loadCourses() {
       `;
     }).join('');
     
-    // Helper function to escape HTML
-    function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-    
-    // Setup filters AFTER loading courses
+    // Setup filters after loading courses
     setupFilters();
     
-    // Update prices with current currency
+    // Update prices based on currency
     setTimeout(updateAllPrices, 100);
     
     hideLoading();
     
   } catch (error) {
-    console.error('Error loading courses:', error);
+    console.error('❌ Error loading courses:', error);
     document.getElementById('coursesGrid').innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
         <h3 style="color: var(--text-light); margin-bottom: 1rem;">Error Loading Courses</h3>
         <p style="color: var(--text-gray);">Please try again later or check your connection.</p>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</p>
         <button onclick="loadCourses()" class="btn-primary" style="margin-top: 1rem; width: auto;">
           <i class="fas fa-redo"></i> Retry
         </button>
@@ -1957,6 +1971,115 @@ async function loadCourses() {
     hideLoading();
   }
 }
+
+// =================== SUPPORTING FUNCTIONS ===================
+
+async function handleDownload(courseId) {
+  try {
+    showLoading();
+    
+    console.log(`📥 Downloading course ${courseId}`);
+    
+    // Direct download - no access check needed since we already checked in the UI
+    window.location.href = `/api/download/${courseId}`;
+    
+    // Show success message
+    setTimeout(() => {
+      showToast('Download started! Check your browser downloads folder.', 'success');
+    }, 500);
+    
+    return true;
+  } catch (error) {
+    console.error('Download error:', error);
+    alert('Error downloading file: ' + error.message);
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
+
+async function watchVideo(courseId, title) {
+  try {
+    showLoading();
+    
+    // Check if user has access first
+    const accessRes = await fetch(`/api/check-access/${courseId}`);
+    const accessData = await accessRes.json();
+    
+    if (!accessData.hasAccess) {
+      alert('You do not have access to this video. Please purchase it first.');
+      hideLoading();
+      return;
+    }
+    
+    // Get the video file URL
+    const courses = await fetch('/api/courses');
+    const allCourses = await courses.json();
+    const course = allCourses.find(c => c.id === courseId);
+    
+    if (course && course.file_url) {
+      // Open video in new tab or modal
+      window.open(course.file_url, '_blank');
+      showToast(`Playing: ${title}`, 'info');
+    } else {
+      alert('Video file not found. Please contact support.');
+    }
+    
+    hideLoading();
+  } catch (error) {
+    console.error('Watch video error:', error);
+    alert('Error playing video: ' + error.message);
+    hideLoading();
+  }
+}
+
+// Add CSS animation for toast
+const toastStyle = document.createElement('style');
+toastStyle.textContent = `
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    background: #10b981;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
+  }
+  .toast.error {
+    background: #ef4444;
+  }
+  .toast.info {
+    background: #3b82f6;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(toastStyle);
 // ========================= REFRESH COURSES AFTER PURCHASE =========================
 async function refreshCoursesAfterPurchase() {
   // Reload the courses to update the "Owned" status
@@ -2136,40 +2259,6 @@ async function checkUserPurchasedCourses() {
     return new Set();
   }
 }
-    // ========================= HANDLE DOWNLOAD =========================
-    async function handleDownload(courseId) {
-      try {
-        showLoading();
-        
-        console.log(`📥 Initiating download for course ${courseId}`);
-        
-        // First check if user has access
-        const accessResponse = await fetch(`/api/check-access/${courseId}`);
-        const accessData = await accessResponse.json();
-        
-        console.log('Access check result:', accessData);
-        
-        if (!accessData.hasAccess) {
-          hideLoading();
-          alert('You do not have access to this content. Please purchase it first.');
-          return;
-        }
-        
-        // Direct download
-        window.location.href = `/api/download/${courseId}`;
-        showToast('Download started!', 'success');
-        
-        return true;
-      } catch (error) {
-        console.error('❌ Download error:', error);
-        alert('Error downloading file: ' + error.message);
-        return false;
-      } finally {
-        hideLoading();
-      }
-    }
-
-    // ========================= DELETE COURSE =========================
     async function deleteCourse(courseId) {
       if (!confirm('Are you sure you want to delete this upload? This action cannot be undone.')) return;
 

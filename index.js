@@ -4719,6 +4719,7 @@ app.get("/api/products/:id/delivery-days", async (req, res) => {
     res.json({ estimated_delivery_days: 7 });
   }
 });
+
 // Create payment for physical order (before creating the actual order)
 app.post("/api/create-physical-order-payment", async (req, res) => {
   try {
@@ -4765,11 +4766,11 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
     // Get the full product details
     console.log(`🔍 Fetching product ${productId} from database...`);
     const productResult = await db.query(
-      "SELECT user_id as seller_id, original_price, platform_fee, title FROM products WHERE id = ?",
+      "SELECT user_id as seller_id, original_price, platform_fee, title, price as product_price FROM products WHERE id = ?",
       [productId]
     );
     
-    console.log("📊 Product query result:", productResult);
+    console.log("📊 Product query result:", JSON.stringify(productResult, null, 2));
 
     if (!productResult || productResult.length === 0) {
       console.log("❌ Product not found");
@@ -4778,7 +4779,9 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
 
     const sellerId = productResult[0].seller_id;
     const buyerId = req.session.user.id;
-    const productOriginalPrice = parseFloat(productResult[0].original_price || price);
+    
+    // Use original_price if available, otherwise use product's price
+    const productOriginalPrice = parseFloat(productResult[0].original_price || productResult[0].product_price || price);
     const productPlatformFee = parseFloat(productResult[0].platform_fee || (productOriginalPrice * 0.1));
 
     const qty = parseInt(quantity, 10);
@@ -4806,114 +4809,48 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
     const transactionRef = `physical_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     console.log(`📝 Transaction reference: ${transactionRef}`);
 
-    // Check if transaction_ref column exists, if not, we need to add it
-    let hasTransactionRefColumn = false;
-    try {
-      const columnCheck = await db.query(`
-        SELECT COUNT(*) as count 
-        FROM information_schema.columns 
-        WHERE table_name = 'physical_orders' 
-        AND column_name = 'transaction_ref'
-      `);
-      
-      if (Array.isArray(columnCheck) && columnCheck.length > 0) {
-        hasTransactionRefColumn = columnCheck[0].count > 0;
-      }
-      console.log(`📋 transaction_ref column exists: ${hasTransactionRefColumn}`);
-    } catch (e) {
-      console.log("⚠️ Could not check for transaction_ref column:", e.message);
-    }
+    // Insert order with correct enum values: 'pending' not 'pending_payment'
+    const result = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id,
+        product_name, product_type, quantity, 
+        price, platform_fee, seller_earnings,
+        total_amount,
+        customer_name, customer_email, customer_phone,
+        shipping_address, city, state, country,
+        payment_method, payment_status, order_status,
+        notes, estimated_delivery_days,
+        transaction_ref
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        productId,
+        sellerId,
+        buyerId,
+        productTitle || productResult[0].title,
+        'physical',
+        qty,
+        productOriginalPrice,      // price column
+        totalPlatformFee,           // platform_fee column
+        sellerEarnings,             // seller_earnings column
+        totalAmount,                // total_amount column
+        req.session.user.username || 'Buyer',
+        req.session.user.email,
+        deliveryPhone,
+        deliveryAddress,
+        city || '',
+        state || '',
+        country || '',
+        'pay_online',
+        'pending',                  // FIXED: Use 'pending' instead of 'pending_payment'
+        'pending',                  // FIXED: Use 'pending' instead of 'pending_payment'
+        notes || '',
+        parseInt(deliveryDays) || 7,
+        transactionRef
+      ]
+    );
 
-    // Create pending order record
     let orderId = null;
-    
-    if (hasTransactionRefColumn) {
-      // With transaction_ref column
-      const result = await db.query(
-        `INSERT INTO physical_orders (
-          product_id, seller_id, buyer_id,
-          product_name, product_type, quantity, 
-          price, platform_fee, seller_earnings,
-          total_amount,
-          customer_name, customer_email, customer_phone,
-          shipping_address, city, state, country,
-          payment_method, payment_status, order_status,
-          notes, estimated_delivery_days,
-          transaction_ref
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          productId,
-          sellerId,
-          buyerId,
-          productTitle || productResult[0].title,
-          'physical',
-          qty,
-          productOriginalPrice,
-          totalPlatformFee,
-          sellerEarnings,
-          totalAmount,
-          req.session.user.username || 'Buyer',
-          req.session.user.email,
-          deliveryPhone,
-          deliveryAddress,
-          city || '',
-          state || '',
-          country || '',
-          'pay_online',
-          'pending_payment',
-          'pending_payment',
-          notes || '',
-          parseInt(deliveryDays) || 7,
-          transactionRef
-        ]
-      );
-      
-      if (result.insertId) {
-        orderId = result.insertId;
-      } else if (Array.isArray(result) && result[0] && result[0].insertId) {
-        orderId = result[0].insertId;
-      }
-    } else {
-      // Without transaction_ref column - use transaction_id instead
-      const result = await db.query(
-        `INSERT INTO physical_orders (
-          product_id, seller_id, buyer_id,
-          product_name, product_type, quantity, 
-          price, platform_fee, seller_earnings,
-          total_amount,
-          customer_name, customer_email, customer_phone,
-          shipping_address, city, state, country,
-          payment_method, payment_status, order_status,
-          notes, estimated_delivery_days,
-          transaction_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          productId,
-          sellerId,
-          buyerId,
-          productTitle || productResult[0].title,
-          'physical',
-          qty,
-          productOriginalPrice,
-          totalPlatformFee,
-          sellerEarnings,
-          totalAmount,
-          req.session.user.username || 'Buyer',
-          req.session.user.email,
-          deliveryPhone,
-          deliveryAddress,
-          city || '',
-          state || '',
-          country || '',
-          'pay_online',
-          'pending_payment',
-          'pending_payment',
-          notes || '',
-          parseInt(deliveryDays) || 7,
-          transactionRef
-        ]
-      );
-      
+    if (result) {
       if (result.insertId) {
         orderId = result.insertId;
       } else if (Array.isArray(result) && result[0] && result[0].insertId) {
@@ -4987,6 +4924,8 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
       });
     } else {
       console.log("❌ Flutterwave returned error:", response.data);
+      // If payment creation fails, delete the pending order
+      await db.query("DELETE FROM physical_orders WHERE id = ?", [orderId]);
       throw new Error(response.data.message || "Payment initialization failed");
     }
 
@@ -5007,6 +4946,7 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
     });
   }
 });
+
 // Verify physical order payment after callback
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
@@ -5031,7 +4971,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
       
       console.log(`✅ Payment verified for order #${orderId}`);
       
-      // Update order status to paid
+      // Update order status to paid - using 'paid' which is in your enum
       await db.query(
         `UPDATE physical_orders 
          SET payment_status = 'paid', 
@@ -5069,7 +5009,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
       const transactionData = response.data.data;
       if (transactionData && transactionData.meta && transactionData.meta.order_id) {
         await db.query(
-          "DELETE FROM physical_orders WHERE id = ? AND payment_status = 'pending_payment'",
+          "DELETE FROM physical_orders WHERE id = ? AND payment_status = 'pending'",
           [transactionData.meta.order_id]
         );
       }
@@ -5088,7 +5028,6 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
     });
   }
 });
-
 // =================== FIXED SELLER PRODUCTS ENDPOINT ===================
 app.get("/api/products/seller/:sellerId", async (req, res) => {
   try {

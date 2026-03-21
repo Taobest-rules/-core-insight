@@ -157,7 +157,6 @@ const safeJSON = (data) => {
 // =================== EMAIL CONFIGURATION - COMPLETE ===================
 
 
-
 // Email accounts
 const verificationEmailUser = process.env.EMAIL_USER || 'coreinsightmail@gmail.com';
 const verificationEmailPassword = process.env.EMAIL_APP_PASSWORD;
@@ -172,20 +171,18 @@ let supportTransporter = null;
 if (verificationEmailUser && verificationEmailPassword) {
   console.log(`📧 Setting up verification email: ${verificationEmailUser}`);
   
-  verificationTransporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: verificationEmailUser,
-      pass: verificationEmailPassword.replace(/\s/g, '') // Remove spaces if any
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 30000
-  });
-  
+ verificationTransporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,  // SSL
+  auth: {
+    user: verificationEmailUser,
+    pass: verificationEmailPassword.replace(/\s/g, '')
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
   // Test connection
   verificationTransporter.verify((error, success) => {
     if (error) {

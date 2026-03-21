@@ -156,7 +156,7 @@ const safeJSON = (data) => {
 
 // =================== EMAIL CONFIGURATION - COMPLETE ===================
 
-const nodemailer = require('nodemailer');
+
 
 // Email accounts
 const verificationEmailUser = process.env.EMAIL_USER || 'coreinsightmail@gmail.com';

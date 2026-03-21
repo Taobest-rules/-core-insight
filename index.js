@@ -3060,7 +3060,66 @@ app.get("/api/debug/course/:id", async (req, res) => {
   }
 });
 
-// =================== FIXED DEBUG ENDPOINTS ===================
+// =================== REUPLOAD COURSE FILE ===================
+app.post("/api/courses/:courseId/reupload", (req, res) => {
+  const uploadDir = path.join(__dirname, 'uploads', 'courses');
+  
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadDir);
+      },
+      filename: function (req, file, cb) {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext)
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .substring(0, 50);
+        cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+      }
+    })
+  }).single('file');
+
+  upload(req, res, async function(err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    try {
+      const courseId = req.params.courseId;
+      
+      if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const newFilePath = `/uploads/courses/${req.file.filename}`;
+      
+      await db.query(
+        'UPDATE courses SET file_path = ? WHERE id = ?',
+        [newFilePath, courseId]
+      );
+      
+      res.json({
+        success: true,
+        message: "File uploaded and course updated successfully!",
+        file_path: newFilePath
+      });
+      
+    } catch (error) {
+      console.error('Reupload error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
 
 // View all courses - FIXED VERSION
 app.get("/api/debug/all-courses", async (req, res) => {
@@ -3418,7 +3477,111 @@ function sendFile(res, filePath, courseTitle) {
   });
 }
 
-
+// =================== SMART FILE PATH FIXER ===================
+app.get("/api/admin/fix-all-paths", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    
+    if (!fs.existsSync(uploadDir)) {
+      return res.status(404).json({ 
+        error: "Upload directory not found",
+        path: uploadDir
+      });
+    }
+    
+    const existingFiles = fs.readdirSync(uploadDir);
+    console.log('📂 Existing files:', existingFiles);
+    
+    // Get all courses
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const results = {
+      fixed: [],
+      need_reupload: [],
+      deleted: []
+    };
+    
+    for (const course of courses) {
+      const dbPath = course.file_path;
+      
+      if (!dbPath) {
+        results.need_reupload.push({ id: course.id, title: course.title, reason: "No file path" });
+        continue;
+      }
+      
+      const dbFilename = path.basename(dbPath);
+      
+      // Try exact match
+      if (existingFiles.includes(dbFilename)) {
+        const correctPath = `/uploads/courses/${dbFilename}`;
+        if (dbPath !== correctPath) {
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [correctPath, course.id]
+          );
+          results.fixed.push({
+            id: course.id,
+            title: course.title,
+            old_path: dbPath,
+            new_path: correctPath,
+            match_type: 'exact'
+          });
+        }
+        continue;
+      }
+      
+      // Try to find by title match
+      let foundFile = null;
+      const searchTitle = course.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      for (const file of existingFiles) {
+        const fileLower = file.toLowerCase();
+        // Check if filename contains course title or vice versa
+        if (fileLower.includes(searchTitle) || searchTitle.includes(fileLower.replace(/^\d+-\d+-/, ''))) {
+          foundFile = file;
+          break;
+        }
+      }
+      
+      if (foundFile) {
+        const correctPath = `/uploads/courses/${foundFile}`;
+        await db.query(
+          'UPDATE courses SET file_path = ? WHERE id = ?',
+          [correctPath, course.id]
+        );
+        results.fixed.push({
+          id: course.id,
+          title: course.title,
+          old_path: dbPath,
+          new_path: correctPath,
+          match_type: 'title_match',
+          matched_file: foundFile
+        });
+      } else {
+        results.need_reupload.push({
+          id: course.id,
+          title: course.title,
+          db_filename: dbFilename,
+          reason: "No matching file found"
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      upload_dir: uploadDir,
+      files_in_directory: existingFiles,
+      results: results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 // =================== FIXED COURSE UPLOAD WITH ABSOLUTE PATHS ===================
 app.post("/api/courses", (req, res) => {
   console.log('📚 Course upload started');
@@ -3826,106 +3989,7 @@ app.get('/api/check-access/:courseId', async (req, res) => {
   }
 });
 
-// =================== REUPLOAD COURSE FILE ===================
-app.post("/api/courses/:courseId/reupload", (req, res) => {
-  const upload = multer({
-    storage: multer.diskStorage({
-      destination: function (req, file, cb) {
-        const uploadDir = path.join(__dirname, 'uploads', 'courses');
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-      },
-      filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now();
-        const ext = path.extname(file.originalname);
-        const baseName = path.basename(file.originalname, ext).replace(/[^a-z0-9]/gi, '-').substring(0, 50);
-        cb(null, `${uniqueSuffix}-${baseName}${ext}`);
-      }
-    })
-  }).fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-  ]);
 
-  upload(req, res, async function(err) {
-    if (err) {
-      console.error('❌ Upload error:', err);
-      return res.status(400).json({ error: err.message });
-    }
-
-    try {
-      const courseId = req.params.courseId;
-      
-      // Check admin access
-      if (!req.session.user || req.session.user.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-
-      // Get current course
-      const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
-      if (!courses || courses.length === 0) {
-        return res.status(404).json({ error: "Course not found" });
-      }
-
-      const course = courses[0];
-      const updates = [];
-      const values = [];
-
-      // Update file if provided
-      if (req.files?.file && req.files.file[0]) {
-        const newFilePath = `/uploads/courses/${req.files.file[0].filename}`;
-        updates.push("file_path = ?");
-        values.push(newFilePath);
-        
-        // Delete old file if exists
-        if (course.file_path) {
-          const oldPath = path.join(__dirname, course.file_path);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        }
-      }
-
-      // Update thumbnail if provided
-      if (req.files?.thumbnail && req.files.thumbnail[0]) {
-        const newThumbPath = `/uploads/courses/${req.files.thumbnail[0].filename}`;
-        updates.push("thumbnail_path = ?");
-        values.push(newThumbPath);
-        
-        // Delete old thumbnail if exists
-        if (course.thumbnail_path) {
-          const oldThumbPath = path.join(__dirname, course.thumbnail_path);
-          if (fs.existsSync(oldThumbPath)) {
-            fs.unlinkSync(oldThumbPath);
-          }
-        }
-      }
-
-      if (updates.length === 0) {
-        return res.status(400).json({ error: "No files to upload" });
-      }
-
-      values.push(courseId);
-      
-      await db.query(
-        `UPDATE courses SET ${updates.join(", ")} WHERE id = ?`,
-        values
-      );
-
-      res.json({
-        success: true,
-        message: "Course files updated successfully! You can now download the course.",
-        courseId: courseId
-      });
-
-    } catch (error) {
-      console.error('❌ Reupload error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-});
 // Temporary debug endpoint - remove after fixing
 app.get("/api/debug/user-courses/:userId", async (req, res) => {
   try {

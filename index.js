@@ -151,7 +151,135 @@ const escapeHtml = (str) => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 };
+// Add this near your other routes (around the health check endpoints)
+app.get("/api/debug/brevo-connection", async (req, res) => {
+  try {
+    console.log('🔍 Testing Brevo API connection...');
+    
+    // Test 1: Check if API key exists
+    const apiKey = process.env.BREVO_API_KEY;
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'BREVO_API_KEY not found in environment variables',
+        envCheck: {
+          hasKey: false,
+          nodeEnv: process.env.NODE_ENV
+        }
+      });
+    }
 
+    // Test 2: Try to make a simple API call to Brevo
+    const axios = require('axios');
+    
+    const response = await axios({
+      method: 'GET',
+      url: 'https://api.brevo.com/v3/account',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000 // 10 second timeout
+    });
+
+    console.log('✅ Brevo API test successful');
+    
+    res.json({
+      success: true,
+      message: 'Brevo API is reachable',
+      statusCode: response.status,
+      accountInfo: {
+        email: response.data.email,
+        plan: response.data.plan,
+        credits: response.data.relay?.credits || 'N/A'
+      },
+      config: {
+        nodeEnv: process.env.NODE_ENV,
+        hasApiKey: true,
+        apiKeyPrefix: apiKey.substring(0, 8) + '...'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Brevo connection test failed:', error.message);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      errorCode: error.code,
+      isTimeout: error.code === 'ECONNABORTED' || error.message.includes('timeout'),
+      isNetworkError: error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED',
+      details: {
+        message: error.message,
+        code: error.code,
+        stack: error.stack?.split('\n').slice(0, 3)
+      }
+    });
+  }
+});
+
+// Also add a test email endpoint
+app.post("/api/debug/test-email", async (req, res) => {
+  try {
+    const { email, type = 'brevo' } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email address required' });
+    }
+
+    if (type === 'brevo') {
+      const result = await sendVerificationEmail(
+        email,
+        'Test Email - Core Insight Debug',
+        `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Test Email</title></head>
+        <body style="font-family: Arial; padding: 20px;">
+          <h1 style="color: #3b82f6;">✅ Test Email Successful!</h1>
+          <p>If you received this email, your Brevo integration is working correctly.</p>
+          <p>Time sent: ${new Date().toLocaleString()}</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">Core Insight Test Email</p>
+        </body>
+        </html>
+        `
+      );
+      
+      res.json({
+        success: result.success,
+        message: result.success ? 'Test email sent successfully' : 'Failed to send test email',
+        error: result.error,
+        timestamp: new Date().toISOString()
+      });
+      
+    } else if (type === 'gmail') {
+      // Test Gmail support email
+      const result = await sendSupportEmail(
+        'Debug Test',
+        email,
+        'Test Support Email',
+        'This is a test of the support email system from Core Insight debug endpoint.'
+      );
+      
+      res.json({
+        success: result.success,
+        message: result.success ? 'Test support email sent' : 'Failed to send test support email',
+        error: result.error,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid type. Use "brevo" or "gmail"' });
+    }
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 // ============================================
 // EMAIL CONFIGURATION - FIXED VERSION
 // ============================================

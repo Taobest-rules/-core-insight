@@ -532,19 +532,8 @@ const chatImageStorage = multer.diskStorage({
   }
 });
 
-// Multer instances
-const uploadCourseFile = multer({
-  storage: courseStorage,
-  limits: { fileSize: 100 * 1024 * 1024, files: 2 }
-});
 
-const uploadProduct = multer({ storage: productStorage, limits: { fileSize: 50 * 1024 * 1024 } })
-  .fields([{ name: 'file', maxCount: 1 }, { name: 'images[]', maxCount: 10 }]);
 
-const uploadService = multer({ storage: serviceStorage, limits: { fileSize: 100 * 1024 * 1024 } });
-const uploadProfilePicture = multer({ storage: profileStorage, limits: { fileSize: 5 * 1024 * 1024 } });
-const uploadChatImage = multer({ storage: chatImageStorage, limits: { fileSize: 5 * 1024 * 1024 } })
-  .single('image');
 
 // ============================================
 // MIDDLEWARE FUNCTIONS

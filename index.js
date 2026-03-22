@@ -155,7 +155,6 @@ const safeJSON = (data) => {
 };
 // index.js (email section)
 
-import nodemailer from 'nodemailer';
 import { TransactionalEmailsApi, TransactionalEmailsApiApiKeys } from '@getbrevo/brevo';
 
 // =================== ENV VARIABLES ===================

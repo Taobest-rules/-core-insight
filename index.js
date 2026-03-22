@@ -153,74 +153,56 @@ const safeJSON = (data) => {
         return typeof value === 'bigint' ? value.toString() : value;
     }));
 };
+// index.js (email section)
 
-// =================== EMAIL CONFIGURATION - COMPLETE ===================
+import nodemailer from 'nodemailer';
+import { TransactionalEmailsApi, TransactionalEmailsApiApiKeys } from '@getbrevo/brevo';
 
+// =================== ENV VARIABLES ===================
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-// Email accounts
-const verificationEmailUser = process.env.EMAIL_USER || 'coreinsightmail@gmail.com';
-const verificationEmailPassword = process.env.EMAIL_APP_PASSWORD;
-const supportEmail = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
-const supportEmailPassword = process.env.SUPPORT_EMAIL_PASSWORD;
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
+const SUPPORT_EMAIL_PASSWORD = process.env.SUPPORT_EMAIL_PASSWORD;
 
-// Create transporters
-let verificationTransporter = null;
-let supportTransporter = null;
-
-import Brevo from '@getbrevo/brevo';
-
-const brevoClient = new Brevo.TransactionalEmailsApi();
-
+// =================== BREVO CLIENT (Verification Emails) ===================
+const brevoClient = new TransactionalEmailsApi();
 brevoClient.setApiKey(
-  Brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
+  TransactionalEmailsApiApiKeys.apiKey,
+  BREVO_API_KEY
 );
 
-// ========== SUPPORT EMAIL (for receiving contact form submissions) ==========
-if (supportEmail && supportEmailPassword) {
-  console.log(`📧 Setting up support email: ${supportEmail}`);
-  
+// =================== GMAIL TRANSPORTER (Support Emails) ===================
+let supportTransporter = null;
+
+if (SUPPORT_EMAIL && SUPPORT_EMAIL_PASSWORD) {
   supportTransporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: supportEmail,
-      pass: supportEmailPassword.replace(/\s/g, '') // Remove spaces if any
+      user: SUPPORT_EMAIL,
+      pass: SUPPORT_EMAIL_PASSWORD.replace(/\s/g, '')
     },
-    tls: {
-      rejectUnauthorized: false
-    },
+    tls: { rejectUnauthorized: false },
     connectionTimeout: 30000,
     greetingTimeout: 30000,
     socketTimeout: 30000
   });
-  
-  // Test connection
-  supportTransporter.verify((error, success) => {
-    if (error) {
-      console.error("❌ Support email error:", error.message);
-      console.log("   Check: SUPPORT_EMAIL and SUPPORT_EMAIL_PASSWORD in environment variables");
-    } else {
-      console.log("✅ Support email ready - " + supportEmail);
-    }
+
+  supportTransporter.verify((err) => {
+    if (err) console.error("❌ Support email error:", err.message);
+    else console.log("✅ Support email ready - " + SUPPORT_EMAIL);
   });
 } else {
   console.log("⚠️ Support email not configured. Set SUPPORT_EMAIL and SUPPORT_EMAIL_PASSWORD");
 }
 
-// ========== HELPER FUNCTIONS ==========
+// =================== HELPER FUNCTIONS ===================
 
-/**
- * Send verification email to users
- * @param {string} to - Recipient email address
- * @param {string} subject - Email subject
- * @param {string} html - Email HTML content
- * @returns {Promise<object>} Result with success status
- */
-async function sendVerificationEmail(to, subject, html) {
+// --- Send Verification Email (Brevo) ---
+export async function sendVerificationEmail(to, subject, html) {
   try {
     await brevoClient.sendTransacEmail({
       sender: {
-        email: "coreinsightmail@gmail.com", // ✅ VERIFIED EMAIL
+        email: "coreinsightmail@gmail.com", // ✅ Verified Brevo email
         name: "Core Insight"
       },
       to: [{ email: to }],
@@ -237,21 +219,10 @@ async function sendVerificationEmail(to, subject, html) {
   }
 }
 
-/**
- * Send support notification (from contact form to support email)
- * @param {string} name - Sender name
- * @param {string} email - Sender email
- * @param {string} subject - Message subject
- * @param {string} message - Message content
- * @param {string|null} orderId - Optional order ID
- * @returns {Promise<object>} Result with success status
- */
-async function sendSupportEmail(name, email, subject, message, orderId = null) {
-  if (!supportTransporter) {
-    console.log(`⚠️ Cannot send support email: Support email not configured`);
-    return { success: false, error: "Support email not configured" };
-  }
-  
+// --- Send Support Email (Gmail) ---
+export async function sendSupportEmail(name, email, subject, message, orderId = null) {
+  if (!supportTransporter) return { success: false, error: "Support email not configured" };
+
   const emailHtml = `
     <!DOCTYPE html>
     <html>
@@ -290,7 +261,7 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
     </body>
     </html>
   `;
-  
+
   function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -300,28 +271,24 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
-  
+
   try {
     const info = await supportTransporter.sendMail({
-      from: `"Core Insight Support" <${supportEmail}>`,
-      to: supportEmail,
+      from: `"Core Insight Support" <${SUPPORT_EMAIL}>`,
+      to: SUPPORT_EMAIL,
       subject: `[Support] ${subject} - from ${name}`,
       html: emailHtml,
       replyTo: email
     });
+
     console.log(`✅ Support email sent from ${email}`);
     return { success: true, messageId: info.messageId };
+
   } catch (error) {
-    console.error(`❌ Failed to send support email:`, error.message);
+    console.error("❌ Failed to send support email:", error.message);
     return { success: false, error: error.message };
   }
 }
-
-// Export for use in routes
-module.exports = {
-  sendVerificationEmail,
-  sendSupportEmail
-};
 // Upload directories
 const uploadDir = "uploads/courses";
 if (!fs.existsSync(uploadDir)) {

@@ -167,34 +167,14 @@ const supportEmailPassword = process.env.SUPPORT_EMAIL_PASSWORD;
 let verificationTransporter = null;
 let supportTransporter = null;
 
-// ========== VERIFICATION EMAIL (for sending to users) ==========
-if (verificationEmailUser && verificationEmailPassword) {
-  console.log(`📧 Setting up verification email: ${verificationEmailUser}`);
-  
- verificationTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,  // SSL
-  auth: {
-    user: verificationEmailUser,
-    pass: verificationEmailPassword.replace(/\s/g, '')
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-  // Test connection
-  verificationTransporter.verify((error, success) => {
-    if (error) {
-      console.error("❌ Verification email error:", error.message);
-      console.log("   Check: EMAIL_USER and EMAIL_APP_PASSWORD in environment variables");
-    } else {
-      console.log("✅ Verification email ready - " + verificationEmailUser);
-    }
-  });
-} else {
-  console.log("⚠️ Verification email not configured. Set EMAIL_USER and EMAIL_APP_PASSWORD");
-}
+import Brevo from '@getbrevo/brevo';
+
+const brevoClient = new Brevo.TransactionalEmailsApi();
+
+brevoClient.setApiKey(
+  Brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
 
 // ========== SUPPORT EMAIL (for receiving contact form submissions) ==========
 if (supportEmail && supportEmailPassword) {
@@ -237,22 +217,22 @@ if (supportEmail && supportEmailPassword) {
  * @returns {Promise<object>} Result with success status
  */
 async function sendVerificationEmail(to, subject, html) {
-  if (!verificationTransporter) {
-    console.log(`⚠️ Cannot send verification email to ${to}: Email not configured`);
-    return { success: false, error: "Verification email not configured" };
-  }
-  
   try {
-    const info = await verificationTransporter.sendMail({
-      from: `"Core Insight" <${verificationEmailUser}>`,
-      to: to,
+    await brevoClient.sendTransacEmail({
+      sender: {
+        email: "coreinsightmail@gmail.com", // ✅ VERIFIED EMAIL
+        name: "Core Insight"
+      },
+      to: [{ email: to }],
       subject: subject,
-      html: html
+      htmlContent: html
     });
+
     console.log(`✅ Verification email sent to ${to}`);
-    return { success: true, messageId: info.messageId };
+    return { success: true };
+
   } catch (error) {
-    console.error(`❌ Failed to send verification email to ${to}:`, error.message);
+    console.error("❌ Brevo error:", error.response?.body || error.message);
     return { success: false, error: error.message };
   }
 }
@@ -1242,7 +1222,7 @@ app.post("/api/forgot-password", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Please provide a valid email address"
-    });
+     });
   }
 
   try {

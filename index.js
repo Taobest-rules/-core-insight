@@ -4516,8 +4516,6 @@ app.get("/api/products", async (req, res) => {
     });
   }
 });
-
-// =================== FIXED PRODUCT UPLOAD ENDPOINT ===================
 app.post("/api/upload-product", (req, res) => {
   console.log('📦 Product upload started');
   
@@ -4577,21 +4575,12 @@ app.post("/api/upload-product", (req, res) => {
       let originalPrice = listedPrice;
       let platformFee = 0;
       
-     // In the /api/upload-product endpoint, update the pricing section
-if (type === 'physical') {
-    const productCostValue = parseFloat(product_cost) || 3.00;
-    const profitMargin = originalPrice - productCostValue;
-    
-    // Base platform fee is 10% of profit margin
-    const basePlatformFee = profitMargin * 0.10;
-    
-    // Store in database
-    platformFee = basePlatformFee;
-    sellerPrice = originalPrice - platformFee - productCostValue;
-    
-    // Store product_cost for later use
-    // product_cost is already being stored
-}
+      if (type === 'physical') {
+        platformFee = listedPrice * 0.1;
+        sellerPrice = listedPrice - platformFee;
+        originalPrice = listedPrice;
+      }
+
       // Process images
       let imageUrls = [];
       if (req.files && req.files['images[]'] && req.files['images[]'].length > 0) {
@@ -4612,19 +4601,56 @@ if (type === 'physical') {
         imageUrls = [external_image];
       }
 
-      // Handle product file (digital products)
+      // FIXED: Handle product file for digital products
       let fileUrl = null;
       if (req.files && req.files.file && req.files.file[0]) {
         const productFile = req.files.file[0];
         const uploadDir = path.join(__dirname, 'uploads', 'products', 'files');
+        
+        // Ensure directory exists
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
+          console.log(`📁 Created upload directory: ${uploadDir}`);
         }
         
-        const filename = Date.now() + '-' + productFile.originalname;
-        const filePath = path.join(uploadDir, filename);
-        fs.renameSync(productFile.path, filePath);
-        fileUrl = `/uploads/products/files/${filename}`;
+        // Generate unique filename
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(productFile.originalname);
+        const baseName = path.basename(productFile.originalname, ext)
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .substring(0, 50);
+        const filename = `${timestamp}-${random}-${baseName}${ext}`;
+        const finalPath = path.join(uploadDir, filename);
+        
+        console.log(`📁 Moving file from ${productFile.path} to ${finalPath}`);
+        
+        // FIXED: Use copyFileSync instead of renameSync to avoid cross-device error
+        try {
+          // Copy the file (works across devices)
+          fs.copyFileSync(productFile.path, finalPath);
+          
+          // Delete the temporary file
+          fs.unlinkSync(productFile.path);
+          
+          fileUrl = `/uploads/products/files/${filename}`;
+          console.log(`✅ File saved successfully: ${fileUrl}`);
+        } catch (fileError) {
+          console.error('❌ File copy error:', fileError);
+          
+          // If copy fails, try alternative method
+          try {
+            // Alternative: read and write
+            const data = fs.readFileSync(productFile.path);
+            fs.writeFileSync(finalPath, data);
+            fs.unlinkSync(productFile.path);
+            fileUrl = `/uploads/products/files/${filename}`;
+            console.log(`✅ File saved via writeFile: ${fileUrl}`);
+          } catch (altError) {
+            console.error('❌ Alternative save failed:', altError);
+            throw new Error(`Failed to save file: ${altError.message}`);
+          }
+        }
       }
 
       const estimatedDeliveryDays = type === 'physical' 
@@ -4635,7 +4661,6 @@ if (type === 'physical') {
         ? parseFloat(product_cost) || 3.00 
         : null;
 
-      // FIXED: REMOVED ALL COMMENTS FROM SQL QUERY
       console.log('💾 Inserting into database...');
       
       const result = await db.query(

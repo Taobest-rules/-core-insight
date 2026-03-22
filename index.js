@@ -3604,34 +3604,7 @@ app.get("/api/debug/uploads", async (req, res) => {
   }
 });
 
-function sendFile(res, filePath, courseTitle) {
-  const filename = path.basename(filePath);
-  const ext = path.extname(filename).toLowerCase();
-  
-  let contentType = 'application/octet-stream';
-  if (ext === '.pdf') contentType = 'application/pdf';
-  else if (ext === '.epub') contentType = 'application/epub+zip';
-  else if (ext === '.mobi') contentType = 'application/x-mobipocket-ebook';
-  else if (ext === '.mp4') contentType = 'video/mp4';
-  else if (ext === '.zip') contentType = 'application/zip';
-  else if (ext === '.doc' || ext === '.docx') contentType = 'application/msword';
-  else if (ext === '.txt') contentType = 'text/plain';
 
-  console.log(`Sending file: ${filename} (${contentType})`);
-
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${encodeURIComponent(courseTitle || filename)}"`
-  );
-
-  res.setHeader("Content-Type", contentType);
-
-  res.sendFile(filePath, err => {
-    if (err) {
-      console.error("Error sending file:", err);
-    }
-  });
-}
 
 // =================== SMART FILE PATH FIXER ===================
 app.get("/api/admin/fix-all-paths", async (req, res) => {

@@ -284,7 +284,6 @@ app.post("/api/debug/test-email", async (req, res) => {
 // EMAIL CONFIGURATION - WORKING VERSION
 // ============================================
 
-const axios = require('axios');
 
 // Get API key from environment
 const BREVO_API_KEY = process.env.BREVO_API_KEY;

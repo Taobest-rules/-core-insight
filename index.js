@@ -2653,34 +2653,7 @@ app.get('/api/download/:courseId', async (req, res) => {
   }
 });
 
-function sendFile(res, filePath, title) {
-  const stat = fs.statSync(filePath);
-  const filename = path.basename(filePath);
-  const ext = path.extname(filename);
-  
-  // Create a safe filename for download
-  const safeFilename = title 
-    ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ext
-    : filename;
-  
-  console.log(`📤 Sending file: ${safeFilename}`);
-  console.log(`📊 File size: ${stat.size} bytes`);
-  
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Length', stat.size);
-  
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error('❌ Error sending file:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Error sending file' });
-      }
-    } else {
-      console.log('✅ File sent successfully!');
-    }
-  });
-}
+
 
 function sendFile(res, filePath, title) {
   const stat = fs.statSync(filePath);

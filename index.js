@@ -1,4 +1,4 @@
-// index.js - PRODUCTION VERSION
+// index.js - PRODUCTION VERSION (COMPLETE WITH REVIEWS)
 // ============================================
 // DEPENDENCIES & CONFIGURATION
 // ============================================
@@ -10,7 +10,7 @@ dotenv.config({
 // Core dependencies
 const express = require("express");
 const path = require("path");
-const multer = require("multer");
+const multer = require("multer");               
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const axios = require("axios");
@@ -155,36 +155,60 @@ const escapeHtml = (str) => {
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
 
+// Create email transporter
+let transporter = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    tls: { rejectUnauthorized: false }
+  });
+}
+
 async function sendVerificationEmail(to, subject, html) {
-  if (!BREVO_API_KEY) {
-    console.error('❌ BREVO_API_KEY not configured');
+  if (!BREVO_API_KEY && !transporter) {
+    console.error('❌ No email service configured');
     return { success: true, fallback: true, message: 'Email service not configured, but account created' };
   }
 
   try {
-    const response = await axios({
-      method: 'POST',
-      url: 'https://api.brevo.com/v3/smtp/email',
-      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      data: {
-        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
-        to: [{ email: to }],
+    if (BREVO_API_KEY) {
+      const response = await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        data: {
+          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
+          to: [{ email: to }],
+          subject: subject,
+          htmlContent: html,
+          headers: { 'X-Mailin-custom': 'verification-email' }
+        },
+        timeout: 15000
+      });
+      console.log(`✅ Verification email sent to ${to}`);
+      return { success: true };
+    } else if (transporter) {
+      await transporter.sendMail({
+        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+        to: to,
         subject: subject,
-        htmlContent: html,
-        headers: { 'X-Mailin-custom': 'verification-email' }
-      },
-      timeout: 15000
-    });
-    console.log(`✅ Verification email sent to ${to}`);
-    return { success: true };
+        html: html
+      });
+      return { success: true };
+    }
+    return { success: true, fallback: true };
   } catch (error) {
-    console.error("❌ Brevo error:", error.response?.data || error.message);
+    console.error("❌ Email error:", error.response?.data || error.message);
     return { success: true, fallback: true, error: error.response?.data?.message || error.message };
   }
 }
 
 async function sendSupportEmail(name, email, subject, message, orderId = null) {
-  if (!BREVO_API_KEY) return { success: false, error: "Email service not configured" };
+  if (!transporter && !BREVO_API_KEY) return { success: false, error: "Email service not configured" };
 
   try {
     const htmlBody = `
@@ -199,19 +223,29 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
       </div></body></html>
     `;
 
-    await axios({
-      method: 'POST',
-      url: 'https://api.brevo.com/v3/smtp/email',
-      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-      data: {
-        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
-        to: [{ email: SUPPORT_EMAIL }],
-        replyTo: { email: email, name: name },
+    if (BREVO_API_KEY) {
+      await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
+        data: {
+          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
+          to: [{ email: SUPPORT_EMAIL }],
+          replyTo: { email: email, name: name },
+          subject: `[Support] ${subject} - from ${name}`,
+          htmlContent: htmlBody
+        },
+        timeout: 15000
+      });
+    } else if (transporter) {
+      await transporter.sendMail({
+        from: `"Core Insight Support" <${process.env.EMAIL_USER}>`,
+        to: SUPPORT_EMAIL,
         subject: `[Support] ${subject} - from ${name}`,
-        htmlContent: htmlBody
-      },
-      timeout: 15000
-    });
+        html: htmlBody,
+        replyTo: email
+      });
+    }
     console.log(`✅ Support email sent to ${SUPPORT_EMAIL}`);
     return { success: true };
   } catch (error) {
@@ -253,6 +287,9 @@ const productStorage = multer.diskStorage({
     cb(null, Date.now() + "-" + sanitizedName);
   }
 });
+
+const upload = multer({ storage: courseStorage });
+const productUpload = multer({ storage: productStorage });
 
 // ============================================
 // MIDDLEWARE FUNCTIONS
@@ -338,7 +375,7 @@ app.get("/api/currency-rates", (req, res) => {
 });
 
 // ============================================
-// ROUTES - AUTHENTICATION (COMPLETE)
+// ROUTES - AUTHENTICATION
 // ============================================
 app.post("/api/signup", async (req, res) => {
   try {
@@ -441,66 +478,357 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/me", (req, res) => {
   res.json(req.session.user || null);
 });
-// Test endpoint to check if cron job is working
-app.get("/api/cron/status", async (req, res) => {
+
+app.post("/api/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
   try {
-    // Get count of orders waiting for release
-    const waitingOrders = await db.query(`
-      SELECT COUNT(*) as count, 
-             MIN(payment_held_until) as next_release_date
-      FROM physical_orders 
-      WHERE payment_status = 'paid' 
-        AND order_status = 'paid'
-        AND funds_released_at IS NULL
-        AND payment_held_until > NOW()
-    `);
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 3600000);
 
-    // Get count of orders ready for release
-    const readyOrders = await db.query(`
-      SELECT COUNT(*) as count
-      FROM physical_orders 
-      WHERE payment_status = 'paid' 
-        AND order_status = 'paid'
-        AND funds_released_at IS NULL
-        AND payment_held_until <= NOW()
-    `);
+    const result = await db.query(
+      "UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?",
+      [token, expires, email]
+    );
 
-    res.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      orders_waiting: waitingOrders[0]?.count || 0,
-      orders_ready_for_release: readyOrders[0]?.count || 0,
-      next_release_date: waitingOrders[0]?.next_release_date,
-      cron_last_run: new Date().toISOString()
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ============================================
-// ROUTES - PHYSICAL ORDER SYSTEM (NEW)
-// ============================================
+    const responseMessage = "If that email address exists in our system, we've sent a password reset link to it.";
 
-// 1. Create physical order (awaiting seller approval)
-app.post("/api/physical-orders/create", async (req, res) => {
-  try {
-    console.log("📦 Creating physical order (awaiting seller approval)...");
-    
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please log in to place an order" });
+    if (result.affectedRows > 0 && transporter) {
+      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}`;
+      await transporter.sendMail({
+        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Reset your Core Insight password",
+        html: `<div><h2>Reset Password</h2><a href="${resetLink}">Click here to reset your password</a><p>This link expires in 1 hour.</p></div>`
+      });
     }
 
-    const {
-      productId,
-      quantity = 1,
-      deliveryAddress,
-      city,
-      state,
-      country,
-      deliveryPhone,
-      notes = ''
-    } = req.body;
+    res.json({ success: true, message: responseMessage });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ success: false, message: "An error occurred. Please try again later." });
+  }
+});
 
+app.post("/api/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ success: false, error: "Token and password are required" });
+
+  try {
+    const users = await db.query(
+      "SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()",
+      [token]
+    );
+
+    if (!users || users.length === 0) {
+      return res.status(400).json({ success: false, error: "Invalid or expired reset token" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.query(
+      "UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE reset_token = ?",
+      [hashedPassword, token]
+    );
+
+    res.json({ success: true, message: "Password reset successfully!" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ success: false, error: "Error resetting password" });
+  }
+});
+
+// ============================================
+// ROUTES - PRODUCTS (WITH REVIEWS)
+// ============================================
+app.get("/api/products", async (req, res) => {
+  try {
+    console.log('📦 Fetching products...');
+    
+    const products = await db.query(`
+      SELECT 
+        p.*,
+        u.username as seller_name,
+        p.rating,
+        p.review_count
+      FROM products p
+      LEFT JOIN users u ON p.user_id = u.id
+      WHERE p.is_deleted = 0 OR p.is_deleted IS NULL
+      ORDER BY p.created_at DESC
+    `);
+    
+    const processedProducts = extractRows(products).map(product => {
+      product.price = parseFloat(product.price || 0);
+      product.original_price = parseFloat(product.original_price) || product.price;
+      product.platform_fee = parseFloat(product.platform_fee) || (product.type === 'physical' ? product.original_price * 0.1 : 0);
+      product.seller_price = product.type === 'physical' ? product.original_price - product.platform_fee : product.price;
+      product.rating = parseFloat(product.rating) || 0;
+      product.review_count = parseInt(product.review_count) || 0;
+
+      if (product.image_urls) {
+        try {
+          product.images = typeof product.image_urls === 'string'
+            ? (product.image_urls.startsWith('[') || product.image_urls.startsWith('{') ? JSON.parse(product.image_urls) : [product.image_urls])
+            : (Array.isArray(product.image_urls) ? product.image_urls : []);
+        } catch (e) { product.images = []; }
+      } else {
+        product.images = [];
+      }
+
+      if (!product.images?.length) {
+        product.images = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+      }
+
+      product._imageList = product.images;
+      if (!product.type) product.type = product.affiliate_link ? 'affiliate' : 'digital';
+      return product;
+    });
+
+    res.json(processedProducts);
+  } catch (err) {
+    console.error('❌ Error fetching products:', err);
+    res.status(500).json({ error: "Error fetching products", details: err.message });
+  }
+});
+
+// ============================================
+// REVIEWS ENDPOINTS (ADDED - CRITICAL)
+// ============================================
+
+// Submit a product review
+app.post("/api/reviews", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please log in to submit a review." });
+  }
+
+  try {
+    const { productId, rating, comment } = req.body;
+    
+    if (!productId || !rating || !comment) {
+      return res.status(400).json({ error: "Product ID, rating, and comment are required." });
+    }
+    
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5." });
+    }
+
+    // Check if user has already reviewed this product
+    const existingReview = await db.query(
+      "SELECT id FROM reviews WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    if (existingReview && existingReview.length > 0) {
+      return res.status(400).json({ error: "You have already reviewed this product." });
+    }
+
+    // Insert review
+    await db.query(
+      "INSERT INTO reviews (user_id, product_id, rating, comment, created_at) VALUES (?, ?, ?, ?, NOW())",
+      [req.session.user.id, productId, rating, comment]
+    );
+
+    // Update product rating and review count
+    const ratingResult = await db.query(
+      `SELECT AVG(rating) as avg_rating, COUNT(*) as review_count 
+       FROM reviews WHERE product_id = ?`,
+      [productId]
+    );
+
+    const avgRating = ratingResult[0]?.avg_rating || 0;
+    const reviewCount = ratingResult[0]?.review_count || 0;
+
+    await db.query(
+      "UPDATE products SET rating = ?, review_count = ? WHERE id = ?",
+      [avgRating, reviewCount, productId]
+    );
+
+    res.json({ 
+      success: true, 
+      message: "Review submitted successfully",
+      averageRating: avgRating,
+      reviewCount: reviewCount
+    });
+
+  } catch (err) {
+    console.error("Error submitting review:", err);
+    res.status(500).json({ error: "Error submitting review: " + err.message });
+  }
+});
+
+// Get reviews for a product
+app.get("/api/reviews/:productId", async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const reviews = await db.query(`
+      SELECT r.*, u.username 
+      FROM reviews r 
+      JOIN users u ON r.user_id = u.id 
+      WHERE r.product_id = ? 
+      ORDER BY r.created_at DESC
+    `, [productId]);
+
+    const safeReviews = extractRows(reviews);
+    
+    res.json({ 
+      reviews: safeReviews,
+      count: safeReviews.length
+    });
+
+  } catch (err) {
+    console.error("Error loading reviews:", err);
+    res.status(500).json({ error: "Error loading reviews: " + err.message });
+  }
+});
+
+// Get user's review for a specific product
+app.get("/api/reviews/user/:productId", async (req, res) => {
+  if (!req.session.user) {
+    return res.json({ hasReviewed: false });
+  }
+
+  try {
+    const { productId } = req.params;
+    
+    const review = await db.query(
+      "SELECT id, rating, comment FROM reviews WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    if (review && review.length > 0) {
+      res.json({ hasReviewed: true, review: review[0] });
+    } else {
+      res.json({ hasReviewed: false });
+    }
+  } catch (err) {
+    console.error("Error checking user review:", err);
+    res.json({ hasReviewed: false });
+  }
+});
+
+// ============================================
+// PRODUCT UPLOAD ENDPOINT
+// ============================================
+app.post("/api/upload-product", (req, res) => {
+  const upload = multer({ storage: productStorage }).fields([
+    { name: 'file', maxCount: 1 }, { name: 'images[]', maxCount: 10 }
+  ]);
+
+  upload(req, res, async function(err) {
+    if (err) return res.status(400).json({ error: 'File upload error: ' + err.message });
+
+    try {
+      if (!req.session.user) return res.status(401).json({ error: "Please log in to upload products." });
+
+      const { title, description, price, category, type, affiliate_link, paymentProvider } = req.body;
+      if (!title || !price || !type || !paymentProvider) {
+        return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
+      }
+      if (type === 'affiliate' && !affiliate_link) {
+        return res.status(400).json({ error: "Affiliate link is required for affiliate products." });
+      }
+
+      const listedPrice = parseFloat(price);
+      let sellerPrice = listedPrice, platformFee = 0;
+      if (type === 'physical') {
+        platformFee = listedPrice * 0.1;
+        sellerPrice = listedPrice - platformFee;
+      }
+
+      let imageUrls = [];
+      if (req.files?.['images[]']?.length) {
+        const cloudinary = require('cloudinary').v2;
+        for (const imageFile of req.files['images[]']) {
+          try {
+            const result = await cloudinary.uploader.upload(imageFile.path, { folder: 'core-insight/products' });
+            imageUrls.push(result.secure_url);
+          } catch (cloudErr) { console.error('Cloudinary upload error:', cloudErr); }
+        }
+      }
+
+      let fileUrl = null;
+      if (req.files?.file?.[0]) {
+        const productFile = req.files.file[0];
+        const filesDir = path.join(uploadDirs.products, 'files');
+        if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
+
+        const timestamp = Date.now();
+        const ext = path.extname(productFile.originalname);
+        const baseName = path.basename(productFile.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+        const filename = `${timestamp}-${Math.floor(Math.random() * 1000000)}-${baseName}${ext}`;
+        const finalPath = path.join(filesDir, filename);
+
+        try {
+          fs.copyFileSync(productFile.path, finalPath);
+          fs.unlinkSync(productFile.path);
+          fileUrl = `/uploads/products/files/${filename}`;
+        } catch (fileError) {
+          const data = fs.readFileSync(productFile.path);
+          fs.writeFileSync(finalPath, data);
+          fs.unlinkSync(productFile.path);
+          fileUrl = `/uploads/products/files/${filename}`;
+        }
+      }
+
+      const result = await db.query(
+        `INSERT INTO products (user_id, title, description, price, original_price, platform_fee, category, type,
+          file_url, image_urls, affiliate_link, seller_payment_provider, rating, review_count, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
+        [req.session.user.id, title, description || '', sellerPrice, listedPrice, platformFee, category || '',
+         type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, affiliate_link || null, paymentProvider]
+      );
+
+      res.json({ message: "✅ Product uploaded successfully!", productId: result.insertId });
+    } catch (err) {
+      console.error('❌ Product upload error:', err);
+      res.status(500).json({ error: "Error uploading product: " + err.message });
+    }
+  });
+});
+
+// Delete product endpoint
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login first" });
+    }
+
+    const productId = req.params.id;
+    const { id: userId, role: userRole } = req.session.user;
+
+    const products = await db.query("SELECT * FROM products WHERE id = ?", [productId]);
+    let product = null;
+    if (products && products.length > 0) product = products[0];
+
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    if (userRole !== "admin" && Number(product.user_id) !== Number(userId)) {
+      return res.status(403).json({ error: "You are not authorized to delete this product" });
+    }
+
+    // Soft delete
+    await db.query("UPDATE products SET is_deleted = 1, deleted_at = NOW() WHERE id = ?", [productId]);
+
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err) {
+    console.error('❌ Delete error:', err);
+    res.status(500).json({ error: "Failed to delete product" });
+  }
+});
+
+// ============================================
+// ROUTES - PHYSICAL ORDER SYSTEM
+// ============================================
+
+// 1. Create physical order
+app.post("/api/physical-orders/create", async (req, res) => {
+  try {
+    console.log("📦 Creating physical order...");
+    
+    if (!req.session.user) return res.status(401).json({ error: "Please log in to place an order" });
+
+    const { productId, quantity = 1, deliveryAddress, city, state, country, deliveryPhone, notes = '' } = req.body;
     if (!productId) return res.status(400).json({ error: "Product ID is required" });
     if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
     if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
@@ -510,23 +838,18 @@ app.post("/api/physical-orders/create", async (req, res) => {
       return res.status(400).json({ error: "Quantity must be between 1 and 100" });
     }
 
-    // Get product details
     const productResult = await db.query(
-      `SELECT user_id as seller_id, original_price, product_cost, title, platform_fee 
-       FROM products WHERE id = ?`,
+      `SELECT user_id as seller_id, original_price, product_cost, title, platform_fee FROM products WHERE id = ?`,
       [productId]
     );
 
-    if (!productResult || productResult.length === 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
+    if (!productResult || productResult.length === 0) return res.status(404).json({ error: "Product not found" });
 
     const sellerId = productResult[0].seller_id;
     const buyerId = req.session.user.id;
     const productPrice = parseFloat(productResult[0].original_price);
     const totalAmount = qty * productPrice;
 
-    // Create order with pending seller approval status
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
@@ -562,7 +885,6 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created, awaiting seller approval`);
 
-    // Notify seller
     await db.query(
       `INSERT INTO seller_notifications 
        (seller_id, order_id, notification_type, title, message, created_at)
@@ -600,9 +922,7 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
       [orderId]
     );
 
-    if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
-    }
+    if (!orderResult || orderResult.length === 0) return res.status(404).json({ error: "Order not found" });
 
     const order = orderResult[0];
 
@@ -692,9 +1012,7 @@ app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
       [orderId, req.session.user.id]
     );
 
-    if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
-    }
+    if (!orderResult || orderResult.length === 0) return res.status(404).json({ error: "Order not found" });
 
     const order = orderResult[0];
 
@@ -853,16 +1171,6 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
         escrowReleaseDate: escrowReleaseDate
       });
     } else {
-      const transactionData = response.data.data;
-      if (transactionData && transactionData.meta && transactionData.meta.order_id) {
-        await db.query(
-          `UPDATE physical_orders 
-           SET order_status = 'seller_accepted',
-               payment_status = 'pending'
-           WHERE id = ?`,
-          [transactionData.meta.order_id]
-        );
-      }
       res.status(400).json({ status: "failed", message: "Payment not successful" });
     }
 
@@ -872,7 +1180,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   }
 });
 
-// 5. Buyer requests refund within 5-day window
+// 5. Buyer requests refund
 app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -892,9 +1200,7 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
       [orderId, req.session.user.id]
     );
 
-    if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
-    }
+    if (!orderResult || orderResult.length === 0) return res.status(404).json({ error: "Order not found" });
 
     const order = orderResult[0];
 
@@ -977,14 +1283,6 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
           [order.id]
         );
 
-        await db.query(
-          `INSERT INTO seller_notifications 
-           (seller_id, order_id, notification_type, title, message)
-           VALUES (?, ?, 'funds_released', 'Funds Released', 
-                   CONCAT('$', ?, ' has been released to your account for order #', ?))`,
-          [order.seller_id, order.id, order.seller_earnings, order.id]
-        );
-
         released++;
       } catch (err) {
         console.error(`Failed to release order ${order.id}:`, err);
@@ -999,7 +1297,42 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
   }
 });
 
-// 7. Get seller's physical orders
+// 7. Cron status endpoint
+app.get("/api/cron/status", async (req, res) => {
+  try {
+    const waitingOrders = await db.query(`
+      SELECT COUNT(*) as count, 
+             MIN(payment_held_until) as next_release_date
+      FROM physical_orders 
+      WHERE payment_status = 'paid' 
+        AND order_status = 'paid'
+        AND funds_released_at IS NULL
+        AND payment_held_until > NOW()
+    `);
+
+    const readyOrders = await db.query(`
+      SELECT COUNT(*) as count
+      FROM physical_orders 
+      WHERE payment_status = 'paid' 
+        AND order_status = 'paid'
+        AND funds_released_at IS NULL
+        AND payment_held_until <= NOW()
+    `);
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      orders_waiting: waitingOrders[0]?.count || 0,
+      orders_ready_for_release: readyOrders[0]?.count || 0,
+      next_release_date: waitingOrders[0]?.next_release_date,
+      cron_last_run: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 8. Get seller's physical orders
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -1040,7 +1373,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
 
     res.json({
       success: true,
-      orders: orders,
+      orders: extractRows(orders),
       counts: counts[0] || {},
       pagination: { page: parseInt(page), limit: parseInt(limit) }
     });
@@ -1051,7 +1384,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
   }
 });
 
-// 8. Get buyer's physical orders
+// 9. Get buyer's physical orders
 app.get("/api/buyer/physical-orders", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -1080,7 +1413,7 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
 
     res.json({
       success: true,
-      orders: orders,
+      orders: extractRows(orders),
       pagination: { page: parseInt(page), limit: parseInt(limit) }
     });
 
@@ -1091,7 +1424,7 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
 });
 
 // ============================================
-// ROUTES - COURSES (MINIMAL, KEEP EXISTING)
+// ROUTES - COURSES
 // ============================================
 app.get("/api/courses", async (req, res) => {
   try {
@@ -1153,146 +1486,246 @@ function sendFile(res, filePath, title) {
   res.sendFile(filePath);
 }
 
-// ============================================
-// ROUTES - PRODUCTS (KEEP EXISTING)
-// ============================================
-app.get("/api/products", async (req, res) => {
+// My courses endpoint
+app.get("/api/my-courses", async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: "Please login to view your courses" });
+
   try {
-    const products = await db.query(`
-      SELECT p.*, u.username as seller_name
-      FROM products p LEFT JOIN users u ON p.user_id = u.id
-      WHERE p.is_deleted = 0 OR p.is_deleted IS NULL
-      ORDER BY p.created_at DESC
-    `);
+    const courses = await db.query(`
+      SELECT c.*, uc.purchased_at 
+      FROM courses c 
+      INNER JOIN user_courses uc ON c.id = uc.course_id 
+      WHERE uc.user_id = ? AND uc.payment_status = 'completed'
+      ORDER BY uc.purchased_at DESC
+    `, [req.session.user.id]);
 
-    const processedProducts = extractRows(products).map(product => {
-      product.price = parseFloat(product.price || 0);
-      product.original_price = parseFloat(product.original_price) || product.price;
-      product.platform_fee = parseFloat(product.platform_fee) || (product.type === 'physical' ? product.original_price * 0.1 : 0);
-      product.seller_price = product.type === 'physical' ? product.original_price - product.platform_fee : product.price;
-
-      if (product.image_urls) {
-        try {
-          product.images = typeof product.image_urls === 'string'
-            ? (product.image_urls.startsWith('[') || product.image_urls.startsWith('{') ? JSON.parse(product.image_urls) : [product.image_urls])
-            : (Array.isArray(product.image_urls) ? product.image_urls : []);
-        } catch (e) { product.images = []; }
-      } else {
-        product.images = [];
-      }
-
-      if (!product.images?.length) {
-        product.images = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
-      }
-
-      product._imageList = product.images;
-      if (!product.type) product.type = product.affiliate_link ? 'affiliate' : 'digital';
-      return product;
-    });
-
-    res.json(processedProducts);
+    res.json(extractRows(courses));
   } catch (err) {
-    console.error('❌ Error fetching products:', err);
-    res.status(500).json({ error: "Error fetching products", details: err.message });
+    res.status(500).json({ error: "Error fetching your courses" });
   }
 });
 
-app.post("/api/upload-product", (req, res) => {
-  const upload = multer({ storage: productStorage }).fields([
-    { name: 'file', maxCount: 1 }, { name: 'images[]', maxCount: 10 }
-  ]);
+// ============================================
+// ROUTES - PAYMENT INITIATION
+// ============================================
+app.post("/api/initiate-payment", async (req, res) => {
+  console.log('💳 Payment initiation request received');
+  
+  if (!req.session.user) return res.status(401).json({ error: "Please login to make payment" });
 
-  upload(req, res, async function(err) {
-    if (err) return res.status(400).json({ error: 'File upload error: ' + err.message });
+  try {
+    const { courseId } = req.body;
+    if (!courseId) return res.status(400).json({ error: "Course ID is required" });
 
-    try {
-      if (!req.session.user) return res.status(401).json({ error: "Please log in to upload products." });
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    let course = null;
+    if (courses && courses.length > 0) course = courses[0];
 
-      const { title, description, price, category, type, affiliate_link, paymentProvider } = req.body;
-      if (!title || !price || !type || !paymentProvider) {
-        return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
-      }
-      if (type === 'affiliate' && !affiliate_link) {
-        return res.status(400).json({ error: "Affiliate link is required for affiliate products." });
-      }
+    if (!course) return res.status(404).json({ error: "Course not found" });
+    if (course.price <= 0) return res.status(400).json({ error: "This course is free. No payment required." });
 
-      const listedPrice = parseFloat(price);
-      let sellerPrice = listedPrice, platformFee = 0;
-      if (type === 'physical') {
-        platformFee = listedPrice * 0.1;
-        sellerPrice = listedPrice - platformFee;
-      }
-
-      let imageUrls = [];
-      if (req.files?.['images[]']?.length) {
-        const cloudinary = require('cloudinary').v2;
-        for (const imageFile of req.files['images[]']) {
-          try {
-            const result = await cloudinary.uploader.upload(imageFile.path, { folder: 'core-insight/products' });
-            imageUrls.push(result.secure_url);
-          } catch (cloudErr) { console.error('Cloudinary upload error:', cloudErr); }
-        }
-      }
-
-      let fileUrl = null;
-      if (req.files?.file?.[0]) {
-        const productFile = req.files.file[0];
-        const filesDir = path.join(uploadDirs.products, 'files');
-        if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
-
-        const timestamp = Date.now();
-        const ext = path.extname(productFile.originalname);
-        const baseName = path.basename(productFile.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
-        const filename = `${timestamp}-${Math.floor(Math.random() * 1000000)}-${baseName}${ext}`;
-        const finalPath = path.join(filesDir, filename);
-
-        try {
-          fs.copyFileSync(productFile.path, finalPath);
-          fs.unlinkSync(productFile.path);
-          fileUrl = `/uploads/products/files/${filename}`;
-        } catch (fileError) {
-          const data = fs.readFileSync(productFile.path);
-          fs.writeFileSync(finalPath, data);
-          fs.unlinkSync(productFile.path);
-          fileUrl = `/uploads/products/files/${filename}`;
-        }
-      }
-
-      const result = await db.query(
-        `INSERT INTO products (user_id, title, description, price, original_price, platform_fee, category, type,
-          file_url, image_urls, affiliate_link, seller_payment_provider, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [req.session.user.id, title, description || '', sellerPrice, listedPrice, platformFee, category || '',
-         type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, affiliate_link || null, paymentProvider]
-      );
-
-      res.json({ message: "✅ Product uploaded successfully!", productId: result.insertId });
-    } catch (err) {
-      console.error('❌ Product upload error:', err);
-      res.status(500).json({ error: "Error uploading product: " + err.message });
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({ error: "Payment system not configured. Please contact support." });
     }
-  });
+    
+    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    const amount = parseFloat(course.price);
+    
+    const payload = {
+      tx_ref: transaction_ref,
+      amount: amount,
+      currency: "USD",
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
+      customer: {
+        email: req.session.user.email || `${req.session.user.username}@example.com`,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight",
+        description: `Payment for ${course.title}`,
+      },
+      meta: {
+        course_id: courseId,
+        user_id: req.session.user.id,
+      }
+    };
+    
+    console.log('📤 Sending to Flutterwave...');
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      console.log('✅ Payment link created');
+      
+      try {
+        await db.query(
+          `INSERT INTO payments 
+           (user_id, course_id, transaction_ref, amount, status, created_at)
+           VALUES (?, ?, ?, ?, 'pending', NOW())`,
+          [req.session.user.id, courseId, transaction_ref, amount]
+        );
+        console.log('✅ Payment recorded in database');
+      } catch (dbError) {
+        console.error('⚠️ Could not save payment to database:', dbError.message);
+      }
+      
+      res.json({
+        status: "success",
+        paymentLink: response.data.data.link,
+        transactionRef: transaction_ref
+      });
+    } else {
+      console.error('❌ Flutterwave error:', response.data);
+      res.status(500).json({ error: response.data.message || "Payment initiation failed" });
+    }
+    
+  } catch (err) {
+    console.error('❌ Payment error:', err.message);
+    res.status(500).json({ error: "Error initiating payment: " + err.message });
+  }
 });
 
-// ============================================
-// ROUTES - HTML PAGES
-// ============================================
-const htmlRoutes = [
-  "/", "/login", "/signup", "/courses", "/admin-files.html", "/admin-migrate",
-  "/payment-callback.html", "/payment-verification.html", "/payment-failed.html",
-  "/forgot-password.html", "/reset-password.html", "/services-payment-callback",
-  "/physical-payment-callback.html"
-];
-
-htmlRoutes.forEach(route => {
-  const filename = route === "/" ? "index.html" : route;
-  app.get(route, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", filename));
-  });
+app.get("/api/verify-payment/:transaction_id", async (req, res) => {
+  try {
+    const { transaction_id } = req.params;
+    
+    console.log('🔍 Verifying payment:', transaction_id);
+    
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      {
+        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const tx_ref = transaction.tx_ref;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
+      
+      console.log('✅ Payment verified:', { tx_ref, amount, courseId, userId });
+      
+      await db.query(
+        `UPDATE payments 
+         SET status = 'completed', 
+             transaction_id = ?,
+             flutterwave_response = ?
+         WHERE transaction_ref = ?`,
+        [transaction_id, JSON.stringify(transaction), tx_ref]
+      );
+      
+      await db.query(
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
+      );
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        data: transaction
+      });
+    } else {
+      console.log('❌ Payment not successful:', response.data);
+      res.status(400).json({ status: "failed", message: "Payment not successful" });
+    }
+  } catch (err) {
+    console.error('❌ Verification error:', err.message);
+    res.status(500).json({ error: "Error verifying payment: " + err.message });
+  }
 });
 
-app.get("/api/terms", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "terms.html"));
+app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    console.log('🔍 Verifying payment by reference:', tx_ref);
+    
+    const paymentResult = await db.query(
+      "SELECT * FROM payments WHERE transaction_ref = ?",
+      [tx_ref]
+    );
+    
+    let payment = null;
+    if (paymentResult && paymentResult.length > 0) payment = paymentResult[0];
+    
+    if (payment && payment.status === 'completed') {
+      const courseResult = await db.query("SELECT title FROM courses WHERE id = ?", [payment.course_id]);
+      let courseTitle = 'Your course';
+      if (courseResult && courseResult.length > 0) courseTitle = courseResult[0].title;
+      
+      return res.json({
+        status: "success",
+        message: "Payment already verified",
+        course_id: payment.course_id,
+        course_title: courseTitle,
+        amount: payment.amount
+      });
+    }
+    
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
+      
+      console.log('✅ Payment verified by reference:', { tx_ref, amount, courseId, userId });
+      
+      await db.query(
+        `INSERT INTO payments 
+         (user_id, course_id, transaction_ref, transaction_id, amount, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE 
+         status = 'completed', 
+         transaction_id = VALUES(transaction_id)`,
+        [userId, courseId, tx_ref, transaction.id, amount]
+      );
+      
+      await db.query(
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
+      );
+      
+      const courseResult = await db.query("SELECT title FROM courses WHERE id = ?", [courseId]);
+      let courseTitle = 'Your course';
+      if (courseResult && courseResult.length > 0) courseTitle = courseResult[0].title;
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        course_id: courseId,
+        course_title: courseTitle,
+        amount: amount
+      });
+    } else {
+      res.status(400).json({ status: "failed", message: "Payment not successful or not found" });
+    }
+    
+  } catch (err) {
+    console.error('❌ Verify by reference error:', err.message);
+    res.status(500).json({ status: "error", message: "Error verifying payment: " + err.message });
+  }
 });
 
 // ============================================
@@ -1323,10 +1756,68 @@ app.post("/api/send-complaint", async (req, res) => {
 });
 
 // ============================================
+// USER DELETE LIMITS ENDPOINT
+// ============================================
+app.get("/api/user/delete-limits", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const userId = req.session.user.id;
+    const today = new Date().toISOString().split('T')[0];
+    
+    const deleteResult = await db.query(
+      `SELECT COUNT(*) as count FROM deleted_services 
+       WHERE deleted_by = ? AND DATE(deleted_at) = ?`,
+      [userId, today]
+    );
+
+    let deleteCount = 0;
+    if (deleteResult && deleteResult.length > 0) {
+      deleteCount = deleteResult[0]?.count || 0;
+    }
+
+    res.json({
+      daily_limit: 3,
+      remaining_deletes: Math.max(0, 3 - deleteCount),
+      used_today: deleteCount,
+      last_delete_date: today
+    });
+    
+  } catch (err) {
+    console.error("Error getting delete limits:", err);
+    res.status(500).json({ error: "Error getting delete limits: " + err.message });
+  }
+});
+
+// ============================================
+// HTML PAGE ROUTES
+// ============================================
+const htmlRoutes = [
+  "/", "/login", "/signup", "/courses", "/admin-files.html", "/admin-migrate",
+  "/payment-callback.html", "/payment-verification.html", "/payment-failed.html",
+  "/forgot-password.html", "/reset-password.html", "/services-payment-callback",
+  "/physical-payment-callback.html"
+];
+
+htmlRoutes.forEach(route => {
+  const filename = route === "/" ? "index.html" : route;
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", filename));
+  });
+});
+
+app.get("/api/terms", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "terms.html"));
+});
+
+// ============================================
 // SERVER START
 // ============================================
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ Upload directories: ${Object.keys(uploadDirs).join(', ')}`);
+  console.log(`✅ Reviews endpoints: /api/reviews and /api/reviews/:productId`);
 });

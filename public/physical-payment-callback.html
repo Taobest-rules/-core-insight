@@ -34,6 +34,7 @@
         }
         .success { color: #10b981; }
         .error { color: #ef4444; }
+        .info { color: #f59e0b; }
         .btn {
             background: #3b82f6;
             color: white;
@@ -44,6 +45,14 @@
             text-decoration: none;
             display: inline-block;
             margin-top: 20px;
+        }
+        .escrow-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -61,7 +70,6 @@
         
         async function verifyPayment() {
             try {
-                // Try to get transaction_ref from session storage first
                 const pendingOrder = sessionStorage.getItem('pendingPhysicalOrder');
                 let transactionRef = null;
                 
@@ -70,7 +78,6 @@
                     transactionRef = orderData.paymentReference;
                 }
                 
-                // If we have transaction_id from URL, use that
                 if (transactionId) {
                     const response = await fetch(`/api/verify-physical-payment/${transactionId}`);
                     const data = await response.json();
@@ -80,11 +87,16 @@
                             <span class="success">✅ Payment Successful!</span><br>
                             Order #${data.orderId}<br>
                             Amount: $${data.amount}
+                            <div class="escrow-info">
+                                <i class="fas fa-clock"></i> Funds are held in escrow for 5 days.<br>
+                                You can request a refund within 5 days if needed.<br>
+                                After 5 days, the seller will receive their payment.
+                            </div>
                         `;
                         document.querySelector('.spinner').style.display = 'none';
                         setTimeout(() => {
                             window.location.href = '/order-success.html?orderId=' + data.orderId;
-                        }, 3000);
+                        }, 5000);
                     } else {
                         document.getElementById('message').innerHTML = `
                             <span class="error">❌ Payment Failed</span><br>
@@ -104,12 +116,17 @@
                             <span class="success">✅ Payment Successful!</span><br>
                             Order #${data.orderId}<br>
                             Amount: $${data.amount}
+                            <div class="escrow-info">
+                                <i class="fas fa-clock"></i> Funds are held in escrow for 5 days.<br>
+                                You can request a refund within 5 days if needed.<br>
+                                After 5 days, the seller will receive their payment.
+                            </div>
                         `;
                         document.querySelector('.spinner').style.display = 'none';
                         sessionStorage.removeItem('pendingPhysicalOrder');
                         setTimeout(() => {
                             window.location.href = '/order-success.html?orderId=' + data.orderId;
-                        }, 3000);
+                        }, 5000);
                     }
                 } else {
                     document.getElementById('message').innerHTML = `

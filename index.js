@@ -46,7 +46,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 // ============================================
 // MIDDLEWARE CONFIGURATION
 // ============================================
-// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
@@ -75,7 +74,6 @@ if (isProduction) {
   });
 }
 
-// Session middleware
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chat_secret',
   store: isProduction ? sessionStore : undefined,
@@ -90,7 +88,6 @@ app.use(session({
   }
 }));
 
-// Static files
 app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -151,281 +148,63 @@ const escapeHtml = (str) => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 };
-// Add this near your other routes (around the health check endpoints)
-app.get("/api/debug/brevo-connection", async (req, res) => {
-  try {
-    console.log('🔍 Testing Brevo API connection...');
-    
-    // Test 1: Check if API key exists
-    const apiKey = process.env.BREVO_API_KEY;
-    if (!apiKey) {
-      return res.status(400).json({
-        success: false,
-        error: 'BREVO_API_KEY not found in environment variables',
-        envCheck: {
-          hasKey: false,
-          nodeEnv: process.env.NODE_ENV
-        }
-      });
-    }
-
-    // Test 2: Try to make a simple API call to Brevo
-    const axios = require('axios');
-    
-    const response = await axios({
-      method: 'GET',
-      url: 'https://api.brevo.com/v3/account',
-      headers: {
-        'api-key': apiKey,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000 // 10 second timeout
-    });
-
-    console.log('✅ Brevo API test successful');
-    
-    res.json({
-      success: true,
-      message: 'Brevo API is reachable',
-      statusCode: response.status,
-      accountInfo: {
-        email: response.data.email,
-        plan: response.data.plan,
-        credits: response.data.relay?.credits || 'N/A'
-      },
-      config: {
-        nodeEnv: process.env.NODE_ENV,
-        hasApiKey: true,
-        apiKeyPrefix: apiKey.substring(0, 8) + '...'
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Brevo connection test failed:', error.message);
-    
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      errorCode: error.code,
-      isTimeout: error.code === 'ECONNABORTED' || error.message.includes('timeout'),
-      isNetworkError: error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED',
-      details: {
-        message: error.message,
-        code: error.code,
-        stack: error.stack?.split('\n').slice(0, 3)
-      }
-    });
-  }
-});
-
-// Also add a test email endpoint
-app.post("/api/debug/test-email", async (req, res) => {
-  try {
-    const { email, type = 'brevo' } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ error: 'Email address required' });
-    }
-
-    if (type === 'brevo') {
-      const result = await sendVerificationEmail(
-        email,
-        'Test Email - Core Insight Debug',
-        `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Test Email</title></head>
-        <body style="font-family: Arial; padding: 20px;">
-          <h1 style="color: #3b82f6;">✅ Test Email Successful!</h1>
-          <p>If you received this email, your Brevo integration is working correctly.</p>
-          <p>Time sent: ${new Date().toLocaleString()}</p>
-          <hr>
-          <p style="color: #666; font-size: 12px;">Core Insight Test Email</p>
-        </body>
-        </html>
-        `
-      );
-      
-      res.json({
-        success: result.success,
-        message: result.success ? 'Test email sent successfully' : 'Failed to send test email',
-        error: result.error,
-        timestamp: new Date().toISOString()
-      });
-      
-    } else if (type === 'gmail') {
-      // Test Gmail support email
-      const result = await sendSupportEmail(
-        'Debug Test',
-        email,
-        'Test Support Email',
-        'This is a test of the support email system from Core Insight debug endpoint.'
-      );
-      
-      res.json({
-        success: result.success,
-        message: result.success ? 'Test support email sent' : 'Failed to send test support email',
-        error: result.error,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(400).json({ error: 'Invalid type. Use "brevo" or "gmail"' });
-    }
-    
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-// ============================================
-// EMAIL CONFIGURATION - WORKING VERSION
-// ============================================
 
 // ============================================
-// EMAIL CONFIGURATION - ALL EMAILS VIA BREVO
+// EMAIL CONFIGURATION - BREVO
 // ============================================
-
-// Get API key from environment
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
-
-// ============================================
-// BREVO EMAIL FUNCTION (VERIFICATION)
-// ============================================
 
 async function sendVerificationEmail(to, subject, html) {
   if (!BREVO_API_KEY) {
     console.error('❌ BREVO_API_KEY not configured');
-    // Fallback: Return success with token so user can verify manually
-    return { 
-      success: true, 
-      fallback: true,
-      message: 'Email service not configured, but account created'
-    };
+    return { success: true, fallback: true, message: 'Email service not configured, but account created' };
   }
 
   try {
     const response = await axios({
       method: 'POST',
       url: 'https://api.brevo.com/v3/smtp/email',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
       data: {
-        sender: {
-          email: "coreinsightmail@gmail.com",
-          name: "Core Insight"
-        },
+        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
         to: [{ email: to }],
         subject: subject,
         htmlContent: html,
-        headers: {
-          'X-Mailin-custom': 'verification-email'
-        }
+        headers: { 'X-Mailin-custom': 'verification-email' }
       },
       timeout: 15000
     });
-
     console.log(`✅ Verification email sent to ${to}`);
     return { success: true };
-
   } catch (error) {
     console.error("❌ Brevo error:", error.response?.data || error.message);
-    
-    // Still return success with fallback flag so user can proceed
-    return { 
-      success: true, 
-      fallback: true,
-      error: error.response?.data?.message || error.message
-    };
+    return { success: true, fallback: true, error: error.response?.data?.message || error.message };
   }
 }
 
-// ============================================
-// SUPPORT EMAIL FUNCTION (NOW USING BREVO)
-// ============================================
-
 async function sendSupportEmail(name, email, subject, message, orderId = null) {
-  if (!BREVO_API_KEY) {
-    console.error('❌ BREVO_API_KEY not configured');
-    return { success: false, error: "Email service not configured" };
-  }
+  if (!BREVO_API_KEY) return { success: false, error: "Email service not configured" };
 
   try {
-    // Create HTML email body
     const htmlBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 20px; border-radius: 8px; }
-          .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; }
-          .field { margin-bottom: 15px; }
-          .label { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
-          .value { background: white; padding: 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
-          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h2>📝 New Support Request</h2>
-            <p>From ${escapeHtml(name)}</p>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="label">Name:</div>
-              <div class="value">${escapeHtml(name)}</div>
-            </div>
-            <div class="field">
-              <div class="label">Email:</div>
-              <div class="value">${escapeHtml(email)}</div>
-            </div>
-            <div class="field">
-              <div class="label">Subject:</div>
-              <div class="value">${escapeHtml(subject)}</div>
-            </div>
-            ${orderId ? `
-            <div class="field">
-              <div class="label">Order ID:</div>
-              <div class="value">${escapeHtml(orderId)}</div>
-            </div>
-            ` : ''}
-            <div class="field">
-              <div class="label">Message:</div>
-              <div class="value">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
-            </div>
-          </div>
-          <div class="footer">
-            <p>Submitted on: ${new Date().toLocaleString()}</p>
-            <p>Please respond to: <a href="mailto:${email}">${email}</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
+      <!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}</style></head>
+      <body><div style="max-width:600px;margin:0 auto;padding:20px;">
+        <h2>📝 New Support Request from ${escapeHtml(name)}</h2>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+        ${orderId ? `<p><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ''}
+        <p><strong>Message:</strong><br>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+        <hr><small>Submitted: ${new Date().toLocaleString()}</small>
+      </div></body></html>
     `;
-    
-    // Send using Brevo instead of Gmail
-    const response = await axios({
+
+    await axios({
       method: 'POST',
       url: 'https://api.brevo.com/v3/smtp/email',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
       data: {
-        sender: {
-          email: "coreinsightmail@gmail.com",
-          name: "Core Insight Support"
-        },
+        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
         to: [{ email: SUPPORT_EMAIL }],
         replyTo: { email: email, name: name },
         subject: `[Support] ${subject} - from ${name}`,
@@ -433,265 +212,17 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
       },
       timeout: 15000
     });
-    
-    console.log(`✅ Support email sent via Brevo to ${SUPPORT_EMAIL}`);
+    console.log(`✅ Support email sent to ${SUPPORT_EMAIL}`);
     return { success: true };
-    
   } catch (error) {
-    console.error("❌ Brevo support email error:", error.response?.data || error.message);
+    console.error("❌ Brevo support email error:", error.message);
     return { success: false, error: error.message };
   }
 }
 
 // ============================================
-// CONFIRMATION EMAIL FUNCTION (USING BREVO)
-// ============================================
-
-async function sendConfirmationEmail(name, email, subject, priority) {
-  if (!BREVO_API_KEY) return;
-
-  try {
-    const confirmationHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head><title>Complaint Received - Core Insight</title></head>
-      <body style="font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 30px;">
-          <h1 style="color: #3b82f6;">✓ Complaint Received</h1>
-          <p>Dear ${escapeHtml(name)},</p>
-          <p>Thank you for contacting Core Insight Support. We have received your complaint and our team will review it shortly.</p>
-          <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Reference:</strong> ${escapeHtml(subject)} (${priority || 'Medium'} Priority)</p>
-            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-          </div>
-          <p>We aim to respond within 24 hours for standard issues, or sooner for high-priority matters.</p>
-          <hr style="border-color: #334155;">
-          <p style="font-size: 12px; color: #94a3b8;">Core Insight Support Team</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    await axios({
-      method: 'POST',
-      url: 'https://api.brevo.com/v3/smtp/email',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        sender: {
-          email: "coreinsightmail@gmail.com",
-          name: "Core Insight"
-        },
-        to: [{ email: email }],
-        subject: "Complaint Received - Core Insight",
-        htmlContent: confirmationHtml
-      },
-      timeout: 15000
-    });
-
-    console.log(`✅ Confirmation email sent to ${email}`);
-  } catch (error) {
-    console.error("❌ Confirmation email error:", error.message);
-  }
-}
-
-
-// ============================================
-// ROUTES - COMPLAINT/SUBMIT SUPPORT
-// ============================================
-app.post("/api/send-complaint", async (req, res) => {
-  try {
-    const { name, email, subject, priority, message, orderId } = req.body;
-    
-    // Validate required fields
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({ 
-        error: "Please fill in all required fields (name, email, subject, message)" 
-      });
-    }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Please enter a valid email address" });
-    }
-    
-    console.log(`📧 Processing complaint from ${name} (${email}) - Priority: ${priority}`);
-    
-    // Create a formatted email body
-    const emailBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 20px; border-radius: 8px; }
-          .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; }
-          .field { margin-bottom: 15px; }
-          .label { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
-          .value { background: white; padding: 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
-          .priority-high { color: #ef4444; font-weight: bold; }
-          .priority-medium { color: #f59e0b; font-weight: bold; }
-          .priority-low { color: #10b981; font-weight: bold; }
-          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h2>📝 New Support Complaint</h2>
-            <p>Submitted from Core Insight Marketplace</p>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="label">From:</div>
-              <div class="value">${escapeHtml(name)} (${escapeHtml(email)})</div>
-            </div>
-            <div class="field">
-              <div class="label">Subject:</div>
-              <div class="value">${escapeHtml(subject)}</div>
-            </div>
-            <div class="field">
-              <div class="label">Priority:</div>
-              <div class="value priority-${priority?.toLowerCase()}">${escapeHtml(priority || 'Medium')}</div>
-            </div>
-            ${orderId ? `
-            <div class="field">
-              <div class="label">Order ID:</div>
-              <div class="value">${escapeHtml(orderId)}</div>
-            </div>
-            ` : ''}
-            <div class="field">
-              <div class="label">Message:</div>
-              <div class="value">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
-            </div>
-          </div>
-          <div class="footer">
-            <p>Submitted on: ${new Date().toLocaleString()}</p>
-            <p>Please respond to this customer at: <a href="mailto:${email}">${email}</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    // Send to support email using your existing sendSupportEmail function
-    const supportResult = await sendSupportEmail(name, email, subject, message, orderId);
-    
-    if (!supportResult.success) {
-      console.error('❌ Failed to send support email:', supportResult.error);
-      // Still return success to the user to avoid confusion, but log the error
-      return res.json({ 
-        success: true, 
-        warning: "Complaint received, but email delivery is pending. Our team will review it manually.",
-        error: supportResult.error 
-      });
-    }
-    
-    // Optional: Send confirmation email to the user
-    try {
-      const confirmationHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Complaint Received - Core Insight</title></head>
-        <body style="font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px;">
-          <div style="max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 30px;">
-            <h1 style="color: #3b82f6;">✓ Complaint Received</h1>
-            <p>Dear ${escapeHtml(name)},</p>
-            <p>Thank you for contacting Core Insight Support. We have received your complaint and our team will review it shortly.</p>
-            <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Reference:</strong> ${escapeHtml(subject)} (${priority} Priority)</p>
-              <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-            </div>
-            <p>We aim to respond within 24 hours for standard issues, or sooner for high-priority matters.</p>
-            <hr style="border-color: #334155;">
-            <p style="font-size: 12px; color: #94a3b8;">Core Insight Support Team<br>Email: suppourtcoreinsight@gmail.com</p>
-          </div>
-        </body>
-        </html>
-      `;
-      
-      await sendVerificationEmail(email, "Complaint Received - Core Insight", confirmationHtml);
-    } catch (confirmationError) {
-      console.error('❌ Failed to send confirmation email:', confirmationError.message);
-      // Don't fail the main request if confirmation email fails
-    }
-    
-    console.log(`✅ Complaint from ${email} processed successfully`);
-    res.json({ 
-      success: true, 
-      message: "Your complaint has been submitted successfully! We'll respond to your email shortly." 
-    });
-    
-  } catch (error) {
-    console.error('❌ Complaint submission error:', error);
-    res.status(500).json({ 
-      error: "Failed to submit complaint. Please try again later or contact us directly at suppourtcoreinsight@gmail.com" 
-    });
-  }
-});
-
-
-// ============================================
-// DEBUG ENDPOINTS
-// ============================================
-
-app.get("/api/debug/brevo-status", (req, res) => {
-  res.json({
-    hasApiKey: !!BREVO_API_KEY,
-    apiKeyPrefix: BREVO_API_KEY ? BREVO_API_KEY.substring(0, 10) + '...' : null,
-    hasSupportEmail: !!SUPPORT_EMAIL,
-    hasSupportPassword: !!SUPPORT_EMAIL_PASSWORD,
-    environment: process.env.NODE_ENV
-  });
-});
-
-app.post("/api/debug/test-email", async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email required' });
-  
-  const result = await sendVerificationEmail(
-    email,
-    'Test Email - Core Insight',
-    '<h1>Test</h1><p>If you see this, email is working!</p>'
-  );
-  
-  res.json(result);
-});
-// Test email endpoint (remove in production)
-app.post("/api/test-email", async (req, res) => {
-  try {
-    const { email, type } = req.body;
-    
-    if (type === 'brevo') {
-      const result = await sendVerificationEmail(
-        email,
-        'Test Email - Core Insight',
-        '<h1>Test Email</h1><p>If you received this, Brevo is working!</p>'
-      );
-      res.json(result);
-    } else if (type === 'gmail') {
-      const result = await sendSupportEmail(
-        'Test User',
-        email,
-        'Test Support Email',
-        'This is a test of the support email system.'
-      );
-      res.json(result);
-    } else {
-      res.status(400).json({ error: 'Specify type: brevo or gmail' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-// ============================================
 // FILE UPLOAD CONFIGURATION
 // ============================================
-// Create upload directories
 const uploadDirs = {
   courses: path.join(__dirname, "uploads", "courses"),
   products: path.join(__dirname, "uploads", "products"),
@@ -704,7 +235,6 @@ Object.values(uploadDirs).forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Multer storage configurations
 const courseStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDirs.courses),
   filename: (req, file, cb) => {
@@ -724,62 +254,21 @@ const productStorage = multer.diskStorage({
   }
 });
 
-const serviceStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDirs.services),
-  filename: (req, file, cb) => {
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, Date.now() + "-" + sanitizedName);
-  }
-});
-
-const profileStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDirs.profiles),
-  filename: (req, file, cb) => {
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `profile-${Date.now()}-${sanitizedName}`);
-  }
-});
-
-const chatImageStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDirs.chat),
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `chat-${timestamp}-${random}${ext}`);
-  }
-});
-
-
-
-
 // ============================================
 // MIDDLEWARE FUNCTIONS
 // ============================================
 const checkCourseAccess = async (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Please login to access this course" });
-  }
-
+  if (!req.session.user) return res.status(401).json({ error: "Please login to access this course" });
   try {
     const courseId = req.params.id;
     const userId = req.session.user.id;
-
     const accessCheck = await db.query(
-      `SELECT c.*, uc.payment_status 
-       FROM courses c 
-       LEFT JOIN user_courses uc ON c.id = uc.course_id AND uc.user_id = ?
+      `SELECT c.*, uc.payment_status FROM courses c LEFT JOIN user_courses uc ON c.id = uc.course_id AND uc.user_id = ?
        WHERE c.id = ? AND (c.price = 0 OR uc.payment_status = 'completed')`,
       [userId, courseId]
     );
-
-    const hasAccess = (Array.isArray(accessCheck) && accessCheck.length > 0) ||
-                      (accessCheck && accessCheck[0] && Array.isArray(accessCheck[0]) && accessCheck[0].length > 0);
-
-    if (!hasAccess) {
-      return res.status(403).json({ error: "You don't have access to this course. Please purchase it first." });
-    }
-
+    const hasAccess = extractRows(accessCheck).length > 0;
+    if (!hasAccess) return res.status(403).json({ error: "You don't have access to this course. Please purchase it first." });
     next();
   } catch (err) {
     res.status(500).json({ error: "Error checking course access" });
@@ -797,8 +286,7 @@ const checkFreelancerSubscription = async (req, res, next) => {
       `SELECT subscription_status, subscription_end_date, trial_end_date FROM users WHERE id = ?`,
       [userId]
     );
-
-    const user = Array.isArray(userResult) ? userResult[0] : (userResult?.[0]?.[0] || null);
+    const user = extractRows(userResult)[0];
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const today = new Date();
@@ -822,7 +310,6 @@ const checkFreelancerSubscription = async (req, res, next) => {
         expired: true
       });
     }
-
     next();
   } catch (err) {
     console.error("Subscription check error:", err);
@@ -851,7 +338,7 @@ app.get("/api/currency-rates", (req, res) => {
 });
 
 // ============================================
-// ROUTES - AUTHENTICATION
+// ROUTES - AUTHENTICATION (COMPLETE)
 // ============================================
 app.post("/api/signup", async (req, res) => {
   try {
@@ -878,20 +365,15 @@ app.post("/api/signup", async (req, res) => {
 
     const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
     const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head><title>Verify Your Email - Core Insight</title></head>
+      <!DOCTYPE html><html><head><title>Verify Your Email - Core Insight</title></head>
       <body style="font-family:Arial,sans-serif;background:#0a192f;color:#e6f1ff;">
         <div style="max-width:600px;margin:0 auto;padding:20px;">
-          <h1 style="color:#64ffda;">🎓 Core Insight</h1>
-          <h2>Welcome ${username}!</h2>
+          <h1 style="color:#64ffda;">🎓 Core Insight</h1><h2>Welcome ${username}!</h2>
           <p>Please verify your email address to activate your account:</p>
           <a href="${verifyLink}" style="background:#64ffda;color:#0a192f;padding:12px 24px;text-decoration:none;border-radius:5px;">Verify My Email</a>
-          <p>Or copy this link: ${verifyLink}</p>
           <p><strong>⚠️ This link expires in 24 hours.</strong></p>
         </div>
-      </body>
-      </html>
+      </body></html>
     `;
 
     const emailResult = await sendVerificationEmail(email, "Verify Your Email - Core Insight", emailHtml);
@@ -959,144 +441,657 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/me", (req, res) => {
   res.json(req.session.user || null);
 });
-
-// ============================================
-// ROUTES - VERIFICATION
-// ============================================
-app.get("/api/verify/:token", async (req, res) => {
+// Test endpoint to check if cron job is working
+app.get("/api/cron/status", async (req, res) => {
   try {
-    const { token } = req.params;
-    const users = await db.query("SELECT id, email, username FROM users WHERE verify_token = ? AND verified = 0", [token]);
+    // Get count of orders waiting for release
+    const waitingOrders = await db.query(`
+      SELECT COUNT(*) as count, 
+             MIN(payment_held_until) as next_release_date
+      FROM physical_orders 
+      WHERE payment_status = 'paid' 
+        AND order_status = 'paid'
+        AND funds_released_at IS NULL
+        AND payment_held_until > NOW()
+    `);
 
-    if (!users || users.length === 0) {
-      return res.send(`<!DOCTYPE html><html><head><title>Verification Failed</title></head>
-        <body style="background:#0a192f;color:#e6f1ff;text-align:center;padding:50px;">
-          <h1 style="color:#ff6b6b;">❌ Verification Failed</h1>
-          <p>Invalid verification link or account already verified.</p>
-          <a href="/verify.html" style="color:#64ffda;">Request a new verification link →</a>
-        </body></html>`);
+    // Get count of orders ready for release
+    const readyOrders = await db.query(`
+      SELECT COUNT(*) as count
+      FROM physical_orders 
+      WHERE payment_status = 'paid' 
+        AND order_status = 'paid'
+        AND funds_released_at IS NULL
+        AND payment_held_until <= NOW()
+    `);
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      orders_waiting: waitingOrders[0]?.count || 0,
+      orders_ready_for_release: readyOrders[0]?.count || 0,
+      next_release_date: waitingOrders[0]?.next_release_date,
+      cron_last_run: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ============================================
+// ROUTES - PHYSICAL ORDER SYSTEM (NEW)
+// ============================================
+
+// 1. Create physical order (awaiting seller approval)
+app.post("/api/physical-orders/create", async (req, res) => {
+  try {
+    console.log("📦 Creating physical order (awaiting seller approval)...");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to place an order" });
     }
 
-    await db.query("UPDATE users SET verified = 1, verify_token = NULL WHERE id = ?", [users[0].id]);
+    const {
+      productId,
+      quantity = 1,
+      deliveryAddress,
+      city,
+      state,
+      country,
+      deliveryPhone,
+      notes = ''
+    } = req.body;
 
-    res.send(`<!DOCTYPE html><html><head><title>Email Verified!</title></head>
-      <body style="background:#0a192f;color:#e6f1ff;text-align:center;padding:50px;">
-        <h1 style="color:#64ffda;">✅ Email Verified Successfully!</h1>
-        <p>Your account is now active.</p>
-        <a href="/login.html" style="background:#64ffda;color:#0a192f;padding:12px 24px;text-decoration:none;border-radius:5px;">Login Now →</a>
-      </body></html>`);
+    if (!productId) return res.status(400).json({ error: "Product ID is required" });
+    if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
+    if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
+    
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: "Quantity must be between 1 and 100" });
+    }
+
+    // Get product details
+    const productResult = await db.query(
+      `SELECT user_id as seller_id, original_price, product_cost, title, platform_fee 
+       FROM products WHERE id = ?`,
+      [productId]
+    );
+
+    if (!productResult || productResult.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const sellerId = productResult[0].seller_id;
+    const buyerId = req.session.user.id;
+    const productPrice = parseFloat(productResult[0].original_price);
+    const totalAmount = qty * productPrice;
+
+    // Create order with pending seller approval status
+    const result = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id,
+        product_name, product_type, quantity, 
+        price, total_amount,
+        customer_name, customer_email, customer_phone,
+        shipping_address, city, state, country,
+        payment_method, payment_status, order_status,
+        notes, estimated_delivery_days,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        productId, sellerId, buyerId,
+        productResult[0].title,
+        'physical', qty,
+        productPrice,
+        totalAmount,
+        req.session.user.username || 'Buyer',
+        req.session.user.email,
+        deliveryPhone,
+        deliveryAddress,
+        city || '',
+        state || '',
+        country || '',
+        'pay_after_approval',
+        'pending',
+        'pending_seller_approval',
+        notes || '',
+        7
+      ]
+    );
+
+    const orderId = result.insertId;
+    console.log(`✅ Order #${orderId} created, awaiting seller approval`);
+
+    // Notify seller
+    await db.query(
+      `INSERT INTO seller_notifications 
+       (seller_id, order_id, notification_type, title, message, created_at)
+       VALUES (?, ?, 'new_order', 'New Order Requires Approval', 
+               CONCAT('Order #', ?, ' for ', ?, ' (x', ?, ') needs your approval before payment'), NOW())`,
+      [sellerId, orderId, orderId, productResult[0].title, qty]
+    );
+
+    res.json({
+      success: true,
+      message: "Order created! The seller will review and confirm availability.",
+      orderId: orderId,
+      status: "pending_seller_approval"
+    });
+
   } catch (err) {
-    console.error("Verification error:", err);
-    res.status(500).send("Error verifying email");
+    console.error("❌ Order creation error:", err);
+    res.status(500).json({ error: "Failed to create order" });
   }
 });
 
-app.post("/api/verify", async (req, res) => {
+// 2. Seller accepts or rejects order
+app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ error: "Verification token required" });
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
 
-    const users = await db.query("SELECT id, email, username FROM users WHERE verify_token = ? AND verified = 0", [token]);
-    if (!users || users.length === 0) {
-      return res.status(400).json({ error: "Invalid verification token or account already verified" });
+    const orderId = req.params.orderId;
+    const { action, message } = req.body;
+
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_name 
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
     }
 
-    await db.query("UPDATE users SET verified = 1, verify_token = NULL WHERE id = ?", [users[0].id]);
-    res.json({ success: true, message: "Email verified successfully!", username: users[0].username });
-  } catch (err) {
-    console.error("Verification error:", err);
-    res.status(500).json({ error: "Error verifying email" });
-  }
-});
+    const order = orderResult[0];
 
-app.post("/api/resend-verification", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Email required" });
-
-    const users = await db.query("SELECT id, username, email, verify_token FROM users WHERE email = ? AND verified = 0", [email]);
-    if (!users || users.length === 0) {
-      return res.status(404).json({ error: "No unverified account found with this email" });
+    if (order.seller_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Only the seller can respond to this order" });
     }
 
-    const verifyToken = users[0].verify_token || crypto.randomBytes(32).toString('hex');
-    if (!users[0].verify_token) {
-      await db.query("UPDATE users SET verify_token = ? WHERE id = ?", [verifyToken, users[0].id]);
+    if (order.order_status !== 'pending_seller_approval') {
+      return res.status(400).json({ error: "Order has already been responded to" });
     }
 
-    const verifyLink = `https://core-insight-7.onrender.com/verify-manual.html?token=${verifyToken}`;
-    res.json({ success: true, message: "Verification code ready", token: verifyToken, link: verifyLink });
-  } catch (err) {
-    console.error("Resend error:", err);
-    res.status(500).json({ error: "Error processing request" });
-  }
-});
+    if (action === 'accept') {
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'seller_accepted',
+             seller_accepted_at = NOW()
+         WHERE id = ?`,
+        [orderId]
+      );
 
-// ============================================
-// ROUTES - PASSWORD RESET
-// ============================================
-app.post("/api/forgot-password", async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+      await db.query(
+        `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
+         VALUES (?, ?, 'accepted', ?, NOW())`,
+        [orderId, req.session.user.id, message || null]
+      );
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ success: false, message: "Please provide a valid email address" });
-  }
+      await db.query(
+        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'payment_required', 'Payment Required', 
+                 CONCAT('Seller has accepted your order for ', ?, '. Please complete payment to confirm your order.'), NOW())`,
+        [order.buyer_id, orderId, order.product_name]
+      );
 
-  try {
-    const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 3600000);
-    const result = await db.query("UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?", [token, expires, email]);
+      res.json({
+        success: true,
+        message: "Order accepted! The buyer will now be prompted to complete payment.",
+        requiresPayment: true,
+        orderId: orderId
+      });
 
-    const responseMessage = "If that email address exists in our system, we've sent a password reset link to it.";
+    } else if (action === 'reject') {
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'seller_rejected',
+             order_status = 'cancelled'
+         WHERE id = ?`,
+        [orderId]
+      );
 
-    if (result.affectedRows > 0) {
-      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}`;
-      await transporter.sendMail({
-        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Reset your Core Insight password",
-        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:30px;border-radius:10px;color:white;">
-            <h2>🔐 Password Reset Request</h2>
-            <a href="${resetLink}" style="background-color:white;color:#667eea;padding:12px 30px;text-decoration:none;border-radius:25px;">Reset Password</a>
-            <p>This link will expire in 1 hour.</p>
-          </div>
-        </div>`
+      await db.query(
+        `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
+         VALUES (?, ?, 'rejected', ?, NOW())`,
+        [orderId, req.session.user.id, message || 'Seller unable to fulfill order']
+      );
+
+      await db.query(
+        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'order_rejected', 'Order Declined', 
+                 CONCAT('Seller was unable to fulfill your order for ', ?, '. Reason: ', ?), NOW())`,
+        [order.buyer_id, orderId, order.product_name, message || 'No reason provided']
+      );
+
+      res.json({
+        success: true,
+        message: "Order rejected and cancelled. Buyer has been notified."
       });
     }
 
-    res.json({ success: true, message: responseMessage });
   } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ success: false, message: "An error occurred. Please try again later." });
+    console.error("❌ Order response error:", err);
+    res.status(500).json({ error: "Failed to process order response" });
   }
 });
 
-app.post("/api/reset-password", async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ success: false, error: "Token and password are required" });
-  if (password.length < 8) return res.status(400).json({ success: false, error: "Password must be at least 8 characters long" });
-
+// 3. Collect payment after seller acceptance
+app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
   try {
-    const users = await db.query("SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()", [token]);
-    if (!users || users.length === 0) {
-      return res.status(400).json({ success: false, error: "Invalid or expired reset token" });
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const orderId = req.params.orderId;
+
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_name, p.platform_fee as product_platform_fee
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await db.query("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE reset_token = ?", [hashedPassword, token]);
+    const order = orderResult[0];
 
-    res.json({ success: true, message: "✅ Password reset successfully! You can now login with your new password." });
+    if (order.order_status !== 'seller_accepted') {
+      return res.status(400).json({ 
+        error: `Payment can only be made after seller approval. Current status: ${order.order_status}` 
+      });
+    }
+
+    const totalAmount = parseFloat(order.total_amount);
+    const platformFee = totalAmount * 0.10;
+    const sellerAmount = totalAmount - platformFee;
+
+    console.log(`💰 Collecting payment for order #${orderId}: Total: $${totalAmount}, Platform Fee: $${platformFee}, Seller Gets: $${sellerAmount}`);
+
+    const transactionRef = `physical_${orderId}_${Date.now()}`;
+
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'pending_payment',
+           payment_status = 'pending'
+       WHERE id = ?`,
+      [orderId]
+    );
+
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({ error: "Payment system not configured" });
+    }
+
+    const payload = {
+      tx_ref: transactionRef,
+      amount: totalAmount,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/physical-payment-callback.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Physical Product",
+        description: `Order #${orderId}: ${order.product_name} (x${order.quantity})`,
+      },
+      meta: {
+        order_id: orderId,
+        product_id: order.product_id,
+        buyer_id: req.session.user.id,
+        seller_id: order.seller_id,
+        type: 'physical_order',
+        is_escrow: true,
+        escrow_days: 5
+      }
+    };
+
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      await db.query(
+        `UPDATE physical_orders SET transaction_ref = ? WHERE id = ?`,
+        [transactionRef, orderId]
+      );
+
+      res.json({
+        success: true,
+        paymentLink: response.data.data.link,
+        transactionRef: transactionRef,
+        orderId: orderId,
+        totalAmount: totalAmount,
+        platformFee: platformFee
+      });
+    } else {
+      throw new Error(response.data.message || "Payment initialization failed");
+    }
+
   } catch (err) {
-    console.error("Reset password error:", err);
-    res.status(500).json({ success: false, error: "Error resetting password. Please try again." });
+    console.error("❌ Payment collection error:", err);
+    res.status(500).json({ error: "Failed to process payment" });
+  }
+});
+
+// 4. Verify payment and hold in escrow
+app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
+  try {
+    const { transaction_ref } = req.params;
+    
+    console.log(`🔍 Verifying payment for transaction: ${transaction_ref}`);
+
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+      }
+    );
+
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const orderId = transaction.meta?.order_id;
+      const amount = transaction.amount;
+      const platformFee = amount * 0.10;
+      const sellerAmount = amount - platformFee;
+
+      const escrowReleaseDate = new Date();
+      escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = ?,
+             platform_fee = ?,
+             seller_earnings = ?
+         WHERE id = ? AND transaction_ref = ?`,
+        [escrowReleaseDate, platformFee, sellerAmount, orderId, transaction_ref]
+      );
+
+      await db.query(
+        `INSERT INTO escrow_accounts 
+         (order_id, buyer_id, seller_id, amount, platform_fee, seller_amount, 
+          payment_reference, status, held_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'held', NOW(), NOW())`,
+        [orderId, transaction.meta?.buyer_id, transaction.meta?.seller_id, 
+         amount, platformFee, sellerAmount, transaction_ref]
+      );
+
+      await db.query(
+        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'payment_confirmed', 'Payment Confirmed', 
+                 CONCAT('Your payment of $', ?, ' has been confirmed. Seller will process your order.'), NOW())`,
+        [transaction.meta?.buyer_id, orderId, amount]
+      );
+
+      await db.query(
+        `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'payment_received', 'Payment Received', 
+                 CONCAT('Buyer has paid $', ?, ' for order #', ?, '. Funds will be released to you after 5 days.'), NOW())`,
+        [transaction.meta?.seller_id, orderId, amount, orderId]
+      );
+
+      res.json({
+        status: "success",
+        message: "Payment verified and held in escrow",
+        orderId: orderId,
+        amount: amount,
+        platformFee: platformFee,
+        sellerAmount: sellerAmount,
+        escrowReleaseDate: escrowReleaseDate
+      });
+    } else {
+      const transactionData = response.data.data;
+      if (transactionData && transactionData.meta && transactionData.meta.order_id) {
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'seller_accepted',
+               payment_status = 'pending'
+           WHERE id = ?`,
+          [transactionData.meta.order_id]
+        );
+      }
+      res.status(400).json({ status: "failed", message: "Payment not successful" });
+    }
+
+  } catch (err) {
+    console.error('❌ Verification error:', err);
+    res.status(500).json({ error: "Error verifying payment", details: err.message });
+  }
+});
+
+// 5. Buyer requests refund within 5-day window
+app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const orderId = req.params.orderId;
+    const { reason } = req.body;
+
+    if (!reason || reason.length < 10) {
+      return res.status(400).json({ error: "Please provide a detailed reason for refund (min 10 characters)" });
+    }
+
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_name 
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult[0];
+
+    const paymentDate = new Date(order.payment_collected_at);
+    const now = new Date();
+    const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
+
+    if (daysSincePayment > 5) {
+      return res.status(400).json({ 
+        error: "Refund window has closed (5 days after payment). Please contact support for assistance." 
+      });
+    }
+
+    if (order.order_status === 'refunded') {
+      return res.status(400).json({ error: "Order has already been refunded" });
+    }
+
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'refund_requested',
+           refund_requested_at = NOW(),
+           refund_reason = ?
+       WHERE id = ?`,
+      [reason, orderId]
+    );
+
+    await db.query(
+      `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message, created_at)
+       VALUES (?, ?, 'refund_request', 'Refund Requested', 
+               CONCAT('Buyer requested refund for order #', ?, '. Reason: ', ?), NOW())`,
+      [order.seller_id, orderId, orderId, reason.substring(0, 100)]
+    );
+
+    res.json({
+      success: true,
+      message: "Refund request submitted. Seller will review and process within 48 hours."
+    });
+
+  } catch (err) {
+    console.error("❌ Refund request error:", err);
+    res.status(500).json({ error: "Failed to submit refund request" });
+  }
+});
+
+// 6. Release escrow funds (cron job endpoint)
+app.get("/api/cron/release-escrow-funds", async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== process.env.CRON_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const orders = await db.query(
+      `SELECT o.*, s.subaccount_id 
+       FROM physical_orders o
+       LEFT JOIN sellers s ON o.seller_id = s.user_id AND s.provider = 'flutterwave'
+       WHERE o.payment_status = 'paid' 
+         AND o.order_status = 'paid'
+         AND o.payment_held_until <= NOW()
+         AND o.funds_released_at IS NULL`
+    );
+
+    let released = 0;
+    let failed = 0;
+
+    for (const order of orders) {
+      try {
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'completed',
+               funds_released_at = NOW()
+           WHERE id = ?`,
+          [order.id]
+        );
+
+        await db.query(
+          `UPDATE escrow_accounts 
+           SET status = 'released', released_at = NOW()
+           WHERE order_id = ?`,
+          [order.id]
+        );
+
+        await db.query(
+          `INSERT INTO seller_notifications 
+           (seller_id, order_id, notification_type, title, message)
+           VALUES (?, ?, 'funds_released', 'Funds Released', 
+                   CONCAT('$', ?, ' has been released to your account for order #', ?))`,
+          [order.seller_id, order.id, order.seller_earnings, order.id]
+        );
+
+        released++;
+      } catch (err) {
+        console.error(`Failed to release order ${order.id}:`, err);
+        failed++;
+      }
+    }
+
+    res.json({ success: true, released: released, failed: failed });
+  } catch (err) {
+    console.error("❌ Escrow release error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Get seller's physical orders
+app.get("/api/seller/physical-orders", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const { status, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT o.*, p.title as product_name, u.username as buyer_name, u.email as buyer_email
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ?
+    `;
+    const params = [req.session.user.id];
+
+    if (status && status !== 'all') {
+      query += " AND o.order_status = ?";
+      params.push(status);
+    }
+
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const orders = await db.query(query, params);
+
+    const counts = await db.query(
+      `SELECT 
+        COUNT(CASE WHEN order_status = 'pending_seller_approval' THEN 1 END) as pending_approval,
+        COUNT(CASE WHEN order_status = 'seller_accepted' THEN 1 END) as accepted,
+        COUNT(CASE WHEN order_status = 'paid' THEN 1 END) as paid,
+        COUNT(CASE WHEN order_status = 'completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN order_status = 'refund_requested' THEN 1 END) as refund_requests
+       FROM physical_orders
+       WHERE seller_id = ?`,
+      [req.session.user.id]
+    );
+
+    res.json({
+      success: true,
+      orders: orders,
+      counts: counts[0] || {},
+      pagination: { page: parseInt(page), limit: parseInt(limit) }
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching seller orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
+// 8. Get buyer's physical orders
+app.get("/api/buyer/physical-orders", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const { status, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT o.*, p.title as product_name, u.username as seller_name, u.email as seller_email
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.seller_id = u.id
+      WHERE o.buyer_id = ?
+    `;
+    const params = [req.session.user.id];
+
+    if (status && status !== 'all') {
+      query += " AND o.order_status = ?";
+      params.push(status);
+    }
+
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const orders = await db.query(query, params);
+
+    res.json({
+      success: true,
+      orders: orders,
+      pagination: { page: parseInt(page), limit: parseInt(limit) }
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching buyer orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
 // ============================================
-// ROUTES - COURSES
+// ROUTES - COURSES (MINIMAL, KEEP EXISTING)
 // ============================================
 app.get("/api/courses", async (req, res) => {
   try {
@@ -1112,9 +1107,6 @@ app.get("/api/courses", async (req, res) => {
       if (course.user_id && typeof course.user_id === 'bigint') course.user_id = Number(course.user_id);
       course.thumbnail_url = course.thumbnail_url || course.thumbnail_path;
       course.file_url = course.file_url || course.file_path;
-      if (course.thumbnail_url?.includes('cloudinary.com')) {
-        course.thumbnail_url = course.thumbnail_url.replace('/upload/', '/upload/w_500,h_300,c_limit/');
-      }
       course.download_url = `/api/download/${course.id}`;
       return course;
     });
@@ -1126,34 +1118,13 @@ app.get("/api/courses", async (req, res) => {
   }
 });
 
-app.get('/api/download/:courseId', async (req, res) => {
+app.get('/api/download/:courseId', checkCourseAccess, async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const userId = req.session?.user?.id;
-
-    if (!userId) return res.status(401).json({ error: 'Please login first' });
-
     const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
     if (!courses || courses.length === 0) return res.status(404).json({ error: 'Course not found' });
 
     const course = courses[0];
-    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
-
-    if (!isFree) {
-      const purchases = await db.query(
-        'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
-        [courseId, userId]
-      );
-      const payments = await db.query(
-        'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
-        [courseId, userId]
-      );
-
-      if ((!purchases || purchases.length === 0) && (!payments || payments.length === 0)) {
-        return res.status(403).json({ error: 'You do not have access to this course', isPaidCourse: true, price: course.price });
-      }
-    }
-
     const dbFilePath = course.file_url || course.file_path;
     if (!dbFilePath) return res.status(404).json({ error: 'No file associated with this course' });
 
@@ -1161,18 +1132,7 @@ app.get('/api/download/:courseId', async (req, res) => {
     const expectedPath = path.join(uploadDirs.courses, filename);
 
     if (!fs.existsSync(expectedPath)) {
-      if (fs.existsSync(uploadDirs.courses)) {
-        const files = fs.readdirSync(uploadDirs.courses);
-        const searchName = filename.replace(/^\d+-\d+-/, '');
-        const similarFile = files.find(f => f.includes(searchName) || searchName.includes(f.replace(/^\d+-\d+-/, '')));
-
-        if (similarFile) {
-          const correctPath = `/uploads/courses/${similarFile}`;
-          await db.query('UPDATE courses SET file_path = ? WHERE id = ?', [correctPath, course.id]);
-          return sendFile(res, path.join(uploadDirs.courses, similarFile), course.title);
-        }
-      }
-      return res.status(404).json({ error: 'File not found on server', message: 'Please contact support.', filename });
+      return res.status(404).json({ error: 'File not found on server', message: 'Please contact support.' });
     }
 
     sendFile(res, expectedPath, course.title);
@@ -1193,43 +1153,8 @@ function sendFile(res, filePath, title) {
   res.sendFile(filePath);
 }
 
-app.post("/api/courses", (req, res) => {
-  const upload = multer({ storage: courseStorage, limits: { fileSize: 100 * 1024 * 1024 } })
-    .fields([{ name: 'file', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
-
-  upload(req, res, async function(err) {
-    if (err) return res.status(400).json({ error: 'Upload error: ' + err.message });
-
-    try {
-      if (!req.session.user) return res.status(401).json({ error: "Please login to upload courses" });
-
-      const { title, description, price, author, content_type } = req.body;
-      if (!title?.trim()) return res.status(400).json({ error: "Title is required" });
-      if (!req.files?.file?.[0]) return res.status(400).json({ error: "Course file is required" });
-      if (!req.files?.thumbnail?.[0]) return res.status(400).json({ error: "Thumbnail image is required" });
-
-      const courseFile = req.files.file[0];
-      const thumbnailFile = req.files.thumbnail[0];
-      const filePath = `/uploads/courses/${courseFile.filename}`;
-      const thumbnailPath = `/uploads/courses/${thumbnailFile.filename}`;
-
-      const result = await db.query(
-        `INSERT INTO courses (title, description, file_path, thumbnail_path, price, type, user_id, author, content_type, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [title.trim(), description?.trim() || '', filePath, thumbnailPath, parseFloat(price) || 0,
-         parseFloat(price) > 0 ? 'paid' : 'free', req.session.user.id, author || req.session.user.username, content_type || 'book']
-      );
-
-      res.json({ message: "✅ Course uploaded successfully!", courseId: result.insertId, download_url: `/api/download/${result.insertId}` });
-    } catch (err) {
-      console.error('❌ Upload error:', err);
-      res.status(500).json({ error: "Error uploading course: " + err.message });
-    }
-  });
-});
-
 // ============================================
-// ROUTES - PRODUCTS
+// ROUTES - PRODUCTS (KEEP EXISTING)
 // ============================================
 app.get("/api/products", async (req, res) => {
   try {
@@ -1257,15 +1182,7 @@ app.get("/api/products", async (req, res) => {
       }
 
       if (!product.images?.length) {
-        const defaultImages = {
-          electronics: 'https://placehold.co/400x250/2563eb/ffffff/png?text=Electronics',
-          clothing: 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Clothing',
-          fashion: 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Fashion',
-          home: 'https://placehold.co/400x250/059669/ffffff/png?text=Home'
-        };
-        const lowerCategory = (product.category || '').toLowerCase();
-        product.images = [Object.entries(defaultImages).find(([k]) => lowerCategory.includes(k))?.[1] ||
-                         'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+        product.images = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
       }
 
       product._imageList = product.images;
@@ -1273,7 +1190,6 @@ app.get("/api/products", async (req, res) => {
       return product;
     });
 
-    res.setHeader('Content-Type', 'application/json');
     res.json(processedProducts);
   } catch (err) {
     console.error('❌ Error fetching products:', err);
@@ -1359,193 +1275,13 @@ app.post("/api/upload-product", (req, res) => {
 });
 
 // ============================================
-// ROUTES - SERVICES
-// ============================================
-app.get("/api/services", async (req, res) => {
-  try {
-    const { category, search, sort, min_price, max_price, limit = 20, offset = 0 } = req.query;
-
-    let query = `
-      SELECT s.*, u.username, u.id as user_id, fp.profile_picture_url,
-        (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
-        (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
-        (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
-      FROM services s LEFT JOIN users u ON s.user_id = u.id LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
-      WHERE s.status = 'active'
-    `;
-    const params = [];
-
-    if (category) { query += " AND s.category = ?"; params.push(category); }
-    if (search) { query += " AND (s.title LIKE ? OR s.description LIKE ?)"; params.push(`%${search}%`, `%${search}%`); }
-    if (min_price) { query += " AND s.price >= ?"; params.push(parseFloat(min_price)); }
-    if (max_price) { query += " AND s.price <= ?"; params.push(parseFloat(max_price)); }
-
-    switch(sort) {
-      case 'price_low': query += " ORDER BY s.price ASC"; break;
-      case 'price_high': query += " ORDER BY s.price DESC"; break;
-      case 'rating': query += " ORDER BY avg_rating DESC"; break;
-      default: query += " ORDER BY s.created_at DESC";
-    }
-
-    query += " LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), parseInt(offset));
-
-    const services = extractRows(await db.query(query, params));
-
-    if (req.session.user) {
-      const favorites = extractRows(await db.query("SELECT service_id FROM service_favorites WHERE user_id = ?", [req.session.user.id]));
-      const favoriteIds = new Set(favorites.map(f => f.service_id));
-      services.forEach(s => s.is_favorited = favoriteIds.has(s.id));
-    }
-
-    const countResult = await db.query(`SELECT COUNT(*) as total FROM services WHERE status = 'active'`);
-    const total = extractRows(countResult)[0]?.total || 0;
-
-    res.json({ services, pagination: { total, limit: parseInt(limit), offset: parseInt(offset), has_more: total > (parseInt(offset) + parseInt(limit)) } });
-  } catch (err) {
-    console.error("Services fetch error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post("/api/services", checkFreelancerSubscription, async (req, res) => {
-  if (!req.session.user) return res.status(401).json({ error: "Please login to create a service" });
-  if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
-    return res.status(403).json({ error: "Only freelancers can create services" });
-  }
-
-  try {
-    const { title, description, category, fixed_price, delivery_time, revisions, tags, requirements } = req.body;
-    if (!title || !description) return res.status(400).json({ error: "Title and description are required" });
-    if (title.length < 5) return res.status(400).json({ error: "Title must be at least 5 characters" });
-    if (description.length < 20) return res.status(400).json({ error: "Description must be at least 20 characters" });
-
-    const price = fixed_price ? parseFloat(fixed_price) : 0;
-
-    const result = await db.query(
-      `INSERT INTO services (user_id, title, description, price, category, delivery_time, revisions, tags, requirements, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())`,
-      [req.session.user.id, title, description, price, category || 'other', delivery_time || 7, revisions || 2,
-       tags ? JSON.stringify(typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags) : null,
-       requirements ? JSON.stringify(typeof requirements === 'string' ? requirements.split('\n').filter(r => r.trim()) : requirements) : null]
-    );
-
-    const serviceId = extractInsertId(result);
-    if (!serviceId) throw new Error("Could not get service ID after creation");
-
-    res.json({ success: true, message: "Service created successfully!", serviceId });
-  } catch (err) {
-    console.error("Service creation error:", err);
-    res.status(500).json({ error: "Error creating service: " + err.message });
-  }
-});
-
-// ============================================
-// ROUTES - CHAT SYSTEM
-// ============================================
-app.get("/api/messages/unread-count", async (req, res) => {
-  try {
-    if (!req.session.user) return res.json({ count: 0 });
-    const userId = req.session.user.id;
-    const result = await db.query(`
-      SELECT COUNT(m.id) AS unread_count
-      FROM messages m JOIN conversations c ON c.id = m.conversation_id
-      WHERE m.sender_id != ? AND m.is_read = 0 AND (c.client_id = ? OR c.freelancer_id = ?)
-    `, [userId, userId, userId]);
-    res.json({ count: extractRows(result)[0]?.unread_count || 0 });
-  } catch (err) {
-    console.error("Unread count error:", err);
-    res.json({ count: 0 });
-  }
-});
-
-app.get("/api/messages/conversations", async (req, res) => {
-  try {
-    if (!req.session.user) return res.json([]);
-    const userId = req.session.user.id;
-
-    const result = await db.query(`
-      SELECT c.id AS conversation_id, c.service_id, s.title AS service_title, c.created_at,
-        CASE WHEN c.client_id = ? THEN u2.username ELSE u1.username END AS other_user_name,
-        CASE WHEN c.client_id = ? THEN u2.id ELSE u1.id END AS other_user_id
-      FROM conversations c
-      JOIN users u1 ON c.client_id = u1.id JOIN users u2 ON c.freelancer_id = u2.id
-      LEFT JOIN services s ON c.service_id = s.id
-      WHERE c.client_id = ? OR c.freelancer_id = ?
-      ORDER BY (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC, c.created_at DESC
-    `, [userId, userId, userId, userId]);
-
-    res.json(extractRows(result));
-  } catch (err) {
-    console.error("Conversations fetch error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/messages/:conversationId", async (req, res) => {
-  try {
-    if (!req.session.user) return res.status(401).json({ error: "Unauthorized" });
-    const conversationId = parseInt(req.params.conversationId);
-    if (isNaN(conversationId)) return res.status(400).json({ error: "Invalid conversation ID" });
-    const userId = req.session.user.id;
-
-    const convResult = await db.query("SELECT id FROM conversations WHERE id = ? AND (client_id = ? OR freelancer_id = ?)",
-      [conversationId, userId, userId]);
-    if (extractRows(convResult).length === 0) return res.status(403).json({ error: "Access denied" });
-
-    const messages = extractRows(await db.query(`
-      SELECT m.id, m.conversation_id, m.sender_id, m.message, m.image_url, m.is_read, m.created_at, u.username AS sender_name
-      FROM messages m JOIN users u ON m.sender_id = u.id
-      WHERE m.conversation_id = ? ORDER BY m.created_at ASC
-    `, [conversationId]));
-
-    res.json(messages);
-  } catch (err) {
-    console.error("Error fetching messages:", err);
-    res.status(500).json({ error: "Server error: " + err.message });
-  }
-});
-
-app.post("/api/messages/send", async (req, res) => {
-  try {
-    if (!req.session.user) return res.status(401).json({ error: "Login required" });
-    const { conversation_id, message } = req.body;
-    if (!conversation_id || !message?.trim()) return res.status(400).json({ error: "Missing message or conversation ID" });
-
-    const convResult = await db.query("SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?", [conversation_id]);
-    const conversation = extractRows(convResult)[0];
-    if (!conversation) return res.status(404).json({ error: "Conversation not found" });
-
-    const isParticipant = parseInt(conversation.client_id) === req.session.user.id || parseInt(conversation.freelancer_id) === req.session.user.id;
-    if (!isParticipant) return res.status(403).json({ error: "Access denied" });
-
-    const insertResult = await db.query(
-      "INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read) VALUES (?, ?, ?, NOW(), 0)",
-      [conversation_id, req.session.user.id, message.trim()]
-    );
-
-    const messageId = extractInsertId(insertResult);
-    if (!messageId) return res.status(500).json({ error: "Failed to insert message" });
-
-    const newMessage = extractRows(await db.query(
-      "SELECT m.*, u.username AS sender_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?",
-      [messageId]
-    ))[0];
-
-    res.json({ success: true, data: newMessage });
-  } catch (err) {
-    console.error("Send message error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================
 // ROUTES - HTML PAGES
 // ============================================
 const htmlRoutes = [
   "/", "/login", "/signup", "/courses", "/admin-files.html", "/admin-migrate",
   "/payment-callback.html", "/payment-verification.html", "/payment-failed.html",
-  "/forgot-password.html", "/reset-password.html", "/services-payment-callback"
+  "/forgot-password.html", "/reset-password.html", "/services-payment-callback",
+  "/physical-payment-callback.html"
 ];
 
 htmlRoutes.forEach(route => {
@@ -1557,6 +1293,33 @@ htmlRoutes.forEach(route => {
 
 app.get("/api/terms", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "terms.html"));
+});
+
+// ============================================
+// COMPLAINT ENDPOINT
+// ============================================
+app.post("/api/send-complaint", async (req, res) => {
+  try {
+    const { name, email, subject, priority, message, orderId } = req.body;
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: "Please fill in all required fields" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+
+    const supportResult = await sendSupportEmail(name, email, subject, message, orderId);
+    if (!supportResult.success) {
+      return res.json({ success: true, warning: "Complaint received, but email delivery is pending." });
+    }
+
+    res.json({ success: true, message: "Your complaint has been submitted successfully!" });
+  } catch (error) {
+    console.error('❌ Complaint submission error:', error);
+    res.status(500).json({ error: "Failed to submit complaint. Please try again later." });
+  }
 });
 
 // ============================================

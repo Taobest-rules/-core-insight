@@ -912,7 +912,8 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 // ============================================
 app.post("/api/upload-product", (req, res) => {
   const upload = multer({ storage: productStorage }).fields([
-    { name: 'file', maxCount: 1 }, { name: 'images[]', maxCount: 10 }
+    { name: 'file', maxCount: 1 }, 
+    { name: 'images[]', maxCount: 10 }
   ]);
 
   upload(req, res, async function(err) {
@@ -921,32 +922,86 @@ app.post("/api/upload-product", (req, res) => {
     try {
       if (!req.session.user) return res.status(401).json({ error: "Please log in to upload products." });
 
-      const { title, description, price, category, type, affiliate_link, paymentProvider } = req.body;
+      const { 
+        title, 
+        description, 
+        price, 
+        category, 
+        type, 
+        affiliate_link, 
+        paymentProvider,
+        // Physical product fields
+        delivery_days,
+        product_cost,
+        delivery_locations,
+        delivery_type,
+        payment_option,
+        // Business info (stored for future use)
+        businessName,
+        businessEmail,
+        businessPhone,
+        country,
+        bankName,
+        bankCode,
+        accountNumber,
+        accountName
+      } = req.body;
+
+      // Validation
       if (!title || !price || !type || !paymentProvider) {
         return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
       }
+      
       if (type === 'affiliate' && !affiliate_link) {
         return res.status(400).json({ error: "Affiliate link is required for affiliate products." });
       }
 
-      const listedPrice = parseFloat(price);
-      let sellerPrice = listedPrice, platformFee = 0;
+      // For physical products, validate additional fields
       if (type === 'physical') {
-        platformFee = listedPrice * 0.1;
+        if (!product_cost) {
+          return res.status(400).json({ error: "Product cost is required for physical products." });
+        }
+        if (!delivery_locations) {
+          return res.status(400).json({ error: "Delivery locations are required for physical products." });
+        }
+      }
+
+      const listedPrice = parseFloat(price);
+      const productCostValue = type === 'physical' ? parseFloat(product_cost) || 3.00 : null;
+      
+      let sellerPrice = listedPrice;
+      let platformFee = 0;
+      let originalPrice = listedPrice;
+      
+      if (type === 'physical') {
+        // For physical: Customer pays full price, platform fee is 10% of profit margin
+        const profitMargin = listedPrice - productCostValue;
+        platformFee = profitMargin * 0.10;
+        sellerPrice = listedPrice - platformFee - productCostValue;
+      } else if (type === 'digital') {
+        // For digital: Platform takes 10%, seller gets 90%
+        platformFee = listedPrice * 0.10;
         sellerPrice = listedPrice - platformFee;
       }
 
+      // Process images with Cloudinary
       let imageUrls = [];
       if (req.files?.['images[]']?.length) {
         const cloudinary = require('cloudinary').v2;
         for (const imageFile of req.files['images[]']) {
           try {
-            const result = await cloudinary.uploader.upload(imageFile.path, { folder: 'core-insight/products' });
+            const result = await cloudinary.uploader.upload(imageFile.path, { 
+              folder: 'core-insight/products',
+              transformation: [{ width: 800, height: 600, crop: 'limit' }]
+            });
             imageUrls.push(result.secure_url);
-          } catch (cloudErr) { console.error('Cloudinary upload error:', cloudErr); }
+          } catch (cloudErr) { 
+            console.error('Cloudinary upload error:', cloudErr); 
+          }
         }
       }
 
+      // Handle product file for digital products
       let fileUrl = null;
       if (req.files?.file?.[0]) {
         const productFile = req.files.file[0];
@@ -971,22 +1026,97 @@ app.post("/api/upload-product", (req, res) => {
         }
       }
 
+      // Insert product into database matching your exact schema
       const result = await db.query(
-        `INSERT INTO products (user_id, title, description, price, original_price, platform_fee, category, type,
-          file_url, image_urls, affiliate_link, seller_payment_provider, rating, review_count, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
-        [req.session.user.id, title, description || '', sellerPrice, listedPrice, platformFee, category || '',
-         type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, affiliate_link || null, paymentProvider]
+        `INSERT INTO products (
+          user_id, title, description, price, original_price, platform_fee, product_cost,
+          category, type, file_url, image_urls, affiliate_link, 
+          seller_payment_provider, delivery_type, delivery_locations, 
+          payment_option, estimated_delivery_days, rating, review_count, 
+          status, sales_count, favorite_count, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          req.session.user.id, 
+          title, 
+          description || '', 
+          sellerPrice,        // price - what seller gets after fees
+          originalPrice,      // original_price - what customer pays
+          platformFee,        // platform_fee - our cut
+          productCostValue,   // product_cost - seller's fulfillment cost
+          category || '',
+          type || 'digital', 
+          fileUrl, 
+          imageUrls.length ? JSON.stringify(imageUrls) : null, 
+          affiliate_link || null, 
+          paymentProvider,    // seller_payment_provider
+          // For physical products, use delivery_type from form, otherwise NULL
+          type === 'physical' ? (delivery_type || 'delivery') : null,
+          // delivery_locations
+          type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+          // payment_option
+          type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
+          // estimated_delivery_days
+          type === 'physical' ? (parseInt(delivery_days) || 7) : null,
+          // rating, review_count
+          0.00,  // rating
+          0,     // review_count
+          'active',  // status
+          0,     // sales_count
+          0      // favorite_count
+        ]
       );
 
-      res.json({ message: "✅ Product uploaded successfully!", productId: result.insertId });
+      const productId = result.insertId;
+      
+      // Store business information in sellers table (for future use - subaccount)
+      if (businessName && accountNumber) {
+        try {
+          await db.query(
+            `INSERT INTO sellers (user_id, provider, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
+             VALUES (?, 'flutterwave', ?, ?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE 
+             account_number = VALUES(account_number),
+             bank_code = VALUES(bank_code),
+             bank_name = VALUES(bank_name),
+             business_name = VALUES(business_name),
+             business_email = VALUES(business_email),
+             business_phone = VALUES(business_phone),
+             country = VALUES(country)`,
+            [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
+          );
+          console.log(`✅ Business info stored for seller ${req.session.user.id}`);
+        } catch (err) {
+          console.error('❌ Error storing business info:', err.message);
+          // Don't fail product upload if business info storage fails
+        }
+      }
+
+      console.log(`✅ Product uploaded! ID: ${productId}, Type: ${type}`);
+      
+      res.json({ 
+        message: "✅ Product uploaded successfully!", 
+        productId: productId,
+        type: type,
+        pricing: {
+          customer_price: originalPrice,      // What customer pays
+          platform_fee: platformFee,           // Our 10% (or 10% of profit for physical)
+          seller_earnings: sellerPrice,        // What seller gets
+          product_cost: productCostValue       // Seller's fulfillment cost (physical only)
+        },
+        delivery_info: type === 'physical' ? {
+          estimated_days: parseInt(delivery_days) || 7,
+          locations: delivery_locations || 'Worldwide',
+          delivery_type: delivery_type || 'delivery',
+          payment_option: payment_option || 'pay_before_delivery'
+        } : null
+      });
+      
     } catch (err) {
       console.error('❌ Product upload error:', err);
       res.status(500).json({ error: "Error uploading product: " + err.message });
     }
   });
 });
-
 // Delete product endpoint
 app.delete("/api/products/:id", async (req, res) => {
   try {

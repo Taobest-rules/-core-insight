@@ -2,6 +2,7 @@
   "name": "core-insight",
   "version": "1.0.0",
   "description": "Core Insight platform with courses, book uploads, payments, and authentication.",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

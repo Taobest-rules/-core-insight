@@ -148,7 +148,284 @@ const escapeHtml = (str) => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 };
+// ============================================
+// SUBACCOUNT CREATION FUNCTIONS
+// ============================================
 
+// Flutterwave Subaccount Creation
+async function createFlutterwaveSubaccount(sellerData) {
+  try {
+    const { user_id, business_name, email, account_number, bank_code, country, phone, bank_name } = sellerData;
+    
+    console.log(`🏦 Creating Flutterwave subaccount for seller ${user_id}...`);
+    
+    if (!account_number) {
+      console.error('❌ Account number is required');
+      return null;
+    }
+    
+    const payload = {
+      account_bank: bank_code || "044",
+      account_number: account_number,
+      business_name: business_name || `Seller ${user_id}`,
+      business_email: email,
+      business_mobile: phone || "",
+      country: country || "NG",
+      split_type: "percentage",
+      split_value: 10
+    };
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/subaccounts',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    if (response.data.status === 'success') {
+      const subaccountId = response.data.data.subaccount_id;
+      
+      await db.query(
+        `INSERT INTO sellers (user_id, bank_code, account_number, business_name, flutterwave_subaccount_id, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE 
+         bank_code = VALUES(bank_code),
+         account_number = VALUES(account_number),
+         business_name = VALUES(business_name),
+         flutterwave_subaccount_id = VALUES(flutterwave_subaccount_id)`,
+        [user_id, bank_code, account_number, business_name, subaccountId]
+      );
+      
+      console.log(`✅ Flutterwave subaccount created: ${subaccountId}`);
+      return subaccountId;
+    }
+    return null;
+  } catch (err) {
+    console.error('❌ Flutterwave subaccount error:', err.response?.data || err.message);
+    return null;
+  }
+}
+
+// Paystack Subaccount Creation
+async function createPaystackSubaccount(sellerData) {
+  try {
+    const { user_id, business_name, email, account_number, bank_code, bank_name, percentage_charge } = sellerData;
+    
+    console.log(`🏦 Creating Paystack subaccount for seller ${user_id}...`);
+    
+    if (!account_number || !bank_code) {
+      console.error('❌ Account number and bank code are required for Paystack');
+      return null;
+    }
+    
+    const payload = {
+      business_name: business_name || `Seller ${user_id}`,
+      settlement_bank: bank_code,
+      account_number: account_number,
+      percentage_charge: percentage_charge || 10
+    };
+    
+    const response = await axios.post(
+      'https://api.paystack.co/subaccount',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    if (response.data.status === true) {
+      const subaccountCode = response.data.data.subaccount_code;
+      
+      await db.query(
+        `INSERT INTO sellers (user_id, bank_code, account_number, business_name, paystack_subaccount_code, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE 
+         bank_code = VALUES(bank_code),
+         account_number = VALUES(account_number),
+         business_name = VALUES(business_name),
+         paystack_subaccount_code = VALUES(paystack_subaccount_code)`,
+        [user_id, bank_code, account_number, business_name, subaccountCode]
+      );
+      
+      console.log(`✅ Paystack subaccount created: ${subaccountCode}`);
+      return subaccountCode;
+    }
+    return null;
+  } catch (err) {
+    console.error('❌ Paystack subaccount error:', err.response?.data || err.message);
+    return null;
+  }
+}
+
+
+// ============================================
+// ORDER CONFIRMATION EMAIL
+// ============================================
+
+async function sendOrderConfirmationEmail(orderData) {
+  try {
+    const { email, name, orderId, productName, quantity, totalAmount, deliveryAddress, estimatedDays } = orderData;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order Confirmation #${orderId} - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          h1 { color: #3b82f6; margin-top: 0; }
+          .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+          .status-badge { background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 12px; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
+          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🎉 Order Confirmed!</h1>
+          <p>Hello ${escapeHtml(name)},</p>
+          <p>Thank you for your order! We've received your order and it's now being processed.</p>
+          
+          <div class="order-details">
+            <h3>Order Details</h3>
+            <p><strong>Order ID:</strong> #${orderId}</p>
+            <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
+            <p><strong>Quantity:</strong> ${quantity}</p>
+            <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+            <p><strong>Status:</strong> <span class="status-badge">Pending Seller Approval</span></p>
+          </div>
+          
+          <div class="order-details">
+            <h3>Shipping Information</h3>
+            <p><strong>Address:</strong> ${escapeHtml(deliveryAddress)}</p>
+            <p><strong>Estimated Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'} after seller approval</p>
+          </div>
+          
+          <p>You will receive another email when the seller accepts your order.</p>
+          
+          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" class="btn">Track Your Order</a>
+          
+          <div class="footer">
+            <p>Core Insight Marketplace<br>Need help? Contact us at suppourtcoreinsight@gmail.com</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    if (BREVO_API_KEY) {
+      await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
+        data: {
+          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
+          to: [{ email: email }],
+          subject: `Order Confirmation #${orderId} - Core Insight`,
+          htmlContent: emailHtml
+        },
+        timeout: 15000
+      });
+    } else if (transporter) {
+      await transporter.sendMail({
+        from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `Order Confirmation #${orderId} - Core Insight`,
+        html: emailHtml
+      });
+    }
+    
+    console.log(`✅ Order confirmation email sent to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Order confirmation email error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+async function sendSellerNotificationEmail(sellerData) {
+  try {
+    const { email, name, orderId, productName, quantity, totalAmount } = sellerData;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>New Order Notification - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          h1 { color: #3b82f6; margin-top: 0; }
+          .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>📦 New Order Received!</h1>
+          <p>Hello ${escapeHtml(name)},</p>
+          <p>You have received a new order that requires your approval.</p>
+          
+          <div class="order-details">
+            <h3>Order Details</h3>
+            <p><strong>Order ID:</strong> #${orderId}</p>
+            <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
+            <p><strong>Quantity:</strong> ${quantity}</p>
+            <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+          </div>
+          
+          <p>Please log in to your dashboard to approve or reject this order.</p>
+          
+          <a href="https://core-insight-7.onrender.com/dashboard.html" class="btn">Go to Dashboard</a>
+          
+          <div class="footer">
+            <p>Core Insight Marketplace<br>Funds will be held in escrow for 5 days after payment.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    if (BREVO_API_KEY) {
+      await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
+        data: {
+          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
+          to: [{ email: email }],
+          subject: `New Order #${orderId} - Requires Approval`,
+          htmlContent: emailHtml
+        },
+        timeout: 15000
+      });
+    } else if (transporter) {
+      await transporter.sendMail({
+        from: `"Core Insight Orders" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `New Order #${orderId} - Requires Approval`,
+        html: emailHtml
+      });
+    }
+    
+    console.log(`✅ Seller notification email sent to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Seller notification email error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
 // ============================================
 // EMAIL CONFIGURATION - BREVO
 // ============================================
@@ -550,10 +827,12 @@ app.get("/api/products", async (req, res) => {
         p.*,
         u.username as seller_name,
         p.rating,
-        p.review_count
+        p.review_count,
+        p.delivery_locations,
+        p.estimated_delivery_days
       FROM products p
       LEFT JOIN users u ON p.user_id = u.id
-      WHERE p.is_deleted = 0 OR p.is_deleted IS NULL
+      WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL)
       ORDER BY p.created_at DESC
     `);
     
@@ -565,48 +844,35 @@ app.get("/api/products", async (req, res) => {
       product.seller_price = product.type === 'physical' ? product.original_price - product.platform_fee : product.price;
       product.rating = parseFloat(product.rating) || 0;
       product.review_count = parseInt(product.review_count) || 0;
+      
+      // Add delivery locations (important for country filter)
+      product.delivery_locations = product.delivery_locations || 'Worldwide';
+      product.estimated_delivery_days = product.estimated_delivery_days || 7;
 
-      // CRITICAL FIX: Handle image_urls properly
+      // Handle image_urls properly
       let imageUrls = [];
       
-      // Check if image_urls exists and is not empty
       if (product.image_urls) {
-        console.log(`Product ${product.id} has image_urls:`, product.image_urls);
-        
         try {
-          // If it's a string, try to parse it as JSON
           if (typeof product.image_urls === 'string') {
-            // Check if it looks like JSON array
             if (product.image_urls.startsWith('[')) {
               imageUrls = JSON.parse(product.image_urls);
-              console.log(`✅ Parsed JSON array for product ${product.id}:`, imageUrls);
-            } 
-            // Check if it's a single URL string
-            else if (product.image_urls.startsWith('http')) {
+            } else if (product.image_urls.startsWith('http')) {
               imageUrls = [product.image_urls];
-              console.log(`✅ Single URL for product ${product.id}:`, product.image_urls);
-            }
-            // Otherwise, it might be a relative path
-            else {
+            } else {
               imageUrls = [product.image_urls];
-              console.log(`✅ Relative path for product ${product.id}:`, product.image_urls);
             }
-          } 
-          // If it's already an array
-          else if (Array.isArray(product.image_urls)) {
+          } else if (Array.isArray(product.image_urls)) {
             imageUrls = product.image_urls;
-            console.log(`✅ Already array for product ${product.id}:`, imageUrls);
           }
         } catch (e) {
-          console.error(`❌ Error parsing image_urls for product ${product.id}:`, e.message);
-          // Fallback: treat as single URL
+          console.error(`Error parsing image_urls for product ${product.id}:`, e.message);
           imageUrls = [product.image_urls];
         }
       }
       
-      // Also check the legacy 'images' field if image_urls is empty
+      // Fallback to legacy images field
       if (imageUrls.length === 0 && product.images) {
-        console.log(`Product ${product.id} using legacy images field:`, product.images);
         try {
           if (typeof product.images === 'string') {
             if (product.images.startsWith('[')) {
@@ -617,53 +883,22 @@ app.get("/api/products", async (req, res) => {
           } else if (Array.isArray(product.images)) {
             imageUrls = product.images;
           }
-        } catch (e) {
-          console.error(`Error parsing legacy images:`, e.message);
-        }
+        } catch (e) {}
       }
       
-      // If no images, add a default based on category
+      // Default image if none found
       if (!imageUrls || imageUrls.length === 0) {
-        const categoryDefaultImages = {
-          'electronics': 'https://placehold.co/400x250/2563eb/ffffff/png?text=Electronics',
-          'clothing': 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Clothing',
-          'fashion': 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Fashion',
-          'home': 'https://placehold.co/400x250/059669/ffffff/png?text=Home',
-          'beauty': 'https://placehold.co/400x250/db2777/ffffff/png?text=Beauty',
-          'sports': 'https://placehold.co/400x250/dc2626/ffffff/png?text=Sports',
-          'books': 'https://placehold.co/400x250/b45309/ffffff/png?text=Books',
-          'toys': 'https://placehold.co/400x250/7e22ce/ffffff/png?text=Toys'
-        };
-        
-        const lowerCategory = (product.category || '').toLowerCase();
-        let defaultImage = 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
-        
-        for (const [key, url] of Object.entries(categoryDefaultImages)) {
-          if (lowerCategory.includes(key)) {
-            defaultImage = url;
-            break;
-          }
-        }
-        
-        imageUrls = [defaultImage];
-        console.log(`🖼️ Using default image for product ${product.id}:`, defaultImage);
+        imageUrls = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
       }
       
-      // Set the processed images array
       product._imageList = imageUrls;
-      product.images = imageUrls; // Also set images for compatibility
+      product.images = imageUrls;
       
-      // Set type if not set
-      if (!product.type) {
-        product.type = product.affiliate_link ? 'affiliate' : 'digital';
-      }
-      
-      console.log(`✅ Product ${product.id} has ${imageUrls.length} images`);
+      if (!product.type) product.type = product.affiliate_link ? 'affiliate' : 'digital';
       
       return product;
     });
     
-    // Set proper content type
     res.setHeader('Content-Type', 'application/json');
     res.json(processedProducts);
     
@@ -673,6 +908,541 @@ app.get("/api/products", async (req, res) => {
       error: "Error fetching products",
       details: err.message 
     });
+  }
+});
+
+// ============================================
+// DIGITAL PRODUCT BUY WITH SUBACCOUNT SPLIT
+// ============================================
+app.post("/api/buy-product", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please log in to buy products." });
+  }
+
+  try {
+    const { productId } = req.body;
+    if (!productId) return res.status(400).json({ error: "Product ID is required." });
+
+    // Get product with seller subaccounts (both providers)
+    const productResult = await db.query(
+      `SELECT p.*, u.email as seller_email, u.username as seller_name,
+              s.flutterwave_subaccount_id, s.paystack_subaccount_code
+       FROM products p
+       LEFT JOIN users u ON p.user_id = u.id
+       LEFT JOIN sellers s ON p.user_id = s.user_id
+       WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)`,
+      [productId]
+    );
+
+    let product = null;
+    if (productResult && productResult.length > 0) product = productResult[0];
+    if (!product) return res.status(404).json({ error: "Product not found." });
+
+    if (product.type === "affiliate" && product.affiliate_link) {
+      return res.json({ type: "affiliate", link: product.affiliate_link });
+    }
+
+    // For digital products - use appropriate payment provider
+    if (product.type === "digital") {
+      const paymentProvider = product.seller_payment_provider || 'flutterwave';
+      
+      if (paymentProvider === 'flutterwave' && !process.env.FLW_SECRET_KEY) {
+        return res.status(500).json({ error: "Flutterwave not configured." });
+      }
+      if (paymentProvider === 'paystack' && !process.env.PAYSTACK_SECRET_KEY) {
+        return res.status(500).json({ error: "Paystack not configured." });
+      }
+
+      const totalAmount = parseFloat(product.original_price || product.price);
+      const platformFee = totalAmount * 0.10;
+      const sellerAmount = totalAmount - platformFee;
+
+      console.log(`💰 Digital product payment:
+        Product: ${product.title}
+        Provider: ${paymentProvider}
+        Total: $${totalAmount}
+        Platform (10%): $${platformFee}
+        Seller (90%): $${sellerAmount}
+      `);
+
+      const txRef = `digital-${product.id}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      
+      let paymentLink = null;
+      
+      if (paymentProvider === 'flutterwave') {
+        const payload = {
+          tx_ref: txRef,
+          amount: totalAmount,
+          currency: "USD",
+          redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+          customer: {
+            email: req.session.user.email,
+            name: req.session.user.username,
+          },
+          customizations: {
+            title: "Core Insight",
+            description: `Digital Product: ${product.title}`,
+          },
+          meta: {
+            product_id: product.id,
+            seller_id: product.user_id,
+            buyer_id: req.session.user.id,
+            type: 'digital',
+            platform_fee: platformFee,
+            seller_earnings: sellerAmount
+          }
+        };
+
+        if (product.flutterwave_subaccount_id) {
+          payload.subaccounts = [{
+            id: product.flutterwave_subaccount_id,
+            transaction_split_ratio: 90
+          }];
+          console.log(`✅ Using Flutterwave subaccount: ${product.flutterwave_subaccount_id}`);
+        }
+
+        const response = await axios.post(
+          'https://api.flutterwave.com/v3/payments',
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 15000
+          }
+        );
+
+        if (response.data.status === "success" && response.data.data && response.data.data.link) {
+          paymentLink = response.data.data.link;
+        }
+        
+      } else if (paymentProvider === 'paystack') {
+        const amountInKobo = Math.round(totalAmount * 100);
+        
+        const payload = {
+          email: req.session.user.email,
+          amount: amountInKobo,
+          currency: "NGN",
+          reference: txRef,
+          callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
+          metadata: {
+            product_id: product.id,
+            seller_id: product.user_id,
+            buyer_id: req.session.user.id,
+            type: 'digital',
+            platform_fee: platformFee,
+            seller_earnings: sellerAmount
+          }
+        };
+
+        if (product.paystack_subaccount_code) {
+          payload.subaccount = product.paystack_subaccount_code;
+          payload.transaction_charge = Math.round(platformFee * 100);
+          console.log(`✅ Using Paystack subaccount: ${product.paystack_subaccount_code}`);
+        }
+
+        const response = await axios.post(
+          'https://api.paystack.co/transaction/initialize',
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 15000
+          }
+        );
+
+        if (response.data.status && response.data.data && response.data.data.authorization_url) {
+          paymentLink = response.data.data.authorization_url;
+        }
+      }
+
+      if (paymentLink) {
+        await db.query(
+          `INSERT INTO orders 
+           (user_id, product_id, tx_ref, amount, status, provider, seller_id, platform_fee, seller_earnings)
+           VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
+          [req.session.user.id, product.id, txRef, totalAmount, paymentProvider, product.user_id, platformFee, sellerAmount]
+        );
+
+        res.json({
+          type: "payment",
+          provider: paymentProvider,
+          link: paymentLink,
+          tx_ref: txRef
+        });
+      } else {
+        throw new Error("Payment initialization failed");
+      }
+    }
+
+  } catch (err) {
+    console.error('❌ Buy product error:', err);
+    res.status(500).json({ error: "Payment failed: " + err.message });
+  }
+});
+// ============================================
+// CHECK SELLER SUBACCOUNT STATUS
+// ============================================
+app.get("/api/seller/subaccount-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const result = await db.query(
+      "SELECT flutterwave_subaccount_id, paystack_subaccount_code FROM sellers WHERE user_id = ?",
+      [req.session.user.id]
+    );
+    
+    if (result && result.length > 0) {
+      res.json({
+        success: true,
+        flutterwave: {
+          hasSubaccount: !!result[0].flutterwave_subaccount_id,
+          subaccountId: result[0].flutterwave_subaccount_id
+        },
+        paystack: {
+          hasSubaccount: !!result[0].paystack_subaccount_code,
+          subaccountCode: result[0].paystack_subaccount_code
+        }
+      });
+    } else {
+      res.json({
+        success: true,
+        flutterwave: { hasSubaccount: false },
+        paystack: { hasSubaccount: false },
+        message: "No subaccounts found. Add bank details when uploading a product."
+      });
+    }
+    
+  } catch (err) {
+    console.error('❌ Error checking subaccount status:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// ============================================
+// REFUND PROCESSING (Admin/Seller)
+// ============================================
+
+app.post("/api/refunds/:orderId/process", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    
+    const orderId = req.params.orderId;
+    const { action, admin_notes } = req.body; // action: 'approve' or 'deny'
+    
+    // Get order details with payment info
+    const orderResult = await db.query(
+      `SELECT o.*, p.type, p.title, s.flutterwave_subaccount_id, s.paystack_subaccount_code
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       LEFT JOIN sellers s ON o.seller_id = s.user_id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    const paymentProvider = order.payment_provider || 'flutterwave';
+    
+    // Check if user is admin or the seller
+    const isAdmin = req.session.user.role === 'admin';
+    const isSeller = order.seller_id === req.session.user.id;
+    
+    if (!isAdmin && !isSeller) {
+      return res.status(403).json({ error: "Only the seller or admin can process refunds" });
+    }
+    
+    // Check if refund is still within window
+    const paymentDate = new Date(order.payment_collected_at);
+    const now = new Date();
+    const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
+    
+    if (daysSincePayment > 5 && order.order_status !== 'refund_requested') {
+      return res.status(400).json({ error: "Refund window has closed (5 days after payment)" });
+    }
+    
+    if (action === 'approve') {
+      // Process refund based on payment provider
+      let refundSuccess = false;
+      let refundError = null;
+      
+      if (paymentProvider === 'flutterwave') {
+        try {
+          // Get transaction reference
+          const transactionRef = order.transaction_ref;
+          
+          const refundResponse = await axios.post(
+            'https://api.flutterwave.com/v3/transactions/refund',
+            {
+              transaction_id: transactionRef,
+              amount: order.total_amount,
+              full_refund: true,
+              narration: `Refund for order #${orderId} - ${order.product_name}`
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 15000
+            }
+          );
+          
+          if (refundResponse.data.status === 'success') {
+            refundSuccess = true;
+            console.log(`✅ Flutterwave refund processed for order #${orderId}`);
+          } else {
+            refundError = refundResponse.data.message;
+          }
+        } catch (err) {
+          refundError = err.response?.data?.message || err.message;
+          console.error('❌ Flutterwave refund error:', refundError);
+        }
+        
+      } else if (paymentProvider === 'paystack') {
+        try {
+          // Get transaction reference
+          const transactionRef = order.transaction_ref;
+          
+          const refundResponse = await axios.post(
+            'https://api.paystack.co/transaction/refund',
+            {
+              transaction: transactionRef,
+              amount: Math.round(order.total_amount * 100) // Convert to kobo
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 15000
+            }
+          );
+          
+          if (refundResponse.data.status === true) {
+            refundSuccess = true;
+            console.log(`✅ Paystack refund processed for order #${orderId}`);
+          } else {
+            refundError = refundResponse.data.message;
+          }
+        } catch (err) {
+          refundError = err.response?.data?.message || err.message;
+          console.error('❌ Paystack refund error:', refundError);
+        }
+      }
+      
+      if (refundSuccess) {
+        // Update order status
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'refunded',
+               refund_processed_at = NOW(),
+               refund_approved_by = ?,
+               refund_notes = ?
+           WHERE id = ?`,
+          [req.session.user.id, admin_notes || 'Refund approved', orderId]
+        );
+        
+        // Update escrow account
+        await db.query(
+          `UPDATE escrow_accounts 
+           SET status = 'refunded', 
+               refunded_at = NOW(),
+               refund_processed_by = ?
+           WHERE order_id = ?`,
+          [req.session.user.id, orderId]
+        );
+        
+        // Notify buyer
+        await db.query(
+          `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+           VALUES (?, ?, 'refund_approved', 'Refund Approved ✅', 
+                   CONCAT('Your refund for order #', ?, ' has been approved. Please allow 5-10 business days for the refund to appear in your account.'), NOW())`,
+          [order.buyer_id, orderId, orderId]
+        );
+        
+        // Notify seller
+        await db.query(
+          `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message, created_at)
+           VALUES (?, ?, 'refund_processed', 'Refund Processed', 
+                   CONCAT('Refund for order #', ?, ' has been processed. Funds have been returned to the buyer.'), NOW())`,
+          [order.seller_id, orderId, orderId]
+        );
+        
+        res.json({
+          success: true,
+          message: "Refund approved and processed successfully",
+          refundId: refundSuccess
+        });
+        
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: `Refund failed: ${refundError}` 
+        });
+      }
+      
+    } else if (action === 'deny') {
+      // Deny refund
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'completed',
+             refund_denied_at = NOW(),
+             refund_denied_by = ?,
+             refund_notes = ?
+         WHERE id = ?`,
+        [req.session.user.id, admin_notes || 'Refund denied', orderId]
+      );
+      
+      // Notify buyer
+      await db.query(
+        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'refund_denied', 'Refund Denied ❌', 
+                 CONCAT('Your refund request for order #', ?, ' was denied. Reason: ', ?), NOW())`,
+        [order.buyer_id, orderId, orderId, admin_notes || 'No reason provided']
+      );
+      
+      res.json({
+        success: true,
+        message: "Refund request denied"
+      });
+    }
+    
+  } catch (err) {
+    console.error("❌ Refund processing error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Add this endpoint to show sellers their earnings breakdown:
+// ============================================
+// GET REFUND REQUESTS (Admin/Seller)
+// ============================================
+
+app.get("/api/refunds/pending", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    
+    const isAdmin = req.session.user.role === 'admin';
+    let query = `
+      SELECT o.id, o.order_number, o.product_name, o.quantity, o.total_amount, 
+             o.refund_reason, o.refund_requested_at,
+             u_buyer.username as buyer_name, u_buyer.email as buyer_email,
+             u_seller.username as seller_name, u_seller.email as seller_email,
+             o.payment_provider, o.transaction_ref
+      FROM physical_orders o
+      LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      WHERE o.order_status = 'refund_requested'
+    `;
+    
+    const params = [];
+    
+    if (!isAdmin) {
+      query += " AND o.seller_id = ?";
+      params.push(req.session.user.id);
+    }
+    
+    query += " ORDER BY o.refund_requested_at DESC";
+    
+    const refundRequests = await db.query(query, params);
+    
+    res.json({
+      success: true,
+      refunds: extractRows(refundRequests)
+    });
+    
+  } catch (err) {
+    console.error("❌ Error fetching refund requests:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// ============================================
+// SELLER EARNINGS BREAKDOWN
+// ============================================
+
+app.get("/api/seller/orders/:orderId/earnings", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(
+      `SELECT o.*, p.product_cost, p.original_price
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.seller_id = ?`,
+      [orderId, req.session.user.id]
+    );
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult[0];
+    const productPrice = order.original_price;
+    const qty = order.quantity;
+    const totalAmount = order.total_amount;
+    const baseFee = productPrice * 0.10;
+    const isBulkOrder = qty >= 6;
+    const bulkFee = isBulkOrder ? totalAmount * 0.10 : 0;
+    const totalFee = baseFee + bulkFee;
+    const sellerEarnings = totalAmount - totalFee;
+    
+    // Parse stored fee breakdown if available
+    let feeBreakdown = null;
+    if (order.fee_breakdown) {
+      try {
+        feeBreakdown = JSON.parse(order.fee_breakdown);
+      } catch (e) {
+        feeBreakdown = null;
+      }
+    }
+
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        product_name: order.product_name,
+        quantity: qty,
+        unit_price: productPrice,
+        total_amount: totalAmount,
+        order_status: order.order_status,
+        payment_status: order.payment_status,
+        created_at: order.created_at,
+        payment_collected_at: order.payment_collected_at,
+        funds_released_at: order.funds_released_at
+      },
+      earnings_breakdown: feeBreakdown || {
+        customer_pays: totalAmount,
+        platform_fee: {
+          total: totalFee,
+          breakdown: isBulkOrder ? {
+            base_fee: baseFee,
+            bulk_fee: bulkFee,
+            note: `Bulk order (${qty} units): Base fee (10% of product) + 10% of total order value`
+          } : {
+            base_fee: totalFee,
+            note: `Standard order (${qty} units): 10% of product price`
+          }
+        },
+        product_cost: order.product_cost || 0,
+        your_earnings: sellerEarnings,
+        formula: isBulkOrder 
+          ? `${totalAmount} - (${baseFee} + ${bulkFee}) = ${sellerEarnings}`
+          : `${totalAmount} - ${totalFee} = ${sellerEarnings}`
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Error getting earnings breakdown:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 // ============================================
@@ -791,6 +1561,7 @@ app.post("/api/favorites/toggle", async (req, res) => {
     res.status(500).json({ error: "Error updating favorites: " + err.message });
   }
 });
+
 // ============================================
 // REVIEWS ENDPOINTS (ADDED - CRITICAL)
 // ============================================
@@ -908,8 +1679,9 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 });
 
 // ============================================
-// PRODUCT UPLOAD ENDPOINT
+// PRODUCT UPLOAD ENDPOINT (COMPLETE WITH SUBACCOUNTS)
 // ============================================
+
 app.post("/api/upload-product", (req, res) => {
   const upload = multer({ storage: productStorage }).fields([
     { name: 'file', maxCount: 1 }, 
@@ -974,10 +1746,10 @@ app.post("/api/upload-product", (req, res) => {
       let originalPrice = listedPrice;
       
       if (type === 'physical') {
-        // For physical: Customer pays full price, platform fee is 10% of profit margin
-        const profitMargin = listedPrice - productCostValue;
-        platformFee = profitMargin * 0.10;
-        sellerPrice = listedPrice - platformFee - productCostValue;
+        // For physical: Customer pays full price, platform fee is calculated at order time
+        originalPrice = listedPrice;
+        platformFee = 0; // Will be calculated per order based on quantity
+        sellerPrice = originalPrice; // Customer pays full price
       } else if (type === 'digital') {
         // For digital: Platform takes 10%, seller gets 90%
         platformFee = listedPrice * 0.10;
@@ -1026,7 +1798,7 @@ app.post("/api/upload-product", (req, res) => {
         }
       }
 
-      // Insert product into database matching your exact schema
+      // Insert product into database
       const result = await db.query(
         `INSERT INTO products (
           user_id, title, description, price, original_price, platform_fee, product_cost,
@@ -1068,12 +1840,76 @@ app.post("/api/upload-product", (req, res) => {
 
       const productId = result.insertId;
       
-      // Store business information in sellers table (for future use - subaccount)
+      // ================= CREATE SUBACCOUNT FOR SELLER (Both Flutterwave & Paystack) =================
+      let subaccountCreated = false;
+      let subaccountId = null;
+
+      if ((type === 'digital' || type === 'physical') && accountNumber && bankName && paymentProvider) {
+        try {
+          // Check if seller already has a subaccount for this provider
+          let existingSub = null;
+          if (paymentProvider === 'flutterwave') {
+            existingSub = await db.query(
+              "SELECT flutterwave_subaccount_id FROM sellers WHERE user_id = ?",
+              [req.session.user.id]
+            );
+            if (existingSub && existingSub.length > 0 && existingSub[0].flutterwave_subaccount_id) {
+              console.log(`✅ Seller already has Flutterwave subaccount: ${existingSub[0].flutterwave_subaccount_id}`);
+              subaccountCreated = true;
+              subaccountId = existingSub[0].flutterwave_subaccount_id;
+            }
+          } else if (paymentProvider === 'paystack') {
+            existingSub = await db.query(
+              "SELECT paystack_subaccount_code FROM sellers WHERE user_id = ?",
+              [req.session.user.id]
+            );
+            if (existingSub && existingSub.length > 0 && existingSub[0].paystack_subaccount_code) {
+              console.log(`✅ Seller already has Paystack subaccount: ${existingSub[0].paystack_subaccount_code}`);
+              subaccountCreated = true;
+              subaccountId = existingSub[0].paystack_subaccount_code;
+            }
+          }
+          
+          if (!subaccountCreated && businessName && accountNumber) {
+            // Prepare seller data
+            const sellerData = {
+              user_id: req.session.user.id,
+              business_name: businessName,
+              email: businessEmail || req.session.user.email,
+              account_number: accountNumber,
+              bank_code: bankCode || (paymentProvider === 'paystack' ? '058' : '044'),
+              bank_name: bankName,
+              country: country || "NG",
+              phone: businessPhone || "",
+              percentage_charge: 10
+            };
+            
+            // Create subaccount based on selected provider
+            let createdId = null;
+            if (paymentProvider === 'flutterwave') {
+              createdId = await createFlutterwaveSubaccount(sellerData);
+            } else if (paymentProvider === 'paystack') {
+              createdId = await createPaystackSubaccount(sellerData);
+            }
+            
+            if (createdId) {
+              subaccountCreated = true;
+              subaccountId = createdId;
+              console.log(`✅ ${paymentProvider} subaccount created for seller ${req.session.user.id}: ${createdId}`);
+            }
+          }
+        } catch (subaccountError) {
+          console.error('❌ Subaccount creation error:', subaccountError.message);
+          // Don't fail product upload if subaccount creation fails
+        }
+      }
+
+      // Store business information in sellers table
       if (businessName && accountNumber) {
         try {
           await db.query(
             `INSERT INTO sellers (user_id, provider, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
-             VALUES (?, 'flutterwave', ?, ?, ?, ?, ?, ?, ?, NOW())
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
              ON DUPLICATE KEY UPDATE 
              account_number = VALUES(account_number),
              bank_code = VALUES(bank_code),
@@ -1082,12 +1918,11 @@ app.post("/api/upload-product", (req, res) => {
              business_email = VALUES(business_email),
              business_phone = VALUES(business_phone),
              country = VALUES(country)`,
-            [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
+            [req.session.user.id, paymentProvider, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
           );
           console.log(`✅ Business info stored for seller ${req.session.user.id}`);
         } catch (err) {
           console.error('❌ Error storing business info:', err.message);
-          // Don't fail product upload if business info storage fails
         }
       }
 
@@ -1097,6 +1932,8 @@ app.post("/api/upload-product", (req, res) => {
         message: "✅ Product uploaded successfully!", 
         productId: productId,
         type: type,
+        subaccount_created: subaccountCreated,
+        payment_provider: paymentProvider,
         pricing: {
           customer_price: originalPrice,      // What customer pays
           platform_fee: platformFee,           // Our 10% (or 10% of profit for physical)
@@ -1223,6 +2060,43 @@ app.post("/api/physical-orders/create", async (req, res) => {
       [sellerId, orderId, orderId, productResult[0].title, qty]
     );
 
+    // ================= SEND EMAIL CONFIRMATION TO BUYER =================
+    try {
+      await sendOrderConfirmationEmail({
+        email: req.session.user.email,
+        name: req.session.user.username,
+        orderId: orderId,
+        productName: productResult[0].title,
+        quantity: qty,
+        totalAmount: totalAmount,
+        deliveryAddress: deliveryAddress,
+        estimatedDays: 7
+      });
+    } catch (emailError) {
+      console.error('❌ Order confirmation email failed:', emailError.message);
+    }
+
+    // ================= SEND EMAIL NOTIFICATION TO SELLER =================
+    try {
+      const sellerInfo = await db.query(
+        "SELECT email, username FROM users WHERE id = ?",
+        [sellerId]
+      );
+      
+      if (sellerInfo && sellerInfo.length > 0) {
+        await sendSellerNotificationEmail({
+          email: sellerInfo[0].email,
+          name: sellerInfo[0].username,
+          orderId: orderId,
+          productName: productResult[0].title,
+          quantity: qty,
+          totalAmount: totalAmount
+        });
+      }
+    } catch (emailError) {
+      console.error('❌ Seller notification email failed:', emailError.message);
+    }
+
     res.json({
       success: true,
       message: "Order created! The seller will review and confirm availability.",
@@ -1286,6 +2160,39 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
         [order.buyer_id, orderId, order.product_name]
       );
 
+      // ================= SEND PAYMENT LINK EMAIL TO BUYER =================
+      try {
+        const buyerInfo = await db.query(
+          "SELECT email, username FROM users WHERE id = ?",
+          [order.buyer_id]
+        );
+        
+        if (buyerInfo && buyerInfo.length > 0) {
+          const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
+          
+          const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Payment Required - Core Insight</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+              <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                <h1 style="color:#3b82f6;">💰 Payment Required</h1>
+                <p>Hello ${escapeHtml(buyerInfo[0].username)},</p>
+                <p>The seller has accepted your order! Please complete payment to confirm.</p>
+                <a href="${paymentLink}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:20px 0;">Pay Now</a>
+                <p>Order #${orderId} - ${order.product_name} (x${order.quantity})</p>
+                <p>Total: $${order.total_amount}</p>
+              </div>
+            </body>
+            </html>
+          `;
+          
+          await sendVerificationEmail(buyerInfo[0].email, `Payment Required for Order #${orderId}`, emailHtml);
+        }
+      } catch (emailError) {
+        console.error('❌ Payment link email failed:', emailError.message);
+      }
+
       res.json({
         success: true,
         message: "Order accepted! The buyer will now be prompted to complete payment.",
@@ -1326,48 +2233,96 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
     res.status(500).json({ error: "Failed to process order response" });
   }
 });
+// ============================================
+// COLLECT PAYMENT AFTER SELLER ACCEPTANCE
+// ============================================
 
-// 3. Collect payment after seller acceptance
 app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
 
     const orderId = req.params.orderId;
 
+    // Get order details with product info
     const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name, p.platform_fee as product_platform_fee
+      `SELECT o.*, p.title as product_name, p.original_price, p.product_cost
        FROM physical_orders o
        LEFT JOIN products p ON o.product_id = p.id
        WHERE o.id = ? AND o.buyer_id = ?`,
       [orderId, req.session.user.id]
     );
 
-    if (!orderResult || orderResult.length === 0) return res.status(404).json({ error: "Order not found" });
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
 
     const order = orderResult[0];
 
+    // Check if order is in correct state for payment
     if (order.order_status !== 'seller_accepted') {
       return res.status(400).json({ 
         error: `Payment can only be made after seller approval. Current status: ${order.order_status}` 
       });
     }
 
+    const productPrice = parseFloat(order.original_price);
     const totalAmount = parseFloat(order.total_amount);
-    const platformFee = totalAmount * 0.10;
-    const sellerAmount = totalAmount - platformFee;
+    const qty = order.quantity;
+    
+    // ================= NEW FEE STRUCTURE =================
+    // Base fee = 10% of single product price
+    const baseFee = productPrice * 0.10;
+    
+    let platformFee = 0;
+    let sellerEarnings = 0;
+    let feeBreakdown = {};
+    
+    if (qty <= 5) {
+      // Standard order (1-5 units): Only base fee
+      platformFee = baseFee;
+      sellerEarnings = totalAmount - platformFee;
+      feeBreakdown = {
+        type: "standard",
+        baseFee: baseFee,
+        bulkFee: 0,
+        totalFee: platformFee,
+        formula: `${totalAmount} - ${baseFee} = ${sellerEarnings}`,
+        sellerNote: `Standard order (${qty} unit${qty > 1 ? 's' : ''}): Platform fee is $${baseFee.toFixed(2)} (10% of single product price)`
+      };
+      console.log(`📊 STANDARD ORDER - Order #${orderId}: Customer pays $${totalAmount} | Platform: $${platformFee} | Seller: $${sellerEarnings}`);
+    } else {
+      // Bulk order (6+ units): Base fee + 10% of total order
+      const bulkFee = totalAmount * 0.10;
+      platformFee = baseFee + bulkFee;
+      sellerEarnings = totalAmount - platformFee;
+      feeBreakdown = {
+        type: "bulk",
+        baseFee: baseFee,
+        bulkFee: bulkFee,
+        totalFee: platformFee,
+        formula: `${totalAmount} - (${baseFee} + ${bulkFee}) = ${sellerEarnings}`,
+        sellerNote: `BULK order (${qty} units): Platform fee = Base fee ($${baseFee.toFixed(2)}) + 10% of total ($${bulkFee.toFixed(2)}) = $${platformFee.toFixed(2)}`
+      };
+      console.log(`📊 BULK ORDER - Order #${orderId}: Customer pays $${totalAmount} | Platform: $${platformFee} | Seller: $${sellerEarnings}`);
+    }
+    // ================= END NEW FEE STRUCTURE =================
 
-    console.log(`💰 Collecting payment for order #${orderId}: Total: $${totalAmount}, Platform Fee: $${platformFee}, Seller Gets: $${sellerAmount}`);
-
+    // Generate transaction reference
     const transactionRef = `physical_${orderId}_${Date.now()}`;
 
+    // Update order with pending payment and fee breakdown
     await db.query(
       `UPDATE physical_orders 
        SET order_status = 'pending_payment',
-           payment_status = 'pending'
+           payment_status = 'pending',
+           platform_fee = ?,
+           seller_earnings = ?,
+           fee_breakdown = ?
        WHERE id = ?`,
-      [orderId]
+      [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
     );
 
+    // Initialize Flutterwave payment
     if (!process.env.FLW_SECRET_KEY) {
       return res.status(500).json({ error: "Payment system not configured" });
     }
@@ -1383,7 +2338,7 @@ app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
       },
       customizations: {
         title: "Core Insight - Physical Product",
-        description: `Order #${orderId}: ${order.product_name} (x${order.quantity})`,
+        description: `Order #${orderId}: ${order.product_name} (x${qty})`,
       },
       meta: {
         order_id: orderId,
@@ -1392,7 +2347,233 @@ app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
         seller_id: order.seller_id,
         type: 'physical_order',
         is_escrow: true,
-        escrow_days: 5
+        escrow_days: 5,
+        quantity: qty,
+        platform_fee: platformFee,
+        seller_earnings: sellerEarnings,
+        fee_breakdown: JSON.stringify(feeBreakdown)
+      }
+    };
+
+    console.log(`📤 Sending to Flutterwave for order #${orderId}:`, JSON.stringify(payload, null, 2));
+
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      // Update order with transaction reference
+      await db.query(
+        `UPDATE physical_orders SET transaction_ref = ? WHERE id = ?`,
+        [transactionRef, orderId]
+      );
+
+      res.json({
+        success: true,
+        paymentLink: response.data.data.link,
+        transactionRef: transactionRef,
+        orderId: orderId,
+        totalAmount: totalAmount,
+        platformFee: platformFee,
+        sellerEarnings: sellerEarnings,
+        feeBreakdown: feeBreakdown
+      });
+    } else {
+      // Revert order status if payment creation fails
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'seller_accepted',
+             payment_status = 'pending'
+         WHERE id = ?`,
+        [orderId]
+      );
+      throw new Error(response.data.message || "Payment initialization failed");
+    }
+
+  } catch (err) {
+    console.error("❌ Payment collection error:", err);
+    res.status(500).json({ error: "Failed to process payment: " + err.message });
+  }
+});
+
+// ============================================
+// CREATE PHYSICAL ORDER PAYMENT (AFTER SELLER ACCEPTS)
+// ============================================
+
+app.post("/api/create-physical-order-payment", async (req, res) => {
+  try {
+    console.log("💰 Creating physical order payment...");
+    console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to place an order" });
+    }
+
+    const {
+      productId,
+      productTitle,
+      price,
+      quantity = 1,
+      deliveryAddress,
+      city,
+      state,
+      country,
+      deliveryPhone,
+      deliveryDays = 7,
+      notes = ''
+    } = req.body;
+
+    // Validate
+    if (!productId) return res.status(400).json({ error: "Product ID is required" });
+    if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
+    if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
+    
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: "Quantity must be between 1 and 100" });
+    }
+
+    // Get product details
+    const productResult = await db.query(
+      `SELECT user_id as seller_id, original_price, product_cost, title 
+       FROM products WHERE id = ?`,
+      [productId]
+    );
+
+    if (!productResult || productResult.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const sellerId = productResult[0].seller_id;
+    const buyerId = req.session.user.id;
+    const productPrice = parseFloat(productResult[0].original_price);
+    const productCost = parseFloat(productResult[0].product_cost) || 0;
+    
+    // Calculate total amount customer pays
+    const totalAmount = qty * productPrice;
+    
+    // ================= NEW FEE STRUCTURE =================
+    // Base fee = 10% of single product price
+    const baseFee = productPrice * 0.10;
+    
+    let platformFee = 0;
+    let feeBreakdown = {};
+    let sellerEarnings = 0;
+    
+    if (qty <= 5) {
+      // Standard order (1-5 units): Only base fee
+      platformFee = baseFee;
+      sellerEarnings = totalAmount - platformFee;
+      feeBreakdown = {
+        type: "standard",
+        baseFee: baseFee,
+        bulkFee: 0,
+        totalFee: platformFee,
+        formula: `${totalAmount} - ${baseFee} = ${sellerEarnings}`,
+        sellerNote: `Standard order (${qty} unit${qty > 1 ? 's' : ''}): Platform fee is $${baseFee.toFixed(2)} (10% of single product price)`
+      };
+      console.log(`📊 STANDARD ORDER (${qty} units): Customer pays $${totalAmount} | Platform fee: $${platformFee} | Seller gets: $${sellerEarnings}`);
+    } else {
+      // Bulk order (6+ units): Base fee + 10% of total order
+      const bulkFee = totalAmount * 0.10;
+      platformFee = baseFee + bulkFee;
+      sellerEarnings = totalAmount - platformFee;
+      feeBreakdown = {
+        type: "bulk",
+        baseFee: baseFee,
+        bulkFee: bulkFee,
+        totalFee: platformFee,
+        formula: `${totalAmount} - (${baseFee} + ${bulkFee}) = ${sellerEarnings}`,
+        sellerNote: `BULK order (${qty} units): Platform fee = Base fee ($${baseFee.toFixed(2)}) + 10% of total ($${bulkFee.toFixed(2)}) = $${platformFee.toFixed(2)}`
+      };
+      console.log(`📊 BULK ORDER (${qty} units): Customer pays $${totalAmount} | Platform fee: $${platformFee} | Seller gets: $${sellerEarnings}`);
+    }
+    // ================= END NEW FEE STRUCTURE =================
+
+    // Generate transaction reference
+    const transactionRef = `physical_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+    // Insert order into database
+    const result = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id,
+        product_name, product_type, quantity, 
+        price, total_amount, platform_fee, seller_earnings,
+        customer_name, customer_email, customer_phone,
+        shipping_address, city, state, country,
+        payment_method, payment_status, order_status,
+        notes, estimated_delivery_days,
+        transaction_ref, fee_breakdown
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        productId, sellerId, buyerId,
+        productTitle || productResult[0].title,
+        'physical', qty,
+        productPrice,
+        totalAmount,
+        platformFee,
+        sellerEarnings,
+        req.session.user.username || 'Buyer',
+        req.session.user.email,
+        deliveryPhone,
+        deliveryAddress,
+        city || '',
+        state || '',
+        country || '',
+        'pay_online',
+        'pending',
+        'pending',
+        notes || '',
+        parseInt(deliveryDays) || 7,
+        transactionRef,
+        JSON.stringify(feeBreakdown)
+      ]
+    );
+
+    let orderId = result.insertId;
+    if (!orderId) {
+      throw new Error("Failed to insert order");
+    }
+
+    console.log(`✅ Created pending order #${orderId}`);
+
+    // Initialize Flutterwave payment
+    if (!process.env.FLW_SECRET_KEY) {
+      await db.query("DELETE FROM physical_orders WHERE id = ?", [orderId]);
+      return res.status(500).json({ error: "Payment system not configured" });
+    }
+
+    const payload = {
+      tx_ref: transactionRef,
+      amount: totalAmount,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/physical-payment-callback.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Physical Product Order",
+        description: `${productTitle || productResult[0].title} (x${qty})`,
+      },
+      meta: {
+        order_id: orderId,
+        product_id: productId,
+        buyer_id: buyerId,
+        seller_id: sellerId,
+        type: 'physical_order',
+        quantity: qty,
+        platform_fee: platformFee,
+        seller_earnings: sellerEarnings,
+        fee_breakdown: JSON.stringify(feeBreakdown)
       }
     };
 
@@ -1409,26 +2590,27 @@ app.post("/api/physical-orders/:orderId/pay", async (req, res) => {
     );
 
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      await db.query(
-        `UPDATE physical_orders SET transaction_ref = ? WHERE id = ?`,
-        [transactionRef, orderId]
-      );
-
       res.json({
         success: true,
         paymentLink: response.data.data.link,
         transactionRef: transactionRef,
         orderId: orderId,
         totalAmount: totalAmount,
-        platformFee: platformFee
+        platformFee: platformFee,
+        sellerEarnings: sellerEarnings,
+        feeBreakdown: feeBreakdown
       });
     } else {
+      await db.query("DELETE FROM physical_orders WHERE id = ?", [orderId]);
       throw new Error(response.data.message || "Payment initialization failed");
     }
 
   } catch (err) {
-    console.error("❌ Payment collection error:", err);
-    res.status(500).json({ error: "Failed to process payment" });
+    console.error("❌ Payment creation error:", err);
+    res.status(500).json({ 
+      error: "Failed to create payment",
+      details: err.message 
+    });
   }
 });
 
@@ -1575,7 +2757,10 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
   }
 });
 
-// 6. Release escrow funds (cron job endpoint)
+// ============================================
+// RELEASE ESCROW FUNDS (Cron Job - Both Providers)
+// ============================================
+
 app.get("/api/cron/release-escrow-funds", async (req, res) => {
   const secret = req.query.secret;
   if (secret !== process.env.CRON_SECRET) {
@@ -1583,21 +2768,85 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
   }
 
   try {
-    const orders = await db.query(
-      `SELECT o.*, s.subaccount_id 
+    // Find orders where escrow period has ended and no refund requested
+    const ordersToRelease = await db.query(
+      `SELECT o.*, s.flutterwave_subaccount_id, s.paystack_subaccount_code
        FROM physical_orders o
-       LEFT JOIN sellers s ON o.seller_id = s.user_id AND s.provider = 'flutterwave'
+       LEFT JOIN sellers s ON o.seller_id = s.user_id
        WHERE o.payment_status = 'paid' 
          AND o.order_status = 'paid'
          AND o.payment_held_until <= NOW()
-         AND o.funds_released_at IS NULL`
+         AND o.funds_released_at IS NULL
+         AND o.order_status != 'refund_requested'
+         AND o.order_status != 'refunded'`
     );
 
     let released = 0;
     let failed = 0;
 
-    for (const order of orders) {
+    for (const order of ordersToRelease) {
       try {
+        const paymentProvider = order.payment_provider || 'flutterwave';
+        let transferSuccess = false;
+        
+        if (paymentProvider === 'flutterwave') {
+          // Flutterwave: Transfer to seller's bank account
+          try {
+            const transferResponse = await axios.post(
+              'https://api.flutterwave.com/v3/transfers',
+              {
+                account_bank: order.bank_code || "044",
+                account_number: order.account_number,
+                amount: order.seller_earnings,
+                narration: `Payment for order #${order.id}`,
+                currency: "USD",
+                reference: `release_${order.id}_${Date.now()}`
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            if (transferResponse.data.status === 'success') {
+              transferSuccess = true;
+              console.log(`✅ Flutterwave transfer for order #${order.id}: $${order.seller_earnings}`);
+            }
+          } catch (err) {
+            console.error(`❌ Flutterwave transfer failed for order #${order.id}:`, err.message);
+          }
+          
+        } else if (paymentProvider === 'paystack') {
+          // Paystack: Transfer to seller's bank account
+          try {
+            const transferResponse = await axios.post(
+              'https://api.paystack.co/transfer',
+              {
+                source: 'balance',
+                amount: Math.round(order.seller_earnings * 100),
+                recipient: order.recipient_code,
+                reason: `Payment for order #${order.id}`
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            if (transferResponse.data.status === true) {
+              transferSuccess = true;
+              console.log(`✅ Paystack transfer for order #${order.id}: $${order.seller_earnings}`);
+            }
+          } catch (err) {
+            console.error(`❌ Paystack transfer failed for order #${order.id}:`, err.message);
+          }
+        }
+        
+        // Update order status regardless of transfer success (for now)
         await db.query(
           `UPDATE physical_orders 
            SET order_status = 'completed',
@@ -1605,22 +2854,40 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
            WHERE id = ?`,
           [order.id]
         );
-
+        
         await db.query(
           `UPDATE escrow_accounts 
-           SET status = 'released', released_at = NOW()
+           SET status = 'released', 
+               released_at = NOW()
            WHERE order_id = ?`,
           [order.id]
         );
-
+        
+        // Notify seller
+        await db.query(
+          `INSERT INTO seller_notifications 
+           (seller_id, order_id, notification_type, title, message, created_at)
+           VALUES (?, ?, 'funds_released', 'Funds Released 🎉', 
+                   CONCAT('$${order.seller_earnings} has been released to your account for order #', ?, 
+                          '. Platform fee: $${order.platform_fee}'), NOW())`,
+          [order.seller_id, order.id, order.id]
+        );
+        
         released++;
+        
       } catch (err) {
-        console.error(`Failed to release order ${order.id}:`, err);
+        console.error(`❌ Failed to release order ${order.id}:`, err);
         failed++;
       }
     }
 
-    res.json({ success: true, released: released, failed: failed });
+    res.json({ 
+      success: true, 
+      released: released, 
+      failed: failed,
+      timestamp: new Date().toISOString()
+    });
+    
   } catch (err) {
     console.error("❌ Escrow release error:", err);
     res.status(500).json({ error: err.message });
@@ -1713,7 +2980,60 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
+// ============================================
+// CHECK REFUND STATUS
+// ============================================
 
+app.get("/api/orders/:orderId/refund-status", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    
+    const orderId = req.params.orderId;
+    
+    const order = await db.query(
+      `SELECT o.order_status, o.refund_reason, o.refund_requested_at, 
+              o.refund_processed_at, o.refund_notes,
+              u.username as processed_by_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.refund_approved_by = u.id
+       WHERE o.id = ? AND (o.buyer_id = ? OR o.seller_id = ?)`,
+      [orderId, req.session.user.id, req.session.user.id]
+    );
+    
+    if (!order || order.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const orderData = order[0];
+    let refundStatus = 'none';
+    let message = '';
+    
+    if (orderData.order_status === 'refund_requested') {
+      refundStatus = 'pending';
+      message = 'Your refund request is pending review. The seller has 48 hours to respond.';
+    } else if (orderData.order_status === 'refunded') {
+      refundStatus = 'approved';
+      message = `Refund approved and processed on ${new Date(orderData.refund_processed_at).toLocaleDateString()}. Please allow 5-10 business days for the refund to appear.`;
+    } else if (orderData.order_status === 'completed') {
+      refundStatus = 'denied';
+      message = orderData.refund_notes || 'Refund request was denied.';
+    }
+    
+    res.json({
+      success: true,
+      refundStatus: refundStatus,
+      refundReason: orderData.refund_reason,
+      requestedAt: orderData.refund_requested_at,
+      processedAt: orderData.refund_processed_at,
+      message: message,
+      notes: orderData.refund_notes
+    });
+    
+  } catch (err) {
+    console.error("❌ Error checking refund status:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // 9. Get buyer's physical orders
 app.get("/api/buyer/physical-orders", async (req, res) => {
   try {
@@ -1752,7 +3072,66 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
+// ============================================
+// DIGITAL PRODUCT DOWNLOAD
+// ============================================
 
+app.get("/api/download-digital/:productId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to download" });
+    }
+    
+    const productId = req.params.productId;
+    const userId = req.session.user.id;
+    
+    // Check if user purchased this product
+    const purchaseCheck = await db.query(
+      "SELECT * FROM orders WHERE user_id = ? AND product_id = ? AND status = 'completed'",
+      [userId, productId]
+    );
+    
+    if (!purchaseCheck || purchaseCheck.length === 0) {
+      return res.status(403).json({ error: "You have not purchased this product" });
+    }
+    
+    // Get product file URL
+    const product = await db.query(
+      "SELECT file_url, title FROM products WHERE id = ?",
+      [productId]
+    );
+    
+    if (!product || product.length === 0 || !product[0].file_url) {
+      return res.status(404).json({ error: "Product file not found" });
+    }
+    
+    const fileUrl = product[0].file_url;
+    const title = product[0].title;
+    
+    // If it's a Cloudinary URL, redirect to it
+    if (fileUrl.includes('cloudinary.com')) {
+      return res.redirect(fileUrl);
+    }
+    
+    // If it's a local file, send it
+    const filePath = path.join(__dirname, 'uploads', 'products', 'files', path.basename(fileUrl));
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+    
+    const ext = path.extname(filePath);
+    const safeFilename = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ext;
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.sendFile(filePath);
+    
+  } catch (err) {
+    console.error('❌ Download error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // ROUTES - COURSES
 // ============================================

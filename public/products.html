@@ -777,7 +777,46 @@
     .toast-close:hover {
       color: var(--text-light);
     }
+/* Refund Status Styles */
+.refund-status-pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+  border-left: 3px solid var(--warning);
+}
 
+.refund-status-approved {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  border-left: 3px solid var(--success);
+}
+
+.refund-status-denied {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  border-left: 3px solid var(--danger);
+}
+
+.order-status-refund_requested {
+  color: var(--warning);
+}
+
+.order-status-refunded {
+  color: var(--success);
+}
+
+.refunds-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.refund-card {
+  transition: var(--transition);
+}
+
+.refund-card:hover {
+  border-color: var(--accent);
+}
     /* ================= PROFESSIONAL SELLER FORM ================= */
     .upload-section {
       background: var(--card-bg);
@@ -2217,6 +2256,175 @@
   color: var(--accent);
   margin-right: 5px;
 }
+
+/* Country Filter - Add this to your existing CSS */
+.country-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--primary-dark);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  border: 1px solid var(--border);
+}
+
+.country-filter label {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.country-filter select {
+  background: var(--primary-dark);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  cursor: pointer;
+  outline: none;
+  font-weight: 500;
+  padding: 6px 12px;
+  font-size: 14px;
+  min-width: 120px;
+}
+
+.country-filter select:hover {
+  border-color: var(--accent);
+  background: var(--card-bg-hover);
+}
+
+/* Country Badge on Product Card */
+.country-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  z-index: 2;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.country-badge i {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+/* Fee Breakdown Styles */
+.fee-breakdown {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.fee-breakdown h4 {
+  margin: 0 0 12px 0;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.breakdown-row.total {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.breakdown-row .label {
+  color: var(--text-gray);
+}
+
+.breakdown-row .value {
+  color: var(--text-light);
+}
+
+.breakdown-row.total .value {
+  color: var(--success);
+  font-size: 18px;
+}
+
+/* Refund Status Badges */
+.status-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.status-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.status-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Refund Action Buttons */
+.action-btn.refund {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.action-btn.refund:hover {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+/* Order Status Colors */
+.order-status-pending_seller_approval {
+  color: var(--warning);
+}
+.order-status-seller_accepted {
+  color: var(--accent);
+}
+.order-status-pending_payment {
+  color: var(--warning);
+}
+.order-status-paid {
+  color: var(--accent);
+}
+.order-status-completed {
+  color: var(--success);
+}
+.order-status-refunded {
+  color: var(--success);
+}
+.order-status-cancelled {
+  color: var(--danger);
+}
+
+/* Escrow Info Tooltip */
+.escrow-info {
+  cursor: help;
+  border-bottom: 1px dashed var(--accent);
+}
     /* ================= RESPONSIVE DESIGN ================= */
 
     /* Tablet and Desktop (769px and above) */
@@ -2900,7 +3108,27 @@
     <option value="rated">Highest rated</option>
     <option value="favorites">Most favorited</option>
   </select>
-  
+  <select id="filterCategory" class="select">
+  <option value="">All categories</option>
+</select>
+
+<!-- ADD THIS COUNTRY FILTER RIGHT HERE -->
+<div class="country-filter">
+  <label><i class="fas fa-globe"></i> Ships to:</label>
+  <select id="filterCountry">
+    <option value="">All Countries</option>
+    <option value="USA">🇺🇸 USA</option>
+    <option value="UK">🇬🇧 UK</option>
+    <option value="Nigeria">🇳🇬 Nigeria</option>
+    <option value="Canada">🇨🇦 Canada</option>
+    <option value="Germany">🇩🇪 Germany</option>
+    <option value="France">🇫🇷 France</option>
+    <option value="Kenya">🇰🇪 Kenya</option>
+    <option value="South Africa">🇿🇦 South Africa</option>
+    <option value="Ghana">🇬🇭 Ghana</option>
+    <option value="Worldwide">🌍 Worldwide</option>
+  </select>
+</div>
   <!-- Currency Selector -->
   <div class="currency-selector">
     <label for="currencyHeader">Currency:</label>
@@ -3435,26 +3663,52 @@
             </div>
           </div>
           
-          <!-- Sales History Tab -->
-          <div id="salesTab" class="tab-content">
-            <div class="tab-header">
-              <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
-              <div class="tab-actions">
-                <select id="salesPeriod" class="select">
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                  <option value="all">All Time</option>
-                </select>
-                <select id="salesStatus" class="select">
-                  <option value="all">All Status</option>
-                  <option value="completed">Completed</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </div>
-            </div>
+          <!-- Sales History Tab - UPDATED with Refund and Escrow Support -->
+<div id="salesTab" class="tab-content">
+  <div class="tab-header">
+    <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
+    <div class="tab-actions">
+      <select id="salesPeriod" class="select">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+      <select id="salesStatus" class="select">
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="paid">Paid</option>
+        <option value="completed">Completed</option>
+        <option value="refund_requested">Refund Requested</option>
+        <option value="refunded">Refunded</option>
+      </select>
+    </div>
+  </div>
+  
+  <div id="salesList" class="sales-table">
+    <!-- Will be populated by JavaScript -->
+    <div class="empty-state">
+      <i class="fas fa-shopping-cart"></i>
+      <h4>No sales yet</h4>
+      <p>Your sales will appear here</p>
+    </div>
+  </div>
+  
+  <div class="sales-summary">
+    <div class="summary-card">
+      <h4>Total Sales Value</h4>
+      <h2 id="totalSalesValue">$0.00</h2>
+    </div>
+    <div class="summary-card">
+      <h4>Your Earnings</h4>
+      <h2 id="yourEarnings">$0.00</h2>
+    </div>
+    <div class="summary-card">
+      <h4>Platform Fee</h4>
+      <h2 id="platformFee">$0.00</h2>
+    </div>
+  </div>
+</div>
             
             <div id="salesList" class="sales-table">
               <!-- Will be populated by JavaScript -->
@@ -3517,7 +3771,25 @@
               </div>
             </div>
           </div>
-          
+          <button class="tab-btn" data-tab="refunds">Refund Requests</button>
+          <!-- Refund Requests Tab - NEW -->
+<div id="refundsTab" class="tab-content">
+  <div class="tab-header">
+    <h3><i class="fas fa-exchange-alt"></i> Pending Refund Requests</h3>
+    <div class="tab-actions">
+      <span style="color: var(--text-gray); font-size: 13px;">
+        <i class="fas fa-info-circle"></i> Refund requests must be processed within 48 hours
+      </span>
+    </div>
+  </div>
+  <div id="pendingRefundsList" class="refunds-grid">
+    <div class="empty-state">
+      <i class="fas fa-check-circle"></i>
+      <h4>No pending refund requests</h4>
+      <p>All good!</p>
+    </div>
+  </div>
+</div>
           <!-- Admin Panel Tab -->
           <div id="adminTabContent" class="tab-content">
             <div class="admin-panel">
@@ -3672,117 +3944,64 @@
     </div>
   </div>
 
- <!-- Updated Address Modal with Clear Fee Breakdown -->
+<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - Replace your existing one -->
 <div id="addressModal" class="modal" aria-hidden="true">
-  <div class="modal-card" style="max-width: 550px;">
+  <div class="modal-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h3 style="margin:0">Delivery Information</h3>
+      <h3 style="margin:0"><i class="fas fa-truck"></i> Delivery Information</h3>
       <span id="closeAddressModal" class="close-x">&times;</span>
     </div>
-
     <form id="addressForm">
       <div style="margin-bottom:16px">
-        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
-          Quantity (max 100)
-        </label>
-        <input 
-          type="number" 
-          id="orderQuantity" 
-          class="form-input" 
-          value="1" 
-          min="1" 
-          max="100"
-          onchange="updateOrderTotals()"
-        />
+        <label style="display:block;margin-bottom:8px;">Quantity (max 100)</label>
+        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" onchange="updateOrderTotals()" />
       </div>
-
-      <!-- Fee Breakdown Section - Clear and Detailed -->
-      <div id="feeBreakdown" style="background: rgba(59, 130, 246, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.2);">
-        <h4 style="margin: 0 0 12px 0; color: var(--accent); font-size: 14px;">
-          <i class="fas fa-calculator"></i> Payment Breakdown
-        </h4>
-        <div style="margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: var(--text-gray);">Product Price (× <span id="qtyDisplay">1</span>):</span>
-            <span><span id="productSubtotal">$0.00</span></span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; padding-left: 12px;">
-            <span style="color: var(--text-muted);">↳ Product Cost (seller's fulfillment):</span>
-            <span style="color: var(--text-muted);">-<span id="productCostTotal">$0.00</span></span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: var(--text-gray);">Platform Fee (10% of profit):</span>
-            <span><span id="basePlatformFee">$0.00</span></span>
-          </div>
-          <div id="bulkFeeRow" style="display: none; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: var(--text-gray);">Bulk Order Fee (0.2% per extra unit):</span>
-            <span><span id="bulkOrderFee">$0.00</span></span>
-          </div>
-          <div style="border-top: 1px solid var(--border); margin: 12px 0 8px 0;"></div>
-          <div style="display: flex; justify-content: space-between; font-weight: 600;">
-            <span style="color: var(--text-light);">Total You Pay:</span>
-            <span style="color: var(--success); font-size: 20px;" id="totalAmount">$0.00</span>
-          </div>
-          <div style="margin-top: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">
-            <i class="fas fa-info-circle"></i> Includes all fees. Seller receives <span id="sellerEarnings">$0.00</span> after costs.
-          </div>
+      
+      <!-- Fee Breakdown -->
+      <div id="feeBreakdown" class="fee-breakdown">
+        <h4><i class="fas fa-calculator"></i> Payment Breakdown</h4>
+        <div class="breakdown-row">
+          <span class="label">Product Price (× <span id="qtyDisplay">1</span>):</span>
+          <span class="value" id="productSubtotal">$0.00</span>
+        </div>
+        <div class="breakdown-row" style="padding-left:12px;">
+          <span class="label">↳ Product Cost:</span>
+          <span class="value" style="color:var(--text-muted);">-<span id="productCostTotal">$0.00</span></span>
+        </div>
+        <div class="breakdown-row">
+          <span class="label">Platform Fee (10% of profit):</span>
+          <span class="value" id="basePlatformFee">$0.00</span>
+        </div>
+        <div id="bulkFeeRow" class="breakdown-row" style="display:none;">
+          <span class="label">Bulk Order Fee:</span>
+          <span class="value" id="bulkOrderFee">$0.00</span>
+        </div>
+        <div class="breakdown-row total">
+          <span class="label">Total You Pay:</span>
+          <span class="value" id="totalAmount">$0.00</span>
+        </div>
+        <div style="margin-top:12px;font-size:11px;text-align:center;">
+          <i class="fas fa-info-circle"></i> Seller receives <span id="sellerEarnings">$0.00</span> after costs
         </div>
       </div>
 
       <div style="margin-bottom:16px">
-        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
-          Delivery Address <span style="color:var(--danger)">*</span>
-        </label>
-        <textarea 
-          id="deliveryAddress" 
-          class="form-input" 
-          placeholder="Full street address, apartment/suite number"
-          rows="3"
-          required
-        ></textarea>
+        <label>Delivery Address <span style="color:var(--danger)">*</span></label>
+        <textarea id="deliveryAddress" class="form-input" placeholder="Full street address" rows="3" required></textarea>
       </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div>
-          <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">City</label>
-          <input type="text" id="city" class="form-input" placeholder="City" />
-        </div>
-        <div>
-          <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">State</label>
-          <input type="text" id="state" class="form-input" placeholder="State/Province" />
-        </div>
+        <div><label>City</label><input type="text" id="city" class="form-input" placeholder="City" /></div>
+        <div><label>State</label><input type="text" id="state" class="form-input" placeholder="State/Province" /></div>
       </div>
-
-      <div style="margin-bottom:16px">
-        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">Country</label>
-        <input type="text" id="country" class="form-input" placeholder="Country" />
-      </div>
-
+      <div style="margin-bottom:16px"><label>Country</label><input type="text" id="country" class="form-input" placeholder="Country" /></div>
       <div style="margin-bottom:24px">
-        <label style="display:block;margin-bottom:8px;color:var(--text-light);font-weight:500">
-          Phone Number or Email <span style="color:var(--danger)">*</span>
-        </label>
-        <input 
-          type="text" 
-          id="deliveryPhone" 
-          class="form-input" 
-          placeholder="Phone number OR email for delivery updates"
-          required
-        />
-        <small style="color:var(--text-gray);font-size:12px;margin-top:4px;">
-          Enter your phone number or email address for delivery notifications
-        </small>
+        <label>Phone or Email <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="deliveryPhone" class="form-input" placeholder="Phone number or email" required />
       </div>
-
-      <div id="addressFormMessage" style="margin-bottom:20px"></div>
-
+      <div id="addressFormMessage" class="form-message"></div>
       <div style="display:flex;gap:12px">
-        <button type="submit" class="btn primary" style="flex:2">
-          <i class="fas fa-credit-card"></i> Proceed to Payment
-        </button>
-        <button type="button" id="cancelAddress" class="btn" style="flex:1">
-          Cancel
-        </button>
+        <button type="submit" class="btn primary" style="flex:2"><i class="fas fa-credit-card"></i> Submit Order</button>
+        <button type="button" id="cancelAddress" class="btn secondary" style="flex:1">Cancel</button>
       </div>
     </form>
   </div>
@@ -4129,25 +4348,31 @@ window.switchMainImage = function(productId, thumbIndex) {
       showToast('Exporting dashboard data...', 'info');
     });
 
-    // Tab switching
-    document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const tabId = this.getAttribute('data-tab');
-        
-        // Update active tab
-        document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => 
-          b.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Show selected tab
-        document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => 
-          content.classList.remove('active'));
-        document.getElementById(tabId + 'Tab').classList.add('active');
-        
-        // Load tab data
-        loadMainTabData(tabId);
-      });
-    });
+   // Tab switching - update to include refunds tab
+document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const tabId = this.getAttribute('data-tab');
+    
+    // Update active tab
+    document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => 
+      b.classList.remove('active'));
+    this.classList.add('active');
+    
+    // Show selected tab
+    document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => 
+      content.classList.remove('active'));
+    
+    // Handle different tab IDs
+    if (tabId === 'refunds') {
+      document.getElementById('refundsTab').classList.add('active');
+    } else {
+      document.getElementById(tabId + 'Tab').classList.add('active');
+    }
+    
+    // Load tab data
+    loadMainTabData(tabId);
+  });
+});
 
     // Dashboard functions
     function openDashboard() {
@@ -4274,23 +4499,26 @@ window.switchMainImage = function(productId, thumbIndex) {
       }
     }
 
-    function loadMainTabData(tabId) {
-      switch(tabId) {
-        case 'products':
-          loadMyProducts();
-          break;
-        case 'sales':
-          loadSalesHistory();
-          break;
-        case 'analytics':
-          loadCharts();
-          break;
-        case 'admin':
-          loadUsersTable();
-          loadAllProductsTable();
-          break;
-      }
-    }
+   function loadMainTabData(tabId) {
+  switch(tabId) {
+    case 'products':
+      loadMyProducts();
+      break;
+    case 'sales':
+      loadSalesHistory();
+      break;
+    case 'analytics':
+      loadCharts();
+      break;
+    case 'refunds':
+      loadPendingRefunds();
+      break;
+    case 'admin':
+      loadUsersTable();
+      loadAllProductsTable();
+      break;
+  }
+}
 
     async function loadMyProducts() {
       const container = document.getElementById('myProductsList');
@@ -4405,108 +4633,490 @@ window.switchMainImage = function(productId, thumbIndex) {
         `;
       }
     }
+    // View order details
+async function viewOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) throw new Error(data.error);
+    
+    const order = data.order;
+    const canRequestRefund = order.order_status === 'paid' && 
+                              order.payment_status === 'paid' &&
+                              !order.refund_requested_at &&
+                              order.order_status !== 'refunded';
+    
+    const refundStatusHtml = order.refund_requested_at ? `
+      <div class="refund-status-pending" style="margin-top: 15px; padding: 12px; border-radius: 8px;">
+        <strong>⏳ Refund Request Pending</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Requested on: ${new Date(order.refund_requested_at).toLocaleDateString()}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px;">Reason: ${order.refund_reason || 'No reason provided'}</p>
+      </div>
+    ` : (order.order_status === 'refunded' ? `
+      <div class="refund-status-approved" style="margin-top: 15px; padding: 12px; border-radius: 8px;">
+        <strong>✅ Refund Approved</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Processed on: ${new Date(order.refund_processed_at).toLocaleDateString()}</p>
+      </div>
+    ` : '');
+    
+    const refundButton = canRequestRefund ? `
+      <button class="small-btn danger" onclick="requestRefund(${orderId})" style="margin-top: 15px; width: 100%;">
+        <i class="fas fa-undo-alt"></i> Request Refund
+      </button>
+    ` : '';
+    
+    const escrowInfo = order.payment_held_until ? `
+      <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+        <strong><i class="fas fa-lock"></i> Escrow Status</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Funds held until: ${new Date(order.payment_held_until).toLocaleDateString()}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px;">Seller will receive payment after this date if no refund is requested.</p>
+      </div>
+    ` : '';
+    
+    const modalHtml = `
+      <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0">Order #${order.id}</h3>
+          <span class="close-x" onclick="closeModal(this.closest('.modal'))">&times;</span>
+        </div>
+        <div>
+          <p><strong>Product:</strong> ${order.product_name}</p>
+          <p><strong>Quantity:</strong> ${order.quantity}</p>
+          <p><strong>Total Amount:</strong> $${order.total_amount}</p>
+          <p><strong>Status:</strong> <span class="order-status-${order.order_status}">${order.order_status}</span></p>
+          <p><strong>Payment Status:</strong> ${order.payment_status}</p>
+          ${order.tracking_number ? `<p><strong>Tracking Number:</strong> ${order.tracking_number}</p>` : ''}
+          ${order.delivered_at ? `<p><strong>Delivered:</strong> ${new Date(order.delivered_at).toLocaleDateString()}</p>` : ''}
+          ${escrowInfo}
+          ${refundStatusHtml}
+          ${refundButton}
+          <button class="btn primary" onclick="checkRefundStatus(${orderId})" style="margin-top: 10px; width: 100%;">
+            <i class="fas fa-info-circle"></i> Check Refund Status
+          </button>
+        </div>
+      </div>
+    `;
+    
+    showModal(modalHtml);
+    
+  } catch (error) {
+    console.error('Error loading order details:', error);
+    showToast('Error', 'Unable to load order details', 'danger');
+  }
+}
 
-    async function loadSalesHistory() {
-      const container = document.getElementById('salesList');
-      const period = document.getElementById('salesPeriod').value;
-      
-      try {
-        let sales = [];
-        
-        if (currentUser && currentUser.role === 'admin') {
-          // Admin gets all sales
-          const response = await fetch('/api/admin/analytics/sales');
-          const data = await response.json();
-          sales = data.sales_trend || [];
-        } else {
-          // User gets their sales
-          const response = await fetch(`/api/orders/seller/${currentUser.id}`);
-          sales = await response.json();
-        }
-        
-        if (!sales || sales.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <i class="fas fa-shopping-cart"></i>
-              <h4>No sales yet</h4>
-              <p>Your sales will appear here</p>
-            </div>
-          `;
-          return;
-        }
-        
-        // Create table
-        let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Product</th>
-                <th>Amount</th>
-                <th>Date</th>
-                ${currentUser && currentUser.role === 'admin' ? '<th>Buyer</th><th>Seller</th>' : '<th>Buyer</th>'}
-              </tr>
-            </thead>
-            <tbody>
-        `;
-        
-        sales.forEach(sale => {
-          // Get product image using Cloudinary helper
-          const productImage = sale.images ? getProductImage(sale.images, 0) : null;
-          
-          html += `
-            <tr>
-              <td>
-                <strong style="color: var(--accent);">${sale.order_code || 'N/A'}</strong>
-              </td>
-              <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  ${productImage ? `
-                    <img src="${productImage}" alt="${sale.product_name}" 
-                         style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;"
-                         loading="lazy">
-                  ` : `
-                    <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--secondary-dark);"></div>
-                  `}
-                  <span style="color: var(--text-light); font-size: 13px;">${sale.product_name || sale.product_title || 'Product'}</span>
-                </div>
-              </td>
-              <td>
-                <strong style="color: var(--success);">$${parseFloat(sale.price || sale.total_amount || 0).toFixed(2)}</strong>
-              </td>
-              <td>
-                <span style="color: var(--text-gray); font-size: 12px;">${formatDate(sale.created_at)}</span>
-              </td>
-              ${currentUser && currentUser.role === 'admin' ? `
-                <td>
-                  <span style="color: var(--text-light);">${sale.buyer_name || 'Buyer'}</span>
-                </td>
-                <td>
-                  <span style="color: var(--text-light);">${sale.seller_name || 'Seller'}</span>
-                </td>
-              ` : `
-                <td>
-                  <span style="color: var(--text-light);">${sale.buyer_name || 'Customer'}</span>
-                </td>
-              `}
-            </tr>
-          `;
-        });
-        
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-        
-      } catch (error) {
-        console.error('Error loading sales:', error);
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h4>Error loading sales</h4>
-            <p>Please try again later</p>
-          </div>
-        `;
-      }
+// Show modal helper
+function showModal(content) {
+  const modal = document.createElement('div');
+  modal.className = 'modal open';
+  modal.innerHTML = content;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+// Request refund
+async function requestRefund(orderId) {
+  if (!currentUser) {
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  
+  const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
+  
+  if (!reason) return;
+  
+  if (reason.length < 10) {
+    alert("Please provide at least 10 characters explaining your reason for refund.");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Request Submitted', 
+        'Your refund request has been submitted. The seller has 48 hours to respond.', 
+        'success');
+      // Close any open modals
+      document.querySelectorAll('.modal').forEach(m => m.remove());
+    } else {
+      showToast('Refund Request Failed', data.error || 'Unable to submit refund request', 'danger');
     }
+  } catch (error) {
+    console.error('Refund request error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Check refund status
+async function checkRefundStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/refund-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      let statusMessage = '';
+      let statusColor = '';
+      
+      switch(data.refundStatus) {
+        case 'pending':
+          statusMessage = `⏳ Refund Request Pending\n\n${data.message}\n\nRequested on: ${new Date(data.requestedAt).toLocaleDateString()}`;
+          statusColor = 'warning';
+          break;
+        case 'approved':
+          statusMessage = `✅ Refund Approved\n\n${data.message}`;
+          statusColor = 'success';
+          break;
+        case 'denied':
+          statusMessage = `❌ Refund Denied\n\n${data.message}\n\n${data.notes ? `Reason: ${data.notes}` : ''}`;
+          statusColor = 'danger';
+          break;
+        default:
+          statusMessage = `No refund request for this order.\n\nRefund window: 5 days after payment.`;
+          statusColor = 'info';
+      }
+      
+      alert(statusMessage);
+    }
+  } catch (error) {
+    console.error('Refund status error:', error);
+    showToast('Error', 'Unable to check refund status', 'danger');
+  }
+}
+
+// Check escrow status
+async function checkEscrowStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const releaseDate = new Date(data.payment_held_until);
+      const today = new Date();
+      const daysRemaining = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
+      
+      let statusMessage = `🔒 Funds Held in Escrow\n\n`;
+      statusMessage += `Amount Held: $${data.amount}\n`;
+      statusMessage += `Funds will be released to seller on: ${releaseDate.toLocaleDateString()}\n`;
+      
+      if (daysRemaining > 0) {
+        statusMessage += `⏰ ${daysRemaining} days remaining until release`;
+      } else if (daysRemaining === 0) {
+        statusMessage += `💰 Funds are being released today!`;
+      } else {
+        statusMessage += `✅ Funds have been released to the seller`;
+      }
+      
+      alert(statusMessage);
+    }
+  } catch (error) {
+    console.error('Escrow status error:', error);
+    showToast('Error', 'Unable to check escrow status', 'danger');
+  }
+}
+
+// Process refund (for sellers)
+async function processRefund(orderId, action) {
+  const notes = prompt(action === 'approve' ? 
+    "Optional notes for the buyer (will be included in notification):" : 
+    "Reason for denying refund (will be sent to buyer):");
+  
+  try {
+    const response = await fetch(`/api/refunds/${orderId}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: action, 
+        admin_notes: notes || null 
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Processed', data.message, 'success');
+      loadSalesHistory(); // Refresh the sales list
+      loadPendingRefunds(); // Also refresh pending refunds if that tab exists
+    } else {
+      showToast('Error', data.error || 'Failed to process refund', 'danger');
+    }
+  } catch (error) {
+    console.error('Refund processing error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Load pending refunds (for seller dashboard)
+async function loadPendingRefunds() {
+  try {
+    const response = await fetch('/api/refunds/pending', {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    const refundsList = document.getElementById('pendingRefundsList');
+    if (!refundsList) return;
+    
+    if (!data.refunds || data.refunds.length === 0) {
+      refundsList.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4><p>All good!</p></div>';
+      return;
+    }
+    
+    let html = '<div class="refunds-grid">';
+    data.refunds.forEach(refund => {
+      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
+      
+      html += `
+        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              <h4 style="margin: 0 0 8px 0;">Order #${refund.id}</h4>
+              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${refund.product_name}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${refund.total_amount}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${refund.buyer_name} (${refund.buyer_email})</p>
+              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider || 'Flutterwave'}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
+              <div style="margin-top: 12px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
+                <strong>Reason:</strong>
+                <p style="margin: 4px 0 0 0; font-size: 13px;">${refund.refund_reason}</p>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
+              <i class="fas fa-check"></i> Approve Refund
+            </button>
+            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
+              <i class="fas fa-times"></i> Deny Refund
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    refundsList.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading refunds:', error);
+    const refundsList = document.getElementById('pendingRefundsList');
+    if (refundsList) {
+      refundsList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading refunds</h4><p>Please refresh and try again</p></div>';
+    }
+  }
+}
+
+   async function loadSalesHistory() {
+  const container = document.getElementById('salesList');
+  const period = document.getElementById('salesPeriod')?.value || 'all';
+  const status = document.getElementById('salesStatus')?.value || 'all';
+  
+  try {
+    let sales = [];
+    
+    if (currentUser && currentUser.role === 'admin') {
+      const response = await fetch('/api/admin/analytics/sales');
+      const data = await response.json();
+      sales = data.sales_trend || [];
+    } else {
+      const response = await fetch(`/api/orders/seller/${currentUser.id}`);
+      sales = await response.json();
+    }
+    
+    // Filter by period
+    if (period !== 'all') {
+      const now = new Date();
+      sales = sales.filter(sale => {
+        const saleDate = new Date(sale.created_at);
+        if (period === 'today') {
+          return saleDate.toDateString() === now.toDateString();
+        } else if (period === 'week') {
+          const weekAgo = new Date(now.setDate(now.getDate() - 7));
+          return saleDate >= weekAgo;
+        } else if (period === 'month') {
+          const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+          return saleDate >= monthAgo;
+        }
+        return true;
+      });
+    }
+    
+    // Filter by status
+    if (status !== 'all') {
+      sales = sales.filter(sale => sale.order_status === status || sale.payment_status === status);
+    }
+    
+    if (!sales || sales.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-shopping-cart"></i>
+          <h4>No sales yet</h4>
+          <p>Your sales will appear here</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = `
+      <table style="width:100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--card-bg);">
+            <th style="padding: 12px; text-align: left;">Order ID</th>
+            <th style="padding: 12px; text-align: left;">Product</th>
+            <th style="padding: 12px; text-align: left;">Qty</th>
+            <th style="padding: 12px; text-align: left;">Amount</th>
+            <th style="padding: 12px; text-align: left;">Status</th>
+            <th style="padding: 12px; text-align: left;">Date</th>
+            <th style="padding: 12px; text-align: left;">Actions</th>
+           </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    for (const sale of sales) {
+      const productImage = sale.images ? getProductImage(sale.images, 0) : null;
+      const orderStatus = sale.order_status || sale.status || 'pending';
+      let statusClass = '';
+      let statusText = '';
+      
+      // Determine status styling
+      switch(orderStatus) {
+        case 'pending_seller_approval':
+          statusClass = 'status-pending';
+          statusText = '⏳ Awaiting Approval';
+          break;
+        case 'seller_accepted':
+          statusClass = 'status-warning';
+          statusText = '✅ Accepted - Awaiting Payment';
+          break;
+        case 'pending_payment':
+          statusClass = 'status-warning';
+          statusText = '💳 Payment Pending';
+          break;
+        case 'paid':
+          statusClass = 'status-info';
+          statusText = '💰 Paid (Escrow)';
+          break;
+        case 'refund_requested':
+          statusClass = 'status-warning';
+          statusText = '🔄 Refund Requested';
+          break;
+        case 'refunded':
+          statusClass = 'status-success';
+          statusText = '✅ Refunded';
+          break;
+        case 'completed':
+          statusClass = 'status-success';
+          statusText = '✓ Completed';
+          break;
+        case 'cancelled':
+          statusClass = 'status-danger';
+          statusText = '✗ Cancelled';
+          break;
+        default:
+          statusClass = 'status-pending';
+          statusText = orderStatus;
+      }
+      
+      // Check if refund request is pending
+      const isRefundRequested = orderStatus === 'refund_requested';
+      const refundButton = isRefundRequested ? `
+        <button class="action-btn refund" onclick="processRefund(${sale.id}, 'approve')" style="color: var(--success); margin-right: 5px;">
+          <i class="fas fa-check"></i> Approve
+        </button>
+        <button class="action-btn refund" onclick="processRefund(${sale.id}, 'deny')" style="color: var(--danger);">
+          <i class="fas fa-times"></i> Deny
+        </button>
+      ` : (orderStatus === 'paid' ? `
+        <button class="action-btn refund" onclick="checkEscrowStatus(${sale.id})" style="color: var(--accent);">
+          <i class="fas fa-clock"></i> Escrow
+        </button>
+      ` : '');
+      
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 12px;">
+            <strong style="color: var(--accent);">#${sale.id}</strong>
+           </td>
+          <td style="padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${productImage ? `
+                <img src="${productImage}" alt="${sale.product_name}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">
+              ` : `
+                <div style="width: 40px; height: 40px; border-radius: 6px; background: var(--secondary-dark);"></div>
+              `}
+              <span style="color: var(--text-light);">${sale.product_name || sale.product_title || 'Product'}</span>
+            </div>
+           </td>
+          <td style="padding: 12px;">${sale.quantity || 1}</td>
+          <td style="padding: 12px;">
+            <strong style="color: var(--success);">$${parseFloat(sale.total_amount || sale.price || 0).toFixed(2)}</strong>
+            ${sale.platform_fee ? `<div style="font-size: 11px; color: var(--text-muted);">Fee: $${sale.platform_fee}</div>` : ''}
+           </td>
+          <td style="padding: 12px;">
+            <span class="product-status ${statusClass}">${statusText}</span>
+            ${sale.refund_reason ? `<div style="font-size: 11px; color: var(--warning); margin-top: 4px;">Reason: ${sale.refund_reason.substring(0, 50)}${sale.refund_reason.length > 50 ? '...' : ''}</div>` : ''}
+           </td>
+          <td style="padding: 12px; font-size: 12px; color: var(--text-gray);">
+            ${formatDate(sale.created_at)}
+           </td>
+          <td style="padding: 12px;">
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button class="action-btn view" onclick="viewOrderDetails(${sale.id})">
+                <i class="fas fa-eye"></i>
+              </button>
+              ${refundButton}
+            </div>
+           </td>
+         </tr>
+      `;
+    }
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+    
+    // Update summary cards
+    const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.total_amount || s.price || 0), 0);
+    const platformFees = sales.reduce((sum, s) => sum + parseFloat(s.platform_fee || 0), 0);
+    const sellerEarnings = totalRevenue - platformFees;
+    
+    document.getElementById('totalSalesValue').textContent = `$${totalRevenue.toFixed(2)}`;
+    document.getElementById('yourEarnings').textContent = `$${sellerEarnings.toFixed(2)}`;
+    document.getElementById('platformFee').textContent = `$${platformFees.toFixed(2)}`;
+    
+  } catch (error) {
+    console.error('Error loading sales:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading sales</h4>
+        <p>Please try again later</p>
+      </div>
+    `;
+  }
+}
 
     async function loadUsersTable() {
       const tbody = document.querySelector('#usersTable tbody');
@@ -6138,40 +6748,72 @@ function renderProducts() {
   const q = $('searchInput').value.trim().toLowerCase();
   const typeFilter = $('filterType').value;
   const catFilter = $('filterCategory').value;
+  const countryFilter = $('filterCountry')?.value || '';
   const sort = $('sortSelect').value;
 
   let list = products.slice();
 
-  if (q) list = list.filter(p => (p.title||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
-  if (typeFilter) list = list.filter(p => (p.type||'').toLowerCase() === typeFilter);
-  if (catFilter) list = list.filter(p => (p.category||'') === catFilter);
-
-  if (sort === 'affordable') list.sort((a,b)=>a.price - b.price);
-  else if (sort === 'rated') list.sort((a,b)=>b.rating - a.rating);
-  else if (sort === 'favorites') list.sort((a,b)=>b.favorite_count - a.favorite_count);
-  else list.sort((a,b)=> new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-  if (!list.length) { 
-    $('noProducts').style.display='block'; 
-    grid.innerHTML=''; 
-    return; 
+  // Search filter
+  if (q) {
+    list = list.filter(p => 
+      (p.title || '').toLowerCase().includes(q) || 
+      (p.description || '').toLowerCase().includes(q) || 
+      (p.category || '').toLowerCase().includes(q)
+    );
   }
-  $('noProducts').style.display='none';
+  
+  // Type filter
+  if (typeFilter) {
+    list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
+  }
+  
+  // Category filter
+  if (catFilter) {
+    list = list.filter(p => (p.category || '') === catFilter);
+  }
+  
+  // Country filter - NEW
+  if (countryFilter) {
+    list = list.filter(p => {
+      // Digital and affiliate products always show
+      if (p.type !== 'physical') return true;
+      // Physical products: check if they ship to selected country
+      const locations = p.delivery_locations || 'Worldwide';
+      const countriesList = locations.split(',').map(l => l.trim());
+      return countriesList.includes(countryFilter) || locations.includes('Worldwide');
+    });
+  }
+
+  // Sorting
+  if (sort === 'affordable') {
+    list.sort((a, b) => a.price - b.price);
+  } else if (sort === 'rated') {
+    list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (sort === 'favorites') {
+    list.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
+  } else {
+    list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }
+
+  if (!list.length) {
+    $('noProducts').style.display = 'block';
+    grid.innerHTML = '';
+    return;
+  }
+  $('noProducts').style.display = 'none';
 
   // Generate product cards
   grid.innerHTML = list.map(p => {
-    // CRITICAL FIX: Use the _imageList that the backend already processed
-    // The backend already parses image_urls into _imageList for you
+    // Get images
     const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 
       ? p._imageList 
       : (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
     
     const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
     
-    // Generate thumbnails for additional images
+    // Thumbnails for additional images
     const thumbHtml = (() => {
       if (!imageList || imageList.length <= 1) return '';
-      // Take first 3 additional images for thumbnails
       return imageList.slice(1, 4).map((thumbPath, idx) => {
         return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
                       onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
@@ -6180,7 +6822,7 @@ function renderProducts() {
       }).join('');
     })();
     
-    const seller = escapeHtml(p.seller_name || 'Seller');
+    const seller = escapeHtml(p.seller_name || p.username || 'Seller');
     const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
     const desc = escapeHtml((p.description || '').slice(0, 120));
     
@@ -6196,8 +6838,10 @@ function renderProducts() {
                       p.type === 'physical' ? 'badge-physical' : 
                       'badge-affiliate';
 
-    // Get estimated delivery days for physical products
+    // Get delivery info for physical products
     const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+    const deliveryLocations = p.delivery_locations || 'Worldwide';
+    const firstCountry = deliveryLocations.split(',')[0].trim();
     
     // Delivery and payment info for physical products
     const deliveryInfo = isPhysical ? `
@@ -6210,27 +6854,25 @@ function renderProducts() {
           <i class="fas fa-calendar-day"></i>
           <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
         </div>
-        <div class="payment-breakdown" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
-          <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span>Seller Price:</span>
-            <span style="color: var(--text-light);">${fmtPrice(sellerPrice)}</span>
-          </div>
-          <div class="breakdown-item" style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span>Platform Fee (10%):</span>
-            <span style="color: var(--accent);">${fmtPrice(platformFee)}</span>
-          </div>
-          <div class="breakdown-item total" style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border);">
-            <span>Total You Pay:</span>
-            <span style="color: var(--success);">${fmtPrice(totalPrice)}</span>
-          </div>
+        <div class="detail-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span><strong>Ships to:</strong> ${deliveryLocations}</span>
         </div>
       </div>
     ` : '';
 
-    // Badges for physical products
+    // Badges
     const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
     const deliveryBadge = isPhysical && p.delivery_type ? 
       `<div class="delivery-badge">Home Delivery</div>` : '';
+    
+    // Country badge (shows first country or flag)
+    const countryBadge = isPhysical && deliveryLocations !== 'Worldwide' ? 
+      `<div class="country-badge">
+        <i class="fas fa-map-marker-alt"></i> 
+        ${firstCountry === 'USA' ? '🇺🇸' : firstCountry === 'UK' ? '🇬🇧' : firstCountry === 'Nigeria' ? '🇳🇬' : ''} ${firstCountry}
+      </div>` : 
+      (isPhysical ? `<div class="country-badge"><i class="fas fa-globe"></i> Worldwide</div>` : '');
     
     // Delivery days badge
     const deliveryDaysBadge = isPhysical ? 
@@ -6244,6 +6886,7 @@ function renderProducts() {
         ${paymentBadge}
         ${deliveryBadge}
         ${deliveryDaysBadge}
+        ${countryBadge}
         <div class="card-media">
           <img id="mainimg-${p.id}" 
                src="${productImage}" 
@@ -6274,31 +6917,25 @@ function renderProducts() {
           <div class="meta">${desc}</div>
           ${deliveryInfo}
           <div class="rating">
-            <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating))}</span>
+            <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
             <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
             <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
           </div>
           <div class="price-row">
             <div>
-              <div class="price">${fmtPrice(sellerPrice)}</div>
-              <div style="font-size: 12px; color: var(--text-gray);">
-                + ${fmtPrice(platformFee)} platform fee
-              </div>
+              <div class="price">${fmtPrice(totalPrice)}</div>
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                Total: ${fmtPrice(totalPrice)}
+                Free shipping
               </div>
             </div>
             <div class="card-actions">
               ${ isAffiliate ? `
-                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link||p.external_link||'')}')">
+                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
                   <i class="fas fa-external-link-alt"></i> Visit
                 </button>
               ` : isPhysical ? `
                 <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
                   <i class="fas fa-shopping-cart"></i> Order Now
-                  <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px;">
-                    +${fmtPrice(platformFee)}
-                  </span>
                 </button>
               ` : `
                 <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
@@ -6327,7 +6964,8 @@ function renderProducts() {
   initializeProductOwnership();
   startProductCarousels();
 }
-     // Function to select product for reviews
+
+    // Function to select product for reviews
     function selectProductForReviews(productId) {
       currentProductId = productId;
       loadProductReviews(productId);
@@ -6549,7 +7187,271 @@ function renderProducts() {
         }
       }
     }
+// ================= REFUND FUNCTIONS =================
 
+async function requestRefund(orderId) {
+  if (!currentUser) {
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  
+  const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
+  
+  if (!reason) return;
+  
+  if (reason.length < 10) {
+    alert("Please provide at least 10 characters explaining your reason for refund.");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Request Submitted', 
+        'Your refund request has been submitted. The seller has 48 hours to respond.', 
+        'success');
+      
+      // Refresh order status display
+      loadOrderDetails(orderId);
+    } else {
+      showToast('Refund Request Failed', data.error || 'Unable to submit refund request', 'danger');
+    }
+  } catch (error) {
+    console.error('Refund request error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+async function checkRefundStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/refund-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      let statusMessage = '';
+      let statusColor = '';
+      
+      switch(data.refundStatus) {
+        case 'pending':
+          statusMessage = `⏳ Refund Request Pending\n\n${data.message}\n\nRequested on: ${new Date(data.requestedAt).toLocaleDateString()}`;
+          statusColor = 'warning';
+          break;
+        case 'approved':
+          statusMessage = `✅ Refund Approved\n\n${data.message}`;
+          statusColor = 'success';
+          break;
+        case 'denied':
+          statusMessage = `❌ Refund Denied\n\n${data.message}\n\n${data.notes ? `Reason: ${data.notes}` : ''}`;
+          statusColor = 'danger';
+          break;
+        default:
+          statusMessage = `No refund request for this order.\n\nRefund window: 5 days after payment.`;
+          statusColor = 'info';
+      }
+      
+      alert(statusMessage);
+    }
+  } catch (error) {
+    console.error('Refund status error:', error);
+    showToast('Error', 'Unable to check refund status', 'danger');
+  }
+}
+
+async function loadOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) throw new Error(data.error);
+    
+    const order = data.order;
+    const canRequestRefund = order.order_status === 'paid' && 
+                              order.payment_status === 'paid' &&
+                              !order.refund_requested_at &&
+                              order.order_status !== 'refunded';
+    
+    const refundStatusHtml = order.refund_requested_at ? `
+      <div class="refund-status" style="margin-top: 15px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 3px solid var(--warning);">
+        <strong>⏳ Refund Request Pending</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Requested on: ${new Date(order.refund_requested_at).toLocaleDateString()}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">Reason: ${order.refund_reason || 'No reason provided'}</p>
+      </div>
+    ` : (order.order_status === 'refunded' ? `
+      <div class="refund-status" style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+        <strong>✅ Refund Approved</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Processed on: ${new Date(order.refund_processed_at).toLocaleDateString()}</p>
+      </div>
+    ` : '');
+    
+    const refundButton = canRequestRefund ? `
+      <button class="small-btn danger" onclick="requestRefund(${orderId})" style="margin-top: 15px; width: 100%;">
+        <i class="fas fa-undo-alt"></i> Request Refund
+      </button>
+    ` : '';
+    
+    const orderHtml = `
+      <div class="order-details-modal">
+        <h3>Order #${order.id}</h3>
+        <p><strong>Product:</strong> ${order.product_name}</p>
+        <p><strong>Quantity:</strong> ${order.quantity}</p>
+        <p><strong>Total:</strong> $${order.total_amount}</p>
+        <p><strong>Status:</strong> <span class="order-status-${order.order_status}">${order.order_status}</span></p>
+        <p><strong>Payment:</strong> ${order.payment_status}</p>
+        ${order.tracking_number ? `<p><strong>Tracking:</strong> ${order.tracking_number}</p>` : ''}
+        ${refundStatusHtml}
+        ${refundButton}
+        <button class="btn primary" onclick="checkRefundStatus(${orderId})" style="margin-top: 10px; width: 100%;">
+          <i class="fas fa-info-circle"></i> Check Refund Status
+        </button>
+      </div>
+    `;
+    
+    // Display in a modal or wherever you want
+    showModal(orderHtml);
+    
+  } catch (error) {
+    console.error('Error loading order details:', error);
+    showToast('Error', 'Unable to load order details', 'danger');
+  }
+}
+
+// ================= SELLER REFUND MANAGEMENT =================
+
+async function loadPendingRefunds() {
+  try {
+    const response = await fetch('/api/refunds/pending', {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) throw new Error(data.error);
+    
+    const refundsList = document.getElementById('pendingRefundsList');
+    if (!refundsList) return;
+    
+    if (!data.refunds || data.refunds.length === 0) {
+      refundsList.innerHTML = '<div class="empty-state"><p>No pending refund requests</p></div>';
+      return;
+    }
+    
+    let html = '<div class="refunds-grid">';
+    data.refunds.forEach(refund => {
+      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
+      
+      html += `
+        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              <h4 style="margin: 0 0 8px 0;">Order #${refund.id}</h4>
+              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${refund.product_name}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${refund.total_amount}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${refund.buyer_name} (${refund.buyer_email})</p>
+              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
+              <div style="margin-top: 12px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
+                <strong>Reason:</strong>
+                <p style="margin: 4px 0 0 0; font-size: 13px;">${refund.refund_reason}</p>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
+              <i class="fas fa-check"></i> Approve Refund
+            </button>
+            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
+              <i class="fas fa-times"></i> Deny Refund
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    refundsList.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading refunds:', error);
+    showToast('Error', 'Unable to load refund requests', 'danger');
+  }
+}
+
+async function processRefund(orderId, action) {
+  const notes = prompt(action === 'approve' ? 
+    "Optional notes for the buyer (will be included in notification):" : 
+    "Reason for denying refund (will be sent to buyer):");
+  
+  try {
+    const response = await fetch(`/api/refunds/${orderId}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: action, 
+        admin_notes: notes || null 
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Processed', data.message, 'success');
+      loadPendingRefunds(); // Refresh the list
+    } else {
+      showToast('Error', data.error || 'Failed to process refund', 'danger');
+    }
+  } catch (error) {
+    console.error('Refund processing error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+async function checkEscrowStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const releaseDate = new Date(data.payment_held_until);
+      const today = new Date();
+      const daysRemaining = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
+      
+      let statusMessage = `🔒 Funds Held in Escrow\n\n`;
+      statusMessage += `Amount Held: $${data.amount}\n`;
+      statusMessage += `Funds will be released to seller on: ${releaseDate.toLocaleDateString()}\n`;
+      
+      if (daysRemaining > 0) {
+        statusMessage += `⏰ ${daysRemaining} days remaining until release`;
+      } else if (daysRemaining === 0) {
+        statusMessage += `💰 Funds are being released today!`;
+      } else {
+        statusMessage += `✅ Funds have been released to the seller`;
+      }
+      
+      alert(statusMessage);
+    }
+  } catch (error) {
+    console.error('Escrow status error:', error);
+    showToast('Error', 'Unable to check escrow status', 'danger');
+  }
+}
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

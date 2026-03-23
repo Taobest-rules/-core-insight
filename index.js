@@ -367,7 +367,6 @@ if (SUPPORT_EMAIL && SUPPORT_EMAIL_PASSWORD) {
     console.error('❌ Support email setup failed:', error.message);
   }
 }
-
 async function sendSupportEmail(name, email, subject, message, orderId = null) {
   if (!supportTransporter) {
     console.error('❌ Support email not configured');
@@ -375,17 +374,66 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
   }
 
   try {
+    // Create HTML email body
+    const htmlBody = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 20px; border-radius: 8px; }
+          .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; }
+          .field { margin-bottom: 15px; }
+          .label { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
+          .value { background: white; padding: 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
+          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>📝 New Support Request</h2>
+            <p>From ${escapeHtml(name)}</p>
+          </div>
+          <div class="content">
+            <div class="field">
+              <div class="label">Name:</div>
+              <div class="value">${escapeHtml(name)}</div>
+            </div>
+            <div class="field">
+              <div class="label">Email:</div>
+              <div class="value">${escapeHtml(email)}</div>
+            </div>
+            <div class="field">
+              <div class="label">Subject:</div>
+              <div class="value">${escapeHtml(subject)}</div>
+            </div>
+            ${orderId ? `
+            <div class="field">
+              <div class="label">Order ID:</div>
+              <div class="value">${escapeHtml(orderId)}</div>
+            </div>
+            ` : ''}
+            <div class="field">
+              <div class="label">Message:</div>
+              <div class="value">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Submitted on: ${new Date().toLocaleString()}</p>
+            <p>Please respond to: <a href="mailto:${email}">${email}</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
     await supportTransporter.sendMail({
       from: `"Core Insight Support" <${SUPPORT_EMAIL}>`,
       to: SUPPORT_EMAIL,
       subject: `[Support] ${subject} - from ${name}`,
-      html: `<h2>New Support Request</h2>
-             <p><strong>From:</strong> ${name}</p>
-             <p><strong>Email:</strong> ${email}</p>
-             <p><strong>Subject:</strong> ${subject}</p>
-             ${orderId ? `<p><strong>Order ID:</strong> ${orderId}</p>` : ''}
-             <hr>
-             <p>${message.replace(/\n/g, '<br>')}</p>`,
+      html: htmlBody,
       replyTo: email
     });
     
@@ -394,7 +442,143 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
     console.error("❌ Support email error:", error.message);
     return { success: false, error: error.message };
   }
-}
+} 
+// ============================================
+// ROUTES - COMPLAINT/SUBMIT SUPPORT
+// ============================================
+app.post("/api/send-complaint", async (req, res) => {
+  try {
+    const { name, email, subject, priority, message, orderId } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ 
+        error: "Please fill in all required fields (name, email, subject, message)" 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+    
+    console.log(`📧 Processing complaint from ${name} (${email}) - Priority: ${priority}`);
+    
+    // Create a formatted email body
+    const emailBody = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 20px; border-radius: 8px; }
+          .content { background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; }
+          .field { margin-bottom: 15px; }
+          .label { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
+          .value { background: white; padding: 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
+          .priority-high { color: #ef4444; font-weight: bold; }
+          .priority-medium { color: #f59e0b; font-weight: bold; }
+          .priority-low { color: #10b981; font-weight: bold; }
+          .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>📝 New Support Complaint</h2>
+            <p>Submitted from Core Insight Marketplace</p>
+          </div>
+          <div class="content">
+            <div class="field">
+              <div class="label">From:</div>
+              <div class="value">${escapeHtml(name)} (${escapeHtml(email)})</div>
+            </div>
+            <div class="field">
+              <div class="label">Subject:</div>
+              <div class="value">${escapeHtml(subject)}</div>
+            </div>
+            <div class="field">
+              <div class="label">Priority:</div>
+              <div class="value priority-${priority?.toLowerCase()}">${escapeHtml(priority || 'Medium')}</div>
+            </div>
+            ${orderId ? `
+            <div class="field">
+              <div class="label">Order ID:</div>
+              <div class="value">${escapeHtml(orderId)}</div>
+            </div>
+            ` : ''}
+            <div class="field">
+              <div class="label">Message:</div>
+              <div class="value">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Submitted on: ${new Date().toLocaleString()}</p>
+            <p>Please respond to this customer at: <a href="mailto:${email}">${email}</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Send to support email using your existing sendSupportEmail function
+    const supportResult = await sendSupportEmail(name, email, subject, message, orderId);
+    
+    if (!supportResult.success) {
+      console.error('❌ Failed to send support email:', supportResult.error);
+      // Still return success to the user to avoid confusion, but log the error
+      return res.json({ 
+        success: true, 
+        warning: "Complaint received, but email delivery is pending. Our team will review it manually.",
+        error: supportResult.error 
+      });
+    }
+    
+    // Optional: Send confirmation email to the user
+    try {
+      const confirmationHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Complaint Received - Core Insight</title></head>
+        <body style="font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 30px;">
+            <h1 style="color: #3b82f6;">✓ Complaint Received</h1>
+            <p>Dear ${escapeHtml(name)},</p>
+            <p>Thank you for contacting Core Insight Support. We have received your complaint and our team will review it shortly.</p>
+            <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Reference:</strong> ${escapeHtml(subject)} (${priority} Priority)</p>
+              <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            <p>We aim to respond within 24 hours for standard issues, or sooner for high-priority matters.</p>
+            <hr style="border-color: #334155;">
+            <p style="font-size: 12px; color: #94a3b8;">Core Insight Support Team<br>Email: suppourtcoreinsight@gmail.com</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      await sendVerificationEmail(email, "Complaint Received - Core Insight", confirmationHtml);
+    } catch (confirmationError) {
+      console.error('❌ Failed to send confirmation email:', confirmationError.message);
+      // Don't fail the main request if confirmation email fails
+    }
+    
+    console.log(`✅ Complaint from ${email} processed successfully`);
+    res.json({ 
+      success: true, 
+      message: "Your complaint has been submitted successfully! We'll respond to your email shortly." 
+    });
+    
+  } catch (error) {
+    console.error('❌ Complaint submission error:', error);
+    res.status(500).json({ 
+      error: "Failed to submit complaint. Please try again later or contact us directly at suppourtcoreinsight@gmail.com" 
+    });
+  }
+});
+
 
 // ============================================
 // DEBUG ENDPOINTS

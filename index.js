@@ -539,7 +539,7 @@ app.post("/api/reset-password", async (req, res) => {
 });
 
 // ============================================
-// ROUTES - PRODUCTS (WITH REVIEWS)
+// ROUTES - PRODUCTS (FIXED WITH IMAGES)
 // ============================================
 app.get("/api/products", async (req, res) => {
   try {
@@ -558,6 +558,7 @@ app.get("/api/products", async (req, res) => {
     `);
     
     const processedProducts = extractRows(products).map(product => {
+      // Convert price to number
       product.price = parseFloat(product.price || 0);
       product.original_price = parseFloat(product.original_price) || product.price;
       product.platform_fee = parseFloat(product.platform_fee) || (product.type === 'physical' ? product.original_price * 0.1 : 0);
@@ -565,32 +566,231 @@ app.get("/api/products", async (req, res) => {
       product.rating = parseFloat(product.rating) || 0;
       product.review_count = parseInt(product.review_count) || 0;
 
+      // CRITICAL FIX: Handle image_urls properly
+      let imageUrls = [];
+      
+      // Check if image_urls exists and is not empty
       if (product.image_urls) {
+        console.log(`Product ${product.id} has image_urls:`, product.image_urls);
+        
         try {
-          product.images = typeof product.image_urls === 'string'
-            ? (product.image_urls.startsWith('[') || product.image_urls.startsWith('{') ? JSON.parse(product.image_urls) : [product.image_urls])
-            : (Array.isArray(product.image_urls) ? product.image_urls : []);
-        } catch (e) { product.images = []; }
-      } else {
-        product.images = [];
+          // If it's a string, try to parse it as JSON
+          if (typeof product.image_urls === 'string') {
+            // Check if it looks like JSON array
+            if (product.image_urls.startsWith('[')) {
+              imageUrls = JSON.parse(product.image_urls);
+              console.log(`✅ Parsed JSON array for product ${product.id}:`, imageUrls);
+            } 
+            // Check if it's a single URL string
+            else if (product.image_urls.startsWith('http')) {
+              imageUrls = [product.image_urls];
+              console.log(`✅ Single URL for product ${product.id}:`, product.image_urls);
+            }
+            // Otherwise, it might be a relative path
+            else {
+              imageUrls = [product.image_urls];
+              console.log(`✅ Relative path for product ${product.id}:`, product.image_urls);
+            }
+          } 
+          // If it's already an array
+          else if (Array.isArray(product.image_urls)) {
+            imageUrls = product.image_urls;
+            console.log(`✅ Already array for product ${product.id}:`, imageUrls);
+          }
+        } catch (e) {
+          console.error(`❌ Error parsing image_urls for product ${product.id}:`, e.message);
+          // Fallback: treat as single URL
+          imageUrls = [product.image_urls];
+        }
       }
-
-      if (!product.images?.length) {
-        product.images = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+      
+      // Also check the legacy 'images' field if image_urls is empty
+      if (imageUrls.length === 0 && product.images) {
+        console.log(`Product ${product.id} using legacy images field:`, product.images);
+        try {
+          if (typeof product.images === 'string') {
+            if (product.images.startsWith('[')) {
+              imageUrls = JSON.parse(product.images);
+            } else {
+              imageUrls = [product.images];
+            }
+          } else if (Array.isArray(product.images)) {
+            imageUrls = product.images;
+          }
+        } catch (e) {
+          console.error(`Error parsing legacy images:`, e.message);
+        }
       }
-
-      product._imageList = product.images;
-      if (!product.type) product.type = product.affiliate_link ? 'affiliate' : 'digital';
+      
+      // If no images, add a default based on category
+      if (!imageUrls || imageUrls.length === 0) {
+        const categoryDefaultImages = {
+          'electronics': 'https://placehold.co/400x250/2563eb/ffffff/png?text=Electronics',
+          'clothing': 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Clothing',
+          'fashion': 'https://placehold.co/400x250/7c3aed/ffffff/png?text=Fashion',
+          'home': 'https://placehold.co/400x250/059669/ffffff/png?text=Home',
+          'beauty': 'https://placehold.co/400x250/db2777/ffffff/png?text=Beauty',
+          'sports': 'https://placehold.co/400x250/dc2626/ffffff/png?text=Sports',
+          'books': 'https://placehold.co/400x250/b45309/ffffff/png?text=Books',
+          'toys': 'https://placehold.co/400x250/7e22ce/ffffff/png?text=Toys'
+        };
+        
+        const lowerCategory = (product.category || '').toLowerCase();
+        let defaultImage = 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
+        
+        for (const [key, url] of Object.entries(categoryDefaultImages)) {
+          if (lowerCategory.includes(key)) {
+            defaultImage = url;
+            break;
+          }
+        }
+        
+        imageUrls = [defaultImage];
+        console.log(`🖼️ Using default image for product ${product.id}:`, defaultImage);
+      }
+      
+      // Set the processed images array
+      product._imageList = imageUrls;
+      product.images = imageUrls; // Also set images for compatibility
+      
+      // Set type if not set
+      if (!product.type) {
+        product.type = product.affiliate_link ? 'affiliate' : 'digital';
+      }
+      
+      console.log(`✅ Product ${product.id} has ${imageUrls.length} images`);
+      
       return product;
     });
-
+    
+    // Set proper content type
+    res.setHeader('Content-Type', 'application/json');
     res.json(processedProducts);
+    
   } catch (err) {
     console.error('❌ Error fetching products:', err);
-    res.status(500).json({ error: "Error fetching products", details: err.message });
+    res.status(500).json({ 
+      error: "Error fetching products",
+      details: err.message 
+    });
+  }
+});
+// ============================================
+// FAVORITES ENDPOINTS (ADD THESE)
+// ============================================
+
+// Get user's favorites and favorite counts
+app.get("/api/favorites", async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  
+  if (!req.session.user) {
+    return res.json({ favorites: [], favoriteCounts: {} });
+  }
+
+  try {
+    // Get user's favorites
+    const userFavs = await db.query(
+      "SELECT product_id FROM favorites WHERE user_id = ?",
+      [req.session.user.id]
+    );
+
+    let userFavorites = [];
+    if (userFavs && userFavs.length > 0) {
+      userFavorites = userFavs.map(row => row.product_id);
+    }
+
+    // Get favorite counts for all products
+    const countResults = await db.query(`
+      SELECT product_id, COUNT(*) as count 
+      FROM favorites 
+      GROUP BY product_id
+    `);
+
+    let favoriteCounts = {};
+    if (countResults && countResults.length > 0) {
+      countResults.forEach(row => {
+        favoriteCounts[row.product_id] = parseInt(row.count) || 0;
+      });
+    }
+
+    res.json({ 
+      favorites: userFavorites,
+      favoriteCounts: favoriteCounts
+    });
+  } catch (err) {
+    console.error("Error loading favorites:", err);
+    res.status(500).json({ error: "Error loading favorites: " + err.message });
   }
 });
 
+// Toggle favorite
+app.post("/api/favorites/toggle", async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please log in to favorite products." });
+  }
+
+  try {
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ error: "Product ID is required." });
+    }
+
+    // Check if already favorited
+    const result = await db.query(
+      "SELECT id FROM favorites WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    let existing = result && result.length > 0 ? result : [];
+
+    if (existing.length > 0) {
+      // Remove favorite
+      await db.query(
+        "DELETE FROM favorites WHERE user_id = ? AND product_id = ?",
+        [req.session.user.id, productId]
+      );
+      
+      // Get updated count
+      const countResult = await db.query(
+        "SELECT COUNT(*) as count FROM favorites WHERE product_id = ?",
+        [productId]
+      );
+      
+      let count = countResult && countResult.length > 0 ? (countResult[0].count || 0) : 0;
+      
+      return res.json({ 
+        success: true, 
+        action: "removed",
+        favoriteCount: count
+      });
+    } else {
+      // Add favorite
+      await db.query(
+        "INSERT INTO favorites (user_id, product_id) VALUES (?, ?)",
+        [req.session.user.id, productId]
+      );
+      
+      // Get updated count
+      const countResult = await db.query(
+        "SELECT COUNT(*) as count FROM favorites WHERE product_id = ?",
+        [productId]
+      );
+      
+      let count = countResult && countResult.length > 0 ? (countResult[0].count || 0) : 0;
+      
+      return res.json({ 
+        success: true, 
+        action: "added",
+        favoriteCount: count
+      });
+    }
+  } catch (err) {
+    console.error("Favorite toggle error:", err);
+    res.status(500).json({ error: "Error updating favorites: " + err.message });
+  }
+});
 // ============================================
 // REVIEWS ENDPOINTS (ADDED - CRITICAL)
 // ============================================

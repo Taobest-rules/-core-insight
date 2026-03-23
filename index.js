@@ -284,14 +284,16 @@ app.post("/api/debug/test-email", async (req, res) => {
 // EMAIL CONFIGURATION - WORKING VERSION
 // ============================================
 
+// ============================================
+// EMAIL CONFIGURATION - ALL EMAILS VIA BREVO
+// ============================================
 
 // Get API key from environment
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
-const SUPPORT_EMAIL_PASSWORD = process.env.SUPPORT_EMAIL_PASSWORD;
 
 // ============================================
-// BREVO EMAIL FUNCTION (DIRECT API)
+// BREVO EMAIL FUNCTION (VERIFICATION)
 // ============================================
 
 async function sendVerificationEmail(to, subject, html) {
@@ -345,32 +347,13 @@ async function sendVerificationEmail(to, subject, html) {
 }
 
 // ============================================
-// SUPPORT EMAIL FUNCTION (GMAIL)
+// SUPPORT EMAIL FUNCTION (NOW USING BREVO)
 // ============================================
 
-let supportTransporter = null;
-
-if (SUPPORT_EMAIL && SUPPORT_EMAIL_PASSWORD) {
-  try {
-    const nodemailer = require('nodemailer');
-    supportTransporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: SUPPORT_EMAIL,
-        pass: SUPPORT_EMAIL_PASSWORD.replace(/\s/g, '')
-      },
-      tls: { rejectUnauthorized: false }
-    });
-    
-    console.log('✅ Support email configured');
-  } catch (error) {
-    console.error('❌ Support email setup failed:', error.message);
-  }
-}
 async function sendSupportEmail(name, email, subject, message, orderId = null) {
-  if (!supportTransporter) {
-    console.error('❌ Support email not configured');
-    return { success: false, error: "Support email not configured" };
+  if (!BREVO_API_KEY) {
+    console.error('❌ BREVO_API_KEY not configured');
+    return { success: false, error: "Email service not configured" };
   }
 
   try {
@@ -429,20 +412,92 @@ async function sendSupportEmail(name, email, subject, message, orderId = null) {
       </html>
     `;
     
-    await supportTransporter.sendMail({
-      from: `"Core Insight Support" <${SUPPORT_EMAIL}>`,
-      to: SUPPORT_EMAIL,
-      subject: `[Support] ${subject} - from ${name}`,
-      html: htmlBody,
-      replyTo: email
+    // Send using Brevo instead of Gmail
+    const response = await axios({
+      method: 'POST',
+      url: 'https://api.brevo.com/v3/smtp/email',
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      data: {
+        sender: {
+          email: "coreinsightmail@gmail.com",
+          name: "Core Insight Support"
+        },
+        to: [{ email: SUPPORT_EMAIL }],
+        replyTo: { email: email, name: name },
+        subject: `[Support] ${subject} - from ${name}`,
+        htmlContent: htmlBody
+      },
+      timeout: 15000
     });
     
+    console.log(`✅ Support email sent via Brevo to ${SUPPORT_EMAIL}`);
     return { success: true };
+    
   } catch (error) {
-    console.error("❌ Support email error:", error.message);
+    console.error("❌ Brevo support email error:", error.response?.data || error.message);
     return { success: false, error: error.message };
   }
-} 
+}
+
+// ============================================
+// CONFIRMATION EMAIL FUNCTION (USING BREVO)
+// ============================================
+
+async function sendConfirmationEmail(name, email, subject, priority) {
+  if (!BREVO_API_KEY) return;
+
+  try {
+    const confirmationHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Complaint Received - Core Insight</title></head>
+      <body style="font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 30px;">
+          <h1 style="color: #3b82f6;">✓ Complaint Received</h1>
+          <p>Dear ${escapeHtml(name)},</p>
+          <p>Thank you for contacting Core Insight Support. We have received your complaint and our team will review it shortly.</p>
+          <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Reference:</strong> ${escapeHtml(subject)} (${priority || 'Medium'} Priority)</p>
+            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <p>We aim to respond within 24 hours for standard issues, or sooner for high-priority matters.</p>
+          <hr style="border-color: #334155;">
+          <p style="font-size: 12px; color: #94a3b8;">Core Insight Support Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await axios({
+      method: 'POST',
+      url: 'https://api.brevo.com/v3/smtp/email',
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        sender: {
+          email: "coreinsightmail@gmail.com",
+          name: "Core Insight"
+        },
+        to: [{ email: email }],
+        subject: "Complaint Received - Core Insight",
+        htmlContent: confirmationHtml
+      },
+      timeout: 15000
+    });
+
+    console.log(`✅ Confirmation email sent to ${email}`);
+  } catch (error) {
+    console.error("❌ Confirmation email error:", error.message);
+  }
+}
+
+
 // ============================================
 // ROUTES - COMPLAINT/SUBMIT SUPPORT
 // ============================================

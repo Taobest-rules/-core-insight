@@ -4656,273 +4656,115 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
     document.getElementById('avgRating').textContent = '0.0';
   }
 }
+// ================= UPDATED DASHBOARD FUNCTIONS =================
 
-   function loadMainTabData(tabId) {
-  switch(tabId) {
-    case 'products':
-      loadMyProducts();
-      break;
-    case 'sales':
-      loadSalesHistory();
-      break;
-    case 'analytics':
-      loadCharts();
-      break;
-    case 'refunds':
-      loadPendingRefunds();
-      break;
-    case 'admin':
-      loadUsersTable();
-      loadAllProductsTable();
-      break;
-  }
-}
-
-   async function loadMyProducts() {
-  const container = document.getElementById('myProductsList');
-  
+// Load pending refunds for seller dashboard
+async function loadPendingRefunds() {
   try {
-    if (!currentUser) return;
-    
-    const response = await fetch(`/api/products/seller/${currentUser.id}`, {
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      // If endpoint doesn't exist, show empty state
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-box-open"></i>
-          <h4>No products yet</h4>
-          <p>Start by listing your first product</p>
-        </div>
-      `;
-      return;
-    }
-    
-    const products = await response.json();
-    
-    if (!products || products.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-box-open"></i>
-          <h4>No products yet</h4>
-          <p>Start by listing your first product</p>
-        </div>
-      `;
-      return;
-    }
-        let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Type</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-        
-        products.forEach(product => {
-          const productImage = getProductImage(product.images, 0);
-          
-          const status = getProductStatus(product);
-          const statusClass = getStatusClass(status);
-          const statusDisplay = formatStatusDisplay(status);
-          
-          html += `
-            <tr>
-              <td>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
-                    ${productImage ? 
-                      `<img src="${productImage}" alt="${product.title}" 
-                            style="width: 100%; height: 100%; object-fit: cover;"
-                            loading="lazy"
-                            srcset="${getResponsiveSrcSet(productImage, [40, 80])}">` :
-                      `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                        <i class="fas fa-box"></i>
-                      </div>`
-                    }
-                  </div>
-                  <div>
-                    <strong style="color: var(--text-light); display: block; font-size: 13px;">${product.title || 'Untitled'}</strong>
-                    <small style="color: var(--text-gray); font-size: 11px;">${product.category || 'Uncategorized'}</small>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
-              </td>
-              <td>
-                <strong style="color: var(--accent);">$${parseFloat(product.price || 0).toFixed(2)}</strong>
-              </td>
-              <td>
-                <span class="product-status ${statusClass}">${statusDisplay}</span>
-              </td>
-              <td>
-                <div style="display: flex; gap: 8px;">
-                  <button class="action-btn view" onclick="viewProduct(${product.id})">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button class="action-btn edit" onclick="editProduct(${product.id})">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="action-btn delete" onclick="deleteProduct(${product.id})">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        });
-        
-        html += `</tbody></table>`;
-        container.innerHTML = html;
-      
-  } catch (error) {
-    console.error('Error loading my products:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-box-open"></i>
-        <h4>No products yet</h4>
-        <p>Start by listing your first product</p>
-      </div>
-    `;
-  }
-}
-    // View order details
-async function viewOrderDetails(orderId) {
-  try {
-    const response = await fetch(`/api/orders/${orderId}`, {
+    const response = await fetch('/api/refunds/pending', {
       credentials: 'include'
     });
     
     const data = await response.json();
     
-    if (!response.ok) throw new Error(data.error);
+    const refundsList = document.getElementById('pendingRefundsList');
+    if (!refundsList) return;
     
-    const order = data.order;
-    const canRequestRefund = order.order_status === 'paid' && 
-                              order.payment_status === 'paid' &&
-                              !order.refund_requested_at &&
-                              order.order_status !== 'refunded';
-    
-    const refundStatusHtml = order.refund_requested_at ? `
-      <div class="refund-status-pending" style="margin-top: 15px; padding: 12px; border-radius: 8px;">
-        <strong>⏳ Refund Request Pending</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Requested on: ${new Date(order.refund_requested_at).toLocaleDateString()}</p>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">Reason: ${order.refund_reason || 'No reason provided'}</p>
-      </div>
-    ` : (order.order_status === 'refunded' ? `
-      <div class="refund-status-approved" style="margin-top: 15px; padding: 12px; border-radius: 8px;">
-        <strong>✅ Refund Approved</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Processed on: ${new Date(order.refund_processed_at).toLocaleDateString()}</p>
-      </div>
-    ` : '');
-    
-    const refundButton = canRequestRefund ? `
-      <button class="small-btn danger" onclick="requestRefund(${orderId})" style="margin-top: 15px; width: 100%;">
-        <i class="fas fa-undo-alt"></i> Request Refund
-      </button>
-    ` : '';
-    
-    const escrowInfo = order.payment_held_until ? `
-      <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-        <strong><i class="fas fa-lock"></i> Escrow Status</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Funds held until: ${new Date(order.payment_held_until).toLocaleDateString()}</p>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">Seller will receive payment after this date if no refund is requested.</p>
-      </div>
-    ` : '';
-    
-    const modalHtml = `
-      <div class="modal-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 style="margin:0">Order #${order.id}</h3>
-          <span class="close-x" onclick="closeModal(this.closest('.modal'))">&times;</span>
+    if (!data.refunds || data.refunds.length === 0) {
+      refundsList.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-check-circle"></i>
+          <h4>No pending refund requests</h4>
+          <p>All good!</p>
         </div>
-        <div>
-          <p><strong>Product:</strong> ${order.product_name}</p>
-          <p><strong>Quantity:</strong> ${order.quantity}</p>
-          <p><strong>Total Amount:</strong> $${order.total_amount}</p>
-          <p><strong>Status:</strong> <span class="order-status-${order.order_status}">${order.order_status}</span></p>
-          <p><strong>Payment Status:</strong> ${order.payment_status}</p>
-          ${order.tracking_number ? `<p><strong>Tracking Number:</strong> ${order.tracking_number}</p>` : ''}
-          ${order.delivered_at ? `<p><strong>Delivered:</strong> ${new Date(order.delivered_at).toLocaleDateString()}</p>` : ''}
-          ${escrowInfo}
-          ${refundStatusHtml}
-          ${refundButton}
-          <button class="btn primary" onclick="checkRefundStatus(${orderId})" style="margin-top: 10px; width: 100%;">
-            <i class="fas fa-info-circle"></i> Check Refund Status
-          </button>
-        </div>
-      </div>
-    `;
+      `;
+      return;
+    }
     
-    showModal(modalHtml);
+    let html = '<div class="refunds-grid" style="display: flex; flex-direction: column; gap: 16px;">';
+    data.refunds.forEach(refund => {
+      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
+      
+      html += `
+        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div style="flex: 1;">
+              <h4 style="margin: 0 0 8px 0; color: var(--text-light);">Order #${refund.id}</h4>
+              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(refund.product_name)}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${parseFloat(refund.total_amount).toFixed(2)}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${escapeHtml(refund.buyer_name)} (${escapeHtml(refund.buyer_email)})</p>
+              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider || 'Flutterwave'}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
+              <div style="margin-top: 12px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                <strong style="color: var(--danger);">Refund Reason:</strong>
+                <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">${escapeHtml(refund.refund_reason)}</p>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
+              <i class="fas fa-check"></i> Approve Refund
+            </button>
+            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
+              <i class="fas fa-times"></i> Deny Refund
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    refundsList.innerHTML = html;
     
   } catch (error) {
-    console.error('Error loading order details:', error);
-    showToast('Error', 'Unable to load order details', 'danger');
+    console.error('Error loading refunds:', error);
+    const refundsList = document.getElementById('pendingRefundsList');
+    if (refundsList) {
+      refundsList.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h4>Error loading refunds</h4>
+          <p>Please refresh and try again</p>
+        </div>
+      `;
+    }
   }
 }
 
-// Show modal helper
-function showModal(content) {
-  const modal = document.createElement('div');
-  modal.className = 'modal open';
-  modal.innerHTML = content;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
-}
-
-// Request refund
-async function requestRefund(orderId) {
-  if (!currentUser) {
-    openModal(document.getElementById('loginModal'));
-    return;
-  }
-  
-  const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
-  
-  if (!reason) return;
-  
-  if (reason.length < 10) {
-    alert("Please provide at least 10 characters explaining your reason for refund.");
-    return;
-  }
+// Process refund (for sellers)
+async function processRefund(orderId, action) {
+  const notes = prompt(action === 'approve' ? 
+    "Optional notes for the buyer (will be included in notification):" : 
+    "Reason for denying refund (will be sent to buyer):");
   
   try {
-    const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+    const response = await fetch(`/api/refunds/${orderId}/process`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: reason }),
+      body: JSON.stringify({ 
+        action: action, 
+        admin_notes: notes || null 
+      }),
       credentials: 'include'
     });
     
     const data = await response.json();
     
     if (response.ok) {
-      showToast('Refund Request Submitted', 
-        'Your refund request has been submitted. The seller has 48 hours to respond.', 
-        'success');
-      // Close any open modals
-      document.querySelectorAll('.modal').forEach(m => m.remove());
+      showToast('Refund Processed', data.message, 'success');
+      loadPendingRefunds(); // Refresh the list
+      loadSalesHistory(); // Also refresh sales list
     } else {
-      showToast('Refund Request Failed', data.error || 'Unable to submit refund request', 'danger');
+      showToast('Error', data.error || 'Failed to process refund', 'danger');
     }
   } catch (error) {
-    console.error('Refund request error:', error);
+    console.error('Refund processing error:', error);
     showToast('Error', 'Network error. Please try again.', 'danger');
   }
 }
 
-// Check refund status
+// Check refund status (for buyers)
 async function checkRefundStatus(orderId) {
   try {
     const response = await fetch(`/api/orders/${orderId}/refund-status`, {
@@ -4976,8 +4818,10 @@ async function checkEscrowStatus(orderId) {
       const daysRemaining = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
       
       let statusMessage = `🔒 Funds Held in Escrow\n\n`;
-      statusMessage += `Amount Held: $${data.amount}\n`;
-      statusMessage += `Funds will be released to seller on: ${releaseDate.toLocaleDateString()}\n`;
+      statusMessage += `Amount Held: $${data.amount_held?.toFixed(2) || '0.00'}\n`;
+      statusMessage += `Your Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}\n`;
+      statusMessage += `Platform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}\n`;
+      statusMessage += `Funds will be released on: ${releaseDate.toLocaleDateString()}\n`;
       
       if (daysRemaining > 0) {
         statusMessage += `⏰ ${daysRemaining} days remaining until release`;
@@ -4994,6 +4838,599 @@ async function checkEscrowStatus(orderId) {
     showToast('Error', 'Unable to check escrow status', 'danger');
   }
 }
+
+// Request refund (for buyers)
+async function requestRefund(orderId) {
+  if (!currentUser) {
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  
+  const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
+  
+  if (!reason) return;
+  
+  if (reason.length < 10) {
+    alert("Please provide at least 10 characters explaining your reason for refund.");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Request Submitted', 
+        'Your refund request has been submitted. The seller has 48 hours to respond.', 
+        'success');
+      // Close any open modals
+      document.querySelectorAll('.modal').forEach(m => m.remove());
+    } else {
+      showToast('Refund Request Failed', data.error || 'Unable to submit refund request', 'danger');
+    }
+  } catch (error) {
+    console.error('Refund request error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// View order details with refund options
+async function viewOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) throw new Error(data.error);
+    
+    const order = data.order;
+    const canRequestRefund = order.order_status === 'paid' && 
+                              order.payment_status === 'paid' &&
+                              !order.refund_requested_at &&
+                              order.order_status !== 'refunded';
+    
+    const refundStatusHtml = order.refund_requested_at ? `
+      <div style="margin-top: 15px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 3px solid var(--warning);">
+        <strong>⏳ Refund Request Pending</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Requested on: ${new Date(order.refund_requested_at).toLocaleDateString()}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px;">Reason: ${order.refund_reason || 'No reason provided'}</p>
+      </div>
+    ` : (order.order_status === 'refunded' ? `
+      <div style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+        <strong>✅ Refund Approved</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Processed on: ${new Date(order.refund_processed_at).toLocaleDateString()}</p>
+      </div>
+    ` : '');
+    
+    const refundButton = canRequestRefund ? `
+      <button class="small-btn danger" onclick="requestRefund(${orderId})" style="margin-top: 15px; width: 100%;">
+        <i class="fas fa-undo-alt"></i> Request Refund
+      </button>
+    ` : '';
+    
+    const escrowInfo = order.payment_held_until && order.order_status === 'paid' ? `
+      <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+        <strong><i class="fas fa-lock"></i> Escrow Status</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px;">Funds held until: ${new Date(order.payment_held_until).toLocaleDateString()}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px;">Seller will receive payment after this date if no refund is requested.</p>
+      </div>
+    ` : '';
+    
+    // Fee breakdown display
+    let feeBreakdownHtml = '';
+    if (order.fee_breakdown) {
+      const fb = order.fee_breakdown;
+      feeBreakdownHtml = `
+        <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+          <strong><i class="fas fa-calculator"></i> Fee Breakdown</strong>
+          ${fb.type === 'bulk' ? `
+            <p style="margin: 8px 0 0 0; font-size: 12px;">Bulk order discount applied! (${order.quantity} units)</p>
+          ` : ''}
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">${fb.sellerNote || ''}</p>
+        </div>
+      `;
+    }
+    
+    const modalHtml = `
+      <div class="modal-card" style="max-width: 500px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0">Order #${order.id}</h3>
+          <span class="close-x" onclick="this.closest('.modal').remove()">&times;</span>
+        </div>
+        <div>
+          <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+          <p><strong>Quantity:</strong> ${order.quantity}</p>
+          <p><strong>Unit Price:</strong> $${parseFloat(order.price).toFixed(2)}</p>
+          <p><strong>Total Amount:</strong> <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong></p>
+          <p><strong>Status:</strong> <span class="product-status status-${order.order_status}">${order.order_status.replace(/_/g, ' ')}</span></p>
+          <p><strong>Payment Status:</strong> ${order.payment_status}</p>
+          ${order.shipping_address ? `<p><strong>Shipping Address:</strong> ${escapeHtml(order.shipping_address)}</p>` : ''}
+          ${order.estimated_delivery_days ? `<p><strong>Est. Delivery:</strong> ${order.estimated_delivery_days} days after payment</p>` : ''}
+          ${escrowInfo}
+          ${feeBreakdownHtml}
+          ${refundStatusHtml}
+          ${refundButton}
+          <button class="btn primary" onclick="checkRefundStatus(${orderId}); this.closest('.modal').remove();" style="margin-top: 10px; width: 100%;">
+            <i class="fas fa-info-circle"></i> Check Refund Status
+          </button>
+        </div>
+      </div>
+    `;
+    
+    showModal(modalHtml);
+    
+  } catch (error) {
+    console.error('Error loading order details:', error);
+    showToast('Error', 'Unable to load order details', 'danger');
+  }
+}
+
+// Show modal helper
+function showModal(content) {
+  const modal = document.createElement('div');
+  modal.className = 'modal open';
+  modal.innerHTML = content;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+// Updated loadSalesHistory with refund actions
+async function loadSalesHistory() {
+  const container = document.getElementById('salesList');
+  const period = document.getElementById('salesPeriod')?.value || 'all';
+  const status = document.getElementById('salesStatus')?.value || 'all';
+  
+  if (!container) return;
+  
+  try {
+    let sales = [];
+    
+    if (currentUser && currentUser.role === 'admin') {
+      const response = await fetch('/api/admin/analytics/sales');
+      const data = await response.json();
+      sales = data.sales_trend || [];
+    } else {
+      const response = await fetch(`/api/orders/seller/${currentUser?.id}`);
+      if (response.ok) {
+        sales = await response.json();
+      }
+    }
+    
+    // Filter by period
+    if (period !== 'all') {
+      const now = new Date();
+      sales = sales.filter(sale => {
+        const saleDate = new Date(sale.created_at);
+        if (period === 'today') {
+          return saleDate.toDateString() === now.toDateString();
+        } else if (period === 'week') {
+          const weekAgo = new Date(now.setDate(now.getDate() - 7));
+          return saleDate >= weekAgo;
+        } else if (period === 'month') {
+          const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+          return saleDate >= monthAgo;
+        }
+        return true;
+      });
+    }
+    
+    // Filter by status
+    if (status !== 'all') {
+      sales = sales.filter(sale => sale.order_status === status || sale.payment_status === status);
+    }
+    
+    if (!sales || sales.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-shopping-cart"></i>
+          <h4>No sales yet</h4>
+          <p>Your sales will appear here</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = `
+      <div style="overflow-x: auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--card-bg);">
+              <th style="padding: 12px; text-align: left;">Order ID</th>
+              <th style="padding: 12px; text-align: left;">Product</th>
+              <th style="padding: 12px; text-align: left;">Qty</th>
+              <th style="padding: 12px; text-align: left;">Amount</th>
+              <th style="padding: 12px; text-align: left;">Your Earnings</th>
+              <th style="padding: 12px; text-align: left;">Status</th>
+              <th style="padding: 12px; text-align: left;">Date</th>
+              <th style="padding: 12px; text-align: left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    for (const sale of sales) {
+      const orderStatus = sale.order_status || 'pending';
+      let statusClass = '';
+      let statusText = '';
+      let statusColor = '';
+      
+      // Determine status styling
+      switch(orderStatus) {
+        case 'pending_seller_approval':
+          statusClass = 'status-pending';
+          statusText = '⏳ Awaiting Approval';
+          statusColor = 'var(--warning)';
+          break;
+        case 'seller_accepted':
+          statusClass = 'status-warning';
+          statusText = '✅ Accepted - Awaiting Payment';
+          statusColor = 'var(--accent)';
+          break;
+        case 'paid':
+          statusClass = 'status-info';
+          statusText = '💰 Paid (Escrow)';
+          statusColor = 'var(--accent)';
+          break;
+        case 'refund_requested':
+          statusClass = 'status-warning';
+          statusText = '🔄 Refund Requested';
+          statusColor = 'var(--warning)';
+          break;
+        case 'refunded':
+          statusClass = 'status-success';
+          statusText = '✅ Refunded';
+          statusColor = 'var(--success)';
+          break;
+        case 'completed':
+          statusClass = 'status-success';
+          statusText = '✓ Completed';
+          statusColor = 'var(--success)';
+          break;
+        case 'cancelled':
+          statusClass = 'status-danger';
+          statusText = '✗ Cancelled';
+          statusColor = 'var(--danger)';
+          break;
+        default:
+          statusClass = 'status-pending';
+          statusText = orderStatus;
+      }
+      
+      // Check if refund request is pending for seller actions
+      const isRefundRequested = orderStatus === 'refund_requested';
+      const refundButton = isRefundRequested ? `
+        <button class="action-btn" onclick="processRefund(${sale.id}, 'approve')" style="color: var(--success); margin-right: 5px;">
+          <i class="fas fa-check"></i> Approve
+        </button>
+        <button class="action-btn" onclick="processRefund(${sale.id}, 'deny')" style="color: var(--danger);">
+          <i class="fas fa-times"></i> Deny
+        </button>
+      ` : (orderStatus === 'paid' ? `
+        <button class="action-btn" onclick="checkEscrowStatus(${sale.id})" style="color: var(--accent);">
+          <i class="fas fa-clock"></i> Escrow
+        </button>
+      ` : '');
+      
+      const earnings = parseFloat(sale.seller_earnings || 0);
+      const platformFee = parseFloat(sale.platform_fee || 0);
+      
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 12px;">
+            <strong style="color: var(--accent);">#${sale.id}</strong>
+          </td>
+          <td style="padding: 12px;">
+            <strong style="color: var(--text-light);">${escapeHtml(sale.product_name || sale.product_title || 'Product')}</strong>
+          </td>
+          <td style="padding: 12px;">${sale.quantity || 1}</td>
+          <td style="padding: 12px;">
+            <strong style="color: var(--success);">$${parseFloat(sale.total_amount || sale.price || 0).toFixed(2)}</strong>
+          </td>
+          <td style="padding: 12px;">
+            <strong style="color: var(--success);">$${earnings.toFixed(2)}</strong>
+            ${platformFee > 0 ? `<div style="font-size: 11px; color: var(--text-muted);">Fee: $${platformFee.toFixed(2)}</div>` : ''}
+          </td>
+          <td style="padding: 12px;">
+            <span class="product-status ${statusClass}" style="background: ${statusColor}20; color: ${statusColor};">${statusText}</span>
+            ${sale.refund_reason ? `<div style="font-size: 11px; color: var(--warning); margin-top: 4px;">Reason: ${escapeHtml(sale.refund_reason.substring(0, 50))}${sale.refund_reason.length > 50 ? '...' : ''}</div>` : ''}
+          </td>
+          <td style="padding: 12px; font-size: 12px; color: var(--text-gray);">
+            ${formatDate(sale.created_at)}
+          </td>
+          <td style="padding: 12px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="action-btn view" onclick="viewOrderDetails(${sale.id})">
+                <i class="fas fa-eye"></i> View
+              </button>
+              ${refundButton}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    
+    // Update summary cards
+    const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.total_amount || s.price || 0), 0);
+    const platformFees = sales.reduce((sum, s) => sum + parseFloat(s.platform_fee || 0), 0);
+    const sellerEarnings = totalRevenue - platformFees;
+    
+    const totalSalesValueEl = document.getElementById('totalSalesValue');
+    const yourEarningsEl = document.getElementById('yourEarnings');
+    const platformFeeEl = document.getElementById('platformFee');
+    
+    if (totalSalesValueEl) totalSalesValueEl.textContent = `$${totalRevenue.toFixed(2)}`;
+    if (yourEarningsEl) yourEarningsEl.textContent = `$${sellerEarnings.toFixed(2)}`;
+    if (platformFeeEl) platformFeeEl.textContent = `$${platformFees.toFixed(2)}`;
+    
+  } catch (error) {
+    console.error('Error loading sales:', error);
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h4>Error loading sales</h4>
+          <p>Please try again later</p>
+        </div>
+      `;
+    }
+  }
+}
+
+// Updated loadSellerNotifications with better error handling
+async function loadSellerNotifications() {
+  try {
+    if (!currentUser) return;
+    
+    const response = await fetch('/api/seller/notifications', {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      // Don't show error for 404 - endpoint might not exist yet
+      if (response.status !== 404) {
+        console.log('Notifications endpoint not available');
+      }
+      return;
+    }
+    
+    const data = await response.json();
+    const notificationCount = document.getElementById('notificationCount');
+    
+    if (notificationCount && data.unreadCount > 0) {
+      notificationCount.textContent = data.unreadCount;
+      notificationCount.style.display = 'flex';
+    } else if (notificationCount) {
+      notificationCount.style.display = 'none';
+    }
+    
+    // Store notifications for dashboard display
+    dashboardData.notifications = data.notifications || [];
+    
+  } catch (error) {
+    // Silent fail - notifications are optional
+    console.log('Notifications not available');
+  }
+}
+
+// Updated loadMyProducts with better error handling
+async function loadMyProducts() {
+  const container = document.getElementById('myProductsList');
+  if (!container) return;
+  
+  try {
+    if (!currentUser) return;
+    
+    const response = await fetch(`/api/products/seller/${currentUser.id}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      // If endpoint returns 404, it might not be implemented yet
+      if (response.status === 404) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-box-open"></i>
+            <h4>No products yet</h4>
+            <p>Start by listing your first product</p>
+          </div>
+        `;
+        return;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const products = await response.json();
+    
+    if (!products || products.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-box-open"></i>
+          <h4>No products yet</h4>
+          <p>Start by listing your first product</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = `
+      <div style="overflow-x: auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--card-bg);">
+              <th style="padding: 12px; text-align: left;">Product</th>
+              <th style="padding: 12px; text-align: left;">Type</th>
+              <th style="padding: 12px; text-align: left;">Price</th>
+              <th style="padding: 12px; text-align: left;">Status</th>
+              <th style="padding: 12px; text-align: left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    products.forEach(product => {
+      const productImage = getProductImage(product.images, 0);
+      const status = getProductStatus(product);
+      const statusClass = getStatusClass(status);
+      const statusDisplay = formatStatusDisplay(status);
+      
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+                ${productImage ? 
+                  `<img src="${productImage}" alt="${product.title}" 
+                        style="width: 100%; height: 100%; object-fit: cover;"
+                        loading="lazy">` :
+                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                    <i class="fas fa-box"></i>
+                  </div>`
+                }
+              </div>
+              <div>
+                <strong style="color: var(--text-light); display: block; font-size: 13px;">${escapeHtml(product.title || 'Untitled')}</strong>
+                <small style="color: var(--text-gray); font-size: 11px;">${escapeHtml(product.category || 'Uncategorized')}</small>
+              </div>
+            </div>
+          </td>
+          <td style="padding: 12px;">
+            <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
+          </td>
+          <td style="padding: 12px;">
+            <strong style="color: var(--accent);">$${parseFloat(product.price || 0).toFixed(2)}</strong>
+          </td>
+          <td style="padding: 12px;">
+            <span class="product-status ${statusClass}">${statusDisplay}</span>
+          </td>
+          <td style="padding: 12px;">
+            <div style="display: flex; gap: 8px;">
+              <button class="action-btn view" onclick="viewProduct(${product.id})">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="action-btn edit" onclick="editProduct(${product.id})">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete" onclick="deleteProduct(${product.id})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading my products:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <h4>No products yet</h4>
+        <p>Start by listing your first product</p>
+      </div>
+    `;
+  }
+}
+
+// Updated loadMainTabData to include refunds
+function loadMainTabData(tabId) {
+  switch(tabId) {
+    case 'products':
+      loadMyProducts();
+      break;
+    case 'sales':
+      loadSalesHistory();
+      break;
+    case 'analytics':
+      loadCharts();
+      break;
+    case 'refunds':
+      loadPendingRefunds();
+      break;
+    case 'admin':
+      if (currentUser && currentUser.role === 'admin') {
+        loadUsersTable();
+        loadAllProductsTable();
+      }
+      break;
+  }
+}
+
+// Update dashboard tabs to include refunds
+function initDashboardTabs() {
+  const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+  const refundsTabExists = Array.from(tabButtons).some(btn => btn.getAttribute('data-tab') === 'refunds');
+  
+  // If refunds tab doesn't exist, add it
+  if (!refundsTabExists && currentUser && (currentUser.role === 'admin' || currentUser.role === 'seller')) {
+    const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
+    if (tabsHeader) {
+      const refundsTabBtn = document.createElement('button');
+      refundsTabBtn.className = 'tab-btn';
+      refundsTabBtn.setAttribute('data-tab', 'refunds');
+      refundsTabBtn.innerHTML = '<i class="fas fa-exchange-alt"></i> Refund Requests';
+      tabsHeader.appendChild(refundsTabBtn);
+      
+      // Add refunds tab content if not exists
+      const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
+      if (tabsContent && !document.getElementById('refundsTab')) {
+        const refundsTab = document.createElement('div');
+        refundsTab.id = 'refundsTab';
+        refundsTab.className = 'tab-content';
+        refundsTab.innerHTML = `
+          <div class="tab-header">
+            <h3><i class="fas fa-exchange-alt"></i> Pending Refund Requests</h3>
+            <div class="tab-actions">
+              <span style="color: var(--text-gray); font-size: 13px;">
+                <i class="fas fa-info-circle"></i> Refund requests must be processed within 48 hours
+              </span>
+            </div>
+          </div>
+          <div id="pendingRefundsList" class="refunds-grid">
+            <div class="empty-state">
+              <i class="fas fa-check-circle"></i>
+              <h4>No pending refund requests</h4>
+              <p>All good!</p>
+            </div>
+          </div>
+        `;
+        tabsContent.appendChild(refundsTab);
+      }
+    }
+  }
+}
+
+// Call initDashboardTabs after user loads
+// Add this to your loadUser function
+const originalLoadUser = window.loadUser;
+window.loadUser = async function() {
+  await originalLoadUser();
+  if (currentUser) {
+    initDashboardTabs();
+  }
+};
+
+// Make functions globally available
+window.processRefund = processRefund;
+window.checkRefundStatus = checkRefundStatus;
+window.checkEscrowStatus = checkEscrowStatus;
+window.requestRefund = requestRefund;
+window.viewOrderDetails = viewOrderDetails;
 
 // Process refund (for sellers)
 async function processRefund(orderId, action) {
@@ -5086,196 +5523,6 @@ async function loadPendingRefunds() {
     if (refundsList) {
       refundsList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading refunds</h4><p>Please refresh and try again</p></div>';
     }
-  }
-}
-
-   async function loadSalesHistory() {
-  const container = document.getElementById('salesList');
-  const period = document.getElementById('salesPeriod')?.value || 'all';
-  const status = document.getElementById('salesStatus')?.value || 'all';
-  
-  try {
-    let sales = [];
-    
-    if (currentUser && currentUser.role === 'admin') {
-      const response = await fetch('/api/admin/analytics/sales');
-      const data = await response.json();
-      sales = data.sales_trend || [];
-    } else {
-      const response = await fetch(`/api/orders/seller/${currentUser.id}`);
-      sales = await response.json();
-    }
-    
-    // Filter by period
-    if (period !== 'all') {
-      const now = new Date();
-      sales = sales.filter(sale => {
-        const saleDate = new Date(sale.created_at);
-        if (period === 'today') {
-          return saleDate.toDateString() === now.toDateString();
-        } else if (period === 'week') {
-          const weekAgo = new Date(now.setDate(now.getDate() - 7));
-          return saleDate >= weekAgo;
-        } else if (period === 'month') {
-          const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
-          return saleDate >= monthAgo;
-        }
-        return true;
-      });
-    }
-    
-    // Filter by status
-    if (status !== 'all') {
-      sales = sales.filter(sale => sale.order_status === status || sale.payment_status === status);
-    }
-    
-    if (!sales || sales.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-shopping-cart"></i>
-          <h4>No sales yet</h4>
-          <p>Your sales will appear here</p>
-        </div>
-      `;
-      return;
-    }
-    
-    let html = `
-      <table style="width:100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background: var(--card-bg);">
-            <th style="padding: 12px; text-align: left;">Order ID</th>
-            <th style="padding: 12px; text-align: left;">Product</th>
-            <th style="padding: 12px; text-align: left;">Qty</th>
-            <th style="padding: 12px; text-align: left;">Amount</th>
-            <th style="padding: 12px; text-align: left;">Status</th>
-            <th style="padding: 12px; text-align: left;">Date</th>
-            <th style="padding: 12px; text-align: left;">Actions</th>
-           </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    for (const sale of sales) {
-      const productImage = sale.images ? getProductImage(sale.images, 0) : null;
-      const orderStatus = sale.order_status || sale.status || 'pending';
-      let statusClass = '';
-      let statusText = '';
-      
-      // Determine status styling
-      switch(orderStatus) {
-        case 'pending_seller_approval':
-          statusClass = 'status-pending';
-          statusText = '⏳ Awaiting Approval';
-          break;
-        case 'seller_accepted':
-          statusClass = 'status-warning';
-          statusText = '✅ Accepted - Awaiting Payment';
-          break;
-        case 'pending_payment':
-          statusClass = 'status-warning';
-          statusText = '💳 Payment Pending';
-          break;
-        case 'paid':
-          statusClass = 'status-info';
-          statusText = '💰 Paid (Escrow)';
-          break;
-        case 'refund_requested':
-          statusClass = 'status-warning';
-          statusText = '🔄 Refund Requested';
-          break;
-        case 'refunded':
-          statusClass = 'status-success';
-          statusText = '✅ Refunded';
-          break;
-        case 'completed':
-          statusClass = 'status-success';
-          statusText = '✓ Completed';
-          break;
-        case 'cancelled':
-          statusClass = 'status-danger';
-          statusText = '✗ Cancelled';
-          break;
-        default:
-          statusClass = 'status-pending';
-          statusText = orderStatus;
-      }
-      
-      // Check if refund request is pending
-      const isRefundRequested = orderStatus === 'refund_requested';
-      const refundButton = isRefundRequested ? `
-        <button class="action-btn refund" onclick="processRefund(${sale.id}, 'approve')" style="color: var(--success); margin-right: 5px;">
-          <i class="fas fa-check"></i> Approve
-        </button>
-        <button class="action-btn refund" onclick="processRefund(${sale.id}, 'deny')" style="color: var(--danger);">
-          <i class="fas fa-times"></i> Deny
-        </button>
-      ` : (orderStatus === 'paid' ? `
-        <button class="action-btn refund" onclick="checkEscrowStatus(${sale.id})" style="color: var(--accent);">
-          <i class="fas fa-clock"></i> Escrow
-        </button>
-      ` : '');
-      
-      html += `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 12px;">
-            <strong style="color: var(--accent);">#${sale.id}</strong>
-           </td>
-          <td style="padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              ${productImage ? `
-                <img src="${productImage}" alt="${sale.product_name}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">
-              ` : `
-                <div style="width: 40px; height: 40px; border-radius: 6px; background: var(--secondary-dark);"></div>
-              `}
-              <span style="color: var(--text-light);">${sale.product_name || sale.product_title || 'Product'}</span>
-            </div>
-           </td>
-          <td style="padding: 12px;">${sale.quantity || 1}</td>
-          <td style="padding: 12px;">
-            <strong style="color: var(--success);">$${parseFloat(sale.total_amount || sale.price || 0).toFixed(2)}</strong>
-            ${sale.platform_fee ? `<div style="font-size: 11px; color: var(--text-muted);">Fee: $${sale.platform_fee}</div>` : ''}
-           </td>
-          <td style="padding: 12px;">
-            <span class="product-status ${statusClass}">${statusText}</span>
-            ${sale.refund_reason ? `<div style="font-size: 11px; color: var(--warning); margin-top: 4px;">Reason: ${sale.refund_reason.substring(0, 50)}${sale.refund_reason.length > 50 ? '...' : ''}</div>` : ''}
-           </td>
-          <td style="padding: 12px; font-size: 12px; color: var(--text-gray);">
-            ${formatDate(sale.created_at)}
-           </td>
-          <td style="padding: 12px;">
-            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-              <button class="action-btn view" onclick="viewOrderDetails(${sale.id})">
-                <i class="fas fa-eye"></i>
-              </button>
-              ${refundButton}
-            </div>
-           </td>
-         </tr>
-      `;
-    }
-    
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-    
-    // Update summary cards
-    const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.total_amount || s.price || 0), 0);
-    const platformFees = sales.reduce((sum, s) => sum + parseFloat(s.platform_fee || 0), 0);
-    const sellerEarnings = totalRevenue - platformFees;
-    
-    document.getElementById('totalSalesValue').textContent = `$${totalRevenue.toFixed(2)}`;
-    document.getElementById('yourEarnings').textContent = `$${sellerEarnings.toFixed(2)}`;
-    document.getElementById('platformFee').textContent = `$${platformFees.toFixed(2)}`;
-    
-  } catch (error) {
-    console.error('Error loading sales:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading sales</h4>
-        <p>Please try again later</p>
-      </div>
-    `;
   }
 }
 
@@ -5760,28 +6007,8 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
       window.addEventListener('resize', updateNavigation);
     });
 
-    // ================= NOTIFICATION SYSTEM =================
- async function loadSellerNotifications() {
-  try {
-    if (!currentUser) return;
     
-    const response = await fetch('/api/seller/notifications');
-    if (!response.ok) {
-      // Silently fail - notifications are optional
-      console.log('Notifications endpoint not available');
-      return;
-    }
-    const data = await response.json();
-    const notificationCount = document.getElementById('notificationCount');
-    if (notificationCount && data.unreadCount > 0) {
-      notificationCount.textContent = data.unreadCount;
-      notificationCount.style.display = 'flex';
-    }
-  } catch (error) {
-    // Silent fail - notifications are optional
-    console.log('Notifications not available');
-  }
-}
+  
     // ================= PRODUCT ORDER SYSTEM =================
     let currentOrderProduct = null;
     // Make the function global
@@ -7517,127 +7744,7 @@ if (priceCalc) {
 }
 // ================= SELLER REFUND MANAGEMENT =================
 
-async function loadPendingRefunds() {
-  try {
-    const response = await fetch('/api/refunds/pending', {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) throw new Error(data.error);
-    
-    const refundsList = document.getElementById('pendingRefundsList');
-    if (!refundsList) return;
-    
-    if (!data.refunds || data.refunds.length === 0) {
-      refundsList.innerHTML = '<div class="empty-state"><p>No pending refund requests</p></div>';
-      return;
-    }
-    
-    let html = '<div class="refunds-grid">';
-    data.refunds.forEach(refund => {
-      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
-      
-      html += `
-        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div>
-              <h4 style="margin: 0 0 8px 0;">Order #${refund.id}</h4>
-              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${refund.product_name}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${refund.total_amount}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${refund.buyer_name} (${refund.buyer_email})</p>
-              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
-              <div style="margin-top: 12px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
-                <strong>Reason:</strong>
-                <p style="margin: 4px 0 0 0; font-size: 13px;">${refund.refund_reason}</p>
-              </div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 16px;">
-            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
-              <i class="fas fa-check"></i> Approve Refund
-            </button>
-            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
-              <i class="fas fa-times"></i> Deny Refund
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    html += '</div>';
-    
-    refundsList.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading refunds:', error);
-    showToast('Error', 'Unable to load refund requests', 'danger');
-  }
-}
 
-async function processRefund(orderId, action) {
-  const notes = prompt(action === 'approve' ? 
-    "Optional notes for the buyer (will be included in notification):" : 
-    "Reason for denying refund (will be sent to buyer):");
-  
-  try {
-    const response = await fetch(`/api/refunds/${orderId}/process`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: action, 
-        admin_notes: notes || null 
-      }),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Refund Processed', data.message, 'success');
-      loadPendingRefunds(); // Refresh the list
-    } else {
-      showToast('Error', data.error || 'Failed to process refund', 'danger');
-    }
-  } catch (error) {
-    console.error('Refund processing error:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
-}
-async function checkEscrowStatus(orderId) {
-  try {
-    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      const releaseDate = new Date(data.payment_held_until);
-      const today = new Date();
-      const daysRemaining = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
-      
-      let statusMessage = `🔒 Funds Held in Escrow\n\n`;
-      statusMessage += `Amount Held: $${data.amount}\n`;
-      statusMessage += `Funds will be released to seller on: ${releaseDate.toLocaleDateString()}\n`;
-      
-      if (daysRemaining > 0) {
-        statusMessage += `⏰ ${daysRemaining} days remaining until release`;
-      } else if (daysRemaining === 0) {
-        statusMessage += `💰 Funds are being released today!`;
-      } else {
-        statusMessage += `✅ Funds have been released to the seller`;
-      }
-      
-      alert(statusMessage);
-    }
-  } catch (error) {
-    console.error('Escrow status error:', error);
-    showToast('Error', 'Unable to check escrow status', 'danger');
-  }
-}
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

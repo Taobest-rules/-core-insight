@@ -152,7 +152,6 @@ const escapeHtml = (str) => {
 // SUBACCOUNT CREATION FUNCTIONS
 // ============================================
 
-// Flutterwave Subaccount Creation
 async function createFlutterwaveSubaccount(sellerData) {
   try {
     const { user_id, business_name, email, account_number, bank_code, country, phone, bank_name } = sellerData;
@@ -172,7 +171,7 @@ async function createFlutterwaveSubaccount(sellerData) {
       business_mobile: phone || "",
       country: country || "NG",
       split_type: "percentage",
-      split_value: 10
+      split_value: 0.10  // ← FIXED: decimal for 10%
     };
     
     const response = await axios.post(
@@ -191,14 +190,15 @@ async function createFlutterwaveSubaccount(sellerData) {
       const subaccountId = response.data.data.subaccount_id;
       
       await db.query(
-        `INSERT INTO sellers (user_id, bank_code, account_number, business_name, flutterwave_subaccount_id, created_at)
-         VALUES (?, ?, ?, ?, ?, NOW())
+        `INSERT INTO sellers (user_id, flutterwave_subaccount_id, account_number, bank_code, bank_name, business_name, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, NOW())
          ON DUPLICATE KEY UPDATE 
-         bank_code = VALUES(bank_code),
+         flutterwave_subaccount_id = VALUES(flutterwave_subaccount_id),
          account_number = VALUES(account_number),
-         business_name = VALUES(business_name),
-         flutterwave_subaccount_id = VALUES(flutterwave_subaccount_id)`,
-        [user_id, bank_code, account_number, business_name, subaccountId]
+         bank_code = VALUES(bank_code),
+         bank_name = VALUES(bank_name),
+         business_name = VALUES(business_name)`,
+        [user_id, subaccountId, account_number, bank_code, bank_name, business_name]
       );
       
       console.log(`✅ Flutterwave subaccount created: ${subaccountId}`);

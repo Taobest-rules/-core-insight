@@ -3301,7 +3301,7 @@
   </div>
 </section>
 
-    <!-- SELLER FORM SECTION -->
+      <!-- SELLER FORM SECTION -->
     <section id="sellerView" class="upload-section" aria-hidden="true">
       <div class="form-header">
         <h3><i class="fas fa-upload"></i> List Your Product</h3>
@@ -3332,9 +3332,9 @@
                 <label class="form-label">Product Type <span class="required">*</span></label>
                 <select id="p_type" class="form-select" required>
                   <option value="">Select product type</option>
-                  <option value="digital">Digital Product</option>
-                  <option value="physical">Physical Product</option>
-                  <option value="affiliate">Affiliate Link</option>
+                  <option value="digital">📱 Digital Product</option>
+                  <option value="physical">📦 Physical Product</option>
+                  <option value="affiliate">🔗 Affiliate Link</option>
                 </select>
                 <div id="p_type_error" class="form-error"></div>
               </div>
@@ -3377,8 +3377,6 @@
                 <h4>Digital Product Details</h4>
               </div>
               
-              <!-- REMOVED: The affiliate checkbox for digital products -->
-              
               <div id="digitalUpload" class="conditional-section show" style="margin-top: 20px;">
                 <label class="form-label">Product File <span class="required">*</span></label>
                 <div class="file-upload">
@@ -3405,99 +3403,114 @@
                     <span><strong>90%</strong> You Keep</span>
                   </div>
                 </div>
+                <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
+                  <p style="margin: 0; font-size: 12px; color: var(--success);">
+                    <i class="fas fa-info-circle"></i> <strong>Example:</strong> $30 digital product → Customer pays $30, you receive $27
+                  </p>
+                </div>
               </div>
             </div>
           </div>
           
-          <div id="physicalBlock" class="conditional-section">
-            <div class="form-section">
-              <div class="form-section-header">
-                <i class="fas fa-shipping-fast"></i>
-                <h4>Physical Product Details</h4>
-              </div>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Delivery Method</label>
-                  <select id="p_deliveryType" class="form-select">
-                    <option value="delivery">Home Delivery</option>
-                  </select>
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label">Payment Option</label>
-                  <select id="p_paymentOption" class="form-select">
-                    <option value="pay_on_delivery">Pay On Delivery</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
-                  <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" 
-                         placeholder="Number of days for delivery" required />
-                  <span class="form-help">How many days it typically takes to deliver this product</span>
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label">Product Cost (Your cost to fulfill) <span class="required">*</span></label>
-                  <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" 
-                         placeholder="e.g. 3.00" required />
-                  <div id="p_productCost_error" class="form-error"></div>
-                  <span class="form-help">How much it costs YOU to buy/fulfill this product (usually around $3 for AliExpress items)</span>
-                </div>
-              </div>
-              
-              <div id="deliveryExtra" class="conditional-section show" style="margin-top: 20px;">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Delivery Locations</label>
-                    <input type="text" id="p_deliveryLocations" class="form-input" placeholder="e.g. USA, UK, Nigeria" />
-                    <span class="form-help">Comma separated countries or cities</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Payment Method Note for Physical Products -->
-              <div class="payment-method-note">
-                <p><i class="fas fa-money-bill-wave"></i> <strong>Note:</strong> Customer pays full price upfront. $3 goes to product fulfillment, rest to you.</p>
-              </div>
-              
-             <!-- Commission info for physical products - UPDATED with new fee structure -->
-<div class="commission-card" style="margin-top: 20px;">
-  <h5><i class="fas fa-calculator"></i> How Your Earnings Work</h5>
-  <div class="commission-structure">
-    <div class="commission-item">
-      <i class="fas fa-tag"></i>
-      <span><strong>Customer pays:</strong> Full price × quantity</span>
+      <div id="physicalBlock" class="conditional-section">
+  <div class="form-section">
+    <div class="form-section-header">
+      <i class="fas fa-shipping-fast"></i>
+      <h4>Physical Product Details</h4>
     </div>
-    <div class="commission-item">
-      <i class="fas fa-chart-line"></i>
-      <span><strong>Standard orders (1-5 units):</strong> Platform fee = 10% of single product price</span>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Delivery Method</label>
+        <select id="p_deliveryType" class="form-select">
+          <option value="delivery">🚚 Home Delivery</option>
+          <option value="pickup">🏪 Store Pickup</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Payment Option</label>
+        <select id="p_paymentOption" class="form-select">
+          <option value="pay_before_delivery">💳 Pay Before Delivery</option>
+          <option value="pay_on_delivery">💰 Pay On Delivery</option>
+        </select>
+      </div>
     </div>
-    <div class="commission-item">
-      <i class="fas fa-chart-line"></i>
-      <span><strong>Bulk orders (6+ units):</strong> Platform fee = 10% of single price + 10% of total order value</span>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
+        <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" 
+               placeholder="Number of days for delivery" required />
+        <span class="form-help">How many days it typically takes to deliver this product</span>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Product Cost (Your cost to fulfill) <span class="required">*</span></label>
+        <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" 
+               placeholder="e.g. 3.00" required />
+        <div id="p_productCost_error" class="form-error"></div>
+        <span class="form-help">How much it costs YOU to buy/fulfill this product</span>
+      </div>
     </div>
-    <div class="commission-item">
-      <i class="fas fa-wallet"></i>
-      <span><strong>You receive:</strong> Total order - platform fee</span>
+    
+    <div class="form-group">
+      <label class="form-label">Delivery Locations <span class="required">*</span></label>
+      <input type="text" id="p_deliveryLocations" class="form-input" placeholder="e.g. USA, UK, Nigeria, Worldwide" required />
+      <div id="p_deliveryLocations_error" class="form-error"></div>
+      <span class="form-help">Comma separated countries where you ship to (e.g., USA, UK, Nigeria). Enter "Worldwide" for global shipping.</span>
     </div>
-  </div>
-  
-  <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-    <p style="margin: 0; font-size: 13px; color: var(--accent);">
-      <i class="fas fa-info-circle"></i> <strong>Example: $40 product</strong>
-    </p>
-    <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-gray);">
-      • Order 3 units → Customer pays $120, you receive $116 (Platform: $4)<br>
-      • Order 7 units → Customer pays $280, you receive $248 (Platform: $32)
-    </p>
-    <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
-      <strong>Formula:</strong> For 1-5 units: Total - (Price × 10%) = Your earnings<br>
-      For 6+ units: Total - [(Price × 10%) + (Total × 10%)] = Your earnings
-    </p>
+    
+    <!-- Commission info for physical products with new fee structure -->
+    <div class="commission-card" style="margin-top: 20px;">
+      <h5><i class="fas fa-calculator"></i> How Your Earnings Work</h5>
+      <div class="commission-structure">
+        <div class="commission-item">
+          <i class="fas fa-tag"></i>
+          <span><strong>Customer pays:</strong> Full price × quantity</span>
+        </div>
+        <div class="commission-item">
+          <i class="fas fa-chart-line"></i>
+          <span><strong>Standard orders (1-5 units):</strong> Platform fee = 10% of single product price</span>
+        </div>
+        <div class="commission-item">
+          <i class="fas fa-chart-line"></i>
+          <span><strong>Bulk orders (6+ units):</strong> Platform fee = 10% of single price + 10% of total order value</span>
+        </div>
+        <div class="commission-item">
+          <i class="fas fa-wallet"></i>
+          <span><strong>You receive:</strong> Total order - platform fee</span>
+        </div>
+      </div>
+      
+      <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+        <p style="margin: 0; font-size: 13px; color: var(--accent);">
+          <i class="fas fa-info-circle"></i> <strong>Example: $40 product</strong>
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-gray);">
+          • Order 3 units → Customer pays $120, you receive <strong style="color: var(--success);">$116</strong> (Platform: $4)<br>
+          • Order 7 units → Customer pays $280, you receive <strong style="color: var(--success);">$248</strong> (Platform: $32)
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
+          <strong>Formula:</strong> For 1-5 units: Total - (Price × 10%) = Your earnings<br>
+          For 6+ units: Total - [(Price × 10%) + (Total × 10%)] = Your earnings
+        </p>
+      </div>
+      
+      <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
+        <p style="margin: 0; font-size: 11px; color: var(--text-muted);">
+          <i class="fas fa-chart-simple"></i> <strong>Quick Calculator:</strong> See what you earn
+        </p>
+        <div style="display: flex; gap: 10px; margin-top: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="number" id="calcPrice" class="form-input" placeholder="Your price" style="width: 100px; padding: 6px 10px;" value="40">
+          <span style="color: var(--text-gray);">→</span>
+          <div style="font-size: 12px;">
+            <div><span style="color: var(--text-muted);">3 units (standard):</span> <strong id="calcStandard" style="color: var(--success);">$108</strong></div>
+            <div><span style="color: var(--text-muted);">7 units (bulk):</span> <strong id="calcBulk" style="color: var(--success);">$248</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
           <!-- Payment Account Setup -->
@@ -3641,20 +3654,20 @@
           <div class="info-card">
             <h4><i class="fas fa-lightbulb"></i> Tips for Success</h4>
             <ul class="info-list">
-              <li><i class="fas fa-check-circle"></i> <strong>High-quality images</strong> increase sales</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Detailed descriptions</strong> build trust</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Clear pricing</strong> reduces confusion</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Multiple images</strong> from different angles</li>
+              <li><i class="fas fa-check-circle"></i> <strong>High-quality images</strong> increase sales by up to 40%</li>
+              <li><i class="fas fa-check-circle"></i> <strong>Detailed descriptions</strong> build trust with customers</li>
+              <li><i class="fas fa-check-circle"></i> <strong>Clear pricing</strong> reduces confusion and cart abandonment</li>
+              <li><i class="fas fa-check-circle"></i> <strong>Multiple images</strong> from different angles show product quality</li>
             </ul>
           </div>
           
           <div class="info-card">
             <h4><i class="fas fa-shield-alt"></i> Secure & Reliable</h4>
             <ul class="info-list">
-              <li><i class="fas fa-lock"></i> <strong>Bank-level security</strong></li>
-              <li><i class="fas fa-bolt"></i> <strong>Instant payouts</strong></li>
-              <li><i class="fas fa-headset"></i> <strong>24/7 support</strong></li>
-              <li><i class="fas fa-chart-line"></i> <strong>Sales analytics</strong></li>
+              <li><i class="fas fa-lock"></i> <strong>Bank-level security</strong> for all transactions</li>
+              <li><i class="fas fa-bolt"></i> <strong>Instant payouts</strong> after 5-day escrow</li>
+              <li><i class="fas fa-headset"></i> <strong>24/7 support</strong> for sellers</li>
+              <li><i class="fas fa-chart-line"></i> <strong>Real-time sales analytics</strong> in your dashboard</li>
             </ul>
           </div>
         </div>
@@ -7473,6 +7486,35 @@ async function loadOrderDetails(orderId) {
   }
 }
 
+ // Add this to your script section (near the end)
+// Add this to your script section
+// Price calculator for physical products
+const priceCalc = document.getElementById('calcPrice');
+if (priceCalc) {
+  function updateCalculator() {
+    const price = parseFloat(priceCalc.value) || 0;
+    
+    // Standard order - 3 units
+    const standardQty = 3;
+    const standardTotal = price * standardQty;
+    const standardPlatformFee = price * 0.10; // 10% of single product price
+    const standardEarnings = standardTotal - standardPlatformFee;
+    
+    // Bulk order - 7 units
+    const bulkQty = 7;
+    const bulkTotal = price * bulkQty;
+    const baseFee = price * 0.10;
+    const bulkFee = bulkTotal * 0.10;
+    const bulkPlatformFee = baseFee + bulkFee;
+    const bulkEarnings = bulkTotal - bulkPlatformFee;
+    
+    document.getElementById('calcStandard').textContent = `$${standardEarnings.toFixed(2)}`;
+    document.getElementById('calcBulk').textContent = `$${bulkEarnings.toFixed(2)}`;
+  }
+  
+  priceCalc.addEventListener('input', updateCalculator);
+  updateCalculator();
+}
 // ================= SELLER REFUND MANAGEMENT =================
 
 async function loadPendingRefunds() {

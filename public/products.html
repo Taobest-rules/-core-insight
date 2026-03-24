@@ -3034,6 +3034,146 @@
     .platform-fee {
       color: var(--accent);
     }
+    /* Compact Controls Styling */
+.filter-group {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-group i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.filter-group .search-input {
+  padding-left: 35px;
+  width: 220px;
+}
+
+.select {
+  background: var(--primary-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select:hover {
+  border-color: var(--accent);
+  background: var(--card-bg-hover);
+}
+
+.currency-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 5px 12px;
+}
+
+.currency-selector select {
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+.currency-selector select option {
+  background: var(--primary-dark);
+  color: var(--text-light);
+}
+
+.controls-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.country-select {
+  min-width: 140px;
+}
+
+@media (max-width: 1024px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group,
+  .select,
+  .currency-selector,
+  .controls-actions {
+    width: 100%;
+  }
+  
+  .filter-group .search-input {
+    width: 100%;
+  }
+  
+  .controls-actions {
+    margin-left: 0;
+  }
+}
+
+.commission-card {
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  margin-top: 24px;
+}
+
+.commission-card h5 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.commission-structure {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.commission-item {
+  background: var(--primary-dark);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.commission-item i {
+  color: var(--success);
+  font-size: 18px;
+}
+
+.commission-item span {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.commission-item strong {
+  color: var(--success);
+}
   </style>
 </head>
 <body>
@@ -3089,68 +3229,74 @@
         </div>
       </div>
     </section>
-
-   <!-- CONTROLS SECTION - Add this button inside the controls div -->
 <section class="controls">
-  <input id="searchInput" class="search-input" placeholder="Search products, categories..." />
+  <div class="filter-group">
+    <i class="fas fa-search"></i>
+    <input id="searchInput" class="search-input" placeholder="Search products..." />
+  </div>
+  
   <select id="filterType" class="select">
-    <option value="">All types</option>
-    <option value="digital">Digital</option>
-    <option value="physical">Physical</option>
-    <option value="affiliate">Affiliate</option>
+    <option value="">All Types</option>
+    <option value="digital">📱 Digital</option>
+    <option value="physical">📦 Physical</option>
+    <option value="affiliate">🔗 Affiliate</option>
   </select>
+  
   <select id="filterCategory" class="select">
-    <option value="">All categories</option>
+    <option value="">All Categories</option>
   </select>
-  <select id="sortSelect" class="select">
-    <option value="newest">Newest</option>
-    <option value="affordable">Most affordable</option>
-    <option value="rated">Highest rated</option>
-    <option value="favorites">Most favorited</option>
-  </select>
-  <select id="filterCategory" class="select">
-  <option value="">All categories</option>
-</select>
-
-<!-- ADD THIS COUNTRY FILTER RIGHT HERE -->
-<div class="country-filter">
-  <label><i class="fas fa-globe"></i> Ships to:</label>
-  <select id="filterCountry">
-    <option value="">All Countries</option>
-    <option value="USA">🇺🇸 USA</option>
-    <option value="UK">🇬🇧 UK</option>
+  
+  <select id="filterCountry" class="select country-select">
+    <option value="">🌍 Ships to: Anywhere</option>
+    <option value="USA">🇺🇸 United States</option>
+    <option value="UK">🇬🇧 United Kingdom</option>
     <option value="Nigeria">🇳🇬 Nigeria</option>
     <option value="Canada">🇨🇦 Canada</option>
+    <option value="Australia">🇦🇺 Australia</option>
     <option value="Germany">🇩🇪 Germany</option>
     <option value="France">🇫🇷 France</option>
+    <option value="Italy">🇮🇹 Italy</option>
+    <option value="Spain">🇪🇸 Spain</option>
+    <option value="Netherlands">🇳🇱 Netherlands</option>
     <option value="Kenya">🇰🇪 Kenya</option>
     <option value="South Africa">🇿🇦 South Africa</option>
     <option value="Ghana">🇬🇭 Ghana</option>
+    <option value="Egypt">🇪🇬 Egypt</option>
+    <option value="Morocco">🇲🇦 Morocco</option>
+    <option value="Brazil">🇧🇷 Brazil</option>
+    <option value="Mexico">🇲🇽 Mexico</option>
+    <option value="Japan">🇯🇵 Japan</option>
+    <option value="China">🇨🇳 China</option>
+    <option value="India">🇮🇳 India</option>
+    <option value="Singapore">🇸🇬 Singapore</option>
+    <option value="UAE">🇦🇪 UAE</option>
+    <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
     <option value="Worldwide">🌍 Worldwide</option>
   </select>
-</div>
-  <!-- Currency Selector -->
+  
+  <select id="sortSelect" class="select">
+    <option value="newest">🆕 Newest</option>
+    <option value="affordable">💰 Price: Low to High</option>
+    <option value="rated">⭐ Highest Rated</option>
+    <option value="favorites">❤️ Most Favorited</option>
+  </select>
+  
   <div class="currency-selector">
-    <label for="currencyHeader">Currency:</label>
-    <select id="currencyHeader" title="Display currency">
-      <option value="USD">USD ($)</option>
-      <option value="NGN">NGN (₦)</option>
-      <option value="EUR">EUR (€)</option>
-      <option value="GBP">GBP (£)</option>
-      <option value="KES">KES (KSh)</option>
-      <option value="GHS">GHS (GH₵)</option>
-      <option value="ZAR">ZAR (R)</option>
+    <i class="fas fa-coins" style="color: var(--accent);"></i>
+    <select id="currencyHeader">
+      <option value="USD">USD $</option>
+      <option value="NGN">NGN ₦</option>
+      <option value="EUR">EUR €</option>
+      <option value="GBP">GBP £</option>
+      <option value="KES">KES KSh</option>
+      <option value="GHS">GHS GH₵</option>
+      <option value="ZAR">ZAR R</option>
     </select>
   </div>
 
-  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-    <!-- NEW: AliExpress Import Button (only visible to admin) -->
-    <button id="aliexpressImportBtn" class="btn primary" style="display: none; background: var(--success);" title="Import products from AliExpress">
-      <i class="fas fa-download"></i> Import from AliExpress
-    </button>
+  <div class="controls-actions">
     <button id="refreshBtn" class="btn primary">
-      <i class="fas fa-sync-alt"></i>
-      Refresh
+      <i class="fas fa-sync-alt"></i> Refresh
     </button>
   </div>
 </section>
@@ -3318,30 +3464,42 @@
                 <p><i class="fas fa-money-bill-wave"></i> <strong>Note:</strong> Customer pays full price upfront. $3 goes to product fulfillment, rest to you.</p>
               </div>
               
-              <!-- Commission info for physical products - UPDATED -->
-              <div class="commission-card" style="margin-top: 20px;">
-                <h5><i class="fas fa-calculator"></i> Payment Breakdown Example ($30 product)</h5>
-                <div class="commission-structure">
-                  <div class="commission-item">
-                    <i class="fas fa-box"></i>
-                    <span><strong>$3.00</strong> Product Fulfillment</span>
-                  </div>
-                  <div class="commission-item">
-                    <i class="fas fa-chart-line"></i>
-                    <span><strong>$2.70</strong> Platform Fee (10% of $27)</span>
-                  </div>
-                  <div class="commission-item">
-                    <i class="fas fa-wallet"></i>
-                    <span><strong>$24.30</strong> Your Earnings</span>
-                  </div>
-                </div>
-                <p style="color: var(--text-gray); font-size: 13px; margin-top: 15px; text-align: center;">
-                  Formula: (Price - Product Cost) × 0.9 = Your Earnings
-                </p>
-              </div>
-            </div>
-          </div>
-
+             <!-- Commission info for physical products - UPDATED with new fee structure -->
+<div class="commission-card" style="margin-top: 20px;">
+  <h5><i class="fas fa-calculator"></i> How Your Earnings Work</h5>
+  <div class="commission-structure">
+    <div class="commission-item">
+      <i class="fas fa-tag"></i>
+      <span><strong>Customer pays:</strong> Full price × quantity</span>
+    </div>
+    <div class="commission-item">
+      <i class="fas fa-chart-line"></i>
+      <span><strong>Standard orders (1-5 units):</strong> Platform fee = 10% of single product price</span>
+    </div>
+    <div class="commission-item">
+      <i class="fas fa-chart-line"></i>
+      <span><strong>Bulk orders (6+ units):</strong> Platform fee = 10% of single price + 10% of total order value</span>
+    </div>
+    <div class="commission-item">
+      <i class="fas fa-wallet"></i>
+      <span><strong>You receive:</strong> Total order - platform fee</span>
+    </div>
+  </div>
+  
+  <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+    <p style="margin: 0; font-size: 13px; color: var(--accent);">
+      <i class="fas fa-info-circle"></i> <strong>Example: $40 product</strong>
+    </p>
+    <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-gray);">
+      • Order 3 units → Customer pays $120, you receive $116 (Platform: $4)<br>
+      • Order 7 units → Customer pays $280, you receive $248 (Platform: $32)
+    </p>
+    <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
+      <strong>Formula:</strong> For 1-5 units: Total - (Price × 10%) = Your earnings<br>
+      For 6+ units: Total - [(Price × 10%) + (Total × 10%)] = Your earnings
+    </p>
+  </div>
+</div>
           <!-- Payment Account Setup -->
           <div class="payment-provider-section">
             <div class="payment-provider-header">
@@ -4436,68 +4594,55 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
       }
     }
 
-    async function loadDashboardStats() {
+  async function loadDashboardStats() {
+  try {
+    let stats;
+    
+    if (currentUser && currentUser.role === 'admin') {
       try {
-        let stats;
-        
-        if (currentUser && currentUser.role === 'admin') {
-          // Admin gets platform-wide stats
-          const [platformRes, summaryRes] = await Promise.all([
-            fetch('/api/admin/platform/stats'),
-            fetch('/api/admin/dashboard/summary')
-          ]);
-          
-          const platformData = platformRes.ok ? await platformRes.json() : {};
-          const summaryData = summaryRes.ok ? await summaryRes.json() : {};
-          
+        const platformRes = await fetch('/api/admin/platform/stats');
+        if (platformRes.ok) {
+          const platformData = await platformRes.json();
           stats = {
             totalProducts: platformData.stats?.total_products || 0,
             totalSales: platformData.stats?.total_sales || 0,
             totalRevenue: `$${(platformData.stats?.total_revenue || 0).toFixed(2)}`,
             avgRating: '4.5'
           };
-          
-          // Update platform stats for admin
           document.getElementById('platformTotalUsers').textContent = platformData.stats?.total_users || 0;
           document.getElementById('platformTotalProducts').textContent = stats.totalProducts;
           document.getElementById('platformTotalSales').textContent = stats.totalSales;
           document.getElementById('platformRevenue').textContent = `$${(platformData.stats?.platform_revenue || 0).toFixed(2)}`;
-          
-          // Show admin tab
           document.getElementById('adminTab').style.display = 'block';
           document.getElementById('adminControls').style.display = 'block';
-        } else {
-          // Regular user gets their own stats
-          const statsRes = await fetch(`/api/seller/stats/${currentUser.id}`);
-          const statsData = statsRes.ok ? await statsRes.json() : {};
-          
-          stats = {
-            totalProducts: statsData.stats?.product_count || 0,
-            totalSales: statsData.stats?.sales_count || 0,
-            totalRevenue: `$${(statsData.stats?.total_revenue || 0).toFixed(2)}`,
-            avgRating: statsData.stats?.avg_rating?.toFixed(1) || '0.0'
-          };
-          
-          // Update summary cards
-          const totalRevenue = statsData.stats?.total_revenue || 0;
-          const userEarnings = totalRevenue * 0.9; // 90% for seller
-          const platformFee = totalRevenue * 0.1; // 10% platform fee
-          
-          document.getElementById('totalSalesValue').textContent = `$${totalRevenue.toFixed(2)}`;
-          document.getElementById('yourEarnings').textContent = `$${userEarnings.toFixed(2)}`;
-          document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)}`;
         }
-        
-        // Update stats cards
-        document.getElementById('totalProducts').textContent = stats.totalProducts;
-        document.getElementById('totalSales').textContent = stats.totalSales;
-        document.getElementById('totalRevenue').textContent = stats.totalRevenue;
-        document.getElementById('avgRating').textContent = stats.avgRating;
-        
-      } catch (error) {
-        console.error('Error loading stats:', error);
+      } catch (e) {
+        console.log('Admin stats not available');
       }
+    } else {
+      // Fallback stats if API not available
+      stats = {
+        totalProducts: products.filter(p => p.user_id === currentUser?.id).length,
+        totalSales: 0,
+        totalRevenue: '$0.00',
+        avgRating: '0.0'
+      };
     }
+    
+    document.getElementById('totalProducts').textContent = stats.totalProducts;
+    document.getElementById('totalSales').textContent = stats.totalSales;
+    document.getElementById('totalRevenue').textContent = stats.totalRevenue;
+    document.getElementById('avgRating').textContent = stats.avgRating;
+    
+  } catch (error) {
+    console.error('Error loading stats:', error);
+    // Set defaults
+    document.getElementById('totalProducts').textContent = '0';
+    document.getElementById('totalSales').textContent = '0';
+    document.getElementById('totalRevenue').textContent = '$0';
+    document.getElementById('avgRating').textContent = '0.0';
+  }
+}
 
    function loadMainTabData(tabId) {
   switch(tabId) {
@@ -4520,36 +4665,40 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
   }
 }
 
-    async function loadMyProducts() {
-      const container = document.getElementById('myProductsList');
-      
-      try {
-        if (!currentUser) {
-          console.error('currentUser is undefined!');
-          return;
-        }
-        
-        const response = await fetch(`/api/products/seller/${currentUser.id}`, {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const products = await response.json();
-        
-        if (!products || products.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <i class="fas fa-box-open"></i>
-              <h4>No products yet</h4>
-              <p>Start by listing your first product</p>
-            </div>
-          `;
-          return;
-        }
-        
+   async function loadMyProducts() {
+  const container = document.getElementById('myProductsList');
+  
+  try {
+    if (!currentUser) return;
+    
+    const response = await fetch(`/api/products/seller/${currentUser.id}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      // If endpoint doesn't exist, show empty state
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-box-open"></i>
+          <h4>No products yet</h4>
+          <p>Start by listing your first product</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const products = await response.json();
+    
+    if (!products || products.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-box-open"></i>
+          <h4>No products yet</h4>
+          <p>Start by listing your first product</p>
+        </div>
+      `;
+      return;
+    }
         let html = `
           <table>
             <thead>
@@ -4620,19 +4769,18 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
         
         html += `</tbody></table>`;
         container.innerHTML = html;
-        
-      } catch (error) {
-        console.error('Error loading my products:', error);
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h4>Error loading products</h4>
-            <p>${error.message}</p>
-            <button onclick="loadMyProducts()" class="btn btn-retry">Retry</button>
-          </div>
-        `;
-      }
-    }
+      
+  } catch (error) {
+    console.error('Error loading my products:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <h4>No products yet</h4>
+        <p>Start by listing your first product</p>
+      </div>
+    `;
+  }
+}
     // View order details
 async function viewOrderDetails(orderId) {
   try {
@@ -5600,31 +5748,27 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
     });
 
     // ================= NOTIFICATION SYSTEM =================
-    async function loadSellerNotifications() {
-      try {
-        if (!currentUser) return;
-        
-        const response = await fetch('/api/seller/notifications');
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Update notification badge
-          const notificationCount = document.getElementById('notificationCount');
-          if (notificationCount && data.unreadCount > 0) {
-            notificationCount.textContent = data.unreadCount;
-            notificationCount.style.display = 'flex';
-          } else if (notificationCount) {
-            notificationCount.style.display = 'none';
-          }
-          
-          // Store notifications for display in dashboard
-          window.sellerNotifications = data.notifications;
-        }
-      } catch (error) {
-        console.error('Error loading notifications:', error);
-      }
+ async function loadSellerNotifications() {
+  try {
+    if (!currentUser) return;
+    
+    const response = await fetch('/api/seller/notifications');
+    if (!response.ok) {
+      // Silently fail - notifications are optional
+      console.log('Notifications endpoint not available');
+      return;
     }
-
+    const data = await response.json();
+    const notificationCount = document.getElementById('notificationCount');
+    if (notificationCount && data.unreadCount > 0) {
+      notificationCount.textContent = data.unreadCount;
+      notificationCount.style.display = 'flex';
+    }
+  } catch (error) {
+    // Silent fail - notifications are optional
+    console.log('Notifications not available');
+  }
+}
     // ================= PRODUCT ORDER SYSTEM =================
     let currentOrderProduct = null;
     // Make the function global

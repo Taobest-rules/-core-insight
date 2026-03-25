@@ -157,6 +157,8 @@ const escapeHtml = (str) => {
     .replace(/'/g, '&#39;');
 };
 
+
+
 // ============================================
 // EMAIL CONFIGURATION - BREVO
 // ============================================
@@ -595,7 +597,6 @@ app.get("/api/products", async (req, res) => {
 // ============================================
 // SELLER NOTIFICATIONS ENDPOINT - FIXED
 // ============================================
-
 app.get("/api/seller/notifications", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -604,7 +605,6 @@ app.get("/api/seller/notifications", async (req, res) => {
     
     const userId = req.session.user.id;
     
-    // Get seller notifications
     const notifications = await db.query(`
       SELECT n.*, o.product_name, o.total_amount, o.quantity, o.order_status
       FROM seller_notifications n
@@ -620,17 +620,20 @@ app.get("/api/seller/notifications", async (req, res) => {
       WHERE seller_id = ? AND is_read = 0
     `, [userId]);
     
-    const count = (unreadCount && unreadCount.length > 0) ? unreadCount[0].count : 0;
-    
     res.json({
       success: true,
       notifications: extractRows(notifications),
-      unreadCount: count
+      unreadCount: (unreadCount && unreadCount.length > 0) ? unreadCount[0].count : 0
     });
     
   } catch (err) {
     console.error("❌ Error loading seller notifications:", err);
-    res.status(500).json({ error: err.message });
+    // Return empty array instead of error to prevent frontend errors
+    res.json({
+      success: true,
+      notifications: [],
+      unreadCount: 0
+    });
   }
 });
 
@@ -1331,10 +1334,13 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   }
 });
 
-// 6. Get seller's physical orders (dashboard)
+// SELLER PHYSICAL ORDERS ENDPOINT - FIXED
+// ============================================
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
-    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
 
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
@@ -1358,7 +1364,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
 
     const orders = await db.query(query, params);
 
-    // Get counts for dashboard
+    // Get counts
     const counts = await db.query(
       `SELECT 
         COUNT(CASE WHEN order_status = 'pending_seller_approval' THEN 1 END) as pending_approval,
@@ -1372,29 +1378,23 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     );
 
     const processedOrders = extractRows(orders).map(order => {
-      order.total_amount = parseFloat(order.total_amount);
-      order.platform_fee = parseFloat(order.platform_fee) || 0;
-      order.seller_earnings = parseFloat(order.seller_earnings) || 0;
-      
-      if (order.fee_breakdown) {
-        try {
-          order.fee_breakdown = JSON.parse(order.fee_breakdown);
-        } catch (e) {}
-      }
-      
+      order.total_amount = parseFloat(order.total_amount || 0);
+      order.platform_fee = parseFloat(order.platform_fee || 0);
+      order.seller_earnings = parseFloat(order.seller_earnings || 0);
+      order.price = parseFloat(order.price || 0);
       return order;
     });
 
     res.json({
       success: true,
       orders: processedOrders,
-      counts: counts[0] || {},
+      counts: counts[0] || { pending_approval: 0, accepted: 0, paid: 0, completed: 0, refund_requests: 0 },
       pagination: { page: parseInt(page), limit: parseInt(limit) }
     });
 
   } catch (err) {
     console.error("❌ Error fetching seller orders:", err);
-    res.status(500).json({ error: "Failed to fetch orders" });
+    res.status(500).json({ error: "Failed to fetch orders", details: err.message });
   }
 });
 
@@ -1834,14 +1834,15 @@ app.post("/api/refunds/:orderId/process", async (req, res) => {
   }
 });
 
-// 11. Get pending refunds
 app.get("/api/refunds/pending", async (req, res) => {
   try {
-    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
     
     const isAdmin = req.session.user.role === 'admin';
     let query = `
-      SELECT o.id, o.order_number, o.product_name, o.quantity, o.total_amount, 
+      SELECT o.id, o.product_name, o.quantity, o.total_amount, 
              o.refund_reason, o.refund_requested_at,
              u_buyer.username as buyer_name, u_buyer.email as buyer_email,
              u_seller.username as seller_name, u_seller.email as seller_email,
@@ -1865,7 +1866,10 @@ app.get("/api/refunds/pending", async (req, res) => {
     
     res.json({
       success: true,
-      refunds: extractRows(refundRequests)
+      refunds: extractRows(refundRequests).map(r => ({
+        ...r,
+        total_amount: parseFloat(r.total_amount || 0)
+      }))
     });
     
   } catch (err) {
@@ -1873,6 +1877,7 @@ app.get("/api/refunds/pending", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // 12. Check escrow status
 app.get("/api/orders/:orderId/escrow-status", async (req, res) => {

@@ -807,14 +807,27 @@ app.get("/api/debug/orders", async (req, res) => {
 // PHYSICAL ORDER SYSTEM
 // ============================================
 
-// 1. Create physical order (WITHOUT payment first) - FULLY FIXED
+// 1. Create physical order - STANDARDIZED VERSION
 app.post("/api/physical-orders/create", async (req, res) => {
   try {
     console.log("📦 Creating physical order...");
     
-    if (!req.session.user) return res.status(401).json({ error: "Please log in to place an order" });
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to place an order" });
+    }
 
-    const { productId, quantity = 1, deliveryAddress, city, state, country, deliveryPhone, notes = '' } = req.body;
+    const { 
+      productId, 
+      quantity = 1, 
+      deliveryAddress, 
+      city, 
+      state, 
+      country, 
+      deliveryPhone, 
+      notes = '' 
+    } = req.body;
+    
+    // Validation
     if (!productId) return res.status(400).json({ error: "Product ID is required" });
     if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
     if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
@@ -833,7 +846,9 @@ app.post("/api/physical-orders/create", async (req, res) => {
       [productId]
     );
 
-    if (!productResult || productResult.length === 0) return res.status(404).json({ error: "Product not found" });
+    if (!productResult || productResult.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
 
     const product = productResult[0];
     const sellerId = product.user_id;
@@ -842,7 +857,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const totalAmount = qty * productPrice;
     const productCostTotal = (parseFloat(product.product_cost) || 0) * qty;
 
-    // Calculate fees for internal tracking (customer doesn't see these)
+    // Calculate fees
     const baseFee = productPrice * 0.10;
     const basePlatformFeeTotal = baseFee * qty;
     let bulkOrderFee = 0;
@@ -867,7 +882,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
     };
 
-    // FIXED: INSERT with correct number of placeholders (28 placeholders including NOW)
+    // STANDARDIZED INSERT - using correct status values
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
@@ -882,7 +897,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
         platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
         payment_provider, fee_breakdown,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         productId, sellerId, buyerId,
         product.title,
@@ -899,8 +914,8 @@ app.post("/api/physical-orders/create", async (req, res) => {
         country || '',
         deliveryPhone,
         'pay_after_approval',
-        'pending',
-        'pending_seller_approval',
+        'pending',  // payment_status
+        'pending_seller_approval',  // order_status - STANDARDIZED
         notes || '',
         product.estimated_delivery_days || 7,
         platformFee,
@@ -913,7 +928,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
     );
     
     const orderId = result.insertId;
-    console.log(`✅ Order #${orderId} created, awaiting seller approval`);
+    console.log(`✅ Order #${orderId} created with status: pending_seller_approval`);
 
     // Create seller notification
     await db.query(
@@ -924,7 +939,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       [sellerId, orderId, orderId, product.title, qty]
     );
 
-    // Send email confirmation to buyer
+    // Send email confirmations (keep existing email code)
     try {
       await sendOrderConfirmationEmail({
         email: req.session.user.email,
@@ -940,7 +955,6 @@ app.post("/api/physical-orders/create", async (req, res) => {
       console.error('❌ Order confirmation email failed:', emailError.message);
     }
 
-    // Send email notification to seller
     try {
       await sendSellerNotificationEmail({
         email: product.seller_email,
@@ -1136,10 +1150,12 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
   }
 });
 
-// 3. Get order details (for buyer/seller)
+// Get order details - STANDARDIZED
 app.get("/api/orders/:orderId", async (req, res) => {
   try {
-    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
     
     const orderId = req.params.orderId;
     
@@ -1159,17 +1175,44 @@ app.get("/api/orders/:orderId", async (req, res) => {
     }
     
     const orderData = order[0];
-    orderData.total_amount = parseFloat(orderData.total_amount);
-    orderData.platform_fee = parseFloat(orderData.platform_fee) || 0;
-    orderData.seller_earnings = parseFloat(orderData.seller_earnings) || 0;
     
-    if (orderData.fee_breakdown) {
-      try {
-        orderData.fee_breakdown = JSON.parse(orderData.fee_breakdown);
-      } catch (e) {}
-    }
+    // Standardize response
+    const standardizedOrder = {
+      id: orderData.id,
+      product_id: orderData.product_id,
+      product_name: orderData.product_name,
+      product_images: orderData.images ? (typeof orderData.images === 'string' ? JSON.parse(orderData.images) : orderData.images) : [],
+      quantity: parseInt(orderData.quantity),
+      price: parseFloat(orderData.price),
+      total_amount: parseFloat(orderData.total_amount),
+      order_status: orderData.order_status,
+      payment_status: orderData.payment_status,
+      buyer: {
+        id: orderData.buyer_id,
+        name: orderData.buyer_name,
+        email: orderData.buyer_email
+      },
+      seller: {
+        id: orderData.seller_id,
+        name: orderData.seller_name,
+        email: orderData.seller_email
+      },
+      shipping_address: orderData.shipping_address,
+      delivery_phone: orderData.delivery_phone,
+      notes: orderData.notes,
+      created_at: orderData.created_at,
+      seller_accepted_at: orderData.seller_accepted_at,
+      payment_collected_at: orderData.payment_collected_at,
+      payment_held_until: orderData.payment_held_until,
+      funds_released_at: orderData.funds_released_at,
+      platform_fee: parseFloat(orderData.platform_fee) || 0,
+      seller_earnings: parseFloat(orderData.seller_earnings) || 0,
+      estimated_delivery_days: orderData.estimated_delivery_days || 7,
+      fee_breakdown: orderData.fee_breakdown ? 
+        (typeof orderData.fee_breakdown === 'string' ? JSON.parse(orderData.fee_breakdown) : orderData.fee_breakdown) : null
+    };
     
-    res.json({ success: true, order: orderData });
+    res.json({ success: true, order: standardizedOrder });
     
   } catch (err) {
     console.error("❌ Error loading order details:", err);
@@ -1424,64 +1467,24 @@ app.get("/api/test/seller-orders", async (req, res) => {
 // ============================================
 // SELLER PHYSICAL ORDERS - FIXED
 // ============================================
-// SELLER PHYSICAL ORDERS - COMPLETELY FIXED VERSION
+// SELLER PHYSICAL ORDERS - STANDARDIZED VERSION
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
-    // Check authentication
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
 
     const sellerId = req.session.user.id;
-    console.log(`📦 Fetching orders for seller ID: ${sellerId}`);
-    
-    // Get query parameters with defaults
     const { status, page = 1, limit = 20 } = req.query;
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const offset = (pageNum - 1) * limitNum;
     
-    // Build the main query with proper column selection
+    // Build main query with all fields
     let mainQuery = `
       SELECT 
-        o.id,
-        o.product_id,
-        o.seller_id,
-        o.buyer_id,
-        o.product_name,
-        o.product_type,
-        o.quantity,
-        o.price,
-        o.total_amount,
-        o.product_cost_total,
-        o.customer_name,
-        o.customer_email,
-        o.customer_phone,
-        o.shipping_address,
-        o.city,
-        o.state,
-        o.country,
-        o.postal_code,
-        o.delivery_phone,
-        o.payment_method,
-        o.payment_status,
-        o.order_status,
-        o.notes,
-        o.estimated_delivery_days,
-        o.platform_fee,
-        o.base_platform_fee,
-        o.bulk_order_fee,
-        o.seller_earnings,
-        o.payment_provider,
-        o.fee_breakdown,
-        o.created_at,
-        o.seller_accepted_at,
-        o.payment_collected_at,
-        o.payment_held_until,
-        o.funds_released_at,
-        o.refund_requested_at,
-        o.refund_reason,
-        p.title as product_name_from_product,
+        o.*,
+        p.title as product_name,
         u.username as buyer_name,
         u.email as buyer_email
       FROM physical_orders o
@@ -1492,129 +1495,110 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     
     const queryParams = [sellerId];
     
-    // Add status filter if provided
+    // Apply status filter using standardized status values
     if (status && status !== 'all' && status !== 'undefined') {
       mainQuery += " AND o.order_status = ?";
       queryParams.push(status);
     }
     
-    // Add ordering and pagination
     mainQuery += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     queryParams.push(limitNum, offset);
-    
-    console.log("📝 Executing main query with params:", queryParams);
     
     // Execute main query
     let orders = [];
     try {
       const result = await db.query(mainQuery, queryParams);
       orders = Array.isArray(result) ? result : [];
-      console.log(`✅ Found ${orders.length} orders`);
     } catch (error) {
-      console.error("❌ Main query failed:", error.message);
-      console.error("SQL:", mainQuery);
-      console.error("Params:", queryParams);
+      console.error("❌ Main query failed:", error);
       throw error;
     }
     
-    // Get counts separately with a simpler query
+    // Get standardized counts
     let counts = {
       pending_approval: 0,
-      accepted: 0,
+      seller_accepted: 0,
       paid: 0,
       completed: 0,
-      refund_requests: 0
+      refund_requested: 0,
+      refunded: 0,
+      cancelled: 0
     };
     
     try {
-      // Simple count queries to avoid any SQL issues
-      const countQueries = [
-        { status: 'pending_seller_approval', field: 'pending_approval' },
-        { status: 'seller_accepted', field: 'accepted' },
-        { status: 'paid', field: 'paid' },
-        { status: 'completed', field: 'completed' },
-        { status: 'refund_requested', field: 'refund_requests' }
-      ];
+      // Get all counts in one query for efficiency
+      const countResult = await db.query(`
+        SELECT 
+          order_status,
+          COUNT(*) as count
+        FROM physical_orders
+        WHERE seller_id = ?
+        GROUP BY order_status
+      `, [sellerId]);
       
-      for (const { status, field } of countQueries) {
-        const result = await db.query(
-          "SELECT COUNT(*) as count FROM physical_orders WHERE seller_id = ? AND order_status = ?",
-          [sellerId, status]
-        );
-        if (result && result.length > 0) {
-          counts[field] = parseInt(result[0].count) || 0;
-        }
+      // Map results to counts object
+      if (countResult && countResult.length > 0) {
+        countResult.forEach(row => {
+          const status = row.order_status;
+          if (status === 'pending_seller_approval') counts.pending_approval = row.count;
+          if (status === 'seller_accepted') counts.seller_accepted = row.count;
+          if (status === 'paid') counts.paid = row.count;
+          if (status === 'completed') counts.completed = row.count;
+          if (status === 'refund_requested') counts.refund_requested = row.count;
+          if (status === 'refunded') counts.refunded = row.count;
+          if (status === 'cancelled') counts.cancelled = row.count;
+        });
       }
-      
-      console.log("📊 Counts:", counts);
     } catch (error) {
-      console.error("❌ Count query failed:", error.message);
-      // Continue with zeros if counts query fails
+      console.error("❌ Count query failed:", error);
     }
     
-    // Process orders to ensure all fields exist and correct data types
-    const processedOrders = orders.map(order => {
-      // Use product_name from either column
-      const productName = order.product_name_from_product || order.product_name || 'Unknown Product';
-      
-      return {
-        id: order.id,
-        product_id: order.product_id,
-        product_name: productName,
-        quantity: parseInt(order.quantity) || 1,
-        price: parseFloat(order.price) || 0,
-        total_amount: parseFloat(order.total_amount) || 0,
-        order_status: order.order_status || 'pending',
-        customer_name: order.customer_name || order.buyer_name || 'Unknown',
-        customer_email: order.customer_email || order.buyer_email || '',
-        shipping_address: order.shipping_address || '',
-        delivery_phone: order.delivery_phone || order.customer_phone || '',
-        created_at: order.created_at,
-        platform_fee: parseFloat(order.platform_fee) || 0,
-        seller_earnings: parseFloat(order.seller_earnings) || 0,
-        estimated_delivery_days: order.estimated_delivery_days || 7,
-        seller_accepted_at: order.seller_accepted_at,
-        payment_collected_at: order.payment_collected_at,
-        payment_held_until: order.payment_held_until,
-        funds_released_at: order.funds_released_at,
-        refund_reason: order.refund_reason,
-        // For backward compatibility
-        buyer_name: order.buyer_name || order.customer_name,
-        buyer_email: order.buyer_email || order.customer_email
-      };
-    });
+    // Process orders with standardized data
+    const processedOrders = orders.map(order => ({
+      id: order.id,
+      product_id: order.product_id,
+      product_name: order.product_name || order.product_name_from_product || 'Product',
+      quantity: parseInt(order.quantity) || 1,
+      price: parseFloat(order.price) || 0,
+      total_amount: parseFloat(order.total_amount) || 0,
+      order_status: order.order_status, // Already standardized
+      payment_status: order.payment_status,
+      customer_name: order.customer_name,
+      customer_email: order.customer_email,
+      buyer_name: order.buyer_name,
+      buyer_email: order.buyer_email,
+      shipping_address: order.shipping_address,
+      delivery_phone: order.delivery_phone,
+      created_at: order.created_at,
+      seller_accepted_at: order.seller_accepted_at,
+      payment_collected_at: order.payment_collected_at,
+      payment_held_until: order.payment_held_until,
+      funds_released_at: order.funds_released_at,
+      platform_fee: parseFloat(order.platform_fee) || 0,
+      seller_earnings: parseFloat(order.seller_earnings) || 0,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
+      notes: order.notes
+    }));
     
-    // Return successful response
     res.json({
       success: true,
       orders: processedOrders,
       counts: counts,
       pagination: {
         page: pageNum,
-        limit: limitNum
-      },
-      debug: {
-        totalOrdersFound: orders.length,
-        sellerId: sellerId,
-        statusFilter: status || 'all'
+        limit: limitNum,
+        total: processedOrders.length
       }
     });
     
   } catch (err) {
     console.error("❌ Error in /api/seller/physical-orders:", err);
-    console.error("Stack:", err.stack);
-    
-    // Send a clear error response
     res.status(500).json({ 
       error: "Failed to fetch orders", 
-      details: err.message,
-      // Include the SQL error if it's a database error
-      sqlError: err.sqlMessage || null,
-      sqlCode: err.code || null
+      details: err.message 
     });
   }
 });
-
 // 7. Get buyer's physical orders
 app.get("/api/buyer/physical-orders", async (req, res) => {
   try {

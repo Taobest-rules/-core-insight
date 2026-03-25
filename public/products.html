@@ -7466,54 +7466,21 @@ function checkAdminAndShowImportButton() {
 
 // ================= REVIEWS FUNCTIONS - FIXED =================
 
-async function loadProductReviews(productId) {
-  if (!productId) return;
-  currentProductId = productId;
-
-  try {
-    const res = await fetch(`/api/reviews/${productId}`, {
-      credentials: 'include',
-      headers: { 'Accept': 'application/json' }
-    });
-    
-    if (!res.ok) {
-      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet</p>';
-      document.getElementById("averageRating").textContent = "";
-      return;
-    }
-    
-    const data = await res.json();
-    const list = document.getElementById("reviewsList");
-    const avg = document.getElementById("averageRating");
-
-    if (!data.reviews || data.reviews.length === 0) {
-      list.innerHTML = '<p style="color: var(--text-gray)">No reviews yet. Be the first to review!</p>';
-      avg.textContent = "";
-      return;
-    }
-
-    // Fix: Convert avgRating to number
-    let avgRating = data.averageRating || 0;
-    if (typeof avgRating === 'string') {
-      avgRating = parseFloat(avgRating);
-    }
-    if (isNaN(avgRating)) avgRating = 0;
-    
-    const reviewCount = data.count || data.reviews.length;
-    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${reviewCount} reviews)`;
-
-    list.innerHTML = data.reviews.map(r => `
-      <div class="review-item">
-        <strong>${escapeHtml(r.username)} — ⭐ ${r.rating}</strong>
-        <p>${escapeHtml(r.comment)}</p>
-        <small>${new Date(r.created_at).toLocaleDateString()}</small>
-      </div>
-    `).join("");
-
-  } catch (err) {
-    console.error("Error loading reviews:", err);
-    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews</p>';
-  }
+function formatStatus(status) {
+  const statusMap = {
+    'pending_seller_approval': 'Awaiting Approval',
+    'seller_accepted': 'Accepted - Payment Required',
+    'pending_payment': 'Payment Pending',
+    'paid': 'Paid (Escrow)',
+    'completed': 'Completed',
+    'refund_requested': 'Refund Requested',
+    'refunded': 'Refunded',
+    'cancelled': 'Cancelled',
+    'processing': 'Processing',
+    'shipped': 'Shipped',
+    'delivered': 'Delivered'
+  };
+  return statusMap[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
  
 

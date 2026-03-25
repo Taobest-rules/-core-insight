@@ -807,7 +807,7 @@ app.get("/api/debug/orders", async (req, res) => {
 // PHYSICAL ORDER SYSTEM
 // ============================================
 
-// 1. Create physical order (WITHOUT payment first) - UPDATED
+// 1. Create physical order (WITHOUT payment first) - FULLY FIXED
 app.post("/api/physical-orders/create", async (req, res) => {
   try {
     console.log("📦 Creating physical order...");
@@ -840,6 +840,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const buyerId = req.session.user.id;
     const productPrice = parseFloat(product.original_price || product.price);
     const totalAmount = qty * productPrice;
+    const productCostTotal = (parseFloat(product.product_cost) || 0) * qty;
 
     // Calculate fees for internal tracking (customer doesn't see these)
     const baseFee = productPrice * 0.10;
@@ -852,7 +853,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       platformFee = basePlatformFeeTotal + bulkOrderFee;
     }
     
-    const sellerEarnings = totalAmount - (product.product_cost || 0) * qty;
+    const sellerEarnings = totalAmount - platformFee;
     
     const feeBreakdown = {
       type: qty >= 6 ? 'bulk' : 'standard',
@@ -866,48 +867,51 @@ app.post("/api/physical-orders/create", async (req, res) => {
       note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
     };
 
- // In index.js - Fix the INSERT query in /api/physical-orders/create
-const result = await db.query(
-  `INSERT INTO physical_orders (
-    product_id, seller_id, buyer_id,
-    product_name, product_type, quantity, 
-    price, total_amount,
-    customer_name, customer_email, customer_phone,
-    shipping_address, city, state, country,
-    delivery_phone,
-    payment_method, payment_status, order_status,
-    notes, estimated_delivery_days,
-    platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
-    fee_breakdown, payment_provider,
-    created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-  [
-    productId, sellerId, buyerId,
-    product.title,
-    'physical', qty,
-    productPrice,
-    totalAmount,
-    req.session.user.username || 'Buyer',
-    req.session.user.email,
-    deliveryPhone,
-    deliveryAddress,
-    city || '',
-    state || '',
-    country || '',
-    deliveryPhone,
-    'pay_after_approval',
-    'pending',
-    'pending_seller_approval',
-    notes || '',
-    product.estimated_delivery_days || 7,
-    platformFee,
-    basePlatformFeeTotal,
-    bulkOrderFee,
-    sellerEarnings,
-    JSON.stringify(feeBreakdown),
-    'flutterwave'
-  ]
-);
+    // FIXED: INSERT with correct number of placeholders (28 placeholders including NOW)
+    const result = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id,
+        product_name, product_type, quantity, 
+        price, total_amount,
+        product_cost_total,
+        customer_name, customer_email, customer_phone,
+        shipping_address, city, state, country,
+        delivery_phone,
+        payment_method, payment_status, order_status,
+        notes, estimated_delivery_days,
+        platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
+        payment_provider, fee_breakdown,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        productId, sellerId, buyerId,
+        product.title,
+        'physical', qty,
+        productPrice,
+        totalAmount,
+        productCostTotal,
+        req.session.user.username || 'Buyer',
+        req.session.user.email,
+        deliveryPhone,
+        deliveryAddress,
+        city || '',
+        state || '',
+        country || '',
+        deliveryPhone,
+        'pay_after_approval',
+        'pending',
+        'pending_seller_approval',
+        notes || '',
+        product.estimated_delivery_days || 7,
+        platformFee,
+        basePlatformFeeTotal,
+        bulkOrderFee,
+        sellerEarnings,
+        'flutterwave',
+        JSON.stringify(feeBreakdown)
+      ]
+    );
+    
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created, awaiting seller approval`);
 

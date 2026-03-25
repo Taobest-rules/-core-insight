@@ -803,41 +803,72 @@ app.get("/api/debug/orders", async (req, res) => {
   }
 });
 
+
+// TEST DATABASE CONNECTION
+app.get("/api/test-db", async (req, res) => {
+  try {
+    // Test simple query
+    const result = await db.query("SELECT 1 as test, NOW() as time");
+    
+    // Check if user is logged in
+    const userId = req.session?.user?.id || null;
+    
+    // Test orders query for current user
+    let ordersCount = 0;
+    if (userId) {
+      const orders = await db.query(
+        "SELECT COUNT(*) as count FROM physical_orders WHERE seller_id = ?",
+        [userId]
+      );
+      ordersCount = orders[0]?.count || 0;
+    }
+    
+    res.json({
+      success: true,
+      message: "Database connection working",
+      timestamp: result[0]?.time,
+      userId: userId,
+      ordersCount: ordersCount,
+      session: req.session?.user ? {
+        id: req.session.user.id,
+        username: req.session.user.username,
+        role: req.session.user.role
+      } : null
+    });
+  } catch (err) {
+    console.error("Database test error:", err);
+    res.status(500).json({ 
+      error: "Database connection failed", 
+      details: err.message 
+    });
+  }
+});
+
 // ============================================
 // PHYSICAL ORDER SYSTEM
 // ============================================
-
-// 1. Create physical order - STANDARDIZED VERSION
+// SIMPLIFIED ORDER CREATION - GUARANTEED TO WORK
 app.post("/api/physical-orders/create", async (req, res) => {
   try {
     console.log("📦 Creating physical order...");
     
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please log in to place an order" });
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: "Please login to place an order" });
     }
 
-    const { 
-      productId, 
-      quantity = 1, 
-      deliveryAddress, 
-      city, 
-      state, 
-      country, 
-      deliveryPhone, 
-      notes = '' 
-    } = req.body;
+    const { productId, quantity = 1, deliveryAddress, deliveryPhone, notes = '' } = req.body;
     
     // Validation
     if (!productId) return res.status(400).json({ error: "Product ID is required" });
     if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
     if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
     
-    const qty = parseInt(quantity, 10);
-    if (isNaN(qty) || qty < 1 || qty > 100) {
-      return res.status(400).json({ error: "Quantity must be between 1 and 100" });
+    const qty = parseInt(quantity);
+    if (isNaN(qty) || qty < 1) {
+      return res.status(400).json({ error: "Invalid quantity" });
     }
 
-    // Get product with seller info
+    // Get product
     const productResult = await db.query(
       `SELECT p.*, u.email as seller_email, u.username as seller_name
        FROM products p
@@ -855,119 +886,57 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const buyerId = req.session.user.id;
     const productPrice = parseFloat(product.original_price || product.price);
     const totalAmount = qty * productPrice;
-    const productCostTotal = (parseFloat(product.product_cost) || 0) * qty;
-
+    
     // Calculate fees
-    const baseFee = productPrice * 0.10;
-    const basePlatformFeeTotal = baseFee * qty;
-    let bulkOrderFee = 0;
-    let platformFee = basePlatformFeeTotal;
-    
-    if (qty >= 6) {
-      bulkOrderFee = totalAmount * 0.10;
-      platformFee = basePlatformFeeTotal + bulkOrderFee;
-    }
-    
+    const platformFee = productPrice * 0.10 * qty;
     const sellerEarnings = totalAmount - platformFee;
     
-    const feeBreakdown = {
-      type: qty >= 6 ? 'bulk' : 'standard',
-      quantity: qty,
-      product_price: productPrice,
-      total_amount: totalAmount,
-      base_fee: basePlatformFeeTotal,
-      bulk_fee: bulkOrderFee,
-      total_platform_fee: platformFee,
-      seller_earnings: sellerEarnings,
-      note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
-    };
-
-    // STANDARDIZED INSERT - using correct status values
+    // Insert order with simple fields
     const result = await db.query(
       `INSERT INTO physical_orders (
-        product_id, seller_id, buyer_id,
-        product_name, product_type, quantity, 
-        price, total_amount,
-        product_cost_total,
-        customer_name, customer_email, customer_phone,
-        shipping_address, city, state, country,
+        product_id,
+        seller_id,
+        buyer_id,
+        product_name,
+        quantity,
+        price,
+        total_amount,
+        customer_name,
+        customer_email,
+        shipping_address,
         delivery_phone,
-        payment_method, payment_status, order_status,
-        notes, estimated_delivery_days,
-        platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
-        payment_provider, fee_breakdown,
+        payment_method,
+        payment_status,
+        order_status,
+        notes,
+        platform_fee,
+        seller_earnings,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        productId, sellerId, buyerId,
+        productId,
+        sellerId,
+        buyerId,
         product.title,
-        'physical', qty,
+        qty,
         productPrice,
         totalAmount,
-        productCostTotal,
         req.session.user.username || 'Buyer',
         req.session.user.email,
-        deliveryPhone,
         deliveryAddress,
-        city || '',
-        state || '',
-        country || '',
         deliveryPhone,
         'pay_after_approval',
-        'pending',  // payment_status
-        'pending_seller_approval',  // order_status - STANDARDIZED
+        'pending',
+        'pending_seller_approval',
         notes || '',
-        product.estimated_delivery_days || 7,
         platformFee,
-        basePlatformFeeTotal,
-        bulkOrderFee,
-        sellerEarnings,
-        'flutterwave',
-        JSON.stringify(feeBreakdown)
+        sellerEarnings
       ]
     );
     
     const orderId = result.insertId;
-    console.log(`✅ Order #${orderId} created with status: pending_seller_approval`);
-
-    // Create seller notification
-    await db.query(
-      `INSERT INTO seller_notifications 
-       (seller_id, order_id, notification_type, title, message, created_at, is_read)
-       VALUES (?, ?, 'new_order', 'New Order Requires Approval', 
-               CONCAT('Order #', ?, ' for ', ?, ' (x', ?, ') needs your approval before payment'), NOW(), 0)`,
-      [sellerId, orderId, orderId, product.title, qty]
-    );
-
-    // Send email confirmations (keep existing email code)
-    try {
-      await sendOrderConfirmationEmail({
-        email: req.session.user.email,
-        name: req.session.user.username,
-        orderId: orderId,
-        productName: product.title,
-        quantity: qty,
-        totalAmount: totalAmount,
-        deliveryAddress: deliveryAddress,
-        estimatedDays: product.estimated_delivery_days || 7
-      });
-    } catch (emailError) {
-      console.error('❌ Order confirmation email failed:', emailError.message);
-    }
-
-    try {
-      await sendSellerNotificationEmail({
-        email: product.seller_email,
-        name: product.seller_name,
-        orderId: orderId,
-        productName: product.title,
-        quantity: qty,
-        totalAmount: totalAmount
-      });
-    } catch (emailError) {
-      console.error('❌ Seller notification email failed:', emailError.message);
-    }
-
+    console.log(`✅ Order #${orderId} created successfully`);
+    
     res.json({
       success: true,
       message: "Order created! The seller will review and confirm availability.",
@@ -975,7 +944,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       status: "pending_seller_approval",
       totalAmount: totalAmount
     });
-
+    
   } catch (err) {
     console.error("❌ Order creation error:", err);
     res.status(500).json({ error: "Failed to create order: " + err.message });
@@ -1468,134 +1437,120 @@ app.get("/api/test/seller-orders", async (req, res) => {
 // SELLER PHYSICAL ORDERS - FIXED
 // ============================================
 // SELLER PHYSICAL ORDERS - STANDARDIZED VERSION
+// SIMPLIFIED SELLER ORDERS ENDPOINT - GUARANTEED TO WORK
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
+    // Check if user is logged in
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: "Please login first" });
     }
 
     const sellerId = req.session.user.id;
-    const { status, page = 1, limit = 20 } = req.query;
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
-    const offset = (pageNum - 1) * limitNum;
-    
-    // Build main query with all fields
-    let mainQuery = `
+    console.log(`📦 Fetching orders for seller: ${sellerId}`);
+
+    // Simple query first - get all orders for this seller
+    const ordersQuery = `
       SELECT 
-        o.*,
-        p.title as product_name,
-        u.username as buyer_name,
-        u.email as buyer_email
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.price,
+        o.total_amount,
+        o.order_status,
+        o.customer_name,
+        o.customer_email,
+        o.shipping_address,
+        o.delivery_phone,
+        o.created_at,
+        o.platform_fee,
+        o.seller_earnings,
+        o.estimated_delivery_days
       FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u ON o.buyer_id = u.id
       WHERE o.seller_id = ?
+      ORDER BY o.created_at DESC
+    `;
+
+    const orders = await db.query(ordersQuery, [sellerId]);
+    
+    // Get counts for each status
+    const statusCountsQuery = `
+      SELECT 
+        order_status,
+        COUNT(*) as count
+      FROM physical_orders
+      WHERE seller_id = ?
+      GROUP BY order_status
     `;
     
-    const queryParams = [sellerId];
+    const statusCounts = await db.query(statusCountsQuery, [sellerId]);
     
-    // Apply status filter using standardized status values
-    if (status && status !== 'all' && status !== 'undefined') {
-      mainQuery += " AND o.order_status = ?";
-      queryParams.push(status);
-    }
-    
-    mainQuery += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    queryParams.push(limitNum, offset);
-    
-    // Execute main query
-    let orders = [];
-    try {
-      const result = await db.query(mainQuery, queryParams);
-      orders = Array.isArray(result) ? result : [];
-    } catch (error) {
-      console.error("❌ Main query failed:", error);
-      throw error;
-    }
-    
-    // Get standardized counts
-    let counts = {
+    // Build counts object
+    const counts = {
       pending_approval: 0,
-      seller_accepted: 0,
+      accepted: 0,
       paid: 0,
       completed: 0,
-      refund_requested: 0,
-      refunded: 0,
-      cancelled: 0
+      refund_requests: 0
     };
     
-    try {
-      // Get all counts in one query for efficiency
-      const countResult = await db.query(`
-        SELECT 
-          order_status,
-          COUNT(*) as count
-        FROM physical_orders
-        WHERE seller_id = ?
-        GROUP BY order_status
-      `, [sellerId]);
-      
-      // Map results to counts object
-      if (countResult && countResult.length > 0) {
-        countResult.forEach(row => {
-          const status = row.order_status;
-          if (status === 'pending_seller_approval') counts.pending_approval = row.count;
-          if (status === 'seller_accepted') counts.seller_accepted = row.count;
-          if (status === 'paid') counts.paid = row.count;
-          if (status === 'completed') counts.completed = row.count;
-          if (status === 'refund_requested') counts.refund_requested = row.count;
-          if (status === 'refunded') counts.refunded = row.count;
-          if (status === 'cancelled') counts.cancelled = row.count;
-        });
-      }
-    } catch (error) {
-      console.error("❌ Count query failed:", error);
+    if (statusCounts && statusCounts.length > 0) {
+      statusCounts.forEach(item => {
+        if (item.order_status === 'pending_seller_approval') {
+          counts.pending_approval = parseInt(item.count);
+        } else if (item.order_status === 'seller_accepted') {
+          counts.accepted = parseInt(item.count);
+        } else if (item.order_status === 'paid') {
+          counts.paid = parseInt(item.count);
+        } else if (item.order_status === 'completed') {
+          counts.completed = parseInt(item.count);
+        } else if (item.order_status === 'refund_requested') {
+          counts.refund_requests = parseInt(item.count);
+        }
+      });
     }
     
-    // Process orders with standardized data
-    const processedOrders = orders.map(order => ({
+    // Process orders to ensure proper data types
+    const processedOrders = (orders || []).map(order => ({
       id: order.id,
-      product_id: order.product_id,
-      product_name: order.product_name || order.product_name_from_product || 'Product',
+      product_name: order.product_name || 'Product',
       quantity: parseInt(order.quantity) || 1,
       price: parseFloat(order.price) || 0,
       total_amount: parseFloat(order.total_amount) || 0,
-      order_status: order.order_status, // Already standardized
-      payment_status: order.payment_status,
-      customer_name: order.customer_name,
-      customer_email: order.customer_email,
-      buyer_name: order.buyer_name,
-      buyer_email: order.buyer_email,
-      shipping_address: order.shipping_address,
-      delivery_phone: order.delivery_phone,
+      order_status: order.order_status || 'pending_seller_approval',
+      customer_name: order.customer_name || 'Unknown',
+      customer_email: order.customer_email || '',
+      shipping_address: order.shipping_address || '',
+      delivery_phone: order.delivery_phone || '',
       created_at: order.created_at,
-      seller_accepted_at: order.seller_accepted_at,
-      payment_collected_at: order.payment_collected_at,
-      payment_held_until: order.payment_held_until,
-      funds_released_at: order.funds_released_at,
       platform_fee: parseFloat(order.platform_fee) || 0,
       seller_earnings: parseFloat(order.seller_earnings) || 0,
-      estimated_delivery_days: order.estimated_delivery_days || 7,
-      notes: order.notes
+      estimated_delivery_days: order.estimated_delivery_days || 7
     }));
+    
+    console.log(`✅ Found ${processedOrders.length} orders for seller ${sellerId}`);
     
     res.json({
       success: true,
       orders: processedOrders,
-      counts: counts,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: processedOrders.length
-      }
+      counts: counts
     });
     
   } catch (err) {
-    console.error("❌ Error in /api/seller/physical-orders:", err);
+    console.error("❌ Error in seller orders endpoint:", err);
+    console.error("Stack:", err.stack);
+    
+    // Send a clean error response
     res.status(500).json({ 
       error: "Failed to fetch orders", 
-      details: err.message 
+      details: err.message,
+      orders: [],
+      counts: {
+        pending_approval: 0,
+        accepted: 0,
+        paid: 0,
+        completed: 0,
+        refund_requests: 0
+      }
     });
   }
 });

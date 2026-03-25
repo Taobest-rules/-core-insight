@@ -7464,53 +7464,47 @@ function checkAdminAndShowImportButton() {
     // ================= REVIEWS FUNCTIONS =================
     // In products.html - Update loadProductReviews function
 async function loadProductReviews(productId) {
+  if (!productId) return;
   currentProductId = productId;
 
   try {
-    const res = await fetch(`/api/reviews/${productId}`);
+    const res = await fetch(`/api/reviews/${productId}`, {
+      credentials: 'include'
+    });
     
     if (!res.ok) {
-      console.log('Reviews endpoint not available yet');
-      const list = document.getElementById("reviewsList");
-      if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
-      const avg = document.getElementById("averageRating");
-      if (avg) avg.textContent = "";
+      console.log('Reviews not available');
+      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet</p>';
       return;
     }
     
     const data = await res.json();
-
     const list = document.getElementById("reviewsList");
     const avg = document.getElementById("averageRating");
 
     if (!data.reviews || data.reviews.length === 0) {
-      if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
-      if (avg) avg.textContent = "";
+      list.innerHTML = '<p style="color: var(--text-gray)">No reviews yet. Be the first to review!</p>';
+      avg.textContent = "";
       return;
     }
 
-    // Calculate average
     const avgRating = data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length;
-    if (avg) avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count} reviews)`;
+    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count} reviews)`;
 
-    if (list) {
-      list.innerHTML = data.reviews.map(r => `
-        <div class="review-item">
-          <strong>${escapeHtml(r.username)} — ⭐ ${r.rating}</strong>
-          <p>${escapeHtml(r.comment)}</p>
-          <small>${new Date(r.created_at).toLocaleDateString()}</small>
-        </div>
-      `).join("");
-    }
+    list.innerHTML = data.reviews.map(r => `
+      <div class="review-item">
+        <strong>${escapeHtml(r.username)} — ⭐ ${r.rating}</strong>
+        <p>${escapeHtml(r.comment)}</p>
+        <small>${new Date(r.created_at).toLocaleDateString()}</small>
+      </div>
+    `).join("");
 
   } catch (err) {
     console.error("Error loading reviews:", err);
-    const list = document.getElementById("reviewsList");
-    if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
+    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews</p>';
   }
 }
-    
-    function updateReviewFormVisibility() {
+      function updateReviewFormVisibility() {
       const form = document.getElementById("reviewFormWrapper");
       if (!form) return;
 

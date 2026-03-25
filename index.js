@@ -261,7 +261,7 @@ async function sendOrderConfirmationEmail(orderData) {
           
           <p>You will receive another email when the seller accepts your order.</p>
           
-          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" class="btn">Track Your Order</a>
+         <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="btn">Track Your Order</a>
           
           <div class="footer">
             <p>Core Insight Marketplace<br>Need help? Contact us at suppourtcoreinsight@gmail.com</p>
@@ -315,7 +315,7 @@ async function sendSellerNotificationEmail(sellerData) {
           
           <p>Please log in to your dashboard to approve or reject this order.</p>
           
-          <a href="https://core-insight-7.onrender.com/dashboard.html" class="btn">Go to Dashboard</a>
+         <a href="https://core-insight-7.onrender.com/dashboard" class="btn">Go to Dashboard</a>
           
           <div class="footer">
             <p>Core Insight Marketplace<br>Funds will be held in escrow for 5 days after payment.</p>
@@ -2301,6 +2301,21 @@ app.get("/order-tracking.html", (req, res) => {
 // Serve dashboard page
 app.get("/dashboard.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+// Serve login page
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Serve dashboard page
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+// Serve order tracking page
+app.get("/order-tracking", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "order-tracking.html"));
 });
 // ============================================
 // SERVER START

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Tracking - Core Insight</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Modern font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-dark: #0f172a;
+      --secondary-dark: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-light: #f8fafc;
+      --text-gray: #94a3b8;
+      --border: #334155;
+      --card-bg: #1e293b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--primary-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      height: 70px;
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav {
+      display: flex;
+      gap: 28px;
+    }
+
+    nav a {
+      color: var(--text-gray);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: var(--text-light);
+    }
+
+    .auth-btn {
+      padding: 10px 22px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .auth-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Main Content */
+    main {
+      padding-top: 100px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-left: 28px;
+      padding-right: 28px;
+      padding-bottom: 60px;
+    }
+
+    /* Order Header */
+    .order-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .order-header h1 {
+      font-size: 2rem;
+      margin-bottom: 12px;
+      color: var(--text-light);
+    }
+
+    .order-header p {
+      color: var(--text-gray);
+    }
+
+    /* Status Timeline */
+    .timeline {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 32px;
+      border: 1px solid var(--border);
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin-bottom: 40px;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 30px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 1;
+    }
+
+    .step {
+      text-align: center;
+      flex: 1;
+      position: relative;
+      z-index: 2;
+    }
+
+    .step-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--primary-dark);
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      transition: all 0.3s;
+      position: relative;
+      background: var(--card-bg);
+    }
+
+    .step-icon i {
+      font-size: 24px;
+      color: var(--text-gray);
+    }
+
+    .step.completed .step-icon {
+      border-color: var(--success);
+      background: var(--success);
+    }
+
+    .step.completed .step-icon i {
+      color: white;
+    }
+
+    .step.active .step-icon {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .step.active .step-icon i {
+      color: var(--accent);
+    }
+
+    .step-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-light);
+    }
+
+    .step-date {
+      font-size: 12px;
+      color: var(--text-gray);
+    }
+
+    /* Order Details Card */
+    .order-details {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+      border: 1px solid var(--border);
+    }
+
+    .order-details h3 {
+      margin-bottom: 20px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .detail-group {
+      padding: 16px;
+      background: var(--primary-dark);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .detail-group label {
+      font-size: 12px;
+      color: var(--text-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .detail-group .value {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 16px;
+    }
+
+    .status-pending_seller_approval {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-seller_accepted {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .status-paid {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .status-completed {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-refunded {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-cancelled {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-light);
+    }
+
+    .btn-secondary:hover {
+      background: var(--card-bg);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Loading & Error States */
+    .loading {
+      text-align: center;
+      padding: 60px;
+    }
+
+    .loading i {
+      font-size: 48px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .error {
+      text-align: center;
+      padding: 60px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .error i {
+      font-size: 48px;
+      color: var(--danger);
+      margin-bottom: 16px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 40px;
+      border-top: 1px solid var(--border);
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .steps {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .steps::before {
+        display: none;
+      }
+      
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-align: left;
+      }
+      
+      .step-icon {
+        margin: 0;
+      }
+      
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <div class="logo-icon"><i class="fas fa-store"></i></div>
+    <div class="logo-text">Core Insight</div>
+  </a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/courses.html">Courses</a>
+    <a href="/products.html">Products</a>
+  </nav>
+  <div id="authButtons">
+    <a href="/login" class="auth-btn">Login</a>
+  </div>
+</header>
+
+<main>
+  <div id="content">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading order details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="error hidden">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h2>Order Not Found</h2>
+      <p>We couldn't find the order you're looking for.</p>
+      <a href="/products.html" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">Browse Products</a>
+    </div>
+
+    <!-- Order Content -->
+    <div id="orderContent" class="hidden">
+      <!-- Timeline -->
+      <div class="timeline">
+        <div class="steps" id="timelineSteps">
+          <!-- Will be populated by JS -->
+        </div>
+      </div>
+
+      <!-- Order Details -->
+      <div class="order-details">
+        <h3><i class="fas fa-receipt"></i> Order Details</h3>
+        <div class="details-grid" id="orderDetails">
+          <!-- Will be populated by JS -->
+        </div>
+        <div id="statusBadge" class="status-badge"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons" id="actionButtons">
+        <!-- Will be populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© 2024 Core Insight Marketplace. All rights reserved.</p>
+    <p>Need help? <a href="/contact.html" style="color: var(--accent);">Contact Support</a></p>
+  </div>
+</main>
+
+<script>
+  // Get order ID from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderId = urlParams.get('orderId');
+
+  // Status mapping for display
+  const statusConfig = {
+    'pending_seller_approval': {
+      label: 'Awaiting Seller Approval',
+      icon: 'fa-clock',
+      description: 'Your order has been placed. The seller will review and confirm availability.',
+      step: 1
+    },
+    'seller_accepted': {
+      label: 'Seller Accepted',
+      icon: 'fa-check-circle',
+      description: 'Seller has accepted your order. Payment is now required.',
+      step: 2
+    },
+    'pending_payment': {
+      label: 'Payment Pending',
+      icon: 'fa-credit-card',
+      description: 'Waiting for payment confirmation.',
+      step: 2
+    },
+    'paid': {
+      label: 'Payment Confirmed',
+      icon: 'fa-money-bill-wave',
+      description: 'Payment received. Seller is preparing your order.',
+      step: 3
+    },
+    'completed': {
+      label: 'Delivered',
+      icon: 'fa-check-double',
+      description: 'Your order has been delivered. Thank you for shopping with us!',
+      step: 4
+    },
+    'refunded': {
+      label: 'Refunded',
+      icon: 'fa-undo-alt',
+      description: 'Your order has been refunded.',
+      step: -1
+    },
+    'cancelled': {
+      label: 'Cancelled',
+      icon: 'fa-times-circle',
+      description: 'This order has been cancelled.',
+      step: -1
+    }
+  };
+
+  // Timeline steps order
+  const timelineSteps = [
+    { key: 'pending_seller_approval', title: 'Order Placed', icon: 'fa-shopping-cart' },
+    { key: 'seller_accepted', title: 'Order Confirmed', icon: 'fa-check-circle' },
+    { key: 'paid', title: 'Payment Received', icon: 'fa-credit-card' },
+    { key: 'completed', title: 'Delivered', icon: 'fa-truck' }
+  ];
+
+  // Load order details
+  async function loadOrderDetails() {
+    if (!orderId) {
+      showError();
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Order not found');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        displayOrder(data.order);
+      } else {
+        throw new Error('Invalid order data');
+      }
+
+    } catch (error) {
+      console.error('Error loading order:', error);
+      showError();
+    }
+  }
+
+  // Display order details
+  function displayOrder(order) {
+    // Hide loading, show content
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('orderContent').classList.remove('hidden');
+    
+    // Update page title
+    document.title = `Order #${order.id} - Core Insight`;
+    
+    // Build timeline
+    const timelineContainer = document.getElementById('timelineSteps');
+    let currentStepIndex = getCurrentStepIndex(order.order_status);
+    
+    let timelineHtml = '';
+    timelineSteps.forEach((step, index) => {
+      let stepClass = '';
+      if (index < currentStepIndex) {
+        stepClass = 'completed';
+      } else if (index === currentStepIndex && order.order_status !== 'cancelled' && order.order_status !== 'refunded') {
+        stepClass = 'active';
+      }
+      
+      timelineHtml += `
+        <div class="step ${stepClass}">
+          <div class="step-icon">
+            <i class="fas ${step.icon}"></i>
+          </div>
+          <div class="step-title">${step.title}</div>
+          ${order[step.key + '_at'] ? `<div class="step-date">${formatDate(order[step.key + '_at'])}</div>` : ''}
+        </div>
+      `;
+    });
+    timelineContainer.innerHTML = timelineHtml;
+    
+    // Build order details
+    const statusInfo = statusConfig[order.order_status] || statusConfig['pending_seller_approval'];
+    const statusBadge = document.getElementById('statusBadge');
+    statusBadge.className = `status-badge status-${order.order_status}`;
+    statusBadge.innerHTML = `<i class="fas ${statusInfo.icon}"></i> ${statusInfo.label}`;
+    
+    const detailsContainer = document.getElementById('orderDetails');
+    detailsContainer.innerHTML = `
+      <div class="detail-group">
+        <label>Order ID</label>
+        <div class="value">#${order.id}</div>
+      </div>
+      <div class="detail-group">
+        <label>Product</label>
+        <div class="value">${escapeHtml(order.product_name || 'Product')}</div>
+      </div>
+      <div class="detail-group">
+        <label>Quantity</label>
+        <div class="value">${order.quantity}</div>
+      </div>
+      <div class="detail-group">
+        <label>Total Amount</label>
+        <div class="value" style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</div>
+      </div>
+      <div class="detail-group">
+        <label>Order Date</label>
+        <div class="value">${formatDate(order.created_at)}</div>
+      </div>
+      ${order.estimated_delivery_days ? `
+        <div class="detail-group">
+          <label>Est. Delivery</label>
+          <div class="value">${order.estimated_delivery_days} days after payment</div>
+        </div>
+      ` : ''}
+      ${order.shipping_address ? `
+        <div class="detail-group">
+          <label>Shipping Address</label>
+          <div class="value">${escapeHtml(order.shipping_address)}</div>
+        </div>
+      ` : ''}
+      ${order.tracking_number ? `
+        <div class="detail-group">
+          <label>Tracking Number</label>
+          <div class="value">${escapeHtml(order.tracking_number)}</div>
+        </div>
+      ` : ''}
+    `;
+    
+    // Build action buttons
+    const actionContainer = document.getElementById('actionButtons');
+    let actionHtml = '';
+    
+    // Show payment button if order is accepted
+    if (order.order_status === 'seller_accepted') {
+      actionHtml += `
+        <button class="btn btn-primary" onclick="proceedToPayment(${order.id})">
+          <i class="fas fa-credit-card"></i> Proceed to Payment
+        </button>
+      `;
+    }
+    
+    // Show refund button if eligible
+    const canRefund = order.order_status === 'paid' && 
+                      order.payment_status === 'paid' &&
+                      !order.refund_requested_at;
+    
+    if (canRefund) {
+      actionHtml += `
+        <button class="btn btn-danger" onclick="requestRefund(${order.id})">
+          <i class="fas fa-undo-alt"></i> Request Refund
+        </button>
+      `;
+    }
+    
+    // Show contact seller button
+    actionHtml += `
+      <a href="/contact.html?order=${order.id}" class="btn btn-secondary">
+        <i class="fas fa-envelope"></i> Contact Seller
+      </a>
+    `;
+    
+    actionContainer.innerHTML = actionHtml;
+    
+    // Check if user is logged in to show refund status button
+    checkUserAndAddRefundStatus(order.id);
+  }
+  
+  // Add refund status button if user is logged in
+  async function checkUserAndAddRefundStatus(orderId) {
+    try {
+      const response = await fetch('/api/me');
+      const user = await response.json();
+      
+      if (user && user.id) {
+        const actionContainer = document.getElementById('actionButtons');
+        const refundStatusBtn = document.createElement('button');
+        refundStatusBtn.className = 'btn btn-secondary';
+        refundStatusBtn.innerHTML = '<i class="fas fa-info-circle"></i> Check Refund Status';
+        refundStatusBtn.onclick = () => checkRefundStatus(orderId);
+        actionContainer.appendChild(refundStatusBtn);
+      }
+    } catch (error) {
+      console.error('Error checking user:', error);
+    }
+  }
+  
+  // Proceed to payment
+  async function proceedToPayment(orderId) {
+    try {
+      const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.paymentLink) {
+        window.location.href = data.paymentLink;
+      } else {
+        alert(data.error || 'Failed to create payment link');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Network error. Please try again.');
+    }
+  }
+  
+  // Request refund
+  async function requestRefund(orderId) {
+    const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
+    
+    if (!reason) return;
+    
+    if (reason.length < 10) {
+      alert("Please provide at least 10 characters explaining your reason for refund.");
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason }),
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Refund request submitted. The seller has 48 hours to respond.');
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to submit refund request');
+      }
+    } catch (error) {
+      console.error('Refund error:', error);
+      alert('Network error. Please try again.');
+    }
+  }
+  
+  // Check refund status
+  async function checkRefundStatus(orderId) {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/refund-status`, {
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        let message = '';
+        switch(data.refundStatus) {
+          case 'pending':
+            message = `Refund Request Pending\n\nRequested on: ${new Date(data.requestedAt).toLocaleDateString()}\n\nReason: ${data.refundReason}\n\n${data.message}`;
+            break;
+          case 'approved':
+            message = `Refund Approved ✅\n\n${data.message}`;
+            break;
+          case 'denied':
+            message = `Refund Denied ❌\n\n${data.message}\n\n${data.notes ? `Reason: ${data.notes}` : ''}`;
+            break;
+          default:
+            message = `No refund request found for this order.\n\nRefund window: 5 days after payment.`;
+        }
+        alert(message);
+      }
+    } catch (error) {
+      console.error('Refund status error:', error);
+      alert('Unable to check refund status');
+    }
+  }
+  
+  // Helper functions
+  function getCurrentStepIndex(status) {
+    const order = timelineSteps.find(step => step.key === status);
+    if (order) return timelineSteps.findIndex(step => step.key === status);
+    if (status === 'pending_payment') return 1;
+    if (status === 'paid') return 2;
+    if (status === 'completed') return 3;
+    return 0;
+  }
+  
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  function showError() {
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('errorState').classList.remove('hidden');
+  }
+  
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    loadOrderDetails();
+  });
+  
+  // Make functions global for onclick handlers
+  window.proceedToPayment = proceedToPayment;
+  window.requestRefund = requestRefund;
+  window.checkRefundStatus = checkRefundStatus;
+</script>
+</body>
+</html>

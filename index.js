@@ -2187,7 +2187,10 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// Serve order tracking page
+app.get("/order-tracking.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "order-tracking.html"));
+});
 // ============================================
 // SERVER START
 // ============================================

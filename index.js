@@ -824,47 +824,48 @@ app.post("/api/physical-orders/create", async (req, res) => {
       note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
     };
 
-    // Insert order with correct status
-    const result = await db.query(
-      `INSERT INTO physical_orders (
-        product_id, seller_id, buyer_id,
-        product_name, product_type, quantity, 
-        price, total_amount,
-        customer_name, customer_email, customer_phone,
-        shipping_address, city, state, country,
-        payment_method, payment_status, order_status,
-        notes, estimated_delivery_days,
-        platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
-        fee_breakdown, payment_provider,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        productId, sellerId, buyerId,
-        product.title,
-        'physical', qty,
-        productPrice,
-        totalAmount,
-        req.session.user.username || 'Buyer',
-        req.session.user.email,
-        deliveryPhone,
-        deliveryAddress,
-        city || '',
-        state || '',
-        country || '',
-        'pay_after_approval',
-        'pending',
-        'pending_seller_approval',  // This is the correct status value
-        notes || '',
-        product.estimated_delivery_days || 7,
-        platformFee,
-        basePlatformFeeTotal,
-        bulkOrderFee,
-        sellerEarnings,
-        JSON.stringify(feeBreakdown),
-        'flutterwave'
-      ]
-    );
-
+   // In /api/physical-orders/create endpoint
+const result = await db.query(
+  `INSERT INTO physical_orders (
+    product_id, seller_id, buyer_id,
+    product_name, product_type, quantity, 
+    price, total_amount,
+    customer_name, customer_email, customer_phone,
+    shipping_address, city, state, country,
+    delivery_phone,
+    payment_method, payment_status, order_status,
+    notes, estimated_delivery_days,
+    platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
+    fee_breakdown, payment_provider,
+    created_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+  [
+    productId, sellerId, buyerId,
+    product.title,
+    'physical', qty,
+    productPrice,
+    totalAmount,
+    req.session.user.username || 'Buyer',
+    req.session.user.email,
+    deliveryPhone,  // customer_phone
+    deliveryAddress,
+    city || '',
+    state || '',
+    country || '',
+    deliveryPhone,  // delivery_phone (same)
+    'pay_after_approval',
+    'pending',
+    'pending_seller_approval',
+    notes || '',
+    product.estimated_delivery_days || 7,
+    platformFee,
+    basePlatformFeeTotal,
+    bulkOrderFee,
+    sellerEarnings,
+    JSON.stringify(feeBreakdown),
+    'flutterwave'
+  ]
+);
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created, awaiting seller approval`);
 
@@ -1438,6 +1439,112 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching buyer orders:", err);
     res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
+// Favorites endpoints
+app.post("/api/favorites/toggle", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ error: "Product ID required" });
+    }
+
+    // Check if already favorited
+    const existing = await db.query(
+      "SELECT id FROM favorites WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    if (existing && existing.length > 0) {
+      // Remove favorite
+      await db.query(
+        "DELETE FROM favorites WHERE user_id = ? AND product_id = ?",
+        [req.session.user.id, productId]
+      );
+      
+      // Get updated count
+      const countResult = await db.query(
+        "SELECT COUNT(*) as count FROM favorites WHERE product_id = ?",
+        [productId]
+      );
+      const count = countResult[0]?.count || 0;
+      
+      // Update product favorite count
+      await db.query(
+        "UPDATE products SET favorite_count = ? WHERE id = ?",
+        [count, productId]
+      );
+      
+      return res.json({ 
+        success: true, 
+        action: "removed",
+        favoriteCount: count
+      });
+    } else {
+      // Add favorite
+      await db.query(
+        "INSERT INTO favorites (user_id, product_id) VALUES (?, ?)",
+        [req.session.user.id, productId]
+      );
+      
+      // Get updated count
+      const countResult = await db.query(
+        "SELECT COUNT(*) as count FROM favorites WHERE product_id = ?",
+        [productId]
+      );
+      const count = countResult[0]?.count || 0;
+      
+      // Update product favorite count
+      await db.query(
+        "UPDATE products SET favorite_count = ? WHERE id = ?",
+        [count, productId]
+      );
+      
+      return res.json({ 
+        success: true, 
+        action: "added",
+        favoriteCount: count
+      });
+    }
+  } catch (err) {
+    console.error("Favorite toggle error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/favorites", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({ favorites: [], favoriteCounts: {} });
+    }
+
+    const userFavs = await db.query(
+      "SELECT product_id FROM favorites WHERE user_id = ?",
+      [req.session.user.id]
+    );
+    
+    const favorites = userFavs.map(row => row.product_id);
+    
+    const countResults = await db.query(`
+      SELECT product_id, COUNT(*) as count 
+      FROM favorites 
+      GROUP BY product_id
+    `);
+    
+    const favoriteCounts = {};
+    countResults.forEach(row => {
+      favoriteCounts[row.product_id] = parseInt(row.count);
+    });
+    
+    res.json({ favorites, favoriteCounts });
+  } catch (err) {
+    console.error("Error loading favorites:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -4269,57 +4269,45 @@
  * @param {number} index - Index of image to get
  * @returns {string} - Image URL
  */
-function getProductImage(images, index = 0) {
+
+  function getProductImage(images, index = 0) {
   if (!images) return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
   
   let imageArray = [];
   
-  // Parse images if they're stored as JSON string or array
   if (typeof images === 'string') {
     try {
-      // Try to parse as JSON first
       imageArray = JSON.parse(images);
     } catch (e) {
-      // If it's not JSON, treat as a single URL string
       imageArray = [images];
     }
   } else if (Array.isArray(images)) {
     imageArray = images;
   }
   
-  // Get the specific image at index
   const imagePath = imageArray[index] || imageArray[0] || null;
   
   if (!imagePath) {
     return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
   }
   
-  // If it's already a full URL (starts with http or https), return it
+  // If it's already a full URL, return it
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
   
-  // Clean the path - remove any leading dots or extra slashes
+  // For Cloudinary or uploaded images
+  if (imagePath.includes('cloudinary.com') || imagePath.includes('res.cloudinary.com')) {
+    return imagePath;
+  }
+  
+  // For local uploads, use the full URL
+  const baseUrl = window.location.origin;
   let cleanPath = imagePath;
+  if (cleanPath.startsWith('./')) cleanPath = cleanPath.substring(1);
+  if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
   
-  // If it starts with './' or '/', keep as is but ensure it's properly formatted
-  if (cleanPath.startsWith('./')) {
-    cleanPath = cleanPath.substring(1); // Remove the dot
-  }
-  
-  // Ensure the path starts with a single slash
-  if (!cleanPath.startsWith('/')) {
-    cleanPath = '/' + cleanPath;
-  }
-  
-  // Construct the full URL
-  const baseUrl = window.location.origin; // This gets https://your-app.onrender.com
-  const fullUrl = baseUrl + cleanPath;
-  
-  console.log('🖼️ Image path:', cleanPath);
-  console.log('🌐 Full URL:', fullUrl);
-  
-  return fullUrl;
+  return baseUrl + cleanPath;
 }
 
 window.switchMainImage = function(productId, thumbIndex) {
@@ -5217,8 +5205,6 @@ async function loadSalesHistory() {
     }
   }
 }
-
-// Updated loadSellerNotifications with better error handling
 async function loadSellerNotifications() {
   try {
     if (!currentUser) return;
@@ -5228,10 +5214,8 @@ async function loadSellerNotifications() {
     });
     
     if (!response.ok) {
-      // Don't show error for 404 - endpoint might not exist yet
-      if (response.status !== 404) {
-        console.log('Notifications endpoint not available');
-      }
+      // Silently fail - notifications are optional
+      console.log('Notifications not available');
       return;
     }
     
@@ -5244,16 +5228,11 @@ async function loadSellerNotifications() {
     } else if (notificationCount) {
       notificationCount.style.display = 'none';
     }
-    
-    // Store notifications for dashboard display
-    dashboardData.notifications = data.notifications || [];
-    
   } catch (error) {
-    // Silent fail - notifications are optional
+    // Silent fail
     console.log('Notifications not available');
   }
 }
-
 // Updated loadMyProducts with better error handling
 async function loadMyProducts() {
   const container = document.getElementById('myProductsList');

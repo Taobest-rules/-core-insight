@@ -764,6 +764,26 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
   }
 });
 
+// Debug endpoint - check what's in the database
+app.get("/api/debug/orders", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Login required" });
+    
+    const orders = await db.query(`
+      SELECT * FROM physical_orders WHERE seller_id = ? LIMIT 5
+    `, [req.session.user.id]);
+    
+    res.json({
+      success: true,
+      orders: orders,
+      count: orders ? orders.length : 0
+    });
+  } catch (err) {
+    console.error("Debug error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ============================================
 // PHYSICAL ORDER SYSTEM
 // ============================================

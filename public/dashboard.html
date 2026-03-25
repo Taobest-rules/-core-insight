@@ -677,45 +677,54 @@
 
   async function loadOrders() {
   try {
-    const response = await fetch('/api/seller/physical-orders', { credentials: 'include' });
-    if (!response.ok) throw new Error('Failed to load orders');
+    console.log("🔄 Loading orders...");
+    const response = await fetch('/api/seller/physical-orders', { 
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    console.log("📡 Response status:", response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response:", errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+    }
+    
     const data = await response.json();
+    console.log("📦 Orders data:", data);
+    
     const orders = data.orders || [];
     const tbody = document.getElementById('ordersList');
     
     if (orders.length === 0) {
-      tbody.innerHTML = '发展<td colspan="10" class="empty-state">No orders yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No orders yet</td></tr>';
       return;
     }
     
-    // Calculate total earnings using the same formula as upload form
     let totalEarnings = 0;
     let totalPlatformFees = 0;
     let totalSalesValue = 0;
     
     tbody.innerHTML = orders.map(order => {
       const isPending = order.order_status === 'pending_seller_approval';
-      const productPrice = parseFloat(order.price);
-      const qty = order.quantity;
-      const totalAmount = parseFloat(order.total_amount);
+      const productPrice = parseFloat(order.price) || 0;
+      const qty = order.quantity || 1;
+      const totalAmount = parseFloat(order.total_amount) || (productPrice * qty);
       
-      // Calculate earnings using the same formula as upload form calculator
       let platformFee = 0;
       let sellerEarnings = 0;
       
       if (qty <= 5) {
-        // Standard order: Platform fee = 10% of single product price
         platformFee = productPrice * 0.10;
         sellerEarnings = totalAmount - platformFee;
       } else {
-        // Bulk order: Platform fee = (10% of single price) + (10% of total)
         const baseFee = productPrice * 0.10;
         const bulkFee = totalAmount * 0.10;
         platformFee = baseFee + bulkFee;
         sellerEarnings = totalAmount - platformFee;
       }
       
-      // Add to totals
       totalEarnings += sellerEarnings;
       totalPlatformFees += platformFee;
       totalSalesValue += totalAmount;
@@ -726,12 +735,12 @@
       return `
         <tr>
           <td><strong>#${order.id}</strong></td>
-          <td>${escapeHtml(order.product_name)}</td>
-          <td>${order.quantity}</td>
+          <td>${escapeHtml(order.product_name || 'Product')}</td>
+          <td>${qty}</td>
           <td><strong>$${totalAmount.toFixed(2)}</strong></td>
           <td>
             <div><strong>${escapeHtml(buyerInfo)}</strong></div>
-            <small style="color: var(--text-muted);">${escapeHtml(buyerContact)}</small>
+            <small style="color: #94a3b8;">${escapeHtml(buyerContact)}</small>
           </td>
           <td>
             <div>${escapeHtml(order.shipping_address || 'No address')}</div>
@@ -742,7 +751,7 @@
           <td>
             <div style="font-size: 12px;">
               <div>💰 You earn: <strong style="color: #10b981;">$${sellerEarnings.toFixed(2)}</strong></div>
-              <div style="color: var(--text-muted);">📊 Fee: $${platformFee.toFixed(2)}</div>
+              <div style="color: #94a3b8;">📊 Fee: $${platformFee.toFixed(2)}</div>
               ${qty >= 6 ? '<small style="color: #f59e0b;">🎯 Bulk order applied</small>' : ''}
             </div>
           </td>
@@ -764,23 +773,20 @@
       `;
     }).join('');
     
-    // Update summary cards with correct calculations
     document.getElementById('totalOrders').textContent = orders.length;
     document.getElementById('pendingOrders').textContent = data.counts?.pending_approval || 0;
     document.getElementById('totalSalesValue').textContent = `$${totalSalesValue.toFixed(2)}`;
     document.getElementById('yourEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
     document.getElementById('platformFee').textContent = `$${totalPlatformFees.toFixed(2)}`;
     
-    // Also update the main earnings display if exists
     const totalEarningsEl = document.getElementById('totalEarnings');
     if (totalEarningsEl) totalEarningsEl.textContent = `$${totalEarnings.toFixed(2)}`;
     
   } catch (error) {
     console.error('Error loading orders:', error);
-    document.getElementById('ordersList').innerHTML = '<tr><td colspan="10" class="empty-state">Error loading orders</td></tr>';
+    document.getElementById('ordersList').innerHTML = '<tr><td colspan="10" class="empty-state">Error loading orders: ' + error.message + '</td></tr>';
   }
 }
-
   async function loadProducts() {
     try {
       const response = await fetch(`/api/products/seller/${currentUser?.id}`, { credentials: 'include' });

@@ -7463,22 +7463,31 @@ function checkAdminAndShowImportButton() {
 
     // ================= REVIEWS FUNCTIONS =================
     // In products.html - Update loadProductReviews function
+
+// ================= REVIEWS FUNCTIONS - FIXED =================
+
 async function loadProductReviews(productId) {
   if (!productId) return;
   currentProductId = productId;
 
   try {
+    console.log("🔄 Loading reviews for product:", productId);
+    
     const res = await fetch(`/api/reviews/${productId}`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
     });
     
     if (!res.ok) {
-      console.log('Reviews not available');
-      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet</p>';
+      console.log("Reviews endpoint returned:", res.status);
+      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet. Be the first to review!</p>';
+      document.getElementById("averageRating").textContent = "";
       return;
     }
     
     const data = await res.json();
+    console.log("📊 Reviews data:", data);
+    
     const list = document.getElementById("reviewsList");
     const avg = document.getElementById("averageRating");
 
@@ -7488,8 +7497,8 @@ async function loadProductReviews(productId) {
       return;
     }
 
-    const avgRating = data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length;
-    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count} reviews)`;
+    const avgRating = data.averageRating || (data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length);
+    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count || data.reviews.length} reviews)`;
 
     list.innerHTML = data.reviews.map(r => `
       <div class="review-item">
@@ -7501,10 +7510,78 @@ async function loadProductReviews(productId) {
 
   } catch (err) {
     console.error("Error loading reviews:", err);
-    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews</p>';
+    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews. Please try again.</p>';
   }
 }
-      function updateReviewFormVisibility() {
+
+async function submitReview() {
+  const rating = document.getElementById("reviewRating").value;
+  const comment = document.getElementById("reviewComment").value.trim();
+  const msg = document.getElementById("reviewMessage");
+
+  if (!rating || !comment) {
+    msg.textContent = "Please select a rating and write a comment.";
+    msg.style.color = "var(--danger)";
+    return;
+  }
+
+  if (!currentProductId) {
+    msg.textContent = "Please select a product first.";
+    msg.style.color = "var(--danger)";
+    return;
+  }
+
+  msg.textContent = "Submitting review...";
+  msg.style.color = "var(--accent)";
+
+  try {
+    console.log("📤 Submitting review for product:", currentProductId);
+    
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        productId: currentProductId,
+        rating: parseInt(rating),
+        comment: comment
+      }),
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.textContent = data.error || "Failed to submit review.";
+      msg.style.color = "var(--danger)";
+      return;
+    }
+
+    msg.textContent = "✅ Review submitted successfully!";
+    msg.style.color = "var(--success)";
+
+    // Clear form
+    document.getElementById("reviewComment").value = "";
+    document.getElementById("reviewRating").value = "";
+
+    // Reload reviews
+    setTimeout(() => {
+      loadProductReviews(currentProductId);
+    }, 500);
+
+  } catch (err) {
+    console.error("Review submit error:", err);
+    msg.textContent = "Network error. Please try again.";
+    msg.style.color = "var(--danger)";
+  }
+}
+
+// Make submitReview globally available
+window.submitReview = submitReview;
+
+  function updateReviewFormVisibility() {
       const form = document.getElementById("reviewFormWrapper");
       if (!form) return;
 

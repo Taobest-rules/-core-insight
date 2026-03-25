@@ -92,10 +92,17 @@ app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const productStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDirs.products),
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'uploads', 'products');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
   filename: (req, file, cb) => {
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, Date.now() + "-" + sanitizedName);
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000);
+    const ext = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+    cb(null, `${timestamp}-${random}-${baseName}${ext}`);
   }
 });
 
@@ -1354,6 +1361,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   }
 });
 
+// ============================================
 // SELLER PHYSICAL ORDERS ENDPOINT - FIXED
 // ============================================
 app.get("/api/seller/physical-orders", async (req, res) => {
@@ -1363,8 +1371,8 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     }
 
     const { status, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
-
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
     let query = `
       SELECT o.*, p.title as product_name, u.username as buyer_name, u.email as buyer_email
       FROM physical_orders o
@@ -1380,7 +1388,10 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     }
 
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(parseInt(limit), offset);
+
+    console.log("📊 Query:", query);
+    console.log("📊 Params:", params);
 
     const orders = await db.query(query, params);
 
@@ -1397,13 +1408,13 @@ app.get("/api/seller/physical-orders", async (req, res) => {
       [req.session.user.id]
     );
 
-    const processedOrders = extractRows(orders).map(order => {
-      order.total_amount = parseFloat(order.total_amount || 0);
-      order.platform_fee = parseFloat(order.platform_fee || 0);
-      order.seller_earnings = parseFloat(order.seller_earnings || 0);
-      order.price = parseFloat(order.price || 0);
-      return order;
-    });
+    const processedOrders = extractRows(orders).map(order => ({
+      ...order,
+      total_amount: parseFloat(order.total_amount || 0),
+      platform_fee: parseFloat(order.platform_fee || 0),
+      seller_earnings: parseFloat(order.seller_earnings || 0),
+      price: parseFloat(order.price || 0)
+    }));
 
     res.json({
       success: true,
@@ -1938,63 +1949,163 @@ app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
   }
 });
 
+
 // ============================================
-// PRODUCT UPLOAD ENDPOINT (keep existing)
+// REVIEWS ENDPOINTS - FIXED
+// ============================================
+
+// Submit a product review
+app.post("/api/reviews", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to submit a review." });
+    }
+
+    const { productId, rating, comment } = req.body;
+    
+    if (!productId || !rating || !comment) {
+      return res.status(400).json({ error: "Product ID, rating, and comment are required." });
+    }
+    
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5." });
+    }
+
+    // Check if user has already reviewed this product
+    const existingReview = await db.query(
+      "SELECT id FROM reviews WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    if (existingReview && existingReview.length > 0) {
+      return res.status(400).json({ error: "You have already reviewed this product." });
+    }
+
+    // Insert review
+    await db.query(
+      "INSERT INTO reviews (user_id, product_id, rating, comment, created_at) VALUES (?, ?, ?, ?, NOW())",
+      [req.session.user.id, productId, rating, comment]
+    );
+
+    // Update product rating and review count
+    const ratingResult = await db.query(
+      `SELECT AVG(rating) as avg_rating, COUNT(*) as review_count 
+       FROM reviews WHERE product_id = ?`,
+      [productId]
+    );
+
+    const avgRating = ratingResult[0]?.avg_rating || 0;
+    const reviewCount = ratingResult[0]?.review_count || 0;
+
+    await db.query(
+      "UPDATE products SET rating = ?, review_count = ? WHERE id = ?",
+      [avgRating, reviewCount, productId]
+    );
+
+    res.json({ 
+      success: true, 
+      message: "Review submitted successfully",
+      averageRating: avgRating,
+      reviewCount: reviewCount
+    });
+
+  } catch (err) {
+    console.error("❌ Error submitting review:", err);
+    res.status(500).json({ error: "Error submitting review: " + err.message });
+  }
+});
+
+// Get reviews for a product
+app.get("/api/reviews/:productId", async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const reviews = await db.query(`
+      SELECT r.*, u.username 
+      FROM reviews r 
+      JOIN users u ON r.user_id = u.id 
+      WHERE r.product_id = ? 
+      ORDER BY r.created_at DESC
+    `, [productId]);
+
+    const safeReviews = extractRows(reviews);
+    
+    // Get average rating
+    const ratingResult = await db.query(
+      "SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM reviews WHERE product_id = ?",
+      [productId]
+    );
+    
+    res.json({ 
+      reviews: safeReviews,
+      count: ratingResult[0]?.count || 0,
+      averageRating: ratingResult[0]?.avg_rating || 0
+    });
+
+  } catch (err) {
+    console.error("❌ Error loading reviews:", err);
+    res.status(500).json({ error: "Error loading reviews: " + err.message });
+  }
+});
+
+// Get user's review for a specific product
+app.get("/api/reviews/user/:productId", async (req, res) => {
+  if (!req.session.user) {
+    return res.json({ hasReviewed: false });
+  }
+
+  try {
+    const { productId } = req.params;
+    
+    const review = await db.query(
+      "SELECT id, rating, comment FROM reviews WHERE user_id = ? AND product_id = ?",
+      [req.session.user.id, productId]
+    );
+
+    if (review && review.length > 0) {
+      res.json({ hasReviewed: true, review: review[0] });
+    } else {
+      res.json({ hasReviewed: false });
+    }
+  } catch (err) {
+    console.error("❌ Error checking user review:", err);
+    res.json({ hasReviewed: false });
+  }
+});
+
+// ============================================
+// PRODUCT UPLOAD ENDPOINT - COMPLETE FIXED
 // ============================================
 app.post("/api/upload-product", (req, res) => {
-  const upload = multer({ storage: productStorage }).fields([
+  console.log("📤 Upload request received");
+  
+  const upload = multer({ 
+    storage: productStorage,
+    limits: { fileSize: 100 * 1024 * 1024 }
+  }).fields([
     { name: 'file', maxCount: 1 }, 
     { name: 'images[]', maxCount: 10 }
   ]);
 
   upload(req, res, async function(err) {
-    if (err) return res.status(400).json({ error: 'File upload error: ' + err.message });
+    if (err) {
+      console.error("❌ Multer error:", err);
+      return res.status(400).json({ error: 'File upload error: ' + err.message });
+    }
 
     try {
-      if (!req.session.user) return res.status(401).json({ error: "Please log in to upload products." });
+      if (!req.session.user) {
+        return res.status(401).json({ error: "Please log in to upload products." });
+      }
 
       const { 
-        title, 
-        description, 
-        price, 
-        category, 
-        type, 
-        affiliate_link, 
-        paymentProvider,
-        // Physical product fields
-        delivery_days,
-        product_cost,
-        delivery_locations,
-        delivery_type,
-        payment_option,
-        // Business info (stored for future use)
-        businessName,
-        businessEmail,
-        businessPhone,
-        country,
-        bankName,
-        bankCode,
-        accountNumber,
-        accountName
+        title, description, price, category, type, affiliate_link, paymentProvider,
+        delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
+        businessName, businessEmail, businessPhone, country, bankName, bankCode, accountNumber, accountName
       } = req.body;
 
-      // Validation
       if (!title || !price || !type || !paymentProvider) {
         return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
-      }
-      
-      if (type === 'affiliate' && !affiliate_link) {
-        return res.status(400).json({ error: "Affiliate link is required for affiliate products." });
-      }
-
-      // For physical products, validate additional fields
-      if (type === 'physical') {
-        if (!product_cost) {
-          return res.status(400).json({ error: "Product cost is required for physical products." });
-        }
-        if (!delivery_locations) {
-          return res.status(400).json({ error: "Delivery locations are required for physical products." });
-        }
       }
 
       const listedPrice = parseFloat(price);
@@ -2005,22 +2116,20 @@ app.post("/api/upload-product", (req, res) => {
       let originalPrice = listedPrice;
       
       if (type === 'physical') {
-        // For physical: Customer pays full price, platform fee is calculated at order time
         originalPrice = listedPrice;
-        platformFee = 0; // Will be calculated per order based on quantity
-        sellerPrice = originalPrice; // Customer pays full price
+        platformFee = 0;
+        sellerPrice = originalPrice;
       } else if (type === 'digital') {
-        // For digital: Platform takes 10%, seller gets 90%
         platformFee = listedPrice * 0.10;
         sellerPrice = listedPrice - platformFee;
       }
 
-      // Process images with Cloudinary
+      // Process images
       let imageUrls = [];
       if (req.files?.['images[]']?.length) {
-        const cloudinary = require('cloudinary').v2;
         for (const imageFile of req.files['images[]']) {
           try {
+            const cloudinary = require('cloudinary').v2;
             const result = await cloudinary.uploader.upload(imageFile.path, { 
               folder: 'core-insight/products',
               transformation: [{ width: 800, height: 600, crop: 'limit' }]
@@ -2032,7 +2141,7 @@ app.post("/api/upload-product", (req, res) => {
         }
       }
 
-      // Handle product file for digital products
+      // Handle product file
       let fileUrl = null;
       if (req.files?.file?.[0]) {
         const productFile = req.files.file[0];
@@ -2044,20 +2153,12 @@ app.post("/api/upload-product", (req, res) => {
         const baseName = path.basename(productFile.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
         const filename = `${timestamp}-${Math.floor(Math.random() * 1000000)}-${baseName}${ext}`;
         const finalPath = path.join(filesDir, filename);
-
-        try {
-          fs.copyFileSync(productFile.path, finalPath);
-          fs.unlinkSync(productFile.path);
-          fileUrl = `/uploads/products/files/${filename}`;
-        } catch (fileError) {
-          const data = fs.readFileSync(productFile.path);
-          fs.writeFileSync(finalPath, data);
-          fs.unlinkSync(productFile.path);
-          fileUrl = `/uploads/products/files/${filename}`;
-        }
+        fs.copyFileSync(productFile.path, finalPath);
+        fs.unlinkSync(productFile.path);
+        fileUrl = `/uploads/products/files/${filename}`;
       }
 
-      // Insert product into database
+      // Insert product
       const result = await db.query(
         `INSERT INTO products (
           user_id, title, description, price, original_price, platform_fee, product_cost,
@@ -2067,144 +2168,44 @@ app.post("/api/upload-product", (req, res) => {
           status, sales_count, favorite_count, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
-          req.session.user.id, 
-          title, 
-          description || '', 
-          sellerPrice,        // price - what seller gets after fees
-          originalPrice,      // original_price - what customer pays
-          platformFee,        // platform_fee - our cut
-          productCostValue,   // product_cost - seller's fulfillment cost
-          category || '',
-          type || 'digital', 
-          fileUrl, 
-          imageUrls.length ? JSON.stringify(imageUrls) : null, 
-          affiliate_link || null, 
-          paymentProvider,    // seller_payment_provider
-          // For physical products, use delivery_type from form, otherwise NULL
+          req.session.user.id, title, description || '', sellerPrice, originalPrice, platformFee, productCostValue,
+          category || '', type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, 
+          affiliate_link || null, paymentProvider,
           type === 'physical' ? (delivery_type || 'delivery') : null,
-          // delivery_locations
           type === 'physical' ? (delivery_locations || 'Worldwide') : null,
-          // payment_option
           type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
-          // estimated_delivery_days
           type === 'physical' ? (parseInt(delivery_days) || 7) : null,
-          // rating, review_count
-          0.00,  // rating
-          0,     // review_count
-          'active',  // status
-          0,     // sales_count
-          0      // favorite_count
+          0.00, 0, 'active', 0, 0
         ]
       );
 
       const productId = result.insertId;
       
-      // ================= CREATE SUBACCOUNT FOR SELLER (Both Flutterwave & Paystack) =================
-      let subaccountCreated = false;
-      let subaccountId = null;
-
-      if ((type === 'digital' || type === 'physical') && accountNumber && bankName && paymentProvider) {
-        try {
-          // Check if seller already has a subaccount for this provider
-          let existingSub = null;
-          if (paymentProvider === 'flutterwave') {
-            existingSub = await db.query(
-              "SELECT flutterwave_subaccount_id FROM sellers WHERE user_id = ?",
-              [req.session.user.id]
-            );
-            if (existingSub && existingSub.length > 0 && existingSub[0].flutterwave_subaccount_id) {
-              console.log(`✅ Seller already has Flutterwave subaccount: ${existingSub[0].flutterwave_subaccount_id}`);
-              subaccountCreated = true;
-              subaccountId = existingSub[0].flutterwave_subaccount_id;
-            }
-          } else if (paymentProvider === 'paystack') {
-            existingSub = await db.query(
-              "SELECT paystack_subaccount_code FROM sellers WHERE user_id = ?",
-              [req.session.user.id]
-            );
-            if (existingSub && existingSub.length > 0 && existingSub[0].paystack_subaccount_code) {
-              console.log(`✅ Seller already has Paystack subaccount: ${existingSub[0].paystack_subaccount_code}`);
-              subaccountCreated = true;
-              subaccountId = existingSub[0].paystack_subaccount_code;
-            }
-          }
-          
-          if (!subaccountCreated && businessName && accountNumber) {
-            // Prepare seller data
-            const sellerData = {
-              user_id: req.session.user.id,
-              business_name: businessName,
-              email: businessEmail || req.session.user.email,
-              account_number: accountNumber,
-              bank_code: bankCode || (paymentProvider === 'paystack' ? '058' : '044'),
-              bank_name: bankName,
-              country: country || "NG",
-              phone: businessPhone || "",
-              percentage_charge: 10
-            };
-            
-            // Create subaccount based on selected provider
-            let createdId = null;
-            if (paymentProvider === 'flutterwave') {
-              createdId = await createFlutterwaveSubaccount(sellerData);
-            } else if (paymentProvider === 'paystack') {
-              createdId = await createPaystackSubaccount(sellerData);
-            }
-            
-            if (createdId) {
-              subaccountCreated = true;
-              subaccountId = createdId;
-              console.log(`✅ ${paymentProvider} subaccount created for seller ${req.session.user.id}: ${createdId}`);
-            }
-          }
-        } catch (subaccountError) {
-          console.error('❌ Subaccount creation error:', subaccountError.message);
-          // Don't fail product upload if subaccount creation fails
-        }
-      }
-
-      // Store business information in sellers table
+      // Store business info
       if (businessName && accountNumber) {
-        try {
-          await db.query(
-            `INSERT INTO sellers (user_id, provider, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE 
-             account_number = VALUES(account_number),
-             bank_code = VALUES(bank_code),
-             bank_name = VALUES(bank_name),
-             business_name = VALUES(business_name),
-             business_email = VALUES(business_email),
-             business_phone = VALUES(business_phone),
-             country = VALUES(country)`,
-            [req.session.user.id, paymentProvider, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
-          );
-          console.log(`✅ Business info stored for seller ${req.session.user.id}`);
-        } catch (err) {
-          console.error('❌ Error storing business info:', err.message);
-        }
+        await db.query(
+          `INSERT INTO sellers (user_id, provider, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE 
+           account_number = VALUES(account_number), bank_code = VALUES(bank_code),
+           bank_name = VALUES(bank_name), business_name = VALUES(business_name),
+           business_email = VALUES(business_email), business_phone = VALUES(business_phone), country = VALUES(country)`,
+          [req.session.user.id, paymentProvider, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
+        );
       }
 
-      console.log(`✅ Product uploaded! ID: ${productId}, Type: ${type}`);
+      console.log(`✅ Product uploaded! ID: ${productId}`);
       
       res.json({ 
         message: "✅ Product uploaded successfully!", 
         productId: productId,
         type: type,
-        subaccount_created: subaccountCreated,
-        payment_provider: paymentProvider,
         pricing: {
-          customer_price: originalPrice,      // What customer pays
-          platform_fee: platformFee,           // Our 10% (or 10% of profit for physical)
-          seller_earnings: sellerPrice,        // What seller gets
-          product_cost: productCostValue       // Seller's fulfillment cost (physical only)
-        },
-        delivery_info: type === 'physical' ? {
-          estimated_days: parseInt(delivery_days) || 7,
-          locations: delivery_locations || 'Worldwide',
-          delivery_type: delivery_type || 'delivery',
-          payment_option: payment_option || 'pay_before_delivery'
-        } : null
+          customer_price: originalPrice,
+          platform_fee: platformFee,
+          seller_earnings: sellerPrice,
+          product_cost: productCostValue
+        }
       });
       
     } catch (err) {

@@ -3281,18 +3281,34 @@
     <option value="favorites">❤️ Most Favorited</option>
   </select>
   
-  <div class="currency-selector">
-    <i class="fas fa-coins" style="color: var(--accent);"></i>
-    <select id="currencyHeader">
-      <option value="USD">USD $</option>
-      <option value="NGN">NGN ₦</option>
-      <option value="EUR">EUR €</option>
-      <option value="GBP">GBP £</option>
-      <option value="KES">KES KSh</option>
-      <option value="GHS">GHS GH₵</option>
-      <option value="ZAR">ZAR R</option>
-    </select>
-  </div>
+<div class="currency-selector">
+  <i class="fas fa-coins" style="color: var(--accent);"></i>
+  <select id="currencyHeader">
+    <option value="USD">USD $</option>
+    <option value="NGN">NGN ₦</option>
+    <option value="EUR">EUR €</option>
+    <option value="GBP">GBP £</option>
+    <option value="KES">KES KSh</option>
+    <option value="GHS">GHS GH₵</option>
+    <option value="ZAR">ZAR R</option>
+    <option value="CAD">CAD $</option>
+    <option value="AUD">AUD $</option>
+    <option value="JPY">JPY ¥</option>
+    <option value="CNY">CNY ¥</option>
+    <option value="INR">INR ₹</option>
+    <option value="BRL">BRL R$</option>
+    <option value="MXN">MXN $</option>
+    <option value="AED">AED د.إ</option>
+    <option value="SAR">SAR ر.س</option>
+    <option value="EGP">EGP £</option>
+    <option value="MAD">MAD د.م.</option>
+    <option value="TZS">TZS TSh</option>
+    <option value="UGX">UGX USh</option>
+    <option value="RWF">RWF FRw</option>
+    <option value="XOF">XOF CFA</option>
+    <option value="XAF">XAF FCFA</option>
+  </select>
+</div>
 
   <div class="controls-actions">
     <button id="refreshBtn" class="btn primary">
@@ -3411,8 +3427,7 @@
               </div>
             </div>
           </div>
-          
-      <div id="physicalBlock" class="conditional-section">
+          <div id="physicalBlock" class="conditional-section">
   <div class="form-section">
     <div class="form-section-header">
       <i class="fas fa-shipping-fast"></i>
@@ -3444,14 +3459,6 @@
                placeholder="Number of days for delivery" required />
         <span class="form-help">How many days it typically takes to deliver this product</span>
       </div>
-      
-      <div class="form-group">
-        <label class="form-label">Product Cost (Your cost to fulfill) <span class="required">*</span></label>
-        <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" 
-               placeholder="e.g. 3.00" required />
-        <div id="p_productCost_error" class="form-error"></div>
-        <span class="form-help">How much it costs YOU to buy/fulfill this product</span>
-      </div>
     </div>
     
     <div class="form-group">
@@ -3461,7 +3468,7 @@
       <span class="form-help">Comma separated countries where you ship to (e.g., USA, UK, Nigeria). Enter "Worldwide" for global shipping.</span>
     </div>
     
-    <!-- Commission info for physical products with new fee structure -->
+    <!-- Commission info for physical products -->
     <div class="commission-card" style="margin-top: 20px;">
       <h5><i class="fas fa-calculator"></i> How Your Earnings Work</h5>
       <div class="commission-structure">
@@ -3483,20 +3490,6 @@
         </div>
       </div>
       
-      <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-        <p style="margin: 0; font-size: 13px; color: var(--accent);">
-          <i class="fas fa-info-circle"></i> <strong>Example: $40 product</strong>
-        </p>
-        <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-gray);">
-          • Order 3 units → Customer pays $120, you receive <strong style="color: var(--success);">$116</strong> (Platform: $4)<br>
-          • Order 7 units → Customer pays $280, you receive <strong style="color: var(--success);">$248</strong> (Platform: $32)
-        </p>
-        <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
-          <strong>Formula:</strong> For 1-5 units: Total - (Price × 10%) = Your earnings<br>
-          For 6+ units: Total - [(Price × 10%) + (Total × 10%)] = Your earnings
-        </p>
-      </div>
-      
       <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
         <p style="margin: 0; font-size: 11px; color: var(--text-muted);">
           <i class="fas fa-chart-simple"></i> <strong>Quick Calculator:</strong> See what you earn
@@ -3513,7 +3506,7 @@
     </div>
   </div>
 </div>
-          <!-- Payment Account Setup -->
+     <!-- Payment Account Setup -->
           <div class="payment-provider-section">
             <div class="payment-provider-header">
               <i class="fas fa-credit-card"></i>
@@ -4115,7 +4108,7 @@
     </div>
   </div>
 
-<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - CUSTOMER VIEW (No Platform Fees) -->
+<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - CLEAN VERSION -->
 <div id="addressModal" class="modal" aria-hidden="true">
   <div class="modal-card" style="max-width: 500px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -4138,14 +4131,14 @@
       <!-- Quantity Selector -->
       <div style="margin-bottom: 16px;">
         <label style="display:block; margin-bottom:8px;">Quantity <span style="color:var(--danger);">*</span></label>
-        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" onchange="updateOrderTotals()" />
+        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" />
         <small class="form-help">Maximum 100 units per order</small>
       </div>
       
       <!-- Simple Payment Breakdown - Customer Only Sees Total -->
       <div id="paymentBreakdown" style="background: var(--primary-dark); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="color: var(--text-gray);">Subtotal (${quantity} × price):</span>
+          <span style="color: var(--text-gray);">Subtotal (<span id="qtyDisplay">1</span> × price):</span>
           <span id="productSubtotal" style="color: var(--text-light);">$0.00</span>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border);">
@@ -5759,7 +5752,15 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
   }
 });
  // Open order modal with product details
+
+  // ================= ORDER FORM FUNCTIONS - FIXED =================
+
+
+
+// Open order modal with product details
 async function orderPhysicalProduct(productId) {
+  console.log("🛒 Opening order modal for product:", productId);
+  
   if (!currentUser) {
     openModal(document.getElementById('loginModal'));
     return;
@@ -5768,11 +5769,12 @@ async function orderPhysicalProduct(productId) {
   try {
     const product = products.find(p => p.id === productId);
     if (!product) {
-      alert('Product not found');
+      showToast('Error', 'Product not found', 'danger');
       return;
     }
     
     currentProductForOrder = product;
+    console.log("✅ Product selected:", product.title);
     
     // Update modal with product info
     const productThumbnail = document.getElementById('productThumbnail');
@@ -5812,6 +5814,217 @@ async function orderPhysicalProduct(productId) {
     showToast('Error', 'Failed to prepare order. Please try again.', 'danger');
   }
 }
+
+// Update order totals - Customer only sees product total
+function updateOrderTotals() {
+  const quantityInput = document.getElementById('orderQuantity');
+  if (!quantityInput) return;
+  
+  const quantity = parseInt(quantityInput.value) || 1;
+  if (!currentProductForOrder) return;
+  
+  const product = currentProductForOrder;
+  const productPrice = parseFloat(product.original_price || product.price || 0);
+  
+  const qty = Math.min(Math.max(quantity, 1), 100);
+  
+  // Simple calculation - just price × quantity
+  const totalAmount = qty * productPrice;
+  
+  // Update display
+  const productSubtotal = document.getElementById('productSubtotal');
+  const totalAmountEl = document.getElementById('totalAmount');
+  
+  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
+  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+  
+  // Also update the quantity display in the breakdown
+  const qtyDisplay = document.getElementById('qtyDisplay');
+  if (qtyDisplay) qtyDisplay.textContent = qty;
+  
+  // Store for order submission
+  window.currentOrderTotal = totalAmount;
+  window.currentOrderQuantity = qty;
+}
+
+// Address form submission - SINGLE handler
+async function submitOrderForm(e) {
+  if (e) e.preventDefault();
+  
+  console.log("📝 Submitting order form...");
+  console.log("currentProductForOrder:", currentProductForOrder);
+  
+  // Check if product is selected
+  if (!currentProductForOrder) {
+    console.error("❌ No product selected!");
+    const messageEl = document.getElementById('addressFormMessage');
+    if (messageEl) {
+      messageEl.innerHTML = '<div style="color: var(--danger);">Please select a product first. Close this window and try again.</div>';
+    }
+    return;
+  }
+  
+  const messageEl = document.getElementById('addressFormMessage');
+  const submitBtn = document.querySelector('#addressForm button[type="submit"]');
+  
+  // Get form values
+  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+  const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+  
+  // Validate required fields
+  if (!deliveryAddress) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
+    return;
+  }
+  
+  if (!deliveryPhone) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
+    return;
+  }
+  
+  // Validate phone/email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+  
+  if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
+    return;
+  }
+  
+  // Disable submit button and show loading
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
+  }
+  
+  if (messageEl) {
+    messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
+  }
+  
+  try {
+    const orderData = {
+      productId: currentProductForOrder.id,
+      quantity: quantity,
+      deliveryAddress: deliveryAddress,
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      deliveryPhone: deliveryPhone,
+      notes: ''
+    };
+    
+    console.log('📤 Creating order...', orderData);
+    
+    const response = await fetch('/api/physical-orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    console.log('📥 Response:', data);
+    
+    if (response.ok) {
+      // Close modal
+      closeModal(document.getElementById('addressModal'));
+      
+      // Show success message
+      showToast(
+        '✅ Order Created!', 
+        `Order #${data.orderId} has been sent to the seller for approval. You will be notified when the seller responds.`,
+        'success'
+      );
+      
+      // Reset form and product
+      document.getElementById('addressForm').reset();
+      currentProductForOrder = null;
+      
+    } else {
+      if (messageEl) {
+        messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+      }
+    }
+    
+  } catch(error) {
+    console.error('❌ Order creation failed:', error);
+    if (messageEl) {
+      messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+    }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+    }
+  }
+}
+
+// Close modal handlers
+function closeAddressModal() {
+  closeModal(document.getElementById('addressModal'));
+  currentProductForOrder = null;
+}
+
+// Quantity input validation
+function validateOrderQuantity() {
+  const input = document.getElementById('orderQuantity');
+  if (!input) return;
+  
+  let val = parseInt(input.value);
+  if (isNaN(val) || val < 1) input.value = 1;
+  if (val > 100) {
+    input.value = 100;
+    showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
+  }
+  updateOrderTotals();
+}
+
+// Initialize order form event listeners (call this once)
+function initOrderForm() {
+  const addressForm = document.getElementById('addressForm');
+  const closeAddressModalBtn = document.getElementById('closeAddressModal');
+  const cancelAddressBtn = document.getElementById('cancelAddress');
+  const orderQuantity = document.getElementById('orderQuantity');
+  
+  // Remove any existing listeners to prevent duplicates
+  if (addressForm) {
+    // Remove old listener if exists
+    const newForm = addressForm.cloneNode(true);
+    addressForm.parentNode.replaceChild(newForm, addressForm);
+    newForm.addEventListener('submit', submitOrderForm);
+  }
+  
+  if (closeAddressModalBtn) {
+    const newClose = closeAddressModalBtn.cloneNode(true);
+    closeAddressModalBtn.parentNode.replaceChild(newClose, closeAddressModalBtn);
+    newClose.addEventListener('click', closeAddressModal);
+  }
+  
+  if (cancelAddressBtn) {
+    const newCancel = cancelAddressBtn.cloneNode(true);
+    cancelAddressBtn.parentNode.replaceChild(newCancel, cancelAddressBtn);
+    newCancel.addEventListener('click', closeAddressModal);
+  }
+  
+  if (orderQuantity) {
+    const newQuantity = orderQuantity.cloneNode(true);
+    orderQuantity.parentNode.replaceChild(newQuantity, orderQuantity);
+    newQuantity.addEventListener('change', validateOrderQuantity);
+    newQuantity.addEventListener('input', validateOrderQuantity);
+  }
+}
+
+
+
+// Make functions globally available
+window.orderPhysicalProduct = orderPhysicalProduct;
+window.updateOrderTotals = updateOrderTotals;
+window.submitOrderForm = submitOrderForm;
+window.closeAddressModal = closeAddressModal;
 
 // Update address form submission
 document.getElementById('addressForm').addEventListener('submit', async (e) => {

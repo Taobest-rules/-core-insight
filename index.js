@@ -91,6 +91,14 @@ app.use(session({
 app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+const productStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDirs.products),
+  filename: (req, file, cb) => {
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, Date.now() + "-" + sanitizedName);
+  }
+});
+
 // ============================================
 // PAYMENT GATEWAYS INITIALIZATION
 // ============================================

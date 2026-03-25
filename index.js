@@ -2191,6 +2191,10 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
 app.get("/order-tracking.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "order-tracking.html"));
 });
+// Serve dashboard page
+app.get("/dashboard.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
 // ============================================
 // SERVER START
 // ============================================

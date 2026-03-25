@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Core Insight</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --primary-dark: #0f172a;
+      --secondary-dark: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-light: #f8fafc;
+      --text-gray: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --card-bg: #1e293b;
+      --card-bg-hover: #2d3748;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--primary-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      height: 70px;
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav {
+      display: flex;
+      gap: 28px;
+    }
+
+    nav a {
+      color: var(--text-gray);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: var(--text-light);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-name {
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    .logout-btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Main Content */
+    main {
+      padding-top: 90px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding-left: 28px;
+      padding-right: 28px;
+      padding-bottom: 60px;
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-badge {
+      background: var(--accent);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .dashboard-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-light);
+    }
+
+    .btn-secondary:hover {
+      background: var(--card-bg-hover);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-content h3 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stat-content p {
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+
+    /* Tabs */
+    .dashboard-tabs {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .tabs-header {
+      display: flex;
+      background: var(--primary-dark);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 16px 24px;
+      background: transparent;
+      border: none;
+      color: var(--text-gray);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-light);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .tabs-content {
+      padding: 32px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      background: var(--primary-dark);
+      color: var(--text-light);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 12px 16px;
+      color: var(--text-gray);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:hover {
+      background: var(--card-bg-hover);
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-pending_seller_approval {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-seller_accepted {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .status-paid {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .status-completed {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-refund_requested {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-refunded {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    /* Action Buttons */
+    .action-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-right: 8px;
+    }
+
+    .action-view {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .action-accept {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .action-reject {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-gray);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h4 {
+      margin-bottom: 8px;
+      color: var(--text-light);
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px;
+    }
+
+    .loading i {
+      font-size: 48px;
+      color: var(--accent);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 9999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      border-left: 3px solid var(--success);
+    }
+
+    .toast.error {
+      border-left: 3px solid var(--danger);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      main {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .tabs-header {
+        flex-wrap: wrap;
+      }
+      
+      .tab-btn {
+        flex: 1;
+        text-align: center;
+      }
+      
+      .dashboard-header {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <div class="logo-icon"><i class="fas fa-store"></i></div>
+    <div class="logo-text">Core Insight</div>
+  </a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/products.html">Products</a>
+    <a href="/courses.html">Courses</a>
+  </nav>
+  <div class="user-info">
+    <span class="user-name" id="userName">Loading...</span>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+</header>
+
+<main>
+  <div class="dashboard-header">
+    <h1>
+      <i class="fas fa-chart-line"></i>
+      My Dashboard
+      <span id="roleBadge" class="role-badge">Seller</span>
+    </h1>
+    <div class="dashboard-actions">
+      <a href="/products.html" class="btn btn-secondary">
+        <i class="fas fa-store"></i> Back to Store
+      </a>
+      <button id="refreshBtn" class="btn btn-secondary">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
+        <i class="fas fa-box-open" style="color: var(--accent); font-size: 24px;"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalProducts">0</h3>
+        <p>Total Products</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+        <i class="fas fa-shopping-cart" style="color: var(--success); font-size: 24px;"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalOrders">0</h3>
+        <p>Total Orders</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
+        <i class="fas fa-clock" style="color: var(--warning); font-size: 24px;"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="pendingOrders">0</h3>
+        <p>Pending Approval</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+        <i class="fas fa-dollar-sign" style="color: var(--success); font-size: 24px;"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalEarnings">$0</h3>
+        <p>Total Earnings</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="dashboard-tabs">
+    <div class="tabs-header">
+      <button class="tab-btn active" data-tab="orders">📦 Orders</button>
+      <button class="tab-btn" data-tab="products">📱 My Products</button>
+      <button class="tab-btn" data-tab="refunds">🔄 Refund Requests</button>
+      <button class="tab-btn" data-tab="notifications">🔔 Notifications</button>
+    </div>
+    
+    <div class="tabs-content">
+      <!-- Orders Tab -->
+      <div id="ordersTab" class="tab-content active">
+        <div class="table-container">
+          <table id="ordersTable">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Amount</th>
+                <th>Buyer</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersList">
+              <tr><td colspan="8" class="empty-state">Loading orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Products Tab -->
+      <div id="productsTab" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Sales</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productsList">
+              <tr><td colspan="6" class="empty-state">Loading products...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Refunds Tab -->
+      <div id="refundsTab" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Buyer</th>
+                <th>Reason</th>
+                <th>Requested</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="refundsList">
+              <tr><td colspan="7" class="empty-state">No pending refund requests</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Notifications Tab -->
+      <div id="notificationsTab" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Message</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="notificationsList">
+              <tr><td colspan="4" class="empty-state">No notifications</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  let currentUser = null;
+  
+  // Load user data
+  async function loadUser() {
+    try {
+      const response = await fetch('/api/me', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      currentUser = await response.json();
+      
+      if (!currentUser || !currentUser.id) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      document.getElementById('userName').textContent = currentUser.username || currentUser.email;
+      document.getElementById('roleBadge').textContent = currentUser.role === 'admin' ? 'Admin' : 'Seller';
+      
+      // Load dashboard data
+      loadDashboardData();
+      
+    } catch (error) {
+      console.error('Error loading user:', error);
+      window.location.href = '/login';
+    }
+  }
+  
+  // Load all dashboard data
+  async function loadDashboardData() {
+    await Promise.all([
+      loadOrders(),
+      loadProducts(),
+      loadRefunds(),
+      loadNotifications(),
+      loadStats()
+    ]);
+  }
+  
+  // Load orders
+  async function loadOrders() {
+    try {
+      const response = await fetch('/api/seller/physical-orders', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load orders');
+      }
+      
+      const data = await response.json();
+      const orders = data.orders || [];
+      const tbody = document.getElementById('ordersList');
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No orders yet</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = orders.map(order => `
+        <tr>
+          <td><strong>#${order.id}</strong></td>
+          <td>${escapeHtml(order.product_name)}</td>
+          <td>${order.quantity}</td>
+          <td><strong>$${parseFloat(order.total_amount).toFixed(2)}</strong></td>
+          <td>${escapeHtml(order.buyer_name || order.customer_name)}</td>
+          <td>
+            <span class="status-badge status-${order.order_status}">
+              ${formatStatus(order.order_status)}
+            </span>
+          </td>
+          <td>${formatDate(order.created_at)}</td>
+          <td>
+            ${order.order_status === 'pending_seller_approval' ? `
+              <button class="action-btn action-accept" onclick="respondToOrder(${order.id}, 'accept')">
+                <i class="fas fa-check"></i> Accept
+              </button>
+              <button class="action-btn action-reject" onclick="respondToOrder(${order.id}, 'reject')">
+                <i class="fas fa-times"></i> Reject
+              </button>
+            ` : `
+              <button class="action-btn action-view" onclick="viewOrder(${order.id})">
+                <i class="fas fa-eye"></i> View
+              </button>
+            `}
+          </td>
+        </tr>
+      `).join('');
+      
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      document.getElementById('ordersList').innerHTML = '<tr><td colspan="8" class="empty-state">Error loading orders</td></tr>';
+    }
+  }
+  
+  // Load products
+  async function loadProducts() {
+    try {
+      const response = await fetch(`/api/products/seller/${currentUser?.id}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load products');
+      }
+      
+      const products = await response.json();
+      const tbody = document.getElementById('productsList');
+      
+      if (!products || products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No products yet. <a href="/products.html">List a product</a></td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = products.map(product => `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              ${product.images && product.images[0] ? 
+                `<img src="${product.images[0]}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">` : 
+                `<div style="width: 40px; height: 40px; background: var(--secondary-dark); border-radius: 8px;"></div>`
+              }
+              <strong>${escapeHtml(product.title)}</strong>
+            </div>
+          </td>
+          <td><span class="status-badge">${product.type || 'physical'}</span></td>
+          <td>$${parseFloat(product.price).toFixed(2)}</td>
+          <td>${product.sales_count || 0}</td>
+          <td><span class="status-badge status-active">Active</span></td>
+          <td>
+            <a href="/products.html?edit=${product.id}" class="action-btn action-view">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+          </td>
+        </tr>
+      `).join('');
+      
+    } catch (error) {
+      console.error('Error loading products:', error);
+      document.getElementById('productsList').innerHTML = '<tr><td colspan="6" class="empty-state">Error loading products</td></tr>';
+    }
+  }
+  
+  // Load refund requests
+  async function loadRefunds() {
+    try {
+      const response = await fetch('/api/refunds/pending', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load refunds');
+      }
+      
+      const data = await response.json();
+      const refunds = data.refunds || [];
+      const tbody = document.getElementById('refundsList');
+      
+      if (refunds.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No pending refund requests</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = refunds.map(refund => `
+        <tr>
+          <td><strong>#${refund.id}</strong></td>
+          <td>${escapeHtml(refund.product_name)}</td>
+          <td>$${parseFloat(refund.total_amount).toFixed(2)}</td>
+          <td>${escapeHtml(refund.buyer_name)}</td>
+          <td><small>${escapeHtml(refund.refund_reason?.substring(0, 50))}...</small></td>
+          <td>${formatDate(refund.refund_requested_at)}</td>
+          <td>
+            <button class="action-btn action-accept" onclick="processRefund(${refund.id}, 'approve')">
+              <i class="fas fa-check"></i> Approve
+            </button>
+            <button class="action-btn action-reject" onclick="processRefund(${refund.id}, 'deny')">
+              <i class="fas fa-times"></i> Deny
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      
+    } catch (error) {
+      console.error('Error loading refunds:', error);
+    }
+  }
+  
+  // Load notifications
+  async function loadNotifications() {
+    try {
+      const response = await fetch('/api/seller/notifications', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load notifications');
+      }
+      
+      const data = await response.json();
+      const notifications = data.notifications || [];
+      const tbody = document.getElementById('notificationsList');
+      
+      if (notifications.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No notifications</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = notifications.map(notif => `
+        <tr>
+          <td>${formatDate(notif.created_at)}</td>
+          <td><strong>${escapeHtml(notif.title)}</strong></td>
+          <td>${escapeHtml(notif.message)}</td>
+          <td>
+            ${notif.is_read ? 
+              '<span style="color: var(--text-muted);">Read</span>' : 
+              '<span style="color: var(--accent);">New</span>'
+            }
+          </td>
+        </tr>
+      `).join('');
+      
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    }
+  }
+  
+  // Load stats
+  async function loadStats() {
+    try {
+      const response = await fetch('/api/seller/physical-orders', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const counts = data.counts || {};
+        
+        document.getElementById('totalOrders').textContent = 
+          (counts.pending_approval || 0) + (counts.accepted || 0) + (counts.paid || 0) + (counts.completed || 0);
+        document.getElementById('pendingOrders').textContent = counts.pending_approval || 0;
+      }
+      
+      // Load products count
+      const productsRes = await fetch(`/api/products/seller/${currentUser?.id}`, {
+        credentials: 'include'
+      });
+      
+      if (productsRes.ok) {
+        const products = await productsRes.json();
+        document.getElementById('totalProducts').textContent = products.length || 0;
+      }
+      
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  }
+  
+  // Respond to order
+  async function respondToOrder(orderId, action) {
+    const message = action === 'reject' ? prompt('Reason for rejecting this order (optional):') : null;
+    
+    try {
+      const response = await fetch(`/api/physical-orders/${orderId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, message }),
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        showToast(data.message, 'success');
+        loadOrders();
+        loadStats();
+      } else {
+        showToast(data.error || 'Failed to respond', 'error');
+      }
+      
+    } catch (error) {
+      console.error('Error responding to order:', error);
+      showToast('Network error', 'error');
+    }
+  }
+  
+  // Process refund
+  async function processRefund(orderId, action) {
+    const notes = prompt(action === 'approve' ? 
+      "Optional notes for the buyer:" : 
+      "Reason for denying refund:");
+    
+    try {
+      const response = await fetch(`/api/refunds/${orderId}/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, admin_notes: notes || null }),
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        showToast(data.message, 'success');
+        loadRefunds();
+        loadOrders();
+      } else {
+        showToast(data.error || 'Failed to process refund', 'error');
+      }
+      
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      showToast('Network error', 'error');
+    }
+  }
+  
+  // View order details
+  function viewOrder(orderId) {
+    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+  }
+  
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      document.getElementById(`${tabId}Tab`).classList.add('active');
+    });
+  });
+  
+  // Refresh button
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadDashboardData();
+    showToast('Dashboard refreshed', 'success');
+  });
+  
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    window.location.href = '/';
+  });
+  
+  // Helper functions
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  
+  function formatStatus(status) {
+    const statusMap = {
+      'pending_seller_approval': 'Awaiting Approval',
+      'seller_accepted': 'Accepted',
+      'pending_payment': 'Payment Pending',
+      'paid': 'Paid (Escrow)',
+      'completed': 'Completed',
+      'refund_requested': 'Refund Requested',
+      'refunded': 'Refunded',
+      'cancelled': 'Cancelled'
+    };
+    return statusMap[status] || status;
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+      <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+      <span>${escapeHtml(message)}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+  
+  // Initialize
+  document.addEventListener('DOMContentLoaded', loadUser);
+  
+  // Make functions global
+  window.respondToOrder = respondToOrder;
+  window.processRefund = processRefund;
+  window.viewOrder = viewOrder;
+</script>
+</body>
+</html>

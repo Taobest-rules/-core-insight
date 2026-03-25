@@ -4270,7 +4270,7 @@
  * @returns {string} - Image URL
  */
 
-  function getProductImage(images, index = 0) {
+function getProductImage(images, index = 0) {
   if (!images) return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
   
   let imageArray = [];
@@ -4291,25 +4291,20 @@
     return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
   }
   
-  // If it's already a full URL, return it
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+  // Use Cloudinary or placeholder for broken images
+  if (imagePath.includes('cloudinary.com')) {
     return imagePath;
   }
   
-  // For Cloudinary or uploaded images
-  if (imagePath.includes('cloudinary.com') || imagePath.includes('res.cloudinary.com')) {
-    return imagePath;
-  }
-  
-  // For local uploads, use the full URL
-  const baseUrl = window.location.origin;
-  let cleanPath = imagePath;
-  if (cleanPath.startsWith('./')) cleanPath = cleanPath.substring(1);
-  if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
-  
-  return baseUrl + cleanPath;
+  // For local uploads that might be broken, use placeholder
+  return 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Loading';
 }
 
+// Add error handling for images in product cards
+function handleImageError(img) {
+  img.onerror = null;
+  img.src = 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';
+}
 window.switchMainImage = function(productId, thumbIndex) {
   const prod = products.find(p => p.id == productId);
   if (!prod || !prod._imageList || !prod._imageList[thumbIndex]) return;
@@ -5949,12 +5944,64 @@ async function submitOrderForm(e) {
   }
 }
 
-// Close modal
+// Make sure cancel button works
 function closeAddressModal() {
-  closeModal(document.getElementById('addressModal'));
+  const modal = document.getElementById('addressModal');
+  if (modal) {
+    closeModal(modal);
+  }
   currentProductForOrder = null;
   isSubmitting = false;
+  
+  // Reset form
+  const form = document.getElementById('addressForm');
+  if (form) form.reset();
 }
+
+// Add these event listeners in your initOrderForm function
+function initOrderForm() {
+  const addressForm = document.getElementById('addressForm');
+  const closeBtn = document.getElementById('closeAddressModal');
+  const cancelBtn = document.getElementById('cancelAddress');
+  const quantityInput = document.getElementById('orderQuantity');
+  
+  if (addressForm) {
+    const newForm = addressForm.cloneNode(true);
+    addressForm.parentNode.replaceChild(newForm, addressForm);
+    newForm.addEventListener('submit', submitOrderForm);
+  }
+  
+  if (closeBtn) {
+    const newClose = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newClose, closeBtn);
+    newClose.addEventListener('click', closeAddressModal);
+  }
+  
+  if (cancelBtn) {
+    const newCancel = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+    newCancel.addEventListener('click', closeAddressModal);
+  }
+  
+  if (quantityInput) {
+    const newQuantity = quantityInput.cloneNode(true);
+    quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
+    newQuantity.addEventListener('input', function() {
+      let val = parseInt(this.value);
+      if (isNaN(val) || val < 1) this.value = 1;
+      if (val > 100) {
+        this.value = 100;
+        showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
+      }
+      updateOrderTotals();
+    });
+  }
+}
+
+// Call this when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  initOrderForm();
+});
 
 // Initialize order form (call ONCE)
 function initOrderForm() {
@@ -7415,48 +7462,54 @@ function checkAdminAndShowImportButton() {
 }
 
     // ================= REVIEWS FUNCTIONS =================
-    async function loadProductReviews(productId) {
-      currentProductId = productId;
+    // In products.html - Update loadProductReviews function
+async function loadProductReviews(productId) {
+  currentProductId = productId;
 
-      try {
-        const res = await fetch(`/api/reviews/${productId}`);
-        const data = await res.json();
+  try {
+    const res = await fetch(`/api/reviews/${productId}`);
+    
+    if (!res.ok) {
+      console.log('Reviews endpoint not available yet');
+      const list = document.getElementById("reviewsList");
+      if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
+      const avg = document.getElementById("averageRating");
+      if (avg) avg.textContent = "";
+      return;
+    }
+    
+    const data = await res.json();
 
-        const list = document.getElementById("reviewsList");
-        const avg = document.getElementById("averageRating");
+    const list = document.getElementById("reviewsList");
+    const avg = document.getElementById("averageRating");
 
-        if (!data.reviews || data.reviews.length === 0) {
-          list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet.</p>";
-          avg.textContent = "";
-          return;
-        }
-
-        // Calculate average
-        const avgRating =
-          data.reviews.reduce((sum, r) => sum + r.rating, 0) /
-          data.reviews.length;
-
-        avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count} reviews)`;
-
-        list.innerHTML = data.reviews
-          .map(
-            r => `
-            <div class="review-item">
-              <strong>${escapeHtml(r.username)} — ⭐ ${r.rating}</strong>
-              <p>${escapeHtml(r.comment)}</p>
-              <small>${new Date(r.created_at).toLocaleDateString()}</small>
-            </div>
-          `
-          )
-          .join("");
-
-      } catch (err) {
-        console.error("Error loading reviews:", err);
-        const list = document.getElementById("reviewsList");
-        list.innerHTML = "<p style='color: var(--danger)'>Error loading reviews. Please try again.</p>";
-      }
+    if (!data.reviews || data.reviews.length === 0) {
+      if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
+      if (avg) avg.textContent = "";
+      return;
     }
 
+    // Calculate average
+    const avgRating = data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length;
+    if (avg) avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count} reviews)`;
+
+    if (list) {
+      list.innerHTML = data.reviews.map(r => `
+        <div class="review-item">
+          <strong>${escapeHtml(r.username)} — ⭐ ${r.rating}</strong>
+          <p>${escapeHtml(r.comment)}</p>
+          <small>${new Date(r.created_at).toLocaleDateString()}</small>
+        </div>
+      `).join("");
+    }
+
+  } catch (err) {
+    console.error("Error loading reviews:", err);
+    const list = document.getElementById("reviewsList");
+    if (list) list.innerHTML = "<p style='color: var(--text-gray)'>No reviews yet. Be the first to review!</p>";
+  }
+}
+    
     function updateReviewFormVisibility() {
       const form = document.getElementById("reviewFormWrapper");
       if (!form) return;
@@ -8461,26 +8514,21 @@ if (priceCalc) {
     window.editProduct = editProduct;
 
  // ========== UPLOAD PRODUCT FUNCTION WITH DEBUGGING ==========
+
+ // ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========
 $('uploadProductBtn').addEventListener('click', async (e) => {
   e.preventDefault();
   console.log("🟢 Upload button CLICKED!");
-  console.log("📋 Current user state:", currentUser);
 
-  // Validate form first
   if (!validateProductForm()) {
     console.log("❌ Form validation failed");
     return;
   }
 
-  // Check if user is logged in
   if (!currentUser) { 
-    console.log("❌ No user - opening login modal");
     openModal(loginModal); 
     return; 
   }
-  console.log("✅ User is logged in:", currentUser.id);
-  console.log("✅ User email:", currentUser.email);
-  console.log("✅ User role:", currentUser.role);
 
   // Get form values
   const title = $('p_title')?.value.trim();
@@ -8489,79 +8537,29 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
   const price = $('p_price')?.value || '0';
   const type = $('p_type')?.value;
   const paymentProvider = $('p_paymentProvider')?.value;
-  
-  console.log("📋 Form field values:", {
-    title: title,
-    description: description ? description.substring(0, 30) + '...' : 'empty',
-    category: category,
-    price: price,
-    type: type,
-    paymentProvider: paymentProvider
-  });
-
-  // Validate required fields
-  if (!title) { alert('Title is required'); return; }
-  if (!price) { alert('Price is required'); return; }
-  if (!type) { alert('Product type is required'); return; }
-  if (!paymentProvider) { alert('Please select a payment provider'); return; }
-
-  // Get delivery days for physical products
   const deliveryDays = type === 'physical' ? $('p_deliveryDays')?.value || '7' : '';
-  
-  // Get product cost for physical products
   const productCost = type === 'physical' ? $('p_productCost')?.value || '3' : null;
+  const deliveryLocations = type === 'physical' ? $('p_deliveryLocations')?.value.trim() || 'Worldwide' : '';
   
-  // Get affiliate link for affiliate products
+  // Affiliate product
   let affiliateLink = '';
   let externalImage = '';
   if (type === 'affiliate') {
-    const affiliateInput = document.getElementById('p_affiliate');
-    if (affiliateInput) {
-      affiliateLink = affiliateInput.value.trim();
-      console.log("🔍 Affiliate input found, value:", affiliateLink ? 'Present' : 'Empty');
-    } else {
-      console.log("❌ Affiliate input element not found!");
-    }
-    
+    affiliateLink = document.getElementById('p_affiliate')?.value.trim() || '';
     externalImage = $('p_external_image')?.value.trim() || '';
-    
-    // Validate affiliate link
-    if (!affiliateLink) {
-      const errorEl = document.getElementById('p_affiliate_error');
-      if (errorEl) {
-        errorEl.textContent = 'Affiliate link is required';
-        errorEl.classList.add('show');
-      }
-      alert('Affiliate link is required');
-      return;
-    }
-    
-    // Basic URL validation
-    try {
-      new URL(affiliateLink);
-      console.log("✅ Affiliate link URL is valid");
-    } catch (e) {
-      console.error("❌ Invalid URL:", e);
-      const errorEl = document.getElementById('p_affiliate_error');
-      if (errorEl) {
-        errorEl.textContent = 'Please enter a valid URL (include https://)';
-        errorEl.classList.add('show');
-      }
-      alert('Please enter a valid URL (include https://)');
-      return;
-    }
   }
-  
-  console.log("📦 Form values summary:", { 
-    title, 
-    category, 
-    price, 
-    type, 
-    paymentProvider,
-    hasAffiliateLink: !!affiliateLink,
-    hasExternalImage: !!externalImage
-  });
 
+  // Business info
+  const businessName = $('p_businessName')?.value.trim();
+  const businessEmail = $('p_businessEmail')?.value.trim();
+  const businessPhone = $('p_businessPhone')?.value.trim();
+  const country = $('p_country')?.value.trim();
+  const bankName = $('p_bankName')?.value.trim();
+  const bankCode = $('p_bankCode')?.value.trim();
+  const accountNumber = $('p_accountNumber')?.value.trim();
+  const accountName = $('p_accountName')?.value.trim();
+
+  // Create FormData
   const fd = new FormData();
   fd.append('title', title);
   fd.append('description', description || '');
@@ -8570,201 +8568,103 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
   fd.append('type', type);
   fd.append('paymentProvider', paymentProvider);
   
-  // Add delivery_days for physical products
   if (type === 'physical') {
     fd.append('delivery_days', deliveryDays);
     fd.append('product_cost', productCost);
-  }
-
-  // Digital products
-  if (type === 'digital') {
-    const fileInput = document.getElementById('p_file');
-    if (fileInput && fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      console.log("💾 Digital file:", file.name, file.size, file.type);
-      fd.append('file', file);
-    } else {
-      alert('Please upload a digital file');
-      return;
-    }
-  }
-
-  // Affiliate products
-  if (type === 'affiliate') {
-    console.log("🔗 Adding affiliate link to FormData:", affiliateLink.substring(0, 30) + '...');
-    fd.append('affiliate_link', affiliateLink);
-    if (externalImage) {
-      console.log("🖼️ Adding external image URL:", externalImage);
-      fd.append('external_image', externalImage);
-    }
-  }
-
-  // Physical products
-  if (type === 'physical') {
     fd.append('delivery_type', 'delivery');
     fd.append('payment_option', $('p_paymentOption')?.value || 'pay_on_delivery');
-    
-    const deliveryLocations = $('p_deliveryLocations')?.value.trim() || '';
     fd.append('delivery_locations', deliveryLocations);
   }
-
-  // Business information (bank code is now optional)
-const businessName = $('p_businessName')?.value.trim();
-const businessEmail = $('p_businessEmail')?.value.trim();
-const businessPhone = $('p_businessPhone')?.value.trim();
-const country = $('p_country')?.value.trim();
-const bankName = $('p_bankName')?.value.trim();
-const bankCode = $('p_bankCode')?.value.trim(); // ← ADD THIS LINE to define bankCode
-const accountNumber = $('p_accountNumber')?.value.trim();
-const accountName = $('p_accountName')?.value.trim();
-
-// Validate business info (bank code is not included in required validation)
-if (!businessName || !businessEmail || !businessPhone || !country || !bankName || !accountNumber || !accountName) {
-  alert('Please fill in all required business information fields (Bank Code is optional)');
-  return;
-}
-
-fd.append('businessName', businessName);
-fd.append('businessEmail', businessEmail);
-fd.append('businessPhone', businessPhone);
-fd.append('country', country);
-fd.append('bankName', bankName);
-fd.append('bankCode', bankCode || ''); // Now bankCode is defined
-fd.append('accountNumber', accountNumber);
-fd.append('accountName', accountName);
-
-  // Multiple images
+  
+  if (type === 'digital') {
+    const fileInput = document.getElementById('p_file');
+    if (fileInput?.files.length > 0) fd.append('file', fileInput.files[0]);
+  }
+  
+  if (type === 'affiliate') {
+    fd.append('affiliate_link', affiliateLink);
+    if (externalImage) fd.append('external_image', externalImage);
+  }
+  
+  // Business info
+  fd.append('businessName', businessName);
+  fd.append('businessEmail', businessEmail);
+  fd.append('businessPhone', businessPhone);
+  fd.append('country', country);
+  fd.append('bankName', bankName);
+  fd.append('bankCode', bankCode || '');
+  fd.append('accountNumber', accountNumber);
+  fd.append('accountName', accountName);
+  
+  // Images
   const imagesInput = document.getElementById('p_images');
-  if (imagesInput && imagesInput.files.length > 0) {
-    const images = imagesInput.files;
-    console.log("🖼️ Images to upload:", images.length);
-    for (let i = 0; i < images.length; i++) {
-      console.log(`  Image ${i+1}:`, images[i].name, images[i].size, images[i].type);
-      fd.append('images[]', images[i]);
-    }
-  } else if (type !== 'affiliate' || !externalImage) {
-    alert('Please upload at least one product image');
-    return;
-  }
-
-  // Log FormData contents for debugging
-  console.log("📤 FormData contents (keys only):");
-  for (let key of fd.keys()) {
-    if (key.includes('image')) {
-      console.log(`  - ${key}: [Image data]`);
-    } else if (key === 'affiliate_link') {
-      console.log(`  - ${key}: [Hidden]`);
-    } else {
-      console.log(`  - ${key}:`, fd.get(key));
+  if (imagesInput?.files.length > 0) {
+    for (let i = 0; i < imagesInput.files.length; i++) {
+      fd.append('images[]', imagesInput.files[i]);
     }
   }
 
-  // Show uploading message
   const uploadMessage = $('uploadMessage');
-  uploadMessage.innerHTML = '<div class="form-success" style="color:var(--text-gray)"><i class="fas fa-spinner fa-spin"></i> Uploading product...</div>';
+  uploadMessage.innerHTML = '<div class="form-success"><i class="fas fa-spinner fa-spin"></i> Uploading product...</div>';
   uploadMessage.classList.add('show');
 
   try {
-    console.log("🚀 Sending request to /api/upload-product...");
-    console.log("📡 Request URL:", window.location.origin + '/api/upload-product');
-    console.log("📡 Request method: POST");
-    console.log("📡 With credentials: true");
-    
-    const startTime = Date.now();
-    
     const res = await fetch('/api/upload-product', { 
       method: 'POST', 
       body: fd,
-      credentials: 'include',
-      headers: {
-        // Don't set Content-Type header - browser will set it with boundary
-      }
+      credentials: 'include'
     });
     
-    const endTime = Date.now();
-    console.log(`📨 Response received in ${endTime - startTime}ms`);
-    console.log("📨 Response status:", res.status);
-    console.log("📨 Response status text:", res.statusText);
-    console.log("📨 Response headers:", Object.fromEntries([...res.headers.entries()]));
+    const text = await res.text();
+    console.log("📨 Response length:", text.length);
     
-    // Get response text
-    const responseText = await res.text();
-    console.log("📨 Raw response text:", responseText);
+    if (!text || text.trim() === '') {
+      throw new Error('Server returned empty response');
+    }
     
-    // Try to parse as JSON
     let data;
     try {
-      data = JSON.parse(responseText);
-      console.log("📨 Parsed response data:", data);
+      data = JSON.parse(text);
     } catch (parseError) {
-      console.error("❌ Failed to parse response as JSON:", parseError);
-      console.error("❌ Response was:", responseText);
-      throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 100)}`);
+      console.error("Failed to parse:", text.substring(0, 200));
+      throw new Error('Invalid server response');
     }
 
     if (!res.ok) { 
-      console.log("❌ Upload failed with status", res.status);
-      console.log("❌ Error message:", data.error || 'Unknown error');
       uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ ${escapeHtml(data.error || 'Upload failed')}</div>`; 
       return; 
     }
 
-    console.log("✅ Upload successful!");
-    console.log("📦 Product ID:", data.productId);
-    console.log("💰 Pricing:", data.pricing);
-    
-    // Show success message
-    let successMessage = '✅ Product uploaded successfully!';
-    if (data.pricing) {
-      successMessage += `<br><small>Seller gets: $${data.pricing.seller_price?.toFixed(2) || '0'} | Platform fee: $${data.pricing.platform_fee?.toFixed(2) || '0'}</small>`;
-    }
-    uploadMessage.innerHTML = `<div class="form-success" style="color:var(--success)">${successMessage}</div>`;
+    uploadMessage.innerHTML = `<div class="form-success" style="color:var(--success)">✅ ${data.message}</div>`;
 
     // Reset form
-    document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(element => {
-      if (element.type !== 'button' && element.id !== 'uploadProductBtn') {
-        element.value = '';
-      }
+    document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => {
+      if (el.type !== 'button' && el.id !== 'uploadProductBtn') el.value = '';
     });
-
-    // Reset file inputs
-    const fileInput = document.getElementById('p_file');
-    if (fileInput) fileInput.value = '';
-    const imagesInput = document.getElementById('p_images');
-    if (imagesInput) imagesInput.value = '';
-
-    // Reset provider selection
+    document.getElementById('p_file') && (document.getElementById('p_file').value = '');
+    document.getElementById('p_images') && (document.getElementById('p_images').value = '');
     document.querySelectorAll('.provider-option').forEach(opt => opt.classList.remove('selected'));
     $('p_paymentProvider').value = '';
     document.getElementById('businessInfo')?.classList.remove('show');
-
-    // Hide conditional sections
     document.getElementById('digitalBlock')?.classList.remove('show');
     document.getElementById('physicalBlock')?.classList.remove('show');
-    const affiliateBlock = document.getElementById('affiliateBlock');
-    if (affiliateBlock) affiliateBlock.classList.remove('show');
+    document.getElementById('affiliateBlock')?.classList.remove('show');
 
     setTimeout(async () => {
-      sellerMode = false; 
-      becomeBtn.textContent = 'Become a Seller'; 
+      sellerMode = false;
+      becomeBtn.textContent = 'Become a Seller';
       $('sellerView')?.classList.remove('active');
       uploadMessage.classList.remove('show');
       await loadProducts();
-      
-      // 👇 REFRESH CATEGORY DROPDOWN AFTER SUCCESSFUL UPLOAD
       await refreshCategoryDropdown();
-      
       showToast('Product uploaded successfully!', 'success');
     }, 3000);
 
   } catch(err) {
     console.error('❌ Upload error:', err);
-    console.error('❌ Error stack:', err.stack);
-    const message = err.message || 'Unknown error';
-    uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ ${escapeHtml(message)}</div>`;
+    uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`;
   }
 });
-
 // 👇 NEW FUNCTION: Refresh category dropdown after upload
 async function refreshCategoryDropdown() {
   try {

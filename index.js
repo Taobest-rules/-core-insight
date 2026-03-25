@@ -824,7 +824,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
     };
 
-   // In /api/physical-orders/create endpoint
+ // In index.js - Fix the INSERT query in /api/physical-orders/create
 const result = await db.query(
   `INSERT INTO physical_orders (
     product_id, seller_id, buyer_id,
@@ -847,12 +847,12 @@ const result = await db.query(
     totalAmount,
     req.session.user.username || 'Buyer',
     req.session.user.email,
-    deliveryPhone,  // customer_phone
+    deliveryPhone,
     deliveryAddress,
     city || '',
     state || '',
     country || '',
-    deliveryPhone,  // delivery_phone (same)
+    deliveryPhone,
     'pay_after_approval',
     'pending',
     'pending_seller_approval',

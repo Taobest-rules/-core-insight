@@ -4115,20 +4115,34 @@
     </div>
   </div>
 
-<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - Replace your existing one -->
+<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - UPDATED WITH FEE CALCULATION -->
 <div id="addressModal" class="modal" aria-hidden="true">
-  <div class="modal-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+  <div class="modal-card" style="max-width: 500px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h3 style="margin:0"><i class="fas fa-truck"></i> Delivery Information</h3>
       <span id="closeAddressModal" class="close-x">&times;</span>
     </div>
+    
     <form id="addressForm">
-      <div style="margin-bottom:16px">
-        <label style="display:block;margin-bottom:8px;">Quantity (max 100)</label>
-        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" onchange="updateOrderTotals()" />
+      <!-- Product Summary -->
+      <div id="productSummary" style="background: rgba(59, 130, 246, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <img id="productThumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
+          <div>
+            <h4 id="productName" style="margin: 0 0 4px 0; color: var(--text-light);">Product Name</h4>
+            <p id="productPrice" style="margin: 0; color: var(--accent); font-weight: 600;">$0.00</p>
+          </div>
+        </div>
       </div>
       
-      <!-- Fee Breakdown -->
+      <!-- Quantity Selector -->
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; margin-bottom:8px;">Quantity <span style="color:var(--danger);">*</span></label>
+        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" onchange="updateOrderTotals()" />
+        <small class="form-help">Maximum 100 units per order</small>
+      </div>
+      
+      <!-- Fee Breakdown - UPDATED with correct calculation -->
       <div id="feeBreakdown" class="fee-breakdown">
         <h4><i class="fas fa-calculator"></i> Payment Breakdown</h4>
         <div class="breakdown-row">
@@ -4136,43 +4150,68 @@
           <span class="value" id="productSubtotal">$0.00</span>
         </div>
         <div class="breakdown-row" style="padding-left:12px;">
-          <span class="label">↳ Product Cost:</span>
-          <span class="value" style="color:var(--text-muted);">-<span id="productCostTotal">$0.00</span></span>
+          <span class="label">↳ Seller's Product Cost:</span>
+          <span class="value" style="color:var(--text-muted);" id="productCostTotal">$0.00</span>
         </div>
         <div class="breakdown-row">
           <span class="label">Platform Fee (10% of profit):</span>
           <span class="value" id="basePlatformFee">$0.00</span>
         </div>
         <div id="bulkFeeRow" class="breakdown-row" style="display:none;">
-          <span class="label">Bulk Order Fee:</span>
+          <span class="label">Bulk Order Fee (10% of total):</span>
           <span class="value" id="bulkOrderFee">$0.00</span>
         </div>
         <div class="breakdown-row total">
           <span class="label">Total You Pay:</span>
           <span class="value" id="totalAmount">$0.00</span>
         </div>
-        <div style="margin-top:12px;font-size:11px;text-align:center;">
-          <i class="fas fa-info-circle"></i> Seller receives <span id="sellerEarnings">$0.00</span> after costs
+        <div style="margin-top: 12px; font-size: 11px; text-align: center; color: var(--text-muted);">
+          <i class="fas fa-info-circle"></i> 
+          <span id="feeNote">Funds held in escrow until delivery</span>
         </div>
       </div>
-
+      
+      <!-- Delivery Address -->
+      <div style="margin-bottom: 16px">
+        <label>Delivery Address <span style="color:var(--danger);">*</span></label>
+        <textarea id="deliveryAddress" class="form-input" placeholder="Full street address, apartment number, etc." rows="3" required></textarea>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+        <div>
+          <label>City</label>
+          <input type="text" id="city" class="form-input" placeholder="City" />
+        </div>
+        <div>
+          <label>State/Province</label>
+          <input type="text" id="state" class="form-input" placeholder="State/Province" />
+        </div>
+      </div>
+      
       <div style="margin-bottom:16px">
-        <label>Delivery Address <span style="color:var(--danger)">*</span></label>
-        <textarea id="deliveryAddress" class="form-input" placeholder="Full street address" rows="3" required></textarea>
+        <label>Country</label>
+        <input type="text" id="country" class="form-input" placeholder="Country" />
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div><label>City</label><input type="text" id="city" class="form-input" placeholder="City" /></div>
-        <div><label>State</label><input type="text" id="state" class="form-input" placeholder="State/Province" /></div>
-      </div>
-      <div style="margin-bottom:16px"><label>Country</label><input type="text" id="country" class="form-input" placeholder="Country" /></div>
+      
       <div style="margin-bottom:24px">
-        <label>Phone or Email <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="deliveryPhone" class="form-input" placeholder="Phone number or email" required />
+        <label>Phone or Email <span style="color:var(--danger);">*</span></label>
+        <input type="text" id="deliveryPhone" class="form-input" placeholder="Phone number or email for delivery updates" required />
+        <small class="form-help">We'll use this to contact you about delivery</small>
       </div>
+      
       <div id="addressFormMessage" class="form-message"></div>
-      <div style="display:flex;gap:12px">
-        <button type="submit" class="btn primary" style="flex:2"><i class="fas fa-credit-card"></i> Submit Order</button>
-        <button type="button" id="cancelAddress" class="btn secondary" style="flex:1">Cancel</button>
+      
+      <div style="display:flex; gap:12px">
+        <button type="submit" class="btn primary" style="flex:2">
+          <i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)
+        </button>
+        <button type="button" id="cancelAddress" class="btn secondary" style="flex:1">
+          Cancel
+        </button>
+      </div>
+      
+      <div style="margin-top: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 12px;">
+        <i class="fas fa-shield-alt"></i> Your payment will only be collected after the seller confirms availability
       </div>
     </form>
   </div>
@@ -5605,33 +5644,40 @@ async function loadPendingRefunds() {
 let currentProductForOrder = null;
 
 function updateOrderTotals() {
-  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+  const quantityInput = document.getElementById('orderQuantity');
+  if (!quantityInput) return;
+  
+  const quantity = parseInt(quantityInput.value) || 1;
   if (!currentProductForOrder) return;
   
   const product = currentProductForOrder;
-  const productOriginalPrice = product.original_price || product.price;
-  const productCost = product.product_cost || 3.00;
-  const profitMargin = productOriginalPrice - productCost;
-  const basePlatformFeePerUnit = profitMargin * 0.10;
+  const productPrice = parseFloat(product.original_price || product.price || 0);
+  const productCost = parseFloat(product.product_cost || 3.00);
   
-  const qty = Math.min(quantity, 100);
+  const qty = Math.min(Math.max(quantity, 1), 100);
   
-  // Calculate fees
-  const subtotal = qty * productOriginalPrice;
+  // Calculate totals
+  const subtotal = qty * productPrice;
   const productCostTotal = qty * productCost;
-  const basePlatformFeeTotal = basePlatformFeePerUnit * qty;
+  const profit = subtotal - productCostTotal;
   
-  // Bulk order fee: 0.2% per unit beyond first, capped at 10%
+  // Platform fee calculation
+  // Base fee = 10% of single product price
+  const baseFeePerUnit = productPrice * 0.10;
+  const basePlatformFeeTotal = baseFeePerUnit * qty;
+  
+  // Bulk order fee: if 6+ units, add 10% of total order
   let bulkOrderFee = 0;
-  let bulkFeeRate = 0;
-  if (qty > 1) {
-    bulkFeeRate = Math.min((qty - 1) * 0.002, 0.10);
-    bulkOrderFee = productOriginalPrice * bulkFeeRate;
+  let isBulkOrder = false;
+  
+  if (qty >= 6) {
+    isBulkOrder = true;
+    bulkOrderFee = subtotal * 0.10;
   }
   
   const totalPlatformFee = basePlatformFeeTotal + bulkOrderFee;
-  const totalAmount = subtotal + totalPlatformFee;
-  const sellerEarnings = subtotal - productCostTotal - basePlatformFeeTotal;
+  const totalAmount = subtotal + totalPlatformFee;  // Customer pays subtotal + platform fees
+  const sellerEarnings = subtotal - productCostTotal;  // Seller gets total - their cost
   
   // Update display
   document.getElementById('qtyDisplay').textContent = qty;
@@ -5639,15 +5685,16 @@ function updateOrderTotals() {
   document.getElementById('productCostTotal').textContent = `$${productCostTotal.toFixed(2)}`;
   document.getElementById('basePlatformFee').textContent = `$${basePlatformFeeTotal.toFixed(2)}`;
   document.getElementById('totalAmount').textContent = `$${totalAmount.toFixed(2)}`;
-  document.getElementById('sellerEarnings').textContent = `$${sellerEarnings.toFixed(2)}`;
   
   // Show/hide bulk fee row
   const bulkFeeRow = document.getElementById('bulkFeeRow');
-  if (bulkOrderFee > 0) {
+  if (isBulkOrder) {
     bulkFeeRow.style.display = 'flex';
     document.getElementById('bulkOrderFee').textContent = `$${bulkOrderFee.toFixed(2)}`;
+    document.getElementById('feeNote').innerHTML = `<i class="fas fa-tag"></i> Bulk order (${qty} units): 10% bulk fee applied`;
   } else {
     bulkFeeRow.style.display = 'none';
+    document.getElementById('feeNote').innerHTML = `<i class="fas fa-info-circle"></i> Funds held in escrow until delivery`;
   }
   
   // Store calculated values for order submission
@@ -5659,11 +5706,11 @@ function updateOrderTotals() {
     bulkOrderFee: bulkOrderFee,
     totalPlatformFee: totalPlatformFee,
     totalAmount: totalAmount,
-    sellerEarnings: sellerEarnings
+    sellerEarnings: sellerEarnings,
+    isBulkOrder: isBulkOrder
   };
 }
-
-// Add this function to your products.html
+// Open order modal with product details
 async function orderPhysicalProduct(productId) {
   if (!currentUser) {
     openModal(document.getElementById('loginModal'));
@@ -5677,18 +5724,44 @@ async function orderPhysicalProduct(productId) {
       return;
     }
     
-    currentOrderProduct = product;
+    currentProductForOrder = product;
     
-    // Show address modal
+    // Update modal with product info
+    const productThumbnail = document.getElementById('productThumbnail');
+    const productNameEl = document.getElementById('productName');
+    const productPriceEl = document.getElementById('productPrice');
+    
+    if (productThumbnail) {
+      const mainImage = product._imageList && product._imageList.length > 0 
+        ? product._imageList[0] 
+        : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
+      productThumbnail.src = mainImage;
+    }
+    
+    if (productNameEl) productNameEl.textContent = product.title || 'Product';
+    if (productPriceEl) {
+      const price = product.original_price || product.price;
+      productPriceEl.textContent = `$${parseFloat(price).toFixed(2)} each`;
+    }
+    
+    // Reset form
+    document.getElementById('orderQuantity').value = '1';
+    document.getElementById('deliveryAddress').value = '';
+    document.getElementById('city').value = '';
+    document.getElementById('state').value = '';
+    document.getElementById('country').value = '';
+    document.getElementById('deliveryPhone').value = '';
+    document.getElementById('addressFormMessage').innerHTML = '';
+    
+    // Update fee breakdown
+    updateOrderTotals();
+    
+    // Show modal
     openModal(document.getElementById('addressModal'));
-    
-    // Update modal title
-    document.querySelector('#addressModal h3').innerHTML = 
-      '<i class="fas fa-clipboard-list"></i> Order Information';
     
   } catch(error) {
     console.error('Order failed:', error);
-    alert('Failed to prepare order. Please try again.');
+    showToast('Error', 'Failed to prepare order. Please try again.', 'danger');
   }
 }
 
@@ -5742,6 +5815,130 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
     messageEl.style.color = 'var(--danger)';
   }
 });
+// Address form submission - Create order WITHOUT payment first
+document.getElementById('addressForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  if (!currentProductForOrder) {
+    alert('No product selected for ordering');
+    return;
+  }
+  
+  const messageEl = document.getElementById('addressFormMessage');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  
+  // Get form values
+  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+  const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+  
+  // Validate required fields
+  if (!deliveryAddress) {
+    messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
+    return;
+  }
+  
+  if (!deliveryPhone) {
+    messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
+    return;
+  }
+  
+  // Validate phone/email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+  
+  if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
+    messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
+    return;
+  }
+  
+  // Disable submit button and show loading
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
+  }
+  
+  messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
+  
+  try {
+    const orderData = {
+      productId: currentProductForOrder.id,
+      quantity: quantity,
+      deliveryAddress: deliveryAddress,
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      deliveryPhone: deliveryPhone,
+      notes: ''
+    };
+    
+    console.log('📤 Creating order (no payment yet)...', orderData);
+    
+    // Create order (payment will be requested after seller approval)
+    const response = await fetch('/api/physical-orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Close modal
+      closeModal(document.getElementById('addressModal'));
+      
+      // Show success message
+      showToast(
+        '✅ Order Created!', 
+        `Order #${data.orderId} has been sent to the seller for approval. You will be notified when the seller responds.`,
+        'success'
+      );
+      
+      // Reset form
+      document.getElementById('addressForm').reset();
+      currentProductForOrder = null;
+      
+    } else {
+      messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+      }
+    }
+    
+  } catch(error) {
+    console.error('❌ Order creation failed:', error);
+    messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+    }
+  }
+});
+
+// Close address modal
+document.getElementById('closeAddressModal')?.addEventListener('click', () => {
+  closeModal(document.getElementById('addressModal'));
+  currentProductForOrder = null;
+});
+
+document.getElementById('cancelAddress')?.addEventListener('click', () => {
+  closeModal(document.getElementById('addressModal'));
+  currentProductForOrder = null;
+});
+
+// Also add quantity input validation
+document.getElementById('orderQuantity')?.addEventListener('change', function() {
+  let val = parseInt(this.value);
+  if (isNaN(val) || val < 1) this.value = 1;
+  if (val > 100) {
+    this.value = 100;
+    showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
+  }
+  updateOrderTotals();
+});
+
    async function loadAllProductsTable() {
       const tbody = document.querySelector('#allProductsTable tbody');
       

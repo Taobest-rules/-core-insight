@@ -91,12 +91,24 @@ app.use(session({
 app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ============================================
+// FILE UPLOAD CONFIGURATION
+// ============================================
+const uploadDirs = {
+  courses: path.join(__dirname, "uploads", "courses"),
+  products: path.join(__dirname, "uploads", "products"),
+  services: path.join(__dirname, "uploads", "services"),
+  profiles: path.join(__dirname, "uploads", "profiles"),
+  chat: path.join(__dirname, "uploads", "chat-images")
+};
+
+Object.values(uploadDirs).forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Product storage for multer
 const productStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, 'uploads', 'products');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
+  destination: (req, file, cb) => cb(null, uploadDirs.products),
   filename: (req, file, cb) => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000);
@@ -1362,7 +1374,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
 });
 
 // ============================================
-// SELLER PHYSICAL ORDERS ENDPOINT - FIXED
+// SELLER PHYSICAL ORDERS - FIXED
 // ============================================
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
@@ -1371,7 +1383,9 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     }
 
     const { status, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const offset = (pageNum - 1) * limitNum;
     
     let query = `
       SELECT o.*, p.title as product_name, u.username as buyer_name, u.email as buyer_email
@@ -1388,43 +1402,32 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     }
 
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), offset);
-
-    console.log("📊 Query:", query);
-    console.log("📊 Params:", params);
+    params.push(limitNum, offset);
 
     const orders = await db.query(query, params);
 
-    // Get counts
+    // Get counts - separate query
     const counts = await db.query(
       `SELECT 
-        COUNT(CASE WHEN order_status = 'pending_seller_approval' THEN 1 END) as pending_approval,
-        COUNT(CASE WHEN order_status = 'seller_accepted' THEN 1 END) as accepted,
-        COUNT(CASE WHEN order_status = 'paid' THEN 1 END) as paid,
-        COUNT(CASE WHEN order_status = 'completed' THEN 1 END) as completed,
-        COUNT(CASE WHEN order_status = 'refund_requested' THEN 1 END) as refund_requests
+        SUM(CASE WHEN order_status = 'pending_seller_approval' THEN 1 ELSE 0 END) as pending_approval,
+        SUM(CASE WHEN order_status = 'seller_accepted' THEN 1 ELSE 0 END) as accepted,
+        SUM(CASE WHEN order_status = 'paid' THEN 1 ELSE 0 END) as paid,
+        SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN order_status = 'refund_requested' THEN 1 ELSE 0 END) as refund_requests
        FROM physical_orders
        WHERE seller_id = ?`,
       [req.session.user.id]
     );
 
-    const processedOrders = extractRows(orders).map(order => ({
-      ...order,
-      total_amount: parseFloat(order.total_amount || 0),
-      platform_fee: parseFloat(order.platform_fee || 0),
-      seller_earnings: parseFloat(order.seller_earnings || 0),
-      price: parseFloat(order.price || 0)
-    }));
-
     res.json({
       success: true,
-      orders: processedOrders,
+      orders: orders || [],
       counts: counts[0] || { pending_approval: 0, accepted: 0, paid: 0, completed: 0, refund_requests: 0 },
-      pagination: { page: parseInt(page), limit: parseInt(limit) }
+      pagination: { page: pageNum, limit: limitNum }
     });
 
   } catch (err) {
-    console.error("❌ Error fetching seller orders:", err);
+    console.error("❌ Error:", err);
     res.status(500).json({ error: "Failed to fetch orders", details: err.message });
   }
 });

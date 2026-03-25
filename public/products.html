@@ -7471,23 +7471,18 @@ async function loadProductReviews(productId) {
   currentProductId = productId;
 
   try {
-    console.log("🔄 Loading reviews for product:", productId);
-    
     const res = await fetch(`/api/reviews/${productId}`, {
       credentials: 'include',
       headers: { 'Accept': 'application/json' }
     });
     
     if (!res.ok) {
-      console.log("Reviews endpoint returned:", res.status);
-      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet. Be the first to review!</p>';
+      document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">No reviews yet</p>';
       document.getElementById("averageRating").textContent = "";
       return;
     }
     
     const data = await res.json();
-    console.log("📊 Reviews data:", data);
-    
     const list = document.getElementById("reviewsList");
     const avg = document.getElementById("averageRating");
 
@@ -7497,8 +7492,15 @@ async function loadProductReviews(productId) {
       return;
     }
 
-    const avgRating = data.averageRating || (data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length);
-    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${data.count || data.reviews.length} reviews)`;
+    // Fix: Convert avgRating to number
+    let avgRating = data.averageRating || 0;
+    if (typeof avgRating === 'string') {
+      avgRating = parseFloat(avgRating);
+    }
+    if (isNaN(avgRating)) avgRating = 0;
+    
+    const reviewCount = data.count || data.reviews.length;
+    avg.textContent = `⭐ ${avgRating.toFixed(1)} / 5 (${reviewCount} reviews)`;
 
     list.innerHTML = data.reviews.map(r => `
       <div class="review-item">
@@ -7510,9 +7512,10 @@ async function loadProductReviews(productId) {
 
   } catch (err) {
     console.error("Error loading reviews:", err);
-    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews. Please try again.</p>';
+    document.getElementById("reviewsList").innerHTML = '<p style="color: var(--text-gray)">Unable to load reviews</p>';
   }
 }
+ 
 
 async function submitReview() {
   const rating = document.getElementById("reviewRating").value;

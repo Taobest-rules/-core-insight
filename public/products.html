@@ -3451,7 +3451,14 @@
         </select>
       </div>
     </div>
-    
+    <div class="form-group">
+  <label class="form-label">Product Cost (Your cost to fulfill) <span style="color: var(--text-muted);">(optional)</span></label>
+  <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" 
+         placeholder="e.g. 3.00 (optional, defaults to $3.00)" />
+  <div id="p_productCost_error" class="form-error"></div>
+  <span class="form-help">How much it costs YOU to buy/fulfill this product (optional - defaults to $3.00)</span>
+</div>
+
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
@@ -5757,6 +5764,12 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
 
 
 
+
+ // ================= ORDER FORM FUNCTIONS - FIXED (NO DUPLICATES) =================
+
+
+let isSubmitting = false; // Prevent double submission
+
 // Open order modal with product details
 async function orderPhysicalProduct(productId) {
   console.log("🛒 Opening order modal for product:", productId);
@@ -5802,6 +5815,7 @@ async function orderPhysicalProduct(productId) {
     document.getElementById('country').value = '';
     document.getElementById('deliveryPhone').value = '';
     document.getElementById('addressFormMessage').innerHTML = '';
+    isSubmitting = false;
     
     // Update total display
     updateOrderTotals();
@@ -5815,6 +5829,201 @@ async function orderPhysicalProduct(productId) {
   }
 }
 
+// Update order totals
+function updateOrderTotals() {
+  const quantityInput = document.getElementById('orderQuantity');
+  if (!quantityInput) return;
+  
+  const quantity = parseInt(quantityInput.value) || 1;
+  if (!currentProductForOrder) return;
+  
+  const product = currentProductForOrder;
+  const productPrice = parseFloat(product.original_price || product.price || 0);
+  
+  const qty = Math.min(Math.max(quantity, 1), 100);
+  const totalAmount = qty * productPrice;
+  
+  // Update display
+  const productSubtotal = document.getElementById('productSubtotal');
+  const totalAmountEl = document.getElementById('totalAmount');
+  const qtyDisplay = document.getElementById('qtyDisplay');
+  
+  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
+  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+  if (qtyDisplay) qtyDisplay.textContent = qty;
+}
+
+// Single order submission handler
+async function submitOrderForm(e) {
+  if (e) e.preventDefault();
+  
+  // Prevent double submission
+  if (isSubmitting) {
+    console.log("⏳ Already submitting, please wait...");
+    return;
+  }
+  
+  console.log("📝 Submitting order form...");
+  
+  if (!currentProductForOrder) {
+    console.error("❌ No product selected!");
+    const messageEl = document.getElementById('addressFormMessage');
+    if (messageEl) {
+      messageEl.innerHTML = '<div style="color: var(--danger);">Error: No product selected. Please close and try again.</div>';
+    }
+    return;
+  }
+  
+  const messageEl = document.getElementById('addressFormMessage');
+  const submitBtn = document.querySelector('#addressForm button[type="submit"]');
+  
+  // Get form values
+  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+  const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+  
+  // Validate
+  if (!deliveryAddress) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
+    return;
+  }
+  
+  if (!deliveryPhone) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
+    return;
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+  
+  if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
+    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
+    return;
+  }
+  
+  // Set submitting flag
+  isSubmitting = true;
+  
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
+  }
+  
+  if (messageEl) {
+    messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
+  }
+  
+  try {
+    const orderData = {
+      productId: currentProductForOrder.id,
+      quantity: quantity,
+      deliveryAddress: deliveryAddress,
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      deliveryPhone: deliveryPhone,
+      notes: ''
+    };
+    
+    console.log('📤 Creating order...', orderData);
+    
+    const response = await fetch('/api/physical-orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    console.log('📥 Response:', data);
+    
+    if (response.ok) {
+      closeModal(document.getElementById('addressModal'));
+      
+      showToast(
+        '✅ Order Created!', 
+        `Order #${data.orderId} has been sent to the seller for approval.`,
+        'success'
+      );
+      
+      // Reset
+      document.getElementById('addressForm').reset();
+      currentProductForOrder = null;
+      
+    } else {
+      if (messageEl) {
+        messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
+      }
+    }
+    
+  } catch(error) {
+    console.error('❌ Order creation failed:', error);
+    if (messageEl) {
+      messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+    }
+  } finally {
+    isSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+    }
+  }
+}
+
+// Close modal
+function closeAddressModal() {
+  closeModal(document.getElementById('addressModal'));
+  currentProductForOrder = null;
+  isSubmitting = false;
+}
+
+// Initialize order form (call ONCE)
+function initOrderForm() {
+  const addressForm = document.getElementById('addressForm');
+  const closeBtn = document.getElementById('closeAddressModal');
+  const cancelBtn = document.getElementById('cancelAddress');
+  const quantityInput = document.getElementById('orderQuantity');
+  
+  // Remove any existing listeners by replacing with clones
+  if (addressForm) {
+    const newForm = addressForm.cloneNode(true);
+    addressForm.parentNode.replaceChild(newForm, addressForm);
+    newForm.addEventListener('submit', submitOrderForm);
+  }
+  
+  if (closeBtn) {
+    const newClose = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newClose, closeBtn);
+    newClose.addEventListener('click', closeAddressModal);
+  }
+  
+  if (cancelBtn) {
+    const newCancel = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+    newCancel.addEventListener('click', closeAddressModal);
+  }
+  
+  if (quantityInput) {
+    const newQuantity = quantityInput.cloneNode(true);
+    quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
+    newQuantity.addEventListener('input', function() {
+      let val = parseInt(this.value);
+      if (isNaN(val) || val < 1) this.value = 1;
+      if (val > 100) {
+        this.value = 100;
+        showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
+      }
+      updateOrderTotals();
+    });
+  }
+}
+
+// Call this once when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initOrderForm);
+} else {
+  initOrderForm();
+}
 // Update order totals - Customer only sees product total
 function updateOrderTotals() {
   const quantityInput = document.getElementById('orderQuantity');
@@ -6687,15 +6896,19 @@ function validateProductForm() {
     hasErrors = true;
   }
   
-  // Validate product cost for physical products
-  if (type === 'physical') {
-    const productCost = document.getElementById('p_productCost')?.value;
-    if (!productCost || parseFloat(productCost) <= 0) {
-      console.log("❌ Validation failed: Product cost is invalid for physical product");
-      errors.push({ id: 'p_productCost', errorId: 'p_productCost_error', message: 'Product cost is required' });
-      hasErrors = true;
-    }
+  // Update the validation for physical products - MAKE PRODUCT COST OPTIONAL
+if (type === 'physical') {
+  const productCost = document.getElementById('p_productCost')?.value;
+  // Don't validate product cost - make it optional
+  // Only use default value if not provided
+  if (!productCost || parseFloat(productCost) <= 0) {
+    // Set default value silently
+    const costInput = document.getElementById('p_productCost');
+    if (costInput) costInput.value = '3.00';
+    console.log("📦 Using default product cost: $3.00");
+    // Don't add to errors - it's optional now
   }
+}
   
   // Validate category
   if (!categorySelect && !categoryNew) {

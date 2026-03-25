@@ -12,33 +12,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    :root {
-      --primary-dark: #0f172a;
-      --secondary-dark: #1e293b;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --text-light: #f8fafc;
-      --text-gray: #94a3b8;
-      --text-muted: #64748b;
-      --border: #334155;
-      --card-bg: #1e293b;
-      --card-bg-hover: #2d3748;
-    }
-
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     body {
-      background: var(--primary-dark);
-      color: var(--text-light);
-      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
     }
 
     /* Header */
@@ -46,7 +29,7 @@
       height: 70px;
       background: rgba(30, 41, 59, 0.95);
       backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #334155;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -69,7 +52,7 @@
       width: 40px;
       height: 40px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -78,7 +61,7 @@
     .logo-text {
       font-size: 1.5rem;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--text-light), var(--accent));
+      background: linear-gradient(135deg, #f8fafc, #3b82f6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -89,7 +72,7 @@
     }
 
     nav a {
-      color: var(--text-gray);
+      color: #94a3b8;
       text-decoration: none;
       font-size: 15px;
       font-weight: 500;
@@ -97,7 +80,7 @@
     }
 
     nav a:hover {
-      color: var(--text-light);
+      color: #f8fafc;
     }
 
     .user-info {
@@ -107,7 +90,7 @@
     }
 
     .user-name {
-      color: var(--text-light);
+      color: #f8fafc;
       font-weight: 500;
     }
 
@@ -115,8 +98,8 @@
       padding: 8px 20px;
       border-radius: 8px;
       background: rgba(239, 68, 68, 0.2);
-      color: var(--danger);
-      border: 1px solid var(--danger);
+      color: #ef4444;
+      border: 1px solid #ef4444;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -125,7 +108,7 @@
       background: rgba(239, 68, 68, 0.3);
     }
 
-    /* Main Content */
+    /* Main */
     main {
       padding-top: 90px;
       max-width: 1400px;
@@ -153,16 +136,11 @@
     }
 
     .role-badge {
-      background: var(--accent);
+      background: #3b82f6;
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
-    }
-
-    .dashboard-actions {
-      display: flex;
-      gap: 12px;
     }
 
     .btn {
@@ -179,23 +157,23 @@
     }
 
     .btn-primary {
-      background: var(--accent);
+      background: #3b82f6;
       color: white;
     }
 
     .btn-primary:hover {
-      background: var(--accent-hover);
+      background: #2563eb;
       transform: translateY(-1px);
     }
 
     .btn-secondary {
       background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-light);
+      border: 1px solid #334155;
+      color: #f8fafc;
     }
 
     .btn-secondary:hover {
-      background: var(--card-bg-hover);
+      background: #1e293b;
     }
 
     /* Stats Grid */
@@ -207,10 +185,10 @@
     }
 
     .stat-card {
-      background: var(--card-bg);
+      background: #1e293b;
       border-radius: 16px;
       padding: 24px;
-      border: 1px solid var(--border);
+      border: 1px solid #334155;
       display: flex;
       align-items: center;
       gap: 16px;
@@ -218,7 +196,7 @@
     }
 
     .stat-card:hover {
-      border-color: var(--accent);
+      border-color: #3b82f6;
       transform: translateY(-2px);
     }
 
@@ -238,22 +216,22 @@
     }
 
     .stat-content p {
-      color: var(--text-gray);
+      color: #94a3b8;
       font-size: 14px;
     }
 
     /* Tabs */
     .dashboard-tabs {
-      background: var(--card-bg);
+      background: #1e293b;
       border-radius: 16px;
-      border: 1px solid var(--border);
+      border: 1px solid #334155;
       overflow: hidden;
     }
 
     .tabs-header {
       display: flex;
-      background: var(--primary-dark);
-      border-bottom: 1px solid var(--border);
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
       overflow-x: auto;
     }
 
@@ -261,7 +239,7 @@
       padding: 16px 24px;
       background: transparent;
       border: none;
-      color: var(--text-gray);
+      color: #94a3b8;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
@@ -269,13 +247,13 @@
     }
 
     .tab-btn:hover {
-      color: var(--text-light);
+      color: #f8fafc;
       background: rgba(255, 255, 255, 0.02);
     }
 
     .tab-btn.active {
-      color: var(--accent);
-      border-bottom: 2px solid var(--accent);
+      color: #3b82f6;
+      border-bottom: 2px solid #3b82f6;
     }
 
     .tabs-content {
@@ -309,20 +287,20 @@
     th {
       text-align: left;
       padding: 12px 16px;
-      background: var(--primary-dark);
-      color: var(--text-light);
+      background: #0f172a;
+      color: #f8fafc;
       font-weight: 600;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #334155;
     }
 
     td {
       padding: 12px 16px;
-      color: var(--text-gray);
-      border-bottom: 1px solid var(--border);
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
     }
 
     tr:hover {
-      background: var(--card-bg-hover);
+      background: #1e293b;
     }
 
     /* Status Badges */
@@ -336,32 +314,32 @@
 
     .status-pending_seller_approval {
       background: rgba(245, 158, 11, 0.2);
-      color: var(--warning);
+      color: #f59e0b;
     }
 
     .status-seller_accepted {
       background: rgba(59, 130, 246, 0.2);
-      color: var(--accent);
+      color: #3b82f6;
     }
 
     .status-paid {
       background: rgba(59, 130, 246, 0.2);
-      color: var(--accent);
+      color: #3b82f6;
     }
 
     .status-completed {
       background: rgba(16, 185, 129, 0.2);
-      color: var(--success);
+      color: #10b981;
     }
 
     .status-refund_requested {
       background: rgba(245, 158, 11, 0.2);
-      color: var(--warning);
+      color: #f59e0b;
     }
 
     .status-refunded {
       background: rgba(16, 185, 129, 0.2);
-      color: var(--success);
+      color: #10b981;
     }
 
     /* Action Buttons */
@@ -378,17 +356,17 @@
 
     .action-view {
       background: rgba(59, 130, 246, 0.2);
-      color: var(--accent);
+      color: #3b82f6;
     }
 
     .action-accept {
       background: rgba(16, 185, 129, 0.2);
-      color: var(--success);
+      color: #10b981;
     }
 
     .action-reject {
       background: rgba(239, 68, 68, 0.2);
-      color: var(--danger);
+      color: #ef4444;
     }
 
     .action-btn:hover {
@@ -399,7 +377,7 @@
     .empty-state {
       text-align: center;
       padding: 60px 20px;
-      color: var(--text-gray);
+      color: #94a3b8;
     }
 
     .empty-state i {
@@ -410,18 +388,7 @@
 
     .empty-state h4 {
       margin-bottom: 8px;
-      color: var(--text-light);
-    }
-
-    /* Loading */
-    .loading {
-      text-align: center;
-      padding: 60px;
-    }
-
-    .loading i {
-      font-size: 48px;
-      color: var(--accent);
+      color: #f8fafc;
     }
 
     /* Toast */
@@ -431,8 +398,8 @@
       right: 20px;
       padding: 16px 20px;
       border-radius: 12px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+      background: #1e293b;
+      border: 1px solid #334155;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       z-index: 9999;
       transform: translateY(100px);
@@ -446,14 +413,13 @@
     }
 
     .toast.success {
-      border-left: 3px solid var(--success);
+      border-left: 3px solid #10b981;
     }
 
     .toast.error {
-      border-left: 3px solid var(--danger);
+      border-left: 3px solid #ef4444;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
       main {
         padding-left: 16px;
@@ -519,7 +485,7 @@
   <div class="stats-grid" id="statsGrid">
     <div class="stat-card">
       <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
-        <i class="fas fa-box-open" style="color: var(--accent); font-size: 24px;"></i>
+        <i class="fas fa-box-open" style="color: #3b82f6; font-size: 24px;"></i>
       </div>
       <div class="stat-content">
         <h3 id="totalProducts">0</h3>
@@ -528,7 +494,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
-        <i class="fas fa-shopping-cart" style="color: var(--success); font-size: 24px;"></i>
+        <i class="fas fa-shopping-cart" style="color: #10b981; font-size: 24px;"></i>
       </div>
       <div class="stat-content">
         <h3 id="totalOrders">0</h3>
@@ -537,7 +503,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
-        <i class="fas fa-clock" style="color: var(--warning); font-size: 24px;"></i>
+        <i class="fas fa-clock" style="color: #f59e0b; font-size: 24px;"></i>
       </div>
       <div class="stat-content">
         <h3 id="pendingOrders">0</h3>
@@ -546,7 +512,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
-        <i class="fas fa-dollar-sign" style="color: var(--success); font-size: 24px;"></i>
+        <i class="fas fa-dollar-sign" style="color: #10b981; font-size: 24px;"></i>
       </div>
       <div class="stat-content">
         <h3 id="totalEarnings">$0</h3>
@@ -561,14 +527,13 @@
       <button class="tab-btn active" data-tab="orders">📦 Orders</button>
       <button class="tab-btn" data-tab="products">📱 My Products</button>
       <button class="tab-btn" data-tab="refunds">🔄 Refund Requests</button>
-      <button class="tab-btn" data-tab="notifications">🔔 Notifications</button>
     </div>
     
     <div class="tabs-content">
       <!-- Orders Tab -->
       <div id="ordersTab" class="tab-content active">
         <div class="table-container">
-          <table id="ordersTable">
+          <table>
             <thead>
               <tr>
                 <th>Order ID</th>
@@ -630,25 +595,6 @@
           </table>
         </div>
       </div>
-      
-      <!-- Notifications Tab -->
-      <div id="notificationsTab" class="tab-content">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Title</th>
-                <th>Message</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="notificationsList">
-              <tr><td colspan="4" class="empty-state">No notifications</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </div>
 </main>
@@ -656,83 +602,72 @@
 <script>
   let currentUser = null;
   
-  // Load user data
   async function loadUser() {
     try {
-      const response = await fetch('/api/me', {
-        credentials: 'include'
-      });
-      
+      const response = await fetch('/api/me', { credentials: 'include' });
       if (!response.ok) {
         window.location.href = '/login';
         return;
       }
-      
       currentUser = await response.json();
-      
       if (!currentUser || !currentUser.id) {
         window.location.href = '/login';
         return;
       }
-      
       document.getElementById('userName').textContent = currentUser.username || currentUser.email;
       document.getElementById('roleBadge').textContent = currentUser.role === 'admin' ? 'Admin' : 'Seller';
-      
-      // Load dashboard data
       loadDashboardData();
-      
     } catch (error) {
       console.error('Error loading user:', error);
       window.location.href = '/login';
     }
   }
   
-  // Load all dashboard data
   async function loadDashboardData() {
     await Promise.all([
       loadOrders(),
       loadProducts(),
       loadRefunds(),
-      loadNotifications(),
       loadStats()
     ]);
   }
   
-  // Load orders
-  async function loadOrders() {
-    try {
-      const response = await fetch('/api/seller/physical-orders', {
-        credentials: 'include'
-      });
+ async function loadOrders() {
+  try {
+    const response = await fetch('/api/seller/physical-orders', { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to load orders');
+    const data = await response.json();
+    const orders = data.orders || [];
+    const tbody = document.getElementById('ordersList');
+    
+    if (orders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No orders yet</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = orders.map(order => {
+      const status = order.order_status;
+      const isPendingApproval = status === 'pending_seller_approval';
+      const earnings = parseFloat(order.seller_earnings || 0);
+      const platformFee = parseFloat(order.platform_fee || 0);
       
-      if (!response.ok) {
-        throw new Error('Failed to load orders');
-      }
-      
-      const data = await response.json();
-      const orders = data.orders || [];
-      const tbody = document.getElementById('ordersList');
-      
-      if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No orders yet</td></tr>';
-        return;
-      }
-      
-      tbody.innerHTML = orders.map(order => `
+      return `
         <tr>
           <td><strong>#${order.id}</strong></td>
           <td>${escapeHtml(order.product_name)}</td>
           <td>${order.quantity}</td>
           <td><strong>$${parseFloat(order.total_amount).toFixed(2)}</strong></td>
-          <td>${escapeHtml(order.buyer_name || order.customer_name)}</td>
           <td>
-            <span class="status-badge status-${order.order_status}">
-              ${formatStatus(order.order_status)}
-            </span>
+            <div>${escapeHtml(order.buyer_name || order.customer_name)}</div>
+            <small style="color: var(--text-muted);">${escapeHtml(order.buyer_email || order.customer_email)}</small>
+          </td>
+          <td>
+            <span class="status-badge status-${status}">${formatStatus(status)}</span>
+            ${earnings > 0 ? `<div style="font-size: 11px; margin-top: 4px;">You earn: $${earnings.toFixed(2)}</div>` : ''}
           </td>
           <td>${formatDate(order.created_at)}</td>
           <td>
-            ${order.order_status === 'pending_seller_approval' ? `
+            ${isPendingApproval ? `
               <button class="action-btn action-accept" onclick="respondToOrder(${order.id}, 'accept')">
                 <i class="fas fa-check"></i> Accept
               </button>
@@ -746,25 +681,32 @@
             `}
           </td>
         </tr>
-      `).join('');
-      
-    } catch (error) {
-      console.error('Error loading orders:', error);
-      document.getElementById('ordersList').innerHTML = '<tr><td colspan="8" class="empty-state">Error loading orders</td></tr>';
-    }
+      `;
+    }).join('');
+    
+    // Update stats
+    const counts = data.counts || {};
+    const totalOrders = (counts.pending_approval || 0) + (counts.accepted || 0) + (counts.paid || 0) + (counts.completed || 0);
+    document.getElementById('totalOrders').textContent = totalOrders;
+    document.getElementById('pendingOrders').textContent = counts.pending_approval || 0;
+    
+    // Calculate total earnings from orders
+    let totalEarnings = 0;
+    orders.forEach(order => {
+      totalEarnings += parseFloat(order.seller_earnings || 0);
+    });
+    document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    document.getElementById('ordersList').innerHTML = '<tr><td colspan="8" class="empty-state">Error loading orders</td></tr>';
   }
+}
   
-  // Load products
   async function loadProducts() {
     try {
-      const response = await fetch(`/api/products/seller/${currentUser?.id}`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load products');
-      }
-      
+      const response = await fetch(`/api/products/seller/${currentUser?.id}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load products');
       const products = await response.json();
       const tbody = document.getElementById('productsList');
       
@@ -779,7 +721,7 @@
             <div style="display: flex; align-items: center; gap: 12px;">
               ${product.images && product.images[0] ? 
                 `<img src="${product.images[0]}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">` : 
-                `<div style="width: 40px; height: 40px; background: var(--secondary-dark); border-radius: 8px;"></div>`
+                `<div style="width: 40px; height: 40px; background: #1e293b; border-radius: 8px;"></div>`
               }
               <strong>${escapeHtml(product.title)}</strong>
             </div>
@@ -795,24 +737,16 @@
           </td>
         </tr>
       `).join('');
-      
     } catch (error) {
       console.error('Error loading products:', error);
       document.getElementById('productsList').innerHTML = '<tr><td colspan="6" class="empty-state">Error loading products</td></tr>';
     }
   }
   
-  // Load refund requests
   async function loadRefunds() {
     try {
-      const response = await fetch('/api/refunds/pending', {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load refunds');
-      }
-      
+      const response = await fetch('/api/refunds/pending', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load refunds');
       const data = await response.json();
       const refunds = data.refunds || [];
       const tbody = document.getElementById('refundsList');
@@ -840,86 +774,34 @@
           </td>
         </tr>
       `).join('');
-      
     } catch (error) {
       console.error('Error loading refunds:', error);
     }
   }
   
-  // Load notifications
-  async function loadNotifications() {
-    try {
-      const response = await fetch('/api/seller/notifications', {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load notifications');
-      }
-      
-      const data = await response.json();
-      const notifications = data.notifications || [];
-      const tbody = document.getElementById('notificationsList');
-      
-      if (notifications.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No notifications</td></tr>';
-        return;
-      }
-      
-      tbody.innerHTML = notifications.map(notif => `
-        <tr>
-          <td>${formatDate(notif.created_at)}</td>
-          <td><strong>${escapeHtml(notif.title)}</strong></td>
-          <td>${escapeHtml(notif.message)}</td>
-          <td>
-            ${notif.is_read ? 
-              '<span style="color: var(--text-muted);">Read</span>' : 
-              '<span style="color: var(--accent);">New</span>'
-            }
-          </td>
-        </tr>
-      `).join('');
-      
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  }
-  
-  // Load stats
   async function loadStats() {
     try {
-      const response = await fetch('/api/seller/physical-orders', {
-        credentials: 'include'
-      });
-      
+      const response = await fetch('/api/seller/physical-orders', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         const counts = data.counts || {};
-        
-        document.getElementById('totalOrders').textContent = 
-          (counts.pending_approval || 0) + (counts.accepted || 0) + (counts.paid || 0) + (counts.completed || 0);
+        const totalOrders = (counts.pending_approval || 0) + (counts.accepted || 0) + (counts.paid || 0) + (counts.completed || 0);
+        document.getElementById('totalOrders').textContent = totalOrders;
         document.getElementById('pendingOrders').textContent = counts.pending_approval || 0;
       }
       
-      // Load products count
-      const productsRes = await fetch(`/api/products/seller/${currentUser?.id}`, {
-        credentials: 'include'
-      });
-      
+      const productsRes = await fetch(`/api/products/seller/${currentUser?.id}`, { credentials: 'include' });
       if (productsRes.ok) {
         const products = await productsRes.json();
         document.getElementById('totalProducts').textContent = products.length || 0;
       }
-      
     } catch (error) {
       console.error('Error loading stats:', error);
     }
   }
   
-  // Respond to order
   async function respondToOrder(orderId, action) {
     const message = action === 'reject' ? prompt('Reason for rejecting this order (optional):') : null;
-    
     try {
       const response = await fetch(`/api/physical-orders/${orderId}/respond`, {
         method: 'POST',
@@ -927,29 +809,21 @@
         body: JSON.stringify({ action, message }),
         credentials: 'include'
       });
-      
       const data = await response.json();
-      
       if (response.ok) {
         showToast(data.message, 'success');
-        loadOrders();
-        loadStats();
+        loadDashboardData();
       } else {
         showToast(data.error || 'Failed to respond', 'error');
       }
-      
     } catch (error) {
       console.error('Error responding to order:', error);
       showToast('Network error', 'error');
     }
   }
   
-  // Process refund
   async function processRefund(orderId, action) {
-    const notes = prompt(action === 'approve' ? 
-      "Optional notes for the buyer:" : 
-      "Reason for denying refund:");
-    
+    const notes = prompt(action === 'approve' ? "Optional notes for the buyer:" : "Reason for denying refund:");
     try {
       const response = await fetch(`/api/refunds/${orderId}/process`, {
         method: 'POST',
@@ -957,54 +831,23 @@
         body: JSON.stringify({ action, admin_notes: notes || null }),
         credentials: 'include'
       });
-      
       const data = await response.json();
-      
       if (response.ok) {
         showToast(data.message, 'success');
-        loadRefunds();
-        loadOrders();
+        loadDashboardData();
       } else {
         showToast(data.error || 'Failed to process refund', 'error');
       }
-      
     } catch (error) {
       console.error('Error processing refund:', error);
       showToast('Network error', 'error');
     }
   }
   
-  // View order details
   function viewOrder(orderId) {
     window.location.href = `/order-tracking.html?orderId=${orderId}`;
   }
   
-  // Tab switching
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-tab');
-      
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      btn.classList.add('active');
-      document.getElementById(`${tabId}Tab`).classList.add('active');
-    });
-  });
-  
-  // Refresh button
-  document.getElementById('refreshBtn').addEventListener('click', () => {
-    loadDashboardData();
-    showToast('Dashboard refreshed', 'success');
-  });
-  
-  // Logout
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-    window.location.href = '/';
-  });
-  
-  // Helper functions
   function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -1038,12 +881,8 @@
   function showToast(message, type) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-      <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-      <span>${escapeHtml(message)}</span>
-    `;
+    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${escapeHtml(message)}</span>`;
     document.body.appendChild(toast);
-    
     setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
       toast.classList.remove('show');
@@ -1051,10 +890,29 @@
     }, 3000);
   }
   
-  // Initialize
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`${tabId}Tab`).classList.add('active');
+    });
+  });
+  
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadDashboardData();
+    showToast('Dashboard refreshed', 'success');
+  });
+  
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    window.location.href = '/';
+  });
+  
   document.addEventListener('DOMContentLoaded', loadUser);
   
-  // Make functions global
   window.respondToOrder = respondToOrder;
   window.processRefund = processRefund;
   window.viewOrder = viewOrder;

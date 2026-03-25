@@ -921,7 +921,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
   }
 });
 
-// 2. Seller accepts or rejects order
+// 2. Seller accepts or rejects order - UPDATED with correct earnings calculation
 app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -929,9 +929,9 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
     const orderId = req.params.orderId;
     const { action, message } = req.body;
 
-    // Get order details
     const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name, p.user_id as product_seller_id, u.email as buyer_email, u.username as buyer_name
+      `SELECT o.*, p.title as product_name, p.product_cost, p.user_id as product_seller_id, 
+              u.email as buyer_email, u.username as buyer_name
        FROM physical_orders o
        LEFT JOIN products p ON o.product_id = p.id
        LEFT JOIN users u ON o.buyer_id = u.id
@@ -943,18 +943,15 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
 
     const order = orderResult[0];
 
-    // Check if user is the seller or admin
     if (order.seller_id !== req.session.user.id && req.session.user.role !== 'admin') {
       return res.status(403).json({ error: "Only the seller can respond to this order" });
     }
 
-    // Check if order is in correct state
     if (order.order_status !== 'pending_seller_approval') {
       return res.status(400).json({ error: "Order has already been responded to" });
     }
 
     if (action === 'accept') {
-      // Calculate fees for the order
       const productPrice = parseFloat(order.price);
       const qty = order.quantity;
       const totalAmount = parseFloat(order.total_amount);
@@ -964,33 +961,39 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
       let feeBreakdown = {};
       
       if (qty <= 5) {
-        // Standard order (1-5 units): Only base fee (10% of single product price)
+        // Standard: 10% of single product price
         platformFee = productPrice * 0.10;
         sellerEarnings = totalAmount - platformFee;
         feeBreakdown = {
           type: "standard",
-          baseFee: platformFee,
-          totalFee: platformFee,
-          formula: `${totalAmount} - ${platformFee} = ${sellerEarnings}`,
-          sellerNote: `Standard order (${qty} unit${qty > 1 ? 's' : ''}): Platform fee is $${platformFee.toFixed(2)} (10% of single product price)`
+          product_price: productPrice,
+          quantity: qty,
+          total_amount: totalAmount,
+          platform_fee: platformFee,
+          seller_earnings: sellerEarnings,
+          note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
         };
       } else {
-        // Bulk order (6+ units): Base fee + 10% of total order
+        // Bulk: Base fee + 10% of total
         const baseFee = productPrice * 0.10;
         const bulkFee = totalAmount * 0.10;
         platformFee = baseFee + bulkFee;
         sellerEarnings = totalAmount - platformFee;
         feeBreakdown = {
           type: "bulk",
-          baseFee: baseFee,
-          bulkFee: bulkFee,
-          totalFee: platformFee,
-          formula: `${totalAmount} - (${baseFee} + ${bulkFee}) = ${sellerEarnings}`,
-          sellerNote: `BULK order (${qty} units): Platform fee = Base fee ($${baseFee.toFixed(2)}) + 10% of total ($${bulkFee.toFixed(2)}) = $${platformFee.toFixed(2)}`
+          product_price: productPrice,
+          quantity: qty,
+          total_amount: totalAmount,
+          base_fee: baseFee,
+          bulk_fee: bulkFee,
+          platform_fee: platformFee,
+          seller_earnings: sellerEarnings,
+          note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
         };
       }
       
-      // Update order status
+      console.log(`💰 Order #${orderId} earnings:`, feeBreakdown);
+      
       await db.query(
         `UPDATE physical_orders 
          SET order_status = 'seller_accepted',
@@ -1002,14 +1005,12 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
         [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
       );
 
-      // Record acceptance
       await db.query(
         `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
          VALUES (?, ?, 'accepted', ?, NOW())`,
         [orderId, req.session.user.id, message || null]
       );
 
-      // Create buyer notification for payment required
       await db.query(
         `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
          VALUES (?, ?, 'payment_required', 'Payment Required', 
@@ -1017,10 +1018,9 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
         [order.buyer_id, orderId, order.product_name]
       );
 
-      // Send payment link email to buyer
+      // Send payment link email
       try {
         const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
-        
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -1034,17 +1034,13 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
                 <p><strong>Order #${orderId}</strong></p>
                 <p>${order.product_name} (x${order.quantity})</p>
                 <p><strong>Total: $${order.total_amount}</strong></p>
-                ${feeBreakdown.type === 'bulk' ? `
-                  <p style="font-size:12px;color:#f59e0b;">Bulk order discount applied!</p>
-                ` : ''}
+                ${feeBreakdown.type === 'bulk' ? `<p style="font-size:12px;color:#f59e0b;">Bulk order discount applied!</p>` : ''}
               </div>
               <a href="${paymentLink}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:20px 0;">Pay Now</a>
-              <p style="font-size:12px;color:#94a3b8;">Funds will be held in escrow for 5 days after payment.</p>
             </div>
           </body>
           </html>
         `;
-        
         await sendVerificationEmail(order.buyer_email, `Payment Required for Order #${orderId}`, emailHtml);
       } catch (emailError) {
         console.error('❌ Payment link email failed:', emailError.message);
@@ -1061,23 +1057,19 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
       });
 
     } else if (action === 'reject') {
-      // Update order status to rejected/cancelled
       await db.query(
         `UPDATE physical_orders 
-         SET order_status = 'cancelled',
-             order_status = 'cancelled'
+         SET order_status = 'cancelled'
          WHERE id = ?`,
         [orderId]
       );
 
-      // Record rejection
       await db.query(
         `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
          VALUES (?, ?, 'rejected', ?, NOW())`,
         [orderId, req.session.user.id, message || 'Seller unable to fulfill order']
       );
 
-      // Create buyer notification
       await db.query(
         `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
          VALUES (?, ?, 'order_rejected', 'Order Declined', 

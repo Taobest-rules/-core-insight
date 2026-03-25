@@ -552,34 +552,39 @@
     { key: 'completed', title: 'Delivered', icon: 'fa-truck' }
   ];
 
-  // Load order details
-  async function loadOrderDetails() {
-    if (!orderId) {
-      showError();
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Order not found');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        displayOrder(data.order);
-      } else {
-        throw new Error('Invalid order data');
-      }
-
-    } catch (error) {
-      console.error('Error loading order:', error);
-      showError();
-    }
+  // In order-tracking.html, update the loadOrderDetails function:
+async function loadOrderDetails() {
+  if (!orderId) {
+    showError();
+    return;
   }
+
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      // If 401, redirect to login
+      if (response.status === 401) {
+        window.location.href = '/login?redirect=order-tracking.html?orderId=' + orderId;
+        return;
+      }
+      throw new Error('Order not found');
+    }
+
+    const data = await response.json();
+    if (data.success) {
+      displayOrder(data.order);
+    } else {
+      throw new Error('Invalid order data');
+    }
+
+  } catch (error) {
+    console.error('Error loading order:', error);
+    showError();
+  }
+} 
 
   // Display order details
   function displayOrder(order) {

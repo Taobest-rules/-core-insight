@@ -1376,63 +1376,242 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
     res.status(500).json({ error: "Error verifying payment", details: err.message });
   }
 });
-
+// Simple test endpoint for seller orders
+app.get("/api/test/seller-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    
+    const sellerId = req.session.user.id;
+    console.log("Testing queries for seller:", sellerId);
+    
+    // Test 1: Check if table exists
+    const tableCheck = await db.query("SHOW TABLES LIKE 'physical_orders'");
+    console.log("Table check:", tableCheck);
+    
+    // Test 2: Simple count of all orders
+    const totalCount = await db.query(
+      "SELECT COUNT(*) as total FROM physical_orders WHERE seller_id = ?",
+      [sellerId]
+    );
+    console.log("Total orders count:", totalCount);
+    
+    // Test 3: Get a few orders to see structure
+    const sampleOrders = await db.query(
+      "SELECT * FROM physical_orders WHERE seller_id = ? LIMIT 3",
+      [sellerId]
+    );
+    console.log("Sample orders count:", sampleOrders ? sampleOrders.length : 0);
+    
+    res.json({
+      success: true,
+      tableExists: tableCheck && tableCheck.length > 0,
+      totalOrders: totalCount && totalCount[0] ? totalCount[0].total : 0,
+      sampleCount: sampleOrders ? sampleOrders.length : 0,
+      sampleData: sampleOrders,
+      userId: sellerId
+    });
+    
+  } catch (err) {
+    console.error("Test endpoint error:", err);
+    res.status(500).json({ 
+      error: err.message,
+      stack: err.stack 
+    });
+  }
+});
 // ============================================
 // SELLER PHYSICAL ORDERS - FIXED
 // ============================================
+// SELLER PHYSICAL ORDERS - COMPLETELY FIXED VERSION
 app.get("/api/seller/physical-orders", async (req, res) => {
   try {
+    // Check authentication
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
 
+    const sellerId = req.session.user.id;
+    console.log(`📦 Fetching orders for seller ID: ${sellerId}`);
+    
+    // Get query parameters with defaults
     const { status, page = 1, limit = 20 } = req.query;
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const offset = (pageNum - 1) * limitNum;
     
-    let query = `
-      SELECT o.*, p.title as product_name, u.username as buyer_name, u.email as buyer_email
+    // Build the main query with proper column selection
+    let mainQuery = `
+      SELECT 
+        o.id,
+        o.product_id,
+        o.seller_id,
+        o.buyer_id,
+        o.product_name,
+        o.product_type,
+        o.quantity,
+        o.price,
+        o.total_amount,
+        o.product_cost_total,
+        o.customer_name,
+        o.customer_email,
+        o.customer_phone,
+        o.shipping_address,
+        o.city,
+        o.state,
+        o.country,
+        o.postal_code,
+        o.delivery_phone,
+        o.payment_method,
+        o.payment_status,
+        o.order_status,
+        o.notes,
+        o.estimated_delivery_days,
+        o.platform_fee,
+        o.base_platform_fee,
+        o.bulk_order_fee,
+        o.seller_earnings,
+        o.payment_provider,
+        o.fee_breakdown,
+        o.created_at,
+        o.seller_accepted_at,
+        o.payment_collected_at,
+        o.payment_held_until,
+        o.funds_released_at,
+        o.refund_requested_at,
+        o.refund_reason,
+        p.title as product_name_from_product,
+        u.username as buyer_name,
+        u.email as buyer_email
       FROM physical_orders o
       LEFT JOIN products p ON o.product_id = p.id
       LEFT JOIN users u ON o.buyer_id = u.id
       WHERE o.seller_id = ?
     `;
-    const params = [req.session.user.id];
-
-    if (status && status !== 'all') {
-      query += " AND o.order_status = ?";
-      params.push(status);
+    
+    const queryParams = [sellerId];
+    
+    // Add status filter if provided
+    if (status && status !== 'all' && status !== 'undefined') {
+      mainQuery += " AND o.order_status = ?";
+      queryParams.push(status);
     }
-
-    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    params.push(limitNum, offset);
-
-    const orders = await db.query(query, params);
-
-    // Get counts - separate query
-    const counts = await db.query(
-      `SELECT 
-        SUM(CASE WHEN order_status = 'pending_seller_approval' THEN 1 ELSE 0 END) as pending_approval,
-        SUM(CASE WHEN order_status = 'seller_accepted' THEN 1 ELSE 0 END) as accepted,
-        SUM(CASE WHEN order_status = 'paid' THEN 1 ELSE 0 END) as paid,
-        SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed,
-        SUM(CASE WHEN order_status = 'refund_requested' THEN 1 ELSE 0 END) as refund_requests
-       FROM physical_orders
-       WHERE seller_id = ?`,
-      [req.session.user.id]
-    );
-
+    
+    // Add ordering and pagination
+    mainQuery += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    queryParams.push(limitNum, offset);
+    
+    console.log("📝 Executing main query with params:", queryParams);
+    
+    // Execute main query
+    let orders = [];
+    try {
+      const result = await db.query(mainQuery, queryParams);
+      orders = Array.isArray(result) ? result : [];
+      console.log(`✅ Found ${orders.length} orders`);
+    } catch (error) {
+      console.error("❌ Main query failed:", error.message);
+      console.error("SQL:", mainQuery);
+      console.error("Params:", queryParams);
+      throw error;
+    }
+    
+    // Get counts separately with a simpler query
+    let counts = {
+      pending_approval: 0,
+      accepted: 0,
+      paid: 0,
+      completed: 0,
+      refund_requests: 0
+    };
+    
+    try {
+      // Simple count queries to avoid any SQL issues
+      const countQueries = [
+        { status: 'pending_seller_approval', field: 'pending_approval' },
+        { status: 'seller_accepted', field: 'accepted' },
+        { status: 'paid', field: 'paid' },
+        { status: 'completed', field: 'completed' },
+        { status: 'refund_requested', field: 'refund_requests' }
+      ];
+      
+      for (const { status, field } of countQueries) {
+        const result = await db.query(
+          "SELECT COUNT(*) as count FROM physical_orders WHERE seller_id = ? AND order_status = ?",
+          [sellerId, status]
+        );
+        if (result && result.length > 0) {
+          counts[field] = parseInt(result[0].count) || 0;
+        }
+      }
+      
+      console.log("📊 Counts:", counts);
+    } catch (error) {
+      console.error("❌ Count query failed:", error.message);
+      // Continue with zeros if counts query fails
+    }
+    
+    // Process orders to ensure all fields exist and correct data types
+    const processedOrders = orders.map(order => {
+      // Use product_name from either column
+      const productName = order.product_name_from_product || order.product_name || 'Unknown Product';
+      
+      return {
+        id: order.id,
+        product_id: order.product_id,
+        product_name: productName,
+        quantity: parseInt(order.quantity) || 1,
+        price: parseFloat(order.price) || 0,
+        total_amount: parseFloat(order.total_amount) || 0,
+        order_status: order.order_status || 'pending',
+        customer_name: order.customer_name || order.buyer_name || 'Unknown',
+        customer_email: order.customer_email || order.buyer_email || '',
+        shipping_address: order.shipping_address || '',
+        delivery_phone: order.delivery_phone || order.customer_phone || '',
+        created_at: order.created_at,
+        platform_fee: parseFloat(order.platform_fee) || 0,
+        seller_earnings: parseFloat(order.seller_earnings) || 0,
+        estimated_delivery_days: order.estimated_delivery_days || 7,
+        seller_accepted_at: order.seller_accepted_at,
+        payment_collected_at: order.payment_collected_at,
+        payment_held_until: order.payment_held_until,
+        funds_released_at: order.funds_released_at,
+        refund_reason: order.refund_reason,
+        // For backward compatibility
+        buyer_name: order.buyer_name || order.customer_name,
+        buyer_email: order.buyer_email || order.customer_email
+      };
+    });
+    
+    // Return successful response
     res.json({
       success: true,
-      orders: orders || [],
-      counts: counts[0] || { pending_approval: 0, accepted: 0, paid: 0, completed: 0, refund_requests: 0 },
-      pagination: { page: pageNum, limit: limitNum }
+      orders: processedOrders,
+      counts: counts,
+      pagination: {
+        page: pageNum,
+        limit: limitNum
+      },
+      debug: {
+        totalOrdersFound: orders.length,
+        sellerId: sellerId,
+        statusFilter: status || 'all'
+      }
     });
-
+    
   } catch (err) {
-    console.error("❌ Error:", err);
-    res.status(500).json({ error: "Failed to fetch orders", details: err.message });
+    console.error("❌ Error in /api/seller/physical-orders:", err);
+    console.error("Stack:", err.stack);
+    
+    // Send a clear error response
+    res.status(500).json({ 
+      error: "Failed to fetch orders", 
+      details: err.message,
+      // Include the SQL error if it's a database error
+      sqlError: err.sqlMessage || null,
+      sqlCode: err.code || null
+    });
   }
 });
 

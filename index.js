@@ -757,7 +757,7 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
 // PHYSICAL ORDER SYSTEM
 // ============================================
 
-// 1. Create physical order (WITHOUT payment first)
+// 1. Create physical order (WITHOUT payment first) - UPDATED
 app.post("/api/physical-orders/create", async (req, res) => {
   try {
     console.log("📦 Creating physical order...");
@@ -791,38 +791,51 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const productPrice = parseFloat(product.original_price || product.price);
     const totalAmount = qty * productPrice;
 
-    // Calculate fees for display (actual fee calculation at payment time)
+    // Calculate fees for internal tracking (customer doesn't see these)
     const baseFee = productPrice * 0.10;
-    let platformFee = baseFee;
-    let feeBreakdown = { type: 'pending_approval' };
+    const basePlatformFeeTotal = baseFee * qty;
+    let bulkOrderFee = 0;
+    let platformFee = basePlatformFeeTotal;
     
     if (qty >= 6) {
-      const bulkFee = totalAmount * 0.10;
-      platformFee = baseFee + bulkFee;
-      feeBreakdown = { type: 'pending_bulk', baseFee, bulkFee, totalFee: platformFee };
-    } else {
-      feeBreakdown = { type: 'pending_standard', baseFee, totalFee: platformFee };
+      bulkOrderFee = totalAmount * 0.10;
+      platformFee = basePlatformFeeTotal + bulkOrderFee;
     }
+    
+    const sellerEarnings = totalAmount - (product.product_cost || 0) * qty;
+    
+    const feeBreakdown = {
+      type: qty >= 6 ? 'bulk' : 'standard',
+      quantity: qty,
+      product_price: productPrice,
+      total_amount: totalAmount,
+      base_fee: basePlatformFeeTotal,
+      bulk_fee: bulkOrderFee,
+      total_platform_fee: platformFee,
+      seller_earnings: sellerEarnings,
+      note: qty >= 6 ? 'Bulk order: Base fee + 10% of total' : 'Standard order: 10% of product price per unit'
+    };
 
-    // Insert order with pending status
+    // Insert order with correct status
     const result = await db.query(
       `INSERT INTO physical_orders (
         product_id, seller_id, buyer_id,
         product_name, product_type, quantity, 
-        price, total_amount, platform_fee,
+        price, total_amount,
         customer_name, customer_email, customer_phone,
         shipping_address, city, state, country,
         payment_method, payment_status, order_status,
-        notes, estimated_delivery_days, fee_breakdown,
+        notes, estimated_delivery_days,
+        platform_fee, base_platform_fee, bulk_order_fee, seller_earnings,
+        fee_breakdown, payment_provider,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         productId, sellerId, buyerId,
         product.title,
         'physical', qty,
         productPrice,
         totalAmount,
-        platformFee,
         req.session.user.username || 'Buyer',
         req.session.user.email,
         deliveryPhone,
@@ -832,10 +845,15 @@ app.post("/api/physical-orders/create", async (req, res) => {
         country || '',
         'pay_after_approval',
         'pending',
-        'pending_seller_approval',
+        'pending_seller_approval',  // This is the correct status value
         notes || '',
         product.estimated_delivery_days || 7,
-        JSON.stringify(feeBreakdown)
+        platformFee,
+        basePlatformFeeTotal,
+        bulkOrderFee,
+        sellerEarnings,
+        JSON.stringify(feeBreakdown),
+        'flutterwave'
       ]
     );
 
@@ -885,12 +903,13 @@ app.post("/api/physical-orders/create", async (req, res) => {
       success: true,
       message: "Order created! The seller will review and confirm availability.",
       orderId: orderId,
-      status: "pending_seller_approval"
+      status: "pending_seller_approval",
+      totalAmount: totalAmount
     });
 
   } catch (err) {
     console.error("❌ Order creation error:", err);
-    res.status(500).json({ error: "Failed to create order" });
+    res.status(500).json({ error: "Failed to create order: " + err.message });
   }
 });
 

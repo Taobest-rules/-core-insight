@@ -2370,7 +2370,6 @@ app.delete("/api/products/:id", async (req, res) => {
 
 // ============================================
 // CRON ENDPOINT for releasing escrow funds
-// ============================================
 app.get("/api/cron/release-escrow-funds", async (req, res) => {
   const secret = req.query.secret;
   if (secret !== process.env.CRON_SECRET) {
@@ -2378,25 +2377,21 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
   }
 
   try {
-    // Find orders where escrow period has ended and no refund requested
-    const ordersToRelease = await db.query(
-      `SELECT o.*, s.flutterwave_subaccount_id, s.paystack_subaccount_code, s.bank_code, s.account_number, s.recipient_code
+    const orders = await db.query(
+      `SELECT o.*, s.flutterwave_subaccount_id
        FROM physical_orders o
        LEFT JOIN sellers s ON o.seller_id = s.user_id
        WHERE o.payment_status = 'paid' 
          AND o.order_status = 'paid'
          AND o.payment_held_until <= NOW()
-         AND o.funds_released_at IS NULL
-         AND o.order_status != 'refund_requested'
-         AND o.order_status != 'refunded'`
+         AND o.funds_released_at IS NULL`
     );
 
     let released = 0;
     let failed = 0;
 
-    for (const order of ordersToRelease) {
+    for (const order of orders) {
       try {
-        // Mark as completed (funds released)
         await db.query(
           `UPDATE physical_orders 
            SET order_status = 'completed',
@@ -2404,45 +2399,21 @@ app.get("/api/cron/release-escrow-funds", async (req, res) => {
            WHERE id = ?`,
           [order.id]
         );
-        
-        await db.query(
-          `UPDATE escrow_accounts 
-           SET status = 'released', 
-               released_at = NOW()
-           WHERE order_id = ?`,
-          [order.id]
-        );
-        
-        // Notify seller
-        await db.query(
-          `INSERT INTO seller_notifications 
-           (seller_id, order_id, notification_type, title, message, created_at)
-           VALUES (?, ?, 'funds_released', 'Funds Released 🎉', 
-                   CONCAT('$${order.seller_earnings} has been released to your account for order #', ?, 
-                          '. Platform fee: $${order.platform_fee}'), NOW())`,
-          [order.seller_id, order.id, order.id]
-        );
-        
         released++;
-        
       } catch (err) {
-        console.error(`❌ Failed to release order ${order.id}:`, err);
+        console.error(`Failed to release order ${order.id}:`, err);
         failed++;
       }
     }
 
-    res.json({ 
-      success: true, 
-      released: released, 
-      failed: failed,
-      timestamp: new Date().toISOString()
-    });
-    
+    res.json({ success: true, released, failed });
   } catch (err) {
     console.error("❌ Escrow release error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+
 // Serve order tracking page
 app.get("/order-tracking.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "order-tracking.html"));

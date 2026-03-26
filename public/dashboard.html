@@ -704,81 +704,88 @@
     ]);
   }
   
-  async function loadOrders() {
-    const tbody = document.getElementById('ordersList');
-    
-    try {
-      console.log('Fetching orders...');
-      const response = await fetch('/api/seller/physical-orders', { 
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
-      }
-      
-      const data = await response.json();
-      console.log('Orders data:', data);
-      
-      const orders = data.orders || [];
-      
-      if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><i class="fas fa-box-open"></i><br>No orders yet</td></tr>';
-        updateStats(0, 0);
-        return;
-      }
-      
-      let totalEarnings = 0;
-      let pendingCount = 0;
-      
-      tbody.innerHTML = orders.map(order => {
-        const isPending = order.order_status === 'pending_seller_approval';
-        const sellerEarnings = parseFloat(order.seller_earnings) || 0;
-        const totalAmount = parseFloat(order.total_amount) || 0;
-        
-        if (isPending) pendingCount++;
-        totalEarnings += sellerEarnings;
-        
-        return `
-          <tr>
-            <td><strong>#${order.id}</strong></td>
-            <td>${escapeHtml(order.product_name || 'Product')}</td>
-            <td>${order.quantity || 1}</td>
-            <td><strong>$${totalAmount.toFixed(2)}</strong></td>
-            <td>
-              <div><strong>${escapeHtml(order.customer_name || order.buyer_name || 'Unknown')}</strong></div>
-              <small>${escapeHtml(order.customer_email || order.buyer_email || '')}</small>
-            </td>
-            <td><span class="status-badge status-${order.order_status}">${formatStatus(order.order_status)}</span></td>
-            <td>${formatDate(order.created_at)}</td>
-            <td><strong style="color: #10b981;">$${sellerEarnings.toFixed(2)}</strong></td>
-            <td>
-              ${isPending ? `
-                <button class="action-btn action-accept" onclick="respondToOrder(${order.id}, 'accept')">
-                  <i class="fas fa-check"></i> Accept
-                </button>
-                <button class="action-btn action-reject" onclick="respondToOrder(${order.id}, 'reject')">
-                  <i class="fas fa-times"></i> Reject
-                </button>
-              ` : `
-                <button class="action-btn action-view" onclick="viewOrder(${order.id})">
-                  <i class="fas fa-eye"></i> View
-                </button>
-              `}
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      updateStats(orders.length, pendingCount, totalEarnings);
-      
-    } catch (error) {
-      console.error('Error loading orders:', error);
-      tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Error: ${error.message}</td></tr>`;
+ async function loadOrders() {
+  const tbody = document.getElementById('ordersList');
+
+  try {
+    tbody.innerHTML = `<tr><td colspan="9">Loading...</td></tr>`;
+
+    const response = await fetch('/api/seller/physical-orders', {
+      credentials: 'include'
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${text}`);
     }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Invalid JSON response from server");
+    }
+
+    const orders = Array.isArray(data.orders) ? data.orders : [];
+
+    if (orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9">No orders found</td></tr>`;
+      updateStats(0, 0, 0);
+      return;
+    }
+
+    let totalEarnings = 0;
+    let pendingCount = 0;
+
+    tbody.innerHTML = orders.map(order => {
+      const isPending = order.order_status === 'pending_seller_approval';
+
+      if (isPending) pendingCount++;
+      totalEarnings += Number(order.seller_earnings || 0);
+
+      return `
+        <tr>
+          <td>#${order.id}</td>
+          <td>${escapeHtml(order.product_name)}</td>
+          <td>${order.quantity}</td>
+          <td>$${Number(order.total_amount).toFixed(2)}</td>
+          <td>
+            <strong>${escapeHtml(order.customer_name)}</strong><br>
+            <small>${escapeHtml(order.customer_email)}</small>
+          </td>
+          <td>${order.order_status}</td>
+          <td>${formatDate(order.created_at)}</td>
+          <td>$${Number(order.seller_earnings).toFixed(2)}</td>
+          <td>
+            ${
+              isPending
+                ? `
+              <button onclick="respondToOrder(${order.id}, 'accept')">Accept</button>
+              <button onclick="respondToOrder(${order.id}, 'reject')">Reject</button>
+            `
+                : `<button onclick="viewOrder(${order.id})">View</button>`
+            }
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    updateStats(orders.length, pendingCount, totalEarnings);
+
+  } catch (error) {
+    console.error("❌ Load orders error:", error);
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9">
+          Error loading orders<br>
+          <small>${error.message}</small>
+        </td>
+      </tr>
+    `;
   }
+}
   
   async function loadProducts() {
     const tbody = document.getElementById('productsList');

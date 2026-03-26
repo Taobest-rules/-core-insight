@@ -2304,17 +2304,26 @@ app.post("/api/upload-product", (req, res) => {
 
       const productId = result.insertId;
       
-      // Store business info
+      // Store business info - FIXED (provider column removed)
       if (businessName && accountNumber) {
-        await db.query(
-          `INSERT INTO sellers (user_id, provider, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-           ON DUPLICATE KEY UPDATE 
-           account_number = VALUES(account_number), bank_code = VALUES(bank_code),
-           bank_name = VALUES(bank_name), business_name = VALUES(business_name),
-           business_email = VALUES(business_email), business_phone = VALUES(business_phone), country = VALUES(country)`,
-          [req.session.user.id, paymentProvider, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
-        );
+        try {
+          await db.query(
+            `INSERT INTO sellers (user_id, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE 
+             account_number = VALUES(account_number),
+             bank_code = VALUES(bank_code),
+             bank_name = VALUES(bank_name),
+             business_name = VALUES(business_name),
+             business_email = VALUES(business_email),
+             business_phone = VALUES(business_phone),
+             country = VALUES(country)`,
+            [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
+          );
+          console.log(`✅ Business info stored for seller ${req.session.user.id}`);
+        } catch (err) {
+          console.error('❌ Error storing business info:', err.message);
+        }
       }
 
       console.log(`✅ Product uploaded! ID: ${productId}`);

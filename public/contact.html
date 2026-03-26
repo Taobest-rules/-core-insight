@@ -1217,18 +1217,41 @@
 
     // Send complaint to backend
    // Send complaint to backend
+// Send complaint to backend with file uploads
 async function sendComplaint(formData) {
-  console.log('📤 Sending complaint:', formData);
+  console.log('📤 Sending complaint with files...');
+  
+  // Create FormData for file upload
+  const formDataToSend = new FormData();
+  formDataToSend.append('name', formData.name);
+  formDataToSend.append('email', formData.email);
+  formDataToSend.append('subject', formData.subject);
+  formDataToSend.append('priority', formData.priority);
+  formDataToSend.append('message', formData.message);
+  formDataToSend.append('orderId', formData.orderId || '');
+  
+  // Add attachments if any
+  const fileInput = document.getElementById('attachments');
+  if (fileInput && fileInput.files) {
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formDataToSend.append('attachments', fileInput.files[i]);
+    }
+  }
   
   const response = await fetch('/api/send-complaint', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(formData)
+    body: formDataToSend  // Don't set Content-Type header - browser sets it with boundary
   });
   
   console.log('📥 Response status:', response.status);
+  
+  // Check if response is JSON
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    console.error('Non-JSON response:', text.substring(0, 200));
+    throw new Error('Server error. Please try again.');
+  }
   
   const data = await response.json();
   console.log('📥 Response data:', data);

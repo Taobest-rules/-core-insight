@@ -101,7 +101,9 @@ const uploadDirs = {
   profiles: path.join(__dirname, "uploads", "profiles"),
   chat: path.join(__dirname, "uploads", "chat-images")
 };
-
+// Add complaints directory
+uploadDirs.complaints = path.join(__dirname, "uploads", "complaints");
+if (!fs.existsSync(uploadDirs.complaints)) fs.mkdirSync(uploadDirs.complaints, { recursive: true });
 Object.values(uploadDirs).forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
@@ -197,165 +199,683 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   });
 }
 
-async function sendVerificationEmail(to, subject, html) {
-  if (!BREVO_API_KEY && !transporter) {
-    console.error('❌ No email service configured');
-    return { success: true, fallback: true, message: 'Email service not configured, but account created' };
-  }
 
-  try {
-    if (BREVO_API_KEY) {
-      const response = await axios({
-        method: 'POST',
-        url: 'https://api.brevo.com/v3/smtp/email',
-        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        data: {
-          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight" },
-          to: [{ email: to }],
-          subject: subject,
-          htmlContent: html,
-          headers: { 'X-Mailin-custom': 'verification-email' }
-        },
-        timeout: 15000
-      });
-      console.log(`✅ Verification email sent to ${to}`);
-      return { success: true };
-    } else if (transporter) {
-      await transporter.sendMail({
-        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-        to: to,
-        subject: subject,
-        html: html
-      });
-      return { success: true };
-    }
-    return { success: true, fallback: true };
-  } catch (error) {
-    console.error("❌ Email error:", error.response?.data || error.message);
-    return { success: true, fallback: true, error: error.response?.data?.message || error.message };
-  }
-}
 
 // ============================================
 // ORDER CONFIRMATION EMAIL
 // ============================================
 
-async function sendOrderConfirmationEmail(orderData) {
+// ============================================
+// COMPLETE EMAIL SYSTEM - BREVO INTEGRATION
+// ============================================
+
+const FROM_EMAIL = 'coreinsightmail@gmail.com';
+const FROM_NAME = 'Core Insight Marketplace';
+
+// Universal email sender function
+async function sendEmail(to, subject, htmlContent, attachments = []) {
+  if (!to || !subject || !htmlContent) {
+    console.error('❌ Missing required email parameters');
+    return { success: false, error: 'Missing parameters' };
+  }
+
   try {
-    const { email, name, orderId, productName, quantity, totalAmount, deliveryAddress, estimatedDays } = orderData;
+    // Try Brevo first
+    if (BREVO_API_KEY) {
+      const emailData = {
+        sender: { email: FROM_EMAIL, name: FROM_NAME },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: htmlContent,
+        headers: { 'X-Mailin-custom': 'core-insight-email' }
+      };
+
+      // Add attachments if any
+      if (attachments && attachments.length > 0) {
+        emailData.attachment = attachments.map(att => ({
+          name: att.filename,
+          content: att.content // Base64 encoded
+        }));
+      }
+
+      const response = await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 
+          'api-key': BREVO_API_KEY, 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        data: emailData,
+        timeout: 15000
+      });
+
+      console.log(`✅ Email sent to ${to} via Brevo`);
+      return { success: true, provider: 'brevo' };
+    }
     
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Order Confirmation #${orderId} - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          h1 { color: #3b82f6; margin-top: 0; }
-          .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
-          .status-badge { background: #f59e0b; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 12px; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
-          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>🎉 Order Received!</h1>
-          <p>Hello ${escapeHtml(name)},</p>
-          <p>Thank you for your order! We've received your order and it's now pending seller approval.</p>
-          
-          <div class="order-details">
-            <h3>Order Details</h3>
-            <p><strong>Order ID:</strong> #${orderId}</p>
-            <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
-            <p><strong>Quantity:</strong> ${quantity}</p>
-            <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
-            <p><strong>Status:</strong> <span class="status-badge">Pending Seller Approval</span></p>
-          </div>
-          
-          <div class="order-details">
-            <h3>Shipping Information</h3>
-            <p><strong>Address:</strong> ${escapeHtml(deliveryAddress)}</p>
-            <p><strong>Estimated Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'} after seller approval</p>
-          </div>
-          
-          <p>You will receive another email when the seller accepts your order.</p>
-          
-         <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="btn">Track Your Order</a>
-          
-          <div class="footer">
-            <p>Core Insight Marketplace<br>Need help? Contact us at suppourtcoreinsight@gmail.com</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    // Fallback to Gmail SMTP
+    else if (transporter) {
+      await transporter.sendMail({
+        from: `"${FROM_NAME}" <${process.env.EMAIL_USER}>`,
+        to: to,
+        subject: subject,
+        html: htmlContent
+      });
+      console.log(`✅ Email sent to ${to} via Gmail`);
+      return { success: true, provider: 'gmail' };
+    }
     
-    await sendVerificationEmail(email, `Order Confirmation #${orderId} - Core Insight`, emailHtml);
-    
-    console.log(`✅ Order confirmation email sent to ${email}`);
-    return { success: true };
+    else {
+      console.warn(`⚠️ No email service configured. Would have sent to ${to}`);
+      return { success: false, error: 'No email service configured', fallback: true };
+    }
   } catch (error) {
-    console.error('❌ Order confirmation email error:', error.message);
+    console.error(`❌ Email error to ${to}:`, error.response?.data?.message || error.message);
     return { success: false, error: error.message };
   }
 }
 
-async function sendSellerNotificationEmail(sellerData) {
-  try {
-    const { email, name, orderId, productName, quantity, totalAmount } = sellerData;
-    
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>New Order Notification - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          h1 { color: #3b82f6; margin-top: 0; }
-          .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
-          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>📦 New Order Received!</h1>
-          <p>Hello ${escapeHtml(name)},</p>
+// ============================================
+// EMAIL TEMPLATES
+// ============================================
+
+// 1. Verification Email Template
+function getVerificationEmailTemplate(username, verifyLink) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Verify Your Email</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; color: white; }
+        .content { padding: 30px; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+        .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+        .warning { background: #f59e0b20; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎓 Core Insight</h1>
+          <p style="margin: 10px 0 0; opacity: 0.9;">Welcome to the Marketplace!</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${escapeHtml(username)}!</h2>
+          <p>Thank you for registering with Core Insight Marketplace. Please verify your email address to activate your account.</p>
+          <div style="text-align: center;">
+            <a href="${verifyLink}" class="button">Verify My Email</a>
+          </div>
+          <div class="warning">
+            <strong>⚠️ This link expires in 24 hours.</strong><br>
+            If you didn't create an account, you can safely ignore this email.
+          </div>
+          <p>Or copy and paste this link:<br>
+          <small style="color: #94a3b8; word-break: break-all;">${verifyLink}</small></p>
+        </div>
+        <div class="footer">
+          <p>Core Insight Marketplace<br>Connecting creators with customers worldwide</p>
+          <p>Need help? Contact us at ${SUPPORT_EMAIL}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// 2. Order Confirmation Email Template
+function getOrderConfirmationTemplate(orderData) {
+  const { email, name, orderId, productName, quantity, totalAmount, deliveryAddress, estimatedDays, orderStatus } = orderData;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Order Confirmation #${orderId}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; }
+        .status-badge { background: #f59e0b; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 12px; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+        .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Order Received!</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${escapeHtml(name)}!</h2>
+          <p>Thank you for your order! We've received it and it's now pending seller approval.</p>
+          
+          <div class="order-details">
+            <h3>📦 Order Details</h3>
+            <div class="detail-row"><strong>Order ID:</strong> <span>#${orderId}</span></div>
+            <div class="detail-row"><strong>Product:</strong> <span>${escapeHtml(productName)}</span></div>
+            <div class="detail-row"><strong>Quantity:</strong> <span>${quantity}</span></div>
+            <div class="detail-row"><strong>Total Amount:</strong> <span>$${totalAmount.toFixed(2)}</span></div>
+            <div class="detail-row"><strong>Status:</strong> <span class="status-badge">${orderStatus || 'Pending Seller Approval'}</span></div>
+          </div>
+          
+          <div class="order-details">
+            <h3>🚚 Shipping Information</h3>
+            <div class="detail-row"><strong>Address:</strong> <span>${escapeHtml(deliveryAddress)}</span></div>
+            <div class="detail-row"><strong>Estimated Delivery:</strong> <span>${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'} after seller approval</span></div>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">Track Your Order</a>
+          </div>
+          
+          <p>You'll receive another email when the seller accepts your order.</p>
+        </div>
+        <div class="footer">
+          <p>Core Insight Marketplace<br>Need help? Contact us at ${SUPPORT_EMAIL}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// 3. Seller Notification Template
+function getSellerNotificationTemplate(sellerData) {
+  const { email, name, orderId, productName, quantity, totalAmount, customerName } = sellerData;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>New Order Notification - Core Insight</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+        .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📦 New Order!</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${escapeHtml(name)}!</h2>
           <p>You have received a new order that requires your approval.</p>
           
           <div class="order-details">
             <h3>Order Details</h3>
-            <p><strong>Order ID:</strong> #${orderId}</p>
-            <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
-            <p><strong>Quantity:</strong> ${quantity}</p>
-            <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+            <div class="detail-row"><strong>Order ID:</strong> <span>#${orderId}</span></div>
+            <div class="detail-row"><strong>Customer:</strong> <span>${escapeHtml(customerName)}</span></div>
+            <div class="detail-row"><strong>Product:</strong> <span>${escapeHtml(productName)}</span></div>
+            <div class="detail-row"><strong>Quantity:</strong> <span>${quantity}</span></div>
+            <div class="detail-row"><strong>Total Amount:</strong> <span>$${totalAmount.toFixed(2)}</span></div>
           </div>
           
-          <p>Please log in to your dashboard to approve or reject this order.</p>
+          <div style="text-align: center;">
+            <a href="https://core-insight-7.onrender.com/dashboard" class="button">Go to Dashboard</a>
+          </div>
           
-         <a href="https://core-insight-7.onrender.com/dashboard" class="btn">Go to Dashboard</a>
+          <p>Please log in to approve or reject this order. Funds will be held in escrow for 5 days after payment.</p>
+        </div>
+        <div class="footer">
+          <p>Core Insight Marketplace<br>Need help? Contact support at ${SUPPORT_EMAIL}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// 4. Payment Confirmation Template
+function getPaymentConfirmationTemplate(paymentData) {
+  const { email, name, orderId, productName, quantity, totalAmount, platformFee, sellerEarnings } = paymentData;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Confirmed - Order #${orderId}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #10b981, #3b82f6); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .payment-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .success-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+        .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Payment Confirmed!</h1>
+        </div>
+        <div class="content">
+          <div class="success-icon">💰</div>
+          <h2>Hello ${escapeHtml(name)}!</h2>
+          <p>Your payment has been successfully processed. Your order is now being prepared.</p>
           
+          <div class="payment-details">
+            <h3>Payment Details</h3>
+            <div class="detail-row"><strong>Order ID:</strong> <span>#${orderId}</span></div>
+            <div class="detail-row"><strong>Product:</strong> <span>${escapeHtml(productName)}</span></div>
+            <div class="detail-row"><strong>Quantity:</strong> <span>${quantity}</span></div>
+            <div class="detail-row"><strong>Amount Paid:</strong> <span>$${totalAmount.toFixed(2)}</span></div>
+            <div class="detail-row"><strong>Platform Fee:</strong> <span>$${platformFee.toFixed(2)}</span></div>
+            <div class="detail-row"><strong>Seller Receives:</strong> <span>$${sellerEarnings.toFixed(2)} (after 5-day escrow)</span></div>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">Track Your Order</a>
+          </div>
+          
+          <p>Your payment is held in escrow for 5 days to ensure product delivery. Funds will be released to the seller after you confirm receipt.</p>
+        </div>
+        <div class="footer">
+          <p>Core Insight Marketplace<br>Questions? Contact support at ${SUPPORT_EMAIL}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// 5. Order Status Update Template
+function getOrderStatusUpdateTemplate(orderData) {
+  const { name, orderId, productName, orderStatus, message } = orderData;
+  
+  const statusMessages = {
+    'seller_accepted': 'Your order has been accepted by the seller! Please proceed with payment.',
+    'paid': 'Payment received! Your order is now being processed.',
+    'shipped': 'Your order has been shipped!',
+    'completed': 'Order completed! Thank you for shopping with us.',
+    'cancelled': 'Your order has been cancelled.',
+    'refunded': 'Your refund has been processed.'
+  };
+  
+  const statusMessage = message || statusMessages[orderStatus] || `Your order status has been updated to: ${orderStatus}`;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Order Update #${orderId}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .status-update { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+        .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📬 Order Update</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${escapeHtml(name)}!</h2>
+          <div class="status-update">
+            <h3>Order #${orderId}</h3>
+            <p><strong>${escapeHtml(productName)}</strong></p>
+            <p style="margin-top: 15px;">${statusMessage}</p>
+          </div>
+          <div style="text-align: center;">
+            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">View Order Details</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>Core Insight Marketplace<br>Need help? Contact support at ${SUPPORT_EMAIL}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// ============================================
+// UPDATE EXISTING FUNCTIONS TO USE NEW EMAIL SYSTEM
+// ============================================
+
+// Update verification email function
+async function sendVerificationEmail(to, username, verifyToken) {
+  const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+  const htmlContent = getVerificationEmailTemplate(username, verifyLink);
+  return await sendEmail(to, "Verify Your Email - Core Insight Marketplace", htmlContent);
+}
+
+// Update order confirmation function
+async function sendOrderConfirmationEmail(orderData) {
+  const htmlContent = getOrderConfirmationTemplate(orderData);
+  return await sendEmail(orderData.email, `Order Confirmation #${orderData.orderId} - Core Insight`, htmlContent);
+}
+
+// Update seller notification function
+async function sendSellerNotificationEmail(sellerData) {
+  const htmlContent = getSellerNotificationTemplate(sellerData);
+  return await sendEmail(sellerData.email, `New Order #${sellerData.orderId} - Requires Approval`, htmlContent);
+}
+
+// New: Payment confirmation function
+async function sendPaymentConfirmationEmail(paymentData) {
+  const htmlContent = getPaymentConfirmationTemplate(paymentData);
+  return await sendEmail(paymentData.email, `Payment Confirmed - Order #${paymentData.orderId}`, htmlContent);
+}
+
+// New: Order status update function
+async function sendOrderStatusUpdateEmail(orderData) {
+  const htmlContent = getOrderStatusUpdateTemplate(orderData);
+  return await sendEmail(orderData.email, `Order Update #${orderData.orderId}`, htmlContent);
+}
+
+
+// ============================================
+// COMPLAINT/SUPPORT EMAIL ENDPOINT
+// ============================================
+
+// Configure multer for file uploads (for complaints)
+const complaintUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, "uploads", "complaints");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000000);
+      const ext = path.extname(file.originalname);
+      const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+      cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images, PDFs, and Word documents are allowed.'));
+    }
+  }
+});
+
+// Support complaint endpoint with file upload
+app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (req, res) => {
+  try {
+    console.log("📧 Received complaint submission");
+    
+    const { name, email, subject, priority, message, orderId } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: "Please fill in all required fields" });
+    }
+    
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+    
+    // Handle uploaded files
+    const attachments = req.files || [];
+    const attachmentList = [];
+    
+    // Prepare email HTML with images embedded
+    let emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>New Complaint: ${subject}</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+          .container { max-width: 700px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          h1 { color: #3b82f6; margin-top: 0; }
+          .priority-high { color: #ef4444; }
+          .priority-medium { color: #f59e0b; }
+          .priority-low { color: #10b981; }
+          .complaint-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+          .detail-row { margin-bottom: 12px; }
+          .detail-label { font-weight: bold; color: #3b82f6; width: 120px; display: inline-block; }
+          .message-box { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; white-space: pre-wrap; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
+          .attachments { margin-top: 20px; padding: 15px; background: #0f172a; border-radius: 12px; }
+          .attachment-item { margin: 8px 0; padding: 8px; background: #1e293b; border-radius: 6px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>📧 New Support Complaint</h1>
+          <div class="complaint-details">
+            <div class="detail-row"><span class="detail-label">From:</span> ${escapeHtml(name)}</div>
+            <div class="detail-row"><span class="detail-label">Email:</span> ${escapeHtml(email)}</div>
+            <div class="detail-row"><span class="detail-label">Subject:</span> ${escapeHtml(subject)}</div>
+            <div class="detail-row"><span class="detail-label">Priority:</span> <span class="priority-${priority.toLowerCase()}">${escapeHtml(priority)}</span></div>
+            ${orderId ? `<div class="detail-row"><span class="detail-label">Order ID:</span> ${escapeHtml(orderId)}</div>` : ''}
+            <div class="detail-row"><span class="detail-label">Submitted:</span> ${new Date().toLocaleString()}</div>
+          </div>
+          
+          <div class="message-box">
+            <strong>Message:</strong><br><br>
+            ${escapeHtml(message).replace(/\n/g, '<br>')}
+          </div>
+    `;
+    
+    // Add attachments section if files were uploaded
+    if (attachments.length > 0) {
+      emailHtml += `
+        <div class="attachments">
+          <strong>📎 Attachments (${attachments.length} files):</strong>
+      `;
+      
+      for (let i = 0; i < attachments.length; i++) {
+        const file = attachments[i];
+        const fileUrl = `/uploads/complaints/${path.basename(file.path)}`;
+        attachmentList.push({
+          filename: file.originalname,
+          path: file.path,
+          cid: `attachment_${i}`
+        });
+        
+        // If it's an image, embed it
+        if (file.mimetype.startsWith('image/')) {
+          emailHtml += `
+            <div class="attachment-item">
+              <strong>📷 ${escapeHtml(file.originalname)}</strong><br>
+              <img src="cid:attachment_${i}" style="max-width: 100%; max-height: 300px; margin-top: 10px; border-radius: 8px;">
+            </div>
+          `;
+        } else {
+          emailHtml += `
+            <div class="attachment-item">
+              <strong>📄 ${escapeHtml(file.originalname)}</strong><br>
+              <small>Type: ${file.mimetype} | Size: ${(file.size / 1024).toFixed(2)} KB</small>
+            </div>
+          `;
+        }
+      }
+      emailHtml += `</div>`;
+    }
+    
+    emailHtml += `
           <div class="footer">
-            <p>Core Insight Marketplace<br>Funds will be held in escrow for 5 days after payment.</p>
+            <p>Core Insight Support Team<br>
+            This complaint was submitted via the contact form.<br>
+            Please respond to ${escapeHtml(email)} within 24 hours.</p>
           </div>
         </div>
       </body>
       </html>
     `;
     
-    await sendVerificationEmail(email, `New Order #${orderId} - Requires Approval`, emailHtml);
+    // Send email to support
+    const supportEmail = SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
     
-    console.log(`✅ Seller notification email sent to ${email}`);
-    return { success: true };
+    // Prepare email options
+    const mailOptions = {
+      from: `"Core Insight Support" <${process.env.EMAIL_USER || 'coreinsightmail@gmail.com'}>`,
+      to: supportEmail,
+      replyTo: email,
+      subject: `[COMPLAINT] ${priority} - ${subject}`,
+      html: emailHtml
+    };
+    
+    // Add attachments if any
+    if (attachmentList.length > 0) {
+      mailOptions.attachments = attachmentList;
+    }
+    
+    // Send email using transporter
+    if (transporter) {
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ Complaint email sent to ${supportEmail}`);
+    } else if (BREVO_API_KEY) {
+      // Fallback to Brevo
+      const brevoData = {
+        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
+        to: [{ email: supportEmail }],
+        replyTo: { email: email, name: name },
+        subject: `[COMPLAINT] ${priority} - ${subject}`,
+        htmlContent: emailHtml
+      };
+      
+      if (attachmentList.length > 0) {
+        brevoData.attachment = attachmentList.map(att => ({
+          name: att.filename,
+          content: fs.readFileSync(att.path).toString('base64')
+        }));
+      }
+      
+      await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
+        data: brevoData
+      });
+      console.log(`✅ Complaint sent via Brevo to ${supportEmail}`);
+    }
+    
+    // Send confirmation email to user
+    const userEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Complaint Received - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          h1 { color: #3b82f6; }
+          .success-icon { font-size: 48px; text-align: center; margin-bottom: 20px; }
+          .complaint-summary { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="success-icon">✅</div>
+          <h1>Complaint Received</h1>
+          <p>Hello ${escapeHtml(name)},</p>
+          <p>Thank you for contacting Core Insight support. We have received your complaint and our team will review it shortly.</p>
+          
+          <div class="complaint-summary">
+            <h3>Complaint Summary</h3>
+            <p><strong>Reference #:</strong> CMP-${Date.now()}</p>
+            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+            <p><strong>Priority:</strong> ${escapeHtml(priority)}</p>
+            ${orderId ? `<p><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ''}
+            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <p>We aim to respond to all complaints within 24 hours. If your issue is urgent, please reply to this email.</p>
+          
+          <div class="footer">
+            <p>Core Insight Support Team<br>
+            Need immediate assistance? Reply to this email or contact us at ${supportEmail}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Send confirmation to user
+    if (transporter) {
+      await transporter.sendMail({
+        from: `"Core Insight Support" <${process.env.EMAIL_USER || 'coreinsightmail@gmail.com'}>`,
+        to: email,
+        subject: `We received your complaint: ${subject}`,
+        html: userEmailHtml
+      });
+    } else if (BREVO_API_KEY) {
+      await axios({
+        method: 'POST',
+        url: 'https://api.brevo.com/v3/smtp/email',
+        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
+        data: {
+          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
+          to: [{ email: email }],
+          subject: `We received your complaint: ${subject}`,
+          htmlContent: userEmailHtml
+        }
+      });
+    }
+    
+    // Clean up uploaded files after sending
+    for (const file of attachments) {
+      try {
+        if (file.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (err) {
+        console.error(`Failed to delete temp file ${file.path}:`, err.message);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: "Complaint submitted successfully! We'll respond within 24 hours."
+    });
+    
   } catch (error) {
-    console.error('❌ Seller notification email error:', error.message);
-    return { success: false, error: error.message };
+    console.error("❌ Complaint submission error:", error);
+    
+    // Clean up files on error
+    if (req.files) {
+      for (const file of req.files) {
+        try {
+          if (file.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        } catch (err) {}
+      }
+    }
+    
+    res.status(500).json({
+      error: "Failed to submit complaint. Please try again or contact us directly at suppourtcoreinsight@gmail.com"
+    });
   }
-}
+});
 
+// Helper function for email validation (add if not exists)
+function isValidEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
 // ============================================
 // ROUTES - AUTHENTICATION (keep existing)
 // ============================================
@@ -848,6 +1368,7 @@ app.get("/api/test-db", async (req, res) => {
 // PHYSICAL ORDER SYSTEM
 // ============================================
 // SIMPLIFIED ORDER CREATION - GUARANTEED TO WORK
+// Enhanced order creation with email notifications
 app.post("/api/physical-orders/create", async (req, res) => {
   try {
     console.log("📦 Creating physical order...");
@@ -858,7 +1379,6 @@ app.post("/api/physical-orders/create", async (req, res) => {
 
     const { productId, quantity = 1, deliveryAddress, deliveryPhone, notes = '' } = req.body;
     
-    // Validation
     if (!productId) return res.status(400).json({ error: "Product ID is required" });
     if (!deliveryAddress) return res.status(400).json({ error: "Delivery address is required" });
     if (!deliveryPhone) return res.status(400).json({ error: "Delivery phone is required" });
@@ -868,7 +1388,7 @@ app.post("/api/physical-orders/create", async (req, res) => {
       return res.status(400).json({ error: "Invalid quantity" });
     }
 
-    // Get product
+    // Get product with seller info
     const productResult = await db.query(
       `SELECT p.*, u.email as seller_email, u.username as seller_name
        FROM products p
@@ -887,55 +1407,61 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const productPrice = parseFloat(product.original_price || product.price);
     const totalAmount = qty * productPrice;
     
-    // Calculate fees
     const platformFee = productPrice * 0.10 * qty;
     const sellerEarnings = totalAmount - platformFee;
+    const estimatedDays = product.estimated_delivery_days || 7;
     
-    // Insert order with simple fields
+    // Insert order
     const result = await db.query(
       `INSERT INTO physical_orders (
-        product_id,
-        seller_id,
-        buyer_id,
-        product_name,
-        quantity,
-        price,
-        total_amount,
-        customer_name,
-        customer_email,
-        shipping_address,
-        delivery_phone,
-        payment_method,
-        payment_status,
-        order_status,
-        notes,
-        platform_fee,
-        seller_earnings,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        product_id, seller_id, buyer_id, product_name, quantity, price,
+        total_amount, customer_name, customer_email, shipping_address,
+        delivery_phone, payment_method, payment_status, order_status,
+        notes, platform_fee, seller_earnings, estimated_delivery_days, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        productId,
-        sellerId,
-        buyerId,
-        product.title,
-        qty,
-        productPrice,
-        totalAmount,
-        req.session.user.username || 'Buyer',
-        req.session.user.email,
-        deliveryAddress,
-        deliveryPhone,
-        'pay_after_approval',
-        'pending',
-        'pending_seller_approval',
-        notes || '',
-        platformFee,
-        sellerEarnings
+        productId, sellerId, buyerId, product.title, qty, productPrice,
+        totalAmount, req.session.user.username || 'Buyer', req.session.user.email,
+        deliveryAddress, deliveryPhone, 'pay_after_approval', 'pending',
+        'pending_seller_approval', notes || '', platformFee, sellerEarnings, estimatedDays
       ]
     );
     
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created successfully`);
+    
+    // Send confirmation email to buyer (async, don't wait)
+    const orderData = {
+      email: req.session.user.email,
+      name: req.session.user.username || 'Valued Customer',
+      orderId: orderId,
+      productName: product.title,
+      quantity: qty,
+      totalAmount: totalAmount,
+      deliveryAddress: deliveryAddress,
+      estimatedDays: estimatedDays,
+      orderStatus: 'pending_seller_approval'
+    };
+    
+    // Send email in background
+    sendOrderConfirmationEmail(orderData).catch(err => {
+      console.error('Order confirmation email failed:', err.message);
+    });
+    
+    // Send notification to seller
+    const sellerData = {
+      email: product.seller_email,
+      name: product.seller_name || 'Seller',
+      orderId: orderId,
+      productName: product.title,
+      quantity: qty,
+      totalAmount: totalAmount,
+      customerName: req.session.user.username || 'Buyer'
+    };
+    
+    sendSellerNotificationEmail(sellerData).catch(err => {
+      console.error('Seller notification email failed:', err.message);
+    });
     
     res.json({
       success: true,
@@ -1310,7 +1836,7 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
   }
 });
 
-// 5. Verify payment (webhook/callback)
+// Update payment verification to send email
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
     const { transaction_ref } = req.params;
@@ -1334,6 +1860,18 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
       const escrowReleaseDate = new Date();
       escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
 
+      // Get order details for email
+      const orderResult = await db.query(
+        `SELECT o.*, p.title as product_name, u.email as buyer_email, u.username as buyer_name
+         FROM physical_orders o
+         LEFT JOIN products p ON o.product_id = p.id
+         LEFT JOIN users u ON o.buyer_id = u.id
+         WHERE o.id = ?`,
+        [orderId]
+      );
+      
+      const order = orderResult[0];
+
       await db.query(
         `UPDATE physical_orders 
          SET payment_status = 'paid',
@@ -1356,19 +1894,53 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
          amount, platformFee, sellerAmount, transaction_ref]
       );
 
-      await db.query(
-        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
-         VALUES (?, ?, 'payment_confirmed', 'Payment Confirmed', 
-                 CONCAT('Your payment of $', ?, ' has been confirmed. Seller will process your order.'), NOW())`,
-        [transaction.meta?.buyer_id, orderId, amount]
-      );
-
-      await db.query(
-        `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message, created_at)
-         VALUES (?, ?, 'payment_received', 'Payment Received', 
-                 CONCAT('Buyer has paid $', ?, ' for order #', ?, '. Funds will be released to you after 5 days.'), NOW())`,
-        [transaction.meta?.seller_id, orderId, amount, orderId]
-      );
+      // Send payment confirmation email
+      if (order) {
+        const paymentData = {
+          email: order.buyer_email,
+          name: order.buyer_name || 'Valued Customer',
+          orderId: orderId,
+          productName: order.product_name,
+          quantity: order.quantity,
+          totalAmount: amount,
+          platformFee: platformFee,
+          sellerEarnings: sellerAmount
+        };
+        
+        sendPaymentConfirmationEmail(paymentData).catch(err => {
+          console.error('Payment confirmation email failed:', err.message);
+        });
+        
+        // Also send email to seller
+        const sellerResult = await db.query(
+          `SELECT u.email, u.username FROM users u WHERE u.id = ?`,
+          [order.seller_id]
+        );
+        
+        if (sellerResult && sellerResult[0]) {
+          const sellerEmailData = {
+            email: sellerResult[0].email,
+            name: sellerResult[0].username || 'Seller',
+            orderId: orderId,
+            productName: order.product_name,
+            quantity: order.quantity,
+            totalAmount: amount,
+            platformFee: platformFee,
+            sellerEarnings: sellerAmount
+          };
+          
+          const sellerPaymentHtml = getPaymentConfirmationTemplate({
+            ...sellerEmailData,
+            name: sellerEmailData.name,
+            // Modify message for seller
+            additionalNote: `Payment has been received and is being held in escrow for 5 days. Funds will be released after ${escrowReleaseDate.toLocaleDateString()} unless a dispute is raised.`
+          });
+          
+          sendEmail(sellerResult[0].email, `Payment Received - Order #${orderId}`, sellerPaymentHtml).catch(err => {
+            console.error('Seller payment notification failed:', err.message);
+          });
+        }
+      }
 
       res.json({
         status: "success",
@@ -1388,6 +1960,7 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
     res.status(500).json({ error: "Error verifying payment", details: err.message });
   }
 });
+
 // Simple test endpoint for seller orders
 app.get("/api/test/seller-orders", async (req, res) => {
   try {

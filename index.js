@@ -1253,7 +1253,7 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED
 // ============================================
-
+// SELLER PRODUCTS ENDPOINT - FIXED
 app.get("/api/products/seller/:sellerId", async (req, res) => {
   try {
     const sellerId = req.params.sellerId;
@@ -1272,7 +1272,10 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
       ORDER BY created_at DESC
     `, [sellerId]);
     
-    const processedProducts = extractRows(products).map(product => {
+    // Check if products exists and is an array
+    const productList = Array.isArray(products) ? products : (products && products[0] ? products[0] : []);
+    
+    const processedProducts = (productList || []).map(product => {
       product.price = parseFloat(product.price);
       product.original_price = parseFloat(product.original_price) || product.price;
       

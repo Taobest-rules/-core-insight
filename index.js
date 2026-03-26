@@ -1444,14 +1444,14 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     }
 
     const sellerId = req.session.user.id;
-    console.log("📦 Seller ID:", sellerId);
+    console.log("📦 Fetching orders for seller:", sellerId);
 
     if (!sellerId) {
       return res.status(400).json({ error: "Invalid seller ID" });
     }
 
-    // ✅ MAIN QUERY (FIXED)
-    const [orders] = await db.query(
+    // ✅ IMPORTANT: NO destructuring here
+    const orders = await db.query(
       `SELECT 
         o.id,
         o.product_name,
@@ -1473,8 +1473,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
       [sellerId]
     );
 
-    // ✅ STATUS COUNTS (FIXED)
-    const [statusCounts] = await db.query(
+    const statusCounts = await db.query(
       `SELECT order_status, COUNT(*) as count
        FROM physical_orders
        WHERE seller_id = ?
@@ -1507,8 +1506,10 @@ app.get("/api/seller/physical-orders", async (req, res) => {
       });
     }
 
-    // ✅ Process orders safely
-    const processedOrders = (orders || []).map(order => ({
+    // ✅ Ensure orders is always an array
+    const safeOrders = Array.isArray(orders) ? orders : [];
+
+    const processedOrders = safeOrders.map(order => ({
       id: order.id,
       product_name: order.product_name || 'Product',
       quantity: Number(order.quantity) || 1,
@@ -1525,7 +1526,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
       estimated_delivery_days: order.estimated_delivery_days || 7
     }));
 
-    console.log(`✅ Orders fetched: ${processedOrders.length}`);
+    console.log(`✅ Found ${processedOrders.length} orders`);
 
     res.json({
       success: true,
@@ -1534,7 +1535,7 @@ app.get("/api/seller/physical-orders", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Seller orders error:", err);
+    console.error("❌ Error in seller orders endpoint:", err);
 
     res.status(500).json({
       error: "Failed to fetch orders",

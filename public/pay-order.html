@@ -358,6 +358,189 @@
       }
     });
     
+// Add this at the top of your pay-order.html script section
+async function checkAuth() {
+  try {
+    const response = await fetch('/api/me', {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      // Not logged in - redirect to login
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login.html?redirect=${returnUrl}`;
+      return false;
+    }
+    
+    const user = await response.json();
+    return user && user.id;
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    window.location.href = '/login.html';
+    return false;
+  }
+}
+
+// Modified loadOrderDetails with better error handling
+async function loadOrderDetails() {
+  // First check authentication
+  const isLoggedIn = await checkAuth();
+  if (!isLoggedIn) return;
+  
+  const orderId = new URLSearchParams(window.location.search).get('orderId');
+  
+  if (!orderId) {
+    showError('No order ID provided');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (response.status === 401) {
+      // Not authenticated - redirect to login
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login.html?redirect=${returnUrl}`;
+      return;
+    }
+    
+    if (response.status === 404) {
+      showError('Order not found. Please check the order ID and try again.');
+      return;
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.order) {
+      throw new Error('Invalid order data');
+    }
+    
+    orderData = data.order;
+    
+    // Check if user is the buyer
+    if (orderData.buyer && orderData.buyer.id !== currentUserId) {
+      showError('You are not authorized to view this order.');
+      return;
+    }
+    
+    // Check if order is in correct state
+    if (orderData.order_status !== 'seller_accepted') {
+      let statusMessage = '';
+      switch(orderData.order_status) {
+        case 'pending_seller_approval':
+          statusMessage = 'This order is awaiting seller approval. Please check back later.';
+          break;
+        case 'paid':
+          statusMessage = 'This order has already been paid for.';
+          break;
+        case 'completed':
+          statusMessage = 'This order has been completed.';
+          break;
+        case 'cancelled':
+          statusMessage = 'This order has been cancelled.';
+          break;
+        default:
+          statusMessage = `This order cannot be paid for (Status: ${orderData.order_status})`;
+      }
+      showError(statusMessage);
+      return;
+    }
+    
+    // Update UI with order details
+    document.getElementById('orderId').textContent = `#${orderData.id}`;
+    document.getElementById('productName').textContent = orderData.product_name || 'Product';
+    document.getElementById('quantity').textContent = orderData.quantity;
+    document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
+    document.getElementById('totalAmount').textContent = `$${orderData.total_amount.toFixed(2)}`;
+    
+    // Show fee breakdown if available
+    if (orderData.fee_breakdown) {
+      const fb = orderData.fee_breakdown;
+      const container = document.getElementById('feeBreakdownContainer');
+      
+      let breakdownHtml = `
+        <div class="fee-breakdown">
+          <h4><i class="fas fa-calculator"></i> Fee Breakdown</h4>
+      `;
+      
+      if (fb.type === 'bulk') {
+        breakdownHtml += `
+          <div class="breakdown-item">
+            <span>Bulk Order Discount Applied!</span>
+            <span style="color: #10b981;">✓</span>
+          </div>
+          <div class="breakdown-item">
+            <span>Base Fee (10% of product price):</span>
+            <span>$${fb.base_fee?.toFixed(2) || '0.00'}</span>
+          </div>
+          <div class="breakdown-item">
+            <span>Bulk Fee (10% of total):</span>
+            <span>$${fb.bulk_fee?.toFixed(2) || '0.00'}</span>
+          </div>
+        `;
+      } else {
+        breakdownHtml += `
+          <div class="breakdown-item">
+            <span>Platform Fee (10% of product price):</span>
+            <span>$${fb.platform_fee?.toFixed(2) || '0.00'}</span>
+          </div>
+        `;
+      }
+      
+      breakdownHtml += `
+          <div class="breakdown-item" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #334155;">
+            <span><strong>Seller Receives:</strong></span>
+            <span style="color: #10b981;"><strong>$${fb.seller_earnings?.toFixed(2) || '0.00'}</strong></span>
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = breakdownHtml;
+      container.style.display = 'block';
+    }
+    
+    // Hide loading, show content
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('paymentContent').style.display = 'block';
+    
+  } catch (error) {
+    console.error('Load order error:', error);
+    showError(error.message || 'Failed to load order details');
+  }
+}
+
+// Store current user ID for verification
+let currentUserId = null;
+
+// Also get current user info
+async function getCurrentUser() {
+  try {
+    const response = await fetch('/api/me', { credentials: 'include' });
+    if (response.ok) {
+      const user = await response.json();
+      currentUserId = user?.id;
+    }
+  } catch (error) {
+    console.error('Failed to get user:', error);
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+  await getCurrentUser();
+  await loadOrderDetails();
+});
+
     async function loadOrderDetails() {
       try {
         const response = await fetch(`/api/orders/${orderId}`, {

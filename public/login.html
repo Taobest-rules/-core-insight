@@ -440,85 +440,83 @@
       }
     }
 
-    // LOGIN FORM HANDLER - FIXED WITH VERIFICATION HANDLING
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+   
+   // LOGIN FORM HANDLER - WITH REDIRECT SUPPORT
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-      const username = document.getElementById('loginUsername').value;
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-      const rememberMe = document.getElementById('rememberMe').checked;
-      const loginBtn = document.getElementById('loginBtn');
-      const messageDiv = document.getElementById('loginMessage');
-      const verificationHelp = document.getElementById('verificationHelp');
+  // Get redirect URL from query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectUrl = urlParams.get('redirect') || '/courses.html';
 
-      // Clear previous messages and hide verification help
-      messageDiv.innerHTML = '';
-      verificationHelp.style.display = 'none';
-      unverifiedEmail = null;
+  const username = document.getElementById('loginUsername').value;
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const rememberMe = document.getElementById('rememberMe').checked;
+  const loginBtn = document.getElementById('loginBtn');
+  const messageDiv = document.getElementById('loginMessage');
+  const verificationHelp = document.getElementById('verificationHelp');
 
-      // Validate password
-      if (!password) {
-        messageDiv.innerHTML = '<div class="message error">❌ Please enter your password</div>';
-        return;
-      }
+  messageDiv.innerHTML = '';
+  verificationHelp.style.display = 'none';
+  unverifiedEmail = null;
 
-      // Determine login method
-      const useUsername = usernameToggle.classList.contains('active');
-      
-      if (useUsername && !username) {
-        messageDiv.innerHTML = '<div class="message error">❌ Please enter your username</div>';
-        return;
-      }
-      
-      if (!useUsername && !email) {
-        messageDiv.innerHTML = '<div class="message error">❌ Please enter your email</div>';
-        return;
-      }
+  if (!password) {
+    messageDiv.innerHTML = '<div class="message error">❌ Please enter your password</div>';
+    return;
+  }
 
-      // Prepare login data
-      const loginData = useUsername 
-        ? { username, password, rememberMe } 
-        : { email, password, rememberMe };
+  const useUsername = usernameToggle.classList.contains('active');
+  
+  if (useUsername && !username) {
+    messageDiv.innerHTML = '<div class="message error">❌ Please enter your username</div>';
+    return;
+  }
+  
+  if (!useUsername && !email) {
+    messageDiv.innerHTML = '<div class="message error">❌ Please enter your email</div>';
+    return;
+  }
 
-      // Show loading state
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+  const loginData = useUsername 
+    ? { username, password, rememberMe } 
+    : { email, password, rememberMe };
 
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loginData),
-        });
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
 
-        const data = await res.json();
-        
-        if (res.ok) {
-          messageDiv.innerHTML = '<div class="message success">✅ Login successful! Redirecting...</div>';
-          
-          setTimeout(() => {
-            window.location.href = 'courses.html';
-          }, 1500);
-        } else {
-          // Check if it's an unverified account error
-          if (data.unverified || (data.error && data.error.includes('verify'))) {
-            unverifiedEmail = data.email || (useUsername ? null : email);
-            verificationHelp.style.display = 'block';
-            messageDiv.innerHTML = '<div class="message warning">⚠️ Please verify your email before logging in.</div>';
-          } else {
-            messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Invalid credentials'}</div>`;
-          }
-        }
-      } catch (err) {
-        console.error('Login error:', err);
-        messageDiv.innerHTML = '<div class="message error">⚠️ Connection error. Please try again.</div>';
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = 'Login';
-      }
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(loginData),
+      credentials: 'include'
     });
 
+    const data = await res.json();
+    
+    if (res.ok) {
+      messageDiv.innerHTML = '<div class="message success">✅ Login successful! Redirecting...</div>';
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 1000);
+    } else {
+      if (data.unverified || (data.error && data.error.includes('verify'))) {
+        unverifiedEmail = data.email || (useUsername ? null : email);
+        verificationHelp.style.display = 'block';
+        messageDiv.innerHTML = '<div class="message warning">⚠️ Please verify your email before logging in.</div>';
+      } else {
+        messageDiv.innerHTML = `<div class="message error">❌ ${data.error || 'Invalid credentials'}</div>`;
+      }
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    messageDiv.innerHTML = '<div class="message error">⚠️ Connection error. Please try again.</div>';
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = 'Login';
+  }
+});
     // FORGOT PASSWORD HANDLER
     document.getElementById('forgotForm').addEventListener('submit', async (e) => {
       e.preventDefault();

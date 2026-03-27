@@ -6,7 +6,6 @@
 <title>Seller Dashboard - Core Insight</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -65,58 +64,7 @@ nav a.active,nav a:hover{color:#fff;}
 }
 
 /* MAIN */
-main{padding:90px 20px;max-width:1400px;margin:auto;}
-
-/* STATS */
-.stats-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:20px;
-  margin-bottom:30px;
-}
-
-.stat-card{
-  background:#1e293b;
-  padding:20px;
-  border-radius:16px;
-  border:1px solid rgba(59,130,246,0.2);
-  box-shadow:0 4px 12px rgba(0,0,0,0.25);
-  transition:.2s;
-}
-
-.stat-card:hover{
-  transform:translateY(-3px);
-  border-color:#3b82f6;
-}
-
-.stat-value{font-size:28px;font-weight:700;}
-.stat-label{color:#94a3b8;font-size:14px;}
-
-/* TABS */
-.dashboard-tabs{
-  background:#1e293b;
-  border-radius:16px;
-  border:1px solid #334155;
-}
-
-.tabs-header{
-  display:flex;
-  border-bottom:1px solid #334155;
-}
-
-.tab-btn{
-  flex:1;
-  padding:15px;
-  background:none;
-  border:none;
-  color:#94a3b8;
-  cursor:pointer;
-}
-
-.tab-btn.active{
-  color:#3b82f6;
-  border-bottom:2px solid #3b82f6;
-}
+main{padding:90px 20px;max-width:1200px;margin:auto;}
 
 /* TABLE */
 table{width:100%;border-collapse:collapse;}
@@ -141,20 +89,16 @@ tr:hover{background:#334155;}
 
 .status-pending_seller_approval{
   background:#f59e0b;color:#1e1b0a;
-  box-shadow:0 0 6px rgba(245,158,11,.6);
 }
 .status-seller_accepted,
 .status-paid{
   background:#3b82f6;color:#fff;
-  box-shadow:0 0 6px rgba(59,130,246,.6);
 }
 .status-completed{
   background:#10b981;color:#fff;
-  box-shadow:0 0 6px rgba(16,185,129,.6);
 }
 .status-cancelled{
   background:#ef4444;color:#fff;
-  box-shadow:0 0 6px rgba(239,68,68,.6);
 }
 
 /* BUTTONS */
@@ -184,21 +128,6 @@ tr:hover{background:#334155;}
   transform:translateY(-2px);
   box-shadow:0 4px 10px rgba(0,0,0,.4);
 }
-
-/* TOAST */
-.toast{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  background:#020617;
-  padding:12px 18px;
-  border-radius:10px;
-  border:1px solid #334155;
-  opacity:0;
-  transform:translateY(50px);
-  transition:.3s;
-}
-.toast.show{opacity:1;transform:translateY(0);}
 </style>
 </head>
 
@@ -217,59 +146,39 @@ tr:hover{background:#334155;}
   </nav>
 
   <div class="user-info">
-    <span id="userName">Loading...</span>
+    <span id="userName">Seller</span>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
 </header>
 
 <main>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-value" id="totalProducts">0</div>
-    <div class="stat-label">Products</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" id="totalOrders">0</div>
-    <div class="stat-label">Orders</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" id="pendingOrders">0</div>
-    <div class="stat-label">Pending</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value" id="totalEarnings">$0</div>
-    <div class="stat-label">Earnings</div>
-  </div>
-</div>
+<h2 style="margin-bottom:20px;">Orders</h2>
 
-<div class="dashboard-tabs">
-  <div class="tabs-header">
-    <button class="tab-btn active" data-tab="orders">Orders</button>
-  </div>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Product</th>
+<th>Qty</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
 
-  <div class="tabs-content">
-    <div id="ordersTab" class="tab-content active">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="ordersList"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
+<tbody id="ordersList">
+<tr><td colspan="6">Loading...</td></tr>
+</tbody>
+</table>
 
 </main>
 
 <script>
+function formatStatus(status){
+  return status.replace(/_/g,' ');
+}
+
 async function loadOrders(){
   const res=await fetch('/api/seller/physical-orders',{credentials:'include'});
   const data=await res.json();
@@ -287,13 +196,21 @@ async function loadOrders(){
       <td>${o.product_name}</td>
       <td>${o.quantity}</td>
       <td>$${o.total_amount}</td>
-      <td><span class="status-badge status-${o.order_status}">${o.order_status}</span></td>
+      <td>
+        <span class="status-badge status-${o.order_status}">
+          ${formatStatus(o.order_status)}
+        </span>
+      </td>
       <td>
         ${
           o.order_status==='pending_seller_approval'
-          ? `<button class="action-btn action-accept" onclick="respond(${o.id},'accept')">Accept</button>
-             <button class="action-btn action-reject" onclick="respond(${o.id},'reject')">Reject</button>`
-          : `<button class="action-btn action-view">View</button>`
+          ? `
+            <button class="action-btn action-accept" onclick="respond(${o.id},'accept')">Accept</button>
+            <button class="action-btn action-reject" onclick="respond(${o.id},'reject')">Reject</button>
+          `
+          : `
+            <button class="action-btn action-view" onclick="viewOrder(${o.id})">View</button>
+          `
         }
       </td>
     </tr>
@@ -301,13 +218,25 @@ async function loadOrders(){
 }
 
 async function respond(id,action){
+  let reason=null;
+
+  if(action==='reject'){
+    reason=prompt('Reason for rejecting this order:');
+    if(!reason) return;
+  }
+
   await fetch(`/api/physical-orders/${id}/respond`,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action}),
+    body:JSON.stringify({action,reason}),
     credentials:'include'
   });
+
   loadOrders();
+}
+
+function viewOrder(orderId){
+  window.location.href=`/order-tracking.html?orderId=${orderId}`;
 }
 
 loadOrders();

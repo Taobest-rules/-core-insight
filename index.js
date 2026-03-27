@@ -2344,7 +2344,396 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
     res.status(500).json({ error: "Failed to submit refund request" });
   }
 });
+// ============================================
+// DASHBOARD ORDER RESPONSE ENDPOINTS
+// ============================================
 
+// Get pending orders for seller dashboard (orders awaiting response)
+app.get("/api/dashboard/pending-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    
+    // Get orders pending seller approval
+    const pendingOrders = await db.query(`
+      SELECT o.*, p.title as product_name, p.images,
+             u.username as customer_name, u.email as customer_email
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ? 
+        AND o.order_status = 'pending_seller_approval'
+      ORDER BY o.created_at ASC
+    `, [sellerId]);
+    
+    // Process orders
+    const processedOrders = extractRows(pendingOrders).map(order => {
+      order.total_amount = parseFloat(order.total_amount);
+      order.price = parseFloat(order.price);
+      order.platform_fee = parseFloat(order.platform_fee) || 0;
+      order.seller_earnings = parseFloat(order.seller_earnings) || 0;
+      
+      if (order.images) {
+        try {
+          if (typeof order.images === 'string') {
+            order.images = order.images.startsWith('[') ? 
+              JSON.parse(order.images) : [order.images];
+          }
+        } catch (e) {
+          order.images = [];
+        }
+      }
+      
+      return order;
+    });
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      count: processedOrders.length
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading pending orders:", err);
+    res.status(500).json({ error: err.message, orders: [] });
+  }
+});
+
+// Get all orders for seller dashboard (with status filter)
+app.get("/api/dashboard/orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    const { status = 'all' } = req.query;
+    
+    let query = `
+      SELECT o.*, p.title as product_name, p.images,
+             u.username as customer_name, u.email as customer_email
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ?
+    `;
+    const params = [sellerId];
+    
+    if (status !== 'all') {
+      query += " AND o.order_status = ?";
+      params.push(status);
+    }
+    
+    query += " ORDER BY o.created_at DESC";
+    
+    const orders = await db.query(query, params);
+    
+    const processedOrders = extractRows(orders).map(order => {
+      order.total_amount = parseFloat(order.total_amount);
+      order.price = parseFloat(order.price);
+      order.platform_fee = parseFloat(order.platform_fee) || 0;
+      order.seller_earnings = parseFloat(order.seller_earnings) || 0;
+      
+      if (order.images) {
+        try {
+          if (typeof order.images === 'string') {
+            order.images = order.images.startsWith('[') ? 
+              JSON.parse(order.images) : [order.images];
+          }
+        } catch (e) {
+          order.images = [];
+        }
+      }
+      
+      return order;
+    });
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      counts: {
+        pending: processedOrders.filter(o => o.order_status === 'pending_seller_approval').length,
+        accepted: processedOrders.filter(o => o.order_status === 'seller_accepted').length,
+        paid: processedOrders.filter(o => o.order_status === 'paid').length,
+        completed: processedOrders.filter(o => o.order_status === 'completed').length,
+        total: processedOrders.length
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading dashboard orders:", err);
+    res.status(500).json({ error: err.message, orders: [] });
+  }
+});
+
+// Mark order as responded (accepted/rejected) - ENHANCED VERSION
+app.post("/api/dashboard/orders/:orderId/respond", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const orderId = req.params.orderId;
+    const { action, message = '' } = req.body;
+
+    // Get order with product details
+    const orderResult = await db.query(`
+      SELECT o.*, p.title as product_name, p.original_price, p.price as product_price,
+             u_buyer.email as buyer_email, u_buyer.username as buyer_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+      WHERE o.id = ?
+    `, [orderId]);
+
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderResult[0];
+
+    // Verify seller owns this order
+    if (order.seller_id !== req.session.user.id && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Not authorized to respond to this order" });
+    }
+
+    // Check if order is still pending
+    if (order.order_status !== 'pending_seller_approval') {
+      return res.status(400).json({ 
+        error: `Cannot respond to this order. Current status: ${order.order_status}` 
+      });
+    }
+
+    if (action === 'accept') {
+      // Calculate fees based on quantity
+      const qty = order.quantity;
+      const productPrice = parseFloat(order.price);
+      const totalAmount = parseFloat(order.total_amount);
+      
+      let platformFee = 0;
+      let sellerEarnings = 0;
+      let feeBreakdown = {};
+      
+      if (qty <= 5) {
+        // Standard order: 10% of product price
+        platformFee = productPrice * 0.10;
+        sellerEarnings = totalAmount - platformFee;
+        feeBreakdown = {
+          type: "standard",
+          product_price: productPrice,
+          quantity: qty,
+          total_amount: totalAmount,
+          platform_fee: platformFee,
+          seller_earnings: sellerEarnings,
+          note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
+        };
+      } else {
+        // Bulk order: Base fee + 10% of total
+        const baseFee = productPrice * 0.10;
+        const bulkFee = totalAmount * 0.10;
+        platformFee = baseFee + bulkFee;
+        sellerEarnings = totalAmount - platformFee;
+        feeBreakdown = {
+          type: "bulk",
+          product_price: productPrice,
+          quantity: qty,
+          total_amount: totalAmount,
+          base_fee: baseFee,
+          bulk_fee: bulkFee,
+          platform_fee: platformFee,
+          seller_earnings: sellerEarnings,
+          note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
+        };
+      }
+      
+      // Update order with accepted status and fee details
+      await db.query(`
+        UPDATE physical_orders 
+        SET order_status = 'seller_accepted',
+            seller_accepted_at = NOW(),
+            platform_fee = ?,
+            seller_earnings = ?,
+            fee_breakdown = ?,
+            response_message = ?
+        WHERE id = ?
+      `, [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), message || null, orderId]);
+      
+      // Record acceptance
+      await db.query(`
+        INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
+        VALUES (?, ?, 'accepted', ?, NOW())
+      `, [orderId, req.session.user.id, message || null]);
+      
+      // Send notification to buyer
+      const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
+      
+      await db.query(`
+        INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+        VALUES (?, ?, 'payment_required', 'Payment Required ✅', 
+                CONCAT('Your order for ', ?, ' has been accepted! Please complete payment to confirm. Total: $', ?), NOW())
+      `, [order.buyer_id, orderId, order.product_name, totalAmount.toFixed(2)]);
+      
+      // Send email notification
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Payment Required - Core Insight</title></head>
+        <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+          <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+            <h1 style="color:#3b82f6;">💰 Payment Required</h1>
+            <p>Hello ${escapeHtml(order.buyer_name)},</p>
+            <p>The seller has accepted your order! Please complete payment to confirm.</p>
+            <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
+              <p><strong>Order #${orderId}</strong></p>
+              <p>${order.product_name} (x${order.quantity})</p>
+              <p><strong>Total: $${totalAmount.toFixed(2)}</strong></p>
+              ${feeBreakdown.type === 'bulk' ? `<p style="font-size:12px;color:#f59e0b;">Bulk order discount applied!</p>` : ''}
+            </div>
+            <a href="${paymentLink}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:20px 0;">Pay Now</a>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Send email (async, don't await)
+      sendEmail(order.buyer_email, `Payment Required for Order #${orderId}`, emailHtml).catch(err => {
+        console.error('Payment email failed:', err.message);
+      });
+      
+      res.json({
+        success: true,
+        message: "Order accepted! The buyer has been notified to complete payment.",
+        orderId: orderId,
+        platformFee: platformFee,
+        sellerEarnings: sellerEarnings,
+        feeBreakdown: feeBreakdown
+      });
+      
+    } else if (action === 'reject') {
+      // Update order status to cancelled
+      await db.query(`
+        UPDATE physical_orders 
+        SET order_status = 'cancelled',
+            response_message = ?
+        WHERE id = ?
+      `, [message || 'Seller unable to fulfill order', orderId]);
+      
+      // Record rejection
+      await db.query(`
+        INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
+        VALUES (?, ?, 'rejected', ?, NOW())
+      `, [orderId, req.session.user.id, message || 'Seller unable to fulfill order']);
+      
+      // Notify buyer
+      await db.query(`
+        INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+        VALUES (?, ?, 'order_rejected', 'Order Declined ❌', 
+                CONCAT('The seller was unable to fulfill your order for ', ?, '. Reason: ', ?), NOW())
+      `, [order.buyer_id, orderId, order.product_name, message || 'No reason provided']);
+      
+      // Send email notification
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Order Declined - Core Insight</title></head>
+        <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+          <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+            <h1 style="color:#ef4444;">❌ Order Declined</h1>
+            <p>Hello ${escapeHtml(order.buyer_name)},</p>
+            <p>Unfortunately, the seller was unable to fulfill your order.</p>
+            <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
+              <p><strong>Order #${orderId}</strong></p>
+              <p>${order.product_name} (x${order.quantity})</p>
+              <p><strong>Reason:</strong> ${escapeHtml(message || 'No reason provided')}</p>
+            </div>
+            <p>No payment has been taken. You can browse other products on our marketplace.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      sendEmail(order.buyer_email, `Order #${orderId} Declined`, emailHtml).catch(err => {
+        console.error('Decline email failed:', err.message);
+      });
+      
+      res.json({
+        success: true,
+        message: "Order rejected and cancelled. The buyer has been notified."
+      });
+    } else {
+      res.status(400).json({ error: "Invalid action. Must be 'accept' or 'reject'" });
+    }
+    
+  } catch (err) {
+    console.error("❌ Order response error:", err);
+    res.status(500).json({ error: "Failed to process order response: " + err.message });
+  }
+});
+
+// Get order counts for dashboard
+app.get("/api/dashboard/order-counts", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    
+    const counts = await db.query(`
+      SELECT 
+        COUNT(CASE WHEN order_status = 'pending_seller_approval' THEN 1 END) as pending_approval,
+        COUNT(CASE WHEN order_status = 'seller_accepted' THEN 1 END) as accepted,
+        COUNT(CASE WHEN order_status = 'paid' THEN 1 END) as paid,
+        COUNT(CASE WHEN order_status = 'completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN order_status = 'refund_requested' THEN 1 END) as refund_requests,
+        COUNT(CASE WHEN order_status = 'cancelled' THEN 1 END) as cancelled,
+        COUNT(*) as total
+      FROM physical_orders
+      WHERE seller_id = ?
+    `, [sellerId]);
+    
+    const result = counts && counts[0] ? counts[0] : {
+      pending_approval: 0,
+      accepted: 0,
+      paid: 0,
+      completed: 0,
+      refund_requests: 0,
+      cancelled: 0,
+      total: 0
+    };
+    
+    res.json({
+      success: true,
+      counts: {
+        pending: parseInt(result.pending_approval) || 0,
+        accepted: parseInt(result.accepted) || 0,
+        paid: parseInt(result.paid) || 0,
+        completed: parseInt(result.completed) || 0,
+        refundRequests: parseInt(result.refund_requests) || 0,
+        cancelled: parseInt(result.cancelled) || 0,
+        total: parseInt(result.total) || 0
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading order counts:", err);
+    res.json({
+      success: false,
+      counts: {
+        pending: 0,
+        accepted: 0,
+        paid: 0,
+        completed: 0,
+        refundRequests: 0,
+        cancelled: 0,
+        total: 0
+      }
+    });
+  }
+});
 // 9. Check refund status
 app.get("/api/orders/:orderId/refund-status", async (req, res) => {
   try {
@@ -3021,6 +3410,10 @@ app.get("/dashboard", (req, res) => {
 // Serve order tracking page
 app.get("/order-tracking", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "order-tracking.html"));
+});
+
+app.get("/pay-order.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "pay-order.html"));
 });
 // ============================================
 // SERVER START

@@ -357,29 +357,26 @@
         payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
       }
     });
-    
-// Add this at the top of your pay-order.html script section
+// Check authentication first
 async function checkAuth() {
   try {
-    const response = await fetch('/api/me', {
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      // Not logged in - redirect to login
-      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (!res.ok) {
+      const returnUrl = encodeURIComponent(window.location.href);
       window.location.href = `/login.html?redirect=${returnUrl}`;
       return false;
     }
-    
-    const user = await response.json();
-    return user && user.id;
-  } catch (error) {
-    console.error('Auth check failed:', error);
+    return true;
+  } catch {
     window.location.href = '/login.html';
     return false;
   }
 }
+
+// Run this before loading order
+checkAuth().then(authenticated => {
+  if (authenticated) loadOrderDetails();
+});    
 
 // Modified loadOrderDetails with better error handling
 async function loadOrderDetails() {

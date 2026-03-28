@@ -1717,31 +1717,113 @@ app.get("/api/orders/:orderId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// 4. Get payment link for order (after seller accepts)
+// Debug endpoint to test Flutterwave connection
+app.get("/api/debug/flutterwave", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    // Check if keys exist
+    const hasPublicKey = !!process.env.FLW_PUBLIC_KEY;
+    const hasSecretKey = !!process.env.FLW_SECRET_KEY;
+    
+    console.log("Flutterwave Debug:");
+    console.log("- FLW_PUBLIC_KEY exists:", hasPublicKey);
+    console.log("- FLW_SECRET_KEY exists:", hasSecretKey);
+    console.log("- FLW_PUBLIC_KEY value:", process.env.FLW_PUBLIC_KEY ? process.env.FLW_PUBLIC_KEY.substring(0, 10) + "..." : "missing");
+    console.log("- FLW_SECRET_KEY value:", process.env.FLW_SECRET_KEY ? process.env.FLW_SECRET_KEY.substring(0, 10) + "..." : "missing");
+    
+    // Test API call to Flutterwave
+    if (hasSecretKey) {
+      try {
+        const testResponse = await axios.get('https://api.flutterwave.com/v3/banks/NG', {
+          headers: {
+            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        });
+        
+        console.log("Flutterwave API test: SUCCESS");
+        res.json({
+          success: true,
+          hasKeys: true,
+          apiTest: "success",
+          message: "Flutterwave API keys are working!",
+          keys: {
+            public: hasPublicKey ? "present" : "missing",
+            secret: hasSecretKey ? "present" : "missing"
+          }
+        });
+      } catch (apiError) {
+        console.error("Flutterwave API test failed:", apiError.response?.data || apiError.message);
+        res.json({
+          success: false,
+          hasKeys: true,
+          apiTest: "failed",
+          error: apiError.response?.data?.message || apiError.message,
+          statusCode: apiError.response?.status,
+          keys: {
+            public: hasPublicKey ? "present" : "missing",
+            secret: hasSecretKey ? "present" : "missing"
+          }
+        });
+      }
+    } else {
+      res.json({
+        success: false,
+        hasKeys: false,
+        message: "Flutterwave API keys are missing!",
+        keys: {
+          public: hasPublicKey ? "present" : "missing",
+          secret: hasSecretKey ? "present" : "missing"
+        }
+      });
+    }
+    
+  } catch (err) {
+    console.error("Debug error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Get payment link for order (after seller accepts) - FIXED VERSION
 app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
   try {
-    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    console.log("💰 Creating payment link for order:", req.params.orderId);
+    
+    if (!req.session.user) {
+      console.log("❌ No user in session");
+      return res.status(401).json({ error: "Please login" });
+    }
 
     const orderId = req.params.orderId;
+    const userId = req.session.user.id;
 
-    // Get order details
+    // Get order details with better error handling
     const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name, p.original_price, p.product_cost
+      `SELECT o.*, p.title as product_name, p.original_price, p.product_cost,
+              u.email as buyer_email, u.username as buyer_name
        FROM physical_orders o
        LEFT JOIN products p ON o.product_id = p.id
+       LEFT JOIN users u ON o.buyer_id = u.id
        WHERE o.id = ? AND o.buyer_id = ?`,
-      [orderId, req.session.user.id]
+      [orderId, userId]
     );
 
+    console.log("Order query result:", orderResult ? "found" : "none");
+
     if (!orderResult || orderResult.length === 0) {
+      console.log("❌ Order not found or not owned by user");
       return res.status(404).json({ error: "Order not found" });
     }
 
     const order = orderResult[0];
+    console.log("Order status:", order.order_status);
 
     // Check if order is in correct state for payment
     if (order.order_status !== 'seller_accepted') {
+      console.log(`❌ Invalid order status: ${order.order_status}`);
       return res.status(400).json({ 
         error: `Payment can only be made after seller approval. Current status: ${order.order_status}` 
       });
@@ -1762,31 +1844,41 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
       feeBreakdown = { type: "standard", totalFee: platformFee };
     }
 
-    // Generate transaction reference
-    const transactionRef = `physical_${orderId}_${Date.now()}`;
-
-    // Initialize Flutterwave payment
+    // Check Flutterwave configuration
     if (!process.env.FLW_SECRET_KEY) {
-      return res.status(500).json({ error: "Payment system not configured" });
+      console.error("❌ FLW_SECRET_KEY is not set in environment variables");
+      return res.status(500).json({ 
+        error: "Payment system not configured. Please contact support.",
+        details: "Missing Flutterwave API key"
+      });
     }
 
+    // Generate transaction reference
+    const transactionRef = `physical_${orderId}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    
+    console.log("Transaction reference:", transactionRef);
+    console.log("Amount:", totalAmount);
+    console.log("Buyer email:", order.buyer_email);
+
+    // Prepare Flutterwave payload
     const payload = {
       tx_ref: transactionRef,
       amount: totalAmount,
       currency: "USD",
       redirect_url: "https://core-insight-7.onrender.com/physical-payment-callback.html",
       customer: {
-        email: req.session.user.email,
-        name: req.session.user.username,
+        email: order.buyer_email || req.session.user.email,
+        name: order.buyer_name || req.session.user.username,
       },
       customizations: {
         title: "Core Insight - Physical Product",
         description: `Order #${orderId}: ${order.product_name} (x${order.quantity})`,
+        logo: "https://core-insight-7.onrender.com/logo.png"
       },
       meta: {
         order_id: orderId,
         product_id: order.product_id,
-        buyer_id: req.session.user.id,
+        buyer_id: userId,
         seller_id: order.seller_id,
         type: 'physical_order',
         is_escrow: true,
@@ -1798,19 +1890,25 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
       }
     };
 
-    console.log(`📤 Sending to Flutterwave for order #${orderId}:`, JSON.stringify(payload, null, 2));
+    console.log("📤 Sending to Flutterwave...");
+    console.log("Payload:", JSON.stringify(payload, null, 2));
 
+    // Make request to Flutterwave
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
       payload,
       {
         headers: {
           Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         timeout: 15000
       }
     );
+
+    console.log("Flutterwave response status:", response.status);
+    console.log("Flutterwave response data:", JSON.stringify(response.data, null, 2));
 
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
       // Update order with transaction reference
@@ -1819,6 +1917,8 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
         [transactionRef, orderId]
       );
 
+      console.log(`✅ Payment link created for order #${orderId}`);
+      
       res.json({
         success: true,
         paymentLink: response.data.data.link,
@@ -1830,12 +1930,23 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
         feeBreakdown: feeBreakdown
       });
     } else {
+      console.error("❌ Flutterwave returned error:", response.data);
       throw new Error(response.data.message || "Payment initialization failed");
     }
 
   } catch (err) {
-    console.error("❌ Payment link error:", err);
-    res.status(500).json({ error: "Failed to create payment link: " + err.message });
+    console.error("❌ Payment link error details:");
+    console.error("- Error message:", err.message);
+    console.error("- Error response:", err.response?.data);
+    console.error("- Error status:", err.response?.status);
+    console.error("- Error headers:", err.response?.headers);
+    
+    // Send detailed error for debugging
+    res.status(500).json({ 
+      error: "Failed to create payment link",
+      details: err.response?.data?.message || err.message,
+      flutterwaveError: err.response?.data
+    });
   }
 });
 

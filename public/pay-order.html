@@ -274,7 +274,7 @@
           
           <h3 style="margin-bottom: 16px;">Select Payment Method</h3>
           <div class="payment-methods">
-            <div class="method-btn" data-method="flutterwave">
+            <div class="method-btn selected" data-method="flutterwave">
               <i class="fas fa-globe"></i>
               <span>Flutterwave</span>
               <small style="font-size: 11px; color: #94a3b8;">Cards, Bank Transfer, USSD</small>
@@ -301,6 +301,7 @@
   <script>
     let selectedMethod = 'flutterwave';
     let orderData = null;
+    let currentUserId = null;
     
     // Get orderId from URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -308,8 +309,6 @@
     
     if (!orderId) {
       showError('No order ID provided');
-    } else {
-      loadOrderDetails();
     }
     
     // Payment method selection
@@ -321,246 +320,69 @@
       });
     });
     
-    // Pay button handler
-    document.getElementById('payNowBtn').addEventListener('click', async () => {
-      if (!orderData) return;
-      
-      const payBtn = document.getElementById('payNowBtn');
-      payBtn.disabled = true;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-      
+    // Check authentication first
+    async function checkAuth() {
       try {
-        // Get payment link from server
-        const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
+        const res = await fetch('/api/me', { 
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create payment');
+        if (!res.ok) {
+          const returnUrl = encodeURIComponent(window.location.href);
+          window.location.href = `/login.html?redirect=${returnUrl}`;
+          return false;
         }
         
-        if (data.paymentLink) {
-          // Redirect to payment gateway
-          window.location.href = data.paymentLink;
-        } else {
-          throw new Error('No payment link received');
-        }
-        
+        const user = await res.json();
+        currentUserId = user?.id;
+        return true;
       } catch (error) {
-        console.error('Payment error:', error);
-        alert('Payment failed: ' + error.message);
-        payBtn.disabled = false;
-        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+        console.error('Auth check failed:', error);
+        window.location.href = '/login.html';
+        return false;
       }
-    });
-// Check authentication first
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/me', { credentials: 'include' });
-    if (!res.ok) {
-      const returnUrl = encodeURIComponent(window.location.href);
-      window.location.href = `/login.html?redirect=${returnUrl}`;
-      return false;
-    }
-    return true;
-  } catch {
-    window.location.href = '/login.html';
-    return false;
-  }
-}
-
-// Run this before loading order
-checkAuth().then(authenticated => {
-  if (authenticated) loadOrderDetails();
-});    
-
-// Modified loadOrderDetails with better error handling
-async function loadOrderDetails() {
-  // First check authentication
-  const isLoggedIn = await checkAuth();
-  if (!isLoggedIn) return;
-  
-  const orderId = new URLSearchParams(window.location.search).get('orderId');
-  
-  if (!orderId) {
-    showError('No order ID provided');
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}`, {
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (response.status === 401) {
-      // Not authenticated - redirect to login
-      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `/login.html?redirect=${returnUrl}`;
-      return;
     }
     
-    if (response.status === 404) {
-      showError('Order not found. Please check the order ID and try again.');
-      return;
-    }
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success || !data.order) {
-      throw new Error('Invalid order data');
-    }
-    
-    orderData = data.order;
-    
-    // Check if user is the buyer
-    if (orderData.buyer && orderData.buyer.id !== currentUserId) {
-      showError('You are not authorized to view this order.');
-      return;
-    }
-    
-    // Check if order is in correct state
-    if (orderData.order_status !== 'seller_accepted') {
-  let statusMessage = '';
-  let actionMessage = '';
-  switch(orderData.order_status) {
-    case 'pending_seller_approval':
-      statusMessage = '⏳ Order Pending Seller Approval';
-      actionMessage = 'The seller has not yet accepted your order. Please wait for the seller to confirm availability. You will receive an email when accepted.';
-      break;
-    case 'paid':
-      statusMessage = '✅ Order Already Paid';
-      actionMessage = 'This order has already been paid for.';
-      break;
-    case 'completed':
-      statusMessage = '✓ Order Completed';
-      actionMessage = 'This order has been completed.';
-      break;
-    case 'cancelled':
-      statusMessage = '❌ Order Cancelled';
-      actionMessage = 'This order was cancelled by the seller.';
-      break;
-    default:
-      statusMessage = `Order Status: ${orderData.order_status}`;
-      actionMessage = 'Payment is not available for this order at this time.';
-  }
-  
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('errorState').style.display = 'block';
-  document.getElementById('errorMessage').innerHTML = `
-    <strong>${statusMessage}</strong><br><br>
-    ${actionMessage}<br><br>
-    <a href="/products.html" class="back-link">← Back to Products</a>
-  `;
-  return;
-}
-    // Update UI with order details
-    document.getElementById('orderId').textContent = `#${orderData.id}`;
-    document.getElementById('productName').textContent = orderData.product_name || 'Product';
-    document.getElementById('quantity').textContent = orderData.quantity;
-    document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
-    document.getElementById('totalAmount').textContent = `$${orderData.total_amount.toFixed(2)}`;
-    
-    // Show fee breakdown if available
-    if (orderData.fee_breakdown) {
-      const fb = orderData.fee_breakdown;
-      const container = document.getElementById('feeBreakdownContainer');
-      
-      let breakdownHtml = `
-        <div class="fee-breakdown">
-          <h4><i class="fas fa-calculator"></i> Fee Breakdown</h4>
-      `;
-      
-      if (fb.type === 'bulk') {
-        breakdownHtml += `
-          <div class="breakdown-item">
-            <span>Bulk Order Discount Applied!</span>
-            <span style="color: #10b981;">✓</span>
-          </div>
-          <div class="breakdown-item">
-            <span>Base Fee (10% of product price):</span>
-            <span>$${fb.base_fee?.toFixed(2) || '0.00'}</span>
-          </div>
-          <div class="breakdown-item">
-            <span>Bulk Fee (10% of total):</span>
-            <span>$${fb.bulk_fee?.toFixed(2) || '0.00'}</span>
-          </div>
-        `;
-      } else {
-        breakdownHtml += `
-          <div class="breakdown-item">
-            <span>Platform Fee (10% of product price):</span>
-            <span>$${fb.platform_fee?.toFixed(2) || '0.00'}</span>
-          </div>
-        `;
-      }
-      
-      breakdownHtml += `
-          <div class="breakdown-item" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #334155;">
-            <span><strong>Seller Receives:</strong></span>
-            <span style="color: #10b981;"><strong>$${fb.seller_earnings?.toFixed(2) || '0.00'}</strong></span>
-          </div>
-        </div>
-      `;
-      
-      container.innerHTML = breakdownHtml;
-      container.style.display = 'block';
-    }
-    
-    // Hide loading, show content
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('paymentContent').style.display = 'block';
-    
-  } catch (error) {
-    console.error('Load order error:', error);
-    showError(error.message || 'Failed to load order details');
-  }
-}
-
-// Store current user ID for verification
-let currentUserId = null;
-
-// Also get current user info
-async function getCurrentUser() {
-  try {
-    const response = await fetch('/api/me', { credentials: 'include' });
-    if (response.ok) {
-      const user = await response.json();
-      currentUserId = user?.id;
-    }
-  } catch (error) {
-    console.error('Failed to get user:', error);
-  }
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-  await getCurrentUser();
-  await loadOrderDetails();
-});
-
+    // Load order details
     async function loadOrderDetails() {
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const paymentContent = document.getElementById('paymentContent');
+      
       try {
+        // Show loading
+        loadingState.style.display = 'block';
+        errorState.style.display = 'none';
+        paymentContent.style.display = 'none';
+        
         const response = await fetch(`/api/orders/${orderId}`, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         });
         
+        if (response.status === 401) {
+          // Not authenticated - redirect to login
+          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login.html?redirect=${returnUrl}`;
+          return;
+        }
+        
+        if (response.status === 404) {
+          showError('Order not found. Please check the order ID and try again.');
+          return;
+        }
+        
         if (!response.ok) {
-          throw new Error('Order not found or not accessible');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Order data received:', data);
         
         if (!data.success || !data.order) {
           throw new Error('Invalid order data');
@@ -568,26 +390,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         orderData = data.order;
         
+        // Check if user is the buyer
+        if (orderData.buyer && orderData.buyer.id !== currentUserId) {
+          showError('You are not authorized to view this order.');
+          return;
+        }
+        
         // Check if order is in correct state
         if (orderData.order_status !== 'seller_accepted') {
           let statusMessage = '';
+          let actionMessage = '';
+          
           switch(orderData.order_status) {
             case 'pending_seller_approval':
-              statusMessage = 'This order is awaiting seller approval. Please check back later.';
+              statusMessage = '⏳ Order Pending Seller Approval';
+              actionMessage = 'The seller has not yet accepted your order. Please wait for the seller to confirm availability. You will receive an email when accepted.';
               break;
             case 'paid':
-              statusMessage = 'This order has already been paid for.';
+              statusMessage = '✅ Order Already Paid';
+              actionMessage = 'This order has already been paid for.';
               break;
             case 'completed':
-              statusMessage = 'This order has been completed.';
+              statusMessage = '✓ Order Completed';
+              actionMessage = 'This order has been completed.';
               break;
             case 'cancelled':
-              statusMessage = 'This order has been cancelled.';
+              statusMessage = '❌ Order Cancelled';
+              actionMessage = 'This order was cancelled by the seller.';
               break;
             default:
-              statusMessage = `This order cannot be paid for (Status: ${orderData.order_status})`;
+              statusMessage = `Order Status: ${orderData.order_status}`;
+              actionMessage = 'Payment is not available for this order at this time.';
           }
-          showError(statusMessage);
+          
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('errorState').style.display = 'block';
+          document.getElementById('errorMessage').innerHTML = `
+            <strong>${statusMessage}</strong><br><br>
+            ${actionMessage}<br><br>
+            <a href="/products.html" class="back-link">← Back to Products</a>
+          `;
           return;
         }
         
@@ -645,20 +487,120 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // Hide loading, show content
-        document.getElementById('loadingState').style.display = 'none';
-        document.getElementById('paymentContent').style.display = 'block';
+        loadingState.style.display = 'none';
+        paymentContent.style.display = 'block';
         
       } catch (error) {
         console.error('Load order error:', error);
-        showError(error.message);
+        showError(error.message || 'Failed to load order details');
       }
     }
     
+    // Pay button handler - FIXED VERSION
+    document.getElementById('payNowBtn').addEventListener('click', async () => {
+      if (!orderData) {
+        alert('Order data not loaded. Please refresh the page.');
+        return;
+      }
+      
+      const payBtn = document.getElementById('payNowBtn');
+      payBtn.disabled = true;
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating payment link...';
+      
+      try {
+        console.log('Creating payment link for order:', orderId);
+        
+        // Call the correct endpoint
+        const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        console.log('Response status:', response.status);
+        
+        // Parse response data
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error('Failed to parse response:', e);
+          throw new Error('Invalid server response');
+        }
+        
+        console.log('Response data:', data);
+        
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        if (data.paymentLink) {
+          console.log('Redirecting to payment link:', data.paymentLink);
+          // Redirect to payment gateway
+          window.location.href = data.paymentLink;
+        } else {
+          throw new Error('No payment link received from server');
+        }
+        
+      } catch (error) {
+        console.error('Payment error details:', error);
+        
+        // Show user-friendly error message
+        let errorMessage = error.message;
+        
+        if (error.message.includes('403')) {
+          errorMessage = 'Access denied. Please make sure you are logged in and the order belongs to you.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Order not found. Please check the order ID and try again.';
+        } else if (error.message.includes('400')) {
+          errorMessage = 'Invalid order status. The seller needs to accept the order first.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        }
+        
+        alert('Payment failed: ' + errorMessage);
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+      }
+    });
+    
+    // Show error message
     function showError(message) {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';
-      document.getElementById('errorMessage').textContent = message;
+      document.getElementById('errorMessage').innerHTML = message;
     }
+    
+    // Get current user info
+    async function getCurrentUser() {
+      try {
+        const response = await fetch('/api/me', { 
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (response.ok) {
+          const user = await response.json();
+          currentUserId = user?.id;
+          console.log('Current user ID:', currentUserId);
+        }
+      } catch (error) {
+        console.error('Failed to get user:', error);
+      }
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('Page loaded, checking authentication...');
+      const isAuthenticated = await checkAuth();
+      
+      if (isAuthenticated) {
+        await getCurrentUser();
+        await loadOrderDetails();
+      }
+    });
   </script>
 </body>
 </html>

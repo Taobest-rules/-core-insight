@@ -435,27 +435,39 @@ async function loadOrderDetails() {
     
     // Check if order is in correct state
     if (orderData.order_status !== 'seller_accepted') {
-      let statusMessage = '';
-      switch(orderData.order_status) {
-        case 'pending_seller_approval':
-          statusMessage = 'This order is awaiting seller approval. Please check back later.';
-          break;
-        case 'paid':
-          statusMessage = 'This order has already been paid for.';
-          break;
-        case 'completed':
-          statusMessage = 'This order has been completed.';
-          break;
-        case 'cancelled':
-          statusMessage = 'This order has been cancelled.';
-          break;
-        default:
-          statusMessage = `This order cannot be paid for (Status: ${orderData.order_status})`;
-      }
-      showError(statusMessage);
-      return;
-    }
-    
+  let statusMessage = '';
+  let actionMessage = '';
+  switch(orderData.order_status) {
+    case 'pending_seller_approval':
+      statusMessage = '⏳ Order Pending Seller Approval';
+      actionMessage = 'The seller has not yet accepted your order. Please wait for the seller to confirm availability. You will receive an email when accepted.';
+      break;
+    case 'paid':
+      statusMessage = '✅ Order Already Paid';
+      actionMessage = 'This order has already been paid for.';
+      break;
+    case 'completed':
+      statusMessage = '✓ Order Completed';
+      actionMessage = 'This order has been completed.';
+      break;
+    case 'cancelled':
+      statusMessage = '❌ Order Cancelled';
+      actionMessage = 'This order was cancelled by the seller.';
+      break;
+    default:
+      statusMessage = `Order Status: ${orderData.order_status}`;
+      actionMessage = 'Payment is not available for this order at this time.';
+  }
+  
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = 'block';
+  document.getElementById('errorMessage').innerHTML = `
+    <strong>${statusMessage}</strong><br><br>
+    ${actionMessage}<br><br>
+    <a href="/products.html" class="back-link">← Back to Products</a>
+  `;
+  return;
+}
     // Update UI with order details
     document.getElementById('orderId').textContent = `#${orderData.id}`;
     document.getElementById('productName').textContent = orderData.product_name || 'Product';

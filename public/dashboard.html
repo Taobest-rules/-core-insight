@@ -3,240 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seller Dashboard - Core Insight</title>
-
+<title>Seller Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
-  color:#f8fafc;
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #fff;
+  margin: 0;
 }
 
-/* HEADER */
-header{
-  height:70px;
-  background:#020617;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0 25px;
-  border-bottom:1px solid #334155;
+header {
+  background: #020617;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.logo{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  text-decoration:none;
+h1 {
+  margin: 20px;
 }
 
-.logo-icon{
-  width:40px;height:40px;
-  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-  border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
+.container {
+  padding: 20px;
 }
 
-.logo-text{
-  font-weight:700;
-  font-size:20px;
-  background:linear-gradient(135deg,#fff,#94a3f8);
-  -webkit-background-clip:text;
-  color:transparent;
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
 }
 
-nav{display:flex;gap:20px;}
-nav a{color:#94a3b8;text-decoration:none;}
-nav a.active,nav a:hover{color:#fff;}
-
-.user-info{display:flex;gap:15px;align-items:center;}
-.logout-btn{
-  padding:8px 15px;
-  border-radius:8px;
-  border:1px solid #ef4444;
-  background:rgba(239,68,68,0.2);
-  color:#ef4444;
-  cursor:pointer;
+.table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-/* MAIN */
-main{padding:90px 20px;max-width:1200px;margin:auto;}
-
-/* TABLE */
-table{width:100%;border-collapse:collapse;}
-th{
-  background:#020617;
-  color:#94a3f8;
-  padding:12px;
-}
-td{
-  padding:12px;
-  border-bottom:1px solid #334155;
-}
-tr:hover{background:#334155;}
-
-/* STATUS */
-.status-badge{
-  padding:5px 12px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:600;
+.table th {
+  background: #020617;
+  padding: 12px;
 }
 
-.status-pending_seller_approval{
-  background:#f59e0b;color:#1e1b0a;
-}
-.status-seller_accepted,
-.status-paid{
-  background:#3b82f6;color:#fff;
-}
-.status-completed{
-  background:#10b981;color:#fff;
-}
-.status-cancelled{
-  background:#ef4444;color:#fff;
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid #334155;
 }
 
-/* BUTTONS */
-.action-btn{
-  padding:7px 12px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  margin-right:5px;
-  font-weight:600;
+.table tr:hover {
+  background: #334155;
 }
 
-.action-accept{
-  background:linear-gradient(135deg,#10b981,#22c55e);
-  color:#fff;
-}
-.action-reject{
-  background:linear-gradient(135deg,#ef4444,#dc2626);
-  color:#fff;
-}
-.action-view{
-  background:linear-gradient(135deg,#3b82f6,#2563eb);
-  color:#fff;
+.status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
 }
 
-.action-btn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 4px 10px rgba(0,0,0,.4);
+.pending { background: orange; color: black; }
+.accepted { background: #3b82f6; }
+.completed { background: #10b981; }
+
+button {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
+
+.accept-btn {
+  background: linear-gradient(135deg, #10b981, #22c55e);
+  color: white;
+}
+
+.reject-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+.accept-btn:hover {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.reject-btn:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.view-btn {
+  background: #3b82f6;
+  color: white;
+}
+
 </style>
 </head>
 
 <body>
 
 <header>
-  <a href="/" class="logo">
-    <div class="logo-icon"><i class="fas fa-store"></i></div>
-    <div class="logo-text">Core Insight</div>
-  </a>
-
-  <nav>
-    <a href="/">Home</a>
-    <a href="/products.html">Products</a>
-    <a href="/dashboard.html" class="active">Dashboard</a>
-  </nav>
-
-  <div class="user-info">
-    <span id="userName">Seller</span>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-  </div>
+  <h2>Seller Dashboard</h2>
+  <button onclick="location.reload()">Refresh</button>
 </header>
 
-<main>
+<div class="container">
 
-<h2 style="margin-bottom:20px;">Orders</h2>
+<div class="card">
+  <h3>Orders</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ordersList">
+      <tr><td colspan="6">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
 
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Product</th>
-<th>Qty</th>
-<th>Amount</th>
-<th>Status</th>
-<th>Actions</th>
-</tr>
-</thead>
-
-<tbody id="ordersList">
-<tr><td colspan="6">Loading...</td></tr>
-</tbody>
-</table>
-
-</main>
+</div>
 
 <script>
-function formatStatus(status){
-  return status.replace(/_/g,' ');
-}
+async function loadOrders() {
+  const res = await fetch('/api/seller/physical-orders', {credentials:'include'});
+  const data = await res.json();
 
-async function loadOrders(){
-  const res=await fetch('/api/seller/physical-orders',{credentials:'include'});
-  const data=await res.json();
+  const tbody = document.getElementById('ordersList');
 
-  const tbody=document.getElementById('ordersList');
-
-  if(!data.orders || data.orders.length===0){
-    tbody.innerHTML='<tr><td colspan="6">No orders</td></tr>';
+  if (!data.orders || data.orders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No orders</td></tr>';
     return;
   }
 
-  tbody.innerHTML=data.orders.map(o=>`
+  tbody.innerHTML = data.orders.map(o => `
     <tr>
       <td>#${o.id}</td>
       <td>${o.product_name}</td>
       <td>${o.quantity}</td>
       <td>$${o.total_amount}</td>
+      <td><span class="status ${o.order_status}">${o.order_status}</span></td>
       <td>
-        <span class="status-badge status-${o.order_status}">
-          ${formatStatus(o.order_status)}
-        </span>
-      </td>
-      <td>
-        ${
-          o.order_status==='pending_seller_approval'
-          ? `
-            <button class="action-btn action-accept" onclick="respond(${o.id},'accept')">Accept</button>
-            <button class="action-btn action-reject" onclick="respond(${o.id},'reject')">Reject</button>
-          `
-          : `
-            <button class="action-btn action-view" onclick="viewOrder(${o.id})">View</button>
-          `
-        }
+        ${o.order_status === 'pending_seller_approval' ? `
+          <button class="accept-btn" onclick="respond(${o.id}, 'accept')">Accept</button>
+          <button class="reject-btn" onclick="respond(${o.id}, 'reject')">Reject</button>
+        ` : `<button class="view-btn">View</button>`}
       </td>
     </tr>
   `).join('');
 }
 
-async function respond(id,action){
-  let reason=null;
-
-  if(action==='reject'){
-    reason=prompt('Reason for rejecting this order:');
-    if(!reason) return;
-  }
-
-  await fetch(`/api/physical-orders/${id}/respond`,{
+async function respond(id, action) {
+  await fetch(`/api/physical-orders/${id}/respond`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action,reason}),
+    body: JSON.stringify({action}),
     credentials:'include'
   });
-
   loadOrders();
-}
-
-function viewOrder(orderId){
-  window.location.href=`/order-tracking.html?orderId=${orderId}`;
 }
 
 loadOrders();

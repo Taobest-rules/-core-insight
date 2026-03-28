@@ -40,10 +40,6 @@ header h2 {
   margin: 0;
 }
 
-h1 {
-  margin: 20px;
-}
-
 .container {
   padding: 20px;
 }
@@ -118,6 +114,141 @@ button {
   color: white;
 }
 
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.8);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  margin: 5% auto;
+  padding: 0;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  animation: slideIn 0.3s;
+  border: 1px solid #3b82f6;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  background: #020617;
+  border-bottom: 2px solid #3b82f6;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.modal-header h3 i {
+  color: #3b82f6;
+  margin-right: 10px;
+}
+
+.close {
+  color: #94a3b8;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close:hover {
+  color: #ef4444;
+}
+
+.modal-body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.order-detail-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid #334155;
+}
+
+.order-detail-label {
+  font-weight: 600;
+  width: 140px;
+  color: #94a3f8;
+}
+
+.order-detail-value {
+  flex: 1;
+  color: #e2e8f0;
+  word-break: break-word;
+}
+
+.order-detail-value strong {
+  color: #3b82f6;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  background: #020617;
+  border-top: 1px solid #334155;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-footer button {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: #334155;
+  color: white;
+}
+
+.close-btn:hover {
+  background: #475569;
+}
+
 .error-message {
   background: rgba(239, 68, 68, 0.2);
   border: 1px solid #ef4444;
@@ -172,6 +303,18 @@ button {
     padding: 5px 8px;
     font-size: 11px;
   }
+  .modal-content {
+    width: 95%;
+    margin: 10% auto;
+  }
+  .order-detail-row {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  .order-detail-label {
+    width: 100%;
+    margin-bottom: 5px;
+  }
 }
 </style>
 </head>
@@ -211,14 +354,32 @@ button {
 
 </div>
 
+<!-- Order Details Modal -->
+<div id="orderModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-receipt"></i> Order Details</h3>
+      <span class="close">&times;</span>
+    </div>
+    <div class="modal-body" id="modalBody">
+      Loading...
+    </div>
+    <div class="modal-footer">
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// Store orders data globally for view access
+let allOrders = [];
+
 async function loadOrders() {
   const tbody = document.getElementById('ordersList');
   
   try {
     const res = await fetch('/api/seller/physical-orders', {credentials:'include'});
     
-    // Handle 401 Unauthorized
     if (res.status === 401) {
       tbody.innerHTML = `
         <tr>
@@ -236,18 +397,20 @@ async function loadOrders() {
     
     const data = await res.json();
     
-    // Handle other errors
     if (!res.ok) {
       throw new Error(data.error || 'Failed to load orders');
     }
 
     if (!data.orders || data.orders.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">📦 No orders found</td></tr>';
+      allOrders = [];
       return;
     }
 
+    // Store orders for modal access
+    allOrders = data.orders;
+
     tbody.innerHTML = data.orders.map(o => {
-      // Handle different status naming conventions
       const statusClass = o.order_status === 'pending_seller_approval' ? 'pending' : 
                          (o.order_status === 'seller_accepted' ? 'accepted' : o.order_status);
       const displayStatus = o.order_status === 'pending_seller_approval' ? 'pending' : 
@@ -264,7 +427,7 @@ async function loadOrders() {
             ${(o.order_status === 'pending_seller_approval' || o.order_status === 'pending') ? `
               <button class="accept-btn" onclick="respond(${o.id}, 'accept')">✓ Accept</button>
               <button class="reject-btn" onclick="respond(${o.id}, 'reject')">✗ Reject</button>
-            ` : `<button class="view-btn" onclick="viewOrder(${o.id})">👁️ View</button>`}
+            ` : `<button class="view-btn" onclick="viewOrder(${o.id})">👁️ View Details</button>`}
           </td>
         </tr>
       `;
@@ -303,7 +466,6 @@ async function respond(id, action) {
       throw new Error(error.error || 'Failed to process order');
     }
     
-    // Reload orders after successful response
     await loadOrders();
     
   } catch (err) {
@@ -312,8 +474,105 @@ async function respond(id, action) {
   }
 }
 
-function viewOrder(id) {
-  alert(`View details for order #${id}\nThis feature can be expanded to show full order details.`);
+function viewOrder(orderId) {
+  // Find the order in our stored data
+  const order = allOrders.find(o => o.id === orderId);
+  
+  if (!order) {
+    alert('Order details not found');
+    return;
+  }
+  
+  // Format date if exists
+  const orderDate = order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A';
+  
+  // Build modal content with full order details
+  const modalBody = document.getElementById('modalBody');
+  modalBody.innerHTML = `
+    <div class="order-detail-row">
+      <div class="order-detail-label">Order ID:</div>
+      <div class="order-detail-value"><strong>#${order.id}</strong></div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Product:</div>
+      <div class="order-detail-value">${order.product_name || 'N/A'}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Quantity:</div>
+      <div class="order-detail-value">${order.quantity || 1}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Price per unit:</div>
+      <div class="order-detail-value">$${parseFloat(order.price || 0).toFixed(2)}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Total Amount:</div>
+      <div class="order-detail-value"><strong>$${parseFloat(order.total_amount || 0).toFixed(2)}</strong></div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Status:</div>
+      <div class="order-detail-value"><span class="status-badge" style="background: ${getStatusColor(order.order_status)}; color: white;">${order.order_status || 'N/A'}</span></div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Customer Name:</div>
+      <div class="order-detail-value">${order.customer_name || 'N/A'}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Customer Email:</div>
+      <div class="order-detail-value">${order.customer_email || 'N/A'}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Delivery Phone:</div>
+      <div class="order-detail-value">${order.delivery_phone || 'N/A'}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Shipping Address:</div>
+      <div class="order-detail-value">${order.shipping_address || 'N/A'}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Order Date:</div>
+      <div class="order-detail-value">${orderDate}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Platform Fee:</div>
+      <div class="order-detail-value">$${parseFloat(order.platform_fee || 0).toFixed(2)}</div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Seller Earnings:</div>
+      <div class="order-detail-value"><strong style="color: #10b981;">$${parseFloat(order.seller_earnings || 0).toFixed(2)}</strong></div>
+    </div>
+    <div class="order-detail-row">
+      <div class="order-detail-label">Est. Delivery:</div>
+      <div class="order-detail-value">${order.estimated_delivery_days || 7} days</div>
+    </div>
+  `;
+  
+  // Show modal
+  document.getElementById('orderModal').style.display = 'block';
+}
+
+function getStatusColor(status) {
+  const colors = {
+    'pending_seller_approval': '#f59e0b',
+    'seller_accepted': '#3b82f6',
+    'accepted': '#3b82f6',
+    'completed': '#10b981',
+    'cancelled': '#ef4444',
+    'refund_requested': '#8b5cf6'
+  };
+  return colors[status] || '#6b7280';
+}
+
+function closeModal() {
+  document.getElementById('orderModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('orderModal');
+  if (event.target === modal) {
+    closeModal();
+  }
 }
 
 // Load orders on page load

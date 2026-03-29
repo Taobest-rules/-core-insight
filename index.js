@@ -876,6 +876,181 @@ function isValidEmail(email) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 }
+
+// TEMPORARY DEBUG - Test Flutterwave payment creation directly
+app.post("/api/debug/flutterwave-payment-test", async (req, res) => {
+  console.log("\n🔍 ========== FLUTTERWAVE DEBUG TEST ==========");
+  
+  try {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const testAmount = 16.00;
+    const testRef = `debug_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    
+    console.log("Test Parameters:");
+    console.log("- Amount:", testAmount);
+    console.log("- Reference:", testRef);
+    console.log("- User:", req.session.user.email);
+    console.log("- API Key (first 10 chars):", process.env.FLW_SECRET_KEY?.substring(0, 10));
+    
+    const payload = {
+      tx_ref: testRef,
+      amount: testAmount,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Debug Test",
+        description: "Testing Flutterwave integration",
+      }
+    };
+    
+    console.log("\n📤 Sending to Flutterwave:");
+    console.log(JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    console.log("\n✅ Flutterwave Response:");
+    console.log("- Status:", response.status);
+    console.log("- Response status:", response.data.status);
+    console.log("- Has link:", !!response.data.data?.link);
+    console.log("- Link:", response.data.data?.link);
+    
+    res.json({
+      success: true,
+      message: "Flutterwave is working!",
+      paymentLink: response.data.data?.link,
+      fullResponse: response.data
+    });
+    
+  } catch (err) {
+    console.error("\n❌ FLUTTERWAVE ERROR:");
+    console.error("Error name:", err.name);
+    console.error("Error message:", err.message);
+    
+    if (err.response) {
+      console.error("\n📡 Flutterwave Error Response:");
+      console.error("Status Code:", err.response.status);
+      console.error("Status Text:", err.response.statusText);
+      console.error("Headers:", JSON.stringify(err.response.headers, null, 2));
+      console.error("Data:", JSON.stringify(err.response.data, null, 2));
+      
+      res.status(500).json({
+        error: "Flutterwave API error",
+        statusCode: err.response.status,
+        flutterwaveError: err.response.data,
+        message: err.response.data?.message
+      });
+    } else if (err.request) {
+      console.error("\n📡 No response received from Flutterwave");
+      console.error("Request:", err.request);
+      res.status(500).json({
+        error: "No response from Flutterwave",
+        message: err.message
+      });
+    } else {
+      console.error("\n📡 Request setup error:", err.message);
+      res.status(500).json({
+        error: "Request configuration error",
+        message: err.message
+      });
+    }
+  }
+});
+
+// Debug endpoint to test actual payment creation
+app.post("/api/debug/test-payment", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    console.log("🔧 Testing payment creation with Flutterwave...");
+    
+    const testRef = `test_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    
+    const payload = {
+      tx_ref: testRef,
+      amount: 10.00,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/test-callback.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Test Payment",
+        description: "Test payment to verify Flutterwave configuration",
+      },
+      meta: {
+        test: true,
+        user_id: req.session.user.id
+      }
+    };
+    
+    console.log("Test payload:", JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    console.log("Flutterwave test response:", response.data);
+    
+    res.json({
+      success: true,
+      message: "Test payment created successfully!",
+      paymentLink: response.data.data?.link,
+      response: response.data
+    });
+    
+  } catch (err) {
+    console.error("❌ Test payment failed:");
+    console.error("Error message:", err.message);
+    
+    if (err.response) {
+      console.error("Flutterwave error response:");
+      console.error("- Status:", err.response.status);
+      console.error("- Status text:", err.response.statusText);
+      console.error("- Data:", JSON.stringify(err.response.data, null, 2));
+      
+      res.status(500).json({
+        error: "Test payment failed",
+        flutterwaveError: err.response.data,
+        statusCode: err.response.status,
+        statusText: err.response.statusText
+      });
+    } else {
+      console.error("No response from Flutterwave");
+      res.status(500).json({
+        error: "Test payment failed",
+        message: err.message
+      });
+    }
+  }
+});
 // ============================================
 // ROUTES - AUTHENTICATION (keep existing)
 // ============================================
@@ -1249,84 +1424,7 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Debug endpoint to test actual payment creation
-app.post("/api/debug/test-payment", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    console.log("🔧 Testing payment creation with Flutterwave...");
-    
-    const testRef = `test_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-    
-    const payload = {
-      tx_ref: testRef,
-      amount: 10.00,
-      currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/test-callback.html",
-      customer: {
-        email: req.session.user.email,
-        name: req.session.user.username,
-      },
-      customizations: {
-        title: "Core Insight - Test Payment",
-        description: "Test payment to verify Flutterwave configuration",
-      },
-      meta: {
-        test: true,
-        user_id: req.session.user.id
-      }
-    };
-    
-    console.log("Test payload:", JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(
-      'https://api.flutterwave.com/v3/payments',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
-    
-    console.log("Flutterwave test response:", response.data);
-    
-    res.json({
-      success: true,
-      message: "Test payment created successfully!",
-      paymentLink: response.data.data?.link,
-      response: response.data
-    });
-    
-  } catch (err) {
-    console.error("❌ Test payment failed:");
-    console.error("Error message:", err.message);
-    
-    if (err.response) {
-      console.error("Flutterwave error response:");
-      console.error("- Status:", err.response.status);
-      console.error("- Status text:", err.response.statusText);
-      console.error("- Data:", JSON.stringify(err.response.data, null, 2));
-      
-      res.status(500).json({
-        error: "Test payment failed",
-        flutterwaveError: err.response.data,
-        statusCode: err.response.status,
-        statusText: err.response.statusText
-      });
-    } else {
-      console.error("No response from Flutterwave");
-      res.status(500).json({
-        error: "Test payment failed",
-        message: err.message
-      });
-    }
-  }
-});
+
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED
 // ============================================

@@ -548,27 +548,42 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
         },
       });
     } else if (selectedMethod === 'paystack') {
-      if (!paymentKeys.paystack?.public_key) {
-        throw new Error('Paystack is not configured. Please contact support.');
-      }
-      
-      const handler = PaystackPop.setup({
-        key: paymentKeys.paystack.public_key,
-        email: email,
-        amount: Math.round(amount * 100),
-        currency: "USD",
-        ref: tx_ref,
-        callback: async (response) => {
-          await verifyPaystackPayment(response.reference, orderId);
-          window.location.href = `/payment-success.html?orderId=${orderId}`;
-        },
-        onClose: () => {
-          payBtn.disabled = false;
-          payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-        }
-      });
-      handler.openIframe();
+  if (!paymentKeys.paystack?.public_key) {
+    throw new Error('Paystack is not configured. Please contact support.');
+  }
+  
+  // Paystack requires callback as a separate parameter
+  const handler = PaystackPop.setup({
+    key: paymentKeys.paystack.public_key,
+    email: email,
+    amount: Math.round(amount * 100),
+    currency: "USD",
+    ref: tx_ref,
+    metadata: {
+      custom_fields: [
+        { display_name: "Order ID", variable_name: "order_id", value: orderId }
+      ]
     }
+  });
+  
+  // Paystack uses .open() with separate callback
+  handler.openIframe({
+    callback: function(response) {
+      console.log('Paystack callback:', response);
+      verifyPaystackPayment(response.reference, orderId).then(() => {
+        window.location.href = `/payment-success.html?orderId=${orderId}`;
+      }).catch(err => {
+        console.error('Verification error:', err);
+        alert('Payment successful but verification failed. Please contact support.');
+      });
+    },
+    onClose: function() {
+      console.log('Paystack modal closed');
+      payBtn.disabled = false;
+      payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+    }
+  });
+}
     
   } catch (error) {
     console.error('Payment error:', error);

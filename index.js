@@ -5984,169 +5984,174 @@ app.get("/api/debug/flutterwave", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Get payment link for order (after seller accepts) - FIXED VERSION
+// COMPLETELY REWRITTEN PAYMENT LINK ENDPOINT
 app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
+  console.log("\n========== PAYMENT LINK REQUEST ==========");
+  console.log("Order ID:", req.params.orderId);
+  
   try {
-    console.log("💰 Creating payment link for order:", req.params.orderId);
-    
-    if (!req.session.user) {
-      console.log("❌ No user in session");
-      return res.status(401).json({ error: "Please login" });
+    // 1. Check authentication
+    if (!req.session || !req.session.user) {
+      console.log("❌ No authenticated user");
+      return res.status(401).json({ error: "Please login first" });
     }
-
+    
+    console.log("✅ User authenticated:", req.session.user.id, req.session.user.email);
+    
     const orderId = req.params.orderId;
-    const userId = req.session.user.id;
-
-    // Get order details with better error handling
-    const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name, p.original_price, p.product_cost,
-              u.email as buyer_email, u.username as buyer_name
-       FROM physical_orders o
-       LEFT JOIN products p ON o.product_id = p.id
-       LEFT JOIN users u ON o.buyer_id = u.id
-       WHERE o.id = ? AND o.buyer_id = ?`,
-      [orderId, userId]
-    );
-
-    console.log("Order query result:", orderResult ? "found" : "none");
-
-    if (!orderResult || orderResult.length === 0) {
+    const buyerId = req.session.user.id;
+    
+    // 2. Get order with all necessary data
+    const [order] = await db.query(`
+      SELECT 
+        o.*,
+        p.title as product_name,
+        p.original_price,
+        u.email as buyer_email,
+        u.username as buyer_name,
+        s.email as seller_email,
+        s.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.buyer_id = u.id
+      LEFT JOIN users s ON o.seller_id = s.id
+      WHERE o.id = ? AND o.buyer_id = ?
+    `, [orderId, buyerId]);
+    
+    if (!order) {
       console.log("❌ Order not found or not owned by user");
       return res.status(404).json({ error: "Order not found" });
     }
-
-    const order = orderResult[0];
-    console.log("Order status:", order.order_status);
-
-    // Check if order is in correct state for payment
+    
+    console.log("✅ Order found:", {
+      id: order.id,
+      status: order.order_status,
+      amount: order.total_amount,
+      product: order.product_name
+    });
+    
+    // 3. Verify order can be paid
     if (order.order_status !== 'seller_accepted') {
-      console.log(`❌ Invalid order status: ${order.order_status}`);
+      console.log("❌ Invalid order status:", order.order_status);
       return res.status(400).json({ 
-        error: `Payment can only be made after seller approval. Current status: ${order.order_status}` 
+        error: `Cannot pay for order with status: ${order.order_status}. Order must be accepted by seller first.`
       });
     }
-
-    const totalAmount = parseFloat(order.total_amount);
-    const platformFee = parseFloat(order.platform_fee) || (totalAmount * 0.10);
-    const sellerEarnings = parseFloat(order.seller_earnings) || (totalAmount - platformFee);
     
-    // Parse fee breakdown
-    let feeBreakdown = {};
-    try {
-      if (order.fee_breakdown) {
-        feeBreakdown = typeof order.fee_breakdown === 'string' ? 
-          JSON.parse(order.fee_breakdown) : order.fee_breakdown;
-      }
-    } catch (e) {
-      feeBreakdown = { type: "standard", totalFee: platformFee };
+    // 4. Validate amount
+    const amount = parseFloat(order.total_amount);
+    if (isNaN(amount) || amount <= 0) {
+      console.log("❌ Invalid amount:", amount);
+      return res.status(400).json({ error: "Invalid order amount" });
     }
-
-    // Check Flutterwave configuration
+    
+    console.log("💰 Amount:", amount);
+    
+    // 5. Check Flutterwave configuration
     if (!process.env.FLW_SECRET_KEY) {
-      console.error("❌ FLW_SECRET_KEY is not set in environment variables");
-      return res.status(500).json({ 
-        error: "Payment system not configured. Please contact support.",
-        details: "Missing Flutterwave API key"
-      });
+      console.log("❌ FLW_SECRET_KEY not configured");
+      return res.status(500).json({ error: "Payment system not configured. Please contact support." });
     }
-
-    // Generate transaction reference
-    const transactionRef = `physical_${orderId}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     
-    console.log("Transaction reference:", transactionRef);
-    console.log("Amount:", totalAmount);
-    console.log("Buyer email:", order.buyer_email);
-
-    // Prepare Flutterwave payload
-    const payload = {
-      tx_ref: transactionRef,
-      amount: totalAmount,
+    // 6. Generate unique reference
+    const reference = `ORD_${orderId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.log("📝 Reference:", reference);
+    
+    // 7. Prepare payment data for Flutterwave
+    const paymentData = {
+      tx_ref: reference,
+      amount: amount,
       currency: "USD",
       redirect_url: "https://core-insight-7.onrender.com/physical-payment-callback.html",
       customer: {
         email: order.buyer_email || req.session.user.email,
         name: order.buyer_name || req.session.user.username,
+        phone: order.delivery_phone || null
       },
       customizations: {
-        title: "Core Insight - Physical Product",
+        title: "Core Insight Marketplace",
         description: `Order #${orderId}: ${order.product_name} (x${order.quantity})`,
         logo: "https://core-insight-7.onrender.com/logo.png"
       },
       meta: {
         order_id: orderId,
-        product_id: order.product_id,
-        buyer_id: userId,
+        buyer_id: buyerId,
         seller_id: order.seller_id,
-        type: 'physical_order',
-        is_escrow: true,
-        escrow_days: 5,
         quantity: order.quantity,
-        platform_fee: platformFee,
-        seller_earnings: sellerEarnings,
-        fee_breakdown: JSON.stringify(feeBreakdown)
+        product_name: order.product_name
       }
     };
-
+    
     console.log("📤 Sending to Flutterwave...");
-    console.log("Payload:", JSON.stringify(payload, null, 2));
-
-    // Make request to Flutterwave
-    const response = await axios.post(
+    console.log("Payload:", JSON.stringify(paymentData, null, 2));
+    
+    // 8. Make request to Flutterwave
+    const flutterwaveResponse = await axios.post(
       'https://api.flutterwave.com/v3/payments',
-      payload,
+      paymentData,
       {
         headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
-
-    console.log("Flutterwave response status:", response.status);
-    console.log("Flutterwave response data:", JSON.stringify(response.data, null, 2));
-
-    if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      // Update order with transaction reference
+    
+    console.log("📥 Flutterwave Response Status:", flutterwaveResponse.status);
+    console.log("📥 Flutterwave Response Data:", JSON.stringify(flutterwaveResponse.data, null, 2));
+    
+    // 9. Check if payment link was created
+    if (flutterwaveResponse.data.status === 'success' && flutterwaveResponse.data.data?.link) {
+      const paymentLink = flutterwaveResponse.data.data.link;
+      
+      // Save reference to order
       await db.query(
-        `UPDATE physical_orders SET transaction_ref = ?, payment_method = 'pay_online' WHERE id = ?`,
-        [transactionRef, orderId]
+        `UPDATE physical_orders SET transaction_ref = ?, payment_link_created_at = NOW() WHERE id = ?`,
+        [reference, orderId]
       );
-
-      console.log(`✅ Payment link created for order #${orderId}`);
+      
+      console.log("✅ Payment link created successfully!");
+      console.log("🔗 Link:", paymentLink);
+      console.log("========== END ==========\n");
       
       res.json({
         success: true,
-        paymentLink: response.data.data.link,
-        transactionRef: transactionRef,
+        paymentLink: paymentLink,
+        transactionRef: reference,
         orderId: orderId,
-        totalAmount: totalAmount,
-        platformFee: platformFee,
-        sellerEarnings: sellerEarnings,
-        feeBreakdown: feeBreakdown
+        amount: amount
       });
     } else {
-      console.error("❌ Flutterwave returned error:", response.data);
-      throw new Error(response.data.message || "Payment initialization failed");
+      console.log("❌ Flutterwave returned error status");
+      throw new Error(flutterwaveResponse.data.message || "Failed to create payment link");
     }
-
-  } catch (err) {
-    console.error("❌ Payment link error details:");
-    console.error("- Error message:", err.message);
-    console.error("- Error response:", err.response?.data);
-    console.error("- Error status:", err.response?.status);
-    console.error("- Error headers:", err.response?.headers);
     
-    // Send detailed error for debugging
-    res.status(500).json({ 
-      error: "Failed to create payment link",
-      details: err.response?.data?.message || err.message,
-      flutterwaveError: err.response?.data
-    });
+  } catch (error) {
+    console.error("\n❌ PAYMENT LINK ERROR:");
+    console.error("Message:", error.message);
+    
+    if (error.response) {
+      console.error("Flutterwave Error Response:");
+      console.error("Status:", error.response.status);
+      console.error("Data:", JSON.stringify(error.response.data, null, 2));
+      
+      // Send detailed error for debugging
+      res.status(500).json({ 
+        error: "Failed to create payment link",
+        details: error.response.data?.message || error.message,
+        flutterwave_status: error.response.status,
+        flutterwave_message: error.response.data?.message
+      });
+    } else {
+      console.error("Error:", error);
+      res.status(500).json({ 
+        error: "Failed to create payment link",
+        details: error.message 
+      });
+    }
   }
 });
-
 // Update payment verification to send email
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {

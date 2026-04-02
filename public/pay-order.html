@@ -496,77 +496,55 @@
       }
     }
     
-    // Pay button handler - FIXED VERSION
-    document.getElementById('payNowBtn').addEventListener('click', async () => {
-      if (!orderData) {
-        alert('Order data not loaded. Please refresh the page.');
-        return;
-      }
-      
-      const payBtn = document.getElementById('payNowBtn');
-      payBtn.disabled = true;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating payment link...';
-      
-      try {
-        console.log('Creating payment link for order:', orderId);
-        
-        // Call the correct endpoint
-        const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
-        console.log('Response status:', response.status);
-        
-        // Parse response data
-        let data;
-        try {
-          data = await response.json();
-        } catch (e) {
-          console.error('Failed to parse response:', e);
-          throw new Error('Invalid server response');
-        }
-        
-        console.log('Response data:', data);
-        
-        if (!response.ok) {
-          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        if (data.paymentLink) {
-          console.log('Redirecting to payment link:', data.paymentLink);
-          // Redirect to payment gateway
-          window.location.href = data.paymentLink;
-        } else {
-          throw new Error('No payment link received from server');
-        }
-        
-      } catch (error) {
-        console.error('Payment error details:', error);
-        
-        // Show user-friendly error message
-        let errorMessage = error.message;
-        
-        if (error.message.includes('403')) {
-          errorMessage = 'Access denied. Please make sure you are logged in and the order belongs to you.';
-        } else if (error.message.includes('404')) {
-          errorMessage = 'Order not found. Please check the order ID and try again.';
-        } else if (error.message.includes('400')) {
-          errorMessage = 'Invalid order status. The seller needs to accept the order first.';
-        } else if (error.message.includes('500')) {
-          errorMessage = 'Server error. Please try again later or contact support.';
-        }
-        
-        alert('Payment failed: ' + errorMessage);
-        payBtn.disabled = false;
-        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-      }
+// Pay button handler - IMPROVED VERSION
+document.getElementById('payNowBtn').addEventListener('click', async () => {
+  if (!orderData) {
+    alert('Order data not loaded. Please refresh the page.');
+    return;
+  }
+  
+  const payBtn = document.getElementById('payNowBtn');
+  payBtn.disabled = true;
+  payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating payment link...';
+  
+  try {
+    console.log('Creating payment link for order:', orderId);
+    
+    const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include'
     });
     
+    const data = await response.json();
+    console.log('Response:', data);
+    
+    if (!response.ok) {
+      // Show detailed error message
+      let errorMsg = data.error || data.details || 'Payment creation failed';
+      if (data.flutterwave_message) {
+        errorMsg += `\n\nFlutterwave says: ${data.flutterwave_message}`;
+      }
+      throw new Error(errorMsg);
+    }
+    
+    if (data.paymentLink) {
+      console.log('Redirecting to:', data.paymentLink);
+      window.location.href = data.paymentLink;
+    } else {
+      throw new Error('No payment link received');
+    }
+    
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Payment Error:\n\n' + error.message);
+    payBtn.disabled = false;
+    payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+  }
+}); 
     // Show error message
     function showError(message) {
       document.getElementById('loadingState').style.display = 'none';

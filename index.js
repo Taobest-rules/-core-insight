@@ -579,7 +579,47 @@ async function sendOrderStatusUpdateEmail(orderData) {
   return await sendEmail(orderData.email, `Order Update #${orderData.orderId}`, htmlContent);
 }
 
-
+app.post("/api/verify-paystack-payment", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const { reference, order_id, usd_amount } = req.body;
+    
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === true && response.data.data.status === "success") {
+      const ngnAmountPaid = response.data.data.amount / 100; // Convert from kobo to NGN
+      
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+             transaction_ref = ?,
+             amount_paid_currency = 'NGN',
+             amount_paid = ?,
+             original_amount_usd = ?
+         WHERE id = ?`,
+        [reference, ngnAmountPaid, usd_amount, order_id]
+      );
+      
+      res.json({ success: true, message: "Payment verified successfully" });
+    } else {
+      res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
+  } catch (err) {
+    console.error("❌ Paystack verification error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // COMPLAINT/SUPPORT EMAIL ENDPOINT
 // ============================================

@@ -547,44 +547,50 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
           payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
         },
       });
-    } else if (selectedMethod === 'paystack') {
+  } else if (selectedMethod === 'paystack') {
   if (!paymentKeys.paystack?.public_key) {
     throw new Error('Paystack is not configured. Please contact support.');
   }
   
-  // Paystack requires callback as a separate parameter
+  const usdAmount = amount;
+  
+  // Convert USD to NGN
+  let ngnAmount = usdAmount * 1550;
+  try {
+    const rateResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const rateData = await rateResponse.json();
+    if (rateData.rates && rateData.rates.NGN) {
+      ngnAmount = usdAmount * rateData.rates.NGN;
+    }
+  } catch (rateError) {}
+  
+  // Show confirmation
+  const ngnDisplay = ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!confirm(`Pay ₦${ngnDisplay} NGN (≈ $${usdAmount.toFixed(2)} USD) via Paystack?`)) {
+    payBtn.disabled = false;
+    payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+    return;
+  }
+  
+  // Process payment
   const handler = PaystackPop.setup({
     key: paymentKeys.paystack.public_key,
     email: email,
-    amount: Math.round(amount * 100),
-    currency: "USD",
+    amount: Math.round(ngnAmount * 100),
+    currency: "NGN",
     ref: tx_ref,
-    metadata: {
-      custom_fields: [
-        { display_name: "Order ID", variable_name: "order_id", value: orderId }
-      ]
-    }
-  });
-  
-  // Paystack uses .open() with separate callback
-  handler.openIframe({
     callback: function(response) {
-      console.log('Paystack callback:', response);
-      verifyPaystackPayment(response.reference, orderId).then(() => {
+      verifyPaystackPayment(response.reference, orderId, usdAmount).then(() => {
         window.location.href = `/payment-success.html?orderId=${orderId}`;
-      }).catch(err => {
-        console.error('Verification error:', err);
-        alert('Payment successful but verification failed. Please contact support.');
       });
     },
     onClose: function() {
-      console.log('Paystack modal closed');
       payBtn.disabled = false;
       payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
     }
   });
+  handler.openIframe();
 }
-    
   } catch (error) {
     console.error('Payment error:', error);
     alert('Payment Error:\n\n' + error.message);
@@ -592,6 +598,8 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
     payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
   }
 });
+
+
 // Verify payment with your server after successful payment
 async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
   try {
@@ -614,12 +622,16 @@ async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
   }
 }
 
-async function verifyPaystackPayment(reference, orderId) {
+async function verifyPaystackPayment(reference, orderId, usdAmount) {
   try {
     const response = await fetch('/api/verify-paystack-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reference: reference, order_id: orderId }),
+      body: JSON.stringify({ 
+        reference: reference, 
+        order_id: orderId,
+        usd_amount: usdAmount  // Pass the original USD amount
+      }),
       credentials: 'include'
     });
     const data = await response.json();
@@ -630,7 +642,6 @@ async function verifyPaystackPayment(reference, orderId) {
     throw error;
   }
 }
-
 // Load payment keys when page loads
 async function loadPaymentKeys() {
   try {

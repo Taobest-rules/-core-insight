@@ -704,7 +704,127 @@
       color: #ff6b6b; 
       border: 1px solid rgba(255, 100, 100, 0.3);
     }
-    
+    /* Flag Button Styles */
+.flag-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  color: #ff6b6b;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.flag-btn:hover {
+  background: rgba(255, 100, 100, 0.1);
+  border-color: #ff6b6b;
+  transform: translateY(-2px);
+}
+
+.flag-btn.flagged {
+  background: rgba(255, 100, 100, 0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.flag-btn.flagged:hover {
+  transform: none;
+}
+
+.flag-warning {
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Flag Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  border: 1px solid rgba(100, 255, 218, 0.2);
+}
+
+.modal-content h3 {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-content textarea {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 255, 218, 0.2);
+  background: var(--secondary-dark);
+  color: var(--text-light);
+  margin: 1rem 0;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modal-buttons button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-buttons .cancel-btn {
+  background: transparent;
+  border: 1px solid var(--text-muted);
+  color: var(--text-gray);
+}
+
+.modal-buttons .confirm-btn {
+  background: #ff6b6b;
+  border: none;
+  color: white;
+}
+
+.modal-buttons .confirm-btn:hover {
+  background: #ff5252;
+  transform: translateY(-2px);
+}
     /* Loading States */
     .loading {
       opacity: 0.6;
@@ -1358,7 +1478,18 @@
       </div>
     </div>
   </section>
-
+<!-- Flag Modal -->
+<div id="flagModal" class="modal">
+  <div class="modal-content">
+    <h3><i class="fas fa-flag"></i> Report Content</h3>
+    <p style="color: var(--text-gray); margin-bottom: 1rem;">Please explain why you're flagging this content. This helps us maintain quality.</p>
+    <textarea id="flagReason" placeholder="Describe the issue (minimum 10 characters)..."></textarea>
+    <div class="modal-buttons">
+      <button class="cancel-btn" onclick="closeFlagModal()">Cancel</button>
+      <button class="confirm-btn" onclick="submitFlag()">Submit Report</button>
+    </div>
+  </div>
+</div>
   <!-- Footer -->
   <footer>
     <div class="container">
@@ -1772,6 +1903,8 @@ function escapeHtml(str) {
 }
 
 // =================== COMPLETE LOAD COURSES FUNCTION ===================
+// =================== SUPPORTING FUNCTIONS ===================
+// =================== COMPLETE LOAD COURSES FUNCTION WITH FLAGGING ===================
 async function loadCourses() {
   try {
     showLoading();
@@ -1787,7 +1920,21 @@ async function loadCourses() {
     const grid = document.getElementById('coursesGrid');
     
     document.getElementById('courseCount').textContent = `${courses.length} Courses`;
-    
+    // Get flag status for courses (whether user has flagged them)
+let flaggedCourses = new Set();
+if (user) {
+  try {
+    const flaggedRes = await fetch('/api/courses/flagged-by-me');
+    const flagged = await flaggedRes.json();
+    if (flagged && flagged.length > 0) {
+      flagged.forEach(course => {
+        flaggedCourses.add(Number(course.id));
+      });
+    }
+  } catch (error) {
+    console.error('Error loading flagged courses:', error);
+  }
+}
     // Get purchased courses if user is logged in
     let purchasedCourses = new Set();
     if (user) {
@@ -1798,7 +1945,6 @@ async function loadCourses() {
           purchased.forEach(course => {
             purchasedCourses.add(Number(course.id));
           });
-          console.log('📚 Purchased courses:', Array.from(purchasedCourses));
         }
       } catch (error) {
         console.error('Error loading purchased courses:', error);
@@ -1818,7 +1964,7 @@ async function loadCourses() {
       return;
     }
     
-    // Generate course cards with purchase status
+    // Generate course cards with flagging system
     grid.innerHTML = courses.map(course => {
       // Determine content type
       const fileUrl = course.file_url || course.download_url || '';
@@ -1854,6 +2000,11 @@ async function loadCourses() {
         badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
       }
       
+      // Check if user is admin (flag button not shown for admin's own content)
+      const isAdmin = user && user.role === 'admin';
+      const isOwner = user && user.id === course.user_id;
+      const showFlagButton = user && !isOwner && user.role !== 'admin';
+      
       // Get thumbnail URL
       let thumbnailSrc;
       if (course.thumbnail_url) {
@@ -1881,6 +2032,9 @@ async function loadCourses() {
       const safeTitle = escapeHtml(course.title);
       const safeDescription = escapeHtml(course.description || 'No description available');
       const safeAuthor = escapeHtml(course.author || '');
+      
+      // Check if user has already flagged this course
+      const hasFlagged = course.user_has_flagged === true;
       
       return `
         <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
@@ -1935,6 +2089,13 @@ async function loadCourses() {
                   <i class="fas fa-download"></i> Download Free
                 </button>
               `)}
+              ${showFlagButton ? `
+                <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
+                        class="flag-btn ${hasFlagged ? 'flagged' : ''}"
+                        ${hasFlagged ? 'disabled' : ''}>
+                  <i class="fas fa-flag"></i> ${hasFlagged ? 'Reported' : 'Report Content'}
+                </button>
+              ` : ''}
               ${user && (user.role === 'admin' || user.id === course.user_id) ? `
                 <button onclick="deleteCourse(${course.id})" 
                         class="btn-secondary" 
@@ -1972,7 +2133,102 @@ async function loadCourses() {
   }
 }
 
-// =================== SUPPORTING FUNCTIONS ===================
+// =================== FLAGGING SYSTEM FUNCTIONS ===================
+
+let currentFlagCourseId = null;
+let currentFlagTitle = null;
+
+function openFlagModal(courseId, title) {
+  currentFlagCourseId = courseId;
+  currentFlagTitle = title;
+  const modal = document.getElementById('flagModal');
+  const textarea = document.getElementById('flagReason');
+  textarea.value = '';
+  modal.classList.add('active');
+}
+
+function closeFlagModal() {
+  const modal = document.getElementById('flagModal');
+  modal.classList.remove('active');
+  currentFlagCourseId = null;
+  currentFlagTitle = null;
+}
+
+async function submitFlag() {
+  const reason = document.getElementById('flagReason').value.trim();
+  
+  if (!reason) {
+    showToast('Please provide a reason for flagging this content.', 'error');
+    return;
+  }
+  
+  if (reason.length < 10) {
+    showToast('Please provide a more detailed reason (minimum 10 characters).', 'error');
+    return;
+  }
+  
+  if (!currentFlagCourseId) {
+    showToast('Error: No course selected.', 'error');
+    closeFlagModal();
+    return;
+  }
+  
+  try {
+    showLoading();
+    
+    const response = await fetch('/api/courses/flag', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courseId: currentFlagCourseId,
+        reason: reason
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      // Show appropriate message based on result
+      if (result.deleted) {
+        showToast(`⚠️ "${currentFlagTitle}" has been removed due to multiple reports.`, 'info');
+        // Reload courses to remove the deleted course
+        loadCourses();
+      } else if (result.warningIssued) {
+        showToast(`✅ Report submitted. A warning has been issued to the creator.`, 'success');
+      } else {
+        showToast(`✅ Report submitted successfully. Thank you for helping maintain quality.`, 'success');
+      }
+      
+      // Disable the flag button for this course
+      const flagButton = document.querySelector(`.card[data-course-id="${currentFlagCourseId}"] .flag-btn`);
+      if (flagButton) {
+        flagButton.classList.add('flagged');
+        flagButton.innerHTML = '<i class="fas fa-flag"></i> Reported';
+        flagButton.disabled = true;
+      }
+      
+      closeFlagModal();
+    } else {
+      showToast(result.error || 'Failed to submit report. Please try again.', 'error');
+    }
+    
+  } catch (error) {
+    console.error('❌ Flag submission error:', error);
+    showToast('Error submitting report. Please check your connection.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('flagModal');
+  if (modal.classList.contains('active') && event.target === modal) {
+    closeFlagModal();
+  }
+});
 
 async function handleDownload(courseId) {
   try {
@@ -2303,7 +2559,12 @@ async function checkUserPurchasedCourses() {
       userCurrency = e.target.value;
       updateAllPrices();
     });
-
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeFlagModal();
+  }
+});
     // ========================= INITIALIZATION =========================
     document.addEventListener('DOMContentLoaded', () => {
       loadUser();

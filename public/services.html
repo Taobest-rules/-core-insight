@@ -2016,7 +2016,27 @@
     overflow-y: auto;
     padding: 8px;
   }
+/* Flag Button Styles */
+.flag-btn {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid #ef4444 !important;
+    color: #ef4444 !important;
+}
 
+.flag-btn:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    transform: translateY(-2px);
+}
+
+.admin-review-card {
+    transition: all 0.3s ease;
+}
+
+.admin-review-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
   /* Custom Scrollbar */
   .conversation-list::-webkit-scrollbar {
     width: 6px;
@@ -4058,7 +4078,48 @@
         </div>
       </form>
     </section>
-
+<!-- Freelancer Statement Modal -->
+<div id="freelancerStatementModal" class="modal hidden">
+    <div class="modal-card" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--text-light);">
+                <i class="fas fa-gavel"></i> Admin Review Required
+            </h3>
+            <span class="close-x" id="closeStatementModal">&times;</span>
+        </div>
+        
+        <div style="background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: var(--text-light); font-weight: 500;">
+                Your account has been flagged multiple times and is under review.
+            </p>
+            <p style="margin: 10px 0 0 0; color: var(--text-gray); font-size: 0.9rem;">
+                Please provide your side of the story. An admin will review your account shortly.
+            </p>
+        </div>
+        
+        <div class="form-group">
+            <label for="freelancerStatement" style="color: var(--text-light);">Your Statement *</label>
+            <textarea id="freelancerStatement" class="form-textarea-enhanced" rows="6" 
+                      placeholder="Please explain your side of the story. Be detailed and honest. This will help the admin make a fair decision."></textarea>
+            <div style="text-align: right; margin-top: 5px;">
+                <span id="statementCharCount" style="color: var(--text-gray); font-size: 0.85rem;">0/1000</span>
+            </div>
+        </div>
+        
+        <div class="form-actions" style="margin-top: 20px;">
+            <button class="btn btn-primary" id="submitStatementBtn" style="flex: 1;">
+                <i class="fas fa-paper-plane"></i> Submit Statement
+            </button>
+            <button class="btn btn-secondary" id="cancelStatementBtn" style="flex: 1;">
+                Later
+            </button>
+        </div>
+        
+        <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-gray); text-align: center;">
+            Your account is temporarily locked until admin review.
+        </p>
+    </div>
+</div>
     <!-- Freelancer Profile Section -->
     <section id="freelancerProfile" class="hidden">
       <div class="profile-hero">
@@ -4679,40 +4740,62 @@
       </div>
     </div>
 
-    <!-- Subscription Modal -->
-    <div id="subscriptionModal" class="modal hidden">
-      <div class="modal-card" style="max-width: 500px;">
+  <!-- Subscription Modal - Updated -->
+<div id="subscriptionModal" class="modal hidden">
+    <div class="modal-card" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; color: var(--text-light);">Subscription Required</h3>
-          <span class="close-x" id="closeSubscriptionModal">&times;</span>
+            <h3 style="margin: 0; color: var(--text-light);">
+                <i class="fas fa-crown"></i> Choose Your Plan
+            </h3>
+            <span class="close-x" id="closeSubscriptionModal">&times;</span>
         </div>
-        <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0; color: var(--warning-orange); font-weight: 500;">
-            <i class="fas fa-exclamation-triangle"></i> Free Trial Expired
-          </p>
-          <p style="margin: 10px 0 0 0; color: var(--text-light);">
-            Your 90-day free trial has ended. To continue using services, please subscribe to one of our plans.
-          </p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+            <!-- Monthly Plan -->
+            <div class="pricing-card" style="padding: 25px; margin: 0;">
+                <h3 style="color: var(--text-light); margin-bottom: 10px;">Monthly</h3>
+                <div class="price" style="font-size: 2.5rem;">$5</div>
+                <div class="price-period">per month</div>
+                <ul class="pricing-features" style="margin: 20px 0;">
+                    <li>✅ Priority support</li>
+                    <li>✅ Featured listings</li>
+                    <li>✅ Advanced analytics</li>
+                    <li>✅ Cancel anytime</li>
+                </ul>
+                <button class="btn btn-primary w-100" id="subscribeMonthlyModalBtn" onclick="subscribe('monthly')">
+                    Choose Monthly
+                </button>
+            </div>
+            
+            <!-- Yearly Plan -->
+            <div class="pricing-card featured" style="padding: 25px; margin: 0;">
+                <div style="position: absolute; top: -10px; right: 20px; background: var(--accent-gold); color: #000; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                    Save 4%
+                </div>
+                <h3 style="color: var(--text-light); margin-bottom: 10px;">Yearly</h3>
+                <div class="price" style="font-size: 2.5rem;">$57.50</div>
+                <div class="price-period">per year</div>
+                <ul class="pricing-features" style="margin: 20px 0;">
+                    <li>✅ Everything in Monthly</li>
+                    <li>✅ Premium badge</li>
+                    <li>✅ Top priority support</li>
+                    <li>✅ Best value</li>
+                </ul>
+                <button class="btn btn-primary w-100" id="subscribeYearlyModalBtn" onclick="subscribe('yearly')">
+                    Choose Yearly
+                </button>
+            </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-          <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
-            <h4 style="color: var(--text-light); margin-bottom: 10px;">Monthly</h4>
-            <div style="font-size: 2rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 10px;">$5</div>
-            <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">per month</p>
-            <button class="btn btn-primary w-100" id="subscribeMonthlyModalBtn">Subscribe</button>
-          </div>
-          <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center;">
-            <h4 style="color: var(--text-light); margin-bottom: 10px;">Yearly</h4>
-            <div style="font-size: 2rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 10px;">$57.50</div>
-            <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 15px;">per year (save 4%)</p>
-            <button class="btn btn-primary w-100" id="subscribeYearlyModalBtn">Subscribe</button>
-          </div>
-        </div>
+        
         <div class="form-actions">
-          <button class="btn btn-secondary w-100" id="closeSubscriptionModalBtn">Later</button>
+            <button class="btn btn-secondary w-100" id="closeSubscriptionModalBtn">Maybe Later</button>
         </div>
-      </div>
+        
+        <p style="margin-top: 20px; font-size: 0.85rem; color: var(--text-gray); text-align: center;">
+            <i class="fas fa-lock"></i> Secure payment powered by Flutterwave
+        </p>
     </div>
+</div>
 
     <!-- New Conversation Modal -->
     <div id="newConversationModal" class="modal hidden">
@@ -4879,31 +4962,7 @@
       </div>
     </div>
 
-    <!-- Role Modal (for existing users without role) -->
-    <div id="roleModal" class="modal hidden">
-      <div class="modal-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <h3 style="margin:0;color:var(--text-light)">Choose Your Role</h3>
-          <span id="closeRoleModal" class="close-x">&times;</span>
-        </div>
-        <p style="color:var(--text-gray);margin-bottom:30px">How would you like to use Core Insight?</p>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
-          <div class="role-option" data-role="client" style="background:var(--card-bg);padding:30px;border-radius:12px;text-align:center;cursor:pointer;border:2px solid transparent;transition:var(--transition)">
-            <i class="fas fa-user-tie" style="font-size:3rem;color:var(--accent-blue);margin-bottom:15px"></i>
-            <h4 style="color:var(--text-light);margin-bottom:10px">Client</h4>
-            <p style="color:var(--text-gray);font-size:0.9rem">I want to hire freelancers (free)</p>
-          </div>
-          <div class="role-option" data-role="freelancer" style="background:var(--card-bg);padding:30px;border-radius:12px;text-align:center;cursor:pointer;border:2px solid transparent;transition:var(--transition)">
-            <i class="fas fa-laptop-code" style="font-size:3rem;color:var(--accent-gold);margin-bottom:15px"></i>
-            <h4 style="color:var(--text-light);margin-bottom:10px">Freelancer</h4>
-            <p style="color:var(--text-gray);font-size:0.9rm">I want to offer services (90-day trial)</p>
-          </div>
-        </div>
-        <button id="skipRoleBtn" class="btn btn-secondary w-100">Skip for now</button>
-      </div>
-    </div>
-
+    
     <!-- Freelancer Profile Modal (for viewing other freelancers) -->
     <div id="freelancerProfileModal" class="modal hidden">
       <div class="modal-card large" style="max-width: 800px;">
@@ -5153,9 +5212,6 @@ async function checkAuthStatus() {
         updateHeader();
         updateUIForUserRole();
 
-        if (!userRole && $('roleModal')) {
-            setTimeout(() => openModal($('roleModal')), 1000);
-        }
 
         if (userRole === 'freelancer') {
             loadMyServices().catch(err => console.error(err));
@@ -5177,6 +5233,7 @@ async function checkAuthStatus() {
     }
 }
 
+// Enhanced subscription status check
 async function checkSubscriptionStatus() {
     try {
         const response = await fetch('/api/subscription/status', {
@@ -5186,35 +5243,184 @@ async function checkSubscriptionStatus() {
         
         userSubscription = data;
         
-        const banner = $('subscriptionBanner');
-        const daysLeftEl = $('daysLeft');
-        const subscriptionTitle = $('subscriptionTitle');
-        const subscriptionMessage = $('subscriptionMessage');
+        const banner = document.getElementById('subscriptionBanner');
+        const daysLeftEl = document.getElementById('daysLeft');
+        const subscriptionTitle = document.getElementById('subscriptionTitle');
+        const subscriptionMessage = document.getElementById('subscriptionMessage');
+        const manageBtn = document.getElementById('manageSubscriptionBtn');
         
         if (banner && daysLeftEl && subscriptionTitle && subscriptionMessage) {
             if (data.hasActiveSubscription) {
                 banner.classList.remove('hidden');
                 
                 if (data.subscriptionPlan === 'free_trial') {
-                    subscriptionTitle.textContent = 'Free Trial';
-                    subscriptionMessage.innerHTML = `You have <span class="days-left">${data.daysLeft}</span> days left in your free trial`;
+                    subscriptionTitle.textContent = '🎁 Free Trial';
+                    subscriptionMessage.innerHTML = `You have <span class="days-left" style="color: var(--accent-gold);">${data.daysLeft}</span> days left in your free trial`;
+                    
+                    if (manageBtn) {
+                        manageBtn.textContent = 'Upgrade to Paid';
+                        manageBtn.onclick = () => showSubscriptionModal();
+                    }
                 } else {
-                    subscriptionTitle.textContent = 'Active Subscription';
-                    subscriptionMessage.innerHTML = `Your ${data.subscriptionPlan} plan is active`;
+                    subscriptionTitle.textContent = `⭐ ${data.subscriptionPlan.charAt(0).toUpperCase() + data.subscriptionPlan.slice(1)} Plan Active`;
+                    subscriptionMessage.innerHTML = `Your subscription is active. ${data.daysLeft} days remaining.`;
+                    
+                    if (manageBtn) {
+                        manageBtn.textContent = 'Manage Subscription';
+                        manageBtn.onclick = () => showSubscriptionModal();
+                    }
                 }
                 
-                if (data.daysLeft < 7) {
+                // Add warning when trial is ending soon
+                if (data.subscriptionPlan === 'free_trial' && data.daysLeft < 7) {
                     banner.classList.add('warning');
+                    subscriptionMessage.innerHTML += `<br><span style="color: var(--warning-orange);">⚠️ Your trial ends in ${data.daysLeft} days! Subscribe to continue.</span>`;
+                } else {
+                    banner.classList.remove('warning');
                 }
             } else {
                 banner.classList.add('hidden');
+                
+                // Check if account is locked due to flags
+                if (data.accountLocked) {
+                    showToast("Your account is locked pending admin review. Please contact support.", "error");
+                } else if (data.subscriptionPlan === 'free_trial' && data.daysLeft === 0) {
+                    // Trial expired, show subscription modal
+                    setTimeout(() => showSubscriptionModal(), 1000);
+                }
             }
         }
-    } catch (err) {
-        console.error('Error checking subscription:', err);
+        
+        return data;
+        
+    } catch (error) {
+        console.error('Error checking subscription:', error);
+        return null;
     }
 }
 
+// Show subscription modal with trial info
+function showSubscriptionModal() {
+    const modal = document.getElementById('subscriptionModal');
+    if (!modal) return;
+    
+    // Update modal content with trial info
+    const modalContent = modal.querySelector('.modal-card');
+    if (modalContent && userSubscription) {
+        const trialInfo = document.createElement('div');
+        trialInfo.className = 'trial-info';
+        trialInfo.style.cssText = 'background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 20px;';
+        
+        if (userSubscription.subscriptionPlan === 'free_trial' && userSubscription.daysLeft > 0) {
+            trialInfo.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-gift" style="font-size: 1.5rem; color: var(--accent-gold);"></i>
+                    <div>
+                        <strong style="color: var(--text-light);">Free Trial Active!</strong>
+                        <p style="color: var(--text-gray); margin: 5px 0 0 0; font-size: 0.9rem;">
+                            You have ${userSubscription.daysLeft} days remaining in your free trial.
+                            Subscribe now to continue uninterrupted service.
+                        </p>
+                    </div>
+                </div>
+            `;
+        } else if (userSubscription.subscriptionPlan !== 'free_trial' && userSubscription.daysLeft > 0) {
+            trialInfo.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #10b981;"></i>
+                    <div>
+                        <strong style="color: var(--text-light);">Active Subscription</strong>
+                        <p style="color: var(--text-gray); margin: 5px 0 0 0; font-size: 0.9rem;">
+                            Your ${userSubscription.subscriptionPlan} plan is active. ${userSubscription.daysLeft} days remaining.
+                        </p>
+                    </div>
+                </div>
+            `;
+        } else {
+            trialInfo.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; color: var(--warning-orange);"></i>
+                    <div>
+                        <strong style="color: var(--text-light);">Trial Expired</strong>
+                        <p style="color: var(--text-gray); margin: 5px 0 0 0; font-size: 0.9rem;">
+                            Your free trial has ended. Please subscribe to continue using services.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const existingInfo = modalContent.querySelector('.trial-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+        modalContent.insertBefore(trialInfo, modalContent.firstChild);
+    }
+    
+    openModal(modal);
+}
+
+// Handle subscription button clicks
+async function subscribe(plan) {
+    if (!currentUser) {
+        showToast("Please login to subscribe", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    showToast("Processing subscription...", "info");
+    
+    try {
+        const response = await fetch('/api/subscription/pay', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ plan: plan })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(data.error || "Failed to process subscription", "error");
+            return;
+        }
+        
+        if (data.paymentLink) {
+            // Store transaction ref for verification
+            sessionStorage.setItem('pendingSubscription', JSON.stringify({
+                transactionRef: data.transactionRef,
+                plan: plan,
+                amount: data.amount
+            }));
+            
+            // Redirect to payment
+            window.location.href = data.paymentLink;
+        } else {
+            showToast("No payment link received", "error");
+        }
+        
+    } catch (err) {
+        console.error("Subscription error:", err);
+        showToast("Error processing subscription", "error");
+    }
+}
+
+// Initialize subscription check on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    // Wait for auth to load
+    setTimeout(async () => {
+        await checkSubscriptionStatus();
+        
+        // If freelancer and trial expired, show subscription modal
+        if (currentUser && currentUser.role === 'freelancer') {
+            const subStatus = await checkSubscriptionStatus();
+            if (subStatus && !subStatus.hasActiveSubscription && subStatus.daysLeft === 0) {
+                setTimeout(() => showSubscriptionModal(), 2000);
+            }
+        }
+    }, 1500);
+});
+  
 async function logout() {
     try {
         showToast('Preparing login form...', 'info');
@@ -7461,57 +7667,24 @@ async function startConversationWithUser(userId, username) {
     }
 }
 
-/*********************
- *  Update UI for User Role *
- *********************/
 async function updateUIForUserRole() {
-    const heroDescription = $('heroDescription');
-    const findServicesBtn = $('findServicesBtn');
-    const offerServiceBtn = $('offerServiceBtn');
-    const pricingSection = $('pricingSection');
-    const clientTabs = $('clientTabs');
-    const providerTabs = $('providerTabs');
-    const servicesBrowser = $('servicesBrowser');
-    const createServiceBtn = $('createServiceBtn');
-    const subscriptionBanner = $('subscriptionBanner');
-
+    const heroDescription = document.getElementById('heroDescription');
+    const findServicesBtn = document.getElementById('findServicesBtn');
+    const offerServiceBtn = document.getElementById('offerServiceBtn');
+    const pricingSection = document.getElementById('pricingSection');
+    const clientTabs = document.getElementById('clientTabs');
+    const providerTabs = document.getElementById('providerTabs');
+    const servicesBrowser = document.getElementById('servicesBrowser');
+    const createServiceBtn = document.getElementById('createServiceBtn');
+    const subscriptionBanner = document.getElementById('subscriptionBanner');
+    
     if (currentUser) {
         if (userRole === 'freelancer') {
-            let hasActiveSubscription = false;
-            try {
-                const response = await fetch('/api/subscription/status', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                hasActiveSubscription = data.hasActiveSubscription;
-                
-                if (subscriptionBanner) {
-                    if (data.hasActiveSubscription) {
-                        subscriptionBanner.classList.remove('hidden');
-                        const daysLeftEl = $('daysLeft');
-                        const subscriptionTitle = $('subscriptionTitle');
-                        const subscriptionMessage = $('subscriptionMessage');
-                        
-                        if (data.subscriptionPlan === 'free_trial') {
-                            subscriptionTitle.textContent = 'Free Trial';
-                            subscriptionMessage.innerHTML = `You have <span class="days-left">${data.daysLeft}</span> days left in your free trial`;
-                        } else {
-                            subscriptionTitle.textContent = 'Active Subscription';
-                            subscriptionMessage.innerHTML = `Your ${data.subscriptionPlan} plan is active`;
-                        }
-                        
-                        if (data.daysLeft < 7) {
-                            subscriptionBanner.classList.add('warning');
-                        }
-                    } else {
-                        subscriptionBanner.classList.add('hidden');
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking subscription:', error);
-                hasActiveSubscription = false;
-            }
-
+            // Check subscription status
+            const subStatus = await checkSubscriptionStatus();
+            const hasActiveSubscription = subStatus?.hasActiveSubscription || false;
+            const daysLeft = subStatus?.daysLeft || 0;
+            
             if (heroDescription) heroDescription.textContent = "Manage your services and connect with clients worldwide.";
             if (findServicesBtn) findServicesBtn.textContent = "Browse Services";
             
@@ -7523,14 +7696,15 @@ async function updateUIForUserRole() {
                     offerServiceBtn.classList.add('btn-primary');
                     offerServiceBtn.title = "Create and manage your services";
                 } else {
-                    offerServiceBtn.textContent = "❌ Subscription Required";
-                    offerServiceBtn.disabled = true;
+                    offerServiceBtn.textContent = daysLeft > 0 ? `⚠️ Trial (${daysLeft} days left)` : "❌ Subscribe to Create";
+                    offerServiceBtn.disabled = false;
                     offerServiceBtn.classList.add('btn-secondary');
                     offerServiceBtn.classList.remove('btn-primary');
-                    offerServiceBtn.title = "Subscription required - You cannot create services without an active subscription";
+                    offerServiceBtn.title = daysLeft > 0 ? "You have an active free trial" : "Subscribe to start offering services";
                 }
             }
-            if (pricingSection) pricingSection.classList.remove('hidden');
+            
+            if (pricingSection) pricingSection.classList.add('hidden');
             if (clientTabs) clientTabs.classList.add('hidden');
             if (providerTabs) providerTabs.classList.remove('hidden');
             
@@ -7547,7 +7721,21 @@ async function updateUIForUserRole() {
                 servicesBrowser.classList.remove('hidden');
             }
             
+            // Show/hide subscription banner based on trial days
+            if (subscriptionBanner) {
+                if (hasActiveSubscription && subStatus?.subscriptionPlan === 'free_trial') {
+                    subscriptionBanner.classList.remove('hidden');
+                    const daysLeftEl = document.getElementById('daysLeft');
+                    if (daysLeftEl) daysLeftEl.textContent = daysLeft;
+                } else if (hasActiveSubscription && subStatus?.subscriptionPlan !== 'free_trial') {
+                    subscriptionBanner.classList.add('hidden');
+                } else if (!hasActiveSubscription && daysLeft === 0) {
+                    subscriptionBanner.classList.add('hidden');
+                }
+            }
+            
             switchTab('browse');
+            
         } else if (userRole === 'client') {
             if (heroDescription) heroDescription.textContent = "Find expert services for your needs.";
             if (findServicesBtn) findServicesBtn.textContent = "Find Services";
@@ -7558,18 +7746,22 @@ async function updateUIForUserRole() {
             if (pricingSection) pricingSection.classList.add('hidden');
             if (clientTabs) clientTabs.classList.remove('hidden');
             if (providerTabs) providerTabs.classList.add('hidden');
+            if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
             
             if (servicesBrowser) {
                 servicesBrowser.classList.remove('hidden');
             }
             switchTab('browse');
+            
         } else {
+            // No role selected
             if (heroDescription) heroDescription.textContent = "Choose how you'd like to use our platform.";
             if (findServicesBtn) findServicesBtn.textContent = "Find Services";
             if (offerServiceBtn) offerServiceBtn.textContent = "Offer a Service";
             if (pricingSection) pricingSection.classList.add('hidden');
             if (clientTabs) clientTabs.classList.add('hidden');
             if (providerTabs) providerTabs.classList.add('hidden');
+            if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
             
             if (servicesBrowser) {
                 servicesBrowser.classList.remove('hidden');
@@ -7577,12 +7769,14 @@ async function updateUIForUserRole() {
             switchTab('browse');
         }
     } else {
+        // Not logged in
         if (heroDescription) heroDescription.textContent = "Find expert services or offer your skills to clients worldwide.";
         if (findServicesBtn) findServicesBtn.textContent = "Find Services";
         if (offerServiceBtn) offerServiceBtn.textContent = "Offer a Service";
         if (pricingSection) pricingSection.classList.add('hidden');
         if (clientTabs) clientTabs.classList.add('hidden');
         if (providerTabs) providerTabs.classList.add('hidden');
+        if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
         
         if (servicesBrowser) {
             servicesBrowser.classList.remove('hidden');
@@ -7783,7 +7977,62 @@ async function handleSignupSubmit(e) {
         }
     }
 }
+// Updated handleOfferServiceClick with proper trial check
+async function handleOfferServiceClick() {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (userRole === 'client') {
+        showToast('Only freelancers can offer services. To offer services, please create a freelancer account.', 'info');
+        openModal(document.getElementById('roleModal'));
+        return;
+    }
+    
+    if (userRole === 'freelancer') {
+        const subStatus = await checkSubscriptionStatus();
+        
+        if (subStatus.hasActiveSubscription) {
+            // Active trial or paid subscription - can create services
+            showServicesBrowser();
+            switchTab('myServices');
+        } else {
+            // Trial expired or no subscription
+            showSubscriptionRestrictions();
+            showSubscriptionModal();
+        }
+    } else {
+        openModal(document.getElementById('roleModal'));
+    }
+}
 
+function showSubscriptionRestrictions() {
+    const heroSection = document.querySelector('.hero');
+    if (heroSection && !document.querySelector('.restriction-banner')) {
+        const restrictionBanner = document.createElement('div');
+        restrictionBanner.className = 'subscription-banner warning restriction-banner';
+        restrictionBanner.style.marginBottom = '20px';
+        restrictionBanner.innerHTML = `
+            <div class="subscription-info">
+                <div class="subscription-icon" style="background: var(--warning-orange);">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="subscription-text">
+                    <h3>⚠️ Subscription Required</h3>
+                    <p>Your free trial has ended. Please subscribe to continue offering services.</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="restrictionSubscribeBtn">Subscribe Now</button>
+        `;
+        
+        heroSection.insertAdjacentElement('afterend', restrictionBanner);
+        
+        document.getElementById('restrictionSubscribeBtn')?.addEventListener('click', () => {
+            showSubscriptionModal();
+        });
+    }
+}
 /*********************
  *  Fix All Inbox Buttons *
  *********************/
@@ -7929,19 +8178,8 @@ function setupEventListeners() {
         });
     }
 
-    document.querySelectorAll('.role-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const role = this.getAttribute('data-role');
-            selectRole(role);
-        });
-    });
-
-    if ($('skipRoleBtn')) {
-        $('skipRoleBtn').addEventListener('click', () => {
-            closeModal($('roleModal'));
-            showServicesBrowser();
-        });
-    }
+    
+    
 
     if ($('updatePhotoBtn') && $('profilePictureInput')) {
         $('updatePhotoBtn').addEventListener('click', () => {
@@ -8155,8 +8393,10 @@ function handleOfferServiceClick() {
     } else {
         if (userRole === 'client') {
             showToast('Only freelancers can offer services. To offer services, please create a freelancer account.', 'info');
-            openModal($('roleModal'));
+            // Show a different message or redirect to signup
+            openModal($('signupModal')); // Optional: show signup modal instead
         } else if (userRole === 'freelancer') {
+            // Check subscription status and show services
             fetch('/api/subscription/status', {
                 credentials: 'include'
             })
@@ -8174,52 +8414,10 @@ function handleOfferServiceClick() {
                 switchTab('myServices');
             });
         } else {
-            openModal($('roleModal'));
+            // If no role, default to client or show signup
+            showToast('Please create a new account or contact support', 'info');
+            openModal($('signupModal'));
         }
-    }
-}
-
-async function selectRole(role) {
-    try {
-        const response = await fetch('/api/user/set-role', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ role })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            showToast(data.error || 'Failed to set role', 'error');
-            return;
-        }
-
-        userRole = role;
-        if (currentUser) {
-            currentUser.role = role;
-        }
-
-        closeModal($('roleModal'));
-        showToast(`Welcome as a ${role}!`, 'success');
-
-        updateUIForUserRole();
-
-        if (role === 'freelancer') {
-            showPricingSection();
-        } else {
-            showServicesBrowser();
-            switchTab('browse');
-        }
-
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
-
-    } catch (error) {
-        showToast('Failed to set role. Please try again.', 'error');
     }
 }
 
@@ -8285,12 +8483,6 @@ function setupModalCloseListeners() {
         };
     }
     
-    if (closeRoleModal) {
-        closeRoleModal.onclick = (e) => {
-            e.preventDefault();
-            closeModal(document.getElementById('roleModal'));
-        };
-    }
     
     window.onclick = function(event) {
         const loginModal = document.getElementById('loginModal');
@@ -8431,6 +8623,1146 @@ function showSubscriptionModal() {
     console.log('Showing subscription modal');
     showToast('Subscription required', 'warning');
 }
+
+// ============================================
+// ADD THESE FUNCTIONS TO YOUR services.html
+// ============================================
+
+async function checkAndStartConversation(serviceId, freelancerId) {
+    if (!currentUser) {
+        showToast("Please login to start a conversation", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (parseInt(currentUser.id) === parseInt(freelancerId)) {
+        showToast("You cannot start a conversation with yourself", "warning");
+        return;
+    }
+    
+    showToast("Starting conversation...", "info");
+    
+    try {
+        let response;
+        
+        if (serviceId) {
+            response = await fetch("/api/conversations/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    service_id: parseInt(serviceId),
+                    recipient_id: parseInt(freelancerId)
+                })
+            });
+        } else {
+            response = await fetch("/api/conversations/start-without-service", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    recipient_id: parseInt(freelancerId)
+                })
+            });
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(data.error || "Failed to start conversation", "error");
+            return;
+        }
+        
+        if (!data.conversation_id) {
+            showToast("Failed to get conversation ID", "error");
+            return;
+        }
+        
+        // Get username
+        let username = "User";
+        try {
+            const userRes = await fetch(`/api/users/${freelancerId}/profile`, {
+                credentials: 'include'
+            });
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                username = userData.username || "User";
+            }
+        } catch (e) {
+            console.error("Error fetching username:", e);
+        }
+        
+        showToast("✅ Conversation started!", "success");
+        
+        // Show inbox and open conversation
+        window.activeConversationId = data.conversation_id;
+        window.activeConversationUserId = freelancerId;
+        
+        // Switch to inbox
+        showInbox();
+        
+        setTimeout(() => {
+            openConversation(data.conversation_id, username, freelancerId);
+        }, 500);
+        
+    } catch (err) {
+        console.error("Start conversation error:", err);
+        showToast("Failed to start conversation", "error");
+    }
+}
+
+async function toggleServiceFavorite(serviceId, buttonElement) {
+    if (!currentUser) {
+        showToast("Please login to favorite services", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        const response = await fetch("/api/services/" + serviceId + "/favorite", {
+            method: "POST",
+            credentials: "include"
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const icon = buttonElement.querySelector('i');
+            const countSpan = buttonElement.querySelector('.favorite-count');
+            
+            if (data.favorited) {
+                icon.className = 'fas fa-heart';
+                buttonElement.classList.add('active');
+            } else {
+                icon.className = 'far fa-heart';
+                buttonElement.classList.remove('active');
+            }
+            
+            if (countSpan) {
+                countSpan.textContent = data.favoriteCount || 0;
+            }
+            
+            showToast(data.message || "Favorite updated", "success");
+        } else {
+            showToast(data.error || "Failed to update favorite", "error");
+        }
+    } catch (err) {
+        console.error("Favorite error:", err);
+        showToast("Error updating favorite", "error");
+    }
+}
+
+async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
+    if (!currentUser) {
+        showToast("Please login to recruit freelancers", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (currentUser.role !== 'client') {
+        showToast("Only clients can recruit freelancers", "error");
+        return;
+    }
+    
+    try {
+        const response = await fetch("/api/freelancer/recruit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                freelancerId: freelancerId,
+                serviceId: serviceId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            buttonElement.classList.add('recruited');
+            buttonElement.innerHTML = '<i class="fas fa-check"></i> Recruited';
+            buttonElement.disabled = true;
+            showToast("Freelancer added to your providers!", "success");
+        } else {
+            showToast(data.error || "Failed to recruit", "error");
+        }
+    } catch (err) {
+        console.error("Recruit error:", err);
+        showToast("Error recruiting freelancer", "error");
+    }
+}
+
+async function viewServiceDetailsModal(serviceId) {
+    try {
+        const response = await fetch(`/api/services/${serviceId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error("Failed to load service details");
+        }
+        
+        const service = await response.json();
+        const modal = document.getElementById('serviceDetailsModal');
+        const content = document.getElementById('serviceDetailsContent');
+        
+        if (!modal || !content) return;
+        
+        content.innerHTML = `
+            <div style="max-height: 70vh; overflow-y: auto;">
+                <div class="service-header" style="margin-bottom: 20px;">
+                    <h2 style="color: var(--text-light);">${escapeHtml(service.title)}</h2>
+                    <div class="service-price" style="font-size: 2rem; color: var(--accent-gold);">
+                        ${service.price > 0 ? `$${service.price}` : 'Free'}
+                    </div>
+                </div>
+                
+                <div class="service-provider-info" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                            ${service.username ? service.username.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                            <div style="color: var(--text-light); font-weight: 600;">${escapeHtml(service.username || 'Unknown')}</div>
+                            <div style="color: var(--text-gray); font-size: 0.9rem;">${escapeHtml(service.category || 'General')}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--text-light); margin-bottom: 10px;">Description</h3>
+                    <p style="color: var(--text-gray); line-height: 1.6;">${escapeHtml(service.description || 'No description provided.')}</p>
+                </div>
+                
+                ${service.delivery_time ? `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--text-light); margin-bottom: 10px;">Delivery Time</h3>
+                        <p style="color: var(--text-gray);"><i class="fas fa-clock"></i> ${service.delivery_time} days</p>
+                    </div>
+                ` : ''}
+                
+                ${service.revisions ? `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--text-light); margin-bottom: 10px;">Revisions</h3>
+                        <p style="color: var(--text-gray);"><i class="fas fa-redo-alt"></i> ${service.revisions} revisions included</p>
+                    </div>
+                ` : ''}
+                
+                ${service.tags && service.tags.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--text-light); margin-bottom: 10px;">Tags</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${service.tags.map(tag => `<span class="tag" style="background: rgba(59,130,246,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${service.requirements && service.requirements.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--text-light); margin-bottom: 10px;">Requirements</h3>
+                        <ul style="color: var(--text-gray); list-style: none; padding-left: 0;">
+                            ${service.requirements.map(req => `<li style="padding: 8px 0;"><i class="fas fa-check-circle" style="color: var(--accent-gold); margin-right: 10px;"></i> ${escapeHtml(req)}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                
+                <div class="service-actions" style="display: flex; gap: 10px; margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <button class="btn btn-primary" onclick="checkAndStartConversation(${service.id}, ${service.user_id})">
+                        <i class="fas fa-comments"></i> Message Provider
+                    </button>
+                    <button class="btn btn-secondary" onclick="openFreelancerProfile(${service.user_id})">
+                        <i class="fas fa-user"></i> View Profile
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal(document.getElementById('serviceDetailsModal'))">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        openModal(modal);
+        
+    } catch (err) {
+        console.error("Error loading service details:", err);
+        showToast("Failed to load service details", "error");
+    }
+}
+
+function openFreelancerProfile(userId) {
+    // This will be implemented in the main services.js
+    // For now, just show a message
+    showToast("Profile viewer coming soon", "info");
+}
+
+function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
+    if (!currentUser) {
+        showToast("Please login to delete services", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (isOwner && currentUser.role !== 'admin') {
+        // Freelancer delete confirmation
+        const modal = document.getElementById('freelancerDeleteModal');
+        const infoDiv = document.getElementById('freelancerDeleteServiceInfo');
+        
+        if (modal && infoDiv) {
+            infoDiv.innerHTML = `
+                <p><strong>Service:</strong> ${escapeHtml(serviceTitle)}</p>
+                <p><strong>ID:</strong> #${serviceId}</p>
+                <p style="color: var(--warning-orange);">This action cannot be undone.</p>
+            `;
+            
+            // Store service ID for deletion
+            modal.dataset.serviceId = serviceId;
+            openModal(modal);
+        }
+    } else if (currentUser.role === 'admin') {
+        // Admin delete confirmation
+        const modal = document.getElementById('adminDeleteModal');
+        const infoDiv = document.getElementById('adminDeleteServiceInfo');
+        
+        if (modal && infoDiv) {
+            infoDiv.innerHTML = `
+                <p><strong>Service:</strong> ${escapeHtml(serviceTitle)}</p>
+                <p><strong>ID:</strong> #${serviceId}</p>
+                <p><strong>Owner ID:</strong> ${ownerId}</p>
+                <p style="color: var(--error-red);">This action cannot be undone.</p>
+            `;
+            
+            modal.dataset.serviceId = serviceId;
+            openModal(modal);
+        }
+    } else {
+        showToast("You don't have permission to delete this service", "error");
+    }
+}
+
+function editService(serviceId) {
+    showToast("Edit service feature coming soon", "info");
+}
+
+function viewServiceStats(serviceId) {
+    showToast("Service statistics coming soon", "info");
+}
+
+function showReviewModal(serviceId, serviceTitle) {
+    const modal = document.getElementById('addReviewModal');
+    const ratingInput = document.getElementById('reviewComment');
+    const starRatingDiv = document.getElementById('starRating');
+    
+    if (modal) {
+        // Store service ID
+        modal.dataset.serviceId = serviceId;
+        modal.dataset.serviceTitle = serviceTitle;
+        
+        // Clear previous values
+        if (ratingInput) ratingInput.value = '';
+        
+        // Reset stars
+        if (starRatingDiv) {
+            const stars = starRatingDiv.querySelectorAll('i');
+            stars.forEach(star => {
+                star.className = 'far fa-star';
+            });
+        }
+        
+        openModal(modal);
+    }
+}
+
+function openCertificateViewer(certUrl, index) {
+    const modal = document.getElementById('certificateViewerModal');
+    const img = document.getElementById('certificateImage');
+    const downloadBtn = document.getElementById('downloadCertificateBtn');
+    
+    if (modal && img) {
+        currentCertificateUrl = certUrl;
+        img.src = certUrl;
+        currentZoom = 1;
+        img.style.transform = `scale(${currentZoom})`;
+        
+        if (downloadBtn) {
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = certUrl;
+                a.download = `certificate_${index + 1}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+        }
+        
+        openModal(modal);
+    }
+}
+
+function viewCertificateFull(certUrl, event) {
+    if (event) event.stopPropagation();
+    openCertificateViewer(certUrl, 0);
+}
+
+// Zoom functions for certificate viewer
+function zoomIn() {
+    currentZoom = Math.min(currentZoom + 0.25, 3);
+    const img = document.getElementById('certificateImage');
+    if (img) img.style.transform = `scale(${currentZoom})`;
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom - 0.25, 0.5);
+    const img = document.getElementById('certificateImage');
+    if (img) img.style.transform = `scale(${currentZoom})`;
+}
+
+function resetZoom() {
+    currentZoom = 1;
+    const img = document.getElementById('certificateImage');
+    if (img) img.style.transform = `scale(${currentZoom})`;
+}
+
+// Add event listeners for zoom buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const resetZoomBtn = document.getElementById('resetZoomBtn');
+    
+    if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+    if (resetZoomBtn) resetZoomBtn.addEventListener('click', resetZoom);
+});
+
+// Make sure the loadServices function uses the correct data structure
+async function loadServices() {
+    const servicesList = document.getElementById('servicesList');
+    if (!servicesList) return;
+
+    try {
+        showLoading('servicesList');
+
+        const response = await fetch('/api/services', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Handle different response formats
+        let servicesArray = [];
+        if (data.services && Array.isArray(data.services)) {
+            servicesArray = data.services;
+        } else if (Array.isArray(data)) {
+            servicesArray = data;
+        } else {
+            servicesArray = [];
+        }
+        
+        services = servicesArray;
+        
+        // Update categories dropdown
+        updateCategoriesFromServices();
+        
+        // Render services
+        renderServices(services);
+        
+    } catch (err) {
+        console.error('Error loading services:', err);
+        servicesList.innerHTML = `
+            <div class="text-error" style="text-align: center; padding: 40px; grid-column: 1 / -1;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+                <h3>Failed to load services</h3>
+                <p>${err.message}</p>
+                <button class="btn btn-primary" onclick="loadServices()">Retry</button>
+            </div>
+        `;
+        services = [];
+    }
+}
+
+function updateCategoriesFromServices() {
+    const categoriesSet = new Set();
+    services.forEach(service => {
+        if (service.category) {
+            categoriesSet.add(service.category);
+        }
+    });
+    
+    const categories = Array.from(categoriesSet);
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    if (categoryFilter && categories.length > 0) {
+        // Save current value
+        const currentValue = categoryFilter.value;
+        
+        // Clear existing options except first
+        while (categoryFilter.options.length > 1) {
+            categoryFilter.remove(1);
+        }
+        
+        // Add new options
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categoryFilter.appendChild(option);
+        });
+        
+        // Restore value if it still exists
+        if (currentValue && categories.includes(currentValue)) {
+            categoryFilter.value = currentValue;
+        }
+    }
+}
+// ============================================
+// FLAGGING SYSTEM FUNCTIONS
+// ============================================
+
+// Flag a user for admin review
+async function flagUser(freelancerId, serviceId, reason) {
+    if (!currentUser) {
+        showToast("Please login to flag users", "warning");
+        openModal(document.getElementById('loginModal'));
+        return false;
+    }
+    
+    if (currentUser.role !== 'client') {
+        showToast("Only clients can flag users", "error");
+        return false;
+    }
+    
+    if (parseInt(currentUser.id) === parseInt(freelancerId)) {
+        showToast("You cannot flag yourself", "warning");
+        return false;
+    }
+    
+    if (!reason || reason.trim().length < 10) {
+        showToast("Please provide a detailed reason (at least 10 characters)", "warning");
+        return false;
+    }
+    
+    try {
+        showToast("Submitting flag...", "info");
+        
+        const response = await fetch("/api/users/flag", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                flagged_user_id: freelancerId,
+                service_id: serviceId,
+                reason: reason.trim()
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(data.error || "Failed to flag user", "error");
+            return false;
+        }
+        
+        if (data.warning_issued) {
+            showToast(data.message, "warning");
+        } else {
+            showToast(data.message, "success");
+        }
+        
+        return true;
+        
+    } catch (err) {
+        console.error("Flag error:", err);
+        showToast("Error flagging user", "error");
+        return false;
+    }
+}
+
+// Show flag modal
+function showFlagModal(freelancerId, freelancerName, serviceId) {
+    const modal = document.getElementById('flagUserModal');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        createFlagModal();
+    }
+    
+    const modalElement = document.getElementById('flagUserModal');
+    if (modalElement) {
+        modalElement.dataset.freelancerId = freelancerId;
+        modalElement.dataset.serviceId = serviceId;
+        modalElement.dataset.freelancerName = freelancerName;
+        
+        const nameElement = document.getElementById('flagUserName');
+        if (nameElement) nameElement.textContent = freelancerName;
+        
+        const reasonInput = document.getElementById('flagReason');
+        if (reasonInput) reasonInput.value = '';
+        
+        openModal(modalElement);
+    }
+}
+
+// Create flag modal dynamically
+function createFlagModal() {
+    const modalHtml = `
+        <div id="flagUserModal" class="modal hidden">
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: var(--text-light);">
+                        <i class="fas fa-flag" style="color: #ef4444;"></i> Flag User
+                    </h3>
+                    <span class="close-x" id="closeFlagModal">&times;</span>
+                </div>
+                
+                <div style="background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: var(--text-light);">
+                        <strong>Flagging user:</strong> <span id="flagUserName"></span>
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: var(--text-gray); font-size: 0.9rem;">
+                        Please provide a detailed reason why this user should be reviewed by admin.
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="flagReason" style="color: var(--text-light);">Reason for flagging *</label>
+                    <textarea id="flagReason" class="form-textarea-enhanced" rows="4" 
+                              placeholder="Please describe the issue in detail... (minimum 10 characters)"></textarea>
+                    <div style="text-align: right; margin-top: 5px;">
+                        <span id="flagCharCount" style="color: var(--text-gray); font-size: 0.85rem;">0/500</span>
+                    </div>
+                </div>
+                
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button class="btn btn-danger" id="submitFlagBtn" style="flex: 1;">
+                        <i class="fas fa-flag"></i> Submit Flag
+                    </button>
+                    <button class="btn btn-secondary" id="cancelFlagBtn" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+                
+                <div class="flag-info" style="margin-top: 15px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-gray);">
+                        <i class="fas fa-info-circle"></i> 
+                        Flags are anonymous - the flagged user will not know who flagged them.
+                        After 3 flags, the account will be temporarily locked for admin review.
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('closeFlagModal')?.addEventListener('click', () => {
+        closeModal(document.getElementById('flagUserModal'));
+    });
+    
+    document.getElementById('cancelFlagBtn')?.addEventListener('click', () => {
+        closeModal(document.getElementById('flagUserModal'));
+    });
+    
+    document.getElementById('submitFlagBtn')?.addEventListener('click', async () => {
+        const modal = document.getElementById('flagUserModal');
+        const freelancerId = modal.dataset.freelancerId;
+        const serviceId = modal.dataset.serviceId;
+        const reason = document.getElementById('flagReason').value;
+        
+        await flagUser(freelancerId, serviceId, reason);
+        closeModal(modal);
+    });
+    
+    const reasonInput = document.getElementById('flagReason');
+    if (reasonInput) {
+        reasonInput.addEventListener('input', () => {
+            const count = reasonInput.value.length;
+            const charCountSpan = document.getElementById('flagCharCount');
+            if (charCountSpan) {
+                charCountSpan.textContent = `${count}/500`;
+                charCountSpan.style.color = count > 450 ? '#ef4444' : 'var(--text-gray)';
+            }
+        });
+    }
+}
+
+// Get user's flag status
+async function getUserFlagStatus(userId) {
+    if (!currentUser) return { canFlag: false, message: "Please login" };
+    if (currentUser.role !== 'client') return { canFlag: false, message: "Only clients can flag users" };
+    
+    try {
+        const response = await fetch(`/api/users/flag-status/${userId}`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        return {
+            canFlag: data.canFlag !== false,
+            flagCount: data.flagCount || 0,
+            hasBeenFlagged: data.hasBeenFlagged || false,
+            message: data.message
+        };
+    } catch (err) {
+        console.error("Error checking flag status:", err);
+        return { canFlag: true, message: "Unknown" };
+    }
+}
+
+// Show flag button in service card if applicable
+function addFlagButtonToService(serviceElement, freelancerId, serviceId) {
+    if (!currentUser || currentUser.role !== 'client') return;
+    
+    const flagButton = document.createElement('button');
+    flagButton.className = 'btn btn-secondary flag-btn';
+    flagButton.innerHTML = '<i class="fas fa-flag"></i> Report';
+    flagButton.style.background = 'rgba(239, 68, 68, 0.1)';
+    flagButton.style.borderColor = '#ef4444';
+    flagButton.style.color = '#ef4444';
+    
+    flagButton.onclick = async (e) => {
+        e.stopPropagation();
+        const status = await getUserFlagStatus(freelancerId);
+        
+        if (!status.canFlag) {
+            showToast(status.message || "Cannot flag this user at this time", "warning");
+            return;
+        }
+        
+        showFlagModal(freelancerId, serviceElement.querySelector('.service-provider-name')?.textContent || 'User', serviceId);
+    };
+    
+    const actionsContainer = serviceElement.querySelector('.service-actions');
+    if (actionsContainer) {
+        actionsContainer.appendChild(flagButton);
+    }
+}
+
+// Show warning banner for flagged freelancer
+async function showFreelancerWarningIfFlagged() {
+    if (!currentUser || currentUser.role !== 'freelancer') return;
+    
+    try {
+        const response = await fetch('/api/users/my-flag-status', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.hasFlags && data.flagCount > 0) {
+            const warningBanner = document.createElement('div');
+            warningBanner.className = 'subscription-banner warning';
+            warningBanner.style.marginBottom = '20px';
+            warningBanner.innerHTML = `
+                <div class="subscription-info">
+                    <div class="subscription-icon" style="background: #f59e0b;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="subscription-text">
+                        <h3 style="color: var(--warning-orange);">⚠️ Warning: Your Account Has Been Flagged</h3>
+                        <p>Your account has received ${data.flagCount} flag(s). 
+                           ${data.flagCount >= 2 ? 'One more flag will temporarily lock your account for admin review.' : 
+                             'Please review our community guidelines. If you receive 3 flags, your account will be temporarily locked.'}</p>
+                    </div>
+                </div>
+            `;
+            
+            const heroSection = document.querySelector('.hero');
+            if (heroSection) {
+                heroSection.insertAdjacentElement('afterend', warningBanner);
+            }
+        }
+    } catch (err) {
+        console.error("Error checking freelancer flag status:", err);
+    }
+}
+
+// ============================================
+// ADMIN REVIEW FUNCTIONS
+// ============================================
+
+// Show admin review panel for flagged users
+async function showAdminReviewPanel() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showToast("Admin access required", "error");
+        return;
+    }
+    
+    const modal = document.getElementById('adminReviewModal');
+    if (modal) {
+        await loadFlaggedUsersForReview();
+        openModal(modal);
+    }
+}
+
+// Load flagged users for admin review
+async function loadFlaggedUsersForReview() {
+    const container = document.getElementById('flaggedUsersList');
+    if (!container) return;
+    
+    container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Loading flagged users...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/flagged-users', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.users || data.users.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-gray);">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <p>No flagged users pending review</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = data.users.map(user => `
+            <div class="admin-review-card" data-user-id="${user.id}" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h4 style="color: var(--text-light); margin-bottom: 5px;">
+                            ${escapeHtml(user.username)}
+                            <span class="badge" style="background: #ef4444;">${user.flag_count} Flag(s)</span>
+                        </h4>
+                        <p style="color: var(--text-gray); font-size: 0.9rem;">Email: ${escapeHtml(user.email)}</p>
+                        <p style="color: var(--text-gray); font-size: 0.9rem;">Member since: ${formatDate(user.created_at)}</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="viewUserFlags(${user.id})" style="margin-right: 10px;">
+                            <i class="fas fa-list"></i> View Flags
+                        </button>
+                        ${user.status === 'suspended' ? 
+                            '<button class="btn btn-success" onclick="reactivateUser(' + user.id + ')"><i class="fas fa-check"></i> Reactivate</button>' :
+                            '<button class="btn btn-danger" onclick="suspendUser(' + user.id + ')"><i class="fas fa-lock"></i> Suspend</button>'
+                        }
+                    </div>
+                </div>
+                ${user.status === 'under_review' ? `
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                        <p style="margin-bottom: 10px;"><strong>Freelancer's Statement:</strong></p>
+                        <p style="color: var(--text-gray);">${escapeHtml(user.freelancer_statement || 'No statement provided yet.')}</p>
+                    </div>
+                ` : ''}
+                <div style="margin-top: 15px;">
+                    <textarea id="adminNote_${user.id}" class="form-textarea-enhanced" rows="2" 
+                              placeholder="Add admin notes..."></textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-success" onclick="resolveFlags(${user.id}, 'cleared')">
+                            <i class="fas fa-check"></i> Clear Flags
+                        </button>
+                        <button class="btn btn-warning" onclick="resolveFlags(${user.id}, 'suspended')">
+                            <i class="fas fa-ban"></i> Suspend Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (err) {
+        console.error("Error loading flagged users:", err);
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem;"></i>
+            <p>Failed to load flagged users: ${err.message}</p>
+        </div>`;
+    }
+}
+
+// View detailed flags for a user
+async function viewUserFlags(userId) {
+    try {
+        const response = await fetch(`/api/admin/user-flags/${userId}`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        const modalContent = `
+            <div style="max-height: 60vh; overflow-y: auto;">
+                <h4 style="color: var(--text-light); margin-bottom: 15px;">Flags for ${escapeHtml(data.username)}</h4>
+                ${data.flags.map(flag => `
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: var(--accent-gold);">Flagged by: ${escapeHtml(flag.flagged_by_name || 'Anonymous')}</span>
+                            <span style="color: var(--text-gray); font-size: 0.85rem;">${formatDate(flag.created_at)}</span>
+                        </div>
+                        <p style="color: var(--text-gray);"><strong>Reason:</strong> ${escapeHtml(flag.reason)}</p>
+                        ${flag.status === 'reviewed' ? '<span class="badge" style="background: #10b981;">Reviewed</span>' : 
+                          '<span class="badge" style="background: #f59e0b;">Pending</span>'}
+                    </div>
+                `).join('')}
+                ${data.freelancer_statement ? `
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <h5 style="color: var(--text-light);">Freelancer's Statement:</h5>
+                        <p style="color: var(--text-gray);">${escapeHtml(data.freelancer_statement)}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        showModalWithContent('Flag Details', modalContent);
+        
+    } catch (err) {
+        console.error("Error viewing flags:", err);
+        showToast("Failed to load flags", "error");
+    }
+}
+
+// Resolve flags for a user
+async function resolveFlags(userId, action) {
+    const adminNote = document.getElementById(`adminNote_${userId}`)?.value || '';
+    
+    try {
+        const response = await fetch(`/api/admin/resolve-flags/${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                action: action,
+                admin_notes: adminNote
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(data.message, "success");
+            await loadFlaggedUsersForReview();
+        } else {
+            showToast(data.error || "Failed to resolve flags", "error");
+        }
+        
+    } catch (err) {
+        console.error("Error resolving flags:", err);
+        showToast("Error processing request", "error");
+    }
+}
+
+// Suspend user account
+async function suspendUser(userId) {
+    if (!confirm("Are you sure you want to suspend this user's account?")) return;
+    
+    try {
+        const response = await fetch(`/api/admin/suspend-user/${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                reason: "Multiple flags - admin review"
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(data.message, "success");
+            await loadFlaggedUsersForReview();
+        } else {
+            showToast(data.error || "Failed to suspend user", "error");
+        }
+        
+    } catch (err) {
+        console.error("Error suspending user:", err);
+        showToast("Error processing request", "error");
+    }
+}
+
+// Reactivate user account
+async function reactivateUser(userId) {
+    if (!confirm("Are you sure you want to reactivate this user's account?")) return;
+    
+    try {
+        const response = await fetch(`/api/admin/reactivate-user/${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                notes: "Account reactivated after review"
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(data.message, "success");
+            await loadFlaggedUsersForReview();
+        } else {
+            showToast(data.error || "Failed to reactivate user", "error");
+        }
+        
+    } catch (err) {
+        console.error("Error reactivating user:", err);
+        showToast("Error processing request", "error");
+    }
+}
+
+// Show modal with content
+function showModalWithContent(title, content) {
+    let modal = document.getElementById('dynamicModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'dynamicModal';
+        modal.className = 'modal hidden';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-card" style="max-width: 700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--text-light);">${escapeHtml(title)}</h3>
+                <span class="close-x" onclick="closeModal(document.getElementById('dynamicModal'))">&times;</span>
+            </div>
+            ${content}
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal(document.getElementById('dynamicModal'))">Close</button>
+            </div>
+        </div>
+    `;
+    
+    openModal(modal);
+}
+// Check if freelancer needs to submit a statement
+async function checkFreelancerStatementNeeded() {
+    if (!currentUser || currentUser.role !== 'freelancer') return;
+    
+    try {
+        const response = await fetch('/api/users/my-flag-status', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.needsStatement && data.pendingReview) {
+            const modal = document.getElementById('freelancerStatementModal');
+            if (modal) {
+                openModal(modal);
+            }
+        }
+    } catch (err) {
+        console.error("Error checking statement need:", err);
+    }
+}
+
+// Submit freelancer statement
+document.addEventListener('DOMContentLoaded', () => {
+    const submitBtn = document.getElementById('submitStatementBtn');
+    const statementInput = document.getElementById('freelancerStatement');
+    const charCountSpan = document.getElementById('statementCharCount');
+    
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            const statement = statementInput?.value || '';
+            
+            if (statement.length < 20) {
+                showToast("Please provide a detailed statement (minimum 20 characters)", "warning");
+                return;
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+                
+                const response = await fetch('/api/users/submit-statement', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ statement: statement })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast(data.message, "success");
+                    closeModal(document.getElementById('freelancerStatementModal'));
+                } else {
+                    showToast(data.error || "Failed to submit statement", "error");
+                }
+            } catch (err) {
+                console.error("Error submitting statement:", err);
+                showToast("Error submitting statement", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Statement';
+            }
+        });
+    }
+    
+    if (statementInput && charCountSpan) {
+        statementInput.addEventListener('input', () => {
+            const count = statementInput.value.length;
+            charCountSpan.textContent = `${count}/1000`;
+            charCountSpan.style.color = count > 900 ? '#ef4444' : 'var(--text-gray)';
+        });
+    }
+});
+
+// Add this to your existing DOMContentLoaded
+setTimeout(checkFreelancerStatementNeeded, 2000);
+// ============================================
+// ADD TO EXISTING FUNCTIONS
+// ============================================
+
+// Modify the renderServices function to add flag button
+const originalRenderServices = renderServices;
+window.renderServices = function(servicesToRender) {
+    originalRenderServices(servicesToRender);
+    
+    // Add flag buttons to service cards
+    setTimeout(() => {
+        document.querySelectorAll('.service-card').forEach(card => {
+            const serviceId = card.dataset.serviceId;
+            const providerName = card.querySelector('.service-provider-name')?.textContent;
+            const freelancerId = card.querySelector('[data-freelancer-id]')?.dataset.freelancerId;
+            
+            // Try to get freelancer ID from the card
+            let userId = null;
+            const chatBtn = card.querySelector('.chat-btn');
+            if (chatBtn && chatBtn.onclick) {
+                const btnHtml = chatBtn.getAttribute('onclick');
+                if (btnHtml) {
+                    const match = btnHtml.match(/checkAndStartConversation\(\d+,\s*(\d+)\)/);
+                    if (match) userId = match[1];
+                }
+            }
+            
+            if (userId && currentUser?.role === 'client') {
+                addFlagButtonToService(card, userId, serviceId);
+            }
+        });
+    }, 100);
+};
+
+// Check freelancer warning on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    // Wait for auth to load
+    setTimeout(async () => {
+        await showFreelancerWarningIfFlagged();
+    }, 1500);
+});
+
+// Add admin review button if admin
+function addAdminReviewButton() {
+    if (currentUser?.role === 'admin') {
+        const headerActions = document.querySelector('.header-actions');
+        if (headerActions && !document.getElementById('adminReviewBtn')) {
+            const adminBtn = document.createElement('button');
+            adminBtn.id = 'adminReviewBtn';
+            adminBtn.className = 'auth-btn';
+            adminBtn.innerHTML = '<i class="fas fa-gavel"></i> Admin Review';
+            adminBtn.onclick = showAdminReviewPanel;
+            headerActions.appendChild(adminBtn);
+        }
+    }
+}
+
+// Call this after auth check
+const originalUpdateHeader = updateHeader;
+window.updateHeader = function() {
+    originalUpdateHeader();
+    addAdminReviewButton();
+};
 </script>
 
 <!-- Include mobile-nav.js -->

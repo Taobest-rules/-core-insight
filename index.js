@@ -153,13 +153,7 @@ const safeJSON = (data) => {
   }));
 };
 
-const extractRows = (result) => {
-  if (!result) return [];
-  if (Array.isArray(result) && result.length === 2) return result[0] || [];
-  if (Array.isArray(result)) return result;
-  if (result && typeof result === 'object') return [result];
-  return [];
-};
+
 
 const extractInsertId = (result) => {
   if (!result) return null;
@@ -1057,57 +1051,71 @@ app.post("/api/debug/test-payment", async (req, res) => {
 // ============================================
 // ROUTES - AUTHENTICATION
 // ============================================
+// Updated signup route with proper trial dates
 app.post("/api/signup", async (req, res) => {
-  try {
-    const { username, password, email, role } = req.body;
-    if (!username || !password || !email) {
-      return res.status(400).json({ error: "Username, email, and password are required" });
+    try {
+        const { username, password, email, role } = req.body;
+        if (!username || !password || !email) {
+            return res.status(400).json({ error: "Username, email, and password are required" });
+        }
+
+        const userRole = ['client', 'freelancer', 'admin'].includes(role) ? role : 'client';
+        
+        const existingUsers = await db.query("SELECT id FROM users WHERE username = ? OR email = ?", [username, email]);
+        if (existingUsers && existingUsers.length > 0) {
+            return res.status(400).json({ error: "Username or email already exists" });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const verifyToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        
+        // Calculate trial dates for freelancers
+        let trialStartDate = null;
+        let trialEndDate = null;
+        
+        if (userRole === 'freelancer') {
+            trialStartDate = new Date();
+            trialEndDate = new Date();
+            trialEndDate.setDate(trialEndDate.getDate() + 90); // 90 days free trial
+        }
+
+        const result = await db.query(
+            `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, 
+                                subscription_status, subscription_plan, trial_start_date, trial_end_date, created_at) 
+             VALUES (?, ?, ?, ?, 0, ?, ?, 'active', 'free_trial', ?, ?, NOW())`,
+            [username, email, hashedPassword, userRole, verifyToken, tokenExpiry, trialStartDate, trialEndDate]
+        );
+
+        // If freelancer, create freelancer profile with trial info
+        if (userRole === 'freelancer') {
+            const userId = result.insertId;
+            await db.query(
+                `INSERT INTO freelancer_profiles (user_id, subscription_status, trial_days_remaining, created_at)
+                 VALUES (?, 'free_trial', 90, NOW())`,
+                [userId]
+            );
+        }
+
+        const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+        const emailHtml = getVerificationEmailTemplate(username, verifyLink);
+        
+        const emailResult = await sendEmail(email, "Verify Your Email - Core Insight Marketplace", emailHtml);
+        
+        const message = userRole === 'freelancer' 
+            ? "Account created! You have 90 days free trial. Please check your email to verify your account."
+            : "Account created! Please check your email to verify your account.";
+
+        res.json({ 
+            message: message,
+            requiresVerification: true,
+            trial_days: userRole === 'freelancer' ? 90 : null
+        });
+        
+    } catch (err) {
+        console.error("❌ Signup error:", err);
+        res.status(500).json({ error: "Registration failed. Please try again." });
     }
-
-    const userRole = ['client', 'freelancer', 'admin'].includes(role) ? role : 'client';
-    const existingUsers = await db.query("SELECT id FROM users WHERE username = ? OR email = ?", [username, email]);
-    if (existingUsers && existingUsers.length > 0) {
-      return res.status(400).json({ error: "Username or email already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verifyToken = crypto.randomBytes(32).toString('hex');
-    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    const result = await db.query(
-      `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, created_at) 
-       VALUES (?, ?, ?, ?, 0, ?, ?, NOW())`,
-      [username, email, hashedPassword, userRole, verifyToken, tokenExpiry]
-    );
-
-    const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
-    const emailHtml = `
-      <!DOCTYPE html><html><head><title>Verify Your Email - Core Insight</title></head>
-      <body style="font-family:Arial,sans-serif;background:#0a192f;color:#e6f1ff;">
-        <div style="max-width:600px;margin:0 auto;padding:20px;">
-          <h1 style="color:#64ffda;">🎓 Core Insight</h1><h2>Welcome ${username}!</h2>
-          <p>Please verify your email address to activate your account:</p>
-          <a href="${verifyLink}" style="background:#64ffda;color:#0a192f;padding:12px 24px;text-decoration:none;border-radius:5px;">Verify My Email</a>
-          <p><strong>⚠️ This link expires in 24 hours.</strong></p>
-        </div>
-      </body></html>
-    `;
-
-    const emailResult = await sendVerificationEmail(email, "Verify Your Email - Core Insight", emailHtml);
-    if (!emailResult.success) {
-      return res.status(202).json({
-        message: "Account created! However, we couldn't send the verification email. Please contact support.",
-        requiresManualVerification: true,
-        token: verifyToken,
-        userId: result.insertId
-      });
-    }
-
-    res.json({ message: "Account created! Please check your email to verify your account.", requiresVerification: true });
-  } catch (err) {
-    console.error("❌ Signup error:", err);
-    res.status(500).json({ error: "Registration failed. Please try again." });
-  }
 });
 
 app.post("/api/login", async (req, res) => {
@@ -1217,8 +1225,2064 @@ app.post("/api/reset-password", async (req, res) => {
     res.status(500).json({ success: false, error: "Error resetting password" });
   }
 });
+// ============================================
+// COMPLETE COURSES SYSTEM - FULL CODE
+// ============================================
 
+// =================== COURSE FILE UPLOAD CONFIGURATION ===================
+// Upload directories
+const uploadDir = "uploads/courses";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
+// Multer storage configuration for courses
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .substring(0, 50);
+    
+    const filename = `${uniqueSuffix}-${baseName}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+    files: 2
+  }
+});
+
+// =================== ADMIN FILE MANAGEMENT PAGES ===================
+app.get("/admin-files.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-files.html"));
+});
+
+app.get("/admin-migrate", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-migrate.html"));
+});
+
+// =================== COURSE ACCESS MIDDLEWARE ===================
+const checkCourseAccess = async (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to access this course" });
+  }
+
+  try {
+    const courseId = req.params.id;
+    const userId = req.session.user.id;
+
+    const accessCheck = await db.query(
+      `SELECT c.*, uc.payment_status 
+       FROM courses c 
+       LEFT JOIN user_courses uc ON c.id = uc.course_id AND uc.user_id = ?
+       WHERE c.id = ? AND (c.price = 0 OR uc.payment_status = 'completed')`,
+      [userId, courseId]
+    );
+
+    let hasAccess = false;
+    if (Array.isArray(accessCheck) && accessCheck.length > 0) {
+      hasAccess = true;
+    } else if (accessCheck && accessCheck[0] && Array.isArray(accessCheck[0]) && accessCheck[0].length > 0) {
+      hasAccess = true;
+    }
+
+    if (!hasAccess) {
+      return res.status(403).json({ error: "You don't have access to this course. Please purchase it first." });
+    }
+
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Error checking course access" });
+  }
+};
+
+// =================== COURSES ENDPOINTS ===================
+
+// Get all courses
+app.get("/api/courses", async (req, res) => {
+  try {
+    const courses = await db.query(`
+      SELECT 
+        c.*, 
+        u.username as author_name,
+        COALESCE(c.file_url, c.file_path) as file_path_combined,
+        COALESCE(c.thumbnail_url, c.thumbnail_path) as thumbnail_path_combined
+      FROM courses c 
+      LEFT JOIN users u ON c.user_id = u.id 
+      ORDER BY c.created_at DESC
+    `);
+    
+    const processedCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
+      if (course.id && typeof course.id === 'bigint') {
+        course.id = Number(course.id);
+      }
+      if (course.user_id && typeof course.user_id === 'bigint') {
+        course.user_id = Number(course.user_id);
+      }
+      
+      course.thumbnail_url = course.thumbnail_url || course.thumbnail_path;
+      course.file_url = course.file_url || course.file_path;
+      
+      if (course.thumbnail_url && course.thumbnail_url.includes('cloudinary.com')) {
+        course.thumbnail_url = course.thumbnail_url.replace('/upload/', '/upload/w_500,h_300,c_limit/');
+      }
+      
+      course.download_url = `/api/download/${course.id}`;
+      
+      return course;
+    });
+    
+    res.json(processedCourses);
+  } catch (err) {
+    console.error('Error fetching courses:', err);
+    res.status(500).json({ 
+      error: "Error fetching courses", 
+      details: err.message
+    });
+  }
+});
+
+// Get my courses (purchased)
+app.get("/api/my-courses", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to view your courses" });
+  }
+
+  try {
+    const courses = await db.query(`
+      SELECT c.*, uc.purchased_at 
+      FROM courses c 
+      INNER JOIN user_courses uc ON c.id = uc.course_id 
+      WHERE uc.user_id = ? AND uc.payment_status = 'completed'
+      ORDER BY uc.purchased_at DESC
+    `, [req.session.user.id]);
+
+    const safeCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
+      if (course.id && typeof course.id === 'bigint') {
+        course.id = Number(course.id);
+      }
+      if (course.user_id && typeof course.user_id === 'bigint') {
+        course.user_id = Number(course.user_id);
+      }
+      return course;
+    });
+
+    res.json(safeCourses);
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching your courses" });
+  }
+});
+
+// Check course access
+app.get('/api/check-access/:courseId', async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const userId = req.session?.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        hasAccess: false,
+        error: 'Please login first' 
+      });
+    }
+    
+    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ 
+        hasAccess: false,
+        error: 'Course not found' 
+      });
+    }
+    
+    const course = courses[0];
+    
+    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+    
+    if (isFree) {
+      return res.json({
+        hasAccess: true,
+        isFree: true,
+        course: {
+          id: course.id,
+          title: course.title,
+          price: course.price,
+          type: course.type
+        }
+      });
+    }
+    
+    const purchases = await db.query(
+      'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
+      [courseId, userId]
+    );
+    
+    const hasPurchased = purchases && purchases.length > 0;
+    
+    if (!hasPurchased) {
+      const payments = await db.query(
+        'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
+        [courseId, userId]
+      );
+      
+      const hasPaid = payments && payments.length > 0;
+      
+      if (!hasPaid) {
+        return res.json({
+          hasAccess: false,
+          isFree: false,
+          price: course.price,
+          course: {
+            id: course.id,
+            title: course.title,
+            price: course.price,
+            type: course.type
+          }
+        });
+      }
+    }
+    
+    res.json({
+      hasAccess: true,
+      isFree: false,
+      course: {
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        type: course.type
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Access check error:', error);
+    res.status(500).json({ 
+      hasAccess: false,
+      error: 'Server error' 
+    });
+  }
+});
+
+// =================== DOWNLOAD ENDPOINT ===================
+app.get('/api/download/:courseId', async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const userId = req.session?.user?.id;
+    
+    console.log('='.repeat(50));
+    console.log(`📥 DOWNLOAD REQUEST - Course: ${courseId}, User: ${userId}`);
+    console.log('='.repeat(50));
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Please login first' });
+    }
+    
+    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+    
+    const course = courses[0];
+    console.log(`✅ Course: "${course.title}"`);
+    console.log(`💰 Price: ${course.price}, Type: ${course.type}`);
+    
+    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+    
+    if (isFree) {
+      console.log('✅ Course is FREE - granting access immediately');
+    } else {
+      console.log('💰 Paid course - checking purchase status');
+      
+      const purchases = await db.query(
+        'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
+        [courseId, userId]
+      );
+      
+      const hasPurchased = purchases && purchases.length > 0;
+      
+      if (!hasPurchased) {
+        const payments = await db.query(
+          'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
+          [courseId, userId]
+        );
+        
+        const hasPaid = payments && payments.length > 0;
+        
+        if (!hasPaid) {
+          console.log(`❌ User ${userId} has not purchased course ${courseId}`);
+          return res.status(403).json({ 
+            error: 'You do not have access to this course',
+            isPaidCourse: true,
+            price: course.price
+          });
+        }
+      }
+      console.log('✅ User has purchased this course');
+    }
+    
+    const dbFilePath = course.file_url || course.file_path;
+    
+    if (!dbFilePath) {
+      console.log('❌ No file path in database');
+      return res.status(404).json({ error: 'No file associated with this course' });
+    }
+    
+    const filename = path.basename(dbFilePath);
+    console.log(`📁 Looking for file: ${filename}`);
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const expectedPath = path.join(uploadDir, filename);
+    console.log(`📍 Expected path: ${expectedPath}`);
+    
+    const fileExists = fs.existsSync(expectedPath);
+    console.log(`📁 File exists: ${fileExists}`);
+    
+    if (!fileExists) {
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        console.log('📂 Files in uploads/courses:', files);
+        
+        const searchName = filename.replace(/^\d+-\d+-/, '');
+        const similarFile = files.find(f => f.includes(searchName) || searchName.includes(f.replace(/^\d+-\d+-/, '')));
+        
+        if (similarFile) {
+          console.log(`🔍 Found similar file: ${similarFile}`);
+          const correctPath = `/uploads/courses/${similarFile}`;
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [correctPath, course.id]
+          );
+          console.log(`✅ Updated database with correct path: ${correctPath}`);
+          
+          const correctFullPath = path.join(uploadDir, similarFile);
+          return sendFile(res, correctFullPath, course.title);
+        }
+      }
+      
+      return res.status(404).json({ 
+        error: 'File not found on server',
+        message: 'The course file could not be located. Please contact support.',
+        filename: filename,
+        expected_path: expectedPath
+      });
+    }
+    
+    sendFile(res, expectedPath, course.title);
+    
+  } catch (error) {
+    console.error('❌ Fatal error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function sendFile(res, filePath, title) {
+  const stat = fs.statSync(filePath);
+  const filename = path.basename(filePath);
+  const ext = path.extname(filename);
+  
+  const safeFilename = title 
+    ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ext
+    : filename;
+  
+  console.log(`📤 Sending file: ${safeFilename}`);
+  console.log(`📊 File size: ${stat.size} bytes`);
+  
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Length', stat.size);
+  
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('❌ Error sending file:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error sending file' });
+      }
+    } else {
+      console.log('✅ File sent successfully!');
+    }
+  });
+}
+
+// =================== COURSE UPLOAD ===================
+app.post("/api/courses", (req, res) => {
+  console.log('📚 Course upload started');
+  
+  const uploadDir = path.join(__dirname, 'uploads', 'courses');
+  
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log(`📁 Created upload directory: ${uploadDir}`);
+  }
+  
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadDir);
+      },
+      filename: function (req, file, cb) {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext)
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .substring(0, 50);
+        const filename = `${timestamp}-${random}-${baseName}${ext}`;
+        console.log(`📝 Generated filename: ${filename}`);
+        cb(null, filename);
+      }
+    }),
+    limits: {
+      fileSize: 100 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['.pdf', '.epub', '.mp4', '.mov', '.zip', '.doc', '.docx'];
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (allowedTypes.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`File type ${ext} not allowed. Allowed: ${allowedTypes.join(', ')}`));
+      }
+    }
+  }).fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+  ]);
+
+  upload(req, res, async function(err) {
+    if (err) {
+      console.error('❌ Upload error:', err);
+      return res.status(400).json({ error: 'Upload error: ' + err.message });
+    }
+
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to upload courses" });
+      }
+
+      const { title, description, price, author, content_type } = req.body;
+      const user = req.session.user;
+
+      if (!title || title.trim() === '') {
+        return res.status(400).json({ error: "Title is required" });
+      }
+
+      if (!req.files?.file || !req.files?.file[0]) {
+        return res.status(400).json({ error: "Course file is required" });
+      }
+
+      if (!req.files?.thumbnail || !req.files?.thumbnail[0]) {
+        return res.status(400).json({ error: "Thumbnail image is required" });
+      }
+
+      const courseFile = req.files.file[0];
+      const thumbnailFile = req.files.thumbnail[0];
+      
+      const filePath = `/uploads/courses/${courseFile.filename}`;
+      const thumbnailPath = `/uploads/courses/${thumbnailFile.filename}`;
+      
+      const absoluteFilePath = path.join(uploadDir, courseFile.filename);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (!fs.existsSync(absoluteFilePath)) {
+        console.error(`❌ File not found after upload: ${absoluteFilePath}`);
+        return res.status(500).json({ error: "File upload failed - file not saved" });
+      }
+      
+      const fileStats = fs.statSync(absoluteFilePath);
+      console.log(`✅ File verified: ${courseFile.filename} (${fileStats.size} bytes)`);
+
+      const result = await db.query(
+        `INSERT INTO courses (
+          title, description, file_path, thumbnail_path,
+          price, type, user_id, author, content_type, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          title.trim(),
+          description ? description.trim() : '',
+          filePath,
+          thumbnailPath,
+          parseFloat(price) || 0,
+          (parseFloat(price) > 0) ? 'paid' : 'free',
+          user.id,
+          author || user.username,
+          content_type || 'book'
+        ]
+      );
+
+      res.json({
+        message: "✅ Course uploaded successfully!",
+        courseId: result.insertId,
+        file_path: filePath,
+        file_size: fileStats.size,
+        download_url: `/api/download/${result.insertId}`
+      });
+
+    } catch (err) {
+      console.error('❌ Upload error:', err);
+      res.status(500).json({ error: "Error uploading course: " + err.message });
+    }
+  });
+});
+
+// =================== DELETE COURSE ===================
+app.delete('/api/courses/:id', async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized - Please log in' });
+    }
+
+    const courseId = req.params.id;
+
+    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    
+    let course = null;
+    if (Array.isArray(courses) && courses.length > 0) {
+      course = courses[0];
+    } else if (courses && courses[0] && Array.isArray(courses[0]) && courses[0].length > 0) {
+      course = courses[0][0];
+    }
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const canDelete = user.role === 'admin' || user.id === course.user_id;
+    
+    if (!canDelete) {
+      return res.status(403).json({ 
+        error: 'Permission denied - You can only delete your own courses' 
+      });
+    }
+
+    try {
+      if (course.file_path) {
+        const fullPath = path.join(__dirname, course.file_path);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+    } catch (fileError) {}
+
+    await db.query('DELETE FROM courses WHERE id = ?', [courseId]);
+
+    res.json({ message: 'Course deleted successfully' });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
+  }
+});
+
+// =================== COURSE PAYMENT ENDPOINTS ===================
+app.post("/api/initiate-payment", async (req, res) => {
+  console.log('💳 Payment initiation request received');
+  
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Please login to make payment" });
+  }
+
+  try {
+    const { courseId } = req.body;
+    
+    if (!courseId) {
+      return res.status(400).json({ error: "Course ID is required" });
+    }
+
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    
+    let course = null;
+    if (courses && Array.isArray(courses)) {
+      if (courses.length === 2 && Array.isArray(courses[0])) {
+        course = courses[0][0];
+      } else if (courses.length > 0) {
+        course = courses[0];
+      }
+    }
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    if (course.price <= 0) {
+      return res.status(400).json({ error: "This course is free. No payment required." });
+    }
+
+    if (!process.env.FLW_SECRET_KEY) {
+      console.error('❌ FLW_SECRET_KEY is missing!');
+      return res.status(500).json({ 
+        error: "Payment system not configured. Please contact support."
+      });
+    }
+    
+    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    const amount = parseFloat(course.price);
+    
+    const payload = {
+      tx_ref: transaction_ref,
+      amount: amount,
+      currency: "NGN",
+      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
+      customer: {
+        email: req.session.user.email || `${req.session.user.username}@example.com`,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight",
+        description: `Payment for ${course.title}`,
+      },
+      meta: {
+        course_id: courseId,
+        user_id: req.session.user.id,
+      }
+    };
+    
+    console.log('📤 Sending to Flutterwave...');
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data && response.data.data.link) {
+      console.log('✅ Payment link created');
+      
+      try {
+        await db.query(
+          `INSERT INTO payments 
+           (user_id, course_id, transaction_ref, amount, status, created_at)
+           VALUES (?, ?, ?, ?, 'pending', NOW())`,
+          [req.session.user.id, courseId, transaction_ref, amount]
+        );
+        console.log('✅ Payment recorded in database');
+      } catch (dbError) {
+        console.error('⚠️ Could not save payment to database:', dbError.message);
+      }
+      
+      res.json({
+        status: "success",
+        paymentLink: response.data.data.link,
+        transactionRef: transaction_ref
+      });
+    } else {
+      console.error('❌ Flutterwave error:', response.data);
+      res.status(500).json({ 
+        error: response.data.message || "Payment initiation failed" 
+      });
+    }
+    
+  } catch (err) {
+    console.error('❌ Payment error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({ 
+      error: "Error initiating payment: " + err.message
+    });
+  }
+});
+
+app.get("/api/verify-payment/:transaction_id", async (req, res) => {
+  try {
+    const { transaction_id } = req.params;
+    
+    console.log('🔍 Verifying payment:', transaction_id);
+    
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const tx_ref = transaction.tx_ref;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
+      
+      console.log('✅ Payment verified:', { tx_ref, amount, courseId, userId });
+      
+      await db.query(
+        `UPDATE payments 
+         SET status = 'completed', 
+             transaction_id = ?,
+             flutterwave_response = ?
+         WHERE transaction_ref = ?`,
+        [transaction_id, JSON.stringify(transaction), tx_ref]
+      );
+      
+      await db.query(
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
+      );
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        data: transaction
+      });
+    } else {
+      console.log('❌ Payment not successful:', response.data);
+      res.status(400).json({ 
+        status: "failed", 
+        message: "Payment not successful" 
+      });
+    }
+  } catch (err) {
+    console.error('❌ Verification error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({ 
+      error: "Error verifying payment: " + err.message 
+    });
+  }
+});
+
+app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    
+    console.log('🔍 Verifying payment by reference:', tx_ref);
+    
+    const paymentResult = await db.query(
+      "SELECT * FROM payments WHERE transaction_ref = ?",
+      [tx_ref]
+    );
+    
+    let payment = null;
+    if (Array.isArray(paymentResult) && paymentResult.length > 0) {
+      payment = paymentResult[0];
+    }
+    
+    if (payment && payment.status === 'completed') {
+      const courseResult = await db.query(
+        "SELECT title FROM courses WHERE id = ?",
+        [payment.course_id]
+      );
+      
+      let courseTitle = 'Your course';
+      if (Array.isArray(courseResult) && courseResult.length > 0) {
+        courseTitle = courseResult[0].title;
+      }
+      
+      return res.json({
+        status: "success",
+        message: "Payment already verified",
+        course_id: payment.course_id,
+        course_title: courseTitle,
+        amount: payment.amount
+      });
+    }
+    
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const amount = transaction.amount;
+      const courseId = transaction.meta?.course_id;
+      const userId = transaction.meta?.user_id;
+      
+      console.log('✅ Payment verified by reference:', { tx_ref, amount, courseId, userId });
+      
+      await db.query(
+        `INSERT INTO payments 
+         (user_id, course_id, transaction_ref, transaction_id, amount, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE 
+         status = 'completed', 
+         transaction_id = VALUES(transaction_id)`,
+        [userId, courseId, tx_ref, transaction.id, amount]
+      );
+      
+      await db.query(
+        `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+         VALUES (?, ?, 'completed', NOW())
+         ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+        [userId, courseId]
+      );
+      
+      const courseResult = await db.query(
+        "SELECT title FROM courses WHERE id = ?",
+        [courseId]
+      );
+      
+      let courseTitle = 'Your course';
+      if (Array.isArray(courseResult) && courseResult.length > 0) {
+        courseTitle = courseResult[0].title;
+      }
+      
+      res.json({
+        status: "success",
+        message: "Payment verified successfully",
+        course_id: courseId,
+        course_title: courseTitle,
+        amount: amount
+      });
+    } else {
+      res.status(400).json({
+        status: "failed",
+        message: "Payment not successful or not found"
+      });
+    }
+    
+  } catch (err) {
+    console.error('❌ Verify by reference error:', err.message);
+    if (err.response) {
+      console.error('❌ Flutterwave error:', err.response.data);
+    }
+    res.status(500).json({
+      status: "error",
+      message: "Error verifying payment: " + err.message
+    });
+  }
+});
+
+// =================== MIGRATION ENDPOINTS ===================
+app.post("/api/admin/migrate-to-cloudinary", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { courseId } = req.body;
+    const results = {
+      success: [],
+      failed: [],
+      skipped: []
+    };
+
+    let courses = [];
+    if (courseId) {
+      const result = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+      courses = Array.isArray(result) ? result : (result[0] || []);
+    } else {
+      const result = await db.query(`
+        SELECT * FROM courses 
+        WHERE (file_url IS NULL OR file_url = '') 
+        AND file_path IS NOT NULL
+      `);
+      courses = Array.isArray(result) ? result : (result[0] || []);
+    }
+
+    console.log(`Found ${courses.length} courses to migrate`);
+
+    for (const course of courses) {
+      try {
+        console.log(`Processing course ${course.id}: ${course.title}`);
+        
+        if (course.file_url && course.file_url.includes('cloudinary.com')) {
+          results.skipped.push({
+            id: course.id,
+            title: course.title,
+            reason: "Already has Cloudinary URL"
+          });
+          continue;
+        }
+
+        let filePath = course.file_path;
+        const filename = path.basename(filePath);
+        
+        const possiblePaths = [
+          path.join(__dirname, "uploads/courses", filename),
+          path.join(__dirname, "uploads", filename),
+          path.join(__dirname, filePath),
+          path.join(__dirname, "public", "uploads", "courses", filename),
+          `/opt/render/project/src/uploads/courses/${filename}`,
+          `/opt/render/project/src/uploads/${filename}`,
+        ];
+
+        let foundPath = null;
+        for (const testPath of possiblePaths) {
+          if (fs.existsSync(testPath)) {
+            foundPath = testPath;
+            break;
+          }
+        }
+
+        if (!foundPath) {
+          results.failed.push({
+            id: course.id,
+            title: course.title,
+            error: "Local file not found",
+            searched_paths: possiblePaths
+          });
+          continue;
+        }
+
+        console.log(`Found file at: ${foundPath}`);
+
+        const uploadResult = await new Promise((resolve, reject) => {
+          const upload = uploadCourseFile.single('file');
+          
+          const mockReq = {
+            file: {
+              path: foundPath,
+              originalname: filename,
+              mimetype: 'application/pdf'
+            },
+            body: {}
+          };
+          
+          const mockRes = {
+            json: resolve,
+            status: () => ({ json: reject })
+          };
+          
+          upload(mockReq, mockRes, (err) => {
+            if (err) reject(err);
+            else resolve({ file: mockReq.file });
+          });
+        });
+
+        if (!uploadResult || !uploadResult.file || !uploadResult.file.path) {
+          throw new Error("Upload failed - no URL returned");
+        }
+
+        const cloudinaryUrl = uploadResult.file.path;
+        console.log(`Uploaded to Cloudinary: ${cloudinaryUrl}`);
+
+        await db.query(
+          "UPDATE courses SET file_url = ?, file_path = NULL WHERE id = ?",
+          [cloudinaryUrl, course.id]
+        );
+
+        results.success.push({
+          id: course.id,
+          title: course.title,
+          old_path: course.file_path,
+          new_url: cloudinaryUrl
+        });
+
+        try {
+          fs.unlinkSync(foundPath);
+          console.log(`Deleted local file: ${foundPath}`);
+        } catch (deleteErr) {
+          console.log(`Could not delete local file: ${deleteErr.message}`);
+        }
+
+      } catch (err) {
+        console.error(`Error migrating course ${course.id}:`, err);
+        results.failed.push({
+          id: course.id,
+          title: course.title,
+          error: err.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Migration completed. ${results.success.length} succeeded, ${results.failed.length} failed, ${results.skipped.length} skipped.`,
+      results: results
+    });
+
+  } catch (err) {
+    console.error("Migration error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/migration-status", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const result = await db.query(`
+      SELECT 
+        COUNT(*) as total_courses,
+        SUM(CASE WHEN file_url IS NOT NULL AND file_url != '' THEN 1 ELSE 0 END) as has_cloudinary,
+        SUM(CASE WHEN (file_url IS NULL OR file_url = '') AND file_path IS NOT NULL THEN 1 ELSE 0 END) as needs_migration,
+        SUM(CASE WHEN file_path IS NULL AND (file_url IS NULL OR file_url = '') THEN 1 ELSE 0 END) as no_file
+      FROM courses
+    `);
+
+    const courses = Array.isArray(result) ? result[0] : result;
+
+    res.json({
+      success: true,
+      stats: courses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =================== FIX COURSE PATHS ===================
+app.get("/api/admin/fix-course-paths", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    
+    if (!fs.existsSync(uploadDir)) {
+      return res.status(404).json({ 
+        error: "Upload directory not found",
+        path: uploadDir
+      });
+    }
+    
+    const existingFiles = fs.readdirSync(uploadDir);
+    console.log('📂 Existing files:', existingFiles);
+    
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const results = {
+      fixed: [],
+      not_found: [],
+      skipped: []
+    };
+    
+    for (const course of courses) {
+      const dbPath = course.file_path;
+      const dbFilename = dbPath ? path.basename(dbPath) : null;
+      
+      if (!dbFilename) {
+        results.skipped.push({ id: course.id, title: course.title, reason: "No filename in DB" });
+        continue;
+      }
+      
+      if (existingFiles.includes(dbFilename)) {
+        const correctPath = `/uploads/courses/${dbFilename}`;
+        if (dbPath !== correctPath) {
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [correctPath, course.id]
+          );
+          results.fixed.push({
+            id: course.id,
+            title: course.title,
+            old_path: dbPath,
+            new_path: correctPath
+          });
+        }
+      } else {
+        const matchingFile = existingFiles.find(f => 
+          f.includes(dbFilename.replace(/^\d+-\d+-/, '')) || 
+          dbFilename.includes(f.replace(/^\d+-\d+-/, ''))
+        );
+        
+        if (matchingFile) {
+          const correctPath = `/uploads/courses/${matchingFile}`;
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [correctPath, course.id]
+          );
+          results.fixed.push({
+            id: course.id,
+            title: course.title,
+            old_path: dbPath,
+            new_path: correctPath,
+            matched_file: matchingFile
+          });
+        } else {
+          results.not_found.push({
+            id: course.id,
+            title: course.title,
+            db_filename: dbFilename,
+            available_files: existingFiles.slice(0, 10)
+          });
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      upload_dir: uploadDir,
+      files_in_directory: existingFiles.length,
+      results: results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/admin/fix-course-paths", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const results = {
+      fixed: [],
+      not_found: [],
+      errors: []
+    };
+    
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    
+    if (!fs.existsSync(uploadDir)) {
+      return res.status(404).json({ error: "Upload directory not found", uploadDir });
+    }
+    
+    const existingFiles = fs.readdirSync(uploadDir);
+    console.log('📂 Existing files:', existingFiles);
+    
+    for (const course of courses) {
+      try {
+        const dbFilename = course.file_path ? path.basename(course.file_path) : null;
+        
+        if (!dbFilename) {
+          results.not_found.push({ id: course.id, title: course.title, reason: "No filename in DB" });
+          continue;
+        }
+        
+        let foundFile = null;
+        
+        if (existingFiles.includes(dbFilename)) {
+          foundFile = dbFilename;
+        } else {
+          for (const file of existingFiles) {
+            const originalName = dbFilename.replace(/^\d+-\d+-/, '');
+            if (file.includes(originalName) || originalName.includes(file.replace(/^\d+-\d+-/, ''))) {
+              foundFile = file;
+              break;
+            }
+          }
+        }
+        
+        if (foundFile) {
+          const newPath = `/uploads/courses/${foundFile}`;
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [newPath, course.id]
+          );
+          
+          results.fixed.push({
+            id: course.id,
+            title: course.title,
+            old_path: course.file_path,
+            new_path: newPath
+          });
+        } else {
+          results.not_found.push({
+            id: course.id,
+            title: course.title,
+            db_filename: dbFilename,
+            available_files: existingFiles.slice(0, 10)
+          });
+        }
+      } catch (err) {
+        results.errors.push({ id: course.id, error: err.message });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Fixed ${results.fixed.length} courses, ${results.not_found.length} not found`,
+      results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/admin/fix-all-paths", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    
+    if (!fs.existsSync(uploadDir)) {
+      return res.status(404).json({ 
+        error: "Upload directory not found",
+        path: uploadDir
+      });
+    }
+    
+    const existingFiles = fs.readdirSync(uploadDir);
+    console.log('📂 Existing files:', existingFiles);
+    
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const results = {
+      fixed: [],
+      need_reupload: [],
+      deleted: []
+    };
+    
+    for (const course of courses) {
+      const dbPath = course.file_path;
+      
+      if (!dbPath) {
+        results.need_reupload.push({ id: course.id, title: course.title, reason: "No file path" });
+        continue;
+      }
+      
+      const dbFilename = path.basename(dbPath);
+      
+      if (existingFiles.includes(dbFilename)) {
+        const correctPath = `/uploads/courses/${dbFilename}`;
+        if (dbPath !== correctPath) {
+          await db.query(
+            'UPDATE courses SET file_path = ? WHERE id = ?',
+            [correctPath, course.id]
+          );
+          results.fixed.push({
+            id: course.id,
+            title: course.title,
+            old_path: dbPath,
+            new_path: correctPath,
+            match_type: 'exact'
+          });
+        }
+        continue;
+      }
+      
+      let foundFile = null;
+      const searchTitle = course.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      for (const file of existingFiles) {
+        const fileLower = file.toLowerCase();
+        if (fileLower.includes(searchTitle) || searchTitle.includes(fileLower.replace(/^\d+-\d+-/, ''))) {
+          foundFile = file;
+          break;
+        }
+      }
+      
+      if (foundFile) {
+        const correctPath = `/uploads/courses/${foundFile}`;
+        await db.query(
+          'UPDATE courses SET file_path = ? WHERE id = ?',
+          [correctPath, course.id]
+        );
+        results.fixed.push({
+          id: course.id,
+          title: course.title,
+          old_path: dbPath,
+          new_path: correctPath,
+          match_type: 'title_match',
+          matched_file: foundFile
+        });
+      } else {
+        results.need_reupload.push({
+          id: course.id,
+          title: course.title,
+          db_filename: dbFilename,
+          reason: "No matching file found"
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      upload_dir: uploadDir,
+      files_in_directory: existingFiles,
+      results: results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/admin/check-integrity", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const courses = await db.query('SELECT id, title, file_path FROM courses');
+    
+    const results = {
+      valid: [],
+      missing: [],
+      orphaned: []
+    };
+    
+    for (const course of courses) {
+      if (course.file_path) {
+        const filename = path.basename(course.file_path);
+        const filePath = path.join(uploadDir, filename);
+        
+        if (fs.existsSync(filePath)) {
+          results.valid.push({
+            id: course.id,
+            title: course.title,
+            file_path: course.file_path,
+            size: fs.statSync(filePath).size
+          });
+        } else {
+          results.missing.push({
+            id: course.id,
+            title: course.title,
+            expected_path: course.file_path,
+            filename: filename
+          });
+        }
+      }
+    }
+    
+    if (fs.existsSync(uploadDir)) {
+      const filesOnDisk = fs.readdirSync(uploadDir);
+      const dbFiles = courses.map(c => path.basename(c.file_path)).filter(Boolean);
+      
+      for (const file of filesOnDisk) {
+        if (!dbFiles.includes(file) && !file.startsWith('.')) {
+          results.orphaned.push({
+            filename: file,
+            path: path.join(uploadDir, file),
+            size: fs.statSync(path.join(uploadDir, file)).size
+          });
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      summary: {
+        total_courses: courses.length,
+        valid_files: results.valid.length,
+        missing_files: results.missing.length,
+        orphaned_files: results.orphaned.length
+      },
+      details: results
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/courses/:courseId/reupload", (req, res) => {
+  const uploadDir = path.join(__dirname, 'uploads', 'courses');
+  
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadDir);
+      },
+      filename: function (req, file, cb) {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext)
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .substring(0, 50);
+        cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+      }
+    })
+  }).single('file');
+
+  upload(req, res, async function(err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    try {
+      const courseId = req.params.courseId;
+      
+      if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const newFilePath = `/uploads/courses/${req.file.filename}`;
+      
+      await db.query(
+        'UPDATE courses SET file_path = ? WHERE id = ?',
+        [newFilePath, courseId]
+      );
+      
+      res.json({
+        success: true,
+        message: "File uploaded and course updated successfully!",
+        file_path: newFilePath
+      });
+      
+    } catch (error) {
+      console.error('Reupload error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+app.get("/api/admin/sync-files", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const results = {
+      added: [],
+      skipped: [],
+      errors: []
+    };
+
+    const coursesDir = path.join(__dirname, "uploads", "courses");
+    
+    if (!fs.existsSync(coursesDir)) {
+      return res.status(404).json({ error: "Uploads directory not found" });
+    }
+
+    const files = fs.readdirSync(coursesDir);
+    
+    const pdfFiles = files.filter(file => 
+      file.toLowerCase().endsWith('.pdf') && 
+      fs.statSync(path.join(coursesDir, file)).isFile()
+    );
+
+    console.log(`Found ${pdfFiles.length} PDF files to sync`);
+
+    for (const file of pdfFiles) {
+      try {
+        let title = file.replace(/^\d+-/, '')
+                        .replace(/\.pdf$/i, '')
+                        .replace(/[-_]/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+        
+        title = title.replace(/\b\w/g, l => l.toUpperCase());
+        
+        const [existing] = await db.query(
+          "SELECT id FROM courses WHERE file_path LIKE ?",
+          [`%${file}%`]
+        );
+        
+        let existingRows = [];
+        if (Array.isArray(existing) && existing.length > 0) {
+          existingRows = existing;
+        } else if (existing && existing[0] && Array.isArray(existing[0]) && existing[0].length > 0) {
+          existingRows = existing[0];
+        }
+        
+        if (existingRows.length > 0) {
+          results.skipped.push({ file, reason: "Already in database" });
+          continue;
+        }
+
+        const result = await db.query(
+          `INSERT INTO courses (title, description, file_path, price, type, user_id, author, created_at) 
+           VALUES (?, ?, ?, 0.00, 'free', ?, 'Unknown', NOW())`,
+          [
+            title,
+            `Automatically synced from file: ${file}`,
+            `/uploads/courses/${file}`,
+            req.session.user.id
+          ]
+        );
+
+        const insertId = result.insertId || (result[0] && result[0].insertId);
+        
+        results.added.push({
+          file,
+          title,
+          courseId: insertId
+        });
+
+        console.log(`✅ Added: ${title} (ID: ${insertId})`);
+
+      } catch (err) {
+        console.error(`❌ Error adding ${file}:`, err);
+        results.errors.push({ file, error: err.message });
+      }
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Sync Results</title>
+        <style>
+          body { font-family: Arial; padding: 20px; background: #0a192f; color: #e6f1ff; }
+          .success { color: #64ffda; }
+          .warning { color: #FFD700; }
+          .error { color: #ff6b6b; }
+          pre { background: #172a45; padding: 10px; border-radius: 5px; overflow: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>📁 File Sync Results</h1>
+        <p>✅ Added: ${results.added.length}</p>
+        <p>⏭️ Skipped: ${results.skipped.length}</p>
+        <p>❌ Errors: ${results.errors.length}</p>
+        
+        <h2>Added Files:</h2>
+        <pre>${JSON.stringify(results.added, null, 2)}</pre>
+        
+        ${results.errors.length > 0 ? `
+          <h2>Errors:</h2>
+          <pre class="error">${JSON.stringify(results.errors, null, 2)}</pre>
+        ` : ''}
+        
+        <p><a href="/api/debug/all-courses">View All Courses</a></p>
+      </body>
+      </html>
+    `;
+    
+    res.send(html);
+
+  } catch (err) {
+    console.error("Sync error:", err);
+    res.status(500).send(`Error: ${err.message}`);
+  }
+});
+
+app.get("/api/admin/recover-files", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const results = {
+      files_found: [],
+      files_missing: [],
+      updates: [],
+      errors: []
+    };
+
+    const coursesResult = await db.query("SELECT id, title, file_path FROM courses");
+    let courses = [];
+    
+    if (Array.isArray(coursesResult)) {
+      if (coursesResult.length === 2 && Array.isArray(coursesResult[0])) {
+        courses = coursesResult[0];
+      } else {
+        courses = coursesResult;
+      }
+    }
+
+    const uploadDir = path.join(__dirname, "uploads/courses");
+    if (!fs.existsSync(uploadDir)) {
+      return res.json({ error: "Upload directory not found", path: uploadDir });
+    }
+
+    const actualFiles = fs.readdirSync(uploadDir);
+    console.log(`Found ${actualFiles.length} files in uploads/courses:`);
+    actualFiles.forEach(f => console.log(`  - ${f}`));
+
+    for (const course of courses) {
+      const dbPath = course.file_path;
+      const dbFilename = path.basename(dbPath);
+      
+      let found = false;
+      let foundPath = null;
+      
+      if (actualFiles.includes(dbFilename)) {
+        found = true;
+        foundPath = path.join(uploadDir, dbFilename);
+        results.files_found.push({
+          course_id: course.id,
+          title: course.title,
+          db_filename: dbFilename,
+          status: "exact_match"
+        });
+      } else {
+        const similar = actualFiles.filter(f => 
+          f.includes('beyond-good-and-evil') || 
+          f.includes(course.title.toLowerCase().replace(/[^a-z0-9]/g, '-'))
+        );
+        
+        if (similar.length > 0) {
+          found = true;
+          foundPath = path.join(uploadDir, similar[0]);
+          
+          try {
+            await db.query(
+              "UPDATE courses SET file_path = ? WHERE id = ?",
+              [similar[0], course.id]
+            );
+            results.updates.push({
+              course_id: course.id,
+              old: dbFilename,
+              new: similar[0]
+            });
+          } catch (updateError) {
+            results.errors.push({
+              course_id: course.id,
+              error: updateError.message
+            });
+          }
+          
+          results.files_found.push({
+            course_id: course.id,
+            title: course.title,
+            db_filename: dbFilename,
+            actual_filename: similar[0],
+            status: "updated"
+          });
+        } else {
+          results.files_missing.push({
+            course_id: course.id,
+            title: course.title,
+            db_filename: dbFilename
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      upload_directory: uploadDir,
+      total_files_in_directory: actualFiles.length,
+      files_in_directory: actualFiles,
+      results: results
+    });
+
+  } catch (err) {
+    console.error("Recovery error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =================== HEALTH CHECK WITH FILE SYSTEM ===================
+app.get("/api/health", async (req, res) => {
+  try {
+    await db.query('SELECT 1 as healthy');
+    
+    const uploadDir = path.join(__dirname, 'uploads', 'courses');
+    const uploadsExist = fs.existsSync(uploadDir);
+    
+    let fileCount = 0;
+    if (uploadsExist) {
+      fileCount = fs.readdirSync(uploadDir).length;
+    }
+    
+    const courses = await db.query('SELECT COUNT(*) as count, SUM(CASE WHEN file_path IS NULL THEN 1 ELSE 0 END) as missing_path FROM courses');
+    const courseCount = courses[0]?.count || 0;
+    const missingPaths = courses[0]?.missing_path || 0;
+    
+    res.json({
+      status: "healthy",
+      database: "connected",
+      uploads_directory: uploadsExist,
+      file_count: fileCount,
+      course_count: courseCount,
+      courses_without_paths: missingPaths,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (err) {
+    res.status(500).json({ 
+      status: "unhealthy", 
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Run integrity check every 24 hours (optional)
+if (process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      console.log('🔍 Running automatic integrity check...');
+      const integrityCheck = require('./scripts/check-integrity');
+      await integrityCheck();
+    } catch (error) {
+      console.error('Auto integrity check failed:', error);
+    }
+  }, 24 * 60 * 60 * 1000);
+}
+
+// =================== DEBUG ENDPOINTS ===================
+app.get("/api/debug/course-files", async (req, res) => {
+  try {
+    const results = {
+      database_courses: [],
+      files_found: [],
+      locations_checked: []
+    };
+    
+    const courses = await db.query('SELECT id, title, file_path, file_url FROM courses');
+    
+    const basePaths = [
+      __dirname,
+      '/opt/render/project/src',
+      process.cwd()
+    ];
+    
+    for (const course of courses) {
+      const filename = course.file_path ? path.basename(course.file_path) : null;
+      const fileInfo = {
+        id: course.id,
+        title: course.title,
+        db_path: course.file_path,
+        filename: filename,
+        found_at: null,
+        checked_locations: []
+      };
+      
+      if (filename) {
+        const locations = [
+          path.join(__dirname, 'uploads', 'courses', filename),
+          path.join(__dirname, 'public', 'uploads', 'courses', filename),
+          path.join(__dirname, 'uploads', filename),
+          `/opt/render/project/src/uploads/courses/${filename}`,
+          `/opt/render/project/src/public/uploads/courses/${filename}`,
+          path.join(process.cwd(), 'uploads', 'courses', filename),
+          course.file_path,
+          path.join(__dirname, course.file_path),
+          path.join(__dirname, '..', course.file_path)
+        ];
+        
+        for (const loc of locations) {
+          fileInfo.checked_locations.push(loc);
+          if (fs.existsSync(loc)) {
+            fileInfo.found_at = loc;
+            results.files_found.push({
+              id: course.id,
+              title: course.title,
+              location: loc,
+              size: fs.statSync(loc).size
+            });
+            break;
+          }
+        }
+      }
+      
+      results.database_courses.push(fileInfo);
+    }
+    
+    const uploadDirs = [
+      path.join(__dirname, 'uploads', 'courses'),
+      path.join(__dirname, 'public', 'uploads', 'courses'),
+      '/opt/render/project/src/uploads/courses',
+      '/opt/render/project/src/public/uploads/courses'
+    ];
+    
+    results.directories = {};
+    for (const dir of uploadDirs) {
+      if (fs.existsSync(dir)) {
+        results.directories[dir] = fs.readdirSync(dir);
+      } else {
+        results.directories[dir] = 'Directory does not exist';
+      }
+    }
+    
+    res.json(results);
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/debug/courses-list", async (req, res) => {
+  try {
+    const result = await db.query("SELECT id, title, user_id FROM courses ORDER BY id");
+    
+    let courses = [];
+    if (Array.isArray(result)) {
+      if (result.length === 2 && Array.isArray(result[0])) {
+        courses = result[0];
+      } else if (result.length > 0) {
+        courses = result;
+      }
+    }
+    
+    res.json({
+      count: courses.length,
+      courses: courses
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/debug/all-courses", async (req, res) => {
+  try {
+    const result = await db.query("SELECT id, title, file_path, price, type, created_at FROM courses ORDER BY id DESC");
+    
+    let courses = [];
+    if (Array.isArray(result)) {
+      if (result.length === 2 && Array.isArray(result[0])) {
+        courses = result[0];
+      } else if (result.length > 0) {
+        courses = result;
+      }
+    } else if (result && result.rows) {
+      courses = result.rows;
+    }
+    
+    console.log(`Found ${courses.length} courses in database`);
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>All Courses</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; background: #0a192f; color: #e6f1ff; margin: 0; }
+          h1 { color: #64ffda; }
+          .stats { background: #172a45; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 30px; }
+          .stat { text-align: center; }
+          .stat-label { color: #8892b0; font-size: 14px; margin-bottom: 5px; }
+          .stat-value { color: #64ffda; font-size: 32px; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #172a45; border-radius: 8px; overflow: hidden; }
+          th { background: #1d3b5c; color: #64ffda; padding: 12px; text-align: left; font-weight: 600; }
+          td { padding: 12px; border-bottom: 1px solid #2a4a6e; color: #e6f1ff; }
+          tr:hover { background: #1e3a5a; }
+          .free { color: #64ffda; font-weight: bold; }
+          .paid { color: #FFD700; font-weight: bold; }
+          a { color: #64ffda; text-decoration: none; padding: 4px 8px; border: 1px solid #64ffda; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+          a:hover { background: #64ffda; color: #0a192f; }
+        </style>
+      </head>
+      <body>
+        <h1>📚 Course Database</h1>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Total Courses</div><div class="stat-value">${courses.length}</div></div>
+          ${courses.length > 0 ? `<div class="stat"><div class="stat-label">Free Courses</div><div class="stat-value">${courses.filter(c => c.type === 'free' || parseFloat(c.price || 0) === 0).length}</div></div><div class="stat"><div class="stat-label">Paid Courses</div><div class="stat-value">${courses.filter(c => c.type === 'paid' || parseFloat(c.price || 0) > 0).length}</div></div>` : ''}
+        </div>
+        ${courses.length > 0 ? `
+          <table><thead><tr><th>ID</th><th>Title</th><th>File Path</th><th>Price</th><th>Type</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody>${courses.map(course => {
+            const price = parseFloat(course.price || 0);
+            const type = course.type || (price > 0 ? 'paid' : 'free');
+            return `<tr><td><strong>${course.id}</strong></td><td>${course.title || 'Untitled'}</td><td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;">${course.file_path || 'N/A'}</td><td>$${price.toFixed(2)}</td><td class="${type === 'free' ? 'free' : 'paid'}">${type}</td><td>${course.created_at ? new Date(course.created_at).toLocaleDateString() : 'N/A'}</td><td><a href="/api/download/${course.id}" target="_blank">Download</a><a href="/api/debug/course/${course.id}" target="_blank">Debug</a></td></tr>`;
+          }).join('')}</tbody></table>
+        ` : `<div class="no-data"><h2>❌ No courses found</h2><p><a href="/api/debug/check-db" style="padding:10px 20px;font-size:16px;">Check Database</a></p></div>`}
+        <p style="margin-top:20px;"><a href="/" style="display:inline-block;padding:10px 20px;">← Back to Home</a></p>
+      </body></html>`;
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`<h1>Error</h1><p>${err.message}</p>`);
+  }
+});
+
+app.get("/api/debug/course/:id", async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.id);
+    const [rows] = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    let course = null;
+    if (Array.isArray(rows) && rows.length > 0) course = rows[0];
+    else if (rows && rows[0] && Array.isArray(rows[0]) && rows[0].length > 0) course = rows[0][0];
+    if (!course) return res.status(404).send(`<h1>Course ${courseId} Not Found</h1>`);
+    
+    let fileExists = false, filePath = null, fileSize = null;
+    if (course.file_path) {
+      const filename = path.basename(course.file_path);
+      const fullPath = path.join(__dirname, "uploads", "courses", filename);
+      if (fs.existsSync(fullPath)) {
+        fileExists = true;
+        filePath = fullPath;
+        fileSize = fs.statSync(fullPath).size;
+      }
+    }
+    
+    res.send(`<!DOCTYPE html><html><head><title>Course #${courseId}</title><style>body{font-family:Arial;padding:20px;background:#0a192f;color:#e6f1ff;}.card{background:#172a45;padding:20px;border-radius:8px;margin-bottom:20px;}.label{color:#8892b0;font-size:14px;}.value{color:#64ffda;font-size:18px;margin-bottom:10px;}.success{color:#64ffda;}.error{color:#ff6b6b;}a{color:#64ffda;text-decoration:none;padding:8px 16px;border:1px solid #64ffda;border-radius:4px;}</style></head><body>
+      <h1>Course #${courseId}: ${course.title}</h1>
+      <div class="card"><div class="label">ID</div><div class="value">${course.id}</div><div class="label">Title</div><div class="value">${course.title || 'N/A'}</div><div class="label">Description</div><div class="value">${course.description || 'No description'}</div><div class="label">File Path (DB)</div><div class="value">${course.file_path || 'N/A'}</div><div class="label">Price</div><div class="value">$${parseFloat(course.price || 0).toFixed(2)}</div><div class="label">Type</div><div class="value">${course.type || 'free'}</div><div class="label">Created</div><div class="value">${course.created_at || 'N/A'}</div></div>
+      <div class="card"><h2>File Check</h2><div class="label">File Exists on Disk</div><div class="value ${fileExists ? 'success' : 'error'}">${fileExists ? '✅ YES' : '❌ NO'}</div>${fileExists ? `<div class="label">File Path (Actual)</div><div class="value">${filePath}</div><div class="label">File Size</div><div class="value">${Math.round(fileSize / 1024)} KB</div>` : ''}</div>
+      <p><a href="/api/download/${courseId}" target="_blank">⬇️ Download Now</a> <a href="/api/debug/all-courses" style="margin-left:10px;">← Back to All Courses</a></p>
+    </body></html>`);
+  } catch (err) { res.status(500).send(`Error: ${err.message}`); }
+});
+
+app.get("/api/debug/check-db", async (req, res) => {
+  try {
+    const [connectResult] = await db.query("SELECT 1 as test");
+    const [tableCheck] = await db.query("SHOW TABLES LIKE 'courses'");
+    const tableExists = tableCheck && tableCheck.length > 0;
+    let courseCount = 0, sampleCourses = [];
+    if (tableExists) {
+      const countResult = await db.query("SELECT COUNT(*) as count FROM courses");
+      if (Array.isArray(countResult)) courseCount = countResult[0]?.count || 0;
+      if (courseCount > 0) {
+        const coursesResult = await db.query("SELECT id, title FROM courses LIMIT 5");
+        if (Array.isArray(coursesResult)) sampleCourses = coursesResult;
+      }
+    }
+    res.json({ database_connected: true, test_query: connectResult, courses_table_exists: tableExists, course_count: courseCount, sample_courses: sampleCourses });
+  } catch (err) { res.status(500).json({ database_connected: false, error: err.message }); }
+});
+
+app.get("/api/debug/uploads", async (req, res) => {
+  try {
+    const uploadsDir = path.join(__dirname, "uploads");
+    const coursesDir = path.join(uploadsDir, "courses");
+    const result = { uploads_exists: fs.existsSync(uploadsDir), courses_exists: fs.existsSync(coursesDir), files: [] };
+    if (fs.existsSync(coursesDir)) result.files = fs.readdirSync(coursesDir);
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/debug/user-courses/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const result = await db.query(`SELECT uc.*, c.title, c.price FROM user_courses uc JOIN courses c ON uc.course_id = c.id WHERE uc.user_id = ?`, [userId]);
+    let courses = [];
+    if (result) {
+      if (Array.isArray(result) && result.length === 2 && Array.isArray(result[0])) courses = result[0];
+      else if (Array.isArray(result) && result.length > 0) courses = result;
+    }
+    res.json({ user_id: userId, course_count: courses.length, courses: courses });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/debug/directories", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).json({ error: "Admin access required" });
+    const directories = { current_dir: __dirname, uploads_courses: path.join(__dirname, "uploads/courses"), public_uploads: path.join(__dirname, "public/uploads"), public_uploads_courses: path.join(__dirname, "public/uploads/courses") };
+    const results = {};
+    for (const [name, dir] of Object.entries(directories)) {
+      try {
+        if (fs.existsSync(dir)) results[name] = { exists: true, isDirectory: fs.statSync(dir).isDirectory(), files: fs.readdirSync(dir).slice(0, 20) };
+        else results[name] = { exists: false, error: "Directory does not exist" };
+      } catch (err) { results[name] = { exists: false, error: err.message }; }
+    }
+    res.json(results);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+// ============================================
+// FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
+// ============================================
+
+// =================== FLAGGING SYSTEM ===================
+
+// Submit a flag for a course
+app.post("/api/courses/flag", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to report content" });
+    }
+
+    const { courseId, reason } = req.body;
+    
+    if (!courseId) return res.status(400).json({ error: "Course ID required" });
+    if (!reason || reason.length < 10) return res.status(400).json({ error: "Reason must be at least 10 characters" });
+
+    const userId = req.session.user.id;
+
+    // Get course details
+    const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    const course = courses && courses.length > 0 ? courses[0] : null;
+    
+    if (!course) return res.status(404).json({ error: "Course not found" });
+    if (course.user_id === userId) return res.status(400).json({ error: "Cannot flag your own content" });
+
+    // Check if admin content
+    const creator = await db.query("SELECT role FROM users WHERE id = ?", [course.user_id]);
+    if (creator && creator[0] && creator[0].role === 'admin') {
+      return res.status(403).json({ error: "Admin content cannot be flagged" });
+    }
+
+    // Check for duplicate flag
+    const existing = await db.query(
+      "SELECT id FROM course_flags WHERE course_id = ? AND flagged_by_user_id = ?",
+      [courseId, userId]
+    );
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ error: "Already reported this content" });
+    }
+
+    // Insert flag
+    await db.query(
+      `INSERT INTO course_flags (course_id, flagged_by_user_id, reason, status, created_at)
+       VALUES (?, ?, ?, 'pending', NOW())`,
+      [courseId, userId, reason]
+    );
+
+    // Count flags
+    const flagCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM course_flags WHERE course_id = ? AND status = 'pending'",
+      [courseId]
+    );
+    const flagCount = flagCountResult[0]?.count || 1;
+    
+    const DELETION_THRESHOLD = 10;
+    let deleted = false;
+    let warningIssued = false;
+    
+    // Auto-delete if threshold reached
+    if (flagCount >= DELETION_THRESHOLD) {
+      await db.query(
+        "UPDATE courses SET is_deleted = 1, deleted_at = NOW(), deleted_reason = ? WHERE id = ?",
+        [`Removed after ${flagCount} reports`, courseId]
+      );
+      await db.query(
+        "UPDATE course_flags SET status = 'resolved', resolved_at = NOW() WHERE course_id = ?",
+        [courseId]
+      );
+      deleted = true;
+    } 
+    // Issue warning on first flag
+    else if (flagCount === 1) {
+      await db.query(
+        `INSERT INTO user_warnings (user_id, warning_type, reason, created_at)
+         VALUES (?, 'content_flag', ?, NOW())`,
+        [course.user_id, `Your course "${course.title}" has been reported. Please review guidelines.`]
+      );
+      warningIssued = true;
+    }
+
+    res.json({
+      success: true,
+      message: deleted ? "Content removed due to reports" : "Report submitted successfully",
+      deleted: deleted,
+      warningIssued: warningIssued
+    });
+
+  } catch (err) {
+    console.error("Flag error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get courses flagged by current user
+app.get("/api/courses/flagged-by-me", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json([]);
+    }
+    
+    const flagged = await db.query(
+      "SELECT course_id as id FROM course_flags WHERE flagged_by_user_id = ?",
+      [req.session.user.id]
+    );
+    
+    res.json(flagged || []);
+  } catch (err) {
+    console.error("Error fetching flagged courses:", err);
+    res.json([]);
+  }
+});
 // ============================================
 // ROUTES - PRODUCTS
 // ============================================
@@ -1541,7 +3605,1965 @@ app.get("/api/test-db", async (req, res) => {
     });
   }
 });
+// ============================================
+// MESSAGING SYSTEM - COMPLETE ROUTES
+// ============================================
 
+// Configure multer for chat image uploads
+const chatImageStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads', 'chat-images');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'chat-' + uniqueSuffix + ext);
+  }
+});
+
+const chatImageUpload = multer({ 
+  storage: chatImageStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  }
+});
+
+// =================== CHAT SYSTEM ENDPOINTS ===================
+
+// Get total unread messages
+app.get("/api/messages/unread-count", async (req, res) => {
+  try {
+    if (!req.session.user) return res.json({ count: 0 });
+    const userId = req.session.user.id;
+
+    const result = await db.query(`
+      SELECT COUNT(m.id) AS unread_count
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.sender_id != ?
+        AND m.is_read = 0
+        AND (c.client_id = ? OR c.freelancer_id = ?)
+    `, [userId, userId, userId]);
+
+    const unreadCount = (result && result[0]) ? result[0].unread_count : 0;
+    res.json({ count: unreadCount });
+  } catch (err) {
+    console.error("Unread count error:", err);
+    res.json({ count: 0 });
+  }
+});
+
+// Get unread counts by conversation
+app.get("/api/messages/unread-by-conversation", async (req, res) => {
+  try {
+    if (!req.session.user) return res.json({});
+    
+    const userId = req.session.user.id;
+
+    const result = await db.query(`
+      SELECT 
+        m.conversation_id,
+        COUNT(m.id) AS unread_count
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.sender_id != ?
+        AND m.is_read = 0
+        AND (c.client_id = ? OR c.freelancer_id = ?)
+      GROUP BY m.conversation_id
+    `, [userId, userId, userId]);
+
+    const rows = extractRows(result);
+    const unreadCounts = {};
+    if (rows && rows.length > 0) {
+      rows.forEach(row => {
+        unreadCounts[row.conversation_id] = row.unread_count;
+      });
+    }
+    
+    res.json(unreadCounts);
+    
+  } catch (err) {
+    console.error("Error getting unread counts:", err);
+    res.json({});
+  }
+});
+
+// List all conversations for the logged-in user
+app.get("/api/messages/conversations", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      console.log("No user in session for conversations request");
+      return res.json([]);
+    }
+    
+    const userId = req.session.user.id;
+    console.log(`Fetching conversations for user ${userId}`);
+
+    const result = await db.query(`
+      SELECT 
+        c.id AS conversation_id,
+        c.service_id,
+        s.title AS service_title,
+        c.created_at,
+        CASE 
+          WHEN c.client_id = ? THEN u2.username 
+          ELSE u1.username 
+        END AS other_user_name,
+        CASE 
+          WHEN c.client_id = ? THEN u2.id 
+          ELSE u1.id 
+        END AS other_user_id,
+        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) as last_message_time,
+        (SELECT message FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+      FROM conversations c
+      JOIN users u1 ON c.client_id = u1.id
+      JOIN users u2 ON c.freelancer_id = u2.id
+      LEFT JOIN services s ON c.service_id = s.id
+      WHERE c.client_id = ? OR c.freelancer_id = ?
+      ORDER BY 
+        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC,
+        c.created_at DESC
+    `, [userId, userId, userId, userId]);
+
+    const conversations = extractRows(result);
+    console.log(`Found ${conversations.length} conversations for user ${userId}`);
+    
+    res.json(conversations);
+
+  } catch (err) {
+    console.error("Conversations fetch error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Start a new conversation without a service
+app.post("/api/conversations/start-without-service", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    
+    const { recipient_id } = req.body;
+    if (!recipient_id) return res.status(400).json({ error: "Missing recipient ID" });
+
+    console.log(`Starting conversation without service - Recipient ID: ${recipient_id} User ID: ${user.id}`);
+
+    const currentUserId = parseInt(user.id);
+    const recipientId = parseInt(recipient_id);
+
+    // Check if there's ANY conversation between these two users
+    const existingResult = await db.query(
+      `SELECT id, client_id, freelancer_id FROM conversations 
+       WHERE (client_id = ? AND freelancer_id = ?) 
+          OR (client_id = ? AND freelancer_id = ?)
+       LIMIT 1`,
+      [currentUserId, recipientId, recipientId, currentUserId]
+    );
+
+    const existingConversations = extractRows(existingResult);
+    const existingConversation = existingConversations && existingConversations.length > 0 ? existingConversations[0] : null;
+
+    if (existingConversation) {
+      console.log(`Using existing conversation: ${existingConversation.id}`);
+      return res.status(200).json({ 
+        success: true, 
+        conversation_id: existingConversation.id,
+        message: "Using existing conversation"
+      });
+    }
+
+    // Determine who is client and who is freelancer based on roles
+    let clientId, freelancerId;
+    
+    // Get user roles
+    const userResult = await db.query(
+      "SELECT id, role FROM users WHERE id IN (?, ?)",
+      [currentUserId, recipientId]
+    );
+
+    const users = extractRows(userResult);
+
+    const currentUserData = users.find(u => parseInt(u.id) === currentUserId);
+    const recipientData = users.find(u => parseInt(u.id) === recipientId);
+
+    if (!currentUserData || !recipientData) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Assign roles: if someone is freelancer, they're the freelancer, otherwise the other is freelancer
+    if (currentUserData.role === 'freelancer' && recipientData.role === 'client') {
+      clientId = recipientId;
+      freelancerId = currentUserId;
+    } else if (currentUserData.role === 'client' && recipientData.role === 'freelancer') {
+      clientId = currentUserId;
+      freelancerId = recipientId;
+    } else {
+      // Both are same role - default to current user as client, recipient as freelancer
+      clientId = currentUserId;
+      freelancerId = recipientId;
+    }
+
+    console.log(`Creating new conversation - Client: ${clientId}, Freelancer: ${freelancerId}`);
+    
+    const insertResult = await db.query(
+      `INSERT INTO conversations (client_id, freelancer_id, created_at)
+       VALUES (?, ?, NOW())`,
+      [clientId, freelancerId]
+    );
+
+    const conversationId = extractInsertId(insertResult);
+
+    if (!conversationId) {
+      return res.status(500).json({ error: "Failed to create conversation" });
+    }
+
+    console.log(`New conversation created with ID: ${conversationId}`);
+
+    res.status(201).json({ 
+      success: true, 
+      conversation_id: conversationId,
+      message: "New conversation created without service"
+    });
+    
+  } catch (err) {
+    console.error("Start conversation without service error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Start a new conversation with service
+app.post("/api/conversations/start", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    
+    const { service_id, recipient_id } = req.body;
+    if (!service_id || !recipient_id) return res.status(400).json({ error: "Missing service or recipient ID" });
+
+    console.log(`Starting conversation - Service ID: ${service_id} Recipient ID: ${recipient_id} User ID: ${user.id}`);
+
+    // First verify the service exists
+    const serviceResult = await db.query(
+      `SELECT id, user_id as provider_id FROM services WHERE id = ?`,
+      [service_id]
+    );
+
+    const services = extractRows(serviceResult);
+    const service = services && services.length > 0 ? services[0] : null;
+
+    if (!service) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    console.log("Service found:", service);
+
+    const provider_id = parseInt(service.provider_id || service.user_id);
+    const client_id = parseInt(user.id);
+
+    // Check if there's ANY conversation between these two users
+    const existingResult = await db.query(
+      `SELECT id, client_id, freelancer_id FROM conversations 
+       WHERE (client_id = ? AND freelancer_id = ?) 
+          OR (client_id = ? AND freelancer_id = ?)
+       LIMIT 1`,
+      [client_id, provider_id, provider_id, client_id]
+    );
+
+    const existingConversations = extractRows(existingResult);
+    const existingConversation = existingConversations && existingConversations.length > 0 ? existingConversations[0] : null;
+
+    if (existingConversation) {
+      console.log(`Using existing conversation: ${existingConversation.id}`);
+      
+      await db.query(
+        `UPDATE conversations SET service_id = ? WHERE id = ? AND service_id IS NULL`,
+        [service_id, existingConversation.id]
+      );
+      
+      return res.status(200).json({ 
+        success: true, 
+        conversation_id: existingConversation.id,
+        message: "Using existing conversation"
+      });
+    }
+
+    console.log(`Creating new conversation - Service: ${service_id}, Client: ${client_id}, Provider: ${provider_id}`);
+    
+    const insertResult = await db.query(
+      `INSERT INTO conversations (service_id, client_id, freelancer_id, created_at)
+       VALUES (?, ?, ?, NOW())`,
+      [service_id, client_id, provider_id]
+    );
+
+    const conversationId = extractInsertId(insertResult);
+
+    if (!conversationId) {
+      return res.status(500).json({ error: "Failed to create conversation" });
+    }
+
+    console.log(`New conversation created with ID: ${conversationId}`);
+
+    res.status(201).json({ 
+      success: true, 
+      conversation_id: conversationId,
+      message: "New conversation created"
+    });
+    
+  } catch (err) {
+    console.error("Start conversation error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send a message
+app.post("/api/messages/send", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+
+    const { conversation_id, message } = req.body;
+    if (!conversation_id || !message?.trim()) {
+      return res.status(400).json({ error: "Missing message or conversation ID" });
+    }
+
+    console.log(`Sending message to conversation ${conversation_id} from user ${user.id}`);
+
+    // Check if user has access to this conversation
+    const convResult = await db.query(
+      `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+      [conversation_id]
+    );
+
+    const conversations = extractRows(convResult);
+    const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    // Check if user is either client or freelancer
+    const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+    
+    if (!isClient && !isFreelancer) {
+      console.error(`Access denied: User ${user.id} not in conversation ${conversation_id}`);
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Insert the message
+    const insertResult = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read)
+       VALUES (?, ?, ?, NOW(), 0)`,
+      [conversation_id, user.id, message.trim()]
+    );
+
+    const messageId = extractInsertId(insertResult);
+
+    if (!messageId) {
+      console.error("Failed to get insertId:", insertResult);
+      return res.status(500).json({ error: "Failed to insert message" });
+    }
+
+    console.log(`Message inserted with ID: ${messageId}`);
+
+    // Get the inserted message with sender info
+    const messageResult = await db.query(
+      `SELECT m.*, u.username AS sender_name 
+       FROM messages m 
+       JOIN users u ON m.sender_id = u.id 
+       WHERE m.id = ?`,
+      [messageId]
+    );
+
+    const messages = extractRows(messageResult);
+    const newMessage = messages && messages.length > 0 ? messages[0] : null;
+
+    if (!newMessage) {
+      return res.status(500).json({ error: "Failed to retrieve inserted message" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: newMessage 
+    });
+    
+  } catch (err) {
+    console.error("Send message error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send message with image
+app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+
+    const { conversation_id, message } = req.body;
+    if (!conversation_id) {
+      return res.status(400).json({ error: "Missing conversation ID" });
+    }
+
+    console.log(`Sending message with image to conversation ${conversation_id} from user ${user.id}`);
+
+    // Check if user has access to this conversation
+    const convResult = await db.query(
+      `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+      [conversation_id]
+    );
+
+    const conversations = extractRows(convResult);
+    const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    // Check if user is either client or freelancer
+    const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+    
+    if (!isClient && !isFreelancer) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Build message content
+    let messageContent = message || '';
+    let imageUrl = null;
+    
+    if (req.file) {
+      imageUrl = `/uploads/chat-images/${req.file.filename}`;
+      if (!messageContent) {
+        messageContent = '📷 Sent an image';
+      }
+    }
+
+    // Insert message with image_url
+    const insertResult = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, image_url, created_at, is_read)
+       VALUES (?, ?, ?, ?, NOW(), 0)`,
+      [conversation_id, user.id, messageContent, imageUrl]
+    );
+
+    const messageId = extractInsertId(insertResult);
+
+    if (!messageId) {
+      return res.status(500).json({ error: "Failed to insert message" });
+    }
+
+    // Get the inserted message with sender info
+    const messageResult = await db.query(
+      `SELECT m.*, u.username AS sender_name 
+       FROM messages m 
+       JOIN users u ON m.sender_id = u.id 
+       WHERE m.id = ?`,
+      [messageId]
+    );
+
+    const messages = extractRows(messageResult);
+    const newMessage = messages && messages.length > 0 ? messages[0] : null;
+
+    res.status(200).json({ 
+      success: true, 
+      data: newMessage 
+    });
+    
+  } catch (err) {
+    console.error("Send message with image error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get messages for a conversation
+app.get("/api/messages/:conversationId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const conversationId = parseInt(req.params.conversationId);
+    if (isNaN(conversationId)) {
+      return res.status(400).json({ error: "Invalid conversation ID" });
+    }
+
+    const userId = req.session.user.id;
+
+    // First check if user has access to this conversation
+    const convResult = await db.query(
+      `SELECT id FROM conversations WHERE id = ? AND (client_id = ? OR freelancer_id = ?)`,
+      [conversationId, userId, userId]
+    );
+
+    const convRows = extractRows(convResult);
+
+    if (!convRows || convRows.length === 0) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Get messages WITH image_url
+    const messagesResult = await db.query(
+      `SELECT 
+        m.id, 
+        m.conversation_id, 
+        m.sender_id, 
+        m.message, 
+        m.image_url,
+        m.is_read, 
+        m.created_at,
+        u.username AS sender_name
+      FROM messages m 
+      JOIN users u ON m.sender_id = u.id 
+      WHERE m.conversation_id = ? 
+      ORDER BY m.created_at ASC`,
+      [conversationId]
+    );
+
+    const messages = extractRows(messagesResult);
+    return res.json(messages);
+
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ error: "Server error: " + err.message });
+  }
+});
+
+// Mark messages as read
+app.post("/api/messages/mark-read", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Login required" });
+    const { conversation_id } = req.body;
+    const userId = req.session.user.id;
+
+    await db.query(
+      `UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?`,
+      [conversation_id, userId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Search users for chat
+app.get("/api/users/search", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Login required" });
+        }
+        
+        const { q } = req.query;
+        if (!q || q.length < 2) {
+            return res.json([]);
+        }
+
+        const currentUserId = req.session.user.id;
+        
+        const result = await db.query(
+            `SELECT id, username, email, 
+                    COALESCE(fp.profile_picture_url, NULL) as profile_picture
+             FROM users u
+             LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
+             WHERE (u.username LIKE ? OR u.email LIKE ?) 
+               AND u.id != ?
+             LIMIT 10`,
+            [`%${q}%`, `%${q}%`, currentUserId]
+        );
+
+        const users = extractRows(result);
+        res.json(users);
+        
+    } catch (err) {
+        console.error("User search error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get conversation info
+app.get("/api/conversation-info/:conversationId", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Login required" });
+    const conversationId = parseInt(req.params.conversationId);
+    if (isNaN(conversationId)) return res.status(400).json({ error: "Invalid conversation ID" });
+
+    const userId = req.session.user.id;
+    const result = await db.query(
+      `SELECT c.*, CASE WHEN c.client_id = ? THEN c.freelancer_id ELSE c.client_id END AS other_user_id
+       FROM conversations c
+       WHERE c.id = ? AND (c.client_id = ? OR c.freelancer_id = ?)`,
+      [userId, conversationId, userId, userId]
+    );
+
+    const rows = extractRows(result);
+    if (!rows || rows.length === 0) return res.status(404).json({ error: "Conversation not found or access denied" });
+
+    res.json({ success: true, conversation: rows[0], other_user_id: rows[0].other_user_id });
+  } catch (err) {
+    console.error("Conversation info error:", err);
+    res.status(500).json({ error: "Server error: " + err.message });
+  }
+});
+
+// =================== DEBUG ENDPOINTS ===================
+
+// Debug endpoint to check all conversations for a user
+app.get("/api/debug/user-conversations", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    
+    const userId = req.session.user.id;
+    
+    const result = await db.query(`
+      SELECT 
+        c.id,
+        c.service_id,
+        c.client_id,
+        c.freelancer_id,
+        c.created_at,
+        u1.username as client_username,
+        u2.username as freelancer_username,
+        s.title as service_title
+      FROM conversations c
+      LEFT JOIN users u1 ON c.client_id = u1.id
+      LEFT JOIN users u2 ON c.freelancer_id = u2.id
+      LEFT JOIN services s ON c.service_id = s.id
+      WHERE c.client_id = ? OR c.freelancer_id = ?
+      ORDER BY c.created_at DESC
+    `, [userId, userId]);
+    
+    const conversations = extractRows(result);
+    
+    res.json({
+      user_id: userId,
+      user_role: req.session.user.role,
+      conversation_count: conversations.length,
+      conversations: conversations
+    });
+    
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Debug endpoint to check messages for a conversation
+app.get("/api/debug/messages/:conversationId", async (req, res) => {
+  try {
+    const conversationId = req.params.conversationId;
+    
+    const messagesResult = await db.query(
+      `SELECT m.*, u.username 
+       FROM messages m
+       LEFT JOIN users u ON m.sender_id = u.id
+       WHERE m.conversation_id = ?
+       ORDER BY m.created_at DESC`,
+      [conversationId]
+    );
+
+    const messages = extractRows(messagesResult);
+
+    const convResult = await db.query(
+      `SELECT * FROM conversations WHERE id = ?`,
+      [conversationId]
+    );
+
+    const conversations = extractRows(convResult);
+    const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
+
+    res.json({
+      conversation_id: conversationId,
+      conversation: conversation,
+      message_count: messages.length,
+      messages: messages
+    });
+    
+  } catch (err) {
+    console.error("Debug error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Debug endpoint for conversation access
+app.get("/api/debug/conversation-access/:conversationId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    
+    const conversationId = req.params.conversationId;
+    const userId = req.session.user.id;
+    
+    const convResult = await db.query(
+      `SELECT * FROM conversations WHERE id = ?`,
+      [conversationId]
+    );
+    
+    const convRows = extractRows(convResult);
+    
+    if (!convRows || convRows.length === 0) {
+      return res.json({ exists: false, error: "Conversation not found" });
+    }
+    
+    const conversation = convRows[0];
+    const isClient = parseInt(conversation.client_id) === parseInt(userId);
+    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(userId);
+    const canAccess = isClient || isFreelancer;
+    const userRole = req.session.user.role;
+    
+    res.json({
+      conversation_id: conversationId,
+      user_id: userId,
+      user_role: userRole,
+      client_id: conversation.client_id,
+      freelancer_id: conversation.freelancer_id,
+      is_client: isClient,
+      is_freelancer: isFreelancer,
+      can_access: canAccess,
+      service_id: conversation.service_id
+    });
+    
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper functions (extractRows and extractInsertId)
+const extractRows = (result) => {
+  if (!result) return [];
+  if (Array.isArray(result) && result.length === 2) return result[0] || [];
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object') return [result];
+  return [];
+};
+
+
+// ============================================
+// SERVICES ROUTES - FROM THE COMPLETE WORKING index.js
+// ============================================
+
+// GET ALL SERVICES (PUBLIC)
+app.get("/api/services", async (req, res) => {
+    try {
+        const { category, search, sort, min_price, max_price, limit = 20, offset = 0 } = req.query;
+
+        // Build query
+        let query = `
+            SELECT 
+                s.*, 
+                u.username,
+                u.id as user_id,
+                fp.profile_picture_url as profile_picture_url,
+                fp.headline as provider_headline,
+                (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
+                (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
+                (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
+            FROM services s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
+            WHERE s.status = 'active'
+        `;
+
+        const queryParams = [];
+
+        // Add filters
+        if (category) {
+            query += " AND s.category = ?";
+            queryParams.push(category);
+        }
+
+        if (search) {
+            query += " AND (s.title LIKE ? OR s.description LIKE ?)";
+            queryParams.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (min_price) {
+            query += " AND s.price >= ?";
+            queryParams.push(parseFloat(min_price));
+        }
+
+        if (max_price) {
+            query += " AND s.price <= ?";
+            queryParams.push(parseFloat(max_price));
+        }
+
+        // Sorting
+        switch(sort) {
+            case 'price_low':
+                query += " ORDER BY s.price ASC";
+                break;
+            case 'price_high':
+                query += " ORDER BY s.price DESC";
+                break;
+            case 'rating':
+                query += " ORDER BY avg_rating DESC";
+                break;
+            case 'newest':
+            default:
+                query += " ORDER BY s.created_at DESC";
+        }
+
+        query += " LIMIT ? OFFSET ?";
+        queryParams.push(parseInt(limit), parseInt(offset));
+
+        console.log("Executing query:", query);
+        console.log("With params:", queryParams);
+
+        const result = await db.query(query, queryParams);
+        
+        // Extract services from the result properly
+        let services = [];
+        if (Array.isArray(result)) {
+            if (result.length === 2 && Array.isArray(result[0])) {
+                services = result[0];
+            } else if (result.length > 0) {
+                services = result;
+            }
+        } else if (result && result.rows) {
+            services = result.rows;
+        }
+
+        // Check if current user has favorited each service
+        if (req.session.user) {
+            const favoritesResult = await db.query(
+                "SELECT service_id FROM service_favorites WHERE user_id = ?",
+                [req.session.user.id]
+            );
+
+            let favorites = [];
+            if (Array.isArray(favoritesResult)) {
+                if (favoritesResult.length === 2 && Array.isArray(favoritesResult[0])) {
+                    favorites = favoritesResult[0];
+                } else if (favoritesResult.length > 0) {
+                    favorites = favoritesResult;
+                }
+            }
+
+            const favoriteIds = new Set(Array.isArray(favorites) ? favorites.map(f => f.service_id) : []);
+            
+            services = services.map(service => ({
+                ...service,
+                is_favorited: favoriteIds.has(service.id)
+            }));
+        }
+
+        // Get total count for pagination
+        let countQuery = "SELECT COUNT(*) as total FROM services WHERE status = 'active'";
+        const countParams = [];
+
+        if (category) {
+            countQuery += " AND category = ?";
+            countParams.push(category);
+        }
+
+        if (search) {
+            countQuery += " AND (title LIKE ? OR description LIKE ?)";
+            countParams.push(`%${search}%`, `%${search}%`);
+        }
+
+        const countResult = await db.query(countQuery, countParams);
+
+        let total = 0;
+        if (Array.isArray(countResult)) {
+            if (countResult.length === 2 && Array.isArray(countResult[0]) && countResult[0].length > 0) {
+                total = countResult[0][0].total || 0;
+            } else if (countResult.length > 0 && countResult[0]) {
+                total = countResult[0].total || 0;
+            }
+        } else if (countResult && countResult.total) {
+            total = countResult.total;
+        }
+
+        res.json({
+            services: services,
+            pagination: {
+                total: total,
+                limit: parseInt(limit),
+                offset: parseInt(offset),
+                has_more: total > (parseInt(offset) + parseInt(limit))
+            }
+        });
+
+    } catch (err) {
+        console.error("Services fetch error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET MY SERVICES (FREELANCER)
+app.get("/api/services/my-services", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login to view your services" });
+        }
+
+        let query = `
+            SELECT 
+                s.*, 
+                u.username,
+                fp.profile_picture_url as profile_picture,
+                fp.headline as provider_headline,
+                (SELECT COUNT(*) FROM service_orders WHERE service_id = s.id) as total_orders,
+                (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
+                (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
+                (SELECT SUM(amount) FROM service_orders WHERE service_id = s.id AND status = 'completed') as total_earnings,
+                (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
+            FROM services s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
+            WHERE s.user_id = ?
+        `;
+
+        query += " ORDER BY s.created_at DESC";
+
+        const result = await db.query(query, [req.session.user.id]);
+
+        let services = [];
+        if (Array.isArray(result)) {
+            if (result.length > 0 && Array.isArray(result[0])) {
+                services = result[0];
+            } else {
+                services = result;
+            }
+        }
+
+        // Parse JSON fields
+        services = services.map(service => {
+            if (service.tags && typeof service.tags === 'string') {
+                try {
+                    service.tags = JSON.parse(service.tags);
+                } catch (e) {
+                    service.tags = [];
+                }
+            }
+            if (service.requirements && typeof service.requirements === 'string') {
+                try {
+                    service.requirements = JSON.parse(service.requirements);
+                } catch (e) {
+                    service.requirements = [];
+                }
+            }
+            return service;
+        });
+        
+        res.json(services);
+
+    } catch (err) {
+        console.error("Error fetching your services:", err);
+        res.status(500).json({ 
+            error: "Error fetching your services",
+            details: err.message 
+        });
+    }
+});
+
+// GET SERVICE CATEGORIES
+app.get("/api/services/categories", async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT DISTINCT category 
+            FROM services 
+            WHERE category IS NOT NULL AND category != '' AND status = 'active'
+            ORDER BY category
+        `);
+        
+        let categories = [];
+        if (Array.isArray(result)) {
+            categories = result.length === 2 ? result[0] : result;
+        }
+
+        res.json(categories.map(row => row.category).filter(Boolean));
+    } catch (err) {
+        console.error("Error fetching categories:", err);
+        res.status(500).json({ error: "Error fetching categories" });
+    }
+});
+
+// GET SERVICE DETAILS
+app.get("/api/services/:id", async (req, res) => {
+    try {
+        const serviceId = req.params.id;
+
+        const result = await db.query(`
+            SELECT 
+                s.*, 
+                u.username,
+                u.id as user_id,
+                u.email,
+                u.created_at as user_since,
+                fp.profile_picture_url as provider_profile_picture,
+                fp.headline as provider_headline,
+                fp.description as provider_description,
+                fp.hourly_rate as provider_hourly_rate,
+                fp.skills,
+                fp.location,
+                fp.completed_orders,
+                fp.total_earnings,
+                (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
+                (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
+                (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
+            FROM services s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
+            WHERE s.id = ? AND s.status = 'active'
+        `, [serviceId]);
+
+        let services = [];
+        if (Array.isArray(result)) {
+            services = result.length === 2 ? result[0] : result;
+        }
+
+        if (!services || services.length === 0) {
+            return res.status(404).json({ error: "Service not found" });
+        }
+
+        const service = services[0];
+
+        // Get packages
+        const packagesResult = await db.query(
+            `SELECT * FROM service_packages WHERE service_id = ? AND is_active = 1`,
+            [serviceId]
+        );
+
+        let packages = [];
+        if (Array.isArray(packagesResult)) {
+            packages = packagesResult.length === 2 ? packagesResult[0] : packagesResult;
+        }
+
+        // Get reviews
+        const reviewsResult = await db.query(`
+            SELECT sr.*, u.username
+            FROM service_reviews sr
+            JOIN users u ON sr.user_id = u.id
+            WHERE sr.service_id = ?
+            ORDER BY sr.created_at DESC
+            LIMIT 10
+        `, [serviceId]);
+
+        let reviews = [];
+        if (Array.isArray(reviewsResult)) {
+            reviews = reviewsResult.length === 2 ? reviewsResult[0] : reviewsResult;
+        }
+
+        // Parse JSON fields
+        let requirements = [];
+        if (service.requirements) {
+            try {
+                requirements = JSON.parse(service.requirements);
+            } catch (e) {
+                requirements = [service.requirements];
+            }
+        }
+
+        let tags = [];
+        if (service.tags) {
+            try {
+                tags = JSON.parse(service.tags);
+            } catch (e) {
+                tags = [service.tags];
+            }
+        }
+
+        res.json({
+            ...service,
+            packages: packages || [],
+            reviews: reviews || [],
+            review_count: reviews?.length || 0,
+            avg_rating: service.avg_rating || 0,
+            requirements: requirements,
+            tags: tags
+        });
+
+    } catch (err) {
+        console.error("Error loading service details:", err);
+        res.status(500).json({ error: "Error loading service details: " + err.message });
+    }
+});
+
+// CREATE SERVICE
+app.post("/api/services", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to create a service" });
+    }
+
+    // Only freelancers can create services
+    if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: "Only freelancers can create services" });
+    }
+
+    try {
+        const { 
+            title, 
+            description, 
+            category, 
+            hourly_rate, 
+            fixed_price,
+            delivery_time,
+            revisions,
+            tags,
+            requirements
+        } = req.body;
+
+        if (!title || !description) {
+            return res.status(400).json({ error: "Title and description are required" });
+        }
+
+        if (title.length < 5) {
+            return res.status(400).json({ error: "Title must be at least 5 characters" });
+        }
+
+        if (description.length < 20) {
+            return res.status(400).json({ error: "Description must be at least 20 characters" });
+        }
+
+        // Determine price
+        const price = fixed_price ? parseFloat(fixed_price) :
+                     hourly_rate ? parseFloat(hourly_rate) : 0;
+
+        // Get freelancer profile picture
+        const profileResult = await db.query(
+            "SELECT profile_picture_url FROM freelancer_profiles WHERE user_id = ?",
+            [req.session.user.id]
+        );
+
+        let profilePictures = [];
+        if (Array.isArray(profileResult)) {
+            profilePictures = profileResult.length === 2 ? profileResult[0] : profileResult;
+        }
+
+        const profilePicture = profilePictures.length > 0 ? profilePictures[0].profile_picture_url : null;
+
+        // Parse tags and requirements if they're strings
+        let parsedTags = tags;
+        if (tags && typeof tags === 'string') {
+            try {
+                parsedTags = JSON.parse(tags);
+            } catch (e) {
+                parsedTags = tags.split(',').map(t => t.trim());
+            }
+        }
+
+        let parsedRequirements = requirements;
+        if (requirements && typeof requirements === 'string') {
+            try {
+                parsedRequirements = JSON.parse(requirements);
+            } catch (e) {
+                parsedRequirements = requirements.split('\n').filter(r => r.trim());
+            }
+        }
+
+        // Insert service
+        const result = await db.query(`
+            INSERT INTO services 
+            (user_id, title, description, price, category, provider_profile_picture, 
+             delivery_time, revisions, tags, requirements, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
+        `, [
+            req.session.user.id,
+            title,
+            description,
+            price,
+            category || 'other',
+            profilePicture,
+            delivery_time || 7,
+            revisions || 2,
+            parsedTags ? JSON.stringify(parsedTags) : null,
+            parsedRequirements ? JSON.stringify(parsedRequirements) : null
+        ]);
+
+        const serviceId = result.insertId || (result[0] && result[0].insertId);
+        if (!serviceId) throw new Error("Could not get service ID after creation");
+
+        // If packages were provided, insert them
+        if (req.body.packages) {
+            let packages = req.body.packages;
+            if (typeof packages === 'string') {
+                try {
+                    packages = JSON.parse(packages);
+                } catch (e) {
+                    packages = [];
+                }
+            }
+
+            if (Array.isArray(packages) && packages.length > 0) {
+                for (const pkg of packages) {
+                    await db.query(`
+                        INSERT INTO service_packages 
+                        (service_id, package_name, price, delivery_time, revisions, features, is_active)
+                        VALUES (?, ?, ?, ?, ?, ?, 1)
+                    `, [
+                        serviceId,
+                        pkg.package_name || 'basic',
+                        pkg.price || 0,
+                        pkg.delivery_time || delivery_time || 7,
+                        pkg.revisions || revisions || 2,
+                        pkg.features ? JSON.stringify(pkg.features) : null
+                    ]);
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            message: "Service created successfully!",
+            serviceId: serviceId,
+            hasProfilePicture: !!profilePicture
+        });
+
+    } catch (err) {
+        console.error("Service creation error:", err);
+        res.status(500).json({ error: "Error creating service: " + err.message });
+    }
+});
+// ============================================
+// FLAGGING SYSTEM BACKEND ROUTES
+// ============================================
+
+// Flag a user (client only)
+app.post("/api/users/flag", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        if (req.session.user.role !== 'client') {
+            return res.status(403).json({ error: "Only clients can flag users" });
+        }
+        
+        const { flagged_user_id, service_id, reason } = req.body;
+        
+        if (!flagged_user_id || !reason) {
+            return res.status(400).json({ error: "User ID and reason are required" });
+        }
+        
+        if (reason.length < 10) {
+            return res.status(400).json({ error: "Reason must be at least 10 characters" });
+        }
+        
+        // Check if user is flagging themselves
+        if (parseInt(flagged_user_id) === parseInt(req.session.user.id)) {
+            return res.status(400).json({ error: "You cannot flag yourself" });
+        }
+        
+        // Get the flagged user's role
+        const userResult = await db.query(
+            "SELECT role FROM users WHERE id = ?",
+            [flagged_user_id]
+        );
+        
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        if (userResult[0].role !== 'freelancer') {
+            return res.status(400).json({ error: "Only freelancers can be flagged" });
+        }
+        
+        // Check if client has already flagged this user (optional: prevent duplicate flags)
+        const existingFlag = await db.query(
+            "SELECT id FROM user_flags WHERE flagged_user_id = ? AND flagged_by_user_id = ?",
+            [flagged_user_id, req.session.user.id]
+        );
+        
+        if (existingFlag && existingFlag.length > 0) {
+            // Allow multiple flags but with a cooldown? For now, allow multiple
+            // But we'll count all flags for the threshold
+        }
+        
+        // Insert the flag
+        const flagResult = await db.query(
+            `INSERT INTO user_flags (flagged_user_id, flagged_by_user_id, service_id, reason, status, created_at)
+             VALUES (?, ?, ?, ?, 'pending', NOW())`,
+            [flagged_user_id, req.session.user.id, service_id || null, reason]
+        );
+        
+        const flagId = flagResult.insertId;
+        
+        // Log to history
+        await db.query(
+            `INSERT INTO flag_history (flag_id, action, notes, performed_by, performed_at)
+             VALUES (?, 'created', ?, ?, NOW())`,
+            [flagId, reason, req.session.user.id]
+        );
+        
+        // Count total flags for this user
+        const flagCountResult = await db.query(
+            "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
+            [flagged_user_id]
+        );
+        
+        const flagCount = flagCountResult[0]?.count || 1;
+        
+        // Check if this is the first flag - issue warning
+        let warningIssued = false;
+        if (flagCount === 1) {
+            // Add warning record
+            await db.query(
+                `INSERT INTO user_warnings (user_id, warning_type, reason, issued_by, expires_at, created_at)
+                 VALUES (?, 'flag', ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
+                [flagged_user_id, "Your account has been flagged. Please review our community guidelines.", null]
+            );
+            warningIssued = true;
+        }
+        
+        // Check if this is the third flag - lock account and request freelancer statement
+        let accountLocked = false;
+        if (flagCount >= 3) {
+            // Check if already in review
+            const existingReview = await db.query(
+                "SELECT id FROM admin_reviews WHERE user_id = ? AND status IN ('pending', 'under_review')",
+                [flagged_user_id]
+            );
+            
+            if (!existingReview || existingReview.length === 0) {
+                // Create admin review record
+                await db.query(
+                    `INSERT INTO admin_reviews (user_id, flag_count, status, created_at)
+                     VALUES (?, ?, 'pending', NOW())`,
+                    [flagged_user_id, flagCount]
+                );
+            } else {
+                // Update flag count
+                await db.query(
+                    "UPDATE admin_reviews SET flag_count = ? WHERE user_id = ?",
+                    [flagCount, flagged_user_id]
+                );
+            }
+            
+            // Lock the user's account temporarily
+            await db.query(
+                "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
+                ["Multiple flags - pending admin review", flagged_user_id]
+            );
+            accountLocked = true;
+        }
+        
+        let responseMessage = "User flagged successfully";
+        if (warningIssued) {
+            responseMessage = "User flagged. A warning has been issued to the user.";
+        }
+        if (accountLocked) {
+            responseMessage = "User flagged. The account has been temporarily locked for admin review.";
+        }
+        
+        res.json({
+            success: true,
+            message: responseMessage,
+            flagCount: flagCount,
+            warningIssued: warningIssued,
+            accountLocked: accountLocked
+        });
+        
+    } catch (err) {
+        console.error("❌ Flag user error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get flag status for a user (for client)
+app.get("/api/users/flag-status/:userId", async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        
+        if (!req.session.user) {
+            return res.json({ canFlag: false, message: "Please login" });
+        }
+        
+        if (req.session.user.role !== 'client') {
+            return res.json({ canFlag: false, message: "Only clients can flag users" });
+        }
+        
+        // Check if user has already flagged this freelancer
+        const existingFlag = await db.query(
+            "SELECT id FROM user_flags WHERE flagged_user_id = ? AND flagged_by_user_id = ?",
+            [userId, req.session.user.id]
+        );
+        
+        // Count total flags for this user
+        const flagCountResult = await db.query(
+            "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
+            [userId]
+        );
+        
+        const flagCount = flagCountResult[0]?.count || 0;
+        
+        res.json({
+            canFlag: true,
+            hasFlagged: existingFlag && existingFlag.length > 0,
+            flagCount: flagCount,
+            message: flagCount >= 3 ? "This user has been flagged multiple times and is under review" : null
+        });
+        
+    } catch (err) {
+        console.error("❌ Flag status error:", err);
+        res.json({ canFlag: true, message: "Unknown" });
+    }
+});
+
+// Get freelancer's own flag status
+app.get("/api/users/my-flag-status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const userId = req.session.user.id;
+        
+        // Check if account is locked
+        const userResult = await db.query(
+            "SELECT account_locked, locked_at, lock_reason FROM users WHERE id = ?",
+            [userId]
+        );
+        
+        const isLocked = userResult && userResult[0]?.account_locked === 1;
+        
+        // Count active flags (not resolved)
+        const flagCountResult = await db.query(
+            "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ? AND status = 'pending'",
+            [userId]
+        );
+        
+        const flagCount = flagCountResult[0]?.count || 0;
+        
+        // Check if admin review is pending
+        const reviewResult = await db.query(
+            "SELECT status, freelancer_statement FROM admin_reviews WHERE user_id = ?",
+            [userId]
+        );
+        
+        const pendingReview = reviewResult && reviewResult.length > 0 && 
+                              ['pending', 'under_review'].includes(reviewResult[0].status);
+        
+        res.json({
+            hasFlags: flagCount > 0,
+            flagCount: flagCount,
+            accountLocked: isLocked,
+            pendingReview: pendingReview,
+            needsStatement: pendingReview && !reviewResult[0]?.freelancer_statement
+        });
+        
+    } catch (err) {
+        console.error("❌ My flag status error:", err);
+        res.json({ hasFlags: false, flagCount: 0 });
+    }
+});
+
+// Submit freelancer's statement (when flagged 3 times)
+app.post("/api/users/submit-statement", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { statement } = req.body;
+        
+        if (!statement || statement.length < 20) {
+            return res.status(400).json({ error: "Please provide a detailed statement (minimum 20 characters)" });
+        }
+        
+        const userId = req.session.user.id;
+        
+        const reviewResult = await db.query(
+            "SELECT id FROM admin_reviews WHERE user_id = ? AND status IN ('pending', 'under_review')",
+            [userId]
+        );
+        
+        if (!reviewResult || reviewResult.length === 0) {
+            return res.status(400).json({ error: "No pending review found for your account" });
+        }
+        
+        await db.query(
+            "UPDATE admin_reviews SET freelancer_statement = ?, status = 'under_review' WHERE user_id = ?",
+            [statement, userId]
+        );
+        
+        // Notify admin? Could add notification here
+        
+        res.json({
+            success: true,
+            message: "Your statement has been submitted. An admin will review your account shortly."
+        });
+        
+    } catch (err) {
+        console.error("❌ Submit statement error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ADMIN ROUTES - Get flagged users
+app.get("/api/admin/flagged-users", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        const users = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                u.email,
+                u.created_at,
+                u.account_locked,
+                u.locked_at,
+                u.lock_reason,
+                COUNT(uf.id) as flag_count,
+                ar.status as review_status,
+                ar.freelancer_statement,
+                ar.created_at as review_created_at
+            FROM users u
+            LEFT JOIN user_flags uf ON uf.flagged_user_id = u.id AND uf.status = 'pending'
+            LEFT JOIN admin_reviews ar ON ar.user_id = u.id
+            WHERE u.role = 'freelancer'
+            GROUP BY u.id
+            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            ORDER BY flag_count DESC
+        `);
+        
+        res.json({
+            users: users.map(user => ({
+                ...user,
+                flag_count: parseInt(user.flag_count),
+                status: user.review_status || (user.account_locked ? 'suspended' : 'pending')
+            }))
+        });
+        
+    } catch (err) {
+        console.error("❌ Get flagged users error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin - Get detailed flags for a user
+app.get("/api/admin/user-flags/:userId", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        const userId = req.params.userId;
+        
+        const userResult = await db.query(
+            "SELECT username FROM users WHERE id = ?",
+            [userId]
+        );
+        
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        const flags = await db.query(`
+            SELECT uf.*, u.username as flagged_by_name
+            FROM user_flags uf
+            LEFT JOIN users u ON uf.flagged_by_user_id = u.id
+            WHERE uf.flagged_user_id = ?
+            ORDER BY uf.created_at DESC
+        `, [userId]);
+        
+        const reviewResult = await db.query(
+            "SELECT freelancer_statement FROM admin_reviews WHERE user_id = ?",
+            [userId]
+        );
+        
+        res.json({
+            username: userResult[0].username,
+            flags: flags || [],
+            freelancer_statement: reviewResult[0]?.freelancer_statement || null
+        });
+        
+    } catch (err) {
+        console.error("❌ Get user flags error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin - Resolve flags for a user
+app.post("/api/admin/resolve-flags/:userId", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        const userId = req.params.userId;
+        const { action, admin_notes } = req.body;
+        
+        if (action === 'cleared') {
+            // Mark all pending flags as reviewed
+            await db.query(
+                "UPDATE user_flags SET status = 'reviewed', updated_at = NOW() WHERE flagged_user_id = ? AND status = 'pending'",
+                [userId]
+            );
+            
+            // Update admin review record
+            await db.query(
+                `UPDATE admin_reviews 
+                 SET status = 'cleared', 
+                     admin_notes = ?,
+                     reviewed_by = ?,
+                     reviewed_at = NOW()
+                 WHERE user_id = ?`,
+                [admin_notes, req.session.user.id, userId]
+            );
+            
+            // Unlock account if locked
+            await db.query(
+                "UPDATE users SET account_locked = 0, locked_at = NULL, lock_reason = NULL WHERE id = ?",
+                [userId]
+            );
+            
+            res.json({ success: true, message: "Flags cleared. User account restored." });
+            
+        } else if (action === 'suspended') {
+            // Update admin review record
+            await db.query(
+                `UPDATE admin_reviews 
+                 SET status = 'suspended', 
+                     admin_notes = ?,
+                     reviewed_by = ?,
+                     reviewed_at = NOW()
+                 WHERE user_id = ?`,
+                [admin_notes, req.session.user.id, userId]
+            );
+            
+            // Keep account locked
+            await db.query(
+                "UPDATE users SET account_locked = 1, lock_reason = ? WHERE id = ?",
+                [admin_notes || "Suspended by admin", userId]
+            );
+            
+            res.json({ success: true, message: "Account suspended." });
+        } else {
+            res.status(400).json({ error: "Invalid action" });
+        }
+        
+    } catch (err) {
+        console.error("❌ Resolve flags error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin - Suspend user
+app.post("/api/admin/suspend-user/:userId", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        const userId = req.params.userId;
+        const { reason } = req.body;
+        
+        await db.query(
+            "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
+            [reason || "Suspended by admin", userId]
+        );
+        
+        res.json({ success: true, message: "User suspended successfully" });
+        
+    } catch (err) {
+        console.error("❌ Suspend user error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin - Reactivate user
+app.post("/api/admin/reactivate-user/:userId", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        const userId = req.params.userId;
+        
+        await db.query(
+            "UPDATE users SET account_locked = 0, locked_at = NULL, lock_reason = NULL WHERE id = ?",
+            [userId]
+        );
+        
+        res.json({ success: true, message: "User reactivated successfully" });
+        
+    } catch (err) {
+        console.error("❌ Reactivate user error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get subscription status with proper trial calculation
+app.get("/api/subscription/status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const userId = req.session.user.id;
+        
+        // Get user subscription info
+        const userResult = await db.query(
+            `SELECT subscription_status, subscription_plan, trial_start_date, trial_end_date,
+                    subscription_start_date, subscription_end_date, account_locked
+             FROM users WHERE id = ?`,
+            [userId]
+        );
+        
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        const user = userResult[0];
+        
+        let hasActiveSubscription = false;
+        let subscriptionPlan = user.subscription_plan || 'free_trial';
+        let daysLeft = 0;
+        let message = "";
+        
+        // Check trial status for freelancers
+        if (user.subscription_plan === 'free_trial' && user.trial_end_date) {
+            const now = new Date();
+            const trialEnd = new Date(user.trial_end_date);
+            daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+            
+            if (daysLeft > 0) {
+                hasActiveSubscription = true;
+                message = `You have ${daysLeft} days left in your free trial`;
+            } else {
+                hasActiveSubscription = false;
+                message = "Your free trial has expired. Please subscribe to continue using services.";
+                
+                // Update user status to expired
+                if (user.subscription_status !== 'expired') {
+                    await db.query(
+                        "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
+                        [userId]
+                    );
+                }
+            }
+        } 
+        // Check paid subscription
+        else if (user.subscription_plan !== 'free_trial' && user.subscription_end_date) {
+            const now = new Date();
+            const subscriptionEnd = new Date(user.subscription_end_date);
+            daysLeft = Math.max(0, Math.ceil((subscriptionEnd - now) / (1000 * 60 * 60 * 24)));
+            
+            if (daysLeft > 0) {
+                hasActiveSubscription = true;
+                message = `Your ${subscriptionPlan} subscription is active. ${daysLeft} days remaining.`;
+            } else {
+                hasActiveSubscription = false;
+                message = "Your subscription has expired. Please renew to continue.";
+                
+                await db.query(
+                    "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
+                    [userId]
+                );
+            }
+        }
+        
+        // Check if account is locked (for flagged users)
+        const accountLocked = user.account_locked === 1;
+        
+        res.json({
+            hasActiveSubscription: hasActiveSubscription && !accountLocked,
+            subscriptionPlan: subscriptionPlan,
+            daysLeft: daysLeft,
+            message: message,
+            accountLocked: accountLocked,
+            trialStarted: !!user.trial_start_date,
+            trialEndDate: user.trial_end_date,
+            subscriptionEndDate: user.subscription_end_date
+        });
+        
+    } catch (err) {
+        console.error("❌ Subscription status error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create subscription payment
+app.post("/api/subscription/pay", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { plan } = req.body;
+        
+        if (!plan || !['monthly', 'yearly'].includes(plan)) {
+            return res.status(400).json({ error: "Invalid subscription plan" });
+        }
+        
+        const amount = plan === 'monthly' ? 5.00 : 57.50;
+        const transactionRef = `sub_${plan}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        
+        // Store payment intent
+        await db.query(
+            `INSERT INTO subscription_payments (user_id, plan, amount, payment_status, transaction_ref, created_at)
+             VALUES (?, ?, ?, 'pending', ?, NOW())`,
+            [req.session.user.id, plan, amount, transactionRef]
+        );
+        
+        // Create Flutterwave payment
+        if (!process.env.FLW_SECRET_KEY) {
+            return res.status(500).json({ error: "Payment system not configured" });
+        }
+        
+        const payload = {
+            tx_ref: transactionRef,
+            amount: amount,
+            currency: "USD",
+            redirect_url: "https://core-insight-7.onrender.com/subscription-callback.html",
+            customer: {
+                email: req.session.user.email,
+                name: req.session.user.username,
+            },
+            customizations: {
+                title: "Core Insight - Subscription",
+                description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Subscription`,
+            },
+            meta: {
+                user_id: req.session.user.id,
+                plan: plan,
+                type: 'subscription'
+            }
+        };
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/payments',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 15000
+            }
+        );
+        
+        if (response.data.status === "success" && response.data.data?.link) {
+            res.json({
+                success: true,
+                paymentLink: response.data.data.link,
+                transactionRef: transactionRef,
+                amount: amount,
+                plan: plan
+            });
+        } else {
+            throw new Error(response.data.message || "Payment initialization failed");
+        }
+        
+    } catch (err) {
+        console.error("❌ Subscription payment error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify subscription payment callback
+app.post("/api/subscription/verify", async (req, res) => {
+    try {
+        const { transaction_ref, status } = req.body;
+        
+        if (status !== 'successful') {
+            return res.status(400).json({ error: "Payment not successful" });
+        }
+        
+        // Get payment record
+        const paymentResult = await db.query(
+            "SELECT * FROM subscription_payments WHERE transaction_ref = ? AND payment_status = 'pending'",
+            [transaction_ref]
+        );
+        
+        if (!paymentResult || paymentResult.length === 0) {
+            return res.status(404).json({ error: "Payment record not found" });
+        }
+        
+        const payment = paymentResult[0];
+        const userId = payment.user_id;
+        const plan = payment.plan;
+        
+        // Calculate subscription dates
+        const now = new Date();
+        let subscriptionEnd = new Date();
+        
+        if (plan === 'monthly') {
+            subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
+        } else {
+            subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+        }
+        
+        // Update user subscription
+        await db.query(
+            `UPDATE users 
+             SET subscription_plan = ?,
+                 subscription_status = 'active',
+                 subscription_start_date = ?,
+                 subscription_end_date = ?,
+                 trial_start_date = NULL,
+                 trial_end_date = NULL
+             WHERE id = ?`,
+            [plan, now, subscriptionEnd, userId]
+        );
+        
+        // Update payment record
+        await db.query(
+            `UPDATE subscription_payments 
+             SET payment_status = 'completed', 
+                 payment_date = ?,
+                 subscription_start = ?,
+                 subscription_end = ?
+             WHERE transaction_ref = ?`,
+            [now, now, subscriptionEnd, transaction_ref]
+        );
+        
+        // Update freelancer profile if exists
+        await db.query(
+            `UPDATE freelancer_profiles 
+             SET subscription_status = ?, 
+                 trial_days_remaining = 0
+             WHERE user_id = ?`,
+            [plan, userId]
+        );
+        
+        // Send confirmation email
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Subscription Activated - Core Insight</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#10b981;">✅ Subscription Activated!</h1>
+                    <p>Hello ${payment.user_name || 'there'},</p>
+                    <p>Your ${plan} subscription has been activated successfully!</p>
+                    <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
+                        <p><strong>Plan:</strong> ${plan.charAt(0).toUpperCase() + plan.slice(1)}</p>
+                        <p><strong>Amount Paid:</strong> $${payment.amount}</p>
+                        <p><strong>Valid Until:</strong> ${subscriptionEnd.toLocaleDateString()}</p>
+                    </div>
+                    <p>You can now create and manage services on Core Insight.</p>
+                    <a href="https://core-insight-7.onrender.com/services.html" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">Go to Dashboard</a>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(req.session.user.email, "Subscription Activated - Core Insight", emailHtml);
+        
+        res.json({
+            success: true,
+            message: "Subscription activated successfully",
+            plan: plan,
+            validUntil: subscriptionEnd
+        });
+        
+    } catch (err) {
+        console.error("❌ Subscription verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // PHYSICAL ORDER SYSTEM
 // ============================================

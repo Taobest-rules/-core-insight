@@ -302,9 +302,10 @@
   
   <script>
     let selectedMethod = 'flutterwave';
-    let orderData = null;
-    let currentUserId = null;
-    
+let orderData = null;
+let currentUserId = null;
+let currentUser = null;  // ✅ ADD THIS LINE
+
     // Get orderId from URL
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('orderId');
@@ -498,7 +499,7 @@
       }
     }
 
-  // Pay button handler - MODIFIED VERSION (uses fetched payment keys)
+ // Pay button handler - FIXED (currentUser removed)
 document.getElementById('payNowBtn').addEventListener('click', async () => {
   if (!orderData) {
     alert('Order data not loaded. Please refresh the page.');
@@ -513,17 +514,16 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
   
   try {
     const amount = parseFloat(orderData.total_amount);
-    const email = currentUser?.email || '';
-    const name = currentUser?.username || 'Customer';
+    // ✅ USE orderData.buyer instead of currentUser
+    const email = orderData.buyer?.email || '';
+    const name = orderData.buyer?.name || 'Customer';
     const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
     if (selectedMethod === 'flutterwave') {
-      // Check if Flutterwave is configured
       if (!paymentKeys.flutterwave?.public_key) {
         throw new Error('Flutterwave is not configured. Please contact support.');
       }
       
-      // Initialize Flutterwave payment directly in browser
       FlutterwaveCheckout({
         public_key: paymentKeys.flutterwave.public_key,
         tx_ref: tx_ref,
@@ -533,51 +533,36 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
         customer: {
           email: email,
           name: name,
-          phone_number: orderData.delivery_phone || null
         },
         customizations: {
           title: "Core Insight Marketplace",
           description: `Order #${orderId} - ${orderData.product_name}`,
-          logo: "https://core-insight-7.onrender.com/logo.png",
         },
         callback: async (response) => {
-          console.log("Payment callback:", response);
           await verifyPaymentOnServer(response.transaction_id, orderId, tx_ref);
           window.location.href = `/payment-success.html?orderId=${orderId}`;
         },
         onclose: () => {
-          console.log("Payment modal closed");
           payBtn.disabled = false;
           payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
         },
       });
-      
     } else if (selectedMethod === 'paystack') {
-      // Check if Paystack is configured
       if (!paymentKeys.paystack?.public_key) {
         throw new Error('Paystack is not configured. Please contact support.');
       }
       
-      // Initialize Paystack payment
       const handler = PaystackPop.setup({
         key: paymentKeys.paystack.public_key,
         email: email,
-        amount: Math.round(amount * 100), // Paystack uses kobo/cents
+        amount: Math.round(amount * 100),
         currency: "USD",
         ref: tx_ref,
-        metadata: {
-          custom_fields: [
-            { display_name: "Order ID", variable_name: "order_id", value: orderId },
-            { display_name: "Product", variable_name: "product", value: orderData.product_name }
-          ]
-        },
         callback: async (response) => {
-          console.log("Paystack callback:", response);
           await verifyPaystackPayment(response.reference, orderId);
           window.location.href = `/payment-success.html?orderId=${orderId}`;
         },
         onClose: () => {
-          console.log("Paystack modal closed");
           payBtn.disabled = false;
           payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
         }
@@ -586,13 +571,12 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
     }
     
   } catch (error) {
-    console.error('Payment initialization error:', error);
+    console.error('Payment error:', error);
     alert('Payment Error:\n\n' + error.message);
     payBtn.disabled = false;
     payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
   }
 });
-
 // Verify payment with your server after successful payment
 async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
   try {
@@ -737,6 +721,7 @@ async function verifyPaystackPayment(reference, orderId) {
         if (response.ok) {
           const user = await response.json();
           currentUserId = user?.id;
+           currentUser = user; 
           console.log('Current user ID:', currentUserId);
         }
       } catch (error) {

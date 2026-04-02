@@ -6,7 +6,9 @@
   <title>Complete Payment - Core Insight</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+ <style>
     * {
       margin: 0;
       padding: 0;
@@ -495,8 +497,8 @@
         showError(error.message || 'Failed to load order details');
       }
     }
-    
-// Pay button handler - IMPROVED VERSION
+
+  // Pay button handler - MODIFIED VERSION (uses fetched payment keys)
 document.getElementById('payNowBtn').addEventListener('click', async () => {
   if (!orderData) {
     alert('Order data not loaded. Please refresh the page.');
@@ -504,48 +506,221 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
   }
   
   const payBtn = document.getElementById('payNowBtn');
+  const selectedMethod = document.querySelector('.method-btn.selected')?.getAttribute('data-method') || 'flutterwave';
+  
   payBtn.disabled = true;
-  payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating payment link...';
+  payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
   
   try {
-    console.log('Creating payment link for order:', orderId);
+    const amount = parseFloat(orderData.total_amount);
+    const email = currentUser?.email || '';
+    const name = currentUser?.username || 'Customer';
+    const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
-    const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('Response:', data);
-    
-    if (!response.ok) {
-      // Show detailed error message
-      let errorMsg = data.error || data.details || 'Payment creation failed';
-      if (data.flutterwave_message) {
-        errorMsg += `\n\nFlutterwave says: ${data.flutterwave_message}`;
+    if (selectedMethod === 'flutterwave') {
+      // Check if Flutterwave is configured
+      if (!paymentKeys.flutterwave?.public_key) {
+        throw new Error('Flutterwave is not configured. Please contact support.');
       }
-      throw new Error(errorMsg);
-    }
-    
-    if (data.paymentLink) {
-      console.log('Redirecting to:', data.paymentLink);
-      window.location.href = data.paymentLink;
-    } else {
-      throw new Error('No payment link received');
+      
+      // Initialize Flutterwave payment directly in browser
+      FlutterwaveCheckout({
+        public_key: paymentKeys.flutterwave.public_key,
+        tx_ref: tx_ref,
+        amount: amount,
+        currency: "USD",
+        payment_options: "card, banktransfer, ussd",
+        customer: {
+          email: email,
+          name: name,
+          phone_number: orderData.delivery_phone || null
+        },
+        customizations: {
+          title: "Core Insight Marketplace",
+          description: `Order #${orderId} - ${orderData.product_name}`,
+          logo: "https://core-insight-7.onrender.com/logo.png",
+        },
+        callback: async (response) => {
+          console.log("Payment callback:", response);
+          await verifyPaymentOnServer(response.transaction_id, orderId, tx_ref);
+          window.location.href = `/payment-success.html?orderId=${orderId}`;
+        },
+        onclose: () => {
+          console.log("Payment modal closed");
+          payBtn.disabled = false;
+          payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+        },
+      });
+      
+    } else if (selectedMethod === 'paystack') {
+      // Check if Paystack is configured
+      if (!paymentKeys.paystack?.public_key) {
+        throw new Error('Paystack is not configured. Please contact support.');
+      }
+      
+      // Initialize Paystack payment
+      const handler = PaystackPop.setup({
+        key: paymentKeys.paystack.public_key,
+        email: email,
+        amount: Math.round(amount * 100), // Paystack uses kobo/cents
+        currency: "USD",
+        ref: tx_ref,
+        metadata: {
+          custom_fields: [
+            { display_name: "Order ID", variable_name: "order_id", value: orderId },
+            { display_name: "Product", variable_name: "product", value: orderData.product_name }
+          ]
+        },
+        callback: async (response) => {
+          console.log("Paystack callback:", response);
+          await verifyPaystackPayment(response.reference, orderId);
+          window.location.href = `/payment-success.html?orderId=${orderId}`;
+        },
+        onClose: () => {
+          console.log("Paystack modal closed");
+          payBtn.disabled = false;
+          payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+        }
+      });
+      handler.openIframe();
     }
     
   } catch (error) {
-    console.error('Payment error:', error);
+    console.error('Payment initialization error:', error);
     alert('Payment Error:\n\n' + error.message);
     payBtn.disabled = false;
     payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
   }
-}); 
-    // Show error message
+});
+
+// Verify payment with your server after successful payment
+async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
+  try {
+    const response = await fetch('/api/verify-physical-payment-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        transaction_id: transactionId, 
+        order_id: orderId,
+        tx_ref: tx_ref 
+      }),
+      credentials: 'include'
+    });
+    const data = await response.json();
+    console.log('Verification result:', data);
+    return data;
+  } catch (error) {
+    console.error('Verification error:', error);
+    throw error;
+  }
+}
+
+async function verifyPaystackPayment(reference, orderId) {
+  try {
+    const response = await fetch('/api/verify-paystack-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference: reference, order_id: orderId }),
+      credentials: 'include'
+    });
+    const data = await response.json();
+    console.log('Paystack verification:', data);
+    return data;
+  } catch (error) {
+    console.error('Paystack verification error:', error);
+    throw error;
+  }
+}
+
+// Load payment keys when page loads
+async function loadPaymentKeys() {
+  try {
+    const response = await fetch('/api/payment-keys', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    paymentKeys = data;
+    
+    if (!paymentKeys.flutterwave?.isConfigured && !paymentKeys.paystack?.isConfigured) {
+      console.warn('⚠️ No payment gateways configured');
+      const payBtn = document.getElementById('payNowBtn');
+      if (payBtn) {
+        payBtn.disabled = true;
+        payBtn.title = 'Payment not configured';
+      }
+    }
+    
+    console.log('✅ Payment keys loaded:', {
+      flutterwave: paymentKeys.flutterwave?.isConfigured ? 'configured' : 'not configured',
+      paystack: paymentKeys.paystack?.isConfigured ? 'configured' : 'not configured'
+    });
+  } catch (error) {
+    console.error('❌ Failed to load payment keys:', error);
+  }
+}
+// Fetch payment keys from server securely
+let paymentKeys = { flutterwave: null, paystack: null };
+
+async function loadPaymentKeys() {
+  try {
+    const response = await fetch('/api/payment-keys', {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    paymentKeys = data;
+    
+    if (!paymentKeys.flutterwave.isConfigured && !paymentKeys.paystack.isConfigured) {
+      console.warn('No payment gateways configured');
+      const payBtn = document.getElementById('payNowBtn');
+      if (payBtn) {
+        payBtn.disabled = true;
+        payBtn.title = 'Payment not configured';
+      }
+    }
+    
+    console.log('Payment keys loaded:', {
+      flutterwave: paymentKeys.flutterwave.isConfigured,
+      paystack: paymentKeys.paystack.isConfigured
+    });
+  } catch (error) {
+    console.error('Failed to load payment keys:', error);
+  }
+}
+
+// Verify payment with your server after successful payment
+async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
+  try {
+    const response = await fetch('/api/verify-physical-payment-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        transaction_id: transactionId, 
+        order_id: orderId,
+        tx_ref: tx_ref 
+      }),
+      credentials: 'include'
+    });
+    const data = await response.json();
+    console.log('Verification result:', data);
+    return data;
+  } catch (error) {
+    console.error('Verification error:', error);
+  }
+}
+
+async function verifyPaystackPayment(reference, orderId) {
+  try {
+    const response = await fetch('/api/verify-paystack-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference: reference, order_id: orderId }),
+      credentials: 'include'
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Paystack verification error:', error);
+  }
+}
     function showError(message) {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';
@@ -576,6 +751,7 @@ document.getElementById('payNowBtn').addEventListener('click', async () => {
       
       if (isAuthenticated) {
         await getCurrentUser();
+        await loadPaymentKeys();
         await loadOrderDetails();
       }
     });

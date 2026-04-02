@@ -6152,6 +6152,87 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
     }
   }
 });
+
+// Direct payment verification endpoint (bypasses server-side API call)
+app.post("/api/verify-physical-payment-direct", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const { transaction_id, order_id, tx_ref } = req.body;
+    
+    // Verify with Flutterwave using the transaction ID
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      {
+        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === "success" && response.data.data.status === "successful") {
+      const transaction = response.data.data;
+      const amount = transaction.amount;
+      
+      // Update order status
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+             transaction_ref = ?
+         WHERE id = ?`,
+        [tx_ref, order_id]
+      );
+      
+      res.json({ success: true, message: "Payment verified successfully" });
+    } else {
+      res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
+  } catch (err) {
+    console.error("❌ Payment verification error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Paystack verification endpoint
+app.post("/api/verify-paystack-payment", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const { reference, order_id } = req.body;
+    
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === true && response.data.data.status === "success") {
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+             transaction_ref = ?
+         WHERE id = ?`,
+        [reference, order_id]
+      );
+      
+      res.json({ success: true, message: "Payment verified successfully" });
+    } else {
+      res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
+  } catch (err) {
+    console.error("❌ Paystack verification error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // Update payment verification to send email
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
@@ -6276,7 +6357,20 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
     res.status(500).json({ error: "Error verifying payment", details: err.message });
   }
 });
-
+// Secure endpoint to get payment public keys (only what's safe to expose)
+app.get("/api/payment-keys", (req, res) => {
+  // Only return public keys - NEVER return secret keys
+  res.json({
+    flutterwave: {
+      public_key: process.env.FLW_PUBLIC_KEY || null,
+      isConfigured: !!process.env.FLW_PUBLIC_KEY
+    },
+    paystack: {
+      public_key: process.env.PAYSTACK_PUBLIC_KEY || null,
+      isConfigured: !!process.env.PAYSTACK_PUBLIC_KEY
+    }
+  });
+});
 // Simple test endpoint for seller orders
 app.get("/api/test/seller-orders", async (req, res) => {
   try {

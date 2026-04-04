@@ -5669,6 +5669,12 @@ app.post("/api/physical-orders/create", async (req, res) => {
     
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created successfully`);
+
+      // ✅ ADD STATUS HISTORY
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at) VALUES (?, 'order_placed', 'Order placed and awaiting seller approval', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
     
     // Send confirmation email to buyer (async, don't wait)
     const orderData = {
@@ -5813,7 +5819,12 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
                  CONCAT('Seller has accepted your order for ', ?, '. Please complete payment to confirm your order.'), NOW())`,
         [order.buyer_id, orderId, order.product_name]
       );
-
+// Add history entry
+await db.query(
+  `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+   VALUES (?, 'seller_accepted', 'Seller accepted the order', ?, NOW())`,
+  [orderId, req.session.user.id]
+);
       // Send payment link email
       try {
         const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
@@ -6024,6 +6035,611 @@ app.get("/api/debug/flutterwave", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ============================================
+// COMPLETE PHYSICAL ORDER STATUS SYSTEM
+// ============================================
+
+// Get order with complete status history
+app.get("/api/orders/:orderId/complete", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(`
+      SELECT o.*, 
+             p.title as product_name, 
+             p.images,
+             u_seller.username as seller_name,
+             u_seller.email as seller_email,
+             u_buyer.username as buyer_name,
+             u_buyer.email as buyer_email
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+      WHERE o.id = ? AND (o.buyer_id = ? OR o.seller_id = ? OR ? = 'admin')
+    `, [orderId, req.session.user.id, req.session.user.id, req.session.user.role]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Get status history
+    const historyResult = await db.query(`
+      SELECT * FROM order_status_history 
+      WHERE order_id = ? 
+      ORDER BY created_at DESC
+    `, [orderId]);
+    
+    // Get tracking information if available
+    const trackingResult = await db.query(`
+      SELECT * FROM order_tracking 
+      WHERE order_id = ? 
+      ORDER BY created_at DESC
+    `, [orderId]);
+    
+    // Calculate status timeline
+    const statusTimeline = buildStatusTimeline(order);
+    
+    // Check if refund is available (within 5 days of payment)
+    let refundAvailable = false;
+    let refundDeadline = null;
+    if (order.payment_collected_at && order.order_status !== 'refunded' && order.order_status !== 'refund_requested') {
+      const paymentDate = new Date(order.payment_collected_at);
+      const now = new Date();
+      const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
+      refundAvailable = daysSincePayment <= 5;
+      if (refundAvailable) {
+        refundDeadline = new Date(paymentDate);
+        refundDeadline.setDate(refundDeadline.getDate() + 5);
+      }
+    }
+    
+    // Calculate escrow release info
+    let escrowInfo = null;
+    if (order.payment_held_until) {
+      const releaseDate = new Date(order.payment_held_until);
+      const now = new Date();
+      const daysUntilRelease = Math.max(0, Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24)));
+      escrowInfo = {
+        held_until: order.payment_held_until,
+        days_remaining: daysUntilRelease,
+        is_released: order.funds_released_at !== null,
+        released_at: order.funds_released_at
+      };
+    }
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        product_name: order.product_name,
+        product_images: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images) : order.images) : [],
+        quantity: parseInt(order.quantity),
+        price: parseFloat(order.price),
+        total_amount: parseFloat(order.total_amount),
+        order_status: order.order_status,
+        payment_status: order.payment_status,
+        shipping_address: order.shipping_address,
+        delivery_phone: order.delivery_phone,
+        notes: order.notes,
+        created_at: order.created_at,
+        seller_accepted_at: order.seller_accepted_at,
+        payment_collected_at: order.payment_collected_at,
+        payment_held_until: order.payment_held_until,
+        funds_released_at: order.funds_released_at,
+        completed_at: order.completed_at,
+        cancelled_at: order.cancelled_at,
+        platform_fee: parseFloat(order.platform_fee) || 0,
+        seller_earnings: parseFloat(order.seller_earnings) || 0,
+        estimated_delivery_days: order.estimated_delivery_days || 7,
+        buyer: {
+          id: order.buyer_id,
+          name: order.buyer_name,
+          email: order.buyer_email
+        },
+        seller: {
+          id: order.seller_id,
+          name: order.seller_name,
+          email: order.seller_email
+        },
+        status_history: historyResult || [],
+        tracking_info: trackingResult || [],
+        status_timeline: statusTimeline,
+        refund_available: refundAvailable,
+        refund_deadline: refundDeadline,
+        escrow_info: escrowInfo
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading order details:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper function to build status timeline
+function buildStatusTimeline(order) {
+  const timeline = [];
+  
+  // Order placed
+  if (order.created_at) {
+    timeline.push({
+      status: 'order_placed',
+      title: 'Order Placed',
+      description: 'Your order has been placed and is awaiting seller approval.',
+      timestamp: order.created_at,
+      completed: true,
+      icon: 'fa-shopping-cart'
+    });
+  }
+  
+  // Seller accepted/rejected
+  if (order.seller_accepted_at) {
+    timeline.push({
+      status: 'seller_accepted',
+      title: 'Order Accepted',
+      description: 'Seller has accepted your order. Payment is now required.',
+      timestamp: order.seller_accepted_at,
+      completed: true,
+      icon: 'fa-check-circle'
+    });
+  } else if (order.order_status === 'cancelled' && order.seller_accepted_at === null) {
+    timeline.push({
+      status: 'seller_rejected',
+      title: 'Order Declined',
+      description: order.response_message || 'Seller was unable to fulfill this order.',
+      timestamp: order.created_at,
+      completed: true,
+      icon: 'fa-times-circle',
+      isError: true
+    });
+  }
+  
+  // Payment completed
+  if (order.payment_collected_at) {
+    timeline.push({
+      status: 'payment_completed',
+      title: 'Payment Received',
+      description: `Payment of $${parseFloat(order.total_amount).toFixed(2)} has been received and is held in escrow.`,
+      timestamp: order.payment_collected_at,
+      completed: true,
+      icon: 'fa-credit-card'
+    });
+  }
+  
+  // Processing (could be added via separate endpoint)
+  if (order.order_status === 'processing' || order.order_status === 'paid') {
+    timeline.push({
+      status: 'processing',
+      title: 'Processing Order',
+      description: 'Seller is preparing your order for shipment.',
+      timestamp: order.payment_collected_at || order.seller_accepted_at,
+      completed: order.order_status !== 'processing',
+      icon: 'fa-cogs'
+    });
+  }
+  
+  // Shipped (from tracking)
+  // Completed
+  if (order.completed_at) {
+    timeline.push({
+      status: 'completed',
+      title: 'Order Completed',
+      description: 'Your order has been completed. Thank you for shopping with us!',
+      timestamp: order.completed_at,
+      completed: true,
+      icon: 'fa-trophy'
+    });
+  }
+  
+  // Refund requested
+  if (order.refund_requested_at) {
+    timeline.push({
+      status: 'refund_requested',
+      title: 'Refund Requested',
+      description: order.refund_reason || 'Customer requested a refund.',
+      timestamp: order.refund_requested_at,
+      completed: order.order_status === 'refunded',
+      icon: 'fa-undo-alt',
+      isWarning: true
+    });
+  }
+  
+  // Refunded
+  if (order.order_status === 'refunded') {
+    timeline.push({
+      status: 'refunded',
+      title: 'Refund Processed',
+      description: `Your refund of $${parseFloat(order.total_amount).toFixed(2)} has been processed.`,
+      timestamp: order.refund_processed_at || order.payment_collected_at,
+      completed: true,
+      icon: 'fa-dollar-sign'
+    });
+  }
+  
+  // Escrow released
+  if (order.funds_released_at) {
+    timeline.push({
+      status: 'escrow_released',
+      title: 'Funds Released to Seller',
+      description: `$${parseFloat(order.seller_earnings || 0).toFixed(2)} has been released to the seller.`,
+      timestamp: order.funds_released_at,
+      completed: true,
+      icon: 'fa-money-bill-wave'
+    });
+  }
+  
+  return timeline;
+}
+
+// Update order status (for sellers)
+app.post("/api/orders/:orderId/status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    const { status, notes, tracking_number, carrier } = req.body;
+    
+    // Verify order ownership
+    const orderResult = await db.query(
+      `SELECT o.*, u.email as buyer_email, u.username as buyer_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.buyer_id = u.id
+       WHERE o.id = ? AND o.seller_id = ?`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found or you don't have permission" });
+    }
+    
+    const order = orderResult[0];
+    const validStatuses = ['processing', 'shipped', 'delivered', 'completed', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status update" });
+    }
+    
+    // Record status change in history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [orderId, status, notes || null, req.session.user.id]
+    );
+    
+    // Add tracking info if provided
+    if (tracking_number) {
+      await db.query(
+        `INSERT INTO order_tracking (order_id, tracking_number, carrier, status, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())`,
+        [orderId, tracking_number, carrier || null, status, notes || null]
+      );
+    }
+    
+    // Update order status
+    let updateFields = `order_status = ?`;
+    const updateParams = [status];
+    
+    if (status === 'completed') {
+      updateFields += `, completed_at = NOW(), funds_released_at = NOW()`;
+    } else if (status === 'cancelled') {
+      updateFields += `, cancelled_at = NOW()`;
+    }
+    
+    updateParams.push(orderId);
+    await db.query(`UPDATE physical_orders SET ${updateFields} WHERE id = ?`, updateParams);
+    
+    // Send email notification to buyer
+    const statusMessages = {
+      'processing': 'Your order is now being processed',
+      'shipped': `Your order has been shipped${tracking_number ? ` with tracking #${tracking_number}` : ''}`,
+      'delivered': 'Your order has been delivered',
+      'completed': 'Your order has been completed. Thank you!',
+      'cancelled': 'Your order has been cancelled'
+    };
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order Status Update - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; background: #3b82f6; color: white; }
+          .tracking { background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Order #${orderId} Status Update</h1>
+          <p>Hello ${order.buyer_name || 'Valued Customer'},</p>
+          <div class="status-badge">${statusMessages[status] || `Status: ${status}`}</div>
+          ${tracking_number ? `
+            <div class="tracking">
+              <strong>Tracking Information:</strong><br>
+              Carrier: ${carrier || 'Standard Shipping'}<br>
+              Tracking Number: ${tracking_number}
+            </div>
+          ` : ''}
+          ${notes ? `<p><strong>Notes from seller:</strong> ${notes}</p>` : ''}
+          <p>You can track your order here: <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(order.buyer_email, `Order #${orderId} Status Update`, emailHtml);
+    
+    // Add notification for buyer
+    await db.query(
+      `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+       VALUES (?, ?, 'status_update', 'Order Status Updated', 
+               CONCAT('Your order #', ?, ' status has been updated to: ', ?), NOW())`,
+      [order.buyer_id, orderId, orderId, statusMessages[status] || status]
+    );
+    
+    res.json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      order_id: orderId,
+      new_status: status
+    });
+    
+  } catch (err) {
+    console.error("❌ Status update error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Confirm delivery (for buyers)
+app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    // Verify buyer owns this order
+    const orderResult = await db.query(
+      `SELECT * FROM physical_orders WHERE id = ? AND buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    if (order.order_status !== 'delivered' && order.order_status !== 'shipped') {
+      return res.status(400).json({ error: "Order cannot be confirmed as delivered yet" });
+    }
+    
+    // Update order to completed
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'completed', 
+           completed_at = NOW(),
+           funds_released_at = NOW()
+       WHERE id = ?`,
+      [orderId]
+    );
+    
+    // Record in history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, 'completed', 'Buyer confirmed delivery', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
+    
+    // Update escrow account
+    await db.query(
+      `UPDATE escrow_accounts 
+       SET status = 'released', 
+           released_at = NOW()
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    res.json({
+      success: true,
+      message: "Delivery confirmed! Thank you for your purchase."
+    });
+    
+  } catch (err) {
+    console.error("❌ Delivery confirmation error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all orders for a user (with filtering)
+app.get("/api/my-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const userId = req.session.user.id;
+    const { status, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    let query = `
+      SELECT o.*, p.title as product_name, p.images,
+             u_seller.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      WHERE o.buyer_id = ?
+    `;
+    const params = [userId];
+    
+    if (status && status !== 'all') {
+      query += " AND o.order_status = ?";
+      params.push(status);
+    }
+    
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const orders = await db.query(query, params);
+    
+    // Get counts for each status
+    const countsResult = await db.query(`
+      SELECT 
+        order_status,
+        COUNT(*) as count
+      FROM physical_orders
+      WHERE buyer_id = ?
+      GROUP BY order_status
+    `, [userId]);
+    
+    const counts = {};
+    countsResult.forEach(row => {
+      counts[row.order_status] = parseInt(row.count);
+    });
+    
+    const processedOrders = (orders || []).map(order => ({
+      id: order.id,
+      product_name: order.product_name,
+      product_image: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images)[0] : order.images[0]) : null,
+      quantity: parseInt(order.quantity),
+      total_amount: parseFloat(order.total_amount),
+      order_status: order.order_status,
+      payment_status: order.payment_status,
+      seller_name: order.seller_name,
+      created_at: order.created_at,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
+      tracking_info: order.tracking_number
+    }));
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      counts: counts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        has_more: orders.length === parseInt(limit)
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Error fetching orders:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get order status for tracking page (public with order ID only)
+app.get("/api/track-order/:orderId", async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(`
+      SELECT o.*, p.title as product_name, p.images,
+             u_seller.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      WHERE o.id = ?
+    `, [orderId]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Get status history
+    const historyResult = await db.query(`
+      SELECT * FROM order_status_history 
+      WHERE order_id = ? 
+      ORDER BY created_at ASC
+    `, [orderId]);
+    
+    // Get tracking info
+    const trackingResult = await db.query(`
+      SELECT * FROM order_tracking 
+      WHERE order_id = ? 
+      ORDER BY created_at DESC
+    `, [orderId]);
+    
+    // Build timeline for display
+    const timeline = buildStatusTimeline(order);
+    
+    // Add any additional history entries
+    if (historyResult && historyResult.length > 0) {
+      historyResult.forEach(history => {
+        if (!timeline.find(t => t.status === history.status)) {
+          timeline.push({
+            status: history.status,
+            title: history.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            description: history.notes || `Order status updated to ${history.status}`,
+            timestamp: history.created_at,
+            completed: true,
+            icon: getStatusIcon(history.status)
+          });
+        }
+      });
+    }
+    
+    // Sort timeline by timestamp
+    timeline.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        product_name: order.product_name,
+        product_image: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images)[0] : order.images[0]) : null,
+        quantity: parseInt(order.quantity),
+        total_amount: parseFloat(order.total_amount),
+        order_status: order.order_status,
+        payment_status: order.payment_status,
+        shipping_address: order.shipping_address,
+        estimated_delivery_days: order.estimated_delivery_days || 7,
+        created_at: order.created_at,
+        seller_accepted_at: order.seller_accepted_at,
+        payment_collected_at: order.payment_collected_at,
+        completed_at: order.completed_at,
+        seller_name: order.seller_name,
+        timeline: timeline,
+        tracking_info: trackingResult[0] || null,
+        refund_available: order.order_status === 'paid' && !order.refund_requested_at,
+        refund_deadline: order.payment_collected_at ? new Date(new Date(order.payment_collected_at).getTime() + 5 * 24 * 60 * 60 * 1000) : null
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Track order error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function getStatusIcon(status) {
+  const icons = {
+    'order_placed': 'fa-shopping-cart',
+    'seller_accepted': 'fa-check-circle',
+    'payment_completed': 'fa-credit-card',
+    'processing': 'fa-cogs',
+    'shipped': 'fa-truck',
+    'delivered': 'fa-box-open',
+    'completed': 'fa-trophy',
+    'refunded': 'fa-dollar-sign',
+    'cancelled': 'fa-times-circle'
+  };
+  return icons[status] || 'fa-info-circle';
+}
 // COMPLETELY REWRITTEN PAYMENT LINK ENDPOINT
 app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
   console.log("\n========== PAYMENT LINK REQUEST ==========");
@@ -6330,7 +6946,12 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
         [orderId, transaction.meta?.buyer_id, transaction.meta?.seller_id, 
          amount, platformFee, sellerAmount, transaction_ref]
       );
-
+// Add history entry
+await db.query(
+  `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+   VALUES (?, 'payment_completed', 'Payment received and held in escrow', ?, NOW())`,
+  [orderId, order.buyer_id]
+);
       // Send payment confirmation email
       if (order) {
         const paymentData = {

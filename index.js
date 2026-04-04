@@ -7077,6 +7077,54 @@ app.get("/api/test/seller-orders", async (req, res) => {
     });
   }
 });
+
+// Add these endpoints to your index.js backend file
+
+// Get all users for admin
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const users = await db.query(`
+      SELECT u.*, 
+        (SELECT COUNT(*) FROM products WHERE user_id = u.id AND is_deleted = 0) as product_count,
+        (SELECT COUNT(*) FROM physical_orders WHERE seller_id = u.id) as sales_count
+      FROM users u
+      ORDER BY u.created_at DESC
+    `);
+    
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get platform stats for admin
+app.get("/api/admin/platform-stats", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const totalUsers = await db.query("SELECT COUNT(*) as count FROM users");
+    const totalProducts = await db.query("SELECT COUNT(*) as count FROM products WHERE is_deleted = 0");
+    const totalSales = await db.query("SELECT COUNT(*) as count FROM physical_orders");
+    const platformRevenue = await db.query("SELECT SUM(platform_fee) as total FROM physical_orders WHERE order_status = 'completed'");
+    
+    res.json({
+      total_users: totalUsers[0]?.count || 0,
+      total_products: totalProducts[0]?.count || 0,
+      total_sales: totalSales[0]?.count || 0,
+      platform_revenue: platformRevenue[0]?.total || 0
+    });
+  } catch (err) {
+    console.error("Error fetching platform stats:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // SELLER PHYSICAL ORDERS - FIXED
 // ============================================

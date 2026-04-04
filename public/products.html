@@ -3808,443 +3808,317 @@
         <p id="reviewMessage" class="form-message"></p>
       </div>
     </div>
-
-    <!-- DASHBOARD SECTION -->
-    <section id="dashboardSection" class="dashboard-section" style="display: none;">
-      <div class="dashboard-header">
-        <div class="dashboard-title">
-          <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
-          <span id="dashboardRoleBadge" class="role-badge">Seller</span>
-        </div>
-        
-        <div class="dashboard-actions">
-          <button id="toggleDashboard" class="btn primary">
-            <i class="fas fa-store"></i> Back to Products
-          </button>
-          <button id="exportData" class="btn secondary" title="Export dashboard data">
-            <i class="fas fa-file-export"></i> Export
-          </button>
-        </div>
-      </div>
-
-      <!-- Admin Controls (Visible only to admins) -->
-      <div id="adminControls" class="admin-controls" style="display: none;">
-        <div class="admin-search-bar">
-          <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." 
-                 class="search-input" style="flex: 1;">
-          <select id="adminSearchCategory" class="select">
-            <option value="all">All Categories</option>
-            <option value="users">Users</option>
-            <option value="products">Products</option>
-            <option value="orders">Orders</option>
-            <option value="sales">Sales</option>
-          </select>
-          <button id="adminSearchBtn" class="btn primary">
-            <i class="fas fa-search"></i> Search
-          </button>
-        </div>
-      </div>
-
-      <!-- Dashboard Stats -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
-            <i class="fas fa-box-open" style="color: var(--accent);"></i>
-          </div>
-          <div class="stat-content">
-            <h3 id="totalProducts">0</h3>
-            <p>Total Products</p>
-          </div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
-            <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
-          </div>
-          <div class="stat-content">
-            <h3 id="totalSales">0</h3>
-            <p>Total Sales</p>
-          </div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
-            <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
-          </div>
-          <div class="stat-content">
-            <h3 id="totalRevenue">$0</h3>
-            <p>Total Revenue</p>
-          </div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
-            <i class="fas fa-star" style="color: var(--digital);"></i>
-          </div>
-          <div class="stat-content">
-            <h3 id="avgRating">0.0</h3>
-            <p>Average Rating</p>
-          </div>
-        </div>
-      </div>
-
-    <!-- Dashboard Tabs -->
-<div class="dashboard-tabs">
-  <div class="tabs-header">
-    <button class="tab-btn active" data-tab="products">My Products</button>
-    <button class="tab-btn" data-tab="sales">Sales History</button>
-    <button class="tab-btn" data-tab="analytics">Analytics</button>
-   <button class="tab-btn" data-tab="pending-orders">
-  <i class="fas fa-clock"></i> Pending Orders
-  <span id="pendingOrdersBadge" style="background: var(--danger); color: white; border-radius: 20px; padding: 2px 8px; margin-left: 8px; font-size: 12px; display: none;">0</span>
-</button>
-    <button class="tab-btn" data-tab="refunds">Refund Requests</button>
-    <button id="adminTab" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
-  </div>
-  
-  <div class="tabs-content">
-    <!-- My Products Tab -->
-    <div id="productsTab" class="tab-content active">
-      <div class="tab-header">
-        <h3><i class="fas fa-box"></i> My Listed Products</h3>
-        <div class="tab-actions">
-          <input type="text" id="searchMyProducts" placeholder="Search my products..." 
-                 class="search-input" style="width: 250px;">
-          <select id="filterMyProducts" class="select">
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="sold">Sold</option>
-            <option value="draft">Draft</option>
-          </select>
-        </div>
-      </div>
-      <div id="myProductsList" class="products-table">
-        <div class="empty-state">
-          <i class="fas fa-box-open"></i>
-          <h4>No products yet</h4>
-          <p>Start by listing your first product</p>
-        </div>
-      </div>
+<!-- DASHBOARD SECTION -->
+<section id="dashboardSection" class="dashboard-section" style="display: none;">
+  <div class="dashboard-header">
+    <div class="dashboard-title">
+      <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
+      <span id="dashboardRoleBadge" class="role-badge">Seller</span>
     </div>
     
-    <!-- Sales History Tab -->
-    <div id="salesTab" class="tab-content">
-      <div class="tab-header">
-        <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
-        <div class="tab-actions">
-          <select id="salesPeriod" class="select">
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-          <select id="salesStatus" class="select">
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="paid">Paid</option>
-            <option value="completed">Completed</option>
-            <option value="refund_requested">Refund Requested</option>
-            <option value="refunded">Refunded</option>
-          </select>
-        </div>
-      </div>
-      <div id="salesList" class="sales-table">
-        <div class="empty-state">
-          <i class="fas fa-shopping-cart"></i>
-          <h4>No sales yet</h4>
-          <p>Your sales will appear here</p>
-        </div>
-      </div>
-      <div class="sales-summary">
-        <div class="summary-card">
-          <h4>Total Sales Value</h4>
-          <h2 id="totalSalesValue">$0.00</h2>
-        </div>
-        <div class="summary-card">
-          <h4>Your Earnings</h4>
-          <h2 id="yourEarnings">$0.00</h2>
-        </div>
-        <div class="summary-card">
-          <h4>Platform Fee</h4>
-          <h2 id="platformFee">$0.00</h2>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Analytics Tab -->
-    <div id="analyticsTab" class="tab-content">
-      <div class="analytics-grid">
-        <div class="analytics-card">
-          <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
-          <div class="chart-container">
-            <canvas id="salesChart"></canvas>
-          </div>
-        </div>
-        <div class="analytics-card">
-          <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
-          <div class="chart-container">
-            <canvas id="categoryChart"></canvas>
-          </div>
-        </div>
-        <div class="analytics-card">
-          <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
-          <div class="stats-list">
-            <div class="stat-item">
-              <span>Best Selling Product</span>
-              <strong id="bestProduct">N/A</strong>
-            </div>
-            <div class="stat-item">
-              <span>Total Visitors</span>
-              <strong id="totalVisitors">0</strong>
-            </div>
-            <div class="stat-item">
-              <span>Conversion Rate</span>
-              <strong id="conversionRate">0%</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-   <!-- Pending Orders Tab -->
-<div id="pendingOrdersTab" class="tab-content">
-  <div class="tab-header">
-    <h3><i class="fas fa-clock"></i> Orders Awaiting Your Response</h3>
-    <div class="tab-actions">
-      <button id="refreshPendingOrders" class="btn secondary" style="padding: 8px 16px;">
-        <i class="fas fa-sync-alt"></i> Refresh
+    <div class="dashboard-actions">
+      <button id="toggleDashboard" class="btn primary">
+        <i class="fas fa-store"></i> Back to Products
+      </button>
+      <button id="exportData" class="btn secondary">
+        <i class="fas fa-file-export"></i> Export
       </button>
     </div>
   </div>
-  <div id="pendingOrdersList" class="orders-table">
-    <div class="empty-state">
-      <i class="fas fa-check-circle"></i>
-      <h4>No pending orders</h4>
-      <p>All orders have been responded to</p>
-    </div>
-  </div>
-</div>
-      <div id="pendingOrdersList" class="orders-table">
-        <div class="empty-state">
-          <i class="fas fa-check-circle"></i>
-          <h4>No pending orders</h4>
-          <p>All orders have been responded to</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Refund Requests Tab -->
-    <div id="refundsTab" class="tab-content">
-      <div class="tab-header">
-        <h3><i class="fas fa-exchange-alt"></i> Pending Refund Requests</h3>
-        <div class="tab-actions">
-          <span style="color: var(--text-gray); font-size: 13px;">
-            <i class="fas fa-info-circle"></i> Refund requests must be processed within 48 hours
-          </span>
-        </div>
-      </div>
-      <div id="pendingRefundsList" class="refunds-grid">
-        <div class="empty-state">
-          <i class="fas fa-check-circle"></i>
-          <h4>No pending refund requests</h4>
-          <p>All good!</p>
-        </div>
-      </div>
-    </div>
-    <!-- Add this to the dashboard section in your HTML -->
-<div id="buyerOrdersTab" class="tab-content">
-  <div class="tab-header">
-    <h3><i class="fas fa-box-open"></i> My Orders</h3>
-    <div class="tab-actions">
-      <select id="buyerOrderFilter" class="select">
-        <option value="all">All Orders</option>
-        <option value="pending_seller_approval">Pending Approval</option>
-        <option value="seller_accepted">Awaiting Payment</option>
-        <option value="paid">Processing</option>
-        <option value="shipped">Shipped</option>
-        <option value="delivered">Delivered</option>
-        <option value="completed">Completed</option>
-        <option value="cancelled">Cancelled</option>
-        <option value="refunded">Refunded</option>
+
+  <!-- Admin Controls (Visible only to admins) -->
+  <div id="adminControls" class="admin-controls" style="display: none;">
+    <div class="admin-search-bar">
+      <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." 
+             class="search-input" style="flex: 1;">
+      <select id="adminSearchCategory" class="select">
+        <option value="all">All Categories</option>
+        <option value="users">Users</option>
+        <option value="products">Products</option>
+        <option value="orders">Orders</option>
       </select>
-      <button id="refreshOrdersBtn" class="btn secondary" style="padding: 8px 16px;">
-        <i class="fas fa-sync-alt"></i> Refresh
+      <button id="adminSearchBtn" class="btn primary">
+        <i class="fas fa-search"></i> Search
       </button>
     </div>
   </div>
-  <div id="buyerOrdersList" class="orders-table">
-    <div class="empty-state">
-      <i class="fas fa-shopping-bag"></i>
-      <h4>No orders yet</h4>
-      <p>Your orders will appear here</p>
+
+  <!-- Dashboard Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
+        <i class="fas fa-box-open" style="color: var(--accent);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalProducts">0</h3>
+        <p>Total Products</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+        <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalSales">0</h3>
+        <p>Total Sales</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
+        <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="totalRevenue">$0</h3>
+        <p>Total Revenue</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
+        <i class="fas fa-star" style="color: var(--digital);"></i>
+      </div>
+      <div class="stat-content">
+        <h3 id="avgRating">0.0</h3>
+        <p>Average Rating</p>
+      </div>
     </div>
   </div>
-</div>
-    <!-- Admin Panel Tab -->
-    <div id="adminTabContent" class="tab-content">
-      <div class="admin-panel">
-        <div class="admin-section">
-          <h3><i class="fas fa-users"></i> User Management</h3>
-          <div class="admin-table">
-            <table id="usersTable">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Products</th>
-                  <th>Sales</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Will be populated by JavaScript -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="admin-section">
-          <h3><i class="fas fa-shopping-bag"></i> All Products Monitor</h3>
-          <div class="admin-filters">
-            <input type="text" id="adminProductSearch" placeholder="Search products..." class="search-input">
-            <select id="adminProductCategory" class="select">
-              <option value="">All Categories</option>
-            </select>
-            <select id="adminProductStatus" class="select">
-              <option value="">All Status</option>
+
+  <!-- Dashboard Tabs -->
+  <div class="dashboard-tabs">
+    <div class="tabs-header">
+      <button class="tab-btn active" data-tab="products">My Products</button>
+      <button class="tab-btn" data-tab="sales">Sales History</button>
+      <button class="tab-btn" data-tab="pending-orders">Pending Orders</button>
+      <button class="tab-btn" data-tab="buyer-orders">My Orders</button>
+      <button class="tab-btn" data-tab="analytics">Analytics</button>
+      <button class="tab-btn" data-tab="refunds">Refund Requests</button>
+      <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
+    </div>
+    
+    <div class="tabs-content">
+      <!-- My Products Tab -->
+      <div id="productsTab" class="tab-content active">
+        <div class="tab-header">
+          <h3><i class="fas fa-box"></i> My Listed Products</h3>
+          <div class="tab-actions">
+            <input type="text" id="searchMyProducts" placeholder="Search my products..." class="search-input">
+            <select id="filterMyProducts" class="select">
+              <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="suspended">Suspended</option>
+              <option value="sold">Sold</option>
+              <option value="draft">Draft</option>
             </select>
           </div>
-          <div class="admin-table">
-            <table id="allProductsTable">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Seller</th>
-                  <th>Type</th>
-                  <th>Price</th>
-                  <th>Sales</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Will be populated by JavaScript -->
-              </tbody>
-            </table>
+        </div>
+        <div id="myProductsList" class="products-table">
+          <div class="empty-state">
+            <i class="fas fa-box-open"></i>
+            <h4>No products yet</h4>
+            <p>Start by listing your first product</p>
           </div>
         </div>
-        <div class="admin-section">
-          <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
-          <div class="platform-stats">
-            <div class="platform-stat">
-              <h4>Total Users</h4>
-              <h2 id="platformTotalUsers">0</h2>
+      </div>
+      
+      <!-- Sales History Tab -->
+      <div id="salesTab" class="tab-content">
+        <div class="tab-header">
+          <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
+          <div class="tab-actions">
+            <select id="salesPeriod" class="select">
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+            <select id="salesStatus" class="select">
+              <option value="all">All Status</option>
+              <option value="pending_seller_approval">Pending</option>
+              <option value="seller_accepted">Accepted</option>
+              <option value="paid">Paid</option>
+              <option value="completed">Completed</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </div>
+        </div>
+        <div id="salesList" class="sales-table">
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h4>No sales yet</h4>
+            <p>Your sales will appear here</p>
+          </div>
+        </div>
+        <div class="sales-summary">
+          <div class="summary-card">
+            <h4>Total Sales Value</h4>
+            <h2 id="totalSalesValue">$0.00</h2>
+          </div>
+          <div class="summary-card">
+            <h4>Your Earnings</h4>
+            <h2 id="yourEarnings">$0.00</h2>
+          </div>
+          <div class="summary-card">
+            <h4>Platform Fee</h4>
+            <h2 id="platformFee">$0.00</h2>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pending Orders Tab (Seller) -->
+      <div id="pendingOrdersTab" class="tab-content">
+        <div class="tab-header">
+          <h3><i class="fas fa-clock"></i> Orders Awaiting Your Response</h3>
+          <div class="tab-actions">
+            <button id="refreshPendingOrders" class="btn secondary">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div id="pendingOrdersList" class="orders-table">
+          <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <h4>No pending orders</h4>
+            <p>All orders have been responded to</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Buyer Orders Tab (Customer) -->
+      <div id="buyerOrdersTab" class="tab-content">
+        <div class="tab-header">
+          <h3><i class="fas fa-box-open"></i> My Orders</h3>
+          <div class="tab-actions">
+            <select id="buyerOrderFilter" class="select">
+              <option value="all">All Orders</option>
+              <option value="pending_seller_approval">Pending Approval</option>
+              <option value="seller_accepted">Awaiting Payment</option>
+              <option value="paid">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="refunded">Refunded</option>
+            </select>
+            <button id="refreshOrdersBtn" class="btn secondary">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div id="buyerOrdersList" class="orders-table">
+          <div class="empty-state">
+            <i class="fas fa-shopping-bag"></i>
+            <h4>No orders yet</h4>
+            <p>Your orders will appear here</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Analytics Tab -->
+      <div id="analyticsTab" class="tab-content">
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
+            <div class="chart-container">
+              <canvas id="salesChart"></canvas>
             </div>
-            <div class="platform-stat">
-              <h4>Total Products</h4>
-              <h2 id="platformTotalProducts">0</h2>
+          </div>
+          <div class="analytics-card">
+            <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
+            <div class="chart-container">
+              <canvas id="categoryChart"></canvas>
             </div>
-            <div class="platform-stat">
-              <h4>Total Sales</h4>
-              <h2 id="platformTotalSales">0</h2>
+          </div>
+          <div class="analytics-card">
+            <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
+            <div class="stats-list">
+              <div class="stat-item">
+                <span>Best Selling Product</span>
+                <strong id="bestProduct">N/A</strong>
+              </div>
+              <div class="stat-item">
+                <span>Total Visitors</span>
+                <strong id="totalVisitors">0</strong>
+              </div>
+              <div class="stat-item">
+                <span>Conversion Rate</span>
+                <strong id="conversionRate">0%</strong>
+              </div>
             </div>
-            <div class="platform-stat">
-              <h4>Platform Revenue</h4>
-              <h2 id="platformRevenue">$0.00</h2>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Refund Requests Tab (Seller/Admin) -->
+      <div id="refundsTab" class="tab-content">
+        <div class="tab-header">
+          <h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3>
+          <div class="tab-actions">
+            <span style="color: var(--text-gray); font-size: 13px;">
+              <i class="fas fa-info-circle"></i> Respond within 48 hours
+            </span>
+          </div>
+        </div>
+        <div id="pendingRefundsList" class="refunds-grid">
+          <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <h4>No pending refund requests</h4>
+            <p>All good!</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Admin Panel Tab (Admin only) -->
+      <div id="adminTabContent" class="tab-content">
+        <div class="admin-panel">
+          <div class="admin-section">
+            <h3><i class="fas fa-users"></i> User Management</h3>
+            <div class="admin-table">
+              <table id="usersTable">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Products</th>
+                    <th>Sales</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
+                </tbody>
+               </table>
+            </div>
+          </div>
+          
+          <div class="admin-section">
+            <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
+            <div class="platform-stats">
+              <div class="platform-stat">
+                <h4>Total Users</h4>
+                <h2 id="platformTotalUsers">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Total Products</h4>
+                <h2 id="platformTotalProducts">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Total Sales</h4>
+                <h2 id="platformTotalSales">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Platform Revenue</h4>
+                <h2 id="platformRevenue">$0.00</h2>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
-          <!-- Admin Panel Tab -->
-          <div id="adminTabContent" class="tab-content">
-            <div class="admin-panel">
-              <div class="admin-section">
-                <h3><i class="fas fa-users"></i> User Management</h3>
-                <div class="admin-table">
-                  <table id="usersTable">
-                    <thead>
-                      <tr>
-                        <th>User</th>
-                        <th>Role</th>
-                        <th>Products</th>
-                        <th>Sales</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <!-- Will be populated by JavaScript -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div class="admin-section">
-                <h3><i class="fas fa-shopping-bag"></i> All Products Monitor</h3>
-                <div class="admin-filters">
-                  <input type="text" id="adminProductSearch" placeholder="Search products..." class="search-input">
-                  <select id="adminProductCategory" class="select">
-                    <option value="">All Categories</option>
-                  </select>
-                  <select id="adminProductStatus" class="select">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
-                </div>
-                <div class="admin-table">
-                  <table id="allProductsTable">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Seller</th>
-                        <th>Type</th>
-                        <th>Price</th>
-                        <th>Sales</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <!-- Will be populated by JavaScript -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div class="admin-section">
-                <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
-                <div class="platform-stats">
-                  <div class="platform-stat">
-                    <h4>Total Users</h4>
-                    <h2 id="platformTotalUsers">0</h2>
-                  </div>
-                  <div class="platform-stat">
-                    <h4>Total Products</h4>
-                    <h2 id="platformTotalProducts">0</h2>
-                  </div>
-                  <div class="platform-stat">
-                    <h4>Total Sales</h4>
-                    <h2 id="platformTotalSales">0</h2>
-                  </div>
-                  <div class="platform-stat">
-                    <h4>Platform Revenue</h4>
-                    <h2 id="platformRevenue">$0.00</h2>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+</section>
   </main>
 
   <!-- MODALS SECTION -->
@@ -4819,66 +4693,522 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
       }
     }
 
-  async function loadDashboardStats() {
+ 
+// Add this to your script section - Complete Buyer Order Tracking with Ratings
+// ================= COMPLETE FIXED DASHBOARD FUNCTIONS =================
+
+// Load dashboard stats from real data
+async function loadDashboardStats() {
   try {
-    let stats;
+    if (!currentUser) return;
     
-    if (currentUser && currentUser.role === 'admin') {
-      try {
-        const platformRes = await fetch('/api/admin/platform/stats');
-        if (platformRes.ok) {
-          const platformData = await platformRes.json();
-          stats = {
-            totalProducts: platformData.stats?.total_products || 0,
-            totalSales: platformData.stats?.total_sales || 0,
-            totalRevenue: `$${(platformData.stats?.total_revenue || 0).toFixed(2)}`,
-            avgRating: '4.5'
-          };
-          document.getElementById('platformTotalUsers').textContent = platformData.stats?.total_users || 0;
-          document.getElementById('platformTotalProducts').textContent = stats.totalProducts;
-          document.getElementById('platformTotalSales').textContent = stats.totalSales;
-          document.getElementById('platformRevenue').textContent = `$${(platformData.stats?.platform_revenue || 0).toFixed(2)}`;
-          document.getElementById('adminTab').style.display = 'block';
-          document.getElementById('adminControls').style.display = 'block';
-        }
-      } catch (e) {
-        console.log('Admin stats not available');
-      }
-    } else {
-      // Fallback stats if API not available
-      stats = {
-        totalProducts: products.filter(p => p.user_id === currentUser?.id).length,
-        totalSales: 0,
-        totalRevenue: '$0.00',
-        avgRating: '0.0'
-      };
+    // Get seller's products count
+    const productsRes = await fetch(`/api/products/seller/${currentUser.id}`, {
+      credentials: 'include'
+    });
+    let totalProducts = 0;
+    if (productsRes.ok) {
+      const products = await productsRes.json();
+      totalProducts = products.length;
     }
     
-    document.getElementById('totalProducts').textContent = stats.totalProducts;
-    document.getElementById('totalSales').textContent = stats.totalSales;
-    document.getElementById('totalRevenue').textContent = stats.totalRevenue;
-    document.getElementById('avgRating').textContent = stats.avgRating;
+    // Get seller's orders
+    const ordersRes = await fetch(`/api/orders/seller/${currentUser.id}`, {
+      credentials: 'include'
+    });
+    let orders = [];
+    let totalSales = 0;
+    let totalRevenue = 0;
+    
+    if (ordersRes.ok) {
+      orders = await ordersRes.json();
+      totalSales = orders.length;
+      totalRevenue = orders.reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
+    }
+    
+    // Update stats display
+    document.getElementById('totalProducts').textContent = totalProducts;
+    document.getElementById('totalSales').textContent = totalSales;
+    document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+    document.getElementById('avgRating').textContent = '4.5'; // Placeholder, can be calculated from reviews
+    
+    // Update badge count for pending orders
+    const pendingOrders = orders.filter(o => o.order_status === 'pending_seller_approval');
+    const pendingBadge = document.getElementById('pendingOrdersBadge');
+    if (pendingBadge) {
+      if (pendingOrders.length > 0) {
+        pendingBadge.textContent = pendingOrders.length;
+        pendingBadge.style.display = 'inline-block';
+      } else {
+        pendingBadge.style.display = 'none';
+      }
+    }
     
   } catch (error) {
-    console.error('Error loading stats:', error);
-    // Set defaults
-    document.getElementById('totalProducts').textContent = '0';
-    document.getElementById('totalSales').textContent = '0';
-    document.getElementById('totalRevenue').textContent = '$0';
-    document.getElementById('avgRating').textContent = '0.0';
+    console.error('Error loading dashboard stats:', error);
   }
 }
 
-// Add this to your script section - Complete Buyer Order Tracking with Ratings
+// Load pending orders (real data)
+async function loadPendingOrders() {
+  const container = document.getElementById('pendingOrdersList');
+  if (!container) return;
+  
+  try {
+    const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+      return;
+    }
+    
+    const orders = await response.json();
+    const pendingOrders = orders.filter(o => o.order_status === 'pending_seller_approval');
+    
+    if (pendingOrders.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-check-circle"></i>
+          <h4>No pending orders</h4>
+          <p>All orders have been responded to</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+    pendingOrders.forEach(order => {
+      html += `
+        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <h4 style="margin: 0 0 8px 0; color: var(--accent);">Order #${order.id}</h4>
+              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(order.product_name || 'Product')}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Total:</strong> <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong></p>
+              <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || order.buyer_name || 'Customer')}</p>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
+                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address || 'No address provided')}
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted);">
+                Ordered: ${new Date(order.created_at).toLocaleDateString()}
+              </p>
+              <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn primary" onclick="respondToOrder(${order.id}, 'accept')" style="background: var(--success); padding: 8px 20px;">
+                  <i class="fas fa-check"></i> Accept
+                </button>
+                <button class="btn danger" onclick="respondToOrder(${order.id}, 'reject')" style="background: var(--danger); padding: 8px 20px;">
+                  <i class="fas fa-times"></i> Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading pending orders:', error);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4><p>Please refresh and try again</p></div>';
+  }
+}
 
-// ================= BUYER ORDER TRACKING SYSTEM =================
+// Respond to order (accept/reject)
+async function respondToOrder(orderId, action) {
+  let message = '';
+  
+  if (action === 'reject') {
+    message = prompt('Please provide a reason for rejecting this order (will be sent to the customer):');
+    if (message === null) return;
+    if (!message.trim()) {
+      message = 'Seller unable to fulfill this order at this time.';
+    }
+  }
+  
+  try {
+    const response = await fetch(`/api/dashboard/orders/${orderId}/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, message }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast(action === 'accept' ? 'Order Accepted!' : 'Order Rejected', data.message, 'success');
+      // Refresh pending orders list
+      loadPendingOrders();
+      // Refresh stats
+      loadDashboardStats();
+      // Refresh sales history if visible
+      if (document.getElementById('salesTab')?.classList.contains('active')) {
+        loadSalesHistory();
+      }
+    } else {
+      showToast('Error', data.error || 'Failed to process order', 'danger');
+    }
+  } catch (error) {
+    console.error('Response error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
 
-// Load buyer's orders for tracking
+// Load sales history with real data
+async function loadSalesHistory() {
+  const container = document.getElementById('salesList');
+  if (!container) return;
+  
+  try {
+    const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading sales</h4></div>';
+      return;
+    }
+    
+    let sales = await response.json();
+    
+    // Apply status filter
+    const statusFilter = document.getElementById('salesStatus')?.value || 'all';
+    if (statusFilter !== 'all') {
+      sales = sales.filter(sale => sale.order_status === statusFilter);
+    }
+    
+    // Apply period filter
+    const periodFilter = document.getElementById('salesPeriod')?.value || 'all';
+    if (periodFilter !== 'all') {
+      const now = new Date();
+      sales = sales.filter(sale => {
+        const saleDate = new Date(sale.created_at);
+        if (periodFilter === 'today') {
+          return saleDate.toDateString() === now.toDateString();
+        } else if (periodFilter === 'week') {
+          const weekAgo = new Date(now.setDate(now.getDate() - 7));
+          return saleDate >= weekAgo;
+        } else if (periodFilter === 'month') {
+          const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+          return saleDate >= monthAgo;
+        }
+        return true;
+      });
+    }
+    
+    if (sales.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-shopping-cart"></i>
+          <h4>No sales yet</h4>
+          <p>Your sales will appear here</p>
+        </div>
+      `;
+      // Update summary to zeros
+      document.getElementById('totalSalesValue').textContent = '$0.00';
+      document.getElementById('yourEarnings').textContent = '$0.00';
+      document.getElementById('platformFee').textContent = '$0.00';
+      return;
+    }
+    
+    let html = `
+      <div style="overflow-x: auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--card-bg);">
+              <th style="padding: 12px; text-align: left;">Order ID</th>
+              <th style="padding: 12px; text-align: left;">Product</th>
+              <th style="padding: 12px; text-align: left;">Qty</th>
+              <th style="padding: 12px; text-align: left;">Total</th>
+              <th style="padding: 12px; text-align: left;">Your Earnings</th>
+              <th style="padding: 12px; text-align: left;">Status</th>
+              <th style="padding: 12px; text-align: left;">Date</th>
+              <th style="padding: 12px; text-align: left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    let totalSalesValue = 0;
+    let totalPlatformFees = 0;
+    
+    for (const sale of sales) {
+      const totalAmount = parseFloat(sale.total_amount) || 0;
+      const platformFee = parseFloat(sale.platform_fee) || (totalAmount * 0.1);
+      const sellerEarnings = totalAmount - platformFee;
+      
+      totalSalesValue += totalAmount;
+      totalPlatformFees += platformFee;
+      
+      let statusClass = '';
+      let statusText = '';
+      
+      switch(sale.order_status) {
+        case 'pending_seller_approval':
+          statusClass = 'status-pending';
+          statusText = '⏳ Pending Approval';
+          break;
+        case 'seller_accepted':
+          statusClass = 'status-warning';
+          statusText = '✅ Accepted - Awaiting Payment';
+          break;
+        case 'paid':
+          statusClass = 'status-info';
+          statusText = '💰 Paid (Escrow)';
+          break;
+        case 'completed':
+          statusClass = 'status-success';
+          statusText = '✓ Completed';
+          break;
+        case 'refunded':
+          statusClass = 'status-success';
+          statusText = '✅ Refunded';
+          break;
+        case 'cancelled':
+          statusClass = 'status-danger';
+          statusText = '✗ Cancelled';
+          break;
+        default:
+          statusClass = 'status-pending';
+          statusText = sale.order_status?.replace(/_/g, ' ') || 'Pending';
+      }
+      
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 12px;"><strong style="color: var(--accent);">#${sale.id}</strong></td>
+          <td style="padding: 12px;"><strong>${escapeHtml(sale.product_name || 'Product')}</strong></td>
+          <td style="padding: 12px;">${sale.quantity || 1}</td>
+          <td style="padding: 12px;"><strong style="color: var(--success);">$${totalAmount.toFixed(2)}</strong></td>
+          <td style="padding: 12px;"><strong style="color: var(--success);">$${sellerEarnings.toFixed(2)}</strong></td>
+          <td style="padding: 12px;"><span class="product-status ${statusClass}">${statusText}</span></td>
+          <td style="padding: 12px; font-size: 12px;">${new Date(sale.created_at).toLocaleDateString()}</td>
+          <td style="padding: 12px;">
+            <button class="action-btn view" onclick="viewOrderDetails(${sale.id})">
+              <i class="fas fa-eye"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    
+    // Update summary cards
+    document.getElementById('totalSalesValue').textContent = `$${totalSalesValue.toFixed(2)}`;
+    document.getElementById('yourEarnings').textContent = `$${(totalSalesValue - totalPlatformFees).toFixed(2)}`;
+    document.getElementById('platformFee').textContent = `$${totalPlatformFees.toFixed(2)}`;
+    
+  } catch (error) {
+    console.error('Error loading sales:', error);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading sales</h4></div>';
+  }
+}
+// Add this function to your script section (around line where other dashboard functions are)
+function checkAndShowAdminFeatures() {
+  console.log("🔍 Checking admin features...");
+  console.log("Current user:", currentUser);
+  
+  if (currentUser && currentUser.role === 'admin') {
+    console.log("✅ Admin detected! Showing admin features...");
+    
+    // Show admin tab in dashboard
+    const adminTab = document.getElementById('adminTab');
+    if (adminTab) {
+      adminTab.style.display = 'block';
+      console.log("Admin tab shown");
+    } else {
+      console.log("Admin tab element not found");
+    }
+    
+    // Show admin controls
+    const adminControls = document.getElementById('adminControls');
+    if (adminControls) {
+      adminControls.style.display = 'block';
+      console.log("Admin controls shown");
+    }
+    
+    // Add admin tab if it doesn't exist
+    const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
+    if (tabsHeader && !document.getElementById('adminTab')) {
+      const adminTabBtn = document.createElement('button');
+      adminTabBtn.className = 'tab-btn';
+      adminTabBtn.id = 'adminTab';
+      adminTabBtn.setAttribute('data-tab', 'admin');
+      adminTabBtn.innerHTML = '<i class="fas fa-crown"></i> Admin Panel';
+      tabsHeader.appendChild(adminTabBtn);
+      console.log("Admin tab button created");
+    }
+    
+    // Also add the admin tab content if missing
+    const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
+    if (tabsContent && !document.getElementById('adminTabContent')) {
+      const adminContent = document.createElement('div');
+      adminContent.id = 'adminTabContent';
+      adminContent.className = 'tab-content';
+      adminContent.innerHTML = `
+        <div class="admin-panel">
+          <div class="admin-section">
+            <h3><i class="fas fa-users"></i> User Management</h3>
+            <div class="admin-table">
+              <table id="usersTable">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Products</th>
+                    <th>Sales</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="admin-section">
+            <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
+            <div class="platform-stats">
+              <div class="platform-stat">
+                <h4>Total Users</h4>
+                <h2 id="platformTotalUsers">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Total Products</h4>
+                <h2 id="platformTotalProducts">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Total Sales</h4>
+                <h2 id="platformTotalSales">0</h2>
+              </div>
+              <div class="platform-stat">
+                <h4>Platform Revenue</h4>
+                <h2 id="platformRevenue">$0.00</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      tabsContent.appendChild(adminContent);
+      console.log("Admin tab content created");
+    }
+    
+    // Load admin data
+    loadAdminData();
+    
+  } else {
+    console.log("Not admin or not logged in. Role:", currentUser?.role);
+    // Hide admin elements if not admin
+    const adminTab = document.getElementById('adminTab');
+    if (adminTab) adminTab.style.display = 'none';
+    const adminControls = document.getElementById('adminControls');
+    if (adminControls) adminControls.style.display = 'none';
+  }
+}
+
+// Function to load admin data
+async function loadAdminData() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  
+  try {
+    // Load users
+    const usersResponse = await fetch('/api/admin/users', {
+      credentials: 'include'
+    });
+    
+    if (usersResponse.ok) {
+      const users = await usersResponse.json();
+      updateUsersTable(users);
+    }
+    
+    // Load platform stats
+    const statsResponse = await fetch('/api/admin/platform-stats', {
+      credentials: 'include'
+    });
+    
+    if (statsResponse.ok) {
+      const stats = await statsResponse.json();
+      updatePlatformStats(stats);
+    }
+    
+  } catch (error) {
+    console.error('Error loading admin data:', error);
+  }
+}
+
+// Update users table
+function updateUsersTable(users) {
+  const tbody = document.querySelector('#usersTable tbody');
+  if (!tbody) return;
+  
+  if (!users || users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No users found</td></tr>';
+    return;
+  }
+  
+  let html = '';
+  users.forEach(user => {
+    html += `
+      <tr>
+        <td>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="user-avatar-small">${(user.username || user.email || 'U')[0].toUpperCase()}</div>
+            <div>
+              <div style="color: var(--text-light); font-weight: 500;">${escapeHtml(user.username || user.email || 'User')}</div>
+              <small style="color: var(--text-gray);">${escapeHtml(user.email || '')}</small>
+            </div>
+          </div>
+        </td>
+        <td><span class="product-status ${user.role || 'client'}">${user.role || 'client'}</span></td>
+        <td>${user.product_count || 0}</td>
+        <td>${user.sales_count || 0}</td>
+        <td><span class="product-status ${user.verified ? 'active' : 'pending'}">${user.verified ? 'Verified' : 'Pending'}</span></td>
+        <td>
+          <div style="display: flex; gap: 8px;">
+            <button class="action-btn view" onclick="viewUser(${user.id})"><i class="fas fa-eye"></i></button>
+            <button class="action-btn suspend" onclick="toggleUserStatus(${user.id})"><i class="fas fa-ban"></i></button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
+}
+
+// Update platform stats
+function updatePlatformStats(stats) {
+  const totalUsers = document.getElementById('platformTotalUsers');
+  const totalProducts = document.getElementById('platformTotalProducts');
+  const totalSales = document.getElementById('platformTotalSales');
+  const platformRevenue = document.getElementById('platformRevenue');
+  
+  if (totalUsers) totalUsers.textContent = stats.total_users || 0;
+  if (totalProducts) totalProducts.textContent = stats.total_products || 0;
+  if (totalSales) totalSales.textContent = stats.total_sales || 0;
+  if (platformRevenue) platformRevenue.textContent = `$${(stats.platform_revenue || 0).toFixed(2)}`;
+}
+
+
+
+// Also add to the dashboard opening function
+const originalOpenDashboard = window.openDashboard;
+window.openDashboard = function() {
+  if (originalOpenDashboard) originalOpenDashboard();
+  checkAndShowAdminFeatures(); // Re-check when dashboard opens
+};
+// Load buyer's own orders for tracking
 async function loadBuyerOrders() {
   const container = document.getElementById('buyerOrdersList');
   if (!container) return;
-  
-  const filter = document.getElementById('buyerOrderFilter')?.value || 'all';
   
   try {
     const response = await fetch('/api/my-orders', {
@@ -4886,18 +5216,20 @@ async function loadBuyerOrders() {
     });
     
     if (!response.ok) {
-      throw new Error('Failed to load orders');
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+      return;
     }
     
     const data = await response.json();
     let orders = data.orders || [];
     
     // Apply filter
+    const filter = document.getElementById('buyerOrderFilter')?.value || 'all';
     if (filter !== 'all') {
       orders = orders.filter(order => order.order_status === filter);
     }
     
-    if (!orders || orders.length === 0) {
+    if (orders.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <i class="fas fa-shopping-bag"></i>
@@ -4911,91 +5243,82 @@ async function loadBuyerOrders() {
     let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
     
     for (const order of orders) {
-      // Get full order details with status history
-      const orderDetails = await fetchOrderDetails(order.id);
+      let statusClass = '';
+      let statusText = '';
+      
+      switch(order.order_status) {
+        case 'pending_seller_approval':
+          statusClass = 'status-pending';
+          statusText = '⏳ Awaiting Seller Approval';
+          break;
+        case 'seller_accepted':
+          statusClass = 'status-warning';
+          statusText = '✅ Accepted - Payment Required';
+          break;
+        case 'paid':
+          statusClass = 'status-info';
+          statusText = '💰 Paid - Processing';
+          break;
+        case 'completed':
+          statusClass = 'status-success';
+          statusText = '✓ Completed';
+          break;
+        case 'cancelled':
+          statusClass = 'status-danger';
+          statusText = '✗ Cancelled';
+          break;
+        default:
+          statusClass = 'status-pending';
+          statusText = order.order_status?.replace(/_/g, ' ') || 'Processing';
+      }
       
       html += `
-        <div class="order-card" data-order-id="${order.id}" style="background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
-          <!-- Order Header -->
-          <div style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+          <div style="padding: 16px; background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
                 <h4 style="margin: 0; color: var(--accent);">Order #${order.id}</h4>
-                <span class="product-status status-${order.order_status}">${formatOrderStatus(order.order_status)}</span>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
+                  Placed: ${new Date(order.created_at).toLocaleDateString()}
+                </p>
               </div>
-              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
-                Placed on ${new Date(order.created_at).toLocaleDateString()} • 
-                ${order.quantity} item${order.quantity !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <div style="text-align: right;">
-              <div style="font-size: 20px; font-weight: 700; color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</div>
-              <div style="font-size: 12px; color: var(--text-gray);">Total amount</div>
+              <div style="text-align: right;">
+                <span class="product-status ${statusClass}">${statusText}</span>
+                <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
+                  $${parseFloat(order.total_amount).toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
-          
-          <!-- Order Body -->
-          <div style="padding: 20px;">
-            <!-- Product Info -->
-            <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
-              <div style="width: 80px; height: 80px; border-radius: 12px; background: var(--secondary-dark); overflow: hidden; flex-shrink: 0;">
+          <div style="padding: 16px;">
+            <div style="display: flex; gap: 16px;">
+              <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
                 ${order.product_image ? 
-                  `<img src="${order.product_image}" alt="${order.product_name}" style="width: 100%; height: 100%; object-fit: cover;">` :
-                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);"><i class="fas fa-box fa-2x"></i></div>`
+                  `<img src="${order.product_image}" style="width:100%; height:100%; object-fit:cover;">` :
+                  `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-box"></i></div>`
                 }
               </div>
               <div style="flex: 1;">
-                <h5 style="margin: 0 0 4px 0; font-size: 16px;">${escapeHtml(order.product_name)}</h5>
-                <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-gray);">Quantity: ${order.quantity}</p>
-                <p style="margin: 0; font-size: 13px; color: var(--text-gray);">Seller: ${escapeHtml(order.seller_name || 'Seller')}</p>
-                ${order.shipping_address ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address)}</p>` : ''}
+                <h5 style="margin: 0 0 4px 0;">${escapeHtml(order.product_name)}</h5>
+                <p style="margin: 0; font-size: 13px; color: var(--text-gray);">Quantity: ${order.quantity}</p>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                  <i class="fas fa-truck"></i> Est. delivery: ${order.estimated_delivery_days || 7} days
+                </p>
               </div>
             </div>
             
-            <!-- Status Timeline -->
-            <div class="order-timeline" style="margin-bottom: 24px;">
-              ${generateOrderTimeline(orderDetails)}
-            </div>
-            
-            <!-- Tracking Info (if shipped) -->
-            ${orderDetails.tracking_info ? `
-              <div style="margin-bottom: 24px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                  <i class="fas fa-truck" style="color: var(--accent);"></i>
-                  <strong>Tracking Information</strong>
-                </div>
-                <p style="margin: 0 0 4px 0; font-size: 14px;">Carrier: ${orderDetails.tracking_info.carrier || 'Standard Shipping'}</p>
-                <p style="margin: 0; font-size: 14px;">Tracking Number: <strong>${orderDetails.tracking_info.tracking_number}</strong></p>
-              </div>
-            ` : ''}
-            
-            <!-- Action Buttons -->
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-              <!-- Refund button (if applicable) -->
-              ${canRequestRefund(order) ? `
-                <button class="small-btn warning" onclick="requestRefund(${order.id})">
-                  <i class="fas fa-undo-alt"></i> Request Refund
+            <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                <i class="fas fa-eye"></i> View Details
+              </button>
+              ${order.order_status === 'seller_accepted' ? `
+                <button class="small-btn primary" onclick="proceedToPayment(${order.id})">
+                  <i class="fas fa-credit-card"></i> Pay Now
                 </button>
               ` : ''}
-              
-              <!-- Rating button (if completed and not rated) -->
-              ${canLeaveRating(order) ? `
-                <button class="small-btn primary" onclick="openRatingModal(${order.id}, '${escapeHtml(order.product_name)}')">
-                  <i class="fas fa-star"></i> Rate Product
-                </button>
-              ` : ''}
-              
-              <!-- View Refund Status button -->
-              ${order.order_status === 'refund_requested' || order.order_status === 'refunded' ? `
-                <button class="small-btn" onclick="checkRefundStatus(${order.id})">
-                  <i class="fas fa-info-circle"></i> Refund Status
-                </button>
-              ` : ''}
-              
-              <!-- Confirm Delivery button -->
-              ${order.order_status === 'delivered' ? `
-                <button class="small-btn success" onclick="confirmDelivery(${order.id})">
-                  <i class="fas fa-check-circle"></i> Confirm Delivery
+              ${order.order_status === 'paid' ? `
+                <button class="small-btn warning" onclick="trackOrder(${order.id})">
+                  <i class="fas fa-map-marker-alt"></i> Track Order
                 </button>
               ` : ''}
             </div>
@@ -5008,16 +5331,225 @@ async function loadBuyerOrders() {
     container.innerHTML = html;
     
   } catch (error) {
-    console.error('Error loading orders:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading orders</h4>
-        <p>Please refresh and try again</p>
-      </div>
-    `;
+    console.error('Error loading buyer orders:', error);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
   }
 }
+
+// Proceed to payment for an order
+async function proceedToPayment(orderId) {
+  try {
+    const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.paymentLink) {
+      window.location.href = data.paymentLink;
+    } else {
+      showToast('Error', data.error || 'Failed to create payment link', 'danger');
+    }
+  } catch (error) {
+    console.error('Payment error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Track order (open tracking page)
+function trackOrder(orderId) {
+  window.location.href = `/order-tracking.html?orderId=${orderId}`;
+}
+
+// View order details modal
+async function viewOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) throw new Error(data.error);
+    
+    const order = data.order;
+    
+    const modalHtml = `
+      <div class="modal open" id="orderDetailModal">
+        <div class="modal-card" style="max-width: 500px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0">Order #${order.id}</h3>
+            <span class="close-x" onclick="closeOrderDetailModal()">&times;</span>
+          </div>
+          <div>
+            <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+            <p><strong>Quantity:</strong> ${order.quantity}</p>
+            <p><strong>Unit Price:</strong> $${parseFloat(order.price).toFixed(2)}</p>
+            <p><strong>Total:</strong> <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong></p>
+            <p><strong>Status:</strong> <span class="product-status status-${order.order_status}">${order.order_status?.replace(/_/g, ' ') || 'Pending'}</span></p>
+            <p><strong>Payment:</strong> ${order.payment_status || 'Pending'}</p>
+            ${order.shipping_address ? `<p><strong>Shipping:</strong> ${escapeHtml(order.shipping_address)}</p>` : ''}
+            ${order.tracking_number ? `<p><strong>Tracking:</strong> ${order.tracking_number}</p>` : ''}
+            <hr style="border-color: var(--border); margin: 16px 0;">
+            <div style="display: flex; gap: 12px;">
+              <button class="btn primary" onclick="window.location.href='/order-tracking.html?orderId=${order.id}'" style="flex:1;">
+                <i class="fas fa-map-marker-alt"></i> Track Order
+              </button>
+              <button class="btn secondary" onclick="closeOrderDetailModal()" style="flex:1;">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('orderDetailModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+  } catch (error) {
+    console.error('Error loading order details:', error);
+    showToast('Error', 'Unable to load order details', 'danger');
+  }
+}
+
+function closeOrderDetailModal() {
+  const modal = document.getElementById('orderDetailModal');
+  if (modal) modal.remove();
+}
+
+// Make all functions globally available
+window.respondToOrder = respondToOrder;
+window.proceedToPayment = proceedToPayment;
+window.trackOrder = trackOrder;
+window.viewOrderDetails = viewOrderDetails;
+window.closeOrderDetailModal = closeOrderDetailModal;
+
+// Update main tab data loader
+function loadMainTabData(tabId) {
+  switch(tabId) {
+    case 'products':
+      loadMyProducts();
+      break;
+    case 'sales':
+      loadSalesHistory();
+      break;
+    case 'pending-orders':
+      loadPendingOrders();
+      break;
+    case 'analytics':
+      loadCharts();
+      break;
+    case 'refunds':
+      loadPendingRefunds();
+      break;
+    case 'buyer-orders':
+      loadBuyerOrders();
+      break;
+  }
+}
+
+// Add buyer orders tab to dashboard
+function addBuyerOrdersTab() {
+  const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
+  const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
+  
+  if (!tabsHeader || !tabsContent) return;
+  if (document.getElementById('buyerOrdersTab')) return;
+  
+  // Add tab button
+  const buyerTabBtn = document.createElement('button');
+  buyerTabBtn.className = 'tab-btn';
+  buyerTabBtn.setAttribute('data-tab', 'buyer-orders');
+  buyerTabBtn.innerHTML = '<i class="fas fa-box-open"></i> My Orders';
+  tabsHeader.appendChild(buyerTabBtn);
+  
+  // Add tab content
+  const buyerTabContent = document.createElement('div');
+  buyerTabContent.id = 'buyerOrdersTab';
+  buyerTabContent.className = 'tab-content';
+  buyerTabContent.innerHTML = `
+    <div class="tab-header">
+      <h3><i class="fas fa-box-open"></i> My Orders</h3>
+      <div class="tab-actions">
+        <select id="buyerOrderFilter" class="select">
+          <option value="all">All Orders</option>
+          <option value="pending_seller_approval">Pending Approval</option>
+          <option value="seller_accepted">Awaiting Payment</option>
+          <option value="paid">Processing</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button id="refreshOrdersBtn" class="btn secondary" style="padding: 8px 16px;">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+    </div>
+    <div id="buyerOrdersList" class="orders-table">
+      <div class="empty-state">
+        <i class="fas fa-shopping-bag"></i>
+        <h4>No orders yet</h4>
+        <p>Your orders will appear here</p>
+      </div>
+    </div>
+  `;
+  tabsContent.appendChild(buyerTabContent);
+  
+  // Add event listeners
+  document.getElementById('buyerOrderFilter')?.addEventListener('change', () => loadBuyerOrders());
+  document.getElementById('refreshOrdersBtn')?.addEventListener('click', () => loadBuyerOrders());
+}
+
+// Update tab click handler
+function initDashboardTabs() {
+  const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+  
+  tabButtons.forEach(btn => {
+    btn.removeEventListener('click', handleTabClick);
+    btn.addEventListener('click', handleTabClick);
+  });
+}
+
+function handleTabClick(e) {
+  const tabId = this.getAttribute('data-tab');
+  
+  // Update active tab
+  document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  this.classList.add('active');
+  
+  // Hide all tab contents
+  document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => content.classList.remove('active'));
+  
+  // Show selected tab
+  let contentId = tabId;
+  if (tabId === 'buyer-orders') {
+    contentId = 'buyerOrdersTab';
+  } else {
+    contentId = tabId + 'Tab';
+  }
+  
+  const selectedContent = document.getElementById(contentId);
+  if (selectedContent) selectedContent.classList.add('active');
+  
+  // Load data
+  loadMainTabData(tabId);
+}
+
+// Override loadUser to initialize dashboard
+const originalLoadUser = window.loadUser;
+window.loadUser = async function() {
+  if (originalLoadUser) await originalLoadUser();
+  if (currentUser) {
+    addBuyerOrdersTab();
+    initDashboardTabs();
+    checkAndShowAdminFeatures(); // Call after user is loaded
+};
+  }
+
+// ================= BUYER ORDER TRACKING SYSTEM =================
+
 
 // Fetch full order details including status history
 async function fetchOrderDetails(orderId) {
@@ -5722,98 +6254,6 @@ async function requestRefund(orderId) {
   }
 }
 
-// View order details with refund options
-async function viewOrderDetails(orderId) {
-  try {
-    const response = await fetch(`/api/orders/${orderId}`, {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) throw new Error(data.error);
-    
-    const order = data.order;
-    const canRequestRefund = order.order_status === 'paid' && 
-                              order.payment_status === 'paid' &&
-                              !order.refund_requested_at &&
-                              order.order_status !== 'refunded';
-    
-    const refundStatusHtml = order.refund_requested_at ? `
-      <div style="margin-top: 15px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 3px solid var(--warning);">
-        <strong>⏳ Refund Request Pending</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Requested on: ${new Date(order.refund_requested_at).toLocaleDateString()}</p>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">Reason: ${order.refund_reason || 'No reason provided'}</p>
-      </div>
-    ` : (order.order_status === 'refunded' ? `
-      <div style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
-        <strong>✅ Refund Approved</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Processed on: ${new Date(order.refund_processed_at).toLocaleDateString()}</p>
-      </div>
-    ` : '');
-    
-    const refundButton = canRequestRefund ? `
-      <button class="small-btn danger" onclick="requestRefund(${orderId})" style="margin-top: 15px; width: 100%;">
-        <i class="fas fa-undo-alt"></i> Request Refund
-      </button>
-    ` : '';
-    
-    const escrowInfo = order.payment_held_until && order.order_status === 'paid' ? `
-      <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-        <strong><i class="fas fa-lock"></i> Escrow Status</strong>
-        <p style="margin: 8px 0 0 0; font-size: 13px;">Funds held until: ${new Date(order.payment_held_until).toLocaleDateString()}</p>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">Seller will receive payment after this date if no refund is requested.</p>
-      </div>
-    ` : '';
-    
-    // Fee breakdown display
-    let feeBreakdownHtml = '';
-    if (order.fee_breakdown) {
-      const fb = order.fee_breakdown;
-      feeBreakdownHtml = `
-        <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
-          <strong><i class="fas fa-calculator"></i> Fee Breakdown</strong>
-          ${fb.type === 'bulk' ? `
-            <p style="margin: 8px 0 0 0; font-size: 12px;">Bulk order discount applied! (${order.quantity} units)</p>
-          ` : ''}
-          <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">${fb.sellerNote || ''}</p>
-        </div>
-      `;
-    }
-    
-    const modalHtml = `
-      <div class="modal-card" style="max-width: 500px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 style="margin:0">Order #${order.id}</h3>
-          <span class="close-x" onclick="this.closest('.modal').remove()">&times;</span>
-        </div>
-        <div>
-          <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
-          <p><strong>Quantity:</strong> ${order.quantity}</p>
-          <p><strong>Unit Price:</strong> $${parseFloat(order.price).toFixed(2)}</p>
-          <p><strong>Total Amount:</strong> <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong></p>
-          <p><strong>Status:</strong> <span class="product-status status-${order.order_status}">${order.order_status.replace(/_/g, ' ')}</span></p>
-          <p><strong>Payment Status:</strong> ${order.payment_status}</p>
-          ${order.shipping_address ? `<p><strong>Shipping Address:</strong> ${escapeHtml(order.shipping_address)}</p>` : ''}
-          ${order.estimated_delivery_days ? `<p><strong>Est. Delivery:</strong> ${order.estimated_delivery_days} days after payment</p>` : ''}
-          ${escrowInfo}
-          ${feeBreakdownHtml}
-          ${refundStatusHtml}
-          ${refundButton}
-          <button class="btn primary" onclick="checkRefundStatus(${orderId}); this.closest('.modal').remove();" style="margin-top: 10px; width: 100%;">
-            <i class="fas fa-info-circle"></i> Check Refund Status
-          </button>
-        </div>
-      </div>
-    `;
-    
-    showModal(modalHtml);
-    
-  } catch (error) {
-    console.error('Error loading order details:', error);
-    showToast('Error', 'Unable to load order details', 'danger');
-  }
-}
 
 // Show modal helper
 function showModal(content) {
@@ -6252,15 +6692,6 @@ function initDashboardTabs() {
   }
 }
 
-// Call initDashboardTabs after user loads
-// Add this to your loadUser function
-const originalLoadUser = window.loadUser;
-window.loadUser = async function() {
-  await originalLoadUser();
-  if (currentUser) {
-    initDashboardTabs();
-  }
-};
 
 // Make functions globally available
 window.processRefund = processRefund;
@@ -6783,46 +7214,8 @@ async function submitOrderForm(e) {
 
 // ================= PENDING ORDERS MANAGEMENT =================
 
-async function loadPendingOrders() {
-  const container = document.getElementById('pendingOrdersList');
-  if (!container) return;
-  
-  try {
-    const response = await fetch('/api/dashboard/pending-orders', {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (!data.orders || data.orders.length === 0) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending orders</h4></div>';
-      return;
-    }
-    
-    let html = '';
-    data.orders.forEach(order => {
-      html += `
-        <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-          <h4>Order #${order.id} - ${order.product_name}</h4>
-          <p>Quantity: ${order.quantity} | Total: $${order.total_amount}</p>
-          <p>Customer: ${order.customer_name} | ${order.shipping_address}</p>
-          <div style="display: flex; gap: 12px; margin-top: 16px;">
-            <button class="btn primary" onclick="respondToOrder(${order.id}, 'accept')" style="background: green;">✅ Accept</button>
-            <button class="btn danger" onclick="respondToOrder(${order.id}, 'reject')" style="background: red;">❌ Reject</button>
-          </div>
-        </div>
-      `;
-    });
-    
-    container.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error:', error);
-    container.innerHTML = '<div class="empty-state"><h4>Error loading orders</h4></div>';
-  }
-}
 
-async function respondToOrder(orderId, action) {
+  async function respondToOrder(orderId, action) {
   try {
     const response = await fetch(`/api/dashboard/orders/${orderId}/respond`, {
       method: 'POST',
@@ -6836,118 +7229,6 @@ async function respondToOrder(orderId, action) {
     loadPendingOrders(); // Refresh the list
   } catch (error) {
     alert('Error: ' + error.message);
-  }
-}
-// Respond to order (accept/reject)
-async function respondToOrder(orderId, action) {
-  let message = '';
-  
-  if (action === 'reject') {
-    message = prompt('Please provide a reason for rejecting this order (will be sent to the customer):');
-    if (message === null) return; // User cancelled
-    if (!message.trim()) {
-      message = 'Seller unable to fulfill this order at this time.';
-    }
-  }
-  
-  // Disable buttons to prevent double submission
-  const actionDiv = document.getElementById(`orderActions-${orderId}`);
-  const buttons = actionDiv?.querySelectorAll('button');
-  if (buttons) {
-    buttons.forEach(btn => {
-      btn.disabled = true;
-      btn.style.opacity = '0.5';
-    });
-  }
-  
-  // Show loading state
-  const container = document.getElementById('pendingOrdersList');
-  const originalContent = container.innerHTML;
-  
-  try {
-    const response = await fetch(`/api/dashboard/orders/${orderId}/respond`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: action, 
-        message: message 
-      }),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      // Show success message
-      showToast(
-        action === 'accept' ? '✅ Order Accepted!' : '❌ Order Rejected',
-        data.message,
-        action === 'accept' ? 'success' : 'warning'
-      );
-      
-      // Remove this order from the pending list
-      const orderCard = document.querySelector(`.order-card:has(button[onclick*="${orderId}"])`);
-      if (orderCard) {
-        orderCard.style.opacity = '0';
-        orderCard.style.transform = 'translateX(-20px)';
-        orderCard.style.transition = 'all 0.3s ease';
-        setTimeout(() => {
-          orderCard.remove();
-          
-          // Check if there are any orders left
-          const remainingOrders = document.querySelectorAll('.order-card');
-          if (remainingOrders.length === 0) {
-            container.innerHTML = `
-              <div class="empty-state">
-                <i class="fas fa-check-circle"></i>
-                <h4>No pending orders</h4>
-                <p>All orders have been responded to</p>
-              </div>
-            `;
-          }
-          
-          // Update badge count
-          const badge = document.getElementById('pendingOrdersBadge');
-          if (badge) {
-            const newCount = remainingOrders.length;
-            if (newCount > 0) {
-              badge.textContent = newCount;
-              badge.style.display = 'inline-block';
-            } else {
-              badge.style.display = 'none';
-            }
-          }
-        }, 300);
-      } else {
-        // Fallback: reload the list
-        loadPendingOrders();
-      }
-      
-      // Also refresh sales history if it's visible
-      if (document.getElementById('salesTab')?.classList.contains('active')) {
-        loadSalesHistory();
-      }
-      
-    } else {
-      showToast('Error', data.error || 'Failed to process order', 'danger');
-      // Re-enable buttons
-      if (buttons) {
-        buttons.forEach(btn => {
-          btn.disabled = false;
-          btn.style.opacity = '1';
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Response error:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-    // Re-enable buttons
-    if (buttons) {
-      buttons.forEach(btn => {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-      });
-    }
   }
 }
 

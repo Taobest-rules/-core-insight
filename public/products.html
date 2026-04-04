@@ -2256,7 +2256,97 @@
   color: var(--accent);
   margin-right: 5px;
 }
+/* Add these styles for the order tracking UI */
 
+/* Star Rating Styles */
+.star-rating span {
+  transition: all 0.2s ease;
+  font-size: 40px;
+  cursor: pointer;
+}
+
+.star-rating span:hover {
+  transform: scale(1.1);
+}
+
+/* Order Timeline Styles */
+.order-timeline {
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 12px;
+}
+
+/* Order Card Styles */
+.order-card {
+  transition: all 0.3s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Status Badge Colors */
+.status-pending_seller_approval {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.status-seller_accepted {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent);
+}
+
+.status-paid, .status-processing {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent);
+}
+
+.status-shipped {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--digital);
+}
+
+.status-delivered {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+}
+
+.status-completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+}
+
+.status-cancelled {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+.status-refunded {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+}
+
+/* Responsive adjustments for orders */
+@media (max-width: 768px) {
+  .order-card [style*="display: flex; justify-content: space-between"] {
+    flex-direction: column;
+    text-align: left;
+  }
+  
+  .order-card [style*="text-align: right"] {
+    text-align: left;
+    margin-top: 8px;
+  }
+  
+  .order-timeline {
+    overflow-x: auto;
+  }
+  
+  .order-timeline > div {
+    min-width: 280px;
+  }
+}
 /* Country Filter - Add this to your existing CSS */
 .country-filter {
   display: flex;
@@ -3961,7 +4051,35 @@
         </div>
       </div>
     </div>
-    
+    <!-- Add this to the dashboard section in your HTML -->
+<div id="buyerOrdersTab" class="tab-content">
+  <div class="tab-header">
+    <h3><i class="fas fa-box-open"></i> My Orders</h3>
+    <div class="tab-actions">
+      <select id="buyerOrderFilter" class="select">
+        <option value="all">All Orders</option>
+        <option value="pending_seller_approval">Pending Approval</option>
+        <option value="seller_accepted">Awaiting Payment</option>
+        <option value="paid">Processing</option>
+        <option value="shipped">Shipped</option>
+        <option value="delivered">Delivered</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="refunded">Refunded</option>
+      </select>
+      <button id="refreshOrdersBtn" class="btn secondary" style="padding: 8px 16px;">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
+  <div id="buyerOrdersList" class="orders-table">
+    <div class="empty-state">
+      <i class="fas fa-shopping-bag"></i>
+      <h4>No orders yet</h4>
+      <p>Your orders will appear here</p>
+    </div>
+  </div>
+</div>
     <!-- Admin Panel Tab -->
     <div id="adminTabContent" class="tab-content">
       <div class="admin-panel">
@@ -4750,6 +4868,636 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
     document.getElementById('avgRating').textContent = '0.0';
   }
 }
+
+// Add this to your script section - Complete Buyer Order Tracking with Ratings
+
+// ================= BUYER ORDER TRACKING SYSTEM =================
+
+// Load buyer's orders for tracking
+async function loadBuyerOrders() {
+  const container = document.getElementById('buyerOrdersList');
+  if (!container) return;
+  
+  const filter = document.getElementById('buyerOrderFilter')?.value || 'all';
+  
+  try {
+    const response = await fetch('/api/my-orders', {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to load orders');
+    }
+    
+    const data = await response.json();
+    let orders = data.orders || [];
+    
+    // Apply filter
+    if (filter !== 'all') {
+      orders = orders.filter(order => order.order_status === filter);
+    }
+    
+    if (!orders || orders.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-shopping-bag"></i>
+          <h4>No orders found</h4>
+          <p>${filter === 'all' ? 'You haven\'t placed any orders yet' : `No ${filter.replace(/_/g, ' ')} orders`}</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
+    
+    for (const order of orders) {
+      // Get full order details with status history
+      const orderDetails = await fetchOrderDetails(order.id);
+      
+      html += `
+        <div class="order-card" data-order-id="${order.id}" style="background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
+          <!-- Order Header -->
+          <div style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h4 style="margin: 0; color: var(--accent);">Order #${order.id}</h4>
+                <span class="product-status status-${order.order_status}">${formatOrderStatus(order.order_status)}</span>
+              </div>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
+                Placed on ${new Date(order.created_at).toLocaleDateString()} • 
+                ${order.quantity} item${order.quantity !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 20px; font-weight: 700; color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</div>
+              <div style="font-size: 12px; color: var(--text-gray);">Total amount</div>
+            </div>
+          </div>
+          
+          <!-- Order Body -->
+          <div style="padding: 20px;">
+            <!-- Product Info -->
+            <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+              <div style="width: 80px; height: 80px; border-radius: 12px; background: var(--secondary-dark); overflow: hidden; flex-shrink: 0;">
+                ${order.product_image ? 
+                  `<img src="${order.product_image}" alt="${order.product_name}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                  `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);"><i class="fas fa-box fa-2x"></i></div>`
+                }
+              </div>
+              <div style="flex: 1;">
+                <h5 style="margin: 0 0 4px 0; font-size: 16px;">${escapeHtml(order.product_name)}</h5>
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-gray);">Quantity: ${order.quantity}</p>
+                <p style="margin: 0; font-size: 13px; color: var(--text-gray);">Seller: ${escapeHtml(order.seller_name || 'Seller')}</p>
+                ${order.shipping_address ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address)}</p>` : ''}
+              </div>
+            </div>
+            
+            <!-- Status Timeline -->
+            <div class="order-timeline" style="margin-bottom: 24px;">
+              ${generateOrderTimeline(orderDetails)}
+            </div>
+            
+            <!-- Tracking Info (if shipped) -->
+            ${orderDetails.tracking_info ? `
+              <div style="margin-bottom: 24px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <i class="fas fa-truck" style="color: var(--accent);"></i>
+                  <strong>Tracking Information</strong>
+                </div>
+                <p style="margin: 0 0 4px 0; font-size: 14px;">Carrier: ${orderDetails.tracking_info.carrier || 'Standard Shipping'}</p>
+                <p style="margin: 0; font-size: 14px;">Tracking Number: <strong>${orderDetails.tracking_info.tracking_number}</strong></p>
+              </div>
+            ` : ''}
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <!-- Refund button (if applicable) -->
+              ${canRequestRefund(order) ? `
+                <button class="small-btn warning" onclick="requestRefund(${order.id})">
+                  <i class="fas fa-undo-alt"></i> Request Refund
+                </button>
+              ` : ''}
+              
+              <!-- Rating button (if completed and not rated) -->
+              ${canLeaveRating(order) ? `
+                <button class="small-btn primary" onclick="openRatingModal(${order.id}, '${escapeHtml(order.product_name)}')">
+                  <i class="fas fa-star"></i> Rate Product
+                </button>
+              ` : ''}
+              
+              <!-- View Refund Status button -->
+              ${order.order_status === 'refund_requested' || order.order_status === 'refunded' ? `
+                <button class="small-btn" onclick="checkRefundStatus(${order.id})">
+                  <i class="fas fa-info-circle"></i> Refund Status
+                </button>
+              ` : ''}
+              
+              <!-- Confirm Delivery button -->
+              ${order.order_status === 'delivered' ? `
+                <button class="small-btn success" onclick="confirmDelivery(${order.id})">
+                  <i class="fas fa-check-circle"></i> Confirm Delivery
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading orders</h4>
+        <p>Please refresh and try again</p>
+      </div>
+    `;
+  }
+}
+
+// Fetch full order details including status history
+async function fetchOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/complete`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.order;
+    }
+  } catch (error) {
+    console.error('Error fetching order details:', error);
+  }
+  return {};
+}
+
+// Generate order status timeline HTML
+function generateOrderTimeline(order) {
+  const timeline = order.status_timeline || [];
+  
+  if (!timeline.length) {
+    return '<p style="color: var(--text-gray);">Status information not available</p>';
+  }
+  
+  let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+  
+  timeline.forEach((item, index) => {
+    const isLast = index === timeline.length - 1;
+    const isCompleted = item.completed !== false;
+    
+    html += `
+      <div style="display: flex; gap: 16px; position: relative;">
+        <div style="position: relative; flex-shrink: 0;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isCompleted ? 'var(--success)' : 'var(--border)'}; 
+                      display: flex; align-items: center; justify-content: center; color: white;">
+            <i class="fas ${item.icon || 'fa-check'}"></i>
+          </div>
+          ${!isLast ? `<div style="position: absolute; top: 32px; left: 15px; width: 2px; height: calc(100% + 8px); background: ${isCompleted ? 'var(--success)' : 'var(--border)'};"></div>` : ''}
+        </div>
+        <div style="flex: 1; padding-bottom: ${isLast ? '0' : '20px'};">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: ${isCompleted ? 'var(--text-light)' : 'var(--text-gray)'};">${item.title}</strong>
+            <span style="font-size: 12px; color: var(--text-muted);">${new Date(item.timestamp).toLocaleString()}</span>
+          </div>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-gray);">${item.description}</p>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
+}
+
+// Format order status for display
+function formatOrderStatus(status) {
+  const statusMap = {
+    'pending_seller_approval': '⏳ Awaiting Seller Approval',
+    'seller_accepted': '✅ Accepted - Payment Required',
+    'pending_payment': '💳 Payment Pending',
+    'paid': '💰 Paid - Processing',
+    'processing': '⚙️ Processing',
+    'shipped': '📦 Shipped',
+    'delivered': '🚚 Delivered',
+    'completed': '🎉 Completed',
+    'cancelled': '❌ Cancelled',
+    'refund_requested': '🔄 Refund Requested',
+    'refunded': '✅ Refunded'
+  };
+  return statusMap[status] || status.replace(/_/g, ' ');
+}
+
+// Check if refund can be requested
+function canRequestRefund(order) {
+  // Can request refund if: paid status, within 5 days, not already requested
+  if (!order || !order.order_status) return false;
+  
+  const refundableStatuses = ['paid', 'processing', 'shipped', 'delivered'];
+  const isRefundable = refundableStatuses.includes(order.order_status);
+  const notRefunded = order.order_status !== 'refunded' && order.order_status !== 'refund_requested';
+  
+  return isRefundable && notRefunded;
+}
+
+// Check if rating can be left
+async function canLeaveRating(order) {
+  if (!order || order.order_status !== 'completed') return false;
+  
+  try {
+    // Check if user has already reviewed this product
+    const response = await fetch(`/api/reviews/user/${order.product_id}`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return !data.hasReviewed;
+    }
+  } catch (error) {
+    console.error('Error checking review status:', error);
+  }
+  
+  return true;
+}
+
+// Open rating modal
+function openRatingModal(orderId, productName) {
+  const modalHtml = `
+    <div class="modal open" id="ratingModal">
+      <div class="modal-card" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0;"><i class="fas fa-star" style="color: var(--warning);"></i> Rate Your Purchase</h3>
+          <span class="close-x" onclick="closeRatingModal()">&times;</span>
+        </div>
+        
+        <p style="margin-bottom: 20px;">How would you rate <strong>${escapeHtml(productName)}</strong>?</p>
+        
+        <div style="margin-bottom: 20px; text-align: center;">
+          <div class="star-rating" style="display: flex; gap: 8px; justify-content: center; font-size: 40px; cursor: pointer;">
+            <span data-rating="1" onclick="setRating(1)">☆</span>
+            <span data-rating="2" onclick="setRating(2)">☆</span>
+            <span data-rating="3" onclick="setRating(3)">☆</span>
+            <span data-rating="4" onclick="setRating(4)">☆</span>
+            <span data-rating="5" onclick="setRating(5)">☆</span>
+          </div>
+          <input type="hidden" id="ratingValue" value="0">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px;">Your Review (Optional)</label>
+          <textarea id="reviewComment" class="form-textarea" rows="3" placeholder="Share your experience with this product..."></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button class="btn primary" onclick="submitRating(${orderId})" style="flex: 1;">
+            <i class="fas fa-paper-plane"></i> Submit Review
+          </button>
+          <button class="btn secondary" onclick="closeRatingModal()" style="flex: 1;">
+            Cancel
+          </button>
+        </div>
+        
+        <div id="ratingMessage" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal if any
+  const existingModal = document.getElementById('ratingModal');
+  if (existingModal) existingModal.remove();
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Add click outside to close
+  const modal = document.getElementById('ratingModal');
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeRatingModal();
+  });
+}
+
+// Set rating value in UI
+function setRating(rating) {
+  const stars = document.querySelectorAll('.star-rating span');
+  const ratingInput = document.getElementById('ratingValue');
+  
+  stars.forEach((star, index) => {
+    if (index < rating) {
+      star.textContent = '★';
+      star.style.color = 'var(--warning)';
+    } else {
+      star.textContent = '☆';
+      star.style.color = 'var(--text-gray)';
+    }
+  });
+  
+  ratingInput.value = rating;
+}
+
+// Close rating modal
+function closeRatingModal() {
+  const modal = document.getElementById('ratingModal');
+  if (modal) modal.remove();
+}
+
+// Submit rating
+async function submitRating(orderId) {
+  const rating = parseInt(document.getElementById('ratingValue').value);
+  const comment = document.getElementById('reviewComment').value.trim();
+  const messageEl = document.getElementById('ratingMessage');
+  
+  if (!rating || rating < 1 || rating > 5) {
+    messageEl.innerHTML = '<div style="color: var(--danger);">Please select a rating</div>';
+    return;
+  }
+  
+  try {
+    // First get the product ID from the order
+    const orderResponse = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    if (!orderResponse.ok) throw new Error('Failed to get order details');
+    
+    const orderData = await orderResponse.json();
+    const productId = orderData.order.product_id;
+    
+    // Submit the review
+    const reviewResponse = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: productId,
+        rating: rating,
+        comment: comment || 'Great product!'
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await reviewResponse.json();
+    
+    if (reviewResponse.ok) {
+      messageEl.innerHTML = '<div style="color: var(--success);">✅ Thank you for your review!</div>';
+      setTimeout(() => {
+        closeRatingModal();
+        loadBuyerOrders(); // Refresh orders list
+      }, 2000);
+    } else {
+      messageEl.innerHTML = `<div style="color: var(--danger);">❌ ${data.error || 'Failed to submit review'}</div>`;
+    }
+    
+  } catch (error) {
+    console.error('Rating submission error:', error);
+    messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+  }
+}
+
+// Confirm delivery
+async function confirmDelivery(orderId) {
+  if (!confirm('Have you received your order? Confirming delivery will complete the order.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Delivery Confirmed', 'Thank you for confirming! Your order is now complete.', 'success');
+      loadBuyerOrders(); // Refresh the orders list
+    } else {
+      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    }
+    
+  } catch (error) {
+    console.error('Delivery confirmation error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Request refund (already defined, keeping for reference)
+async function requestRefund(orderId) {
+  if (!currentUser) {
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  
+  const reason = prompt("Please explain why you want a refund (minimum 10 characters):");
+  
+  if (!reason) return;
+  
+  if (reason.length < 10) {
+    alert("Please provide at least 10 characters explaining your reason for refund.");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Refund Request Submitted', 
+        'Your refund request has been submitted. The seller has 48 hours to respond.', 
+        'success');
+      loadBuyerOrders(); // Refresh the orders list
+    } else {
+      showToast('Refund Request Failed', data.error || 'Unable to submit refund request', 'danger');
+    }
+  } catch (error) {
+    console.error('Refund request error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Check refund status
+async function checkRefundStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/refund-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      let statusMessage = '';
+      
+      switch(data.refundStatus) {
+        case 'pending':
+          statusMessage = `⏳ Refund Request Pending\n\n${data.message}\n\nRequested on: ${new Date(data.requestedAt).toLocaleDateString()}`;
+          break;
+        case 'approved':
+          statusMessage = `✅ Refund Approved\n\n${data.message}`;
+          break;
+        case 'denied':
+          statusMessage = `❌ Refund Denied\n\n${data.message}\n\n${data.notes ? `Reason: ${data.notes}` : ''}`;
+          break;
+        default:
+          statusMessage = `No refund request for this order.\n\nRefund window: 5 days after payment.`;
+      }
+      
+      alert(statusMessage);
+    }
+  } catch (error) {
+    console.error('Refund status error:', error);
+    showToast('Error', 'Unable to check refund status', 'danger');
+  }
+}
+
+// Add buyer orders tab to dashboard tabs
+function addBuyerOrdersTab() {
+  const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
+  const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
+  
+  if (!tabsHeader || !tabsContent) return;
+  
+  // Check if tab already exists
+  if (document.getElementById('buyerOrdersTab')) return;
+  
+  // Add buyer orders tab button
+  const buyerTabBtn = document.createElement('button');
+  buyerTabBtn.className = 'tab-btn';
+  buyerTabBtn.setAttribute('data-tab', 'buyer-orders');
+  buyerTabBtn.innerHTML = '<i class="fas fa-box-open"></i> My Orders';
+  tabsHeader.appendChild(buyerTabBtn);
+  
+  // Add buyer orders tab content
+  const buyerTabContent = document.createElement('div');
+  buyerTabContent.id = 'buyerOrdersTab';
+  buyerTabContent.className = 'tab-content';
+  buyerTabContent.innerHTML = `
+    <div class="tab-header">
+      <h3><i class="fas fa-box-open"></i> My Orders</h3>
+      <div class="tab-actions">
+        <select id="buyerOrderFilter" class="select">
+          <option value="all">All Orders</option>
+          <option value="pending_seller_approval">Pending Approval</option>
+          <option value="seller_accepted">Awaiting Payment</option>
+          <option value="paid">Processing</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+        </select>
+        <button id="refreshOrdersBtn" class="btn secondary" style="padding: 8px 16px;">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+    </div>
+    <div id="buyerOrdersList" class="orders-table">
+      <div class="empty-state">
+        <i class="fas fa-shopping-bag"></i>
+        <h4>No orders yet</h4>
+        <p>Your orders will appear here</p>
+      </div>
+    </div>
+  `;
+  tabsContent.appendChild(buyerTabContent);
+  
+  // Add event listeners
+  document.getElementById('buyerOrderFilter')?.addEventListener('change', () => loadBuyerOrders());
+  document.getElementById('refreshOrdersBtn')?.addEventListener('click', () => loadBuyerOrders());
+}
+
+// Update the tab switching logic to include buyer orders
+function updateTabSwitching() {
+  document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
+    btn.removeEventListener('click', handleTabClick);
+    btn.addEventListener('click', handleTabClick);
+  });
+}
+
+function handleTabClick(e) {
+  const tabId = this.getAttribute('data-tab');
+  
+  // Update active tab button
+  document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => 
+    b.classList.remove('active'));
+  this.classList.add('active');
+  
+  // Hide all tab contents
+  document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => 
+    content.classList.remove('active'));
+  
+  // Show selected tab content
+  let contentId = tabId;
+  if (tabId === 'buyer-orders') {
+    contentId = 'buyerOrdersTab';
+  } else {
+    contentId = tabId + 'Tab';
+  }
+  
+  const selectedContent = document.getElementById(contentId);
+  if (selectedContent) selectedContent.classList.add('active');
+  
+  // Load tab data
+  switch(tabId) {
+    case 'products':
+      loadMyProducts();
+      break;
+    case 'sales':
+      loadSalesHistory();
+      break;
+    case 'pending-orders':
+      loadPendingOrders();
+      break;
+    case 'analytics':
+      loadCharts();
+      break;
+    case 'refunds':
+      loadPendingRefunds();
+      break;
+    case 'buyer-orders':
+      loadBuyerOrders();
+      break;
+    case 'admin':
+      if (currentUser && currentUser.role === 'admin') {
+        loadUsersTable();
+        loadAllProductsTable();
+      }
+      break;
+  }
+}
+
+// Update the dashboard initialization
+function initBuyerDashboard() {
+  addBuyerOrdersTab();
+  updateTabSwitching();
+}
+
+// Call this after user loads
+const originalLoadUserDashboard = window.loadUser;
+window.loadUser = async function() {
+  if (originalLoadUserDashboard) await originalLoadUserDashboard();
+  if (currentUser) {
+    initBuyerDashboard();
+  }
+};
+
+// Make functions globally available
+window.openRatingModal = openRatingModal;
+window.closeRatingModal = closeRatingModal;
+window.setRating = setRating;
+window.submitRating = submitRating;
+window.confirmDelivery = confirmDelivery;
+window.requestRefund = requestRefund;
+window.checkRefundStatus = checkRefundStatus;
 // ================= UPDATED DASHBOARD FUNCTIONS =================
 
 // Load pending refunds for seller dashboard

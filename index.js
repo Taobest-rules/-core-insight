@@ -6765,14 +6765,16 @@ app.post("/api/verify-physical-payment-direct", async (req, res) => {
   }
 });
 
-// Paystack verification endpoint
+// Update this endpoint in your index.js
 app.post("/api/verify-paystack-payment", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
     
-    const { reference, order_id } = req.body;
+    const { reference, order_id, usd_amount } = req.body;
+    
+    console.log(`🔍 Verifying Paystack payment for order #${order_id}, reference: ${reference}`);
     
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
@@ -6782,19 +6784,41 @@ app.post("/api/verify-paystack-payment", async (req, res) => {
     );
     
     if (response.data.status === true && response.data.data.status === "success") {
+      const ngnAmountPaid = response.data.data.amount / 100; // Convert from kobo to NGN
+      const usdAmount = usd_amount || (ngnAmountPaid / 1500); // Approximate conversion
+      
+      console.log(`✅ Payment verified! Updating order #${order_id} to 'paid'`);
+      
+      // Update order with correct statuses
       await db.query(
         `UPDATE physical_orders 
          SET payment_status = 'paid',
              order_status = 'paid',
              payment_collected_at = NOW(),
              payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
-             transaction_ref = ?
+             transaction_ref = ?,
+             amount_paid_currency = 'NGN',
+             amount_paid = ?,
+             original_amount_usd = ?
          WHERE id = ?`,
-        [reference, order_id]
+        [reference, ngnAmountPaid, usdAmount, order_id]
       );
       
-      res.json({ success: true, message: "Payment verified successfully" });
+      // Add status history entry
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'payment_completed', 'Payment received and held in escrow', ?, NOW())`,
+        [order_id, req.session.user.id]
+      );
+      
+      res.json({ 
+        success: true, 
+        message: "Payment verified successfully",
+        order_id: order_id,
+        order_status: 'paid'
+      });
     } else {
+      console.log(`❌ Paystack verification failed for order #${order_id}`);
       res.status(400).json({ success: false, message: "Payment verification failed" });
     }
   } catch (err) {

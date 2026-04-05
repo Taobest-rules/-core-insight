@@ -832,18 +832,16 @@
     }
     
     function getStatusDisplay(status) {
-      const statusMap = {
-        'pending_seller_approval': '⏳ Awaiting Seller Approval',
-        'seller_accepted': '✅ Accepted - Payment Required',
-        'paid': '💰 Paid (In Escrow)',
-        'processing': '⚙️ Processing',
-        'shipped': '🚚 Shipped',
-        'delivered': '📦 Delivered',
-        'completed': '✓ Completed',
-        'refund_requested': '🔄 Refund Requested',
-        'refunded': '✅ Refunded',
-        'cancelled': '✗ Cancelled'
-      };
+     const statusMap = {
+  'pending_seller_approval': { text: 'Awaiting Seller Approval', icon: 'fa-clock', color: 'warning' },
+  'seller_accepted': { text: 'Awaiting Payment', icon: 'fa-credit-card', color: 'info' },
+  'paid': { text: 'Payment Confirmed - Processing', icon: 'fa-check-circle', color: 'success' },
+  'processing': { text: 'Processing Order', icon: 'fa-cogs', color: 'info' },
+  'shipped': { text: 'Shipped', icon: 'fa-truck', color: 'primary' },
+  'delivered': { text: 'Delivered', icon: 'fa-box-open', color: 'success' },
+  'completed': { text: 'Completed', icon: 'fa-trophy', color: 'success' },
+  'cancelled': { text: 'Cancelled', icon: 'fa-times-circle', color: 'danger' }
+};
       return statusMap[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
     

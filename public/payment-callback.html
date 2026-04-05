@@ -263,7 +263,33 @@
                 document.getElementById('actionButtons').style.display = 'flex';
             }
         }
-        
+        // In payment-callback.html, update the Paystack handler
+function handlePaystackCallback() {
+  const reference = urlParams.get('reference');
+  const orderId = urlParams.get('orderId');
+  
+  if (reference && orderId) {
+    // Call your verification endpoint
+    fetch('/api/verify-paystack-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference, order_id: orderId }),
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = `/order-success.html?orderId=${orderId}`;
+      } else {
+        window.location.href = `/payment-failed.html?orderId=${orderId}`;
+      }
+    })
+    .catch(err => {
+      console.error('Verification error:', err);
+      window.location.href = `/payment-failed.html?orderId=${orderId}`;
+    });
+  }
+}
         // Handle product/physical order payment verification
         async function verifyProductPayment(tx_ref, orderIdParam) {
             try {

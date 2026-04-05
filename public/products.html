@@ -4693,7 +4693,72 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
       }
     }
 
- 
+ // Add this function to your products.html script section
+async function verifyPaystackPayment(reference, orderId) {
+  try {
+    console.log(`🔍 Verifying Paystack payment for order #${orderId}`);
+    
+    const response = await fetch('/api/verify-paystack-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        reference: reference, 
+        order_id: orderId 
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('✅ Payment verified successfully!');
+      showToast('Payment Successful!', 'Your order has been confirmed and is now being processed.', 'success');
+      
+      // Refresh order status in UI
+      if (currentOrderId === orderId) {
+        await refreshOrderStatus(orderId);
+      }
+      
+      // Redirect to order tracking after 2 seconds
+      setTimeout(() => {
+        window.location.href = `/order-tracking.html?orderId=${orderId}`;
+      }, 2000);
+      
+      return true;
+    } else {
+      console.error('❌ Payment verification failed:', data.message);
+      showToast('Payment Verification Failed', data.message || 'Please contact support.', 'danger');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Verification error:', error);
+    showToast('Error', 'Failed to verify payment. Please contact support.', 'danger');
+    return false;
+  }
+}
+
+// Function to refresh order status in UI
+async function refreshOrderStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.order && data.order.order_status === 'paid') {
+        // Update any UI elements showing order status
+        const statusElement = document.querySelector(`.order-status-${orderId}`);
+        if (statusElement) {
+          statusElement.textContent = 'Paid - Processing';
+          statusElement.className = 'order-status-paid';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error refreshing order status:', error);
+  }
+}
 // Add this to your script section - Complete Buyer Order Tracking with Ratings
 // ================= COMPLETE FIXED DASHBOARD FUNCTIONS =================
 

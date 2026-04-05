@@ -6640,172 +6640,85 @@ function getStatusIcon(status) {
   };
   return icons[status] || 'fa-info-circle';
 }
-// COMPLETELY REWRITTEN PAYMENT LINK ENDPOINT
 app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
-  console.log("\n========== PAYMENT LINK REQUEST ==========");
-  console.log("Order ID:", req.params.orderId);
-  
   try {
-    // 1. Check authentication
-    if (!req.session || !req.session.user) {
-      console.log("❌ No authenticated user");
-      return res.status(401).json({ error: "Please login first" });
-    }
-    
-    console.log("✅ User authenticated:", req.session.user.id, req.session.user.email);
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
     
     const orderId = req.params.orderId;
-    const buyerId = req.session.user.id;
     
-    // 2. Get order with all necessary data
-    const [order] = await db.query(`
-      SELECT 
-        o.*,
-        p.title as product_name,
-        p.original_price,
-        u.email as buyer_email,
-        u.username as buyer_name,
-        s.email as seller_email,
-        s.username as seller_name
-      FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u ON o.buyer_id = u.id
-      LEFT JOIN users s ON o.seller_id = s.id
-      WHERE o.id = ? AND o.buyer_id = ?
-    `, [orderId, buyerId]);
+    const order = await db.query(
+      `SELECT o.*, p.title as product_name 
+       FROM physical_orders o 
+       LEFT JOIN products p ON o.product_id = p.id 
+       WHERE o.id = ? AND o.buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
     
-    if (!order) {
-      console.log("❌ Order not found or not owned by user");
+    if (!order || order.length === 0) {
       return res.status(404).json({ error: "Order not found" });
     }
     
-    console.log("✅ Order found:", {
-      id: order.id,
-      status: order.order_status,
-      amount: order.total_amount,
-      product: order.product_name
-    });
+    const orderData = order[0];
     
-    // 3. Verify order can be paid
-    if (order.order_status !== 'seller_accepted') {
-      console.log("❌ Invalid order status:", order.order_status);
-      return res.status(400).json({ 
-        error: `Cannot pay for order with status: ${order.order_status}. Order must be accepted by seller first.`
-      });
+    if (orderData.order_status !== 'seller_accepted') {
+      return res.status(400).json({ error: "Order not ready for payment" });
     }
     
-    // 4. Validate amount
-    const amount = parseFloat(order.total_amount);
-    if (isNaN(amount) || amount <= 0) {
-      console.log("❌ Invalid amount:", amount);
-      return res.status(400).json({ error: "Invalid order amount" });
-    }
-    
-    console.log("💰 Amount:", amount);
-    
-    // 5. Check Flutterwave configuration
-    if (!process.env.FLW_SECRET_KEY) {
-      console.log("❌ FLW_SECRET_KEY not configured");
-      return res.status(500).json({ error: "Payment system not configured. Please contact support." });
-    }
-    
-    // 6. Generate unique reference
+    const amount = parseFloat(orderData.total_amount);
     const reference = `ORD_${orderId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    console.log("📝 Reference:", reference);
     
-    // 7. Prepare payment data for Flutterwave
     const paymentData = {
       tx_ref: reference,
       amount: amount,
       currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/physical-payment-callback.html",
+      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
       customer: {
-        email: order.buyer_email || req.session.user.email,
-        name: order.buyer_name || req.session.user.username,
-        phone: order.delivery_phone || null
+        email: req.session.user.email,
+        name: req.session.user.username,
       },
       customizations: {
         title: "Core Insight Marketplace",
-        description: `Order #${orderId}: ${order.product_name} (x${order.quantity})`,
-        logo: "https://core-insight-7.onrender.com/logo.png"
+        description: `Order #${orderId}: ${orderData.product_name}`,
       },
       meta: {
-        order_id: orderId,
-        buyer_id: buyerId,
-        seller_id: order.seller_id,
-        quantity: order.quantity,
-        product_name: order.product_name
+        order_id: parseInt(orderId),  // IMPORTANT: Store order ID in meta
+        buyer_id: req.session.user.id,
+        seller_id: orderData.seller_id
       }
     };
     
-    console.log("📤 Sending to Flutterwave...");
-    console.log("Payload:", JSON.stringify(paymentData, null, 2));
-    
-    // 8. Make request to Flutterwave
-    const flutterwaveResponse = await axios.post(
+    const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
       paymentData,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.FLW_SECRET_KEY}`,
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
           'Content-Type': 'application/json'
         },
         timeout: 30000
       }
     );
     
-    console.log("📥 Flutterwave Response Status:", flutterwaveResponse.status);
-    console.log("📥 Flutterwave Response Data:", JSON.stringify(flutterwaveResponse.data, null, 2));
-    
-    // 9. Check if payment link was created
-    if (flutterwaveResponse.data.status === 'success' && flutterwaveResponse.data.data?.link) {
-      const paymentLink = flutterwaveResponse.data.data.link;
-      
-      // Save reference to order
+    if (response.data.status === 'success' && response.data.data?.link) {
+      // Store transaction reference
       await db.query(
-        `UPDATE physical_orders SET transaction_ref = ?, payment_link_created_at = NOW() WHERE id = ?`,
+        `UPDATE physical_orders SET transaction_ref = ? WHERE id = ?`,
         [reference, orderId]
       );
       
-      console.log("✅ Payment link created successfully!");
-      console.log("🔗 Link:", paymentLink);
-      console.log("========== END ==========\n");
-      
       res.json({
         success: true,
-        paymentLink: paymentLink,
+        paymentLink: response.data.data.link,
         transactionRef: reference,
-        orderId: orderId,
-        amount: amount
+        orderId: orderId
       });
     } else {
-      console.log("❌ Flutterwave returned error status");
-      throw new Error(flutterwaveResponse.data.message || "Failed to create payment link");
+      throw new Error(response.data.message || "Failed to create payment link");
     }
     
   } catch (error) {
-    console.error("\n❌ PAYMENT LINK ERROR:");
-    console.error("Message:", error.message);
-    
-    if (error.response) {
-      console.error("Flutterwave Error Response:");
-      console.error("Status:", error.response.status);
-      console.error("Data:", JSON.stringify(error.response.data, null, 2));
-      
-      // Send detailed error for debugging
-      res.status(500).json({ 
-        error: "Failed to create payment link",
-        details: error.response.data?.message || error.message,
-        flutterwave_status: error.response.status,
-        flutterwave_message: error.response.data?.message
-      });
-    } else {
-      console.error("Error:", error);
-      res.status(500).json({ 
-        error: "Failed to create payment link",
-        details: error.message 
-      });
-    }
+    console.error("Payment link error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -7017,6 +6930,78 @@ await db.query(
     console.error('❌ Verification error:', err);
     res.status(500).json({ error: "Error verifying payment", details: err.message });
   }
+});
+// ============================================
+// UNIFIED PAYMENT VERIFICATION ENDPOINT
+// Handles both Courses and Physical Products
+// ============================================
+
+app.get("/api/unified-verify/:reference", async (req, res) => {
+    try {
+        const reference = req.params.reference;
+        
+        // Determine if it's a course or product payment
+        if (reference.startsWith('coreinsight_')) {
+            // Course payment
+            const response = await axios.get(
+                `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${reference}`,
+                { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+            );
+            
+            if (response.data.status === "success" && response.data.data.status === "successful") {
+                const transaction = response.data.data;
+                const courseId = transaction.meta?.course_id;
+                const userId = transaction.meta?.user_id;
+                
+                await db.query(
+                    `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+                     VALUES (?, ?, 'completed', NOW())
+                     ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+                    [userId, courseId]
+                );
+                
+                res.json({ status: "success", type: "course", course_id: courseId });
+            } else {
+                res.json({ status: "failed", type: "course" });
+            }
+        } 
+        else if (reference.startsWith('ORD_')) {
+            // Physical product payment
+            const response = await axios.get(
+                `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${reference}`,
+                { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+            );
+            
+            if (response.data.status === "success" && response.data.data.status === "successful") {
+                const transaction = response.data.data;
+                const orderId = transaction.meta?.order_id;
+                const amount = transaction.amount;
+                const escrowReleaseDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+                
+                await db.query(
+                    `UPDATE physical_orders 
+                     SET payment_status = 'paid',
+                         order_status = 'paid',
+                         payment_collected_at = NOW(),
+                         payment_held_until = ?,
+                         transaction_ref = ?
+                     WHERE id = ?`,
+                    [escrowReleaseDate, reference, orderId]
+                );
+                
+                res.json({ status: "success", type: "product", order_id: orderId, amount: amount });
+            } else {
+                res.json({ status: "failed", type: "product" });
+            }
+        }
+        else {
+            res.status(400).json({ error: "Unknown payment type" });
+        }
+        
+    } catch (err) {
+        console.error("Unified verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 // Secure endpoint to get payment public keys (only what's safe to expose)
 app.get("/api/payment-keys", (req, res) => {

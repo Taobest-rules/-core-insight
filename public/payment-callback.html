@@ -38,6 +38,10 @@
             border: none;
             cursor: pointer;
         }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
         .btn-secondary {
             background: transparent;
             border: 1px solid #FFD700;
@@ -90,6 +94,13 @@
         .show-debug:hover {
             background: #2d3748;
         }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -99,13 +110,20 @@
         <p>Please wait while we verify your payment.</p>
         <div id="paymentStatus"></div>
         
-        <button class="btn" onclick="goToCourses()" style="display: none;" id="goToCoursesBtn">
-            Go to My Courses
-        </button>
-        
-        <button class="btn" onclick="goToCourses()" style="display: none;" id="tryAgainBtn">
-            Return to Courses
-        </button>
+        <div class="button-group" id="actionButtons" style="display: none;">
+            <button class="btn" onclick="goToCourses()" id="goToCoursesBtn">
+                Go to My Courses
+            </button>
+            <button class="btn btn-primary" onclick="goToProducts()" id="goToProductsBtn">
+                Continue Shopping
+            </button>
+            <button class="btn btn-primary" onclick="trackOrder()" id="trackOrderBtn" style="display: none;">
+                Track Order
+            </button>
+            <button class="btn" onclick="goToCourses()" id="tryAgainBtn">
+                Return to Home
+            </button>
+        </div>
         
         <button class="show-debug" onclick="toggleDebug()">Show Debug Info</button>
         <div id="debugInfo" class="debug-info"></div>
@@ -117,6 +135,9 @@
         const transactionId = urlParams.get('transaction_id');
         const status = urlParams.get('status');
         const tx_ref = urlParams.get('tx_ref');
+        
+        let paymentType = null; // 'course' or 'product'
+        let orderId = null;
         
         console.log('Payment callback - Transaction ID:', transactionId);
         console.log('Payment callback - Status:', status);
@@ -139,30 +160,49 @@
             debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
         }
         
-        if (transactionId && (status === 'successful' || status === 'success')) {
-            addDebug('Found transaction ID with successful status', { transactionId, status });
-            verifyPayment(transactionId);
-        } else if (transactionId) {
-            addDebug('Found transaction ID, verifying anyway', { transactionId });
-            verifyPayment(transactionId);
-        } else if (tx_ref) {
-            addDebug('Found tx_ref, attempting to verify by reference', { tx_ref });
-            verifyByReference(tx_ref);
-        } else {
-            addDebug('No transaction information found in URL');
-            document.getElementById('paymentStatus').innerHTML = 
-                '<p class="error">No transaction ID found. Please contact support.</p>';
-            document.getElementById('tryAgainBtn').style.display = 'inline-block';
+        // Determine payment type from tx_ref or URL
+        function determinePaymentType() {
+            if (tx_ref) {
+                if (tx_ref.startsWith('coreinsight_')) {
+                    paymentType = 'course';
+                    addDebug('Detected COURSE payment from tx_ref:', tx_ref);
+                } else if (tx_ref.startsWith('ORD_')) {
+                    paymentType = 'product';
+                    // Extract order ID from tx_ref (format: ORD_123_...)
+                    const match = tx_ref.match(/ORD_(\d+)/);
+                    if (match) {
+                        orderId = match[1];
+                        addDebug('Extracted order ID:', orderId);
+                    }
+                    addDebug('Detected PRODUCT payment from tx_ref:', tx_ref);
+                } else {
+                    // Check if there's a pending order in sessionStorage
+                    const pendingOrder = sessionStorage.getItem('pendingPhysicalOrder');
+                    if (pendingOrder) {
+                        paymentType = 'product';
+                        const orderData = JSON.parse(pendingOrder);
+                        orderId = orderData.orderId;
+                        addDebug('Detected PRODUCT payment from sessionStorage', orderData);
+                    } else {
+                        paymentType = 'course';
+                        addDebug('Defaulting to COURSE payment');
+                    }
+                }
+            } else {
+                paymentType = 'course';
+                addDebug('No tx_ref, defaulting to COURSE payment');
+            }
         }
         
-        async function verifyPayment(transactionId) {
+        // Handle course payment verification
+        async function verifyCoursePayment(transactionId) {
             try {
-                addDebug('Verifying payment for transaction:', transactionId);
+                addDebug('Verifying COURSE payment for transaction:', transactionId);
                 
                 const response = await fetch(`/api/verify-payment/${transactionId}`);
                 const data = await response.json();
                 
-                addDebug('Verification response received', data);
+                addDebug('Course verification response received', data);
                 
                 if (data.status === 'success') {
                     const courseTitle = data.data?.meta?.course_title || 'Your course';
@@ -170,7 +210,7 @@
                     
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="success">
-                            <h3>✅ Payment Successful!</h3>
+                            <h3>✅ Course Payment Successful!</h3>
                             <p>You now have access to the course.</p>
                             <div class="payment-details">
                                 <p><strong>Course:</strong> ${courseTitle}</p>
@@ -187,8 +227,9 @@
                         addDebug('Stored purchased course in localStorage', { course_id: data.data.meta.course_id });
                     }
                     
-                    // Show the button to go to courses
+                    // Show buttons
                     document.getElementById('goToCoursesBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
                     
                     // Auto-redirect after 3 seconds
                     setTimeout(() => {
@@ -198,17 +239,18 @@
                 } else {
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="error">
-                            <h3>❌ Payment Verification Failed</h3>
+                            <h3>❌ Course Payment Verification Failed</h3>
                             <p>${data.message || 'Please contact support if you were charged.'}</p>
                             <p><strong>Transaction ID:</strong> ${transactionId}</p>
                         </div>
                     `;
                     document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
                 }
                 
             } catch (error) {
-                console.error('Verification error:', error);
-                addDebug('Verification error:', error.message);
+                console.error('Course verification error:', error);
+                addDebug('Course verification error:', error.message);
                 document.getElementById('paymentStatus').innerHTML = `
                     <div class="error">
                         <h3>❌ Verification Error</h3>
@@ -218,66 +260,229 @@
                     </div>
                 `;
                 document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                document.getElementById('actionButtons').style.display = 'flex';
             }
         }
         
-        async function verifyByReference(tx_ref) {
+        // Handle product/physical order payment verification
+        async function verifyProductPayment(tx_ref, orderIdParam) {
             try {
-                addDebug('Verifying by reference:', tx_ref);
+                addDebug('Verifying PRODUCT payment for order:', orderIdParam);
                 
-                const response = await fetch(`/api/verify-by-reference/${tx_ref}`);
+                // Use the dedicated product verification endpoint
+                const response = await fetch(`/api/verify-physical-payment/${tx_ref}`);
                 const data = await response.json();
                 
-                addDebug('Verification by reference response:', data);
+                addDebug('Product verification response received', data);
                 
                 if (data.status === 'success') {
+                    const orderIdNum = data.orderId || orderIdParam;
+                    const amount = data.amount || 'N/A';
+                    
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="success">
-                            <h3>✅ Payment Successful!</h3>
-                            <p>You now have access to the course.</p>
+                            <h3>✅ Product Payment Successful!</h3>
+                            <p>Your order has been confirmed. The seller will now prepare your item for shipping.</p>
                             <div class="payment-details">
-                                <p><strong>Course:</strong> ${data.course_title || 'Your course'}</p>
-                                <p><strong>Amount:</strong> $${data.amount || 'N/A'}</p>
+                                <p><strong>Order ID:</strong> #${orderIdNum}</p>
+                                <p><strong>Amount Paid:</strong> $${amount}</p>
+                                <p><strong>Status:</strong> Payment confirmed, held in escrow</p>
+                                <p><strong>Escrow Release:</strong> Funds will be released to seller after 5 days</p>
                             </div>
                         </div>
                     `;
                     
-                    if (data.course_id) {
-                        localStorage.setItem('purchased_course_' + data.course_id, 'true');
-                        localStorage.setItem('last_purchased_course', data.course_id);
-                    }
+                    // Clear pending order from session storage
+                    sessionStorage.removeItem('pendingPhysicalOrder');
                     
-                    document.getElementById('goToCoursesBtn').style.display = 'inline-block';
+                    // Store order ID for tracking
+                    localStorage.setItem('last_order_id', orderIdNum);
                     
+                    // Show buttons
+                    document.getElementById('trackOrderBtn').style.display = 'inline-block';
+                    document.getElementById('goToProductsBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
+                    
+                    // Auto-redirect after 3 seconds to order tracking
                     setTimeout(() => {
-                        window.location.href = '/courses.html';
+                        window.location.href = `/order-tracking.html?orderId=${orderIdNum}`;
                     }, 3000);
+                    
                 } else {
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="error">
-                            <h3>❌ Payment Verification Failed</h3>
+                            <h3>❌ Product Payment Verification Failed</h3>
                             <p>${data.message || 'Please contact support if you were charged.'}</p>
+                            <p><strong>Reference:</strong> ${tx_ref}</p>
                         </div>
                     `;
                     document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
                 }
                 
             } catch (error) {
-                console.error('Verification by reference error:', error);
-                addDebug('Verification by reference error:', error.message);
+                console.error('Product verification error:', error);
+                addDebug('Product verification error:', error.message);
                 document.getElementById('paymentStatus').innerHTML = `
                     <div class="error">
                         <h3>❌ Verification Error</h3>
                         <p>Error: ${error.message}</p>
                         <p>Please contact support if you were charged.</p>
+                        <p><strong>Reference:</strong> ${tx_ref}</p>
                     </div>
                 `;
                 document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                document.getElementById('actionButtons').style.display = 'flex';
             }
         }
         
+        // Verify by reference (for both types)
+        async function verifyByReference(tx_ref) {
+            determinePaymentType();
+            
+            if (paymentType === 'product') {
+                await verifyProductPayment(tx_ref, orderId);
+            } else {
+                // For courses, use the existing verify-by-reference endpoint
+                try {
+                    addDebug('Verifying COURSE by reference:', tx_ref);
+                    
+                    const response = await fetch(`/api/verify-by-reference/${tx_ref}`);
+                    const data = await response.json();
+                    
+                    addDebug('Course verification by reference response:', data);
+                    
+                    if (data.status === 'success') {
+                        document.getElementById('paymentStatus').innerHTML = `
+                            <div class="success">
+                                <h3>✅ Course Payment Successful!</h3>
+                                <p>You now have access to the course.</p>
+                                <div class="payment-details">
+                                    <p><strong>Course:</strong> ${data.course_title || 'Your course'}</p>
+                                    <p><strong>Amount:</strong> $${data.amount || 'N/A'}</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        if (data.course_id) {
+                            localStorage.setItem('purchased_course_' + data.course_id, 'true');
+                            localStorage.setItem('last_purchased_course', data.course_id);
+                        }
+                        
+                        document.getElementById('goToCoursesBtn').style.display = 'inline-block';
+                        document.getElementById('actionButtons').style.display = 'flex';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/courses.html';
+                        }, 3000);
+                    } else {
+                        document.getElementById('paymentStatus').innerHTML = `
+                            <div class="error">
+                                <h3>❌ Payment Verification Failed</h3>
+                                <p>${data.message || 'Please contact support if you were charged.'}</p>
+                            </div>
+                        `;
+                        document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                        document.getElementById('actionButtons').style.display = 'flex';
+                    }
+                    
+                } catch (error) {
+                    console.error('Verification by reference error:', error);
+                    addDebug('Verification by reference error:', error.message);
+                    document.getElementById('paymentStatus').innerHTML = `
+                        <div class="error">
+                            <h3>❌ Verification Error</h3>
+                            <p>Error: ${error.message}</p>
+                            <p>Please contact support if you were charged.</p>
+                        </div>
+                    `;
+                    document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
+                }
+            }
+        }
+        
+        // Main verification logic
+        if (transactionId && (status === 'successful' || status === 'success')) {
+            addDebug('Found transaction ID with successful status', { transactionId, status });
+            determinePaymentType();
+            if (paymentType === 'product') {
+                // For product, we need to verify by tx_ref instead
+                if (tx_ref) {
+                    verifyProductPayment(tx_ref, orderId);
+                } else {
+                    // Try to get from session storage
+                    const pendingOrder = sessionStorage.getItem('pendingPhysicalOrder');
+                    if (pendingOrder) {
+                        const orderData = JSON.parse(pendingOrder);
+                        if (orderData.paymentReference) {
+                            verifyProductPayment(orderData.paymentReference, orderData.orderId);
+                        } else {
+                            verifyCoursePayment(transactionId);
+                        }
+                    } else {
+                        verifyCoursePayment(transactionId);
+                    }
+                }
+            } else {
+                verifyCoursePayment(transactionId);
+            }
+        } else if (transactionId) {
+            addDebug('Found transaction ID, verifying anyway', { transactionId });
+            determinePaymentType();
+            if (paymentType === 'product') {
+                if (tx_ref) {
+                    verifyProductPayment(tx_ref, orderId);
+                } else {
+                    verifyCoursePayment(transactionId);
+                }
+            } else {
+                verifyCoursePayment(transactionId);
+            }
+        } else if (tx_ref) {
+            addDebug('Found tx_ref, verifying by reference', { tx_ref });
+            verifyByReference(tx_ref);
+        } else {
+            addDebug('No transaction information found in URL');
+            determinePaymentType();
+            
+            // Check for pending order in session storage
+            const pendingOrder = sessionStorage.getItem('pendingPhysicalOrder');
+            if (pendingOrder && paymentType === 'product') {
+                const orderData = JSON.parse(pendingOrder);
+                if (orderData.paymentReference) {
+                    addDebug('Found pending order with payment reference', orderData);
+                    verifyProductPayment(orderData.paymentReference, orderData.orderId);
+                } else {
+                    document.getElementById('paymentStatus').innerHTML = 
+                        '<p class="error">No transaction information found. Please contact support.</p>';
+                    document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                    document.getElementById('actionButtons').style.display = 'flex';
+                }
+            } else {
+                document.getElementById('paymentStatus').innerHTML = 
+                    '<p class="error">No transaction information found. Please contact support.</p>';
+                document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                document.getElementById('actionButtons').style.display = 'flex';
+            }
+        }
+        
+        // Navigation functions
         function goToCourses() {
             window.location.href = '/courses.html';
+        }
+        
+        function goToProducts() {
+            window.location.href = '/products.html';
+        }
+        
+        function trackOrder() {
+            const orderIdFromUrl = urlParams.get('orderId') || orderId || localStorage.getItem('last_order_id');
+            if (orderIdFromUrl) {
+                window.location.href = `/order-tracking.html?orderId=${orderIdFromUrl}`;
+            } else {
+                window.location.href = '/order-tracking.html';
+            }
         }
     </script>
 </body>

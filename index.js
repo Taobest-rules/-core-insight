@@ -6497,7 +6497,7 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
   }
 });
 
-// Get all orders for a user (with filtering)
+// GET /api/my-orders - Fixed SQL error
 app.get("/api/my-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -6506,56 +6506,105 @@ app.get("/api/my-orders", async (req, res) => {
     
     const userId = req.session.user.id;
     const { status, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
     
+    // Build query with proper parameter handling
     let query = `
-      SELECT o.*, p.title as product_name, p.images,
-             u_seller.username as seller_name
+      SELECT 
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.total_amount,
+        o.order_status,
+        o.payment_status,
+        o.created_at,
+        o.shipping_address,
+        o.delivery_phone,
+        o.estimated_delivery_days,
+        o.tracking_number,
+        o.payment_collected_at,
+        o.payment_held_until,
+        o.refund_requested_at,
+        o.refund_processed_at,
+        p.id as product_id,
+        p.title as product_name_full,
+        p.images as product_images,
+        u.username as seller_name
       FROM physical_orders o
       LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      LEFT JOIN users u ON o.seller_id = u.id
       WHERE o.buyer_id = ?
     `;
-    const params = [userId];
+    
+    const queryParams = [userId];
     
     if (status && status !== 'all') {
       query += " AND o.order_status = ?";
-      params.push(status);
+      queryParams.push(status);
     }
     
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), parseInt(offset));
+    queryParams.push(parseInt(limit), offset);
     
-    const orders = await db.query(query, params);
+    console.log('Executing query with params:', queryParams);
+    const orders = await db.query(query, queryParams);
     
     // Get counts for each status
-    const countsResult = await db.query(`
+    const countQuery = `
       SELECT 
         order_status,
         COUNT(*) as count
       FROM physical_orders
       WHERE buyer_id = ?
       GROUP BY order_status
-    `, [userId]);
+    `;
+    
+    const countsResult = await db.query(countQuery, [userId]);
     
     const counts = {};
-    countsResult.forEach(row => {
-      counts[row.order_status] = parseInt(row.count);
-    });
+    if (countsResult && countsResult.length > 0) {
+      countsResult.forEach(row => {
+        counts[row.order_status] = parseInt(row.count);
+      });
+    }
     
-    const processedOrders = (orders || []).map(order => ({
-      id: order.id,
-      product_name: order.product_name,
-      product_image: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images)[0] : order.images[0]) : null,
-      quantity: parseInt(order.quantity),
-      total_amount: parseFloat(order.total_amount),
-      order_status: order.order_status,
-      payment_status: order.payment_status,
-      seller_name: order.seller_name,
-      created_at: order.created_at,
-      estimated_delivery_days: order.estimated_delivery_days || 7,
-      tracking_info: order.tracking_number
-    }));
+    // Process orders
+    const processedOrders = (orders || []).map(order => {
+      let productImage = null;
+      if (order.product_images) {
+        try {
+          if (typeof order.product_images === 'string') {
+            const parsed = JSON.parse(order.product_images);
+            productImage = Array.isArray(parsed) ? parsed[0] : parsed;
+          } else if (Array.isArray(order.product_images)) {
+            productImage = order.product_images[0];
+          }
+        } catch (e) {
+          productImage = null;
+        }
+      }
+      
+      return {
+        id: order.id,
+        product_id: order.product_id,
+        product_name: order.product_name_full || order.product_name,
+        product_image: productImage,
+        quantity: parseInt(order.quantity) || 1,
+        total_amount: parseFloat(order.total_amount) || 0,
+        order_status: order.order_status || 'pending_seller_approval',
+        payment_status: order.payment_status || 'pending',
+        seller_name: order.seller_name || 'Seller',
+        created_at: order.created_at,
+        shipping_address: order.shipping_address,
+        delivery_phone: order.delivery_phone,
+        estimated_delivery_days: order.estimated_delivery_days || 7,
+        tracking_number: order.tracking_number,
+        payment_collected_at: order.payment_collected_at,
+        payment_held_until: order.payment_held_until,
+        refund_requested_at: order.refund_requested_at,
+        refund_processed_at: order.refund_processed_at
+      };
+    });
     
     res.json({
       success: true,
@@ -6569,7 +6618,7 @@ app.get("/api/my-orders", async (req, res) => {
     });
     
   } catch (err) {
-    console.error("❌ Error fetching orders:", err);
+    console.error("❌ Error fetching my orders:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -7330,7 +7379,74 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
-
+// GET /api/seller/paid-orders - Orders ready for shipment
+app.get("/api/seller/paid-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    
+    const orders = await db.query(`
+      SELECT 
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.total_amount,
+        o.order_status,
+        o.customer_name,
+        o.customer_email,
+        o.shipping_address,
+        o.delivery_phone,
+        o.city,
+        o.state,
+        o.country,
+        o.created_at,
+        o.payment_collected_at,
+        o.platform_fee,
+        o.seller_earnings,
+        o.estimated_delivery_days,
+        p.id as product_id,
+        p.title as product_title
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      WHERE o.seller_id = ? 
+        AND o.order_status = 'paid'
+        AND o.payment_status = 'paid'
+      ORDER BY o.payment_collected_at ASC
+    `, [sellerId]);
+    
+    const processedOrders = (orders || []).map(order => ({
+      id: order.id,
+      product_name: order.product_name || order.product_title,
+      quantity: parseInt(order.quantity) || 1,
+      total_amount: parseFloat(order.total_amount) || 0,
+      seller_earnings: parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9),
+      platform_fee: parseFloat(order.platform_fee) || (parseFloat(order.total_amount) * 0.1),
+      customer_name: order.customer_name || 'Customer',
+      customer_email: order.customer_email,
+      shipping_address: order.shipping_address,
+      delivery_phone: order.delivery_phone,
+      city: order.city,
+      state: order.state,
+      country: order.country,
+      created_at: order.created_at,
+      payment_collected_at: order.payment_collected_at,
+      estimated_delivery_days: order.estimated_delivery_days || 7
+    }));
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      count: processedOrders.length
+    });
+    
+  } catch (err) {
+    console.error("❌ Error fetching paid orders:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // Favorites endpoints
 app.post("/api/favorites/toggle", async (req, res) => {
   try {
@@ -8157,7 +8273,7 @@ app.get("/api/refunds/pending", async (req, res) => {
 });
 
 
-// 12. Check escrow status
+// GET /api/orders/:orderId/escrow-status
 app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -8165,7 +8281,7 @@ app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
     const orderId = req.params.orderId;
     
     const order = await db.query(
-      `SELECT id, payment_status, order_status, payment_held_until, total_amount, seller_earnings
+      `SELECT id, payment_status, order_status, payment_held_until, total_amount, seller_earnings, platform_fee
        FROM physical_orders
        WHERE id = ? AND (buyer_id = ? OR seller_id = ?)`,
       [orderId, req.session.user.id, req.session.user.id]
@@ -8176,18 +8292,17 @@ app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
     }
     
     const orderData = order[0];
-    const escrowStatus = {
-      is_escrow: orderData.payment_status === 'paid' && orderData.order_status === 'paid',
-      amount_held: orderData.total_amount,
-      seller_earnings: orderData.seller_earnings,
-      platform_fee: orderData.total_amount - orderData.seller_earnings,
-      payment_held_until: orderData.payment_held_until,
-      funds_released: orderData.order_status === 'completed'
-    };
+    const isPaid = orderData.payment_status === 'paid';
+    const isCompleted = orderData.order_status === 'completed';
     
     res.json({
       success: true,
-      ...escrowStatus
+      is_escrow: isPaid && !isCompleted,
+      amount_held: parseFloat(orderData.total_amount),
+      seller_earnings: parseFloat(orderData.seller_earnings) || (parseFloat(orderData.total_amount) * 0.9),
+      platform_fee: parseFloat(orderData.platform_fee) || (parseFloat(orderData.total_amount) * 0.1),
+      payment_held_until: orderData.payment_held_until,
+      funds_released: isCompleted
     });
     
   } catch (err) {

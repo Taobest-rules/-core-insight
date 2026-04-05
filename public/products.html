@@ -5064,7 +5064,8 @@ window.openDashboard = function() {
   if (originalOpenDashboard) originalOpenDashboard();
   checkAndShowAdminFeatures(); // Re-check when dashboard opens
 };
-async function loadBuyerOrders() {
+
+  async function loadBuyerOrders() {
   const container = document.getElementById('buyerOrdersList');
   if (!container) return;
   
@@ -5076,9 +5077,9 @@ async function loadBuyerOrders() {
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', response.status, errorText);
-      throw new Error(`HTTP ${response.status}`);
+      const errorData = await response.json();
+      console.error('API Error:', errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}`);
     }
     
     const data = await response.json();
@@ -5106,44 +5107,65 @@ async function loadBuyerOrders() {
     for (const order of orders) {
       let statusClass = '';
       let statusText = '';
+      let statusIcon = '';
       
       switch(order.order_status) {
         case 'pending_seller_approval':
           statusClass = 'status-pending';
           statusText = '⏳ Awaiting Seller Approval';
+          statusIcon = 'fa-clock';
           break;
         case 'seller_accepted':
           statusClass = 'status-warning';
           statusText = '✅ Accepted - Payment Required';
+          statusIcon = 'fa-credit-card';
           break;
         case 'paid':
           statusClass = 'status-info';
-          statusText = '💰 Paid - Awaiting Delivery';
+          statusText = '💰 Paid - Seller Preparing Shipment';
+          statusIcon = 'fa-spinner';
+          break;
+        case 'shipped':
+          statusClass = 'status-info';
+          statusText = '📦 Shipped - In Transit';
+          statusIcon = 'fa-truck';
           break;
         case 'delivered':
           statusClass = 'status-success';
-          statusText = '📦 Delivered - Confirm Receipt';
+          statusText = '📬 Delivered - Confirm Receipt';
+          statusIcon = 'fa-check-circle';
           break;
         case 'completed':
           statusClass = 'status-success';
           statusText = '✓ Completed';
+          statusIcon = 'fa-trophy';
           break;
         case 'refund_requested':
           statusClass = 'status-warning';
           statusText = '🔄 Refund Requested';
+          statusIcon = 'fa-undo-alt';
           break;
         case 'refunded':
           statusClass = 'status-success';
           statusText = '✅ Refunded';
+          statusIcon = 'fa-dollar-sign';
           break;
         case 'cancelled':
           statusClass = 'status-danger';
           statusText = '✗ Cancelled';
+          statusIcon = 'fa-times-circle';
           break;
         default:
           statusClass = 'status-pending';
           statusText = order.order_status?.replace(/_/g, ' ') || 'Processing';
+          statusIcon = 'fa-info-circle';
       }
+      
+      // Check if escrow info should be shown
+      const showEscrowInfo = order.order_status === 'paid' && order.payment_collected_at;
+      const paymentDate = order.payment_collected_at ? new Date(order.payment_collected_at) : null;
+      const refundDeadline = paymentDate ? new Date(paymentDate.getTime() + 5 * 24 * 60 * 60 * 1000) : null;
+      const canRequestRefund = order.order_status === 'paid' && refundDeadline && new Date() < refundDeadline;
       
       html += `
         <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
@@ -5152,54 +5174,87 @@ async function loadBuyerOrders() {
               <div>
                 <h4 style="margin: 0; color: var(--accent);">Order #${order.id}</h4>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
-                  Placed: ${new Date(order.created_at).toLocaleDateString()}
+                  <i class="fas fa-calendar"></i> ${new Date(order.created_at).toLocaleDateString()}
                 </p>
               </div>
               <div style="text-align: right;">
-                <span class="product-status ${statusClass}">${statusText}</span>
-                <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
+                <span class="product-status ${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
+                <p style="margin: 8px 0 0 0; font-size: 20px; font-weight: 700; color: var(--success);">
                   $${parseFloat(order.total_amount).toFixed(2)}
                 </p>
               </div>
             </div>
           </div>
+          
           <div style="padding: 16px;">
             <div style="display: flex; gap: 16px;">
-              <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+              <div style="width: 70px; height: 70px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden; flex-shrink: 0;">
                 ${order.product_image ? 
-                  `<img src="${order.product_image}" style="width:100%; height:100%; object-fit:cover;">` :
-                  `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-box"></i></div>`
+                  `<img src="${order.product_image}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://placehold.co/70x70/1e293b/3b82f6/png?text=Product'">` :
+                  `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-box fa-2x"></i></div>`
                 }
               </div>
               <div style="flex: 1;">
                 <h5 style="margin: 0 0 4px 0;">${escapeHtml(order.product_name)}</h5>
-                <p style="margin: 0; font-size: 13px; color: var(--text-gray);">Quantity: ${order.quantity}</p>
-                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
-                  <i class="fas fa-truck"></i> Est. delivery: ${order.estimated_delivery_days || 7} days
+                <p style="margin: 0; font-size: 13px; color: var(--text-gray);">
+                  <i class="fas fa-store"></i> Seller: ${escapeHtml(order.seller_name)}
                 </p>
+                <p style="margin: 4px 0 0 0; font-size: 13px;">
+                  <i class="fas fa-cubes"></i> Quantity: ${order.quantity}
+                </p>
+                ${order.shipping_address ? `
+                  <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                    <i class="fas fa-map-marker-alt"></i> Deliver to: ${escapeHtml(order.shipping_address.substring(0, 60))}${order.shipping_address.length > 60 ? '...' : ''}
+                  </p>
+                ` : ''}
+                ${order.tracking_number ? `
+                  <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--accent);">
+                    <i class="fas fa-box"></i> Tracking: ${escapeHtml(order.tracking_number)}
+                  </p>
+                ` : ''}
               </div>
             </div>
+            
+            ${showEscrowInfo ? `
+              <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid var(--accent);">
+                <p style="margin: 0; font-size: 12px;">
+                  <i class="fas fa-lock"></i> <strong>Escrow Protection:</strong> Payment held securely
+                  ${refundDeadline ? `<br>⏰ Refund available until: ${refundDeadline.toLocaleDateString()}` : ''}
+                </p>
+              </div>
+            ` : ''}
             
             <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
               <button class="small-btn" onclick="viewOrderDetails(${order.id})">
                 <i class="fas fa-eye"></i> View Details
               </button>
+              
               ${order.order_status === 'seller_accepted' ? `
                 <button class="small-btn primary" onclick="proceedToPayment(${order.id})">
                   <i class="fas fa-credit-card"></i> Pay Now
                 </button>
               ` : ''}
+              
               ${order.order_status === 'paid' ? `
-                <button class="small-btn warning" onclick="trackOrder(${order.id})">
+                <button class="small-btn info" onclick="trackOrder(${order.id})">
                   <i class="fas fa-map-marker-alt"></i> Track Order
                 </button>
-                <button class="small-btn danger" onclick="requestRefund(${order.id})">
-                  <i class="fas fa-undo-alt"></i> Request Refund
-                </button>
+                ${canRequestRefund ? `
+                  <button class="small-btn danger" onclick="requestRefund(${order.id})">
+                    <i class="fas fa-undo-alt"></i> Request Refund
+                  </button>
+                ` : ''}
               ` : ''}
+              
               ${order.order_status === 'delivered' ? `
                 <button class="small-btn success" onclick="confirmDelivery(${order.id})">
-                  <i class="fas fa-check-circle"></i> Confirm Delivery
+                  <i class="fas fa-check-circle"></i> Confirm Delivery & Release Payment
+                </button>
+              ` : ''}
+              
+              ${order.order_status === 'completed' ? `
+                <button class="small-btn warning" onclick="leaveReview(${order.id})">
+                  <i class="fas fa-star"></i> Leave Review
                 </button>
               ` : ''}
             </div>
@@ -5217,8 +5272,10 @@ async function loadBuyerOrders() {
       <div class="empty-state">
         <i class="fas fa-exclamation-triangle"></i>
         <h4>Error loading orders</h4>
-        <p>Please refresh the page and try again.</p>
-        <button onclick="loadBuyerOrders()" class="btn primary" style="margin-top: 12px;">Retry</button>
+        <p>${error.message || 'Please refresh and try again'}</p>
+        <button onclick="loadBuyerOrders()" class="btn primary" style="margin-top: 12px;">
+          <i class="fas fa-sync-alt"></i> Retry
+        </button>
       </div>
     `;
   }
@@ -6068,20 +6125,22 @@ async function loadPaidOrders() {
   if (!container) return;
   
   try {
-    const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+    console.log('Loading paid orders for seller...');
+    
+    const response = await fetch('/api/seller/paid-orders', {
       credentials: 'include'
     });
     
     if (!response.ok) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
-      return;
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to load paid orders');
     }
     
-    const orders = await response.json();
-    const paidOrders = orders.filter(o => o.order_status === 'paid');
+    const data = await response.json();
+    const paidOrders = data.orders || [];
     
     // Update badge
-    const badge = document.getElementById('paidOrdersBadge');
+    const badge = document.getElementById('paidBadge');
     if (badge) {
       if (paidOrders.length > 0) {
         badge.textContent = paidOrders.length;
@@ -6096,7 +6155,7 @@ async function loadPaidOrders() {
         <div class="empty-state">
           <i class="fas fa-money-bill-wave"></i>
           <h4>No paid orders</h4>
-          <p>When customers pay for orders, they'll appear here</p>
+          <p>When customers pay for orders, they'll appear here ready for shipment</p>
         </div>
       `;
       return;
@@ -6105,40 +6164,58 @@ async function loadPaidOrders() {
     let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
     
     for (const order of paidOrders) {
-      const sellerEarnings = parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9);
-      
       html += `
-        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h4 style="margin: 0 0 8px 0; color: var(--accent);">Order #${order.id}</h4>
-              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(order.product_name || 'Product')}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || order.buyer_name || 'Customer')}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Phone:</strong> ${escapeHtml(order.delivery_phone || 'N/A')}</p>
-              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
-                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address || 'No address provided')}
-              </p>
-            </div>
-            <div style="text-align: right;">
-              <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: var(--success);">
-                $${parseFloat(order.total_amount).toFixed(2)}
-              </p>
-              <p style="margin: 0 0 4px 0; font-size: 13px;">
-                <strong>Your earnings:</strong> 
-                <span style="color: var(--success);">$${sellerEarnings.toFixed(2)}</span>
-              </p>
-              <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted);">
-                <i class="fas fa-clock"></i> Funds in escrow until delivery confirmation
-              </p>
-              <div style="display: flex; gap: 12px; margin-top: 16px;">
-                <button class="btn primary" onclick="markOrderShipped(${order.id})" style="background: var(--success);">
-                  <i class="fas fa-truck"></i> Mark as Shipped
-                </button>
-                <button class="small-btn" onclick="viewOrderDetails(${order.id})">
-                  <i class="fas fa-eye"></i> View Details
-                </button>
+        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+          <div style="padding: 16px; background: rgba(16, 185, 129, 0.1); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h4 style="margin: 0; color: var(--success);">💰 Order #${order.id}</h4>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
+                  Paid: ${new Date(order.payment_collected_at).toLocaleString()}
+                </p>
               </div>
+              <div style="text-align: right;">
+                <span class="product-status status-info"><i class="fas fa-check-circle"></i> Payment Confirmed</span>
+                <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
+                  $${order.total_amount.toFixed(2)}
+                </p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--success);">
+                  <i class="fas fa-wallet"></i> You earn: $${order.seller_earnings.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div style="padding: 16px;">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+              <div style="flex: 2;">
+                <h5 style="margin: 0 0 8px 0;">${escapeHtml(order.product_name)}</h5>
+                <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name)}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Phone:</strong> ${escapeHtml(order.delivery_phone || 'N/A')}</p>
+              </div>
+              <div style="flex: 3;">
+                <p style="margin: 0 0 4px 0;"><strong><i class="fas fa-map-marker-alt"></i> Shipping Address:</strong></p>
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: var(--text-gray);">
+                  ${escapeHtml(order.shipping_address)}<br>
+                  ${order.city ? escapeHtml(order.city) : ''}${order.state ? `, ${escapeHtml(order.state)}` : ''}${order.country ? `, ${escapeHtml(order.country)}` : ''}
+                </p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                  <i class="fas fa-clock"></i> Estimated delivery: ${order.estimated_delivery_days} days
+                </p>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 16px;">
+              <button class="btn primary" onclick="markOrderShipped(${order.id})" style="background: var(--success);">
+                <i class="fas fa-truck"></i> Begin Shipment
+              </button>
+              <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                <i class="fas fa-eye"></i> View Full Details
+              </button>
+              <button class="small-btn info" onclick="viewEscrowStatus(${order.id})">
+                <i class="fas fa-lock"></i> View Escrow Status
+              </button>
             </div>
           </div>
         </div>
@@ -6150,10 +6227,112 @@ async function loadPaidOrders() {
     
   } catch (error) {
     console.error('Error loading paid orders:', error);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading paid orders</h4>
+        <p>${error.message}</p>
+        <button onclick="loadPaidOrders()" class="btn primary" style="margin-top: 12px;">Retry</button>
+      </div>
+    `;
   }
 }
 
+// View Escrow Status function
+async function viewEscrowStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    let message = '';
+    if (data.is_escrow) {
+      message = `
+🔒 ESCROW STATUS
+
+Amount Held: $${data.amount_held?.toFixed(2) || '0.00'}
+Your Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}
+Platform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}
+
+Status: ${data.funds_released ? '✅ Released to you' : '⏳ Held in escrow'}
+
+${data.payment_held_until ? `Held until: ${new Date(data.payment_held_until).toLocaleDateString()}` : ''}
+
+Note: Funds are released 5 days after customer confirms delivery.
+      `;
+    } else {
+      message = 'No escrow information available for this order.';
+    }
+    
+    alert(message);
+    
+  } catch (error) {
+    console.error('Escrow status error:', error);
+    alert('Error loading escrow status. Please try again.');
+  }
+}
+
+// Mark order as shipped
+async function markOrderShipped(orderId) {
+  const trackingNumber = prompt('Enter tracking number (optional):');
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        status: 'shipped', 
+        tracking_number: trackingNumber || null,
+        notes: 'Order has been shipped'
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
+      loadPaidOrders(); // Refresh the list
+      loadSalesHistory(); // Also refresh sales
+    } else {
+      showToast('Error', data.error || 'Failed to update order', 'danger');
+    }
+  } catch (error) {
+    console.error('Error marking order shipped:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Confirm delivery (for buyers) - Starts 5-day escrow countdown
+async function confirmDelivery(orderId) {
+  if (!confirm('Have you received your order?\n\nConfirming delivery will:\n✅ Mark order as delivered\n✅ Start 5-day countdown for seller payment\n💰 You can still request a refund within 5 days\n\nDo you want to confirm delivery?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Delivery Confirmed', 
+        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
+        'success');
+      loadBuyerOrders(); // Refresh the orders list
+    } else {
+      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    }
+  } catch (error) {
+    console.error('Delivery confirmation error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
 // Mark order as shipped
 async function markOrderShipped(orderId) {
   const trackingNumber = prompt('Enter tracking number (optional):');

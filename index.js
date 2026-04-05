@@ -587,6 +587,8 @@ app.post("/api/verify-paystack-payment", async (req, res) => {
     
     const { reference, order_id, usd_amount } = req.body;
     
+    console.log(`🔍 Verifying Paystack payment for order #${order_id}`);
+    
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
@@ -595,8 +597,9 @@ app.post("/api/verify-paystack-payment", async (req, res) => {
     );
     
     if (response.data.status === true && response.data.data.status === "success") {
-      const ngnAmountPaid = response.data.data.amount / 100; // Convert from kobo to NGN
+      const ngnAmountPaid = response.data.data.amount / 100;
       
+      // IMPORTANT: Update BOTH payment_status AND order_status
       await db.query(
         `UPDATE physical_orders 
          SET payment_status = 'paid',
@@ -605,14 +608,28 @@ app.post("/api/verify-paystack-payment", async (req, res) => {
              payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
              transaction_ref = ?,
              amount_paid_currency = 'NGN',
-             amount_paid = ?,
-             original_amount_usd = ?
+             amount_paid = ?
          WHERE id = ?`,
-        [reference, ngnAmountPaid, usd_amount, order_id]
+        [reference, ngnAmountPaid, order_id]
       );
       
-      res.json({ success: true, message: "Payment verified successfully" });
+      // Add to status history for tracking
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_at)
+         VALUES (?, 'payment_completed', 'Payment received and held in escrow', NOW())`,
+        [order_id]
+      );
+      
+      console.log(`✅ Order #${order_id} updated to PAID status`);
+      
+      res.json({ 
+        success: true, 
+        message: "Payment verified successfully",
+        order_id: order_id,
+        order_status: 'paid'
+      });
     } else {
+      console.log(`❌ Payment verification failed for order #${order_id}`);
       res.status(400).json({ success: false, message: "Payment verification failed" });
     }
   } catch (err) {
@@ -6040,7 +6057,6 @@ app.get("/api/debug/flutterwave", async (req, res) => {
 // COMPLETE PHYSICAL ORDER STATUS SYSTEM
 // ============================================
 
-// Get order with complete status history
 app.get("/api/orders/:orderId/complete", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -6074,89 +6090,107 @@ app.get("/api/orders/:orderId/complete", async (req, res) => {
     const historyResult = await db.query(`
       SELECT * FROM order_status_history 
       WHERE order_id = ? 
-      ORDER BY created_at DESC
+      ORDER BY created_at ASC
     `, [orderId]);
     
-    // Get tracking information if available
-    const trackingResult = await db.query(`
-      SELECT * FROM order_tracking 
-      WHERE order_id = ? 
-      ORDER BY created_at DESC
-    `, [orderId]);
-    
-    // Calculate status timeline
-    const statusTimeline = buildStatusTimeline(order);
-    
-    // Check if refund is available (within 5 days of payment)
+    // Calculate escrow info - FIXED: Only starts after delivery confirmation
+    let escrowInfo = null;
     let refundAvailable = false;
     let refundDeadline = null;
-    if (order.payment_collected_at && order.order_status !== 'refunded' && order.order_status !== 'refund_requested') {
+    
+    if (order.order_status === 'paid' && order.payment_collected_at) {
+      // Payment is in escrow but not yet released
       const paymentDate = new Date(order.payment_collected_at);
       const now = new Date();
-      const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
-      refundAvailable = daysSincePayment <= 5;
-      if (refundAvailable) {
-        refundDeadline = new Date(paymentDate);
-        refundDeadline.setDate(refundDeadline.getDate() + 5);
+      
+      // Check if order is delivered
+      const isDelivered = order.order_status === 'delivered' || order.order_status === 'completed';
+      
+      if (!isDelivered) {
+        // Money in escrow, customer can request refund
+        const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
+        refundAvailable = daysSincePayment <= 5;
+        if (refundAvailable) {
+          refundDeadline = new Date(paymentDate);
+          refundDeadline.setDate(refundDeadline.getDate() + 5);
+        }
+        
+        escrowInfo = {
+          status: 'held',
+          message: 'Payment is held in escrow until you confirm delivery',
+          held_since: order.payment_collected_at,
+          refund_available: refundAvailable,
+          refund_deadline: refundDeadline
+        };
+      } else if (order.order_status === 'delivered') {
+        // Customer received product, 5-day countdown starts for seller payout
+        const deliveryDate = order.delivered_at || order.completed_at || new Date();
+        const releaseDate = new Date(deliveryDate);
+        releaseDate.setDate(releaseDate.getDate() + 5);
+        const now = new Date();
+        const daysUntilRelease = Math.max(0, Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24)));
+        
+        escrowInfo = {
+          status: 'waiting_release',
+          message: `Product delivered. Funds will be released to seller in ${daysUntilRelease} days`,
+          release_date: releaseDate,
+          days_remaining: daysUntilRelease
+        };
+      } else if (order.order_status === 'completed') {
+        escrowInfo = {
+          status: 'released',
+          message: 'Funds have been released to the seller',
+          released_at: order.funds_released_at
+        };
       }
     }
     
-    // Calculate escrow release info
-    let escrowInfo = null;
-    if (order.payment_held_until) {
-      const releaseDate = new Date(order.payment_held_until);
-      const now = new Date();
-      const daysUntilRelease = Math.max(0, Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24)));
-      escrowInfo = {
-        held_until: order.payment_held_until,
-        days_remaining: daysUntilRelease,
-        is_released: order.funds_released_at !== null,
-        released_at: order.funds_released_at
-      };
-    }
-    
-    res.json({
-      success: true,
-      order: {
-        id: order.id,
-        product_name: order.product_name,
-        product_images: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images) : order.images) : [],
-        quantity: parseInt(order.quantity),
-        price: parseFloat(order.price),
-        total_amount: parseFloat(order.total_amount),
-        order_status: order.order_status,
-        payment_status: order.payment_status,
+    // Format the order with all buyer details
+    const formattedOrder = {
+      id: order.id,
+      product_name: order.product_name,
+      product_images: order.images ? (typeof order.images === 'string' ? JSON.parse(order.images) : order.images) : [],
+      quantity: parseInt(order.quantity),
+      price: parseFloat(order.price),
+      total_amount: parseFloat(order.total_amount),
+      order_status: order.order_status,
+      payment_status: order.payment_status,
+      
+      // All buyer details from order form
+      buyer_details: {
+        name: order.customer_name || order.buyer_name,
+        email: order.customer_email || order.buyer_email,
+        phone: order.delivery_phone,
         shipping_address: order.shipping_address,
-        delivery_phone: order.delivery_phone,
-        notes: order.notes,
-        created_at: order.created_at,
-        seller_accepted_at: order.seller_accepted_at,
-        payment_collected_at: order.payment_collected_at,
-        payment_held_until: order.payment_held_until,
-        funds_released_at: order.funds_released_at,
-        completed_at: order.completed_at,
-        cancelled_at: order.cancelled_at,
-        platform_fee: parseFloat(order.platform_fee) || 0,
-        seller_earnings: parseFloat(order.seller_earnings) || 0,
-        estimated_delivery_days: order.estimated_delivery_days || 7,
-        buyer: {
-          id: order.buyer_id,
-          name: order.buyer_name,
-          email: order.buyer_email
-        },
-        seller: {
-          id: order.seller_id,
-          name: order.seller_name,
-          email: order.seller_email
-        },
-        status_history: historyResult || [],
-        tracking_info: trackingResult || [],
-        status_timeline: statusTimeline,
-        refund_available: refundAvailable,
-        refund_deadline: refundDeadline,
-        escrow_info: escrowInfo
-      }
-    });
+        city: order.city,
+        state: order.state,
+        country: order.country,
+        notes: order.notes
+      },
+      
+      seller: {
+        id: order.seller_id,
+        name: order.seller_name,
+        email: order.seller_email
+      },
+      
+      created_at: order.created_at,
+      seller_accepted_at: order.seller_accepted_at,
+      payment_collected_at: order.payment_collected_at,
+      delivered_at: order.delivered_at,
+      completed_at: order.completed_at,
+      
+      platform_fee: parseFloat(order.platform_fee) || 0,
+      seller_earnings: parseFloat(order.seller_earnings) || 0,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
+      
+      status_history: historyResult || [],
+      escrow_info: escrowInfo,
+      refund_available: refundAvailable,
+      refund_deadline: refundDeadline
+    };
+    
+    res.json({ success: true, order: formattedOrder });
     
   } catch (err) {
     console.error("❌ Error loading order details:", err);

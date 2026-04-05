@@ -3808,82 +3808,39 @@
         <p id="reviewMessage" class="form-message"></p>
       </div>
     </div>
-<!-- DASHBOARD SECTION -->
+<!-- DASHBOARD SECTION - UPDATED -->
 <section id="dashboardSection" class="dashboard-section" style="display: none;">
   <div class="dashboard-header">
     <div class="dashboard-title">
       <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
       <span id="dashboardRoleBadge" class="role-badge">Seller</span>
     </div>
-    
     <div class="dashboard-actions">
-      <button id="toggleDashboard" class="btn primary">
-        <i class="fas fa-store"></i> Back to Products
-      </button>
-      <button id="exportData" class="btn secondary">
-        <i class="fas fa-file-export"></i> Export
-      </button>
+      <button id="toggleDashboard" class="btn primary"><i class="fas fa-store"></i> Back to Products</button>
+      <button id="exportData" class="btn secondary"><i class="fas fa-file-export"></i> Export</button>
     </div>
   </div>
 
-  <!-- Admin Controls (Visible only to admins) -->
+  <!-- Admin Controls -->
   <div id="adminControls" class="admin-controls" style="display: none;">
     <div class="admin-search-bar">
-      <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." 
-             class="search-input" style="flex: 1;">
+      <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." class="search-input" style="flex: 1;">
       <select id="adminSearchCategory" class="select">
         <option value="all">All Categories</option>
         <option value="users">Users</option>
         <option value="products">Products</option>
         <option value="orders">Orders</option>
       </select>
-      <button id="adminSearchBtn" class="btn primary">
-        <i class="fas fa-search"></i> Search
-      </button>
+      <button id="adminSearchBtn" class="btn primary"><i class="fas fa-search"></i> Search</button>
     </div>
   </div>
 
-  <!-- Dashboard Stats -->
+  <!-- Stats Grid -->
   <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
-        <i class="fas fa-box-open" style="color: var(--accent);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalProducts">0</h3>
-        <p>Total Products</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
-        <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalSales">0</h3>
-        <p>Total Sales</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
-        <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="totalRevenue">$0</h3>
-        <p>Total Revenue</p>
-      </div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
-        <i class="fas fa-star" style="color: var(--digital);"></i>
-      </div>
-      <div class="stat-content">
-        <h3 id="avgRating">0.0</h3>
-        <p>Average Rating</p>
-      </div>
-    </div>
+    <div class="stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);"><i class="fas fa-box-open" style="color: var(--accent);"></i></div><div class="stat-content"><h3 id="totalProducts">0</h3><p>Total Products</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);"><i class="fas fa-shopping-cart" style="color: var(--success);"></i></div><div class="stat-content"><h3 id="totalSales">0</h3><p>Total Sales</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);"><i class="fas fa-money-bill-wave" style="color: var(--warning);"></i></div><div class="stat-content"><h3 id="totalRevenue">$0</h3><p>Total Revenue</p></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);"><i class="fas fa-star" style="color: var(--digital);"></i></div><div class="stat-content"><h3 id="avgRating">0.0</h3><p>Average Rating</p></div></div>
   </div>
 
   <!-- Dashboard Tabs -->
@@ -3891,7 +3848,8 @@
     <div class="tabs-header">
       <button class="tab-btn active" data-tab="products">My Products</button>
       <button class="tab-btn" data-tab="sales">Sales History</button>
-      <button class="tab-btn" data-tab="pending-orders">Pending Orders</button>
+      <button class="tab-btn" data-tab="pending-orders">Pending Orders <span id="pendingBadge" class="badge" style="display:none;"></span></button>
+      <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders <span id="paidBadge" class="badge" style="display:none;"></span></button>
       <button class="tab-btn" data-tab="buyer-orders">My Orders</button>
       <button class="tab-btn" data-tab="analytics">Analytics</button>
       <button class="tab-btn" data-tab="refunds">Refund Requests</button>
@@ -3899,221 +3857,57 @@
     </div>
     
     <div class="tabs-content">
-      <!-- My Products Tab -->
+      <!-- Products Tab -->
       <div id="productsTab" class="tab-content active">
-        <div class="tab-header">
-          <h3><i class="fas fa-box"></i> My Listed Products</h3>
-          <div class="tab-actions">
-            <input type="text" id="searchMyProducts" placeholder="Search my products..." class="search-input">
-            <select id="filterMyProducts" class="select">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="sold">Sold</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-        </div>
-        <div id="myProductsList" class="products-table">
-          <div class="empty-state">
-            <i class="fas fa-box-open"></i>
-            <h4>No products yet</h4>
-            <p>Start by listing your first product</p>
-          </div>
-        </div>
+        <div class="tab-header"><h3><i class="fas fa-box"></i> My Listed Products</h3><div class="tab-actions"><input type="text" id="searchMyProducts" placeholder="Search..." class="search-input"><select id="filterMyProducts" class="select"><option value="all">All Status</option><option value="active">Active</option><option value="sold">Sold</option></select></div></div>
+        <div id="myProductsList" class="products-table"><div class="empty-state"><i class="fas fa-box-open"></i><h4>No products yet</h4><p>Start by listing your first product</p></div></div>
       </div>
       
-      <!-- Sales History Tab -->
+      <!-- Sales Tab -->
       <div id="salesTab" class="tab-content">
-        <div class="tab-header">
-          <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
-          <div class="tab-actions">
-            <select id="salesPeriod" class="select">
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
-            <select id="salesStatus" class="select">
-              <option value="all">All Status</option>
-              <option value="pending_seller_approval">Pending</option>
-              <option value="seller_accepted">Accepted</option>
-              <option value="paid">Paid</option>
-              <option value="completed">Completed</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
-        </div>
-        <div id="salesList" class="sales-table">
-          <div class="empty-state">
-            <i class="fas fa-shopping-cart"></i>
-            <h4>No sales yet</h4>
-            <p>Your sales will appear here</p>
-          </div>
-        </div>
-        <div class="sales-summary">
-          <div class="summary-card">
-            <h4>Total Sales Value</h4>
-            <h2 id="totalSalesValue">$0.00</h2>
-          </div>
-          <div class="summary-card">
-            <h4>Your Earnings</h4>
-            <h2 id="yourEarnings">$0.00</h2>
-          </div>
-          <div class="summary-card">
-            <h4>Platform Fee</h4>
-            <h2 id="platformFee">$0.00</h2>
-          </div>
-        </div>
+        <div class="tab-header"><h3><i class="fas fa-chart-bar"></i> Sales History</h3><div class="tab-actions"><select id="salesPeriod" class="select"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select><select id="salesStatus" class="select"><option value="all">All Status</option><option value="pending_seller_approval">Pending</option><option value="seller_accepted">Accepted</option><option value="paid">Paid</option><option value="completed">Completed</option></select></div></div>
+        <div id="salesList" class="sales-table"><div class="empty-state"><i class="fas fa-shopping-cart"></i><h4>No sales yet</h4></div></div>
+        <div class="sales-summary"><div class="summary-card"><h4>Total Sales Value</h4><h2 id="totalSalesValue">$0.00</h2></div><div class="summary-card"><h4>Your Earnings</h4><h2 id="yourEarnings">$0.00</h2></div><div class="summary-card"><h4>Platform Fee</h4><h2 id="platformFee">$0.00</h2></div></div>
       </div>
       
-      <!-- Pending Orders Tab (Seller) -->
+      <!-- Pending Orders Tab -->
       <div id="pendingOrdersTab" class="tab-content">
-        <div class="tab-header">
-          <h3><i class="fas fa-clock"></i> Orders Awaiting Your Response</h3>
-          <div class="tab-actions">
-            <button id="refreshPendingOrders" class="btn secondary">
-              <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-        </div>
-        <div id="pendingOrdersList" class="orders-table">
-          <div class="empty-state">
-            <i class="fas fa-check-circle"></i>
-            <h4>No pending orders</h4>
-            <p>All orders have been responded to</p>
-          </div>
-        </div>
+        <div class="tab-header"><h3><i class="fas fa-clock"></i> Orders Awaiting Response</h3><div class="tab-actions"><button id="refreshPendingOrders" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
+        <div id="pendingOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending orders</h4></div></div>
       </div>
       
-      <!-- Buyer Orders Tab (Customer) -->
+      <!-- PAID ORDERS TAB - Ready for Delivery -->
+      <div id="paidOrdersTab" class="tab-content">
+        <div class="tab-header"><h3><i class="fas fa-money-bill-wave"></i> Paid Orders - Ready for Delivery</h3><div class="tab-actions"><span style="color: var(--success); font-size: 13px;"><i class="fas fa-info-circle"></i> Payment confirmed - Ready to ship</span></div></div>
+        <div id="paidOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No paid orders</h4><p>Orders with confirmed payment appear here</p></div></div>
+      </div>
+      
+      <!-- Buyer Orders Tab -->
       <div id="buyerOrdersTab" class="tab-content">
-        <div class="tab-header">
-          <h3><i class="fas fa-box-open"></i> My Orders</h3>
-          <div class="tab-actions">
-            <select id="buyerOrderFilter" class="select">
-              <option value="all">All Orders</option>
-              <option value="pending_seller_approval">Pending Approval</option>
-              <option value="seller_accepted">Awaiting Payment</option>
-              <option value="paid">Processing</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="refunded">Refunded</option>
-            </select>
-            <button id="refreshOrdersBtn" class="btn secondary">
-              <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-        </div>
-        <div id="buyerOrdersList" class="orders-table">
-          <div class="empty-state">
-            <i class="fas fa-shopping-bag"></i>
-            <h4>No orders yet</h4>
-            <p>Your orders will appear here</p>
-          </div>
-        </div>
+        <div class="tab-header"><h3><i class="fas fa-box-open"></i> My Orders</h3><div class="tab-actions"><select id="buyerOrderFilter" class="select"><option value="all">All Orders</option><option value="pending_seller_approval">Pending Approval</option><option value="seller_accepted">Awaiting Payment</option><option value="paid">Paid</option><option value="delivered">Delivered</option><option value="completed">Completed</option></select><button id="refreshOrdersBtn" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
+        <div id="buyerOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-shopping-bag"></i><h4>No orders yet</h4></div></div>
       </div>
       
       <!-- Analytics Tab -->
       <div id="analyticsTab" class="tab-content">
         <div class="analytics-grid">
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
-            <div class="chart-container">
-              <canvas id="salesChart"></canvas>
-            </div>
-          </div>
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
-            <div class="chart-container">
-              <canvas id="categoryChart"></canvas>
-            </div>
-          </div>
-          <div class="analytics-card">
-            <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
-            <div class="stats-list">
-              <div class="stat-item">
-                <span>Best Selling Product</span>
-                <strong id="bestProduct">N/A</strong>
-              </div>
-              <div class="stat-item">
-                <span>Total Visitors</span>
-                <strong id="totalVisitors">0</strong>
-              </div>
-              <div class="stat-item">
-                <span>Conversion Rate</span>
-                <strong id="conversionRate">0%</strong>
-              </div>
-            </div>
-          </div>
+          <div class="analytics-card"><h3><i class="fas fa-chart-line"></i> Sales Overview</h3><div class="chart-container"><canvas id="salesChart"></canvas></div></div>
+          <div class="analytics-card"><h3><i class="fas fa-chart-pie"></i> Product Categories</h3><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
+          <div class="analytics-card"><h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3><div class="stats-list"><div class="stat-item"><span>Best Selling Product</span><strong id="bestProduct">N/A</strong></div><div class="stat-item"><span>Conversion Rate</span><strong id="conversionRate">0%</strong></div></div></div>
         </div>
       </div>
       
-      <!-- Refund Requests Tab (Seller/Admin) -->
+      <!-- Refunds Tab -->
       <div id="refundsTab" class="tab-content">
-        <div class="tab-header">
-          <h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3>
-          <div class="tab-actions">
-            <span style="color: var(--text-gray); font-size: 13px;">
-              <i class="fas fa-info-circle"></i> Respond within 48 hours
-            </span>
-          </div>
-        </div>
-        <div id="pendingRefundsList" class="refunds-grid">
-          <div class="empty-state">
-            <i class="fas fa-check-circle"></i>
-            <h4>No pending refund requests</h4>
-            <p>All good!</p>
-          </div>
-        </div>
+        <div class="tab-header"><h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3><div class="tab-actions"><span style="color: var(--text-gray); font-size: 13px;"><i class="fas fa-info-circle"></i> Respond within 48 hours</span></div></div>
+        <div id="pendingRefundsList" class="refunds-grid"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4></div></div>
       </div>
       
-      <!-- Admin Panel Tab (Admin only) -->
+      <!-- Admin Tab -->
       <div id="adminTabContent" class="tab-content">
         <div class="admin-panel">
-          <div class="admin-section">
-            <h3><i class="fas fa-users"></i> User Management</h3>
-            <div class="admin-table">
-              <table id="usersTable">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Products</th>
-                    <th>Sales</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
-                </tbody>
-               </table>
-            </div>
-          </div>
-          
-          <div class="admin-section">
-            <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
-            <div class="platform-stats">
-              <div class="platform-stat">
-                <h4>Total Users</h4>
-                <h2 id="platformTotalUsers">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Products</h4>
-                <h2 id="platformTotalProducts">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Sales</h4>
-                <h2 id="platformTotalSales">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Platform Revenue</h4>
-                <h2 id="platformRevenue">$0.00</h2>
-              </div>
-            </div>
-          </div>
+          <div class="admin-section"><h3><i class="fas fa-users"></i> User Management</h3><div class="admin-table"><table id="usersTable"><thead><tr><th>User</th><th>Role</th><th>Products</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">Loading...</td></tr></tbody></table></div></div>
+          <div class="admin-section"><h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3><div class="platform-stats"><div class="platform-stat"><h4>Total Users</h4><h2 id="platformTotalUsers">0</h2></div><div class="platform-stat"><h4>Total Products</h4><h2 id="platformTotalProducts">0</h2></div><div class="platform-stat"><h4>Total Sales</h4><h2 id="platformTotalSales">0</h2></div><div class="platform-stat"><h4>Platform Revenue</h4><h2 id="platformRevenue">$0.00</h2></div></div></div>
         </div>
       </div>
     </div>
@@ -5270,19 +5064,21 @@ window.openDashboard = function() {
   if (originalOpenDashboard) originalOpenDashboard();
   checkAndShowAdminFeatures(); // Re-check when dashboard opens
 };
-// Load buyer's own orders for tracking
 async function loadBuyerOrders() {
   const container = document.getElementById('buyerOrdersList');
   if (!container) return;
   
   try {
+    console.log('Loading buyer orders...');
+    
     const response = await fetch('/api/my-orders', {
       credentials: 'include'
     });
     
     if (!response.ok) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
-      return;
+      const errorText = await response.text();
+      console.error('API Error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}`);
     }
     
     const data = await response.json();
@@ -5299,7 +5095,7 @@ async function loadBuyerOrders() {
         <div class="empty-state">
           <i class="fas fa-shopping-bag"></i>
           <h4>No orders found</h4>
-          <p>${filter === 'all' ? 'You haven\'t placed any orders yet' : `No ${filter.replace(/_/g, ' ')} orders`}</p>
+          <p>${filter === 'all' ? "You haven't placed any orders yet" : `No ${filter.replace(/_/g, ' ')} orders`}</p>
         </div>
       `;
       return;
@@ -5322,11 +5118,23 @@ async function loadBuyerOrders() {
           break;
         case 'paid':
           statusClass = 'status-info';
-          statusText = '💰 Paid - Processing';
+          statusText = '💰 Paid - Awaiting Delivery';
+          break;
+        case 'delivered':
+          statusClass = 'status-success';
+          statusText = '📦 Delivered - Confirm Receipt';
           break;
         case 'completed':
           statusClass = 'status-success';
           statusText = '✓ Completed';
+          break;
+        case 'refund_requested':
+          statusClass = 'status-warning';
+          statusText = '🔄 Refund Requested';
+          break;
+        case 'refunded':
+          statusClass = 'status-success';
+          statusText = '✅ Refunded';
           break;
         case 'cancelled':
           statusClass = 'status-danger';
@@ -5385,6 +5193,14 @@ async function loadBuyerOrders() {
                 <button class="small-btn warning" onclick="trackOrder(${order.id})">
                   <i class="fas fa-map-marker-alt"></i> Track Order
                 </button>
+                <button class="small-btn danger" onclick="requestRefund(${order.id})">
+                  <i class="fas fa-undo-alt"></i> Request Refund
+                </button>
+              ` : ''}
+              ${order.order_status === 'delivered' ? `
+                <button class="small-btn success" onclick="confirmDelivery(${order.id})">
+                  <i class="fas fa-check-circle"></i> Confirm Delivery
+                </button>
               ` : ''}
             </div>
           </div>
@@ -5397,10 +5213,16 @@ async function loadBuyerOrders() {
     
   } catch (error) {
     console.error('Error loading buyer orders:', error);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading orders</h4>
+        <p>Please refresh the page and try again.</p>
+        <button onclick="loadBuyerOrders()" class="btn primary" style="margin-top: 12px;">Retry</button>
+      </div>
+    `;
   }
 }
-
 // Proceed to payment for an order
 async function proceedToPayment(orderId) {
   try {
@@ -6241,7 +6063,156 @@ async function checkRefundStatus(orderId) {
     showToast('Error', 'Unable to check refund status', 'danger');
   }
 }
+async function loadPaidOrders() {
+  const container = document.getElementById('paidOrdersList');
+  if (!container) return;
+  
+  try {
+    const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+      return;
+    }
+    
+    const orders = await response.json();
+    const paidOrders = orders.filter(o => o.order_status === 'paid');
+    
+    // Update badge
+    const badge = document.getElementById('paidOrdersBadge');
+    if (badge) {
+      if (paidOrders.length > 0) {
+        badge.textContent = paidOrders.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    
+    if (paidOrders.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-money-bill-wave"></i>
+          <h4>No paid orders</h4>
+          <p>When customers pay for orders, they'll appear here</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+    
+    for (const order of paidOrders) {
+      const sellerEarnings = parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9);
+      
+      html += `
+        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <h4 style="margin: 0 0 8px 0; color: var(--accent);">Order #${order.id}</h4>
+              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(order.product_name || 'Product')}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || order.buyer_name || 'Customer')}</p>
+              <p style="margin: 0 0 4px 0;"><strong>Phone:</strong> ${escapeHtml(order.delivery_phone || 'N/A')}</p>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
+                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address || 'No address provided')}
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: var(--success);">
+                $${parseFloat(order.total_amount).toFixed(2)}
+              </p>
+              <p style="margin: 0 0 4px 0; font-size: 13px;">
+                <strong>Your earnings:</strong> 
+                <span style="color: var(--success);">$${sellerEarnings.toFixed(2)}</span>
+              </p>
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted);">
+                <i class="fas fa-clock"></i> Funds in escrow until delivery confirmation
+              </p>
+              <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn primary" onclick="markOrderShipped(${order.id})" style="background: var(--success);">
+                  <i class="fas fa-truck"></i> Mark as Shipped
+                </button>
+                <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                  <i class="fas fa-eye"></i> View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error loading paid orders:', error);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
+  }
+}
 
+// Mark order as shipped
+async function markOrderShipped(orderId) {
+  const trackingNumber = prompt('Enter tracking number (optional):');
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        status: 'shipped', 
+        tracking_number: trackingNumber || null,
+        notes: 'Order has been shipped'
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
+      loadPaidOrders(); // Refresh the list
+      loadSalesHistory(); // Also refresh sales
+    } else {
+      showToast('Error', data.error || 'Failed to update order', 'danger');
+    }
+  } catch (error) {
+    console.error('Error marking order shipped:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Confirm delivery (for buyers) - This starts the 5-day escrow countdown
+async function confirmDelivery(orderId) {
+  if (!confirm('Have you received your order? Confirming delivery will start the 5-day countdown for seller payment. You can still request a refund within these 5 days.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Delivery Confirmed', 
+        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
+        'success');
+      loadBuyerOrders(); // Refresh the orders list
+    } else {
+      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    }
+  } catch (error) {
+    console.error('Delivery confirmation error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
 // Check escrow status
 async function checkEscrowStatus(orderId) {
   try {
@@ -6686,8 +6657,7 @@ async function loadMyProducts() {
 }
 
 
-  // Update your existing loadMainTabData function
-function loadMainTabData(tabId) {
+ function loadMainTabData(tabId) {
   switch(tabId) {
     case 'products':
       loadMyProducts();
@@ -6696,13 +6666,19 @@ function loadMainTabData(tabId) {
       loadSalesHistory();
       break;
     case 'pending-orders':
-      loadPendingOrders();  // Add this line
+      loadPendingOrders();
+      break;
+    case 'paid-orders':
+      loadPaidOrders();
       break;
     case 'analytics':
       loadCharts();
       break;
     case 'refunds':
       loadPendingRefunds();
+      break;
+    case 'buyer-orders':
+      loadBuyerOrders();
       break;
     case 'admin':
       if (currentUser && currentUser.role === 'admin') {
@@ -6712,7 +6688,6 @@ function loadMainTabData(tabId) {
       break;
   }
 }
-
 // Update dashboard tabs to include refunds
 function initDashboardTabs() {
   const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');

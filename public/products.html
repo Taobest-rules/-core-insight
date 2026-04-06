@@ -5065,7 +5065,7 @@ window.openDashboard = function() {
   checkAndShowAdminFeatures(); // Re-check when dashboard opens
 };
 
-  async function loadBuyerOrders() {
+async function loadBuyerOrders() {
   const container = document.getElementById('buyerOrdersList');
   if (!container) return;
   
@@ -5280,7 +5280,7 @@ window.openDashboard = function() {
     `;
   }
 }
-// Proceed to payment for an order
+  // Proceed to payment for an order
 async function proceedToPayment(orderId) {
   try {
     const response = await fetch(`/api/physical-orders/${orderId}/get-payment-link`, {
@@ -6120,7 +6120,8 @@ async function checkRefundStatus(orderId) {
     showToast('Error', 'Unable to check refund status', 'danger');
   }
 }
-async function loadPaidOrders() {
+
+ async function loadPaidOrders() {
   const container = document.getElementById('paidOrdersList');
   if (!container) return;
   
@@ -6238,6 +6239,101 @@ async function loadPaidOrders() {
   }
 }
 
+// View Escrow Status function
+async function viewEscrowStatus(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    let message = '';
+    if (data.is_escrow) {
+      message = `
+🔒 ESCROW STATUS
+
+Amount Held: $${data.amount_held?.toFixed(2) || '0.00'}
+Your Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}
+Platform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}
+
+Status: ${data.funds_released ? '✅ Released to you' : '⏳ Held in escrow'}
+
+${data.payment_held_until ? `Held until: ${new Date(data.payment_held_until).toLocaleDateString()}` : ''}
+
+Note: Funds are released 5 days after customer confirms delivery.
+      `;
+    } else {
+      message = 'No escrow information available for this order.';
+    }
+    
+    alert(message);
+    
+  } catch (error) {
+    console.error('Escrow status error:', error);
+    alert('Error loading escrow status. Please try again.');
+  }
+}
+
+// Mark order as shipped
+async function markOrderShipped(orderId) {
+  const trackingNumber = prompt('Enter tracking number (optional):');
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        status: 'shipped', 
+        tracking_number: trackingNumber || null,
+        notes: 'Order has been shipped'
+      }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
+      loadPaidOrders(); // Refresh the list
+      loadSalesHistory(); // Also refresh sales
+    } else {
+      showToast('Error', data.error || 'Failed to update order', 'danger');
+    }
+  } catch (error) {
+    console.error('Error marking order shipped:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Confirm delivery (for buyers) - Starts 5-day escrow countdown
+async function confirmDelivery(orderId) {
+  if (!confirm('Have you received your order?\n\nConfirming delivery will:\n✅ Mark order as delivered\n✅ Start 5-day countdown for seller payment\n💰 You can still request a refund within 5 days\n\nDo you want to confirm delivery?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('Delivery Confirmed', 
+        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
+        'success');
+      loadBuyerOrders(); // Refresh the orders list
+    } else {
+      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    }
+  } catch (error) {
+    console.error('Delivery confirmation error:', error);
+    showToast('Error', 'Network error. Please try again.', 'danger');
+  }
+}
 // View Escrow Status function
 async function viewEscrowStatus(orderId) {
   try {

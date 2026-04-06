@@ -4607,24 +4607,42 @@ async function loadDashboardStats() {
     console.error('Error loading dashboard stats:', error);
   }
 }
-
 async function loadPendingOrders() {
   const container = document.getElementById('pendingOrdersList');
-  if (!container) return;
+  if (!container) {
+    console.error('Container pendingOrdersList not found');
+    return;
+  }
+  
+  // Show loading state
+  container.innerHTML = `
+    <div style="text-align: center; padding: 40px;">
+      <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent);"></i>
+      <p style="margin-top: 16px;">Loading pending orders...</p>
+    </div>
+  `;
   
   try {
     console.log('Loading pending orders for seller...');
     
     const response = await fetch('/api/dashboard/pending-orders', {
-      credentials: 'include'
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
     });
     
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to load pending orders');
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
     }
     
     const data = await response.json();
+    console.log('Pending orders data:', data);
+    
     const pendingOrders = data.orders || [];
     
     // Update badge count
@@ -4649,12 +4667,13 @@ async function loadPendingOrders() {
       return;
     }
     
+    // Build HTML for each order
     let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
     
     for (const order of pendingOrders) {
-      // Calculate seller earnings (90% of total)
       const sellerEarnings = order.total_amount * 0.9;
       const platformFee = order.total_amount * 0.1;
+      const orderDate = new Date(order.created_at).toLocaleString();
       
       html += `
         <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
@@ -4666,7 +4685,7 @@ async function loadPendingOrders() {
                   <i class="fas fa-clock"></i> Order #${order.id} - Awaiting Response
                 </h4>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
-                  <i class="fas fa-calendar"></i> Placed: ${new Date(order.created_at).toLocaleString()}
+                  <i class="fas fa-calendar"></i> Placed: ${orderDate}
                 </p>
               </div>
               <div style="text-align: right;">
@@ -4693,7 +4712,7 @@ async function loadPendingOrders() {
               <div style="flex: 1;">
                 <h5 style="margin: 0 0 8px 0; font-size: 16px;">${escapeHtml(order.product_name)}</h5>
                 <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
-                <p style="margin: 0 0 4px 0;"><strong>Unit Price:</strong> $${(order.total_amount / order.quantity).toFixed(2)}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Unit Price:</strong> $${order.price.toFixed(2)}</p>
                 <p style="margin: 0 0 4px 0;"><strong>Est. Delivery:</strong> ${order.estimated_delivery_days} days after acceptance</p>
               </div>
             </div>
@@ -4705,7 +4724,10 @@ async function loadPendingOrders() {
               <p style="margin: 0 0 4px 0;">Email: ${escapeHtml(order.customer_email)}</p>
               <p style="margin: 0 0 4px 0;">Phone: ${escapeHtml(order.delivery_phone || 'N/A')}</p>
               <p style="margin: 8px 0 0 0;"><strong><i class="fas fa-map-marker-alt"></i> Delivery Address:</strong></p>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-gray);">${escapeHtml(order.shipping_address || 'No address provided')}</p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-gray);">
+                ${escapeHtml(order.shipping_address)}
+                ${order.city ? `<br>${escapeHtml(order.city)}` : ''}${order.state ? `, ${escapeHtml(order.state)}` : ''}${order.country ? `, ${escapeHtml(order.country)}` : ''}
+              </p>
               ${order.notes ? `<p style="margin: 8px 0 0 0;"><strong>Notes:</strong> ${escapeHtml(order.notes)}</p>` : ''}
             </div>
             
@@ -4724,9 +4746,6 @@ async function loadPendingOrders() {
                 <span><strong>Your Earnings:</strong></span>
                 <strong style="color: var(--success);">$${sellerEarnings.toFixed(2)}</strong>
               </div>
-              <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-muted);">
-                <i class="fas fa-info-circle"></i> Funds held in escrow for 5 days after customer confirms delivery
-              </p>
             </div>
             
             <!-- Action Buttons -->
@@ -4741,10 +4760,6 @@ async function loadPendingOrders() {
                 <i class="fas fa-eye"></i> View Details
               </button>
             </div>
-            
-            <p style="margin: 12px 0 0 0; font-size: 12px; color: var(--text-muted); text-align: center;">
-              <i class="fas fa-clock"></i> Please respond within 48 hours to keep the customer satisfied
-            </p>
           </div>
         </div>
       `;
@@ -4767,7 +4782,6 @@ async function loadPendingOrders() {
     `;
   }
 }
- 
   async function respondToOrder(orderId, action) {
   let message = '';
   

@@ -7623,7 +7623,7 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
 // DASHBOARD ORDER RESPONSE ENDPOINTS
 // ============================================
 
-// Get pending orders for seller dashboard (orders awaiting response)
+// GET /api/dashboard/pending-orders - Orders awaiting seller response
 app.get("/api/dashboard/pending-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -7632,37 +7632,60 @@ app.get("/api/dashboard/pending-orders", async (req, res) => {
     
     const sellerId = req.session.user.id;
     
-    // Get orders pending seller approval
+    // Only get orders with status 'pending_seller_approval'
     const pendingOrders = await db.query(`
-      SELECT o.*, p.title as product_name, p.images,
-             u.username as customer_name, u.email as customer_email
+      SELECT 
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.total_amount,
+        o.order_status,
+        o.customer_name,
+        o.customer_email,
+        o.shipping_address,
+        o.delivery_phone,
+        o.notes,
+        o.created_at,
+        o.estimated_delivery_days,
+        p.id as product_id,
+        p.title as product_title,
+        p.images as product_images
       FROM physical_orders o
       LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u ON o.buyer_id = u.id
       WHERE o.seller_id = ? 
         AND o.order_status = 'pending_seller_approval'
       ORDER BY o.created_at ASC
     `, [sellerId]);
     
-    // Process orders
-    const processedOrders = extractRows(pendingOrders).map(order => {
-      order.total_amount = parseFloat(order.total_amount);
-      order.price = parseFloat(order.price);
-      order.platform_fee = parseFloat(order.platform_fee) || 0;
-      order.seller_earnings = parseFloat(order.seller_earnings) || 0;
-      
-      if (order.images) {
+    const processedOrders = (pendingOrders || []).map(order => {
+      let productImage = null;
+      if (order.product_images) {
         try {
-          if (typeof order.images === 'string') {
-            order.images = order.images.startsWith('[') ? 
-              JSON.parse(order.images) : [order.images];
+          if (typeof order.product_images === 'string') {
+            const parsed = JSON.parse(order.product_images);
+            productImage = Array.isArray(parsed) ? parsed[0] : parsed;
+          } else if (Array.isArray(order.product_images)) {
+            productImage = order.product_images[0];
           }
         } catch (e) {
-          order.images = [];
+          productImage = null;
         }
       }
       
-      return order;
+      return {
+        id: order.id,
+        product_name: order.product_name || order.product_title,
+        product_image: productImage,
+        quantity: parseInt(order.quantity) || 1,
+        total_amount: parseFloat(order.total_amount) || 0,
+        customer_name: order.customer_name || 'Customer',
+        customer_email: order.customer_email,
+        shipping_address: order.shipping_address,
+        delivery_phone: order.delivery_phone,
+        notes: order.notes,
+        created_at: order.created_at,
+        estimated_delivery_days: order.estimated_delivery_days || 7
+      };
     });
     
     res.json({

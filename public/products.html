@@ -4608,23 +4608,35 @@ async function loadDashboardStats() {
   }
 }
 
-// Load pending orders (real data)
 async function loadPendingOrders() {
   const container = document.getElementById('pendingOrdersList');
   if (!container) return;
   
   try {
-    const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+    console.log('Loading pending orders for seller...');
+    
+    const response = await fetch('/api/dashboard/pending-orders', {
       credentials: 'include'
     });
     
     if (!response.ok) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4></div>';
-      return;
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to load pending orders');
     }
     
-    const orders = await response.json();
-    const pendingOrders = orders.filter(o => o.order_status === 'pending_seller_approval');
+    const data = await response.json();
+    const pendingOrders = data.orders || [];
+    
+    // Update badge count
+    const badge = document.getElementById('pendingBadge');
+    if (badge) {
+      if (pendingOrders.length > 0) {
+        badge.textContent = pendingOrders.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
     
     if (pendingOrders.length === 0) {
       container.innerHTML = `
@@ -4637,85 +4649,181 @@ async function loadPendingOrders() {
       return;
     }
     
-    let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
-    pendingOrders.forEach(order => {
+    let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
+    
+    for (const order of pendingOrders) {
+      // Calculate seller earnings (90% of total)
+      const sellerEarnings = order.total_amount * 0.9;
+      const platformFee = order.total_amount * 0.1;
+      
       html += `
-        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h4 style="margin: 0 0 8px 0; color: var(--accent);">Order #${order.id}</h4>
-              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(order.product_name || 'Product')}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Total:</strong> <strong style="color: var(--success);">$${parseFloat(order.total_amount).toFixed(2)}</strong></p>
-              <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || order.buyer_name || 'Customer')}</p>
-              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">
-                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.shipping_address || 'No address provided')}
-              </p>
-            </div>
-            <div style="text-align: right;">
-              <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted);">
-                Ordered: ${new Date(order.created_at).toLocaleDateString()}
-              </p>
-              <div style="display: flex; gap: 12px; margin-top: 16px;">
-                <button class="btn primary" onclick="respondToOrder(${order.id}, 'accept')" style="background: var(--success); padding: 8px 20px;">
-                  <i class="fas fa-check"></i> Accept
-                </button>
-                <button class="btn danger" onclick="respondToOrder(${order.id}, 'reject')" style="background: var(--danger); padding: 8px 20px;">
-                  <i class="fas fa-times"></i> Reject
-                </button>
+        <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+          <!-- Header -->
+          <div style="padding: 16px; background: rgba(245, 158, 11, 0.1); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h4 style="margin: 0; color: var(--warning);">
+                  <i class="fas fa-clock"></i> Order #${order.id} - Awaiting Response
+                </h4>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
+                  <i class="fas fa-calendar"></i> Placed: ${new Date(order.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <span class="product-status status-pending">
+                  <i class="fas fa-hourglass-half"></i> Pending Approval
+                </span>
+                <p style="margin: 8px 0 0 0; font-size: 20px; font-weight: 700; color: var(--success);">
+                  $${order.total_amount.toFixed(2)}
+                </p>
               </div>
             </div>
           </div>
+          
+          <!-- Body -->
+          <div style="padding: 16px;">
+            <!-- Product Info -->
+            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+              <div style="width: 80px; height: 80px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden; flex-shrink: 0;">
+                ${order.product_image ? 
+                  `<img src="${order.product_image}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://placehold.co/80x80/1e293b/3b82f6/png?text=Product'">` :
+                  `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-box fa-2x"></i></div>`
+                }
+              </div>
+              <div style="flex: 1;">
+                <h5 style="margin: 0 0 8px 0; font-size: 16px;">${escapeHtml(order.product_name)}</h5>
+                <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Unit Price:</strong> $${(order.total_amount / order.quantity).toFixed(2)}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Est. Delivery:</strong> ${order.estimated_delivery_days} days after acceptance</p>
+              </div>
+            </div>
+            
+            <!-- Customer Info -->
+            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+              <p style="margin: 0 0 8px 0;"><strong><i class="fas fa-user"></i> Customer Information:</strong></p>
+              <p style="margin: 0 0 4px 0;">Name: ${escapeHtml(order.customer_name)}</p>
+              <p style="margin: 0 0 4px 0;">Email: ${escapeHtml(order.customer_email)}</p>
+              <p style="margin: 0 0 4px 0;">Phone: ${escapeHtml(order.delivery_phone || 'N/A')}</p>
+              <p style="margin: 8px 0 0 0;"><strong><i class="fas fa-map-marker-alt"></i> Delivery Address:</strong></p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-gray);">${escapeHtml(order.shipping_address || 'No address provided')}</p>
+              ${order.notes ? `<p style="margin: 8px 0 0 0;"><strong>Notes:</strong> ${escapeHtml(order.notes)}</p>` : ''}
+            </div>
+            
+            <!-- Earnings Breakdown -->
+            <div style="background: rgba(16, 185, 129, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 20px; border-left: 3px solid var(--success);">
+              <p style="margin: 0 0 8px 0;"><strong><i class="fas fa-chart-line"></i> What You'll Earn:</strong></p>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>Order Total:</span>
+                <strong>$${order.total_amount.toFixed(2)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text-muted);">
+                <span>Platform Fee (10%):</span>
+                <span> -$${platformFee.toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                <span><strong>Your Earnings:</strong></span>
+                <strong style="color: var(--success);">$${sellerEarnings.toFixed(2)}</strong>
+              </div>
+              <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                <i class="fas fa-info-circle"></i> Funds held in escrow for 5 days after customer confirms delivery
+              </p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="btn primary" onclick="respondToOrder(${order.id}, 'accept')" style="flex: 1; background: var(--success);">
+                <i class="fas fa-check-circle"></i> Accept Order
+              </button>
+              <button class="btn danger" onclick="respondToOrder(${order.id}, 'reject')" style="flex: 1; background: var(--danger);">
+                <i class="fas fa-times-circle"></i> Reject Order
+              </button>
+              <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                <i class="fas fa-eye"></i> View Details
+              </button>
+            </div>
+            
+            <p style="margin: 12px 0 0 0; font-size: 12px; color: var(--text-muted); text-align: center;">
+              <i class="fas fa-clock"></i> Please respond within 48 hours to keep the customer satisfied
+            </p>
+          </div>
         </div>
       `;
-    });
+    }
+    
     html += '</div>';
     container.innerHTML = html;
     
   } catch (error) {
     console.error('Error loading pending orders:', error);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading orders</h4><p>Please refresh and try again</p></div>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Error loading pending orders</h4>
+        <p>${error.message || 'Please refresh and try again'}</p>
+        <button onclick="loadPendingOrders()" class="btn primary" style="margin-top: 12px;">
+          <i class="fas fa-sync-alt"></i> Retry
+        </button>
+      </div>
+    `;
   }
 }
-
-// Respond to order (accept/reject)
-async function respondToOrder(orderId, action) {
+ 
+  async function respondToOrder(orderId, action) {
   let message = '';
   
   if (action === 'reject') {
     message = prompt('Please provide a reason for rejecting this order (will be sent to the customer):');
     if (message === null) return;
     if (!message.trim()) {
-      message = 'Seller unable to fulfill this order at this time.';
+      message = 'Seller is unable to fulfill this order at this time.';
     }
   }
+  
+  // Disable buttons to prevent double submission
+  const buttons = document.querySelectorAll(`button[onclick*="respondToOrder(${orderId}"]`);
+  buttons.forEach(btn => btn.disabled = true);
   
   try {
     const response = await fetch(`/api/dashboard/orders/${orderId}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, message }),
+      body: JSON.stringify({ action, message: message || null }),
       credentials: 'include'
     });
     
     const data = await response.json();
     
     if (response.ok) {
-      showToast(action === 'accept' ? 'Order Accepted!' : 'Order Rejected', data.message, 'success');
+      if (action === 'accept') {
+        showToast('Order Accepted!', 
+          `Order #${orderId} has been accepted. The customer will now be prompted to complete payment.`, 
+          'success');
+      } else {
+        showToast('Order Rejected', 
+          `Order #${orderId} has been rejected. The customer has been notified.`, 
+          'warning');
+      }
+      
       // Refresh pending orders list
-      loadPendingOrders();
+      await loadPendingOrders();
+      
       // Refresh stats
-      loadDashboardStats();
+      await loadDashboardStats();
+      
       // Refresh sales history if visible
       if (document.getElementById('salesTab')?.classList.contains('active')) {
-        loadSalesHistory();
+        await loadSalesHistory();
       }
+      
     } else {
       showToast('Error', data.error || 'Failed to process order', 'danger');
+      // Re-enable buttons on error
+      buttons.forEach(btn => btn.disabled = false);
     }
   } catch (error) {
     console.error('Response error:', error);
     showToast('Error', 'Network error. Please try again.', 'danger');
+    buttons.forEach(btn => btn.disabled = false);
   }
 }
 

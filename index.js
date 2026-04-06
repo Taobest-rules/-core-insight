@@ -6312,7 +6312,42 @@ function buildStatusTimeline(order) {
   
   return timeline;
 }
-
+// Debug endpoint - Check pending orders
+app.get("/api/debug/pending-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    
+    // Check if any orders exist for this seller
+    const allOrders = await db.query(`
+      SELECT id, order_status, total_amount, product_name 
+      FROM physical_orders 
+      WHERE seller_id = ?
+    `, [sellerId]);
+    
+    // Get pending orders
+    const pendingOrders = await db.query(`
+      SELECT * FROM physical_orders 
+      WHERE seller_id = ? AND order_status = 'pending_seller_approval'
+    `, [sellerId]);
+    
+    res.json({
+      success: true,
+      seller_id: sellerId,
+      total_orders: allOrders ? allOrders.length : 0,
+      all_orders: allOrders || [],
+      pending_count: pendingOrders ? pendingOrders.length : 0,
+      pending_orders: pendingOrders || []
+    });
+    
+  } catch (err) {
+    console.error("Debug error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // Update order status (for sellers)
 app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
@@ -7623,142 +7658,6 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
 // DASHBOARD ORDER RESPONSE ENDPOINTS
 // ============================================
 
-// GET /api/my-orders
-app.get("/api/my-orders", async (req, res) => {
-  try {
-    // 🔐 Check login
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-
-    const userId = req.session.user.id;
-
-    // 📥 Query params (safe)
-    const status = req.query.status;
-    const pageNum = parseInt(req.query.page) || 1;
-    const limitNum = parseInt(req.query.limit) || 20;
-    const offset = (pageNum - 1) * limitNum;
-
-    // 🧠 Base query
-    let query = `
-      SELECT 
-        o.id,
-        o.product_name,
-        o.quantity,
-        o.total_amount,
-        o.order_status,
-        o.payment_status,
-        o.created_at,
-        o.shipping_address,
-        o.delivery_phone,
-        o.estimated_delivery_days,
-        o.tracking_number,
-        o.payment_collected_at,
-        o.payment_held_until,
-        o.refund_requested_at,
-        o.refund_processed_at,
-        p.id AS product_id,
-        p.title AS product_name_full,
-        p.images AS product_images,
-        u.username AS seller_name
-      FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u ON o.seller_id = u.id
-      WHERE o.buyer_id = ?
-    `;
-
-    const params = [userId];
-
-    // 🔍 Optional filter
-    if (status && status !== "all") {
-      query += " AND o.order_status = ?";
-      params.push(status);
-    }
-
-    // 🚨 FIX: Inject LIMIT/OFFSET directly (NOT placeholders)
-    query += ` ORDER BY o.created_at DESC LIMIT ${limitNum} OFFSET ${offset}`;
-
-    // 🧪 Debug logs (optional but useful)
-    console.log("Query:", query);
-    console.log("Params:", params);
-
-    // ✅ Execute query (FIXED destructuring)
-    const [orders] = await db.query(query, params);
-
-    // 📊 Count orders by status
-    const countQuery = `
-      SELECT order_status, COUNT(*) as count
-      FROM physical_orders
-      WHERE buyer_id = ?
-      GROUP BY order_status
-    `;
-
-    const [countsResult] = await db.query(countQuery, [userId]);
-
-    const counts = {};
-    countsResult.forEach(row => {
-      counts[row.order_status] = Number(row.count);
-    });
-
-    // 🔄 Process orders safely
-    const processedOrders = orders.map(order => {
-      let productImage = null;
-
-      if (order.product_images) {
-        try {
-          if (typeof order.product_images === "string") {
-            const parsed = JSON.parse(order.product_images);
-            productImage = Array.isArray(parsed) ? parsed[0] : parsed;
-          } else if (Array.isArray(order.product_images)) {
-            productImage = order.product_images[0];
-          }
-        } catch (err) {
-          productImage = null;
-        }
-      }
-
-      return {
-        id: order.id,
-        product_id: order.product_id,
-        product_name: order.product_name_full || order.product_name,
-        product_image: productImage,
-        quantity: Number(order.quantity) || 1,
-        total_amount: Number(order.total_amount) || 0,
-        order_status: order.order_status || "pending_seller_approval",
-        payment_status: order.payment_status || "pending",
-        seller_name: order.seller_name || "Seller",
-        created_at: order.created_at,
-        shipping_address: order.shipping_address,
-        delivery_phone: order.delivery_phone,
-        estimated_delivery_days: order.estimated_delivery_days || 7,
-        tracking_number: order.tracking_number,
-        payment_collected_at: order.payment_collected_at,
-        payment_held_until: order.payment_held_until,
-        refund_requested_at: order.refund_requested_at,
-        refund_processed_at: order.refund_processed_at
-      };
-    });
-
-    // ✅ Final response
-    res.json({
-      success: true,
-      orders: processedOrders,
-      counts,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        has_more: orders.length === limitNum
-      }
-    });
-
-  } catch (err) {
-    console.error("❌ Error fetching my orders:", err);
-
-    res.status(500).json({
-      error: err.message || "Server error"
-    });
-  }
-});
 
 // Get all orders for seller dashboard (with status filter)
 app.get("/api/dashboard/orders", async (req, res) => {
@@ -8093,118 +7992,7 @@ app.get("/api/dashboard/order-counts", async (req, res) => {
   }
 });
 
-// GET /api/dashboard/pending-orders - Fixed version
-app.get("/api/dashboard/pending-orders", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    const sellerId = req.session.user.id;
-    
-    console.log(`Fetching pending orders for seller: ${sellerId}`);
-    
-    // Simple query first to check if any orders exist
-    const checkQuery = await db.query(
-      "SELECT COUNT(*) as count FROM physical_orders WHERE seller_id = ? AND order_status = 'pending_seller_approval'",
-      [sellerId]
-    );
-    
-    console.log("Pending orders count:", checkQuery);
-    
-    // Get full pending orders with proper joins
-    const pendingOrders = await db.query(`
-      SELECT 
-        o.id,
-        o.product_id,
-        o.product_name,
-        o.quantity,
-        o.price,
-        o.total_amount,
-        o.order_status,
-        o.payment_status,
-        o.customer_name,
-        o.customer_email,
-        o.shipping_address,
-        o.delivery_phone,
-        o.city,
-        o.state,
-        o.country,
-        o.notes,
-        o.created_at,
-        o.estimated_delivery_days,
-        p.title as product_title,
-        p.images as product_images
-      FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      WHERE o.seller_id = ? 
-        AND o.order_status = 'pending_seller_approval'
-      ORDER BY o.created_at ASC
-    `, [sellerId]);
-    
-    console.log(`Found ${pendingOrders ? pendingOrders.length : 0} pending orders`);
-    
-    // Process orders safely
-    const processedOrders = [];
-    if (pendingOrders && pendingOrders.length > 0) {
-      for (const order of pendingOrders) {
-        let productImage = null;
-        if (order.product_images) {
-          try {
-            if (typeof order.product_images === 'string') {
-              if (order.product_images.startsWith('[')) {
-                const parsed = JSON.parse(order.product_images);
-                productImage = Array.isArray(parsed) ? parsed[0] : parsed;
-              } else {
-                productImage = order.product_images;
-              }
-            } else if (Array.isArray(order.product_images)) {
-              productImage = order.product_images[0];
-            }
-          } catch (e) {
-            console.error("Error parsing image:", e);
-            productImage = null;
-          }
-        }
-        
-        processedOrders.push({
-          id: order.id,
-          product_id: order.product_id,
-          product_name: order.product_name || order.product_title || 'Product',
-          product_image: productImage,
-          quantity: parseInt(order.quantity) || 1,
-          price: parseFloat(order.price) || 0,
-          total_amount: parseFloat(order.total_amount) || 0,
-          customer_name: order.customer_name || 'Customer',
-          customer_email: order.customer_email || '',
-          shipping_address: order.shipping_address || 'No address provided',
-          delivery_phone: order.delivery_phone || '',
-          city: order.city || '',
-          state: order.state || '',
-          country: order.country || '',
-          notes: order.notes || '',
-          created_at: order.created_at,
-          estimated_delivery_days: order.estimated_delivery_days || 7
-        });
-      }
-    }
-    
-    res.json({
-      success: true,
-      orders: processedOrders,
-      count: processedOrders.length
-    });
-    
-  } catch (err) {
-    console.error("❌ Error loading pending orders:", err);
-    res.status(500).json({ 
-      success: false, 
-      error: err.message,
-      orders: [],
-      count: 0
-    });
-  }
-});
+
 // 9. Check refund status
 app.get("/api/orders/:orderId/refund-status", async (req, res) => {
   try {

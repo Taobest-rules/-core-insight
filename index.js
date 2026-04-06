@@ -6348,6 +6348,107 @@ app.get("/api/debug/pending-orders", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// GET /api/dashboard/pending-orders - Orders awaiting seller response
+app.get("/api/dashboard/pending-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const sellerId = req.session.user.id;
+    
+    console.log(`Fetching pending orders for seller: ${sellerId}`);
+    
+    const pendingOrders = await db.query(`
+      SELECT 
+        o.id,
+        o.product_id,
+        o.product_name,
+        o.quantity,
+        o.price,
+        o.total_amount,
+        o.order_status,
+        o.payment_status,
+        o.customer_name,
+        o.customer_email,
+        o.shipping_address,
+        o.delivery_phone,
+        o.city,
+        o.state,
+        o.country,
+        o.notes,
+        o.created_at,
+        o.estimated_delivery_days,
+        p.title as product_title,
+        p.images as product_images
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      WHERE o.seller_id = ? 
+        AND o.order_status = 'pending_seller_approval'
+      ORDER BY o.created_at ASC
+    `, [sellerId]);
+    
+    console.log(`Found ${pendingOrders ? pendingOrders.length : 0} pending orders`);
+    
+    const processedOrders = [];
+    if (pendingOrders && pendingOrders.length > 0) {
+      for (const order of pendingOrders) {
+        let productImage = null;
+        if (order.product_images) {
+          try {
+            if (typeof order.product_images === 'string') {
+              if (order.product_images.startsWith('[')) {
+                const parsed = JSON.parse(order.product_images);
+                productImage = Array.isArray(parsed) ? parsed[0] : parsed;
+              } else {
+                productImage = order.product_images;
+              }
+            } else if (Array.isArray(order.product_images)) {
+              productImage = order.product_images[0];
+            }
+          } catch (e) {
+            console.error("Error parsing image:", e);
+          }
+        }
+        
+        processedOrders.push({
+          id: order.id,
+          product_id: order.product_id,
+          product_name: order.product_name || order.product_title || 'Product',
+          product_image: productImage,
+          quantity: parseInt(order.quantity) || 1,
+          price: parseFloat(order.price) || 0,
+          total_amount: parseFloat(order.total_amount) || 0,
+          customer_name: order.customer_name || 'Customer',
+          customer_email: order.customer_email || '',
+          shipping_address: order.shipping_address || 'No address provided',
+          delivery_phone: order.delivery_phone || '',
+          city: order.city || '',
+          state: order.state || '',
+          country: order.country || '',
+          notes: order.notes || '',
+          created_at: order.created_at,
+          estimated_delivery_days: order.estimated_delivery_days || 7
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      count: processedOrders.length
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading pending orders:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      orders: [],
+      count: 0
+    });
+  }
+});
 // Update order status (for sellers)
 app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
@@ -6543,8 +6644,8 @@ app.get("/api/my-orders", async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    // Build query with proper parameter handling
-    let query = `
+    // Simple query without complex joins first
+    const orders = await db.query(`
       SELECT 
         o.id,
         o.product_name,
@@ -6560,41 +6661,39 @@ app.get("/api/my-orders", async (req, res) => {
         o.payment_collected_at,
         o.payment_held_until,
         o.refund_requested_at,
-        o.refund_processed_at,
-        p.id as product_id,
-        p.title as product_name_full,
-        p.images as product_images,
-        u.username as seller_name
+        o.seller_id
       FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN users u ON o.seller_id = u.id
       WHERE o.buyer_id = ?
-    `;
+      ORDER BY o.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [userId, parseInt(limit), offset]);
     
-    const queryParams = [userId];
+    // Get seller names separately
+    const sellerIds = [...new Set((orders || []).map(o => o.seller_id).filter(Boolean))];
+    let sellerNames = {};
     
-    if (status && status !== 'all') {
-      query += " AND o.order_status = ?";
-      queryParams.push(status);
+    if (sellerIds.length > 0) {
+      const placeholders = sellerIds.map(() => '?').join(',');
+      const sellers = await db.query(`
+        SELECT id, username FROM users WHERE id IN (${placeholders})
+      `, sellerIds);
+      
+      if (sellers && sellers.length > 0) {
+        sellers.forEach(s => {
+          sellerNames[s.id] = s.username;
+        });
+      }
     }
     
-    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    queryParams.push(parseInt(limit), offset);
-    
-    console.log('Executing query with params:', queryParams);
-    const orders = await db.query(query, queryParams);
-    
     // Get counts for each status
-    const countQuery = `
+    const countsResult = await db.query(`
       SELECT 
         order_status,
         COUNT(*) as count
       FROM physical_orders
       WHERE buyer_id = ?
       GROUP BY order_status
-    `;
-    
-    const countsResult = await db.query(countQuery, [userId]);
+    `, [userId]);
     
     const counts = {};
     if (countsResult && countsResult.length > 0) {
@@ -6604,42 +6703,23 @@ app.get("/api/my-orders", async (req, res) => {
     }
     
     // Process orders
-    const processedOrders = (orders || []).map(order => {
-      let productImage = null;
-      if (order.product_images) {
-        try {
-          if (typeof order.product_images === 'string') {
-            const parsed = JSON.parse(order.product_images);
-            productImage = Array.isArray(parsed) ? parsed[0] : parsed;
-          } else if (Array.isArray(order.product_images)) {
-            productImage = order.product_images[0];
-          }
-        } catch (e) {
-          productImage = null;
-        }
-      }
-      
-      return {
-        id: order.id,
-        product_id: order.product_id,
-        product_name: order.product_name_full || order.product_name,
-        product_image: productImage,
-        quantity: parseInt(order.quantity) || 1,
-        total_amount: parseFloat(order.total_amount) || 0,
-        order_status: order.order_status || 'pending_seller_approval',
-        payment_status: order.payment_status || 'pending',
-        seller_name: order.seller_name || 'Seller',
-        created_at: order.created_at,
-        shipping_address: order.shipping_address,
-        delivery_phone: order.delivery_phone,
-        estimated_delivery_days: order.estimated_delivery_days || 7,
-        tracking_number: order.tracking_number,
-        payment_collected_at: order.payment_collected_at,
-        payment_held_until: order.payment_held_until,
-        refund_requested_at: order.refund_requested_at,
-        refund_processed_at: order.refund_processed_at
-      };
-    });
+    const processedOrders = (orders || []).map(order => ({
+      id: order.id,
+      product_name: order.product_name || 'Product',
+      quantity: parseInt(order.quantity) || 1,
+      total_amount: parseFloat(order.total_amount) || 0,
+      order_status: order.order_status || 'pending_seller_approval',
+      payment_status: order.payment_status || 'pending',
+      seller_name: sellerNames[order.seller_id] || 'Seller',
+      created_at: order.created_at,
+      shipping_address: order.shipping_address,
+      delivery_phone: order.delivery_phone,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
+      tracking_number: order.tracking_number,
+      payment_collected_at: order.payment_collected_at,
+      payment_held_until: order.payment_held_until,
+      refund_requested_at: order.refund_requested_at
+    }));
     
     res.json({
       success: true,
@@ -6648,7 +6728,7 @@ app.get("/api/my-orders", async (req, res) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        has_more: orders.length === parseInt(limit)
+        has_more: (orders || []).length === parseInt(limit)
       }
     });
     

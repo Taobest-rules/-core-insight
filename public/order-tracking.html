@@ -585,99 +585,184 @@
       }
     }
     
-    // Render order details
-    function renderOrderDetails() {
-      const container = document.getElementById('content');
-      const order = currentOrder;
-      
-      const canRequestRefund = order.refund_available && order.order_status !== 'refunded' && order.order_status !== 'refund_requested';
-      const canConfirmDelivery = order.order_status === 'delivered' || order.order_status === 'shipped';
-      
-      const html = `
-        <div class="tracking-header">
-          <div class="order-id">Order #${order.id}</div>
-          <div class="product-info">
-            <div class="product-image">
-              ${order.product_image ? 
-                `<img src="${order.product_image}" alt="${order.product_name}" onerror="this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'">` :
-                `<i class="fas fa-box" style="font-size: 32px; color: #94a3b8;"></i>`
-              }
-            </div>
-            <div class="product-details">
-              <h2>${escapeHtml(order.product_name)}</h2>
-              <p>Quantity: ${order.quantity} | Total: $${order.total_amount.toFixed(2)}</p>
-              <p>Seller: ${escapeHtml(order.seller_name || 'Core Insight')}</p>
-              <span class="status-badge status-${order.order_status}">
-                ${getStatusDisplay(order.order_status)}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="timeline">
-          <div class="timeline-title">
-            <i class="fas fa-history"></i> Order Timeline
-          </div>
-          <div class="timeline-steps">
-            ${renderTimeline(order.timeline, order.order_status)}
-          </div>
-        </div>
-        
-        ${order.tracking_info ? `
-          <div class="tracking-card">
-            <h3><i class="fas fa-truck"></i> Shipping Information</h3>
-            <div class="tracking-details">
-              <div class="tracking-row">
-                <span class="tracking-label">Carrier:</span>
-                <span class="tracking-value">${escapeHtml(order.tracking_info.carrier || 'Standard Shipping')}</span>
-              </div>
-              <div class="tracking-row">
-                <span class="tracking-label">Tracking Number:</span>
-                <span class="tracking-value">${escapeHtml(order.tracking_info.tracking_number)}</span>
-              </div>
-              <div class="tracking-row">
-                <span class="tracking-label">Status:</span>
-                <span class="tracking-value">${escapeHtml(order.tracking_info.status || 'In Transit')}</span>
-              </div>
-            </div>
-          </div>
-        ` : ''}
-        
-        <div class="tracking-card">
-          <h3><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
-          <div class="tracking-details">
-            <p>${escapeHtml(order.shipping_address || 'No address provided')}</p>
-            ${order.estimated_delivery_days ? `<p style="margin-top: 8px; font-size: 13px; color: #94a3b8;">
-              <i class="fas fa-calendar"></i> Estimated delivery: ${order.estimated_delivery_days} days after payment
-            </p>` : ''}
-          </div>
-        </div>
-        
-        <div class="action-buttons">
-          ${canConfirmDelivery ? `
-            <button class="btn btn-success" onclick="confirmDelivery()">
-              <i class="fas fa-check-circle"></i> Confirm Delivery
-            </button>
-          ` : ''}
-          ${canRequestRefund ? `
-            <button class="btn btn-danger" onclick="openRefundModal()">
-              <i class="fas fa-undo-alt"></i> Request Refund
-            </button>
-          ` : ''}
-          ${order.order_status === 'refund_requested' ? `
-            <button class="btn btn-outline" onclick="checkRefundStatus()">
-              <i class="fas fa-clock"></i> Check Refund Status
-            </button>
-          ` : ''}
-          <button class="btn btn-primary" onclick="window.location.href='products.html'">
-            <i class="fas fa-shopping-cart"></i> Continue Shopping
+      // Render order details
+function renderOrderDetails() {
+  const container = document.getElementById('content');
+  const order = currentOrder;
+  
+  const isBuyer = true;
+  const canRequestRefund = order.refund_available && order.order_status !== 'refunded' && order.order_status !== 'refund_requested';
+  const canConfirmDelivery = order.order_status === 'delivered' || order.order_status === 'shipped';
+  
+  // Delivery code section - ONLY shown when order is shipped
+  const deliveryCodeSection = order.order_status === 'shipped' ? `
+    <div class="tracking-card">
+      <h3><i class="fas fa-key"></i> Confirm Delivery</h3>
+      <div class="tracking-details">
+        <p>Enter the 6-digit delivery code provided by the delivery person:</p>
+        <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+          <input type="text" id="deliveryCodeInput" class="form-input" placeholder="Enter 6-digit code" maxlength="6" style="flex: 1; text-align: center; font-size: 20px; letter-spacing: 4px;">
+          <button class="btn btn-success" onclick="verifyDeliveryCode()">
+            <i class="fas fa-check-circle"></i> Confirm Delivery
           </button>
         </div>
-      `;
-      
-      container.innerHTML = html;
-    }
+        <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+          <i class="fas fa-lock"></i> Once confirmed, funds will be released to the seller after 5 days
+        </p>
+      </div>
+    </div>
+  ` : '';
+  
+  // Escrow countdown section - shown when order is delivered
+  const escrowSection = order.order_status === 'delivered' && order.payment_held_until ? `
+    <div class="tracking-card">
+      <h3><i class="fas fa-clock"></i> Escrow Status</h3>
+      <div class="tracking-details">
+        <p>Funds will be released to the seller on: <strong>${new Date(order.payment_held_until).toLocaleDateString()}</strong></p>
+        <p>You can still request a refund until this date if there are any issues.</p>
+        <button class="btn btn-danger" onclick="requestRefund(${order.id})" style="margin-top: 12px;">
+          <i class="fas fa-undo-alt"></i> Request Refund
+        </button>
+      </div>
+    </div>
+  ` : '';
+  
+  const html = `
+    <div class="tracking-header">
+      <div class="order-id">Order #${order.id}</div>
+      <div class="product-info">
+        <div class="product-image">
+          ${order.product_image ? 
+            `<img src="${order.product_image}" alt="${order.product_name}" onerror="this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'">` :
+            `<i class="fas fa-box" style="font-size: 32px; color: #94a3b8;"></i>`
+          }
+        </div>
+        <div class="product-details">
+          <h2>${escapeHtml(order.product_name)}</h2>
+          <p>Quantity: ${order.quantity} | Total: $${order.total_amount.toFixed(2)}</p>
+          <p>Seller: ${escapeHtml(order.seller_name || 'Core Insight')}</p>
+          <span class="status-badge status-${order.order_status}">
+            ${getStatusDisplay(order.order_status)}
+          </span>
+        </div>
+      </div>
+    </div>
     
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="timeline-title">
+        <i class="fas fa-history"></i> Order Timeline
+      </div>
+      <div class="timeline-steps">
+        ${renderTimeline(order.timeline, order.order_status)}
+      </div>
+    </div>
+    
+    <!-- Tracking Info -->
+    ${order.tracking_info ? `
+      <div class="tracking-card">
+        <h3><i class="fas fa-truck"></i> Shipping Information</h3>
+        <div class="tracking-details">
+          <div class="tracking-row">
+            <span class="tracking-label">Carrier:</span>
+            <span class="tracking-value">${escapeHtml(order.tracking_info.carrier || 'Standard Shipping')}</span>
+          </div>
+          <div class="tracking-row">
+            <span class="tracking-label">Tracking Number:</span>
+            <span class="tracking-value">${escapeHtml(order.tracking_info.tracking_number)}</span>
+          </div>
+          <div class="tracking-row">
+            <span class="tracking-label">Status:</span>
+            <span class="tracking-value">${escapeHtml(order.tracking_info.status || 'In Transit')}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+    
+    <!-- Delivery Code Section (for shipped orders) -->
+    ${deliveryCodeSection}
+    
+    <!-- Escrow Section (for delivered orders) -->
+    ${escrowSection}
+    
+    <!-- Delivery Address -->
+    <div class="tracking-card">
+      <h3><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
+      <div class="tracking-details">
+        <p>${escapeHtml(order.shipping_address || 'No address provided')}</p>
+        ${order.estimated_delivery_days ? `<p style="margin-top: 8px; font-size: 13px; color: #94a3b8;">
+          <i class="fas fa-calendar"></i> Estimated delivery: ${order.estimated_delivery_days} days after payment
+        </p>` : ''}
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      ${canConfirmDelivery && order.order_status !== 'shipped' ? `
+        <button class="btn btn-success" onclick="confirmDelivery()">
+          <i class="fas fa-check-circle"></i> Confirm Delivery
+        </button>
+      ` : ''}
+      ${canRequestRefund ? `
+        <button class="btn btn-danger" onclick="openRefundModal()">
+          <i class="fas fa-undo-alt"></i> Request Refund
+        </button>
+      ` : ''}
+      ${order.order_status === 'refund_requested' ? `
+        <button class="btn btn-outline" onclick="checkRefundStatus()">
+          <i class="fas fa-clock"></i> Check Refund Status
+        </button>
+      ` : ''}
+      <button class="btn btn-primary" onclick="window.location.href='products.html'">
+        <i class="fas fa-shopping-cart"></i> Continue Shopping
+      </button>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Verify delivery code function
+async function verifyDeliveryCode() {
+  const codeInput = document.getElementById('deliveryCodeInput');
+  if (!codeInput) return;
+  
+  const code = codeInput.value.trim();
+  const orderId = currentOrderId;
+  
+  if (!code) {
+    showToast('Error', 'Please enter the delivery code', 'error');
+    return;
+  }
+  
+  if (code.length !== 6) {
+    showToast('Error', 'Delivery code should be 6 digits', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/verify-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delivery_code: code }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast('✅ Delivery Confirmed!', 
+        `Thank you for confirming! The seller will receive payment in ${data.days_until_release || 5} days.`, 
+        'success');
+      setTimeout(() => loadOrderDetails(orderId), 1500);
+    } else {
+      showToast('Error', data.error || 'Invalid delivery code', 'error');
+    }
+  } catch (error) {
+    console.error('Delivery verification error:', error);
+    showToast('Error', 'Network error. Please try again.', 'error');
+  }
+}
     // Render timeline steps
     function renderTimeline(timeline, currentStatus) {
       if (!timeline || timeline.length === 0) {
@@ -785,6 +870,9 @@
         showToast('Error', 'Unable to check refund status', 'error');
       }
     }
+
+    // ================= DELIVERY CODE VERIFICATION =================
+
     
     function openRefundModal() {
       document.getElementById('refundModal').classList.add('open');
@@ -892,6 +980,7 @@
     window.closeRefundModal = closeRefundModal;
     window.submitRefundRequest = submitRefundRequest;
     window.checkRefundStatus = checkRefundStatus;
+    window.verifyDeliveryCode = verifyDeliveryCode;
   </script>
 </body>
 </html>

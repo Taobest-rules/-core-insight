@@ -8559,6 +8559,99 @@ function handleTabClick(e) {
 document.addEventListener('DOMContentLoaded', function() {
   initTabs();
 });
+
+// Mark order as shipped and generate delivery code
+async function markOrderShipped(orderId) {
+  const trackingNumber = prompt("Enter tracking number (optional):");
+  
+  // First update order status to shipped
+  try {
+    const statusResponse = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        status: 'shipped', 
+        tracking_number: trackingNumber || null,
+        notes: 'Order has been shipped'
+      }),
+      credentials: 'include'
+    });
+    
+    if (!statusResponse.ok) {
+      const errorData = await statusResponse.json();
+      throw new Error(errorData.error || 'Failed to update order status');
+    }
+    
+    // Then generate delivery code
+    const codeResponse = await fetch(`/api/orders/${orderId}/generate-delivery-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await codeResponse.json();
+    
+    if (codeResponse.ok) {
+      showToast(
+        'Order Shipped!', 
+        `Delivery code: ${data.delivery_code}\n\nThe buyer has been notified with this code. They will need to enter it upon delivery.`,
+        'success'
+      );
+      
+      // Refresh orders lists
+      loadPaidOrders();
+      loadSalesHistory();
+    } else {
+      showToast('Error', data.error || 'Failed to generate delivery code', 'danger');
+    }
+  } catch (error) {
+    console.error('Error shipping order:', error);
+    showToast('Error', error.message || 'Network error. Please try again.', 'danger');
+  }
+}
+
+// Add delivery code verification to order tracking page
+async function verifyDeliveryCode() {
+  const code = document.getElementById('deliveryCodeInput').value.trim();
+  const orderId = currentOrderId;
+  
+  if (!code) {
+    showToast('Error', 'Please enter the delivery code', 'error');
+    return;
+  }
+  
+  if (code.length !== 6) {
+    showToast('Error', 'Delivery code should be 6 digits', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/orders/${orderId}/verify-delivery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delivery_code: code }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showToast(
+        'Delivery Confirmed!', 
+        `Thank you for confirming delivery. The seller will receive payment in ${data.days_until_release} days unless you request a refund.`,
+        'success'
+      );
+      
+      // Reload order details
+      setTimeout(() => loadOrderDetails(orderId), 1500);
+    } else {
+      showToast('Error', data.error || 'Invalid delivery code', 'error');
+    }
+  } catch (error) {
+    console.error('Delivery verification error:', error);
+    showToast('Error', 'Network error. Please try again.', 'error');
+  }
+}
     // ================= MOBILE NAVIGATION =================
     document.addEventListener('DOMContentLoaded', function() {
       // Create mobile navigation elements

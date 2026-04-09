@@ -6920,6 +6920,383 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
   }
 });
 
+// ============================================
+// DELIVERY CODE SYSTEM - COMPLETE
+// ============================================
+
+// Generate and send delivery code when seller marks order as shipped
+app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    // Verify seller owns this order
+    const orderResult = await db.query(
+      `SELECT o.*, u.email as buyer_email, u.username as buyer_name, p.title as product_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.buyer_id = u.id
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.seller_id = ?`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found or you don't have permission" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check if order is paid and not already delivered
+    if (order.order_status !== 'paid') {
+      return res.status(400).json({ error: "Order must be paid before generating delivery code" });
+    }
+    
+    if (order.delivery_code) {
+      return res.json({ 
+        success: true, 
+        delivery_code: order.delivery_code,
+        message: "Delivery code already generated"
+      });
+    }
+    
+    // Generate a random 6-digit code
+    const deliveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store the code
+    await db.query(
+      `UPDATE physical_orders 
+       SET delivery_code = ?,
+           delivery_code_sent_at = NOW(),
+           order_status = 'shipped'
+       WHERE id = ?`,
+      [deliveryCode, orderId]
+    );
+    
+    // Also store in delivery_codes table
+    await db.query(
+      `INSERT INTO delivery_codes (order_id, code, status, generated_at)
+       VALUES (?, ?, 'pending', NOW())`,
+      [orderId, deliveryCode]
+    );
+    
+    // Send SMS/Email with delivery code to buyer
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Your Delivery Code - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .code-box { background: #0f172a; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
+          .code { font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; }
+          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>📦 Your Order #${orderId} is Out for Delivery!</h1>
+          <p>Hello ${order.buyer_name},</p>
+          <p>Your order for <strong>${order.product_name}</strong> has been shipped and is on its way!</p>
+          <div class="code-box">
+            <p style="margin-bottom: 10px;">Your Delivery Confirmation Code:</p>
+            <div class="code">${deliveryCode}</div>
+            <p style="margin-top: 10px; font-size: 12px;">Give this code to the delivery person when you receive your package</p>
+          </div>
+          <p><strong>How it works:</strong></p>
+          <ol style="color: #94a3b8;">
+            <li>When you receive your package, get the delivery code from the delivery person</li>
+            <li>Enter the code on the order tracking page to confirm delivery</li>
+            <li>Once confirmed, the seller will receive their payment after 5 days</li>
+          </ol>
+          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" class="btn">Track Your Order</a>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(order.buyer_email, `Delivery Code for Order #${orderId}`, emailHtml);
+    
+    // Also send SMS if phone number is available (you can integrate with SMS service)
+    if (order.delivery_phone) {
+      // Optional: Send SMS via Twilio or other service
+      console.log(`📱 Would send SMS to ${order.delivery_phone}: Your delivery code for order #${orderId} is ${deliveryCode}`);
+    }
+    
+    res.json({
+      success: true,
+      message: "Delivery code generated and sent to buyer",
+      delivery_code: deliveryCode,
+      order_status: 'shipped'
+    });
+    
+  } catch (err) {
+    console.error("❌ Generate delivery code error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify delivery code and complete order (for buyer)
+app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    const { delivery_code } = req.body;
+    
+    if (!delivery_code) {
+      return res.status(400).json({ error: "Delivery code is required" });
+    }
+    
+    // Verify buyer owns this order
+    const orderResult = await db.query(
+      `SELECT o.*, u.email as seller_email, u.username as seller_name, p.title as product_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.seller_id = u.id
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check if order is in shipped status (has delivery code)
+    if (order.order_status !== 'shipped') {
+      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
+    }
+    
+    if (!order.delivery_code) {
+      return res.status(400).json({ error: "No delivery code generated for this order yet" });
+    }
+    
+    // Verify the code
+    if (order.delivery_code !== delivery_code) {
+      return res.status(400).json({ error: "Invalid delivery code. Please check and try again." });
+    }
+    
+    // Mark delivery code as used
+    await db.query(
+      `UPDATE delivery_codes 
+       SET status = 'used', used_at = NOW(), used_by = ?
+       WHERE order_id = ? AND code = ?`,
+      [req.session.user.id, orderId, delivery_code]
+    );
+    
+    // Update order to delivered status (not completed yet - 5-day escrow starts now)
+    const escrowReleaseDate = new Date();
+    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+    
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'delivered',
+           delivered_at = NOW(),
+           payment_held_until = ?
+       WHERE id = ?`,
+      [escrowReleaseDate, orderId]
+    );
+    
+    // Add to status history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, 'delivered', 'Buyer confirmed delivery with code', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
+    
+    // Send notification to seller
+    const sellerEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order Delivered - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .success { color: #10b981; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1 class="success">✅ Order Delivered!</h1>
+          <p>Hello ${order.seller_name},</p>
+          <p>Your order for <strong>${order.product_name}</strong> has been delivered and confirmed by the buyer.</p>
+          <p>Funds will be released to your account in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless a dispute is raised.</p>
+          <a href="https://core-insight-7.onrender.com/dashboard.html" class="btn" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">View Dashboard</a>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(order.seller_email, `Order #${orderId} Delivered`, sellerEmailHtml);
+    
+    // Show success message with rating prompt
+    res.json({
+      success: true,
+      message: "Delivery confirmed! Thank you for your purchase.",
+      order_status: 'delivered',
+      escrow_release_date: escrowReleaseDate,
+      days_until_release: 5
+    });
+    
+  } catch (err) {
+    console.error("❌ Verify delivery error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark order as completed and release funds (automatic after 5 days or manual by admin)
+app.post("/api/orders/:orderId/release-funds", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    const isAdmin = req.session.user.role === 'admin';
+    
+    const orderResult = await db.query(
+      `SELECT o.* FROM physical_orders o WHERE o.id = ?`,
+      [orderId]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check if order is in delivered status
+    if (order.order_status !== 'delivered') {
+      return res.status(400).json({ error: `Cannot release funds for order with status: ${order.order_status}` });
+    }
+    
+    // Check if 5 days have passed or admin override
+    const canRelease = isAdmin || (order.payment_held_until && new Date() >= new Date(order.payment_held_until));
+    
+    if (!canRelease) {
+      const daysLeft = Math.ceil((new Date(order.payment_held_until) - new Date()) / (1000 * 60 * 60 * 24));
+      return res.status(400).json({ 
+        error: `Funds cannot be released yet. ${daysLeft} days remaining in escrow period.`,
+        days_remaining: daysLeft
+      });
+    }
+    
+    // Update order to completed and release funds
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'completed',
+           funds_released_at = NOW()
+       WHERE id = ?`,
+      [orderId]
+    );
+    
+    // Update escrow account
+    await db.query(
+      `UPDATE escrow_accounts 
+       SET status = 'released', released_at = NOW()
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    // Add to status history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, 'completed', 'Funds released to seller after escrow period', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
+    
+    // Send notification to seller
+    const sellerResult = await db.query(
+      `SELECT email, username FROM users WHERE id = ?`,
+      [order.seller_id]
+    );
+    
+    if (sellerResult && sellerResult.length > 0) {
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Funds Released - Core Insight</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+            .amount { font-size: 24px; color: #10b981; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>💰 Funds Released!</h1>
+            <p>Hello ${sellerResult[0].username},</p>
+            <p>Funds for order #${orderId} have been released to your account.</p>
+            <p class="amount">Amount: $${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
+            <p>The funds should appear in your bank account within 3-5 business days.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      await sendEmail(sellerResult[0].email, `Funds Released for Order #${orderId}`, emailHtml);
+    }
+    
+    res.json({
+      success: true,
+      message: "Funds released to seller successfully",
+      order_status: 'completed'
+    });
+    
+  } catch (err) {
+    console.error("❌ Release funds error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get delivery code status (for seller to see if code was used)
+app.get("/api/orders/:orderId/delivery-code-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(
+      `SELECT o.delivery_code, o.delivery_code_sent_at, o.order_status,
+              dc.status as code_status, dc.used_at
+       FROM physical_orders o
+       LEFT JOIN delivery_codes dc ON o.id = dc.order_id
+       WHERE o.id = ? AND (o.seller_id = ? OR o.buyer_id = ?)`,
+      [orderId, req.session.user.id, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    res.json({
+      success: true,
+      has_delivery_code: !!order.delivery_code,
+      delivery_code: order.delivery_code,
+      code_sent_at: order.delivery_code_sent_at,
+      code_status: order.code_status || (order.order_status === 'delivered' ? 'used' : 'pending'),
+      used_at: order.used_at,
+      order_status: order.order_status
+    });
+    
+  } catch (err) {
+    console.error("❌ Delivery code status error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Direct payment verification endpoint (bypasses server-side API call)
 app.post("/api/verify-physical-payment-direct", async (req, res) => {
   try {

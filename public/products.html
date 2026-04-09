@@ -6472,7 +6472,7 @@ Note: Funds are released 5 days after customer confirms delivery.
     alert('Error loading escrow status. Please try again.');
   }
 }
-// Mark order as shipped and generate delivery code (NO tracking number prompt)
+// Mark order as shipped and generate delivery code (NO tracking number)
 async function markOrderShipped(orderId) {
   // Show loading state on button
   const buttons = document.querySelectorAll(`button[onclick*="markOrderShipped(${orderId})"]`);
@@ -6482,7 +6482,7 @@ async function markOrderShipped(orderId) {
   });
   
   try {
-    // First update order status to shipped
+    // First update order status to shipped (without tracking number)
     const statusResponse = await fetch(`/api/orders/${orderId}/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6519,7 +6519,6 @@ async function markOrderShipped(orderId) {
       loadSalesHistory();
     } else {
       showToast('Error', data.error || 'Failed to generate delivery code', 'danger');
-      // Re-enable buttons on error
       buttons.forEach(btn => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-truck"></i> Begin Shipment';
@@ -6528,14 +6527,12 @@ async function markOrderShipped(orderId) {
   } catch (error) {
     console.error('Error shipping order:', error);
     showToast('Error', error.message || 'Network error. Please try again.', 'danger');
-    // Re-enable buttons on error
     buttons.forEach(btn => {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-truck"></i> Begin Shipment';
     });
   }
 }
-
 // Confirm delivery (for buyers) - Starts 5-day escrow countdown
 async function confirmDelivery(orderId) {
   if (!confirm('Have you received your order?\n\nConfirming delivery will:\n✅ Mark order as delivered\n✅ Start 5-day countdown for seller payment\n💰 You can still request a refund within 5 days\n\nDo you want to confirm delivery?')) {
@@ -6566,36 +6563,6 @@ async function confirmDelivery(orderId) {
 }
 
 
-// Mark order as shipped
-async function markOrderShipped(orderId) {
-  const trackingNumber = prompt('Enter tracking number (optional):');
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        status: 'shipped', 
-        tracking_number: trackingNumber || null,
-        notes: 'Order has been shipped'
-      }),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
-      loadPaidOrders(); // Refresh the list
-      loadSalesHistory(); // Also refresh sales
-    } else {
-      showToast('Error', data.error || 'Failed to update order', 'danger');
-    }
-  } catch (error) {
-    console.error('Error marking order shipped:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
-}
 
 // Confirm delivery (for buyers) - Starts 5-day escrow countdown
 async function confirmDelivery(orderId) {
@@ -6625,36 +6592,7 @@ async function confirmDelivery(orderId) {
     showToast('Error', 'Network error. Please try again.', 'danger');
   }
 }
-// Mark order as shipped
-async function markOrderShipped(orderId) {
-  const trackingNumber = prompt('Enter tracking number (optional):');
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        status: 'shipped', 
-        tracking_number: trackingNumber || null,
-        notes: 'Order has been shipped'
-      }),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
-      loadPaidOrders(); // Refresh the list
-      loadSalesHistory(); // Also refresh sales
-    } else {
-      showToast('Error', data.error || 'Failed to update order', 'danger');
-    }
-  } catch (error) {
-    console.error('Error marking order shipped:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
-}
+
 
 // Confirm delivery (for buyers) - This starts the 5-day escrow countdown
 async function confirmDelivery(orderId) {
@@ -8596,55 +8534,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initTabs();
 });
 
-// Mark order as shipped and generate delivery code
-async function markOrderShipped(orderId) {
-  const trackingNumber = prompt("Enter tracking number (optional):");
-  
-  // First update order status to shipped
-  try {
-    const statusResponse = await fetch(`/api/orders/${orderId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        status: 'shipped', 
-        tracking_number: trackingNumber || null,
-        notes: 'Order has been shipped'
-      }),
-      credentials: 'include'
-    });
-    
-    if (!statusResponse.ok) {
-      const errorData = await statusResponse.json();
-      throw new Error(errorData.error || 'Failed to update order status');
-    }
-    
-    // Then generate delivery code
-    const codeResponse = await fetch(`/api/orders/${orderId}/generate-delivery-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-    
-    const data = await codeResponse.json();
-    
-    if (codeResponse.ok) {
-      showToast(
-        'Order Shipped!', 
-        `Delivery code: ${data.delivery_code}\n\nThe buyer has been notified with this code. They will need to enter it upon delivery.`,
-        'success'
-      );
-      
-      // Refresh orders lists
-      loadPaidOrders();
-      loadSalesHistory();
-    } else {
-      showToast('Error', data.error || 'Failed to generate delivery code', 'danger');
-    }
-  } catch (error) {
-    console.error('Error shipping order:', error);
-    showToast('Error', error.message || 'Network error. Please try again.', 'danger');
-  }
-}
+
 
 // Add delivery code verification to order tracking page
 async function verifyDeliveryCode() {

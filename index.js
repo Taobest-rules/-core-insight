@@ -6463,7 +6463,7 @@ app.get("/api/debug/order-status/:orderId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Update order status (for sellers)
+// Update order status (for sellers) - WITHOUT tracking_number
 app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -6471,7 +6471,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
     }
     
     const orderId = req.params.orderId;
-    const { status, notes, tracking_number, carrier } = req.body;
+    const { status, notes } = req.body;
     
     // Verify order ownership
     const orderResult = await db.query(
@@ -6493,22 +6493,6 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
       return res.status(400).json({ error: "Invalid status update" });
     }
     
-    // Record status change in history
-    await db.query(
-      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [orderId, status, notes || null, req.session.user.id]
-    );
-    
-    // Add tracking info if provided
-    if (tracking_number) {
-      await db.query(
-        `INSERT INTO order_tracking (order_id, tracking_number, carrier, status, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [orderId, tracking_number, carrier || null, status, notes || null]
-      );
-    }
-    
     // Update order status
     let updateFields = `order_status = ?`;
     const updateParams = [status];
@@ -6517,15 +6501,28 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
       updateFields += `, completed_at = NOW(), funds_released_at = NOW()`;
     } else if (status === 'cancelled') {
       updateFields += `, cancelled_at = NOW()`;
+    } else if (status === 'shipped') {
+      updateFields += `, shipped_at = NOW()`;
     }
     
     updateParams.push(orderId);
     await db.query(`UPDATE physical_orders SET ${updateFields} WHERE id = ?`, updateParams);
     
+    // Record status change in history (if table exists)
+    try {
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, ?, ?, ?, NOW())`,
+        [orderId, status, notes || null, req.session.user.id]
+      );
+    } catch (historyErr) {
+      console.log('History table not available yet');
+    }
+    
     // Send email notification to buyer
     const statusMessages = {
       'processing': 'Your order is now being processed',
-      'shipped': `Your order has been shipped${tracking_number ? ` with tracking #${tracking_number}` : ''}`,
+      'shipped': 'Your order has been shipped!',
       'delivered': 'Your order has been delivered',
       'completed': 'Your order has been completed. Thank you!',
       'cancelled': 'Your order has been cancelled'
@@ -6540,7 +6537,6 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
           body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
           .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
           .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; background: #3b82f6; color: white; }
-          .tracking { background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0; }
         </style>
       </head>
       <body>
@@ -6548,13 +6544,6 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
           <h1>Order #${orderId} Status Update</h1>
           <p>Hello ${order.buyer_name || 'Valued Customer'},</p>
           <div class="status-badge">${statusMessages[status] || `Status: ${status}`}</div>
-          ${tracking_number ? `
-            <div class="tracking">
-              <strong>Tracking Information:</strong><br>
-              Carrier: ${carrier || 'Standard Shipping'}<br>
-              Tracking Number: ${tracking_number}
-            </div>
-          ` : ''}
           ${notes ? `<p><strong>Notes from seller:</strong> ${notes}</p>` : ''}
           <p>You can track your order here: <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
         </div>
@@ -6563,14 +6552,6 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
     `;
     
     await sendEmail(order.buyer_email, `Order #${orderId} Status Update`, emailHtml);
-    
-    // Add notification for buyer
-    await db.query(
-      `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
-       VALUES (?, ?, 'status_update', 'Order Status Updated', 
-               CONCAT('Your order #', ?, ' status has been updated to: ', ?), NOW())`,
-      [order.buyer_id, orderId, orderId, statusMessages[status] || status]
-    );
     
     res.json({
       success: true,
@@ -6962,15 +6943,12 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     
     const order = orderResult[0];
     
-    // FIXED: Allow both 'paid' and 'seller_accepted' status
-    // Also check payment_status
-    const isPaid = order.payment_status === 'paid' || 
-                   order.order_status === 'paid' || 
-                   order.order_status === 'seller_accepted';
+    // Check if order is paid
+    const isPaid = order.payment_status === 'paid' || order.order_status === 'paid';
     
     if (!isPaid) {
       return res.status(400).json({ 
-        error: `Order must be paid before generating delivery code. Current status: ${order.order_status}, Payment status: ${order.payment_status}` 
+        error: `Order must be paid before generating delivery code. Current status: ${order.order_status}` 
       });
     }
     
@@ -6994,13 +6972,6 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
            order_status = 'shipped'
        WHERE id = ?`,
       [deliveryCode, orderId]
-    );
-    
-    // Also store in delivery_codes table
-    await db.query(
-      `INSERT INTO delivery_codes (order_id, code, status, generated_at)
-       VALUES (?, ?, 'pending', NOW())`,
-      [orderId, deliveryCode]
     );
     
     // Send email with delivery code to buyer

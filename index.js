@@ -6449,6 +6449,20 @@ app.get("/api/dashboard/pending-orders", async (req, res) => {
     });
   }
 });
+
+// Add this debug endpoint temporarily
+app.get("/api/debug/order-status/:orderId", async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    const order = await db.query(
+      `SELECT id, order_status, payment_status, total_amount FROM physical_orders WHERE id = ?`,
+      [orderId]
+    );
+    res.json({ order: order[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Update order status (for sellers)
 app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
@@ -6923,7 +6937,6 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
 // ============================================
 // DELIVERY CODE SYSTEM - COMPLETE
 // ============================================
-
 // Generate and send delivery code when seller marks order as shipped
 app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
   try {
@@ -6949,11 +6962,19 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     
     const order = orderResult[0];
     
-    // Check if order is paid and not already delivered
-    if (order.order_status !== 'paid') {
-      return res.status(400).json({ error: "Order must be paid before generating delivery code" });
+    // FIXED: Allow both 'paid' and 'seller_accepted' status
+    // Also check payment_status
+    const isPaid = order.payment_status === 'paid' || 
+                   order.order_status === 'paid' || 
+                   order.order_status === 'seller_accepted';
+    
+    if (!isPaid) {
+      return res.status(400).json({ 
+        error: `Order must be paid before generating delivery code. Current status: ${order.order_status}, Payment status: ${order.payment_status}` 
+      });
     }
     
+    // Check if already has delivery code
     if (order.delivery_code) {
       return res.json({ 
         success: true, 
@@ -6965,7 +6986,7 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     // Generate a random 6-digit code
     const deliveryCode = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store the code
+    // Store the code and update order status
     await db.query(
       `UPDATE physical_orders 
        SET delivery_code = ?,
@@ -6982,7 +7003,7 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
       [orderId, deliveryCode]
     );
     
-    // Send SMS/Email with delivery code to buyer
+    // Send email with delivery code to buyer
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -6993,38 +7014,25 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
           .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
           .code-box { background: #0f172a; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
           .code { font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; }
-          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; }
         </style>
       </head>
       <body>
         <div class="container">
           <h1>📦 Your Order #${orderId} is Out for Delivery!</h1>
           <p>Hello ${order.buyer_name},</p>
-          <p>Your order for <strong>${order.product_name}</strong> has been shipped and is on its way!</p>
+          <p>Your order for <strong>${order.product_name}</strong> has been shipped!</p>
           <div class="code-box">
             <p style="margin-bottom: 10px;">Your Delivery Confirmation Code:</p>
             <div class="code">${deliveryCode}</div>
             <p style="margin-top: 10px; font-size: 12px;">Give this code to the delivery person when you receive your package</p>
           </div>
-          <p><strong>How it works:</strong></p>
-          <ol style="color: #94a3b8;">
-            <li>When you receive your package, get the delivery code from the delivery person</li>
-            <li>Enter the code on the order tracking page to confirm delivery</li>
-            <li>Once confirmed, the seller will receive their payment after 5 days</li>
-          </ol>
-          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" class="btn">Track Your Order</a>
+          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">Track Your Order</a>
         </div>
       </body>
       </html>
     `;
     
     await sendEmail(order.buyer_email, `Delivery Code for Order #${orderId}`, emailHtml);
-    
-    // Also send SMS if phone number is available (you can integrate with SMS service)
-    if (order.delivery_phone) {
-      // Optional: Send SMS via Twilio or other service
-      console.log(`📱 Would send SMS to ${order.delivery_phone}: Your delivery code for order #${orderId} is ${deliveryCode}`);
-    }
     
     res.json({
       success: true,
@@ -7038,116 +7046,101 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Verify delivery code and complete order (for buyer)
-app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
+// Update order status (for sellers) - FIXED without tracking_number
+app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
     
     const orderId = req.params.orderId;
-    const { delivery_code } = req.body;
+    const { status, notes } = req.body;  // Remove tracking_number from here
     
-    if (!delivery_code) {
-      return res.status(400).json({ error: "Delivery code is required" });
-    }
-    
-    // Verify buyer owns this order
+    // Verify order ownership
     const orderResult = await db.query(
-      `SELECT o.*, u.email as seller_email, u.username as seller_name, p.title as product_name
+      `SELECT o.*, u.email as buyer_email, u.username as buyer_name
        FROM physical_orders o
-       LEFT JOIN users u ON o.seller_id = u.id
-       LEFT JOIN products p ON o.product_id = p.id
-       WHERE o.id = ? AND o.buyer_id = ?`,
+       LEFT JOIN users u ON o.buyer_id = u.id
+       WHERE o.id = ? AND o.seller_id = ?`,
       [orderId, req.session.user.id]
     );
     
     if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found or you don't have permission" });
     }
     
     const order = orderResult[0];
+    const validStatuses = ['processing', 'shipped', 'delivered', 'completed', 'cancelled'];
     
-    // Check if order is in shipped status (has delivery code)
-    if (order.order_status !== 'shipped') {
-      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status update" });
     }
     
-    if (!order.delivery_code) {
-      return res.status(400).json({ error: "No delivery code generated for this order yet" });
-    }
-    
-    // Verify the code
-    if (order.delivery_code !== delivery_code) {
-      return res.status(400).json({ error: "Invalid delivery code. Please check and try again." });
-    }
-    
-    // Mark delivery code as used
-    await db.query(
-      `UPDATE delivery_codes 
-       SET status = 'used', used_at = NOW(), used_by = ?
-       WHERE order_id = ? AND code = ?`,
-      [req.session.user.id, orderId, delivery_code]
-    );
-    
-    // Update order to delivered status (not completed yet - 5-day escrow starts now)
-    const escrowReleaseDate = new Date();
-    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
-    
-    await db.query(
-      `UPDATE physical_orders 
-       SET order_status = 'delivered',
-           delivered_at = NOW(),
-           payment_held_until = ?
-       WHERE id = ?`,
-      [escrowReleaseDate, orderId]
-    );
-    
-    // Add to status history
+    // Record status change in history
     await db.query(
       `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-       VALUES (?, 'delivered', 'Buyer confirmed delivery with code', ?, NOW())`,
-      [orderId, req.session.user.id]
+       VALUES (?, ?, ?, ?, NOW())`,
+      [orderId, status, notes || null, req.session.user.id]
     );
     
-    // Send notification to seller
-    const sellerEmailHtml = `
+    // Update order status
+    let updateFields = `order_status = ?`;
+    const updateParams = [status];
+    
+    if (status === 'completed') {
+      updateFields += `, completed_at = NOW(), funds_released_at = NOW()`;
+    } else if (status === 'cancelled') {
+      updateFields += `, cancelled_at = NOW()`;
+    } else if (status === 'shipped') {
+      updateFields += `, shipped_at = NOW()`;
+    }
+    
+    updateParams.push(orderId);
+    await db.query(`UPDATE physical_orders SET ${updateFields} WHERE id = ?`, updateParams);
+    
+    // Send email notification to buyer
+    const statusMessages = {
+      'processing': 'Your order is now being processed',
+      'shipped': 'Your order has been shipped!',
+      'delivered': 'Your order has been delivered',
+      'completed': 'Your order has been completed. Thank you!',
+      'cancelled': 'Your order has been cancelled'
+    };
+    
+    const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Order Delivered - Core Insight</title>
+        <title>Order Status Update - Core Insight</title>
         <style>
           body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
           .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          .success { color: #10b981; }
+          .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; background: #3b82f6; color: white; }
         </style>
       </head>
       <body>
         <div class="container">
-          <h1 class="success">✅ Order Delivered!</h1>
-          <p>Hello ${order.seller_name},</p>
-          <p>Your order for <strong>${order.product_name}</strong> has been delivered and confirmed by the buyer.</p>
-          <p>Funds will be released to your account in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless a dispute is raised.</p>
-          <a href="https://core-insight-7.onrender.com/dashboard.html" class="btn" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">View Dashboard</a>
+          <h1>Order #${orderId} Status Update</h1>
+          <p>Hello ${order.buyer_name || 'Valued Customer'},</p>
+          <div class="status-badge">${statusMessages[status] || `Status: ${status}`}</div>
+          ${notes ? `<p><strong>Notes from seller:</strong> ${notes}</p>` : ''}
+          <p>You can track your order here: <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
         </div>
       </body>
       </html>
     `;
     
-    await sendEmail(order.seller_email, `Order #${orderId} Delivered`, sellerEmailHtml);
+    await sendEmail(order.buyer_email, `Order #${orderId} Status Update`, emailHtml);
     
-    // Show success message with rating prompt
     res.json({
       success: true,
-      message: "Delivery confirmed! Thank you for your purchase.",
-      order_status: 'delivered',
-      escrow_release_date: escrowReleaseDate,
-      days_until_release: 5
+      message: `Order status updated to ${status}`,
+      order_id: orderId,
+      new_status: status
     });
     
   } catch (err) {
-    console.error("❌ Verify delivery error:", err);
+    console.error("❌ Status update error:", err);
     res.status(500).json({ error: err.message });
   }
 });

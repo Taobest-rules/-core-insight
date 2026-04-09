@@ -6319,7 +6319,10 @@ async function checkRefundStatus(orderId) {
 
  async function loadPaidOrders() {
   const container = document.getElementById('paidOrdersList');
-  if (!container) return;
+  if (!container) {
+    console.error('Container paidOrdersList not found');
+    return;
+  }
   
   try {
     console.log('Loading paid orders for seller...');
@@ -6368,16 +6371,16 @@ async function checkRefundStatus(orderId) {
               <div>
                 <h4 style="margin: 0; color: var(--success);">💰 Order #${order.id}</h4>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
-                  Paid: ${new Date(order.payment_collected_at).toLocaleString()}
+                  Paid: ${order.payment_collected_at ? new Date(order.payment_collected_at).toLocaleString() : 'Date not available'}
                 </p>
               </div>
               <div style="text-align: right;">
                 <span class="product-status status-info"><i class="fas fa-check-circle"></i> Payment Confirmed</span>
                 <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
-                  $${order.total_amount.toFixed(2)}
+                  $${(order.total_amount || 0).toFixed(2)}
                 </p>
                 <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--success);">
-                  <i class="fas fa-wallet"></i> You earn: $${order.seller_earnings.toFixed(2)}
+                  <i class="fas fa-wallet"></i> You earn: $${(order.seller_earnings || (order.total_amount * 0.9)).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -6386,19 +6389,19 @@ async function checkRefundStatus(orderId) {
           <div style="padding: 16px;">
             <div style="display: flex; gap: 16px; flex-wrap: wrap;">
               <div style="flex: 2;">
-                <h5 style="margin: 0 0 8px 0;">${escapeHtml(order.product_name)}</h5>
-                <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity}</p>
-                <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name)}</p>
+                <h5 style="margin: 0 0 8px 0;">${escapeHtml(order.product_name || 'Product')}</h5>
+                <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity || 1}</p>
+                <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || 'Customer')}</p>
                 <p style="margin: 0 0 4px 0;"><strong>Phone:</strong> ${escapeHtml(order.delivery_phone || 'N/A')}</p>
               </div>
               <div style="flex: 3;">
                 <p style="margin: 0 0 4px 0;"><strong><i class="fas fa-map-marker-alt"></i> Shipping Address:</strong></p>
                 <p style="margin: 0 0 4px 0; font-size: 13px; color: var(--text-gray);">
-                  ${escapeHtml(order.shipping_address)}<br>
+                  ${escapeHtml(order.shipping_address || 'No address provided')}<br>
                   ${order.city ? escapeHtml(order.city) : ''}${order.state ? `, ${escapeHtml(order.state)}` : ''}${order.country ? `, ${escapeHtml(order.country)}` : ''}
                 </p>
                 <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
-                  <i class="fas fa-clock"></i> Estimated delivery: ${order.estimated_delivery_days} days
+                  <i class="fas fa-clock"></i> Estimated delivery: ${order.estimated_delivery_days || 7} days
                 </p>
               </div>
             </div>
@@ -6428,13 +6431,12 @@ async function checkRefundStatus(orderId) {
       <div class="empty-state">
         <i class="fas fa-exclamation-triangle"></i>
         <h4>Error loading paid orders</h4>
-        <p>${error.message}</p>
+        <p>${error.message || 'Please try again'}</p>
         <button onclick="loadPaidOrders()" class="btn primary" style="margin-top: 12px;">Retry</button>
       </div>
     `;
   }
 }
-
 // View Escrow Status function
 async function viewEscrowStatus(orderId) {
   try {
@@ -6470,35 +6472,67 @@ Note: Funds are released 5 days after customer confirms delivery.
     alert('Error loading escrow status. Please try again.');
   }
 }
-
-// Mark order as shipped
+// Mark order as shipped and generate delivery code (NO tracking number prompt)
 async function markOrderShipped(orderId) {
-  const trackingNumber = prompt('Enter tracking number (optional):');
+  // Show loading state on button
+  const buttons = document.querySelectorAll(`button[onclick*="markOrderShipped(${orderId})"]`);
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  });
   
   try {
-    const response = await fetch(`/api/orders/${orderId}/status`, {
+    // First update order status to shipped
+    const statusResponse = await fetch(`/api/orders/${orderId}/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         status: 'shipped', 
-        tracking_number: trackingNumber || null,
         notes: 'Order has been shipped'
       }),
       credentials: 'include'
     });
     
-    const data = await response.json();
+    if (!statusResponse.ok) {
+      const errorData = await statusResponse.json();
+      throw new Error(errorData.error || 'Failed to update order status');
+    }
     
-    if (response.ok) {
-      showToast('Order Shipped', 'The order has been marked as shipped', 'success');
-      loadPaidOrders(); // Refresh the list
-      loadSalesHistory(); // Also refresh sales
+    // Then generate delivery code
+    const codeResponse = await fetch(`/api/orders/${orderId}/generate-delivery-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    
+    const data = await codeResponse.json();
+    
+    if (codeResponse.ok) {
+      showToast(
+        '✅ Order Shipped!', 
+        `Delivery code: ${data.delivery_code}\n\nThe buyer has been notified. They will need to enter this code upon delivery.`,
+        'success'
+      );
+      
+      // Refresh orders lists
+      loadPaidOrders();
+      loadSalesHistory();
     } else {
-      showToast('Error', data.error || 'Failed to update order', 'danger');
+      showToast('Error', data.error || 'Failed to generate delivery code', 'danger');
+      // Re-enable buttons on error
+      buttons.forEach(btn => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-truck"></i> Begin Shipment';
+      });
     }
   } catch (error) {
-    console.error('Error marking order shipped:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
+    console.error('Error shipping order:', error);
+    showToast('Error', error.message || 'Network error. Please try again.', 'danger');
+    // Re-enable buttons on error
+    buttons.forEach(btn => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-truck"></i> Begin Shipment';
+    });
   }
 }
 
@@ -6530,41 +6564,7 @@ async function confirmDelivery(orderId) {
     showToast('Error', 'Network error. Please try again.', 'danger');
   }
 }
-// View Escrow Status function
-async function viewEscrowStatus(orderId) {
-  try {
-    const response = await fetch(`/api/orders/${orderId}/escrow-status`, {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    let message = '';
-    if (data.is_escrow) {
-      message = `
-🔒 ESCROW STATUS
 
-Amount Held: $${data.amount_held?.toFixed(2) || '0.00'}
-Your Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}
-Platform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}
-
-Status: ${data.funds_released ? '✅ Released to you' : '⏳ Held in escrow'}
-
-${data.payment_held_until ? `Held until: ${new Date(data.payment_held_until).toLocaleDateString()}` : ''}
-
-Note: Funds are released 5 days after customer confirms delivery.
-      `;
-    } else {
-      message = 'No escrow information available for this order.';
-    }
-    
-    alert(message);
-    
-  } catch (error) {
-    console.error('Escrow status error:', error);
-    alert('Error loading escrow status. Please try again.');
-  }
-}
 
 // Mark order as shipped
 async function markOrderShipped(orderId) {
@@ -7210,6 +7210,9 @@ window.checkRefundStatus = checkRefundStatus;
 window.checkEscrowStatus = checkEscrowStatus;
 window.requestRefund = requestRefund;
 window.viewOrderDetails = viewOrderDetails;
+window.markOrderShipped = markOrderShipped;
+window.viewEscrowStatus = viewEscrowStatus;
+window.loadPaidOrders = loadPaidOrders;
 
 // Process refund (for sellers)
 async function processRefund(orderId, action) {
@@ -8514,13 +8517,46 @@ function initTabs() {
   const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
   
   tabButtons.forEach(btn => {
-    // Remove existing listeners to prevent duplicates
-    btn.removeEventListener('click', handleTabClick);
-    // Add new listener
-    btn.addEventListener('click', handleTabClick);
+    if (btn) {
+      btn.removeEventListener('click', handleTabClick);
+      btn.addEventListener('click', handleTabClick);
+    }
   });
 }
 
+function handleTabClick(e) {
+  const tabId = this?.getAttribute('data-tab');
+  if (!tabId) return;
+  
+  // Update active tab button
+  document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
+    if (btn) btn.classList.remove('active');
+  });
+  if (this) this.classList.add('active');
+  
+  // Hide all tab contents
+  document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => {
+    if (content) content.classList.remove('active');
+  });
+  
+  // Show selected tab content
+  let contentId = tabId;
+  if (tabId === 'buyer-orders') {
+    contentId = 'buyerOrdersTab';
+  } else if (tabId === 'paid-orders') {
+    contentId = 'paidOrdersTab';
+  } else {
+    contentId = tabId + 'Tab';
+  }
+  
+  const selectedContent = document.getElementById(contentId);
+  if (selectedContent) selectedContent.classList.add('active');
+  
+  // Load tab data
+  if (typeof loadMainTabData === 'function') {
+    loadMainTabData(tabId);
+  }
+}
 function handleTabClick(e) {
   const tabId = this.getAttribute('data-tab');
   if (!tabId) return;

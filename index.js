@@ -7017,7 +7017,7 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Update order status (for sellers) - FIXED without tracking_number
+// Update order status (for sellers) - WITHOUT shipped_at
 app.post("/api/orders/:orderId/status", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -7025,7 +7025,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
     }
     
     const orderId = req.params.orderId;
-    const { status, notes } = req.body;  // Remove tracking_number from here
+    const { status, notes } = req.body;
     
     // Verify order ownership
     const orderResult = await db.query(
@@ -7047,14 +7047,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
       return res.status(400).json({ error: "Invalid status update" });
     }
     
-    // Record status change in history
-    await db.query(
-      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [orderId, status, notes || null, req.session.user.id]
-    );
-    
-    // Update order status
+    // Update order status - REMOVED shipped_at
     let updateFields = `order_status = ?`;
     const updateParams = [status];
     
@@ -7062,12 +7055,22 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
       updateFields += `, completed_at = NOW(), funds_released_at = NOW()`;
     } else if (status === 'cancelled') {
       updateFields += `, cancelled_at = NOW()`;
-    } else if (status === 'shipped') {
-      updateFields += `, shipped_at = NOW()`;
     }
+    // REMOVED: else if (status === 'shipped') { updateFields += `, shipped_at = NOW()`; }
     
     updateParams.push(orderId);
     await db.query(`UPDATE physical_orders SET ${updateFields} WHERE id = ?`, updateParams);
+    
+    // Record status change in history (if table exists)
+    try {
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, ?, ?, ?, NOW())`,
+        [orderId, status, notes || null, req.session.user.id]
+      );
+    } catch (historyErr) {
+      console.log('History table not available yet');
+    }
     
     // Send email notification to buyer
     const statusMessages = {

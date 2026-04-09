@@ -1108,70 +1108,107 @@ app.post("/api/debug/test-payment", async (req, res) => {
 // ============================================
 // ROUTES - AUTHENTICATION
 // ============================================
-// Updated signup route with proper trial dates
+// Updated signup route with proper trial dates for freelancers
 app.post("/api/signup", async (req, res) => {
     try {
         const { username, password, email, role } = req.body;
+        
+        console.log("📝 Signup attempt:", { username, email, role });
+        
+        // Validation
         if (!username || !password || !email) {
             return res.status(400).json({ error: "Username, email, and password are required" });
         }
-
-        const userRole = ['client', 'freelancer', 'admin'].includes(role) ? role : 'client';
         
-        const existingUsers = await db.query("SELECT id FROM users WHERE username = ? OR email = ?", [username, email]);
+        let userRole = role || 'client';
+        if (!['client', 'freelancer', 'admin'].includes(userRole)) {
+            return res.status(400).json({ error: "Invalid role" });
+        }
+        
+        // Check existing user
+        const existingUsers = await db.query(
+            "SELECT id FROM users WHERE username = ? OR email = ?", 
+            [username, email]
+        );
+        
         if (existingUsers && existingUsers.length > 0) {
             return res.status(400).json({ error: "Username or email already exists" });
         }
-
+        
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         const verifyToken = crypto.randomBytes(32).toString('hex');
-        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const tokenExpiry = new Date();
+        tokenExpiry.setHours(tokenExpiry.getHours() + 24);
         
         // Calculate trial dates for freelancers
         let trialStartDate = null;
         let trialEndDate = null;
+        let subscriptionStatus = 'active';
+        let subscriptionPlan = null;
         
         if (userRole === 'freelancer') {
             trialStartDate = new Date();
             trialEndDate = new Date();
             trialEndDate.setDate(trialEndDate.getDate() + 90); // 90 days free trial
+            subscriptionPlan = 'free_trial';
         }
-
+        
+        // Insert user
         const result = await db.query(
-            `INSERT INTO users (username, email, password, role, verified, verify_token, verify_token_expiry, 
-                                subscription_status, subscription_plan, trial_start_date, trial_end_date, created_at) 
-             VALUES (?, ?, ?, ?, 0, ?, ?, 'active', 'free_trial', ?, ?, NOW())`,
-            [username, email, hashedPassword, userRole, verifyToken, tokenExpiry, trialStartDate, trialEndDate]
+            `INSERT INTO users (
+                username, email, password, role, verified, 
+                verify_token, verify_token_expiry,
+                subscription_status, subscription_plan, 
+                trial_start_date, trial_end_date, created_at
+            ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, NOW())`,
+            [
+                username, email, hashedPassword, userRole, 
+                verifyToken, tokenExpiry,
+                subscriptionStatus, subscriptionPlan,
+                trialStartDate, trialEndDate
+            ]
         );
-
+        
+        const userId = result.insertId;
+        console.log(`✅ User created with ID: ${userId} (Role: ${userRole})`);
+        
         // If freelancer, create freelancer profile with trial info
         if (userRole === 'freelancer') {
-            const userId = result.insertId;
             await db.query(
-                `INSERT INTO freelancer_profiles (user_id, subscription_status, trial_days_remaining, created_at)
-                 VALUES (?, 'free_trial', 90, NOW())`,
+                `INSERT INTO freelancer_profiles (
+                    user_id, subscription_status, trial_days_remaining, 
+                    headline, created_at
+                ) VALUES (?, 'free_trial', 90, 'Professional Freelancer', NOW())`,
                 [userId]
             );
         }
-
+        
+        // Send verification email
         const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+        
         const emailHtml = getVerificationEmailTemplate(username, verifyLink);
         
-        const emailResult = await sendEmail(email, "Verify Your Email - Core Insight Marketplace", emailHtml);
+        const emailResult = await sendVerificationEmail(email, "Verify Your Email - Core Insight", emailHtml);
         
         const message = userRole === 'freelancer' 
             ? "Account created! You have 90 days free trial. Please check your email to verify your account."
             : "Account created! Please check your email to verify your account.";
-
+        
         res.json({ 
             message: message,
             requiresVerification: true,
-            trial_days: userRole === 'freelancer' ? 90 : null
+            trial_days: userRole === 'freelancer' ? 90 : null,
+            userId: userId
         });
         
     } catch (err) {
         console.error("❌ Signup error:", err);
-        res.status(500).json({ error: "Registration failed. Please try again." });
+        if (err.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ error: "Username or email already exists" });
+        } else {
+            res.status(500).json({ error: "Registration failed. Please try again." });
+        }
     }
 });
 
@@ -5299,96 +5336,344 @@ app.post("/api/admin/reactivate-user/:userId", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// =================== SUBSCRIPTION SYSTEM ===================
 
-// Get subscription status with proper trial calculation
+// Check subscription status for freelancers (updated)
 app.get("/api/subscription/status", async (req, res) => {
+    if (!req.session.user) {
+        return res.json({ 
+            hasActiveSubscription: false,
+            requiresSubscription: false,
+            role: null
+        });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        const userRole = req.session.user.role;
+        
+        // Clients don't need subscription
+        if (userRole === 'client') {
+            return res.json({
+                hasActiveSubscription: true,
+                requiresSubscription: false,
+                role: 'client',
+                message: "Clients have free access to all features"
+            });
+        }
+
+        // Admins always have access
+        if (userRole === 'admin') {
+            return res.json({
+                hasActiveSubscription: true,
+                requiresSubscription: false,
+                role: 'admin'
+            });
+        }
+
+        // For freelancers, check subscription/trial
+        const userResult = await db.query(
+            `SELECT subscription_status, subscription_plan, subscription_end_date, 
+                    trial_start_date, trial_end_date, role, created_at
+             FROM users WHERE id = ?`,
+            [userId]
+        );
+        
+        let user = null;
+        if (Array.isArray(userResult)) {
+            if (userResult.length === 2 && Array.isArray(userResult[0]) && userResult[0].length > 0) {
+                user = userResult[0][0];
+            } else if (userResult.length > 0) {
+                user = userResult[0];
+            }
+        }
+
+        if (!user) {
+            return res.json({ 
+                hasActiveSubscription: false,
+                requiresSubscription: true,
+                role: userRole
+            });
+        }
+
+        const today = new Date();
+        let isActive = false;
+        let daysLeft = 0;
+        let subscriptionPlan = user.subscription_plan || 'free_trial';
+        
+        // Check trial period
+        if (user.trial_end_date) {
+            const trialEnd = new Date(user.trial_end_date);
+            if (today <= trialEnd) {
+                isActive = true;
+                daysLeft = Math.ceil((trialEnd - today) / (1000 * 60 * 60 * 24));
+                subscriptionPlan = 'free_trial';
+            }
+        }
+        
+        // Check paid subscription if trial expired
+        if (!isActive && user.subscription_end_date) {
+            const subEnd = new Date(user.subscription_end_date);
+            if (today <= subEnd) {
+                isActive = true;
+                daysLeft = Math.ceil((subEnd - today) / (1000 * 60 * 60 * 24));
+                subscriptionPlan = user.subscription_plan || 'monthly';
+            }
+        }
+
+        // Update status if expired
+        if (!isActive && user.subscription_status === 'active') {
+            await db.query(
+                "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
+                [userId]
+            );
+        }
+
+        // Calculate trial days remaining for new freelancers
+        let trialDaysRemaining = 0;
+        if (user.role === 'freelancer' && !user.trial_end_date) {
+            // New freelancer, should have 90 days trial from registration
+            const createdAt = new Date(user.created_at);
+            const trialEnd = new Date(createdAt);
+            trialEnd.setDate(trialEnd.getDate() + 90);
+            const daysSinceCreation = Math.ceil((today - createdAt) / (1000 * 60 * 60 * 24));
+            trialDaysRemaining = Math.max(0, 90 - daysSinceCreation);
+        }
+
+        res.json({
+            hasActiveSubscription: isActive,
+            requiresSubscription: !isActive && userRole === 'freelancer',
+            role: userRole,
+            subscriptionStatus: user.subscription_status || (isActive ? 'active' : 'expired'),
+            subscriptionPlan: subscriptionPlan,
+            daysLeft: daysLeft > 0 ? daysLeft : trialDaysRemaining,
+            trialEndDate: user.trial_end_date,
+            subscriptionEndDate: user.subscription_end_date,
+            isTrial: subscriptionPlan === 'free_trial'
+        });
+
+    } catch (err) {
+        console.error("Subscription status error:", err);
+        res.json({ 
+            hasActiveSubscription: false,
+            requiresSubscription: req.session.user?.role === 'freelancer',
+            role: req.session.user?.role,
+            error: "Error checking subscription"
+        });
+    }
+});
+
+// Create subscription payment
+app.post("/api/subscription/pay", async (req, res) => {
     try {
         if (!req.session.user) {
             return res.status(401).json({ error: "Please login" });
         }
         
+        const { plan } = req.body;
+        
+        if (!plan || !['monthly', 'yearly'].includes(plan)) {
+            return res.status(400).json({ error: "Invalid subscription plan" });
+        }
+        
+        const amount = plan === 'monthly' ? 5.00 : 57.50;
+        const transactionRef = `sub_${plan}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        
+        // Store payment intent
+        await db.query(
+            `INSERT INTO subscription_payments (user_id, plan, amount, payment_status, transaction_ref, created_at)
+             VALUES (?, ?, ?, 'pending', ?, NOW())`,
+            [req.session.user.id, plan, amount, transactionRef]
+        );
+        
+        // Create Flutterwave payment
+        if (!process.env.FLW_SECRET_KEY) {
+            return res.status(500).json({ error: "Payment system not configured" });
+        }
+        
+        const payload = {
+            tx_ref: transactionRef,
+            amount: amount,
+            currency: "USD",
+            redirect_url: "https://core-insight-7.onrender.com/subscription-callback.html",
+            customer: {
+                email: req.session.user.email,
+                name: req.session.user.username,
+            },
+            customizations: {
+                title: "Core Insight - Subscription",
+                description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Subscription`,
+            },
+            meta: {
+                user_id: req.session.user.id,
+                plan: plan,
+                type: 'subscription'
+            }
+        };
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/payments',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 15000
+            }
+        );
+        
+        if (response.data.status === "success" && response.data.data?.link) {
+            res.json({
+                success: true,
+                paymentLink: response.data.data.link,
+                transactionRef: transactionRef,
+                amount: amount,
+                plan: plan
+            });
+        } else {
+            throw new Error(response.data.message || "Payment initialization failed");
+        }
+        
+    } catch (err) {
+        console.error("❌ Subscription payment error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify subscription payment callback
+app.post("/api/subscription/verify", async (req, res) => {
+    try {
+        const { transaction_ref, status } = req.body;
+        
+        if (status !== 'successful') {
+            return res.status(400).json({ error: "Payment not successful" });
+        }
+        
+        // Get payment record
+        const paymentResult = await db.query(
+            "SELECT * FROM subscription_payments WHERE transaction_ref = ? AND payment_status = 'pending'",
+            [transaction_ref]
+        );
+        
+        if (!paymentResult || paymentResult.length === 0) {
+            return res.status(404).json({ error: "Payment record not found" });
+        }
+        
+        const payment = paymentResult[0];
+        const userId = payment.user_id;
+        const plan = payment.plan;
+        
+        // Calculate subscription dates
+        const now = new Date();
+        let subscriptionEnd = new Date();
+        
+        if (plan === 'monthly') {
+            subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
+        } else {
+            subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+        }
+        
+        // Update user subscription
+        await db.query(
+            `UPDATE users 
+             SET subscription_plan = ?,
+                 subscription_status = 'active',
+                 subscription_start_date = ?,
+                 subscription_end_date = ?,
+                 trial_end_date = NULL
+             WHERE id = ?`,
+            [plan, now, subscriptionEnd, userId]
+        );
+        
+        // Update payment record
+        await db.query(
+            `UPDATE subscription_payments 
+             SET payment_status = 'completed', 
+                 payment_date = ?,
+                 subscription_start = ?,
+                 subscription_end = ?
+             WHERE transaction_ref = ?`,
+            [now, now, subscriptionEnd, transaction_ref]
+        );
+        
+        // Update freelancer profile if exists
+        await db.query(
+            `UPDATE freelancer_profiles 
+             SET subscription_status = ?, 
+                 trial_days_remaining = 0
+             WHERE user_id = ?`,
+            [plan, userId]
+        );
+        
+        res.json({
+            success: true,
+            message: "Subscription activated successfully",
+            plan: plan,
+            validUntil: subscriptionEnd
+        });
+        
+    } catch (err) {
+        console.error("❌ Subscription verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Middleware to check subscription for freelancers
+const checkFreelancerSubscription = async (req, res, next) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    // Clients and admins bypass subscription check
+    if (req.session.user.role === 'client' || req.session.user.role === 'admin') {
+        return next();
+    }
+
+    try {
         const userId = req.session.user.id;
         
-        // Get user subscription info
         const userResult = await db.query(
-            `SELECT subscription_status, subscription_plan, trial_start_date, trial_end_date,
-                    subscription_start_date, subscription_end_date, account_locked
+            `SELECT subscription_status, subscription_end_date, trial_end_date 
              FROM users WHERE id = ?`,
             [userId]
         );
         
-        if (!userResult || userResult.length === 0) {
+        let user = null;
+        if (Array.isArray(userResult) && userResult.length > 0) {
+            user = userResult[0];
+        }
+
+        if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
-        
-        const user = userResult[0];
-        
-        let hasActiveSubscription = false;
-        let subscriptionPlan = user.subscription_plan || 'free_trial';
-        let daysLeft = 0;
-        let message = "";
-        
-        // Check trial status for freelancers
-        if (user.subscription_plan === 'free_trial' && user.trial_end_date) {
-            const now = new Date();
-            const trialEnd = new Date(user.trial_end_date);
-            daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
-            
-            if (daysLeft > 0) {
-                hasActiveSubscription = true;
-                message = `You have ${daysLeft} days left in your free trial`;
-            } else {
-                hasActiveSubscription = false;
-                message = "Your free trial has expired. Please subscribe to continue using services.";
-                
-                // Update user status to expired
-                if (user.subscription_status !== 'expired') {
-                    await db.query(
-                        "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
-                        [userId]
-                    );
-                }
-            }
-        } 
-        // Check paid subscription
-        else if (user.subscription_plan !== 'free_trial' && user.subscription_end_date) {
-            const now = new Date();
-            const subscriptionEnd = new Date(user.subscription_end_date);
-            daysLeft = Math.max(0, Math.ceil((subscriptionEnd - now) / (1000 * 60 * 60 * 24)));
-            
-            if (daysLeft > 0) {
-                hasActiveSubscription = true;
-                message = `Your ${subscriptionPlan} subscription is active. ${daysLeft} days remaining.`;
-            } else {
-                hasActiveSubscription = false;
-                message = "Your subscription has expired. Please renew to continue.";
-                
-                await db.query(
-                    "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
-                    [userId]
-                );
-            }
+
+        const today = new Date();
+        const trialEnd = user.trial_end_date ? new Date(user.trial_end_date) : null;
+        const subEnd = user.subscription_end_date ? new Date(user.subscription_end_date) : null;
+
+        let isActive = false;
+
+        if (trialEnd && today <= trialEnd) {
+            isActive = true;
+        } else if (subEnd && today <= subEnd) {
+            isActive = true;
         }
-        
-        // Check if account is locked (for flagged users)
-        const accountLocked = user.account_locked === 1;
-        
-        res.json({
-            hasActiveSubscription: hasActiveSubscription && !accountLocked,
-            subscriptionPlan: subscriptionPlan,
-            daysLeft: daysLeft,
-            message: message,
-            accountLocked: accountLocked,
-            trialStarted: !!user.trial_start_date,
-            trialEndDate: user.trial_end_date,
-            subscriptionEndDate: user.subscription_end_date
-        });
-        
+
+        if (!isActive) {
+            return res.status(403).json({ 
+                error: "Your subscription has expired. Please renew to continue.",
+                requiresSubscription: true,
+                expired: true
+            });
+        }
+
+        next();
     } catch (err) {
-        console.error("❌ Subscription status error:", err);
-        res.status(500).json({ error: err.message });
+        console.error("Subscription check error:", err);
+        res.status(500).json({ error: "Error checking subscription" });
     }
-});
+};
 
 // Create subscription payment
 app.post("/api/subscription/pay", async (req, res) => {

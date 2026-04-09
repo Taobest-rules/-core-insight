@@ -722,7 +722,6 @@ function renderOrderDetails() {
   container.innerHTML = html;
 }
 
-// Verify delivery code function
 async function verifyDeliveryCode() {
   const codeInput = document.getElementById('deliveryCodeInput');
   if (!codeInput) return;
@@ -748,6 +747,14 @@ async function verifyDeliveryCode() {
       credentials: 'include'
     });
     
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Non-JSON response:', text.substring(0, 200));
+      throw new Error('Server returned an error page');
+    }
+    
     const data = await response.json();
     
     if (response.ok) {
@@ -763,6 +770,7 @@ async function verifyDeliveryCode() {
     showToast('Error', 'Network error. Please try again.', 'error');
   }
 }
+
     // Render timeline steps
     function renderTimeline(timeline, currentStatus) {
       if (!timeline || timeline.length === 0) {

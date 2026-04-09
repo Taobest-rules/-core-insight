@@ -6628,7 +6628,7 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
   }
 });
 
-// GET /api/my-orders - Fixed SQL error
+// GET /api/my-orders - Fixed SQL query
 app.get("/api/my-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -6639,8 +6639,8 @@ app.get("/api/my-orders", async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    // Simple query without complex joins first
-    const orders = await db.query(`
+    // Build query dynamically
+    let query = `
       SELECT 
         o.id,
         o.product_name,
@@ -6659,14 +6659,31 @@ app.get("/api/my-orders", async (req, res) => {
         o.seller_id
       FROM physical_orders o
       WHERE o.buyer_id = ?
-      ORDER BY o.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [userId, parseInt(limit), offset]);
+    `;
+    
+    const queryParams = [userId];
+    
+    if (status && status !== 'all') {
+      query += " AND o.order_status = ?";
+      queryParams.push(status);
+    }
+    
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    queryParams.push(parseInt(limit), offset);
+    
+    const orders = await db.query(query, queryParams);
     
     // Get seller names separately
-    const sellerIds = [...new Set((orders || []).map(o => o.seller_id).filter(Boolean))];
-    let sellerNames = {};
+    const sellerIds = [];
+    if (orders && orders.length > 0) {
+      for (const order of orders) {
+        if (order.seller_id && !sellerIds.includes(order.seller_id)) {
+          sellerIds.push(order.seller_id);
+        }
+      }
+    }
     
+    let sellerNames = {};
     if (sellerIds.length > 0) {
       const placeholders = sellerIds.map(() => '?').join(',');
       const sellers = await db.query(`
@@ -6698,23 +6715,28 @@ app.get("/api/my-orders", async (req, res) => {
     }
     
     // Process orders
-    const processedOrders = (orders || []).map(order => ({
-      id: order.id,
-      product_name: order.product_name || 'Product',
-      quantity: parseInt(order.quantity) || 1,
-      total_amount: parseFloat(order.total_amount) || 0,
-      order_status: order.order_status || 'pending_seller_approval',
-      payment_status: order.payment_status || 'pending',
-      seller_name: sellerNames[order.seller_id] || 'Seller',
-      created_at: order.created_at,
-      shipping_address: order.shipping_address,
-      delivery_phone: order.delivery_phone,
-      estimated_delivery_days: order.estimated_delivery_days || 7,
-      tracking_number: order.tracking_number,
-      payment_collected_at: order.payment_collected_at,
-      payment_held_until: order.payment_held_until,
-      refund_requested_at: order.refund_requested_at
-    }));
+    const processedOrders = [];
+    if (orders && orders.length > 0) {
+      for (const order of orders) {
+        processedOrders.push({
+          id: order.id,
+          product_name: order.product_name || 'Product',
+          quantity: parseInt(order.quantity) || 1,
+          total_amount: parseFloat(order.total_amount) || 0,
+          order_status: order.order_status || 'pending_seller_approval',
+          payment_status: order.payment_status || 'pending',
+          seller_name: sellerNames[order.seller_id] || 'Seller',
+          created_at: order.created_at,
+          shipping_address: order.shipping_address,
+          delivery_phone: order.delivery_phone,
+          estimated_delivery_days: order.estimated_delivery_days || 7,
+          tracking_number: order.tracking_number,
+          payment_collected_at: order.payment_collected_at,
+          payment_held_until: order.payment_held_until,
+          refund_requested_at: order.refund_requested_at
+        });
+      }
+    }
     
     res.json({
       success: true,
@@ -7223,7 +7245,121 @@ app.post("/api/orders/:orderId/release-funds", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// Verify delivery code and complete order (for buyer)
+app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    const { delivery_code } = req.body;
+    
+    if (!delivery_code) {
+      return res.status(400).json({ error: "Delivery code is required" });
+    }
+    
+    // Verify buyer owns this order
+    const orderResult = await db.query(
+      `SELECT o.*, u.email as seller_email, u.username as seller_name, p.title as product_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.seller_id = u.id
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.buyer_id = ?`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check if order is in shipped status (has delivery code)
+    if (order.order_status !== 'shipped') {
+      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
+    }
+    
+    if (!order.delivery_code) {
+      return res.status(400).json({ error: "No delivery code generated for this order yet" });
+    }
+    
+    // Verify the code
+    if (order.delivery_code !== delivery_code) {
+      return res.status(400).json({ error: "Invalid delivery code. Please check and try again." });
+    }
+    
+    // Mark delivery code as used
+    await db.query(
+      `UPDATE delivery_codes 
+       SET status = 'used', used_at = NOW(), used_by = ?
+       WHERE order_id = ? AND code = ?`,
+      [req.session.user.id, orderId, delivery_code]
+    );
+    
+    // Update order to delivered status (5-day escrow starts now)
+    const escrowReleaseDate = new Date();
+    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+    
+    await db.query(
+      `UPDATE physical_orders 
+       SET order_status = 'delivered',
+           delivered_at = NOW(),
+           payment_held_until = ?
+       WHERE id = ?`,
+      [escrowReleaseDate, orderId]
+    );
+    
+    // Add to status history
+    try {
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'delivered', 'Buyer confirmed delivery with code', ?, NOW())`,
+        [orderId, req.session.user.id]
+      );
+    } catch (historyErr) {
+      console.log('History table not available yet');
+    }
+    
+    // Send notification to seller
+    const sellerEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order Delivered - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .success { color: #10b981; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1 class="success">✅ Order Delivered!</h1>
+          <p>Hello ${order.seller_name},</p>
+          <p>Your order for <strong>${order.product_name}</strong> has been delivered and confirmed by the buyer.</p>
+          <p>Funds will be released to your account in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless a dispute is raised.</p>
+          <a href="https://core-insight-7.onrender.com/dashboard.html" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">View Dashboard</a>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(order.seller_email, `Order #${orderId} Delivered`, sellerEmailHtml);
+    
+    res.json({
+      success: true,
+      message: "Delivery confirmed! Thank you for your purchase.",
+      order_status: 'delivered',
+      escrow_release_date: escrowReleaseDate,
+      days_until_release: 5
+    });
+    
+  } catch (err) {
+    console.error("❌ Verify delivery error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // Get delivery code status (for seller to see if code was used)
 app.get("/api/orders/:orderId/delivery-code-status", async (req, res) => {
   try {

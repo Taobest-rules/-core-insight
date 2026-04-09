@@ -5263,19 +5263,25 @@ window.openDashboard = function() {
 
 async function loadBuyerOrders() {
   const container = document.getElementById('buyerOrdersList');
-  if (!container) return;
+  if (!container) {
+    console.error('Buyer orders container not found');
+    return;
+  }
   
   try {
     console.log('Loading buyer orders...');
     
     const response = await fetch('/api/my-orders', {
-      credentials: 'include'
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error:', errorData);
-      throw new Error(errorData.error || `HTTP ${response.status}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText.substring(0, 200));
+      throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
     }
     
     const data = await response.json();
@@ -5298,70 +5304,38 @@ async function loadBuyerOrders() {
       return;
     }
     
+    // Rest of your rendering code...
     let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
     
     for (const order of orders) {
       let statusClass = '';
       let statusText = '';
-      let statusIcon = '';
       
       switch(order.order_status) {
         case 'pending_seller_approval':
           statusClass = 'status-pending';
           statusText = '⏳ Awaiting Seller Approval';
-          statusIcon = 'fa-clock';
           break;
         case 'seller_accepted':
           statusClass = 'status-warning';
           statusText = '✅ Accepted - Payment Required';
-          statusIcon = 'fa-credit-card';
           break;
         case 'paid':
           statusClass = 'status-info';
-          statusText = '💰 Paid - Seller Preparing Shipment';
-          statusIcon = 'fa-spinner';
-          break;
-        case 'shipped':
-          statusClass = 'status-info';
-          statusText = '📦 Shipped - In Transit';
-          statusIcon = 'fa-truck';
-          break;
-        case 'delivered':
-          statusClass = 'status-success';
-          statusText = '📬 Delivered - Confirm Receipt';
-          statusIcon = 'fa-check-circle';
+          statusText = '💰 Paid - Processing';
           break;
         case 'completed':
           statusClass = 'status-success';
           statusText = '✓ Completed';
-          statusIcon = 'fa-trophy';
-          break;
-        case 'refund_requested':
-          statusClass = 'status-warning';
-          statusText = '🔄 Refund Requested';
-          statusIcon = 'fa-undo-alt';
-          break;
-        case 'refunded':
-          statusClass = 'status-success';
-          statusText = '✅ Refunded';
-          statusIcon = 'fa-dollar-sign';
           break;
         case 'cancelled':
           statusClass = 'status-danger';
           statusText = '✗ Cancelled';
-          statusIcon = 'fa-times-circle';
           break;
         default:
           statusClass = 'status-pending';
           statusText = order.order_status?.replace(/_/g, ' ') || 'Processing';
-          statusIcon = 'fa-info-circle';
       }
-      
-      // Check if escrow info should be shown
-      const showEscrowInfo = order.order_status === 'paid' && order.payment_collected_at;
-      const paymentDate = order.payment_collected_at ? new Date(order.payment_collected_at) : null;
-      const refundDeadline = paymentDate ? new Date(paymentDate.getTime() + 5 * 24 * 60 * 60 * 1000) : null;
-      const canRequestRefund = order.order_status === 'paid' && refundDeadline && new Date() < refundDeadline;
       
       html += `
         <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
@@ -5370,87 +5344,33 @@ async function loadBuyerOrders() {
               <div>
                 <h4 style="margin: 0; color: var(--accent);">Order #${order.id}</h4>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
-                  <i class="fas fa-calendar"></i> ${new Date(order.created_at).toLocaleDateString()}
+                  ${new Date(order.created_at).toLocaleDateString()}
                 </p>
               </div>
               <div style="text-align: right;">
-                <span class="product-status ${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
-                <p style="margin: 8px 0 0 0; font-size: 20px; font-weight: 700; color: var(--success);">
+                <span class="product-status ${statusClass}">${statusText}</span>
+                <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
                   $${parseFloat(order.total_amount).toFixed(2)}
                 </p>
               </div>
             </div>
           </div>
-          
           <div style="padding: 16px;">
             <div style="display: flex; gap: 16px;">
-              <div style="width: 70px; height: 70px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden; flex-shrink: 0;">
-                ${order.product_image ? 
-                  `<img src="${order.product_image}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://placehold.co/70x70/1e293b/3b82f6/png?text=Product'">` :
-                  `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-box fa-2x"></i></div>`
-                }
-              </div>
               <div style="flex: 1;">
                 <h5 style="margin: 0 0 4px 0;">${escapeHtml(order.product_name)}</h5>
                 <p style="margin: 0; font-size: 13px; color: var(--text-gray);">
-                  <i class="fas fa-store"></i> Seller: ${escapeHtml(order.seller_name)}
+                  Quantity: ${order.quantity}
                 </p>
-                <p style="margin: 4px 0 0 0; font-size: 13px;">
-                  <i class="fas fa-cubes"></i> Quantity: ${order.quantity}
-                </p>
-                ${order.shipping_address ? `
-                  <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
-                    <i class="fas fa-map-marker-alt"></i> Deliver to: ${escapeHtml(order.shipping_address.substring(0, 60))}${order.shipping_address.length > 60 ? '...' : ''}
-                  </p>
-                ` : ''}
-                ${order.tracking_number ? `
-                  <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--accent);">
-                    <i class="fas fa-box"></i> Tracking: ${escapeHtml(order.tracking_number)}
-                  </p>
-                ` : ''}
               </div>
             </div>
-            
-            ${showEscrowInfo ? `
-              <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid var(--accent);">
-                <p style="margin: 0; font-size: 12px;">
-                  <i class="fas fa-lock"></i> <strong>Escrow Protection:</strong> Payment held securely
-                  ${refundDeadline ? `<br>⏰ Refund available until: ${refundDeadline.toLocaleDateString()}` : ''}
-                </p>
-              </div>
-            ` : ''}
-            
             <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
               <button class="small-btn" onclick="viewOrderDetails(${order.id})">
                 <i class="fas fa-eye"></i> View Details
               </button>
-              
               ${order.order_status === 'seller_accepted' ? `
                 <button class="small-btn primary" onclick="proceedToPayment(${order.id})">
                   <i class="fas fa-credit-card"></i> Pay Now
-                </button>
-              ` : ''}
-              
-              ${order.order_status === 'paid' ? `
-                <button class="small-btn info" onclick="trackOrder(${order.id})">
-                  <i class="fas fa-map-marker-alt"></i> Track Order
-                </button>
-                ${canRequestRefund ? `
-                  <button class="small-btn danger" onclick="requestRefund(${order.id})">
-                    <i class="fas fa-undo-alt"></i> Request Refund
-                  </button>
-                ` : ''}
-              ` : ''}
-              
-              ${order.order_status === 'delivered' ? `
-                <button class="small-btn success" onclick="confirmDelivery(${order.id})">
-                  <i class="fas fa-check-circle"></i> Confirm Delivery & Release Payment
-                </button>
-              ` : ''}
-              
-              ${order.order_status === 'completed' ? `
-                <button class="small-btn warning" onclick="leaveReview(${order.id})">
-                  <i class="fas fa-star"></i> Leave Review
                 </button>
               ` : ''}
             </div>
@@ -8451,11 +8371,17 @@ function loadCharts() {
     function getStatusClass(status) {
       return `status-${status}`;
     }
+// Safe tab initialization - handles null elements
 function initTabs() {
   const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
   
+  if (!tabButtons || tabButtons.length === 0) {
+    console.log('No tab buttons found');
+    return;
+  }
+  
   tabButtons.forEach(btn => {
-    if (btn) {
+    if (btn && btn.removeEventListener) {
       btn.removeEventListener('click', handleTabClick);
       btn.addEventListener('click', handleTabClick);
     }
@@ -8463,6 +8389,54 @@ function initTabs() {
 }
 
 function handleTabClick(e) {
+  // Safety check for 'this'
+  if (!this || !this.getAttribute) {
+    console.log('Invalid tab button');
+    return;
+  }
+  
+  const tabId = this.getAttribute('data-tab');
+  if (!tabId) return;
+  
+  // Update active tab button - with null checks
+  const allButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+  if (allButtons && allButtons.length) {
+    allButtons.forEach(btn => {
+      if (btn && btn.classList) btn.classList.remove('active');
+    });
+  }
+  
+  if (this && this.classList) this.classList.add('active');
+  
+  // Hide all tab contents - with null checks
+  const allContents = document.querySelectorAll('.dashboard-tabs .tab-content');
+  if (allContents && allContents.length) {
+    allContents.forEach(content => {
+      if (content && content.classList) content.classList.remove('active');
+    });
+  }
+  
+  // Show selected tab content
+  let contentId = tabId;
+  if (tabId === 'buyer-orders') {
+    contentId = 'buyerOrdersTab';
+  } else if (tabId === 'paid-orders') {
+    contentId = 'paidOrdersTab';
+  } else {
+    contentId = tabId + 'Tab';
+  }
+  
+  const selectedContent = document.getElementById(contentId);
+  if (selectedContent && selectedContent.classList) {
+    selectedContent.classList.add('active');
+  }
+  
+  // Load tab data
+  if (typeof loadMainTabData === 'function') {
+    loadMainTabData(tabId);
+  }
+}
+  function handleTabClick(e) {
   const tabId = this?.getAttribute('data-tab');
   if (!tabId) return;
   

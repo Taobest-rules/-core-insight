@@ -3882,12 +3882,7 @@
         <div id="paidOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No paid orders</h4><p>Orders with confirmed payment appear here</p></div></div>
       </div>
       
-      <!-- Buyer Orders Tab -->
-      <div id="buyerOrdersTab" class="tab-content">
-        <div class="tab-header"><h3><i class="fas fa-box-open"></i> My Orders</h3><div class="tab-actions"><select id="buyerOrderFilter" class="select"><option value="all">All Orders</option><option value="pending_seller_approval">Pending Approval</option><option value="seller_accepted">Awaiting Payment</option><option value="paid">Paid</option><option value="delivered">Delivered</option><option value="completed">Completed</option></select><button id="refreshOrdersBtn" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
-        <div id="buyerOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-shopping-bag"></i><h4>No orders yet</h4></div></div>
-      </div>
-      
+    
       <!-- Analytics Tab -->
       <div id="analyticsTab" class="tab-content">
         <div class="analytics-grid">
@@ -4610,9 +4605,19 @@ async function loadDashboardStats() {
 async function loadPendingOrders() {
   const container = document.getElementById('pendingOrdersList');
   if (!container) {
-    console.error('Container pendingOrdersList not found');
+    console.error('Container pendingOrdersList not found in DOM');
+    // Try to find it again after a short delay
+    setTimeout(() => {
+      const retryContainer = document.getElementById('pendingOrdersList');
+      if (retryContainer) {
+        console.log('Found container on retry');
+        loadPendingOrders();
+      }
+    }, 100);
     return;
   }
+  
+  console.log('Loading pending orders for seller...');
   
   // Show loading state
   container.innerHTML = `
@@ -4623,8 +4628,6 @@ async function loadPendingOrders() {
   `;
   
   try {
-    console.log('Loading pending orders for seller...');
-    
     const response = await fetch('/api/dashboard/pending-orders', {
       credentials: 'include',
       headers: {
@@ -4636,7 +4639,7 @@ async function loadPendingOrders() {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error response:', errorText);
+      console.error('Error response:', errorText.substring(0, 200));
       throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
     }
     
@@ -4646,7 +4649,7 @@ async function loadPendingOrders() {
     const pendingOrders = data.orders || [];
     
     // Update badge count
-    const badge = document.getElementById('pendingBadge');
+    const badge = document.getElementById('pendingOrdersBadge');
     if (badge) {
       if (pendingOrders.length > 0) {
         badge.textContent = pendingOrders.length;
@@ -4671,8 +4674,8 @@ async function loadPendingOrders() {
     let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
     
     for (const order of pendingOrders) {
-      const sellerEarnings = order.total_amount * 0.9;
-      const platformFee = order.total_amount * 0.1;
+      const sellerEarnings = (order.total_amount * 0.9).toFixed(2);
+      const platformFee = (order.total_amount * 0.1).toFixed(2);
       const orderDate = new Date(order.created_at).toLocaleString();
       
       html += `
@@ -4740,11 +4743,11 @@ async function loadPendingOrders() {
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text-muted);">
                 <span>Platform Fee (10%):</span>
-                <span> -$${platformFee.toFixed(2)}</span>
+                <span> -$${platformFee}</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
                 <span><strong>Your Earnings:</strong></span>
-                <strong style="color: var(--success);">$${sellerEarnings.toFixed(2)}</strong>
+                <strong style="color: var(--success);">$${sellerEarnings}</strong>
               </div>
             </div>
             
@@ -4770,20 +4773,21 @@ async function loadPendingOrders() {
     
   } catch (error) {
     console.error('Error loading pending orders:', error);
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h4>Error loading pending orders</h4>
-        <p>${error.message || 'Please refresh and try again'}</p>
-        <button onclick="loadPendingOrders()" class="btn primary" style="margin-top: 12px;">
-          <i class="fas fa-sync-alt"></i> Retry
-        </button>
-      </div>
-    `;
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h4>Error loading pending orders</h4>
+          <p>${error.message || 'Please refresh and try again'}</p>
+          <button onclick="loadPendingOrders()" class="btn primary" style="margin-top: 12px;">
+            <i class="fas fa-sync-alt"></i> Retry
+          </button>
+        </div>
+      `;
+    }
   }
 }
-
-
+  
 // Load product reviews
 async function loadProductReviews(productId) {
   try {
@@ -4856,6 +4860,7 @@ async function loadProductReviews(productId) {
     }
   }
 }
+ 
   async function respondToOrder(orderId, action) {
   let message = '';
   
@@ -4869,7 +4874,9 @@ async function loadProductReviews(productId) {
   
   // Disable buttons to prevent double submission
   const buttons = document.querySelectorAll(`button[onclick*="respondToOrder(${orderId}"]`);
-  buttons.forEach(btn => btn.disabled = true);
+  buttons.forEach(btn => {
+    if (btn) btn.disabled = true;
+  });
   
   try {
     const response = await fetch(`/api/dashboard/orders/${orderId}/respond`, {
@@ -4899,22 +4906,25 @@ async function loadProductReviews(productId) {
       await loadDashboardStats();
       
       // Refresh sales history if visible
-      if (document.getElementById('salesTab')?.classList.contains('active')) {
+      if (document.getElementById('salesTab')?.classList?.contains('active')) {
         await loadSalesHistory();
       }
       
     } else {
       showToast('Error', data.error || 'Failed to process order', 'danger');
       // Re-enable buttons on error
-      buttons.forEach(btn => btn.disabled = false);
+      buttons.forEach(btn => {
+        if (btn) btn.disabled = false;
+      });
     }
   } catch (error) {
     console.error('Response error:', error);
     showToast('Error', 'Network error. Please try again.', 'danger');
-    buttons.forEach(btn => btn.disabled = false);
+    buttons.forEach(btn => {
+      if (btn) btn.disabled = false;
+    });
   }
 }
-
 // Load sales history with real data
 async function loadSalesHistory() {
   const container = document.getElementById('salesList');

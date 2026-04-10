@@ -216,7 +216,7 @@ async function verifyEmail() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ token })
+            body: JSON.stringify({ token: token })
         });
         
         const data = await response.json();
@@ -236,6 +236,39 @@ async function verifyEmail() {
         showMessage('Network error. Please try again.', 'error');
         verifyBtn.innerHTML = 'Try Again';
         verifyBtn.disabled = false;
+    }
+}
+
+async function resendVerification() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const messageDiv = document.getElementById('message');
+    
+    // Try to extract email from token? Better to ask user for email
+    const email = prompt('Please enter your email address to receive a new verification link:');
+    
+    if (!email) return;
+    
+    showMessage('Sending new verification email...', 'info');
+    
+    try {
+        const response = await fetch('/api/resend-verification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage(data.message, 'success');
+        } else {
+            showMessage(data.error || 'Failed to resend verification email', 'error');
+        }
+    } catch (error) {
+        console.error('Resend error:', error);
+        showMessage('Network error. Please try again.', 'error');
     }
 }
               function showMessage(msg, type) {

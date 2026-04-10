@@ -1023,7 +1023,120 @@ app.post("/api/debug/flutterwave-payment-test", async (req, res) => {
     }
   }
 });
+// ============================================
+// EMAIL VERIFICATION ENDPOINT
+// ============================================
 
+app.post("/api/verify", async (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        if (!token) {
+            return res.status(400).json({ success: false, error: "Verification token is required" });
+        }
+        
+        // Find user with this token that hasn't expired
+        const users = await db.query(
+            "SELECT * FROM users WHERE verify_token = ? AND verify_token_expiry > NOW()",
+            [token]
+        );
+        
+        let user = null;
+        if (Array.isArray(users)) {
+            if (users.length === 2 && Array.isArray(users[0])) {
+                user = users[0][0];
+            } else if (users.length > 0) {
+                user = users[0];
+            }
+        }
+        
+        if (!user) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "Invalid or expired verification token. Please request a new verification email." 
+            });
+        }
+        
+        // Update user as verified
+        await db.query(
+            "UPDATE users SET verified = 1, verify_token = NULL, verify_token_expiry = NULL WHERE id = ?",
+            [user.id]
+        );
+        
+        console.log(`✅ User ${user.email} verified successfully`);
+        
+        res.json({ 
+            success: true, 
+            message: "Email verified successfully! You can now log in." 
+        });
+        
+    } catch (err) {
+        console.error("❌ Verification error:", err);
+        res.status(500).json({ 
+            success: false, 
+            error: "Server error during verification. Please try again." 
+        });
+    }
+});
+
+// Resend verification email endpoint
+app.post("/api/resend-verification", async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ success: false, error: "Email is required" });
+        }
+        
+        // Find unverified user
+        const users = await db.query(
+            "SELECT * FROM users WHERE email = ? AND verified = 0",
+            [email]
+        );
+        
+        let user = null;
+        if (Array.isArray(users)) {
+            if (users.length === 2 && Array.isArray(users[0])) {
+                user = users[0][0];
+            } else if (users.length > 0) {
+                user = users[0];
+            }
+        }
+        
+        if (!user) {
+            // Don't reveal if user exists or not for security
+            return res.json({ 
+                success: true, 
+                message: "If an unverified account exists with that email, a new verification link has been sent." 
+            });
+        }
+        
+        // Generate new token
+        const newToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiry = new Date();
+        tokenExpiry.setHours(tokenExpiry.getHours() + 24);
+        
+        await db.query(
+            "UPDATE users SET verify_token = ?, verify_token_expiry = ? WHERE id = ?",
+            [newToken, tokenExpiry, user.id]
+        );
+        
+        // Send new verification email
+        const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${newToken}`;
+        const emailHtml = getVerificationEmailTemplate(user.username, verifyLink);
+        
+        await sendEmail(email, "Verify Your Email - Core Insight", emailHtml);
+        
+        res.json({ 
+            success: true, 
+            message: "A new verification link has been sent to your email." 
+        });
+        
+    } catch (err) {
+        console.error("❌ Resend verification error:", err);
+        res.status(500).json({ success: false, error: "Failed to resend verification email." });
+    }
+});
 // Debug endpoint to test actual payment creation
 app.post("/api/debug/test-payment", async (req, res) => {
   try {
@@ -1319,6 +1432,8 @@ app.post("/api/reset-password", async (req, res) => {
     res.status(500).json({ success: false, error: "Error resetting password" });
   }
 });
+
+
 // ============================================
 // COMPLETE COURSES SYSTEM - FULL CODE
 // ============================================

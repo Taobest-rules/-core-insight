@@ -631,7 +631,325 @@
     color: var(--accent-gold); 
     font-weight: 700; 
   }
+/* ==================== ENHANCED CATEGORY DROPDOWN STYLES ==================== */
 
+/* Category Selection Wrapper */
+.category-selection-wrapper {
+    background: var(--card-bg);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-top: 10px;
+}
+
+/* Category Tabs */
+.category-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--secondary-dark);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+}
+
+.category-tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-gray);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.category-tab-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-light);
+}
+
+.category-tab-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* Select Wrapper */
+.select-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.select-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-blue);
+    z-index: 1;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-gray);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Category Select Dropdown - FIXED COLORS */
+.category-select {
+    width: 100%;
+    padding: 16px 48px;
+    background: var(--secondary-dark) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    color: var(--text-light) !important;
+    font-size: 1rem;
+    cursor: pointer;
+    appearance: none;
+    transition: var(--transition);
+}
+
+.category-select:hover {
+    border-color: var(--accent-blue) !important;
+    background: var(--secondary-dark) !important;
+}
+
+.category-select:focus {
+    outline: none;
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Dropdown options styling */
+.category-select option {
+    background: var(--secondary-dark) !important;
+    color: var(--text-light) !important;
+    padding: 12px;
+    font-size: 0.95rem;
+}
+
+.category-select option:hover,
+.category-select option:focus,
+.category-select option:checked {
+    background: var(--accent-blue) !important;
+    color: white !important;
+}
+
+/* For browsers that support background on options */
+.category-select optgroup {
+    background: var(--secondary-dark);
+    color: var(--text-light);
+}
+
+/* New Category Input */
+.input-with-icon {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-blue);
+    z-index: 1;
+}
+
+.category-input {
+    width: 100%;
+    padding: 16px 16px 16px 48px;
+    background: var(--secondary-dark) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    color: var(--text-light) !important;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.category-input:focus {
+    outline: none;
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.category-input::placeholder {
+    color: var(--text-gray);
+}
+
+.char-count {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-gray);
+    font-size: 0.85rem;
+}
+
+/* Category Suggestions */
+.category-suggestions {
+    margin-top: 16px;
+}
+
+.category-suggestions span {
+    display: block;
+    color: var(--text-gray);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+/* Category Chips */
+.category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.category-chip {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    transition: var(--transition);
+}
+
+.category-chip:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+    border-color: var(--accent-blue);
+}
+
+/* Selected Category Display */
+.selected-category-display {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-badge {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clear-category {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.clear-category:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Popular Categories Section */
+.popular-categories {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.popular-categories span {
+    display: block;
+    color: var(--text-gray);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+/* Tab Content Panes */
+.tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Category Filter Dropdown in Search Section */
+#categoryFilter {
+    background: var(--card-bg) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+#categoryFilter option {
+    background: var(--secondary-dark) !important;
+    color: var(--text-light) !important;
+}
+
+#categoryFilter:hover {
+    border-color: var(--accent-blue) !important;
+}
+
+/* Service Category Display in Cards */
+.service-provider {
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .category-tabs {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .category-tab-btn {
+        padding: 12px 16px;
+    }
+    
+    .category-selection-wrapper {
+        padding: 16px;
+    }
+    
+    .category-chips {
+        gap: 8px;
+    }
+    
+    .category-chip {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
   /* Service Card Provider Info */
   .service-provider-info {
     display: flex;
@@ -7784,6 +8102,757 @@ async function updateUIForUserRole() {
         switchTab('browse');
     }
 }
+// ==================== CATEGORY MANAGEMENT ====================
+
+// Initialize category tabs functionality
+function initCategoryTabs() {
+    const tabBtns = document.querySelectorAll('.category-tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            
+            // Update button active states
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update pane active states
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            const activePane = document.getElementById(`${tabId}-category-tab`);
+            if (activePane) {
+                activePane.classList.add('active');
+            }
+        });
+    });
+    
+    // Initialize category chips
+    const categoryChips = document.querySelectorAll('.category-chip');
+    categoryChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const value = chip.getAttribute('data-value');
+            const text = chip.getAttribute('data-text');
+            
+            if (value) {
+                // Select existing category
+                const select = document.getElementById('serviceCategory');
+                if (select) {
+                    select.value = value;
+                    showSelectedCategory(value);
+                }
+                // Switch to existing tab
+                const existingTab = document.querySelector('.category-tab-btn[data-tab="existing"]');
+                if (existingTab) existingTab.click();
+            } else if (text) {
+                // Fill new category input
+                const input = document.getElementById('newCategory');
+                if (input) {
+                    input.value = text;
+                    const charCount = document.querySelector('.char-count');
+                    if (charCount) {
+                        charCount.textContent = `${text.length}/50`;
+                    }
+                }
+                // Switch to new tab
+                const newTab = document.querySelector('.category-tab-btn[data-tab="new"]');
+                if (newTab) newTab.click();
+            }
+        });
+    });
+    
+    // New category input character counter
+    const newCategoryInput = document.getElementById('newCategory');
+    if (newCategoryInput) {
+        newCategoryInput.addEventListener('input', (e) => {
+            const count = e.target.value.length;
+            const charCount = document.querySelector('.char-count');
+            if (charCount) {
+                charCount.textContent = `${count}/50`;
+                charCount.style.color = count > 45 ? '#ef4444' : 'var(--text-gray)';
+            }
+        });
+    }
+    
+    // Clear category button
+    const clearBtn = document.querySelector('.clear-category');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            const select = document.getElementById('serviceCategory');
+            const newInput = document.getElementById('newCategory');
+            if (select) select.value = '';
+            if (newInput) newInput.value = '';
+            hideSelectedCategory();
+        });
+    }
+}
+
+function showSelectedCategory(category) {
+    const displayDiv = document.querySelector('.selected-category-display');
+    const textSpan = document.getElementById('selectedCategoryText');
+    if (displayDiv && textSpan) {
+        textSpan.textContent = category;
+        displayDiv.classList.remove('hidden');
+    }
+}
+
+function hideSelectedCategory() {
+    const displayDiv = document.querySelector('.selected-category-display');
+    if (displayDiv) {
+        displayDiv.classList.add('hidden');
+    }
+}
+
+// Call this when the create service form is shown
+const originalShowCreateServiceForm = window.showCreateServiceForm;
+window.showCreateServiceForm = function() {
+    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
+    setTimeout(() => {
+        initCategoryTabs();
+    }, 100);
+};
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initCategoryTabs();
+});
+
+// Add new category to dropdowns
+function addNewCategoryToDropdowns(category) {
+    // Add to service category select
+    const categorySelect = document.getElementById('serviceCategory');
+    if (categorySelect && !Array.from(categorySelect.options).some(opt => opt.value === category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+    }
+    
+    // Add to filter dropdown
+    const filterSelect = document.getElementById('categoryFilter');
+    if (filterSelect && !Array.from(filterSelect.options).some(opt => opt.value === category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        filterSelect.appendChild(option);
+    }
+    
+    // Add to categories array
+    if (!categories.includes(category)) {
+        categories.push(category);
+    }
+}
+
+// ==================== FIXED SERVICE FORM SUBMIT ====================
+
+async function handleServiceFormSubmit(e) {
+    e.preventDefault();
+    
+    if (!currentUser) {
+        showToast('Please login to create a service', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+        showToast('Only freelancers can create services', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#serviceForm button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+        // Check subscription status for freelancers
+        if (currentUser.role === 'freelancer') {
+            const subResponse = await fetch('/api/subscription/status', {
+                credentials: 'include'
+            });
+            const subData = await subResponse.json();
+            
+            if (!subData.hasActiveSubscription) {
+                showSubscriptionModal();
+                return;
+            }
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Service...';
+        
+        // Get form values
+        const title = document.getElementById('serviceTitle').value.trim();
+        const description = document.getElementById('serviceDescription').value.trim();
+        const hourlyRate = document.getElementById('hourlyRate').value;
+        const fixedPrice = document.getElementById('fixedPrice').value;
+        const deliveryTime = document.getElementById('deliveryTime').value;
+        const revisions = document.getElementById('revisions').value;
+        
+        // Handle category - check if new category was entered
+        let category = '';
+        const activeTab = document.querySelector('.category-tab-btn.active');
+        const isNewCategory = activeTab && activeTab.getAttribute('data-tab') === 'new';
+        
+        if (isNewCategory) {
+            const newCategory = document.getElementById('newCategory').value.trim();
+            if (!newCategory) {
+                showToast('Please enter a category name', 'warning');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+            category = newCategory;
+            // Add to dropdowns for future use
+            addNewCategoryToDropdowns(newCategory);
+        } else {
+            category = document.getElementById('serviceCategory').value;
+            if (!category) {
+                showToast('Please select a category', 'warning');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+        }
+        
+        // Validation
+        if (!title) {
+            showToast('Please enter a service title', 'warning');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+        }
+        
+        if (title.length < 5) {
+            showToast('Title must be at least 5 characters', 'warning');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+        }
+        
+        if (!description) {
+            showToast('Please enter a service description', 'warning');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+        }
+        
+        if (description.length < 20) {
+            showToast('Description must be at least 20 characters', 'warning');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+        }
+        
+        // Collect tags
+        const tags = [];
+        document.querySelectorAll('#tagsList .tag').forEach(tag => {
+            tags.push(tag.textContent.replace('×', '').trim());
+        });
+        
+        // Collect requirements
+        const requirements = [];
+        document.querySelectorAll('.requirement-input').forEach(input => {
+            if (input.value.trim()) {
+                requirements.push(input.value.trim());
+            }
+        });
+        
+        // Collect packages
+        const packages = [];
+        const packageCards = document.querySelectorAll('.package-card');
+        packageCards.forEach(card => {
+            const packageName = card.querySelector('.package-name').textContent.trim();
+            const isEnabled = card.querySelector('.package-enabled').checked;
+            
+            if (isEnabled) {
+                const priceInput = card.querySelector('.package-price-input');
+                const price = parseFloat(priceInput.value) || 0;
+                
+                const features = [];
+                const featureInputs = card.querySelectorAll('.package-feature-input');
+                featureInputs.forEach(input => {
+                    if (input.value.trim()) {
+                        features.push(input.value.trim());
+                    }
+                });
+                
+                packages.push({
+                    package_name: packageName.toLowerCase(),
+                    price: price,
+                    features: features,
+                    delivery_time: deliveryTime,
+                    revisions: revisions
+                });
+            }
+        });
+        
+        // Prepare data
+        const serviceData = {
+            title: title,
+            description: description,
+            category: category,
+            hourly_rate: hourlyRate || null,
+            fixed_price: fixedPrice || null,
+            delivery_time: parseInt(deliveryTime) || 7,
+            revisions: parseInt(revisions) || 2,
+            tags: tags,
+            requirements: requirements,
+            packages: packages
+        };
+        
+        console.log('Sending service data:', serviceData);
+        
+        // Send to server
+        const response = await fetch('/api/services', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(serviceData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Service created successfully!', 'success');
+            
+            // Reset form
+            document.getElementById('serviceForm').reset();
+            document.getElementById('tagsList').innerHTML = '';
+            document.getElementById('requirementsContainer').innerHTML = `
+                <div class="requirement-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" class="requirement-input" placeholder="e.g., Project brief, brand colors, etc." style="flex: 1; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
+                    <button type="button" class="btn btn-secondary remove-requirement" style="padding: 12px;">Remove</button>
+                </div>
+            `;
+            
+            // Reset packages
+            document.querySelectorAll('.package-price-input').forEach(input => {
+                if (input.closest('.package-card').querySelector('.package-enabled').checked) {
+                    input.value = '0';
+                }
+            });
+            
+            // Hide create form and show services browser
+            hideCreateServiceForm();
+            
+            // Reload services
+            await loadServices();
+            
+            // Switch to my services tab if freelancer
+            if (currentUser && currentUser.role === 'freelancer') {
+                switchTab('myServices');
+                await loadMyServices();
+            }
+        } else {
+            showToast(result.error || 'Failed to create service', 'error');
+        }
+        
+    } catch (err) {
+        console.error('Service creation error:', err);
+        showToast('Error creating service: ' + err.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+// ==================== FIXED PROFILE SECTION ====================
+
+async function showFreelancerProfile() {
+    if (!currentUser) {
+        showToast('Please login to view profile', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+        showToast('Only freelancers have profiles', 'info');
+        return;
+    }
+    
+    const profileSection = document.getElementById('freelancerProfile');
+    if (!profileSection) return;
+    
+    try {
+        profileSection.classList.remove('hidden');
+        
+        // Load profile data
+        const response = await fetch('/api/freelancer/profile', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load profile');
+        }
+        
+        const profile = await response.json();
+        
+        // Update profile display
+        document.getElementById('profileUsername').textContent = profile.username || currentUser.username;
+        document.getElementById('profileHeadline').textContent = profile.headline || 'Professional Freelancer';
+        document.getElementById('profileDescription').textContent = profile.description || 'No description provided.';
+        document.getElementById('profileHourlyRate').textContent = profile.hourly_rate ? `$${profile.hourly_rate}/hr` : '$0/hr';
+        document.getElementById('profileLocation').textContent = profile.location || 'Not specified';
+        document.getElementById('profileExperienceLevel').textContent = profile.experience_level ? profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1) : 'Not specified';
+        document.getElementById('profileEmail').textContent = currentUser.email;
+        document.getElementById('profilePhone').textContent = profile.phone || 'Not provided';
+        document.getElementById('profileWebsite').innerHTML = profile.website ? `<a href="${profile.website}" target="_blank" style="color: var(--accent-blue);">${profile.website}</a>` : '';
+        document.getElementById('profileMemberSince').textContent = new Date(currentUser.created_at || Date.now()).toLocaleDateString();
+        document.getElementById('profileCompletedOrders').textContent = profile.completed_orders || 0;
+        
+        // Set availability badge
+        const availabilitySpan = document.getElementById('profileAvailability');
+        if (profile.availability === 'available') {
+            availabilitySpan.innerHTML = '<span style="color: #10b981;">✓ Available Now</span>';
+        } else if (profile.availability === 'busy') {
+            availabilitySpan.innerHTML = '<span style="color: #f59e0b;">⏰ Currently Busy</span>';
+        } else {
+            availabilitySpan.innerHTML = '<span style="color: #ef4444;">✗ Not Available</span>';
+        }
+        
+        // Set profile picture
+        const profilePicture = document.getElementById('profilePicture');
+        const profileInitials = document.getElementById('profileInitials');
+        
+        if (profile.profile_picture) {
+            profilePicture.src = profile.profile_picture;
+            profilePicture.style.display = 'block';
+            profileInitials.style.display = 'none';
+        } else {
+            profilePicture.style.display = 'none';
+            profileInitials.style.display = 'flex';
+            profileInitials.textContent = (currentUser.username || 'U').charAt(0).toUpperCase();
+        }
+        
+        // Load skills
+        const skillsContainer = document.getElementById('profileSkills');
+        if (profile.skills && profile.skills.length > 0) {
+            skillsContainer.innerHTML = profile.skills.map(skill => `
+                <span class="skill-tag"><i class="fas fa-check-circle"></i> ${escapeHtml(skill)}</span>
+            `).join('');
+        } else {
+            skillsContainer.innerHTML = '<p style="color: var(--text-gray);">No skills added yet.</p>';
+        }
+        
+        // Load languages
+        const languagesContainer = document.getElementById('profileLanguages');
+        if (profile.languages && profile.languages.length > 0) {
+            languagesContainer.innerHTML = profile.languages.map(lang => `
+                <span class="skill-tag"><i class="fas fa-language"></i> ${escapeHtml(lang)}</span>
+            `).join('');
+        } else {
+            languagesContainer.innerHTML = '<p style="color: var(--text-gray);">No languages specified.</p>';
+        }
+        
+        // Load certificates
+        const certificatesContainer = document.getElementById('profileCertificates');
+        if (profile.certificate_images && profile.certificate_images.length > 0) {
+            certificatesContainer.innerHTML = profile.certificate_images.map((cert, index) => `
+                <div class="certificate-item">
+                    <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="openCertificateViewer('${cert}', ${index})">
+                    <button class="remove-certificate" onclick="removeCertificate(${index})">&times;</button>
+                </div>
+            `).join('');
+        } else {
+            certificatesContainer.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
+        }
+        
+        // Fill edit form
+        document.getElementById('editHeadline').value = profile.headline || '';
+        document.getElementById('editHourlyRate').value = profile.hourly_rate || '';
+        document.getElementById('editDescription').value = profile.description || '';
+        document.getElementById('editExperienceLevel').value = profile.experience_level || 'intermediate';
+        document.getElementById('editAvailability').value = profile.availability || 'available';
+        document.getElementById('editLocation').value = profile.location || '';
+        document.getElementById('editPhone').value = profile.phone || '';
+        document.getElementById('editWebsite').value = profile.website || '';
+        document.getElementById('editEducation').value = profile.education || '';
+        document.getElementById('editCertifications').value = profile.certifications || '';
+        
+        // Load skills for editing
+        const skillsList = document.getElementById('skillsList');
+        if (profile.skills && profile.skills.length > 0) {
+            skillsList.innerHTML = profile.skills.map(skill => `
+                <span class="skill-tag">
+                    ${escapeHtml(skill)}
+                    <span class="remove-skill" onclick="removeSkill('${escapeHtml(skill)}')">&times;</span>
+                </span>
+            `).join('');
+        }
+        
+        // Load languages for editing
+        const languagesList = document.getElementById('languagesList');
+        if (profile.languages && profile.languages.length > 0) {
+            languagesList.innerHTML = profile.languages.map(lang => `
+                <span class="skill-tag">
+                    ${escapeHtml(lang)}
+                    <span class="remove-skill" onclick="removeLanguage('${escapeHtml(lang)}')">&times;</span>
+                </span>
+            `).join('');
+        }
+        
+        // Load dashboard stats
+        await loadFreelancerDashboard();
+        
+    } catch (err) {
+        console.error('Error loading profile:', err);
+        showToast('Error loading profile: ' + err.message, 'error');
+    }
+}
+
+async function loadFreelancerDashboard() {
+    try {
+        const response = await fetch('/api/freelancer/dashboard', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            document.getElementById('dashboardServices').textContent = data.services?.total_services || 0;
+            document.getElementById('dashboardEarnings').textContent = `$${data.orders?.total_revenue || 0}`;
+            document.getElementById('dashboardClients').textContent = data.clients?.length || 0;
+            document.getElementById('dashboardRating').textContent = data.profile?.rating || '0.0';
+        }
+    } catch (err) {
+        console.error('Error loading dashboard:', err);
+    }
+}
+
+// ==================== ENHANCED SERVICE CARD RENDERING ====================
+
+function renderServices(servicesToRender) {
+    const container = document.getElementById('servicesList');
+    const noServices = document.getElementById('noServices');
+
+    if (!container) return;
+
+    if (!servicesToRender || servicesToRender.length === 0) {
+        container.innerHTML = '';
+        if (noServices) noServices.style.display = 'block';
+        return;
+    }
+
+    if (noServices) noServices.style.display = 'none';
+
+    container.innerHTML = servicesToRender.map(service => {
+        const serviceId = service.id;
+        const title = service.title || 'Untitled Service';
+        const description = service.description || 'No description available';
+        const price = service.price || 0;
+        const providerName = service.username || 'Unknown';
+        const userId = service.user_id;
+        const favoriteCount = service.favorite_count || 0;
+        const avgRating = service.avg_rating || 0;
+        const reviewCount = service.review_count || 0;
+        
+        // Truncate description for card view
+        const shortDescription = description.length > 120 ? description.substring(0, 120) + '...' : description;
+
+        const providerPictureHtml = service.profile_picture_url ?
+            `<div class="profile-picture-wrapper">
+                <img src="${service.profile_picture_url}" alt="${providerName}" class="provider-profile-picture"
+                     onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'provider-initials\\'>${providerName.charAt(0).toUpperCase()}</div>';">
+            </div>` :
+            `<div class="provider-initials">${providerName.charAt(0).toUpperCase()}</div>`;
+
+        const isLoggedIn = !!currentUser;
+        const isClient = currentUser?.role === 'client';
+        const isFreelancer = currentUser?.role === 'freelancer';
+        const isAdmin = currentUser?.role === 'admin';
+        const isOwner = currentUser?.id === userId;
+
+        let actionButtons = '';
+
+        // Chat button - always show for logged in users
+        if (isLoggedIn && !isOwner) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="checkAndStartConversation(${serviceId}, ${userId})">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (!isLoggedIn) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="showToast('Please login to chat', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="showToast('Please login to view profile', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (isOwner) {
+            actionButtons += `
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        }
+
+        // Recruit button for clients
+        if (isLoggedIn && isClient && !isOwner) {
+            actionButtons += `
+                <button class="btn recruit-btn" onclick="recruitFreelancer(${userId}, ${serviceId}, this)">
+                    <i class="fas fa-user-plus"></i> Recruit
+                </button>
+            `;
+        }
+
+        // Favorite button
+        if (isLoggedIn && !isOwner) {
+            const isFavorited = service.is_favorited ? true : false;
+            const favoriteIcon = isFavorited ? 'fas fa-heart' : 'far fa-heart';
+            actionButtons += `
+                <button class="btn favorite-btn ${isFavorited ? 'active' : ''}" onclick="toggleServiceFavorite(${serviceId}, this)" data-service-id="${serviceId}">
+                    <i class="${favoriteIcon}"></i> Favorite <span class="favorite-count">${favoriteCount}</span>
+                </button>
+            `;
+        }
+
+        // Delete button for owners/admins
+        if (isLoggedIn && (isOwner || isAdmin)) {
+            actionButtons += `
+                <button class="btn btn-danger" onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, ${isOwner})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            `;
+        }
+
+        const ratingHtml = avgRating > 0 ? 
+            `<div class="service-rating">
+                <span class="stars">${generateStars(avgRating)}</span>
+                <span class="rating-count">(${reviewCount})</span>
+            </div>` : '';
+
+        // Delivery time and revisions info
+        const deliveryInfo = service.delivery_time ? `
+            <div style="margin: 8px 0; color: var(--text-gray); font-size: 0.85rem;">
+                <i class="fas fa-clock"></i> Delivery: ${service.delivery_time} days
+            </div>
+        ` : '';
+        
+        const revisionsInfo = service.revisions ? `
+            <div style="margin: 5px 0; color: var(--text-gray); font-size: 0.85rem;">
+                <i class="fas fa-redo-alt"></i> Revisions: ${service.revisions}
+            </div>
+        ` : '';
+
+        return `
+            <div class="service-card" data-service-id="${serviceId}">
+                <div class="service-header">
+                    <h3 class="service-title">${escapeHtml(title)}</h3>
+                    <div class="service-price">${price > 0 ? `$${price}` : 'Free'}</div>
+                </div>
+
+                <div class="service-provider-info">
+                    ${providerPictureHtml}
+                    <div class="provider-info">
+                        <div class="service-provider-name">${escapeHtml(providerName)}</div>
+                        <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
+                        ${ratingHtml}
+                    </div>
+                </div>
+
+                <div class="description-container">
+                    <p class="service-description">${escapeHtml(shortDescription)}</p>
+                </div>
+
+                ${deliveryInfo}
+                ${revisionsInfo}
+
+                <div class="service-tags">
+                    ${service.tags && service.tags.length > 0 ? service.tags.slice(0, 3).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('') : ''}
+                </div>
+
+                <div class="service-actions">
+                    ${actionButtons}
+                </div>
+
+                <button class="btn btn-secondary view-details-btn" onclick="viewServiceDetailsModal(${serviceId})" style="width:100%; margin-top:10px;">
+                    <i class="fas fa-info-circle"></i> View Full Details
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ==================== STYLING FIXES ====================
+
+// Add this CSS to your existing styles
+const additionalStyles = `
+    /* Category dropdown styling */
+    .category-select, .category-input {
+        background: var(--secondary-dark) !important;
+        border: 2px solid rgba(255,255,255,0.1) !important;
+        color: var(--text-light) !important;
+    }
+    
+    .category-select option {
+        background: var(--secondary-dark) !important;
+        color: var(--text-light) !important;
+    }
+    
+    .category-select:hover, .category-input:hover {
+        border-color: var(--accent-blue) !important;
+    }
+    
+    /* Service card improvements */
+    .service-description {
+        color: var(--text-gray);
+        line-height: 1.5;
+        margin: 12px 0;
+    }
+    
+    .view-details-btn {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .view-details-btn:hover {
+        background: rgba(59, 130, 246, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    /* Package card improvements */
+    .package-card {
+        background: var(--secondary-dark);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    
+    .package-price-input {
+        background: var(--card-bg);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-light);
+        padding: 8px;
+        border-radius: 6px;
+        width: 100px;
+    }
+    
+    .package-feature-input {
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        width: 100%;
+        padding: 4px;
+    }
+    
+    .package-feature-input:focus {
+        outline: none;
+        border-bottom: 1px solid var(--accent-blue);
+    }
+`;
+
+// Add styles to document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = additionalStyles;
+document.head.appendChild(styleSheet);
+
+// ==================== INITIALIZATION ====================
+
 
 /*********************
  *  Switch Tab Function *

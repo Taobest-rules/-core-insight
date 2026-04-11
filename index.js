@@ -4559,99 +4559,130 @@ const extractRows = (result) => {
 // SERVICES ROUTES - FROM THE COMPLETE WORKING index.js
 // ============================================
 // GET ALL SERVICES (PUBLIC) - FIXED
+// =================== GET ALL SERVICES (PUBLIC) - SAFE VERSION ===================
 app.get("/api/services", async (req, res) => {
     try {
         const { category, search, sort, limit = 20, offset = 0 } = req.query;
 
-        // Build query - simplified to avoid complex joins that might fail
-        let query = `
+        // Parse limit and offset as integers
+        const parsedLimit = parseInt(limit) || 20;
+        const parsedOffset = parseInt(offset) || 0;
+
+        // Build the query WITHOUT parameters for LIMIT/OFFSET
+        let sql = `
             SELECT 
                 s.*, 
                 u.username,
                 u.id as user_id,
-                fp.profile_picture_url as profile_picture_url
+                fp.profile_picture_url as profile_picture_url,
+                fp.headline as provider_headline,
+                (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
+                (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
+                (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
             FROM services s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
             WHERE s.status = 'active'
         `;
 
-        const queryParams = [];
+        const params = [];
 
-        // Add filters
+        // Add filters (these use parameters safely)
         if (category) {
-            query += " AND s.category = ?";
-            queryParams.push(category);
+            sql += " AND s.category = ?";
+            params.push(category);
         }
 
         if (search) {
-            query += " AND (s.title LIKE ? OR s.description LIKE ?)";
-            queryParams.push(`%${search}%`, `%${search}%`);
+            sql += " AND (s.title LIKE ? OR s.description LIKE ?)";
+            params.push(`%${search}%`, `%${search}%`);
         }
 
         // Sorting
         switch(sort) {
             case 'price_low':
-                query += " ORDER BY s.price ASC";
+                sql += " ORDER BY s.price ASC";
                 break;
             case 'price_high':
-                query += " ORDER BY s.price DESC";
+                sql += " ORDER BY s.price DESC";
+                break;
+            case 'rating':
+                sql += " ORDER BY avg_rating DESC";
                 break;
             case 'newest':
             default:
-                query += " ORDER BY s.created_at DESC";
+                sql += " ORDER BY s.created_at DESC";
         }
 
-        query += " LIMIT ? OFFSET ?";
-        queryParams.push(parseInt(limit), parseInt(offset));
+        // IMPORTANT FIX: Add LIMIT and OFFSET directly to SQL string (not as parameters)
+        // This avoids the ER_WRONG_ARGUMENTS error with your db.js
+        sql += ` LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
 
-        console.log("Executing services query...");
-        const result = await db.query(query, queryParams);
-        
-        // Extract services properly
-        let services = [];
-        if (result && result.length > 0) {
-            if (Array.isArray(result[0])) {
-                services = result[0];
-            } else if (Array.isArray(result)) {
-                services = result;
-            }
-        }
+        console.log("Executing SQL:", sql);
+        console.log("With params:", params);
 
-        // Get total count
-        let countQuery = "SELECT COUNT(*) as total FROM services WHERE status = 'active'";
+        // Execute the query - params only contain category/search values, NOT limit/offset
+        const services = await db.query(sql, params);
+
+        // Get total count for pagination
+        let countSql = "SELECT COUNT(*) as total FROM services WHERE status = 'active'";
         const countParams = [];
 
         if (category) {
-            countQuery += " AND category = ?";
+            countSql += " AND category = ?";
             countParams.push(category);
         }
 
         if (search) {
-            countQuery += " AND (title LIKE ? OR description LIKE ?)";
+            countSql += " AND (title LIKE ? OR description LIKE ?)";
             countParams.push(`%${search}%`, `%${search}%`);
         }
 
-        const countResult = await db.query(countQuery, countParams);
-        const total = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+        const countResult = await db.query(countSql, countParams);
+        const total = countResult && countResult[0] ? countResult[0].total : 0;
+
+        // Check if current user has favorited each service
+        let processedServices = services || [];
+        
+        if (req.session.user && processedServices.length > 0) {
+            try {
+                const favoritesResult = await db.query(
+                    "SELECT service_id FROM service_favorites WHERE user_id = ?",
+                    [req.session.user.id]
+                );
+                
+                const favoriteIds = new Set(favoritesResult.map(f => f.service_id));
+                
+                processedServices = processedServices.map(service => ({
+                    ...service,
+                    is_favorited: favoriteIds.has(service.id)
+                }));
+            } catch (favErr) {
+                console.error("Error checking favorites:", favErr);
+            }
+        }
 
         res.json({
-            services: services,
+            services: processedServices,
             pagination: {
                 total: total,
-                limit: parseInt(limit),
-                offset: parseInt(offset),
-                has_more: total > (parseInt(offset) + parseInt(limit))
+                limit: parsedLimit,
+                offset: parsedOffset,
+                has_more: total > (parsedOffset + parsedLimit)
             }
         });
 
     } catch (err) {
         console.error("Services fetch error:", err);
-        // Return empty array instead of error to prevent frontend crash
+        // Return empty array to prevent frontend crash
         res.status(200).json({
             services: [],
-            pagination: { total: 0, limit: 20, offset: 0, has_more: false },
-            error: err.message
+            pagination: {
+                total: 0,
+                limit: 20,
+                offset: 0,
+                has_more: false
+            }
         });
     }
 });
@@ -5449,6 +5480,308 @@ app.post("/api/admin/reactivate-user/:userId", async (req, res) => {
     } catch (err) {
         console.error("❌ Reactivate user error:", err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== FREELANCER PROFILE ENDPOINTS ====================
+
+// Get freelancer profile
+app.get("/api/freelancer/profile", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to view profile" });
+    }
+
+    // Only freelancers and admins can access
+    if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: "Access denied. Freelancer profile only." });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        
+        // Get user basic info
+        const userResult = await db.query(
+            "SELECT id, username, email, created_at, role FROM users WHERE id = ?",
+            [userId]
+        );
+        
+        const user = userResult[0];
+        
+        // Get freelancer profile
+        const profileResult = await db.query(
+            `SELECT * FROM freelancer_profiles WHERE user_id = ?`,
+            [userId]
+        );
+        
+        let profile = {};
+        if (profileResult && profileResult.length > 0) {
+            profile = profileResult[0];
+            
+            // Parse JSON fields if they exist
+            if (profile.skills && typeof profile.skills === 'string') {
+                try {
+                    profile.skills = JSON.parse(profile.skills);
+                } catch (e) {
+                    profile.skills = [];
+                }
+            }
+            
+            if (profile.languages && typeof profile.languages === 'string') {
+                try {
+                    profile.languages = JSON.parse(profile.languages);
+                } catch (e) {
+                    profile.languages = [];
+                }
+            }
+            
+            if (profile.certificate_image_urls && typeof profile.certificate_image_urls === 'string') {
+                try {
+                    profile.certificate_images = JSON.parse(profile.certificate_image_urls);
+                } catch (e) {
+                    profile.certificate_images = [];
+                }
+            }
+        } else {
+            // Create default profile if not exists
+            const insertResult = await db.query(
+                `INSERT INTO freelancer_profiles (user_id, headline, description, hourly_rate, skills, languages, experience_level, availability, created_at)
+                 VALUES (?, 'New Freelancer', 'Tell clients about yourself...', 25, '[]', '[]', 'intermediate', 'available', NOW())`,
+                [userId]
+            );
+            
+            profile = {
+                user_id: userId,
+                headline: 'New Freelancer',
+                description: 'Tell clients about yourself...',
+                hourly_rate: 25,
+                skills: [],
+                languages: [],
+                experience_level: 'intermediate',
+                availability: 'available',
+                profile_picture: null,
+                certificate_images: []
+            };
+        }
+        
+        // Combine user and profile data
+        const fullProfile = {
+            ...profile,
+            username: user.username,
+            email: user.email,
+            created_at: user.created_at,
+            role: user.role
+        };
+        
+        res.json(fullProfile);
+        
+    } catch (err) {
+        console.error("Error loading profile:", err);
+        res.status(500).json({ error: "Error loading profile: " + err.message });
+    }
+});
+
+// Update freelancer profile
+app.put("/api/freelancer/update-profile", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to update profile" });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        const {
+            headline,
+            description,
+            hourly_rate,
+            experience_level,
+            availability,
+            location,
+            phone,
+            website,
+            education,
+            certifications,
+            skills,
+            languages
+        } = req.body;
+        
+        // Prepare update fields
+        const updateFields = [];
+        const updateValues = [];
+        
+        if (headline !== undefined) {
+            updateFields.push("headline = ?");
+            updateValues.push(headline);
+        }
+        if (description !== undefined) {
+            updateFields.push("description = ?");
+            updateValues.push(description);
+        }
+        if (hourly_rate !== undefined) {
+            updateFields.push("hourly_rate = ?");
+            updateValues.push(parseFloat(hourly_rate) || 0);
+        }
+        if (experience_level !== undefined) {
+            updateFields.push("experience_level = ?");
+            updateValues.push(experience_level);
+        }
+        if (availability !== undefined) {
+            updateFields.push("availability = ?");
+            updateValues.push(availability);
+        }
+        if (location !== undefined) {
+            updateFields.push("location = ?");
+            updateValues.push(location);
+        }
+        if (phone !== undefined) {
+            updateFields.push("phone = ?");
+            updateValues.push(phone);
+        }
+        if (website !== undefined) {
+            updateFields.push("website = ?");
+            updateValues.push(website);
+        }
+        if (education !== undefined) {
+            updateFields.push("education = ?");
+            updateValues.push(education);
+        }
+        if (certifications !== undefined) {
+            updateFields.push("certifications = ?");
+            updateValues.push(certifications);
+        }
+        if (skills !== undefined) {
+            updateFields.push("skills = ?");
+            updateValues.push(JSON.stringify(skills || []));
+        }
+        if (languages !== undefined) {
+            updateFields.push("languages = ?");
+            updateValues.push(JSON.stringify(languages || []));
+        }
+        
+        updateFields.push("updated_at = NOW()");
+        updateValues.push(userId);
+        
+        if (updateFields.length > 1) {
+            const updateQuery = `
+                UPDATE freelancer_profiles 
+                SET ${updateFields.join(", ")}
+                WHERE user_id = ?
+            `;
+            
+            await db.query(updateQuery, updateValues);
+        }
+        
+        res.json({
+            success: true,
+            message: "Profile updated successfully"
+        });
+        
+    } catch (err) {
+        console.error("Error updating profile:", err);
+        res.status(500).json({ error: "Error updating profile: " + err.message });
+    }
+});
+
+// Upload profile picture
+app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile_picture"), async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to upload picture" });
+    }
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        const profilePictureUrl = req.file.path; // Cloudinary URL or local path
+        
+        // Check if profile exists
+        const profileCheck = await db.query(
+            "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
+            [req.session.user.id]
+        );
+        
+        if (profileCheck && profileCheck.length > 0) {
+            await db.query(
+                "UPDATE freelancer_profiles SET profile_picture_url = ?, updated_at = NOW() WHERE user_id = ?",
+                [profilePictureUrl, req.session.user.id]
+            );
+        } else {
+            await db.query(
+                "INSERT INTO freelancer_profiles (user_id, profile_picture_url, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
+                [req.session.user.id, profilePictureUrl]
+            );
+        }
+        
+        res.json({
+            success: true,
+            message: "Profile picture updated successfully",
+            profile_picture: profilePictureUrl
+        });
+        
+    } catch (err) {
+        console.error("Error uploading profile picture:", err);
+        res.status(500).json({ error: "Error uploading profile picture: " + err.message });
+    }
+});
+
+// Get freelancer dashboard stats
+app.get("/api/freelancer/dashboard", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        
+        // Get service stats
+        const serviceStats = await db.query(
+            "SELECT COUNT(*) as total_services FROM services WHERE user_id = ? AND status = 'active'",
+            [userId]
+        );
+        
+        // Get order stats (if service_orders table exists)
+        let orderStats = { total_orders: 0, total_revenue: 0 };
+        try {
+            const orders = await db.query(
+                "SELECT COUNT(*) as total_orders, COALESCE(SUM(amount), 0) as total_revenue FROM service_orders WHERE freelancer_id = ?",
+                [userId]
+            );
+            if (orders && orders.length > 0) {
+                orderStats = orders[0];
+            }
+        } catch (e) {
+            console.log("Service orders table not ready yet");
+        }
+        
+        // Get profile stats
+        const profile = await db.query(
+            "SELECT completed_orders, total_earnings, avg_rating FROM freelancer_profiles WHERE user_id = ?",
+            [userId]
+        );
+        
+        res.json({
+            services: {
+                total_services: serviceStats[0]?.total_services || 0
+            },
+            orders: {
+                total_orders: orderStats.total_orders || 0,
+                total_revenue: orderStats.total_revenue || 0
+            },
+            profile: {
+                completed_orders: profile[0]?.completed_orders || 0,
+                total_earnings: profile[0]?.total_earnings || 0,
+                avg_rating: profile[0]?.avg_rating || 0
+            },
+            clients: [] // Add clients data if needed
+        });
+        
+    } catch (err) {
+        console.error("Error loading dashboard:", err);
+        res.json({
+            services: { total_services: 0 },
+            orders: { total_orders: 0, total_revenue: 0 },
+            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0 },
+            clients: []
+        });
     }
 });
 // =================== SUBSCRIPTION SYSTEM ===================

@@ -8104,7 +8104,315 @@ async function updateUIForUserRole() {
 }
 // ==================== CATEGORY MANAGEMENT ====================
 
-// Initialize category tabs functionality
+
+// ==================== COMPLETE SERVICE FORM HANDLER ====================
+
+// Make sure this function is defined and not overridden
+async function handleServiceFormSubmit(e) {
+    e.preventDefault();
+    
+    console.log("Service form submitted");
+    
+    if (!currentUser) {
+        showToast('Please login to create a service', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+        showToast('Only freelancers can create services', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#serviceForm button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Create Service';
+    
+    try {
+        // Check subscription status for freelancers
+        if (currentUser.role === 'freelancer') {
+            showToast('Checking subscription status...', 'info');
+            const subResponse = await fetch('/api/subscription/status', {
+                credentials: 'include'
+            });
+            const subData = await subResponse.json();
+            
+            if (!subData.hasActiveSubscription) {
+                showToast('Subscription required to create services', 'warning');
+                showSubscriptionModal();
+                return;
+            }
+        }
+        
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Service...';
+        }
+        
+        // Get form values
+        const title = document.getElementById('serviceTitle')?.value.trim();
+        const description = document.getElementById('serviceDescription')?.value.trim();
+        const hourlyRate = document.getElementById('hourlyRate')?.value;
+        const fixedPrice = document.getElementById('fixedPrice')?.value;
+        const deliveryTime = document.getElementById('deliveryTime')?.value;
+        const revisions = document.getElementById('revisions')?.value;
+        
+        // Handle category - check if new category was entered
+        let category = '';
+        const activeTab = document.querySelector('.category-tab-btn.active');
+        const isNewCategory = activeTab && activeTab.getAttribute('data-tab') === 'new';
+        
+        if (isNewCategory) {
+            const newCategory = document.getElementById('newCategory')?.value.trim();
+            if (!newCategory) {
+                showToast('Please enter a category name', 'warning');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+                return;
+            }
+            category = newCategory;
+            // Add to dropdowns for future use
+            addNewCategoryToDropdowns(newCategory);
+        } else {
+            category = document.getElementById('serviceCategory')?.value;
+            if (!category) {
+                showToast('Please select a category', 'warning');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+                return;
+            }
+        }
+        
+        // Validation
+        if (!title) {
+            showToast('Please enter a service title', 'warning');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+            return;
+        }
+        
+        if (title.length < 5) {
+            showToast('Title must be at least 5 characters', 'warning');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+            return;
+        }
+        
+        if (!description) {
+            showToast('Please enter a service description', 'warning');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+            return;
+        }
+        
+        if (description.length < 20) {
+            showToast('Description must be at least 20 characters', 'warning');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+            return;
+        }
+        
+        // Collect tags
+        const tags = [];
+        document.querySelectorAll('#tagsList .tag').forEach(tag => {
+            const tagText = tag.textContent.replace('×', '').trim();
+            if (tagText) {
+                tags.push(tagText);
+            }
+        });
+        
+        // Collect requirements
+        const requirements = [];
+        document.querySelectorAll('.requirement-input').forEach(input => {
+            if (input.value && input.value.trim()) {
+                requirements.push(input.value.trim());
+            }
+        });
+        
+        // Collect packages
+        const packages = [];
+        const packageCards = document.querySelectorAll('.package-card');
+        packageCards.forEach(card => {
+            const packageNameElement = card.querySelector('.package-name');
+            const packageName = packageNameElement ? packageNameElement.textContent.trim() : '';
+            const isEnabled = card.querySelector('.package-enabled')?.checked;
+            
+            if (isEnabled && packageName) {
+                const priceInput = card.querySelector('.package-price-input');
+                const price = parseFloat(priceInput?.value) || 0;
+                
+                const features = [];
+                const featureInputs = card.querySelectorAll('.package-feature-input');
+                featureInputs.forEach(input => {
+                    if (input.value && input.value.trim()) {
+                        features.push(input.value.trim());
+                    }
+                });
+                
+                packages.push({
+                    package_name: packageName.toLowerCase(),
+                    price: price,
+                    features: features,
+                    delivery_time: parseInt(deliveryTime) || 7,
+                    revisions: parseInt(revisions) || 2
+                });
+            }
+        });
+        
+        // Prepare data
+        const serviceData = {
+            title: title,
+            description: description,
+            category: category,
+            hourly_rate: hourlyRate || null,
+            fixed_price: fixedPrice || null,
+            delivery_time: parseInt(deliveryTime) || 7,
+            revisions: parseInt(revisions) || 2,
+            tags: tags,
+            requirements: requirements,
+            packages: packages
+        };
+        
+        console.log('Sending service data:', serviceData);
+        showToast('Creating service...', 'info');
+        
+        // Send to server
+        const response = await fetch('/api/services', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(serviceData)
+        });
+        
+        const result = await response.json();
+        console.log('Server response:', result);
+        
+        if (response.ok && result.success) {
+            showToast('✅ Service created successfully!', 'success');
+            
+            // Reset form
+            const form = document.getElementById('serviceForm');
+            if (form) form.reset();
+            
+            const tagsList = document.getElementById('tagsList');
+            if (tagsList) tagsList.innerHTML = '';
+            
+            const requirementsContainer = document.getElementById('requirementsContainer');
+            if (requirementsContainer) {
+                requirementsContainer.innerHTML = `
+                    <div class="requirement-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" class="requirement-input" placeholder="e.g., Project brief, brand colors, etc." style="flex: 1; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
+                        <button type="button" class="btn btn-secondary remove-requirement" style="padding: 12px;">Remove</button>
+                    </div>
+                `;
+            }
+            
+            // Reset packages
+            document.querySelectorAll('.package-price-input').forEach(input => {
+                const card = input.closest('.package-card');
+                const isEnabled = card?.querySelector('.package-enabled')?.checked;
+                if (isEnabled) {
+                    input.value = '0';
+                }
+            });
+            
+            // Reset category selection
+            const categorySelect = document.getElementById('serviceCategory');
+            if (categorySelect) categorySelect.value = '';
+            const newCategoryInput = document.getElementById('newCategory');
+            if (newCategoryInput) newCategoryInput.value = '';
+            hideSelectedCategory();
+            
+            // Hide create form and show services browser
+            hideCreateServiceForm();
+            
+            // Reload services
+            await loadServices();
+            
+            // Switch to my services tab if freelancer
+            if (currentUser && currentUser.role === 'freelancer') {
+                switchTab('myServices');
+                await loadMyServices();
+            }
+        } else {
+            showToast(result.error || 'Failed to create service', 'error');
+        }
+        
+    } catch (err) {
+        console.error('Service creation error:', err);
+        showToast('Error creating service: ' + err.message, 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// Helper function to add new category to dropdowns
+function addNewCategoryToDropdowns(category) {
+    // Add to service category select
+    const categorySelect = document.getElementById('serviceCategory');
+    if (categorySelect && !Array.from(categorySelect.options).some(opt => opt.value === category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+    }
+    
+    // Add to filter dropdown
+    const filterSelect = document.getElementById('categoryFilter');
+    if (filterSelect && !Array.from(filterSelect.options).some(opt => opt.value === category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        filterSelect.appendChild(option);
+    }
+}
+
+// Make sure the event listener is properly attached
+function setupServiceFormListener() {
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        // Remove any existing listeners
+        const newForm = serviceForm.cloneNode(true);
+        serviceForm.parentNode.replaceChild(newForm, serviceForm);
+        
+        // Add new listener
+        newForm.addEventListener('submit', handleServiceFormSubmit);
+        console.log('Service form listener attached');
+    }
+}
+
+// Call this when page loads and when create service form is shown
+document.addEventListener('DOMContentLoaded', () => {
+    setupServiceFormListener();
+});
+
+// Also set up when create service form is shown
+const originalShowCreateServiceForm = window.showCreateServiceForm;
+window.showCreateServiceForm = function() {
+    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
+    setTimeout(() => {
+        setupServiceFormListener();
+        initCategoryTabs();
+    }, 100);
+};
+
+// Initialize category tabs
 function initCategoryTabs() {
     const tabBtns = document.querySelectorAll('.category-tab-btn');
     const tabPanes = document.querySelectorAll('.tab-pane');
@@ -8113,11 +8421,9 @@ function initCategoryTabs() {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
             
-            // Update button active states
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Update pane active states
             tabPanes.forEach(pane => pane.classList.remove('active'));
             const activePane = document.getElementById(`${tabId}-category-tab`);
             if (activePane) {
@@ -8126,7 +8432,7 @@ function initCategoryTabs() {
         });
     });
     
-    // Initialize category chips
+    // Category chips
     const categoryChips = document.querySelectorAll('.category-chip');
     categoryChips.forEach(chip => {
         chip.addEventListener('click', () => {
@@ -8134,17 +8440,14 @@ function initCategoryTabs() {
             const text = chip.getAttribute('data-text');
             
             if (value) {
-                // Select existing category
                 const select = document.getElementById('serviceCategory');
                 if (select) {
                     select.value = value;
                     showSelectedCategory(value);
                 }
-                // Switch to existing tab
                 const existingTab = document.querySelector('.category-tab-btn[data-tab="existing"]');
                 if (existingTab) existingTab.click();
             } else if (text) {
-                // Fill new category input
                 const input = document.getElementById('newCategory');
                 if (input) {
                     input.value = text;
@@ -8153,14 +8456,13 @@ function initCategoryTabs() {
                         charCount.textContent = `${text.length}/50`;
                     }
                 }
-                // Switch to new tab
                 const newTab = document.querySelector('.category-tab-btn[data-tab="new"]');
                 if (newTab) newTab.click();
             }
         });
     });
     
-    // New category input character counter
+    // New category input counter
     const newCategoryInput = document.getElementById('newCategory');
     if (newCategoryInput) {
         newCategoryInput.addEventListener('input', (e) => {
@@ -8202,262 +8504,22 @@ function hideSelectedCategory() {
     }
 }
 
-// Call this when the create service form is shown
-const originalShowCreateServiceForm = window.showCreateServiceForm;
-window.showCreateServiceForm = function() {
-    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
-    setTimeout(() => {
-        initCategoryTabs();
-    }, 100);
-};
+// Override any existing handleServiceFormSubmit
+window.handleServiceFormSubmit = handleServiceFormSubmit;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initCategoryTabs();
 });
 
-// Add new category to dropdowns
-function addNewCategoryToDropdowns(category) {
-    // Add to service category select
-    const categorySelect = document.getElementById('serviceCategory');
-    if (categorySelect && !Array.from(categorySelect.options).some(opt => opt.value === category)) {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        categorySelect.appendChild(option);
-    }
-    
-    // Add to filter dropdown
-    const filterSelect = document.getElementById('categoryFilter');
-    if (filterSelect && !Array.from(filterSelect.options).some(opt => opt.value === category)) {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        filterSelect.appendChild(option);
-    }
-    
-    // Add to categories array
-    if (!categories.includes(category)) {
-        categories.push(category);
-    }
-}
 
 // ==================== FIXED SERVICE FORM SUBMIT ====================
 
-async function handleServiceFormSubmit(e) {
-    e.preventDefault();
-    
-    if (!currentUser) {
-        showToast('Please login to create a service', 'warning');
-        openModal(document.getElementById('loginModal'));
-        return;
-    }
-    
-    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
-        showToast('Only freelancers can create services', 'error');
-        return;
-    }
-    
-    const submitBtn = document.querySelector('#serviceForm button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    try {
-        // Check subscription status for freelancers
-        if (currentUser.role === 'freelancer') {
-            const subResponse = await fetch('/api/subscription/status', {
-                credentials: 'include'
-            });
-            const subData = await subResponse.json();
-            
-            if (!subData.hasActiveSubscription) {
-                showSubscriptionModal();
-                return;
-            }
-        }
-        
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Service...';
-        
-        // Get form values
-        const title = document.getElementById('serviceTitle').value.trim();
-        const description = document.getElementById('serviceDescription').value.trim();
-        const hourlyRate = document.getElementById('hourlyRate').value;
-        const fixedPrice = document.getElementById('fixedPrice').value;
-        const deliveryTime = document.getElementById('deliveryTime').value;
-        const revisions = document.getElementById('revisions').value;
-        
-        // Handle category - check if new category was entered
-        let category = '';
-        const activeTab = document.querySelector('.category-tab-btn.active');
-        const isNewCategory = activeTab && activeTab.getAttribute('data-tab') === 'new';
-        
-        if (isNewCategory) {
-            const newCategory = document.getElementById('newCategory').value.trim();
-            if (!newCategory) {
-                showToast('Please enter a category name', 'warning');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-                return;
-            }
-            category = newCategory;
-            // Add to dropdowns for future use
-            addNewCategoryToDropdowns(newCategory);
-        } else {
-            category = document.getElementById('serviceCategory').value;
-            if (!category) {
-                showToast('Please select a category', 'warning');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-                return;
-            }
-        }
-        
-        // Validation
-        if (!title) {
-            showToast('Please enter a service title', 'warning');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-            return;
-        }
-        
-        if (title.length < 5) {
-            showToast('Title must be at least 5 characters', 'warning');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-            return;
-        }
-        
-        if (!description) {
-            showToast('Please enter a service description', 'warning');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-            return;
-        }
-        
-        if (description.length < 20) {
-            showToast('Description must be at least 20 characters', 'warning');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-            return;
-        }
-        
-        // Collect tags
-        const tags = [];
-        document.querySelectorAll('#tagsList .tag').forEach(tag => {
-            tags.push(tag.textContent.replace('×', '').trim());
-        });
-        
-        // Collect requirements
-        const requirements = [];
-        document.querySelectorAll('.requirement-input').forEach(input => {
-            if (input.value.trim()) {
-                requirements.push(input.value.trim());
-            }
-        });
-        
-        // Collect packages
-        const packages = [];
-        const packageCards = document.querySelectorAll('.package-card');
-        packageCards.forEach(card => {
-            const packageName = card.querySelector('.package-name').textContent.trim();
-            const isEnabled = card.querySelector('.package-enabled').checked;
-            
-            if (isEnabled) {
-                const priceInput = card.querySelector('.package-price-input');
-                const price = parseFloat(priceInput.value) || 0;
-                
-                const features = [];
-                const featureInputs = card.querySelectorAll('.package-feature-input');
-                featureInputs.forEach(input => {
-                    if (input.value.trim()) {
-                        features.push(input.value.trim());
-                    }
-                });
-                
-                packages.push({
-                    package_name: packageName.toLowerCase(),
-                    price: price,
-                    features: features,
-                    delivery_time: deliveryTime,
-                    revisions: revisions
-                });
-            }
-        });
-        
-        // Prepare data
-        const serviceData = {
-            title: title,
-            description: description,
-            category: category,
-            hourly_rate: hourlyRate || null,
-            fixed_price: fixedPrice || null,
-            delivery_time: parseInt(deliveryTime) || 7,
-            revisions: parseInt(revisions) || 2,
-            tags: tags,
-            requirements: requirements,
-            packages: packages
-        };
-        
-        console.log('Sending service data:', serviceData);
-        
-        // Send to server
-        const response = await fetch('/api/services', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(serviceData)
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showToast('✅ Service created successfully!', 'success');
-            
-            // Reset form
-            document.getElementById('serviceForm').reset();
-            document.getElementById('tagsList').innerHTML = '';
-            document.getElementById('requirementsContainer').innerHTML = `
-                <div class="requirement-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" class="requirement-input" placeholder="e.g., Project brief, brand colors, etc." style="flex: 1; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
-                    <button type="button" class="btn btn-secondary remove-requirement" style="padding: 12px;">Remove</button>
-                </div>
-            `;
-            
-            // Reset packages
-            document.querySelectorAll('.package-price-input').forEach(input => {
-                if (input.closest('.package-card').querySelector('.package-enabled').checked) {
-                    input.value = '0';
-                }
-            });
-            
-            // Hide create form and show services browser
-            hideCreateServiceForm();
-            
-            // Reload services
-            await loadServices();
-            
-            // Switch to my services tab if freelancer
-            if (currentUser && currentUser.role === 'freelancer') {
-                switchTab('myServices');
-                await loadMyServices();
-            }
-        } else {
-            showToast(result.error || 'Failed to create service', 'error');
-        }
-        
-    } catch (err) {
-        console.error('Service creation error:', err);
-        showToast('Error creating service: ' + err.message, 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    }
-}
 
 // ==================== FIXED PROFILE SECTION ====================
+// ==================== COMPLETE PROFILE SECTION ====================
 
+// Show freelancer profile with real data
 async function showFreelancerProfile() {
     if (!currentUser) {
         showToast('Please login to view profile', 'warning');
@@ -8473,8 +8535,15 @@ async function showFreelancerProfile() {
     const profileSection = document.getElementById('freelancerProfile');
     if (!profileSection) return;
     
+    // Hide other sections and show profile
+    hideAllPages();
+    profileSection.classList.remove('hidden');
+    
+    // Switch to profile view tab
+    switchProfileTab('profileViewTabContent');
+    
     try {
-        profileSection.classList.remove('hidden');
+        showToast('Loading profile...', 'info');
         
         // Load profile data
         const response = await fetch('/api/freelancer/profile', {
@@ -8486,28 +8555,37 @@ async function showFreelancerProfile() {
         }
         
         const profile = await response.json();
+        console.log('Profile data:', profile);
         
         // Update profile display
         document.getElementById('profileUsername').textContent = profile.username || currentUser.username;
         document.getElementById('profileHeadline').textContent = profile.headline || 'Professional Freelancer';
-        document.getElementById('profileDescription').textContent = profile.description || 'No description provided.';
+        document.getElementById('profileDescription').textContent = profile.description || 'No description provided. Click Edit Profile to add your bio.';
         document.getElementById('profileHourlyRate').textContent = profile.hourly_rate ? `$${profile.hourly_rate}/hr` : '$0/hr';
         document.getElementById('profileLocation').textContent = profile.location || 'Not specified';
         document.getElementById('profileExperienceLevel').textContent = profile.experience_level ? profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1) : 'Not specified';
         document.getElementById('profileEmail').textContent = currentUser.email;
         document.getElementById('profilePhone').textContent = profile.phone || 'Not provided';
-        document.getElementById('profileWebsite').innerHTML = profile.website ? `<a href="${profile.website}" target="_blank" style="color: var(--accent-blue);">${profile.website}</a>` : '';
-        document.getElementById('profileMemberSince').textContent = new Date(currentUser.created_at || Date.now()).toLocaleDateString();
+        
+        // Website link
+        const websiteElement = document.getElementById('profileWebsite');
+        if (profile.website) {
+            websiteElement.innerHTML = `<a href="${profile.website}" target="_blank" style="color: var(--accent-blue);">${profile.website}</a>`;
+        } else {
+            websiteElement.innerHTML = 'Not provided';
+        }
+        
+        document.getElementById('profileMemberSince').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : new Date().toLocaleDateString();
         document.getElementById('profileCompletedOrders').textContent = profile.completed_orders || 0;
         
         // Set availability badge
         const availabilitySpan = document.getElementById('profileAvailability');
         if (profile.availability === 'available') {
-            availabilitySpan.innerHTML = '<span style="color: #10b981;">✓ Available Now</span>';
+            availabilitySpan.innerHTML = '<span style="color: #10b981;"><i class="fas fa-circle"></i> Available Now</span>';
         } else if (profile.availability === 'busy') {
-            availabilitySpan.innerHTML = '<span style="color: #f59e0b;">⏰ Currently Busy</span>';
+            availabilitySpan.innerHTML = '<span style="color: #f59e0b;"><i class="fas fa-clock"></i> Currently Busy</span>';
         } else {
-            availabilitySpan.innerHTML = '<span style="color: #ef4444;">✗ Not Available</span>';
+            availabilitySpan.innerHTML = '<span style="color: #ef4444;"><i class="fas fa-ban"></i> Not Available</span>';
         }
         
         // Set profile picture
@@ -8521,22 +8599,23 @@ async function showFreelancerProfile() {
         } else {
             profilePicture.style.display = 'none';
             profileInitials.style.display = 'flex';
-            profileInitials.textContent = (currentUser.username || 'U').charAt(0).toUpperCase();
+            const initial = (currentUser.username || 'U').charAt(0).toUpperCase();
+            profileInitials.textContent = initial;
         }
         
         // Load skills
         const skillsContainer = document.getElementById('profileSkills');
-        if (profile.skills && profile.skills.length > 0) {
+        if (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) {
             skillsContainer.innerHTML = profile.skills.map(skill => `
                 <span class="skill-tag"><i class="fas fa-check-circle"></i> ${escapeHtml(skill)}</span>
             `).join('');
         } else {
-            skillsContainer.innerHTML = '<p style="color: var(--text-gray);">No skills added yet.</p>';
+            skillsContainer.innerHTML = '<p style="color: var(--text-gray);">No skills added yet. Click Edit Profile to add your skills.</p>';
         }
         
         // Load languages
         const languagesContainer = document.getElementById('profileLanguages');
-        if (profile.languages && profile.languages.length > 0) {
+        if (profile.languages && Array.isArray(profile.languages) && profile.languages.length > 0) {
             languagesContainer.innerHTML = profile.languages.map(lang => `
                 <span class="skill-tag"><i class="fas fa-language"></i> ${escapeHtml(lang)}</span>
             `).join('');
@@ -8546,7 +8625,7 @@ async function showFreelancerProfile() {
         
         // Load certificates
         const certificatesContainer = document.getElementById('profileCertificates');
-        if (profile.certificate_images && profile.certificate_images.length > 0) {
+        if (profile.certificate_images && Array.isArray(profile.certificate_images) && profile.certificate_images.length > 0) {
             certificatesContainer.innerHTML = profile.certificate_images.map((cert, index) => `
                 <div class="certificate-item">
                     <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="openCertificateViewer('${cert}', ${index})">
@@ -8557,7 +8636,7 @@ async function showFreelancerProfile() {
             certificatesContainer.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
         }
         
-        // Fill edit form
+        // Fill edit form with current values
         document.getElementById('editHeadline').value = profile.headline || '';
         document.getElementById('editHourlyRate').value = profile.hourly_rate || '';
         document.getElementById('editDescription').value = profile.description || '';
@@ -8571,28 +8650,34 @@ async function showFreelancerProfile() {
         
         // Load skills for editing
         const skillsList = document.getElementById('skillsList');
-        if (profile.skills && profile.skills.length > 0) {
+        if (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) {
             skillsList.innerHTML = profile.skills.map(skill => `
                 <span class="skill-tag">
                     ${escapeHtml(skill)}
                     <span class="remove-skill" onclick="removeSkill('${escapeHtml(skill)}')">&times;</span>
                 </span>
             `).join('');
+        } else {
+            skillsList.innerHTML = '';
         }
         
         // Load languages for editing
         const languagesList = document.getElementById('languagesList');
-        if (profile.languages && profile.languages.length > 0) {
+        if (profile.languages && Array.isArray(profile.languages) && profile.languages.length > 0) {
             languagesList.innerHTML = profile.languages.map(lang => `
                 <span class="skill-tag">
                     ${escapeHtml(lang)}
                     <span class="remove-skill" onclick="removeLanguage('${escapeHtml(lang)}')">&times;</span>
                 </span>
             `).join('');
+        } else {
+            languagesList.innerHTML = '';
         }
         
         // Load dashboard stats
         await loadFreelancerDashboard();
+        
+        showToast('Profile loaded successfully', 'success');
         
     } catch (err) {
         console.error('Error loading profile:', err);
@@ -8600,6 +8685,7 @@ async function showFreelancerProfile() {
     }
 }
 
+// Load freelancer dashboard stats
 async function loadFreelancerDashboard() {
     try {
         const response = await fetch('/api/freelancer/dashboard', {
@@ -8612,12 +8698,325 @@ async function loadFreelancerDashboard() {
             document.getElementById('dashboardServices').textContent = data.services?.total_services || 0;
             document.getElementById('dashboardEarnings').textContent = `$${data.orders?.total_revenue || 0}`;
             document.getElementById('dashboardClients').textContent = data.clients?.length || 0;
-            document.getElementById('dashboardRating').textContent = data.profile?.rating || '0.0';
+            document.getElementById('dashboardRating').textContent = data.profile?.avg_rating || '0.0';
+            
+            // Load recent orders
+            const recentOrdersContainer = document.getElementById('dashboardRecentOrders');
+            if (data.recent_orders && data.recent_orders.length > 0) {
+                recentOrdersContainer.innerHTML = data.recent_orders.map(order => `
+                    <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-light);">Order #${order.id}</span>
+                            <span style="color: var(--accent-gold);">$${order.amount}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-gray);">${order.service_title} - ${order.status}</div>
+                    </div>
+                `).join('');
+            } else {
+                recentOrdersContainer.innerHTML = '<p style="color: var(--text-gray); text-align: center;">No recent orders</p>';
+            }
         }
     } catch (err) {
         console.error('Error loading dashboard:', err);
     }
 }
+
+// Handle profile form submission
+async function handleProfileFormSubmit(e) {
+    e.preventDefault();
+    
+    if (!currentUser) {
+        showToast('Please login to update profile', 'warning');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#profileForm button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Save Changes';
+    
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        // Collect form data
+        const profileData = {
+            headline: document.getElementById('editHeadline')?.value || '',
+            description: document.getElementById('editDescription')?.value || '',
+            hourly_rate: parseFloat(document.getElementById('editHourlyRate')?.value) || 0,
+            experience_level: document.getElementById('editExperienceLevel')?.value || 'intermediate',
+            availability: document.getElementById('editAvailability')?.value || 'available',
+            location: document.getElementById('editLocation')?.value || '',
+            phone: document.getElementById('editPhone')?.value || '',
+            website: document.getElementById('editWebsite')?.value || '',
+            education: document.getElementById('editEducation')?.value || '',
+            certifications: document.getElementById('editCertifications')?.value || '',
+            skills: getSkillsArray(),
+            languages: getLanguagesArray()
+        };
+        
+        console.log('Saving profile:', profileData);
+        
+        const response = await fetch('/api/freelancer/update-profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Profile updated successfully!', 'success');
+            // Switch back to view mode
+            switchProfileTab('profileViewTabContent');
+            // Reload profile data
+            await showFreelancerProfile();
+        } else {
+            showToast(result.error || 'Failed to update profile', 'error');
+        }
+        
+    } catch (err) {
+        console.error('Profile update error:', err);
+        showToast('Error updating profile: ' + err.message, 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// Helper functions for skills and languages
+function getSkillsArray() {
+    const skills = [];
+    document.querySelectorAll('#skillsList .skill-tag').forEach(tag => {
+        const skillText = tag.textContent.replace('×', '').trim();
+        if (skillText) {
+            skills.push(skillText);
+        }
+    });
+    return skills;
+}
+
+function getLanguagesArray() {
+    const languages = [];
+    document.querySelectorAll('#languagesList .skill-tag').forEach(tag => {
+        const langText = tag.textContent.replace('×', '').trim();
+        if (langText) {
+            languages.push(langText);
+        }
+    });
+    return languages;
+}
+
+function addSkill() {
+    const input = document.getElementById('newSkill');
+    const skill = input.value.trim();
+    
+    if (!skill) {
+        showToast('Please enter a skill', 'warning');
+        return;
+    }
+    
+    const skillsList = document.getElementById('skillsList');
+    const existingSkills = Array.from(skillsList.querySelectorAll('.skill-tag')).map(tag => 
+        tag.textContent.replace('×', '').trim()
+    );
+    
+    if (existingSkills.includes(skill)) {
+        showToast('Skill already added', 'warning');
+        return;
+    }
+    
+    const skillTag = document.createElement('span');
+    skillTag.className = 'skill-tag';
+    skillTag.innerHTML = `${escapeHtml(skill)} <span class="remove-skill" onclick="this.parentElement.remove()">&times;</span>`;
+    skillsList.appendChild(skillTag);
+    input.value = '';
+}
+
+function addLanguage() {
+    const input = document.getElementById('newLanguage');
+    const language = input.value.trim();
+    
+    if (!language) {
+        showToast('Please enter a language', 'warning');
+        return;
+    }
+    
+    const languagesList = document.getElementById('languagesList');
+    const existingLanguages = Array.from(languagesList.querySelectorAll('.skill-tag')).map(tag => 
+        tag.textContent.replace('×', '').trim()
+    );
+    
+    if (existingLanguages.includes(language)) {
+        showToast('Language already added', 'warning');
+        return;
+    }
+    
+    const langTag = document.createElement('span');
+    langTag.className = 'skill-tag';
+    langTag.innerHTML = `${escapeHtml(language)} <span class="remove-skill" onclick="this.parentElement.remove()">&times;</span>`;
+    languagesList.appendChild(langTag);
+    input.value = '';
+}
+
+function removeSkill(skillName) {
+    const skillsList = document.getElementById('skillsList');
+    const tags = skillsList.querySelectorAll('.skill-tag');
+    tags.forEach(tag => {
+        if (tag.textContent.replace('×', '').trim() === skillName) {
+            tag.remove();
+        }
+    });
+}
+
+function removeLanguage(languageName) {
+    const languagesList = document.getElementById('languagesList');
+    const tags = languagesList.querySelectorAll('.skill-tag');
+    tags.forEach(tag => {
+        if (tag.textContent.replace('×', '').trim() === languageName) {
+            tag.remove();
+        }
+    });
+}
+
+// Switch between profile tabs
+function switchProfileTab(tabId) {
+    // Hide all tab contents
+    const tabContents = ['profileViewTabContent', 'profileEditTabContent', 'dashboardTabContent', 'profileReviewsTabContent'];
+    tabContents.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabId);
+    if (selectedTab) selectedTab.classList.remove('hidden');
+    
+    // Update tab buttons
+    const tabBtns = ['profileViewTabBtn', 'profileEditTabBtn', 'dashboardTabBtn', 'profileReviewsTabBtn'];
+    tabBtns.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.remove('active');
+    });
+    
+    // Find which button corresponds to this tab
+    const buttonMap = {
+        'profileViewTabContent': 'profileViewTabBtn',
+        'profileEditTabContent': 'profileEditTabBtn',
+        'dashboardTabContent': 'dashboardTabBtn',
+        'profileReviewsTabContent': 'profileReviewsTabBtn'
+    };
+    
+    const activeBtn = document.getElementById(buttonMap[tabId]);
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+// Make sure event listeners are set up
+function setupProfileEventListeners() {
+    // Profile form submission
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        // Remove existing listeners to avoid duplicates
+        const newForm = profileForm.cloneNode(true);
+        profileForm.parentNode.replaceChild(newForm, profileForm);
+        newForm.addEventListener('submit', handleProfileFormSubmit);
+    }
+    
+    // Add skill button
+    const addSkillBtn = document.getElementById('addSkillBtn');
+    if (addSkillBtn) {
+        const newBtn = addSkillBtn.cloneNode(true);
+        addSkillBtn.parentNode.replaceChild(newBtn, addSkillBtn);
+        newBtn.addEventListener('click', addSkill);
+    }
+    
+    // Add language button
+    const addLanguageBtn = document.getElementById('addLanguageBtn');
+    if (addLanguageBtn) {
+        const newBtn = addLanguageBtn.cloneNode(true);
+        addLanguageBtn.parentNode.replaceChild(newBtn, addLanguageBtn);
+        newBtn.addEventListener('click', addLanguage);
+    }
+    
+    // Common skill buttons
+    document.querySelectorAll('.common-skill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const skill = btn.getAttribute('data-skill');
+            if (skill) {
+                const input = document.getElementById('newSkill');
+                if (input) {
+                    input.value = skill;
+                    addSkill();
+                }
+            }
+        });
+    });
+    
+    // Cancel edit button
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+            switchProfileTab('profileViewTabContent');
+        });
+    }
+    
+    // Profile picture upload
+    const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    if (updatePhotoBtn && profilePictureInput) {
+        updatePhotoBtn.addEventListener('click', () => {
+            profilePictureInput.click();
+        });
+        
+        profilePictureInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                await uploadProfilePicture(e.target.files[0]);
+            }
+        });
+    }
+}
+
+// Upload profile picture
+async function uploadProfilePicture(file) {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    
+    showToast('Uploading profile picture...', 'info');
+    
+    try {
+        const response = await fetch('/api/freelancer/profile-picture', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Profile picture updated!', 'success');
+            await showFreelancerProfile();
+        } else {
+            showToast(result.error || 'Failed to upload picture', 'error');
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error uploading picture', 'error');
+    }
+}
+
+// Initialize profile section when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    setupProfileEventListeners();
+});
+
+// Override any existing showFreelancerProfile
+window.showFreelancerProfile = showFreelancerProfile;
+
 
 // ==================== ENHANCED SERVICE CARD RENDERING ====================
 

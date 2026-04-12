@@ -5551,7 +5551,6 @@ async function checkAuthStatus() {
     }
 }
 
-// Enhanced subscription status check
 async function checkSubscriptionStatus() {
     try {
         const response = await fetch('/api/subscription/status', {
@@ -5567,7 +5566,8 @@ async function checkSubscriptionStatus() {
         const subscriptionMessage = document.getElementById('subscriptionMessage');
         const manageBtn = document.getElementById('manageSubscriptionBtn');
         
-        if (banner && daysLeftEl && subscriptionTitle && subscriptionMessage) {
+        // FIX: Only show subscription banner for freelancers
+        if (banner && currentUser && currentUser.role === 'freelancer') {
             if (data.hasActiveSubscription) {
                 banner.classList.remove('hidden');
                 
@@ -5589,7 +5589,6 @@ async function checkSubscriptionStatus() {
                     }
                 }
                 
-                // Add warning when trial is ending soon
                 if (data.subscriptionPlan === 'free_trial' && data.daysLeft < 7) {
                     banner.classList.add('warning');
                     subscriptionMessage.innerHTML += `<br><span style="color: var(--warning-orange);">⚠️ Your trial ends in ${data.daysLeft} days! Subscribe to continue.</span>`;
@@ -5598,15 +5597,10 @@ async function checkSubscriptionStatus() {
                 }
             } else {
                 banner.classList.add('hidden');
-                
-                // Check if account is locked due to flags
-                if (data.accountLocked) {
-                    showToast("Your account is locked pending admin review. Please contact support.", "error");
-                } else if (data.subscriptionPlan === 'free_trial' && data.daysLeft === 0) {
-                    // Trial expired, show subscription modal
-                    setTimeout(() => showSubscriptionModal(), 1000);
-                }
             }
+        } else if (banner) {
+            // Hide banner for clients
+            banner.classList.add('hidden');
         }
         
         return data;
@@ -5616,7 +5610,6 @@ async function checkSubscriptionStatus() {
         return null;
     }
 }
-
 // Show subscription modal with trial info
 function showSubscriptionModal() {
     const modal = document.getElementById('subscriptionModal');
@@ -7026,9 +7019,6 @@ function openFreelancerProfileFromInbox(userId) {
     openFreelancerProfile(userId);
 }
 
-function reportUser(userId) {
-    showToast('Report feature coming soon', 'info');
-}
 
 async function openFreelancerProfile(userId) {
     try {
@@ -7993,6 +7983,154 @@ async function startConversationWithUser(userId, username) {
     }
 }
 
+// Add to products.html - Product Actions
+async function addToCart(productId) {
+    if (!currentUser) {
+        showToast('Please login to add items to cart', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ productId, quantity: 1 })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('✅ Added to cart!', 'success');
+            updateCartCount();
+        } else {
+            showToast(data.error || 'Failed to add to cart', 'error');
+        }
+    } catch (err) {
+        console.error('Add to cart error:', err);
+        showToast('Error adding to cart', 'error');
+    }
+}
+
+async function buyNow(productId) {
+    if (!currentUser) {
+        showToast('Please login to purchase', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/products/' + productId, {
+            credentials: 'include'
+        });
+        
+        const product = await response.json();
+        
+        // Show order modal or redirect to checkout
+        showOrderModal(product);
+    } catch (err) {
+        console.error('Buy now error:', err);
+        showToast('Error processing purchase', 'error');
+    }
+}
+
+function showOrderModal(product) {
+    const modal = document.getElementById('orderModal');
+    const content = document.getElementById('orderContent');
+    
+    if (modal && content) {
+        content.innerHTML = `
+            <h3>${escapeHtml(product.title)}</h3>
+            <p>Price: $${product.price}</p>
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" id="orderQuantity" value="1" min="1" max="99">
+            </div>
+            <div class="form-group">
+                <label>Shipping Address</label>
+                <textarea id="shippingAddress" placeholder="Enter your full address"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="placeOrder(${product.id})">Place Order</button>
+        `;
+        openModal(modal);
+    }
+}
+
+async function placeOrder(productId) {
+    const quantity = document.getElementById('orderQuantity')?.value || 1;
+    const address = document.getElementById('shippingAddress')?.value;
+    
+    if (!address) {
+        showToast('Please enter shipping address', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/physical-orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                productId,
+                quantity: parseInt(quantity),
+                deliveryAddress: address,
+                deliveryPhone: currentUser?.phone || 'Not provided'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('✅ Order placed successfully!', 'success');
+            closeModal(document.getElementById('orderModal'));
+            // Redirect to orders page
+            setTimeout(() => {
+                window.location.href = '/orders.html';
+            }, 1500);
+        } else {
+            showToast(data.error || 'Failed to place order', 'error');
+        }
+    } catch (err) {
+        console.error('Order error:', err);
+        showToast('Error placing order', 'error');
+    }
+}
+
+async function toggleFavorite(productId, buttonElement) {
+    if (!currentUser) {
+        showToast('Please login to favorite products', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/favorites/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ productId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const icon = buttonElement.querySelector('i');
+            if (data.action === 'added') {
+                icon.className = 'fas fa-heart';
+                buttonElement.classList.add('active');
+            } else {
+                icon.className = 'far fa-heart';
+                buttonElement.classList.remove('active');
+            }
+            showToast(data.action === 'added' ? 'Added to favorites' : 'Removed from favorites', 'success');
+        }
+    } catch (err) {
+        console.error('Favorite error:', err);
+        showToast('Error updating favorites', 'error');
+    }
+}
+
 async function updateUIForUserRole() {
     const heroDescription = document.getElementById('heroDescription');
     const findServicesBtn = document.getElementById('findServicesBtn');
@@ -8048,17 +8186,24 @@ async function updateUIForUserRole() {
             }
             
             // Show/hide subscription banner based on trial days
-            if (subscriptionBanner) {
-                if (hasActiveSubscription && subStatus?.subscriptionPlan === 'free_trial') {
-                    subscriptionBanner.classList.remove('hidden');
-                    const daysLeftEl = document.getElementById('daysLeft');
-                    if (daysLeftEl) daysLeftEl.textContent = daysLeft;
-                } else if (hasActiveSubscription && subStatus?.subscriptionPlan !== 'free_trial') {
-                    subscriptionBanner.classList.add('hidden');
-                } else if (!hasActiveSubscription && daysLeft === 0) {
-                    subscriptionBanner.classList.add('hidden');
-                }
-            }
+           // Show/hide subscription banner based on trial days
+if (subscriptionBanner) {
+    // Only show for freelancers
+    if (currentUser && currentUser.role === 'freelancer') {
+        if (hasActiveSubscription && subStatus?.subscriptionPlan === 'free_trial') {
+            subscriptionBanner.classList.remove('hidden');
+            const daysLeftEl = document.getElementById('daysLeft');
+            if (daysLeftEl) daysLeftEl.textContent = daysLeft;
+        } else if (hasActiveSubscription && subStatus?.subscriptionPlan !== 'free_trial') {
+            subscriptionBanner.classList.add('hidden');
+        } else if (!hasActiveSubscription && daysLeft === 0) {
+            subscriptionBanner.classList.add('hidden');
+        }
+    } else {
+        // Hide for clients
+        subscriptionBanner.classList.add('hidden');
+    }
+}
             
             switchTab('browse');
             
@@ -10126,12 +10271,7 @@ function setupEventListeners() {
         });
     }
 
-    if ($('emojiPickerBtn')) {
-        $('emojiPickerBtn').addEventListener('click', () => {
-            showToast('Emoji picker coming soon', 'info');
-        });
-    }
-
+    
     if ($('attachImageBtn')) {
         $('attachImageBtn').addEventListener('click', () => {
             document.getElementById('fileInput').click();
@@ -10612,11 +10752,6 @@ async function viewServiceDetailsModal(serviceId) {
     }
 }
 
-function openFreelancerProfile(userId) {
-    // This will be implemented in the main services.js
-    // For now, just show a message
-    showToast("Profile viewer coming soon", "info");
-}
 
 function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     if (!currentUser) {
@@ -10662,13 +10797,7 @@ function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     }
 }
 
-function editService(serviceId) {
-    showToast("Edit service feature coming soon", "info");
-}
 
-function viewServiceStats(serviceId) {
-    showToast("Service statistics coming soon", "info");
-}
 
 function showReviewModal(serviceId, serviceTitle) {
     const modal = document.getElementById('addReviewModal');
@@ -11429,7 +11558,7 @@ setTimeout(checkFreelancerStatementNeeded, 2000);
 // ADD TO EXISTING FUNCTIONS
 // ============================================
 
-   
+      
 
 // Check freelancer warning on page load
 document.addEventListener('DOMContentLoaded', async () => {

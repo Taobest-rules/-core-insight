@@ -11429,35 +11429,7 @@ setTimeout(checkFreelancerStatementNeeded, 2000);
 // ADD TO EXISTING FUNCTIONS
 // ============================================
 
-// Modify the renderServices function to add flag button
-const originalRenderServices = renderServices;
-window.renderServices = function(servicesToRender) {
-    originalRenderServices(servicesToRender);
-    
-    // Add flag buttons to service cards
-    setTimeout(() => {
-        document.querySelectorAll('.service-card').forEach(card => {
-            const serviceId = card.dataset.serviceId;
-            const providerName = card.querySelector('.service-provider-name')?.textContent;
-            const freelancerId = card.querySelector('[data-freelancer-id]')?.dataset.freelancerId;
-            
-            // Try to get freelancer ID from the card
-            let userId = null;
-            const chatBtn = card.querySelector('.chat-btn');
-            if (chatBtn && chatBtn.onclick) {
-                const btnHtml = chatBtn.getAttribute('onclick');
-                if (btnHtml) {
-                    const match = btnHtml.match(/checkAndStartConversation\(\d+,\s*(\d+)\)/);
-                    if (match) userId = match[1];
-                }
-            }
-            
-            if (userId && currentUser?.role === 'client') {
-                addFlagButtonToService(card, userId, serviceId);
-            }
-        });
-    }, 100);
-};
+   
 
 // Check freelancer warning on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -11517,6 +11489,336 @@ setTimeout(function() {
     
     console.log('✅ All event listeners re-attached successfully');
 }, 100);
+
+// ==================== FIX setupServiceForm FUNCTION ====================
+function setupServiceForm() {
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        // Remove any existing listeners
+        const newForm = serviceForm.cloneNode(true);
+        serviceForm.parentNode.replaceChild(newForm, serviceForm);
+        
+        // Add the submit handler
+        newForm.addEventListener('submit', handleServiceFormSubmit);
+        console.log('✅ Service form listener attached');
+    }
+}
+
+// ==================== FIX renderServices FOR TAGS ====================
+// Override the renderServices function to handle tags correctly
+const originalRenderServices = window.renderServices;
+window.renderServices = function(servicesToRender) {
+    const container = document.getElementById('servicesList');
+    const noServices = document.getElementById('noServices');
+
+    if (!container) return;
+
+    if (!servicesToRender || servicesToRender.length === 0) {
+        container.innerHTML = '';
+        if (noServices) noServices.style.display = 'block';
+        return;
+    }
+
+    if (noServices) noServices.style.display = 'none';
+
+    container.innerHTML = servicesToRender.map(service => {
+        const serviceId = service.id;
+        const title = service.title || 'Untitled Service';
+        const description = service.description || 'No description available';
+        const price = service.price || 0;
+        const providerName = service.username || 'Unknown';
+        const userId = service.user_id;
+        const favoriteCount = service.favorite_count || 0;
+        const avgRating = service.avg_rating || 0;
+        const reviewCount = service.review_count || 0;
+        
+        // FIX: Handle tags properly - ensure it's an array
+        let tagsArray = [];
+        if (service.tags) {
+            if (typeof service.tags === 'string') {
+                try {
+                    tagsArray = JSON.parse(service.tags);
+                } catch (e) {
+                    tagsArray = service.tags.split(',').map(t => t.trim());
+                }
+            } else if (Array.isArray(service.tags)) {
+                tagsArray = service.tags;
+            }
+        }
+        
+        const shortDescription = description.length > 120 ? description.substring(0, 120) + '...' : description;
+
+        const providerPictureHtml = service.profile_picture_url ?
+            `<div class="profile-picture-wrapper">
+                <img src="${service.profile_picture_url}" alt="${providerName}" class="provider-profile-picture"
+                     onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'provider-initials\\'>${providerName.charAt(0).toUpperCase()}</div>';">
+            </div>` :
+            `<div class="provider-initials">${providerName.charAt(0).toUpperCase()}</div>`;
+
+        const isLoggedIn = !!currentUser;
+        const isClient = currentUser?.role === 'client';
+        const isOwner = currentUser?.id === userId;
+
+        let actionButtons = '';
+
+        if (isLoggedIn && !isOwner) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="checkAndStartConversation(${serviceId}, ${userId})">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (!isLoggedIn) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="showToast('Please login to chat', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="showToast('Please login to view profile', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (isOwner) {
+            actionButtons += `
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        }
+
+        if (isLoggedIn && isClient && !isOwner) {
+            actionButtons += `
+                <button class="btn recruit-btn" onclick="recruitFreelancer(${userId}, ${serviceId}, this)">
+                    <i class="fas fa-user-plus"></i> Recruit
+                </button>
+            `;
+        }
+
+        if (isLoggedIn && !isOwner) {
+            const isFavorited = service.is_favorited ? true : false;
+            const favoriteIcon = isFavorited ? 'fas fa-heart' : 'far fa-heart';
+            actionButtons += `
+                <button class="btn favorite-btn ${isFavorited ? 'active' : ''}" onclick="toggleServiceFavorite(${serviceId}, this)" data-service-id="${serviceId}">
+                    <i class="${favoriteIcon}"></i> Favorite <span class="favorite-count">${favoriteCount}</span>
+                </button>
+            `;
+        }
+
+        if (isLoggedIn && (isOwner || currentUser?.role === 'admin')) {
+            actionButtons += `
+                <button class="btn btn-danger" onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, ${isOwner})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            `;
+        }
+
+        const ratingHtml = avgRating > 0 ? 
+            `<div class="service-rating">
+                <span class="stars">${generateStars(avgRating)}</span>
+                <span class="rating-count">(${reviewCount})</span>
+            </div>` : '';
+
+        const deliveryInfo = service.delivery_time ? `
+            <div style="margin: 8px 0; color: var(--text-gray); font-size: 0.85rem;">
+                <i class="fas fa-clock"></i> Delivery: ${service.delivery_time} days
+            </div>
+        ` : '';
+        
+        const revisionsInfo = service.revisions ? `
+            <div style="margin: 5px 0; color: var(--text-gray); font-size: 0.85rem;">
+                <i class="fas fa-redo-alt"></i> Revisions: ${service.revisions}
+            </div>
+        ` : '';
+
+        return `
+            <div class="service-card" data-service-id="${serviceId}">
+                <div class="service-header">
+                    <h3 class="service-title">${escapeHtml(title)}</h3>
+                    <div class="service-price">${price > 0 ? `$${price}` : 'Free'}</div>
+                </div>
+
+                <div class="service-provider-info">
+                    ${providerPictureHtml}
+                    <div class="provider-info">
+                        <div class="service-provider-name">${escapeHtml(providerName)}</div>
+                        <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
+                        ${ratingHtml}
+                    </div>
+                </div>
+
+                <div class="description-container">
+                    <p class="service-description">${escapeHtml(shortDescription)}</p>
+                </div>
+
+                ${deliveryInfo}
+                ${revisionsInfo}
+
+                ${tagsArray.length > 0 ? `
+                    <div class="service-tags">
+                        ${tagsArray.slice(0, 3).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="service-actions">
+                    ${actionButtons}
+                </div>
+
+                <button class="btn btn-secondary view-details-btn" onclick="viewServiceDetailsModal(${serviceId})" style="width:100%; margin-top:10px;">
+                    <i class="fas fa-info-circle"></i> View Full Details
+                </button>
+            </div>
+        `;
+    }).join('');
+};
+
+// ==================== FIX CERTIFICATE UPLOAD ====================
+function setupCertificateUpload() {
+    const browseBtn = document.getElementById('browseCertificatesBtn');
+    const certificateInput = document.getElementById('certificateImagesInput');
+    const uploadArea = document.getElementById('certificateUploadArea');
+    
+    if (browseBtn && certificateInput) {
+        browseBtn.addEventListener('click', () => {
+            certificateInput.click();
+        });
+        
+        certificateInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                await uploadCertificates(e.target.files);
+            }
+        });
+    }
+    
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                await uploadCertificates(e.dataTransfer.files);
+            }
+        });
+    }
+}
+
+async function uploadCertificates(files) {
+    const maxFiles = 5;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (files.length > maxFiles) {
+        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
+        return;
+    }
+    
+    const formData = new FormData();
+    let validFiles = 0;
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith('image/')) {
+            showToast(`${file.name} is not an image`, 'warning');
+            continue;
+        }
+        if (file.size > maxSize) {
+            showToast(`${file.name} exceeds 5MB limit`, 'warning');
+            continue;
+        }
+        formData.append('certificate_images', file);
+        validFiles++;
+    }
+    
+    if (validFiles === 0) return;
+    
+    const progressDiv = document.getElementById('certificateProgress');
+    const progressBar = document.getElementById('certificateProgressBar');
+    const progressText = document.getElementById('certificateProgressText');
+    
+    if (progressDiv) progressDiv.style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/freelancer/certificate-images', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('Certificates uploaded successfully!', 'success');
+            await showFreelancerProfile(); // Refresh profile
+        } else {
+            showToast(result.error || 'Upload failed', 'error');
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error uploading certificates', 'error');
+    } finally {
+        if (progressDiv) progressDiv.style.display = 'none';
+        if (progressBar) progressBar.style.width = '0%';
+        if (certificateInput) certificateInput.value = '';
+    }
+}
+
+// ==================== FIX PROFILE PICTURE UPLOAD ====================
+async function uploadProfilePicture(file) {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    
+    showToast('Uploading profile picture...', 'info');
+    
+    try {
+        const response = await fetch('/api/freelancer/profile-picture', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Profile picture updated!', 'success');
+            await showFreelancerProfile();
+        } else {
+            showToast(result.error || 'Failed to upload picture', 'error');
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error uploading picture', 'error');
+    }
+}
+
+// ==================== INITIALIZE EVERYTHING ====================
+document.addEventListener('DOMContentLoaded', function() {
+    setupServiceForm();
+    setupCertificateUpload();
+    
+    // Fix profile picture button
+    const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    if (updatePhotoBtn && profilePictureInput) {
+        updatePhotoBtn.addEventListener('click', () => {
+            profilePictureInput.click();
+        });
+        
+        profilePictureInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadProfilePicture(e.target.files[0]);
+            }
+        });
+    }
+    
+    console.log('✅ All features initialized');
+});
 </script>
 
 <!-- Include mobile-nav.js -->

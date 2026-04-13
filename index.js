@@ -5012,6 +5012,520 @@ app.post("/api/services", async (req, res) => {
         res.status(500).json({ error: "Error creating service: " + err.message });
     }
 });
+
+// ==================== SERVICE FAVORITES ENDPOINT ====================
+app.post("/api/services/:serviceId/favorite", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const serviceId = req.params.serviceId;
+        const userId = req.session.user.id;
+
+        // Check if already favorited
+        const existing = await db.query(
+            "SELECT id FROM service_favorites WHERE user_id = ? AND service_id = ?",
+            [userId, serviceId]
+        );
+
+        let favorited = false;
+        let favoriteCount = 0;
+
+        if (existing && existing.length > 0) {
+            // Remove favorite
+            await db.query(
+                "DELETE FROM service_favorites WHERE user_id = ? AND service_id = ?",
+                [userId, serviceId]
+            );
+            favorited = false;
+        } else {
+            // Add favorite
+            await db.query(
+                "INSERT INTO service_favorites (user_id, service_id) VALUES (?, ?)",
+                [userId, serviceId]
+            );
+            favorited = true;
+        }
+
+        // Get updated count
+        const countResult = await db.query(
+            "SELECT COUNT(*) as count FROM service_favorites WHERE service_id = ?",
+            [serviceId]
+        );
+        
+        favoriteCount = countResult[0]?.count || 0;
+
+        // Update service table
+        await db.query(
+            "UPDATE services SET favorite_count = ? WHERE id = ?",
+            [favoriteCount, serviceId]
+        );
+
+        res.json({
+            success: true,
+            favorited: favorited,
+            favoriteCount: favoriteCount,
+            message: favorited ? "Added to favorites" : "Removed from favorites"
+        });
+
+    } catch (err) {
+        console.error("Favorite error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== RECRUIT FREELANCER ENDPOINT ====================
+app.post("/api/freelancer/recruit", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const { freelancerId, serviceId } = req.body;
+        const clientId = req.session.user.id;
+
+        if (req.session.user.role !== 'client') {
+            return res.status(403).json({ error: "Only clients can recruit freelancers" });
+        }
+
+        if (parseInt(clientId) === parseInt(freelancerId)) {
+            return res.status(400).json({ error: "You cannot recruit yourself" });
+        }
+
+        // Check if freelancer exists
+        const freelancerCheck = await db.query(
+            "SELECT id FROM users WHERE id = ? AND role = 'freelancer'",
+            [freelancerId]
+        );
+
+        if (!freelancerCheck || freelancerCheck.length === 0) {
+            return res.status(404).json({ error: "Freelancer not found" });
+        }
+
+        // Check if already recruited
+        const existing = await db.query(
+            "SELECT id FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
+            [clientId, freelancerId]
+        );
+
+        if (existing && existing.length > 0) {
+            // Update existing
+            await db.query(
+                `UPDATE client_providers 
+                 SET service_id = COALESCE(?, service_id),
+                     last_contacted = NOW(),
+                     status = 'active'
+                 WHERE client_id = ? AND freelancer_id = ?`,
+                [serviceId || null, clientId, freelancerId]
+            );
+            
+            return res.json({
+                success: true,
+                message: "Provider already in your list, updated successfully"
+            });
+        }
+
+        // Insert new
+        await db.query(
+            `INSERT INTO client_providers (client_id, freelancer_id, service_id, recruited_at, last_contacted, status) 
+             VALUES (?, ?, ?, NOW(), NOW(), 'active')`,
+            [clientId, freelancerId, serviceId || null]
+        );
+
+        res.json({
+            success: true,
+            message: "Freelancer added to your providers list successfully!"
+        });
+
+    } catch (err) {
+        console.error("Recruit error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== GET USER PROFILE ENDPOINT ====================
+app.get("/api/users/:userId/profile", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        
+        const result = await db.query(
+            `SELECT 
+                u.id,
+                u.username,
+                u.email,
+                u.created_at,
+                fp.headline,
+                fp.description,
+                fp.hourly_rate,
+                fp.skills,
+                fp.languages,
+                fp.experience_level,
+                fp.location,
+                fp.availability,
+                fp.profile_picture_url as profile_picture,
+                fp.completed_orders,
+                fp.total_earnings,
+                (SELECT AVG(rating) FROM service_reviews WHERE service_id IN (SELECT id FROM services WHERE user_id = u.id)) as avg_rating,
+                (SELECT COUNT(*) FROM service_reviews WHERE service_id IN (SELECT id FROM services WHERE user_id = u.id)) as review_count,
+                (SELECT COUNT(*) FROM services WHERE user_id = u.id AND status = 'active') as service_count
+            FROM users u
+            LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
+            WHERE u.id = ?`,
+            [userId]
+        );
+
+        let user = null;
+        if (Array.isArray(result)) {
+            user = result.length === 2 ? result[0][0] : result[0];
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Parse skills if string
+        if (user.skills && typeof user.skills === 'string') {
+            try {
+                user.skills = JSON.parse(user.skills);
+            } catch (e) {
+                user.skills = [];
+            }
+        }
+
+        // Parse languages if string
+        if (user.languages && typeof user.languages === 'string') {
+            try {
+                user.languages = JSON.parse(user.languages);
+            } catch (e) {
+                user.languages = [];
+            }
+        }
+
+        res.json(user);
+
+    } catch (err) {
+        console.error("Error fetching user profile:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== GET USER CERTIFICATES ENDPOINT ====================
+app.get("/api/users/:userId/certificates", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        
+        const result = await db.query(
+            "SELECT certificate_image_urls as certificate_images FROM freelancer_profiles WHERE user_id = ?",
+            [userId]
+        );
+
+        let certificates = [];
+        if (result && result.length > 0 && result[0].certificate_images) {
+            try {
+                certificates = JSON.parse(result[0].certificate_images);
+            } catch (e) {
+                certificates = [result[0].certificate_images];
+            }
+        }
+
+        res.json({ certificate_images: certificates });
+
+    } catch (err) {
+        console.error("Error fetching certificates:", err);
+        res.json({ certificate_images: [] });
+    }
+});
+// ==================== SERVICE FAVORITES ENDPOINT ====================
+app.post("/api/services/:serviceId/favorite", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const serviceId = req.params.serviceId;
+        const userId = req.session.user.id;
+
+        // Check if table exists, if not create it
+        try {
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS service_favorites (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    user_id INT NOT NULL,
+                    service_id INT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_favorite (user_id, service_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+                )
+            `);
+        } catch (tableErr) {
+            console.log("Table might already exist");
+        }
+
+        // Check if already favorited
+        const existing = await db.query(
+            "SELECT id FROM service_favorites WHERE user_id = ? AND service_id = ?",
+            [userId, serviceId]
+        );
+
+        let favorited = false;
+        let favoriteCount = 0;
+
+        if (existing && existing.length > 0) {
+            // Remove favorite
+            await db.query(
+                "DELETE FROM service_favorites WHERE user_id = ? AND service_id = ?",
+                [userId, serviceId]
+            );
+            favorited = false;
+        } else {
+            // Add favorite
+            await db.query(
+                "INSERT INTO service_favorites (user_id, service_id) VALUES (?, ?)",
+                [userId, serviceId]
+            );
+            favorited = true;
+        }
+
+        // Get updated count
+        const countResult = await db.query(
+            "SELECT COUNT(*) as count FROM service_favorites WHERE service_id = ?",
+            [serviceId]
+        );
+        
+        favoriteCount = countResult[0]?.count || 0;
+
+        // Update service table if favorite_count column exists
+        try {
+            await db.query(
+                "UPDATE services SET favorite_count = ? WHERE id = ?",
+                [favoriteCount, serviceId]
+            );
+        } catch (updateErr) {
+            console.log("favorite_count column might not exist yet");
+        }
+
+        res.json({
+            success: true,
+            favorited: favorited,
+            favoriteCount: favoriteCount,
+            message: favorited ? "Added to favorites" : "Removed from favorites"
+        });
+
+    } catch (err) {
+        console.error("Favorite error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== GET SERVICE FAVORITES FOR USER ====================
+app.get("/api/services/favorites", async (req, res) => {
+    if (!req.session.user) {
+        return res.json([]);
+    }
+
+    try {
+        const userId = req.session.user.id;
+        
+        const favorites = await db.query(`
+            SELECT s.*, u.username 
+            FROM service_favorites sf
+            JOIN services s ON sf.service_id = s.id
+            JOIN users u ON s.user_id = u.id
+            WHERE sf.user_id = ?
+            ORDER BY sf.created_at DESC
+        `, [userId]);
+
+        res.json(favorites || []);
+        
+    } catch (err) {
+        console.error("Error fetching favorites:", err);
+        res.json([]);
+    }
+});
+
+// ==================== RECRUIT FREELANCER ENDPOINT ====================
+app.post("/api/freelancer/recruit", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const { freelancerId, serviceId } = req.body;
+        const clientId = req.session.user.id;
+
+        if (req.session.user.role !== 'client') {
+            return res.status(403).json({ error: "Only clients can recruit freelancers" });
+        }
+
+        if (parseInt(clientId) === parseInt(freelancerId)) {
+            return res.status(400).json({ error: "You cannot recruit yourself" });
+        }
+
+        // Create client_providers table if not exists
+        try {
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS client_providers (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    client_id INT NOT NULL,
+                    freelancer_id INT NOT NULL,
+                    service_id INT NULL,
+                    recruited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_contacted TIMESTAMP NULL,
+                    status VARCHAR(50) DEFAULT 'active',
+                    UNIQUE KEY unique_provider (client_id, freelancer_id),
+                    FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
+        } catch (tableErr) {
+            console.log("Table might already exist");
+        }
+
+        // Check if freelancer exists
+        const freelancerCheck = await db.query(
+            "SELECT id FROM users WHERE id = ? AND role = 'freelancer'",
+            [freelancerId]
+        );
+
+        if (!freelancerCheck || freelancerCheck.length === 0) {
+            return res.status(404).json({ error: "Freelancer not found" });
+        }
+
+        // Check if already recruited
+        const existing = await db.query(
+            "SELECT id FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
+            [clientId, freelancerId]
+        );
+
+        if (existing && existing.length > 0) {
+            // Update existing
+            await db.query(
+                `UPDATE client_providers 
+                 SET service_id = COALESCE(?, service_id),
+                     last_contacted = NOW(),
+                     status = 'active'
+                 WHERE client_id = ? AND freelancer_id = ?`,
+                [serviceId || null, clientId, freelancerId]
+            );
+            
+            return res.json({
+                success: true,
+                message: "Provider already in your list, updated successfully"
+            });
+        }
+
+        // Insert new
+        await db.query(
+            `INSERT INTO client_providers (client_id, freelancer_id, service_id, recruited_at, last_contacted, status) 
+             VALUES (?, ?, ?, NOW(), NOW(), 'active')`,
+            [clientId, freelancerId, serviceId || null]
+        );
+
+        res.json({
+            success: true,
+            message: "Freelancer added to your providers list successfully!"
+        });
+
+    } catch (err) {
+        console.error("Recruit error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== GET USER PROFILE ENDPOINT ====================
+app.get("/api/users/:userId/profile", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        
+        const result = await db.query(
+            `SELECT 
+                u.id,
+                u.username,
+                u.email,
+                u.created_at,
+                fp.headline,
+                fp.description,
+                fp.hourly_rate,
+                fp.skills,
+                fp.languages,
+                fp.experience_level,
+                fp.location,
+                fp.phone,
+                fp.website,
+                fp.availability,
+                fp.profile_picture_url as profile_picture,
+                fp.completed_orders,
+                fp.total_earnings,
+                (SELECT COUNT(*) FROM services WHERE user_id = u.id AND status = 'active') as service_count
+            FROM users u
+            LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
+            WHERE u.id = ?`,
+            [userId]
+        );
+
+        let user = null;
+        if (Array.isArray(result) && result.length > 0) {
+            user = result[0];
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Parse skills if string
+        if (user.skills && typeof user.skills === 'string') {
+            try {
+                user.skills = JSON.parse(user.skills);
+            } catch (e) {
+                user.skills = [];
+            }
+        }
+
+        // Parse languages if string
+        if (user.languages && typeof user.languages === 'string') {
+            try {
+                user.languages = JSON.parse(user.languages);
+            } catch (e) {
+                user.languages = [];
+            }
+        }
+
+        res.json(user);
+
+    } catch (err) {
+        console.error("Error fetching user profile:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== GET USER CERTIFICATES ENDPOINT ====================
+app.get("/api/users/:userId/certificates", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        
+        const result = await db.query(
+            "SELECT certificate_image_urls as certificate_images FROM freelancer_profiles WHERE user_id = ?",
+            [userId]
+        );
+
+        let certificates = [];
+        if (result && result.length > 0 && result[0].certificate_images) {
+            try {
+                certificates = JSON.parse(result[0].certificate_images);
+            } catch (e) {
+                certificates = [result[0].certificate_images];
+            }
+        }
+
+        res.json({ certificate_images: certificates });
+
+    } catch (err) {
+        console.error("Error fetching certificates:", err);
+        res.json({ certificate_images: [] });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM BACKEND ROUTES
 // ============================================

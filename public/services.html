@@ -3940,8 +3940,6 @@
         <button class="tab" id="providerProfileTabBtn">Profile</button>
         <button class="tab" id="providerSubscriptionTabBtn">Subscription</button>
         <button class="tab" id="providerClientsTabBtn">Clients <span class="badge hidden" id="clientRequestsBadge"></span></button>
-        <button class="tab" id="providerOrdersTabBtn">Orders</button>
-        <button class="tab" id="providerEarningsTabBtn">Earnings</button>
       </div>
 
       <!-- Browse Services Tab -->
@@ -4037,30 +4035,7 @@
         </div>
       </div>
 
-      <!-- My Orders Tab -->
-      <div id="myOrdersTab" class="tab-content hidden">
-        <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-          <div>
-            <h3 style="color: var(--text-light); margin-bottom: 5px;">My Orders</h3>
-            <p style="color: var(--text-gray);">Track your service orders</p>
-          </div>
-          <select id="orderStatusFilter" style="padding: 12px; border-radius: 8px; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
-            <option value="all">All Orders</option>
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-        <div id="ordersList" class="services-grid">
-          <!-- Orders will be loaded here -->
-        </div>
-        <div id="noOrders" style="display: none; text-align: center; padding: 60px 20px; color: var(--text-gray);">
-          <i class="fas fa-shopping-bag" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.5;"></i>
-          <h3 style="color: var(--text-light); margin-bottom: 10px;">No orders yet</h3>
-          <p>When you order services, they'll appear here</p>
-        </div>
-      </div>
+   
 
       <!-- Profile Tab -->
       <div id="profileTab" class="tab-content hidden">
@@ -4113,41 +4088,6 @@
         </div>
       </div>
 
-      <!-- Provider Orders Tab -->
-      <div id="providerOrdersTab" class="tab-content hidden">
-        <h3 style="color: var(--text-light); margin-bottom: 20px;">Service Orders</h3>
-        <p style="color: var(--text-gray); margin-bottom: 30px;">Manage orders from your clients.</p>
-        <div id="providerOrdersList" class="services-grid">
-          <!-- Provider orders will be loaded here -->
-        </div>
-      </div>
-
-      <!-- Provider Earnings Tab -->
-      <div id="providerEarningsTab" class="tab-content hidden">
-        <h3 style="color: var(--text-light); margin-bottom: 20px;">Earnings</h3>
-        <p style="color: var(--text-gray); margin-bottom: 30px;">Track your revenue and payouts.</p>
-        <div class="admin-stats-grid" style="margin-bottom: 30px;">
-          <div class="admin-stat-card">
-            <div class="admin-stat-value" id="totalEarnings">$0</div>
-            <div class="admin-stat-label">Total Earnings</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-value" id="monthlyEarnings">$0</div>
-            <div class="admin-stat-label">This Month</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-value" id="pendingPayouts">$0</div>
-            <div class="admin-stat-label">Pending Payouts</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-value" id="completedOrders">0</div>
-            <div class="admin-stat-label">Completed Orders</div>
-          </div>
-        </div>
-        <div id="earningsHistory">
-          <!-- Earnings history will be loaded here -->
-        </div>
-      </div>
     </section>
 
     <!-- Create Service Form -->
@@ -7021,217 +6961,31 @@ function openFreelancerProfileFromInbox(userId) {
 
 
 async function openFreelancerProfile(userId) {
+    if (!userId) {
+        showToast("Invalid user ID", "error");
+        return;
+    }
+    
     try {
-        const modal = $('freelancerProfileModal');
-        if (!modal) {
-            showToast("Profile modal not found", "error");
-            return;
-        }
-
-        const container = $("freelancerProfileContent");
-        if (!container) return;
-
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-                <div style="margin-bottom: 20px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--accent-blue);"></i>
-                </div>
-                <h3 style="color: var(--text-light);">Loading Profile...</h3>
-                <p style="color: var(--text-gray);">Please wait while we load the freelancer's profile.</p>
-            </div>
-        `;
-
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-        modal.classList.add('open');
-        modal.setAttribute('aria-hidden', 'false');
-
-        const res = await fetch(`/api/users/${userId}/profile`, {
+        const response = await fetch(`/api/users/${userId}/profile`, {
             credentials: 'include'
         });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to load profile (${res.status})`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to load profile');
         }
-
-        const data = await res.json();
-
-        let certificates = [];
-        try {
-            const certRes = await fetch(`/api/users/${userId}/certificates`, {
-                credentials: 'include'
-            });
-            if (certRes.ok) {
-                const certData = await certRes.json();
-                certificates = certData.certificate_images || [];
-            }
-        } catch (certError) {}
-
-        const profileHtml = `
-            <div style="text-align: center; margin-bottom: 30px;">
-                <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 20px; border: 3px solid var(--accent-gold); background: var(--gradient-primary);">
-                    ${data.profile_picture ?
-                        `<img src="${data.profile_picture}" alt="${data.username}" 
-                             style="width: 100%; height: 100%; object-fit: cover;"
-                             onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white;\\'>${data.username?.charAt(0)?.toUpperCase() || 'U'}</div>';">` :
-                        `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white;">
-                            ${data.username?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>`
-                    }
-                </div>
-
-                <h2 style="color: var(--accent-gold); margin-bottom: 10px;">${escapeHtml(data.username || 'User')}</h2>
-                <p style="color: var(--text-light); font-size: 1.1rem; margin-bottom: 5px; font-weight: 500;">
-                    ${escapeHtml(data.headline || 'Freelancer')}
-                </p>
-
-                <div style="margin-bottom: 20px;">
-                    <div style="color: var(--accent-gold); font-size: 1.2rem; margin-bottom: 5px;">
-                        ${generateStars(data.avg_rating || 0)}
-                    </div>
-                    <p style="color: var(--text-gray); font-size: 0.9rem;">
-                        ${data.avg_rating?.toFixed(1) || '0.0'} rating (${data.review_count || 0} reviews)
-                    </p>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
-                <div style="background: var(--secondary-dark); padding: 15px; border-radius: 12px; text-align: center;">
-                    <div style="color: var(--accent-gold); font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${data.service_count || 0}</div>
-                    <div style="color: var(--text-gray); font-size: 0.9rem;">Services</div>
-                </div>
-
-                <div style="background: var(--secondary-dark); padding: 15px; border-radius: 12px; text-align: center;">
-                    <div style="color: var(--accent-gold); font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">$${data.hourly_rate || '0'}/hr</div>
-                    <div style="color: var(--text-gray); font-size: 0.9rem;">Hourly Rate</div>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-                    <i class="fas fa-user-circle" style="margin-right: 10px;"></i> About Me
-                </h4>
-                <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px; border-left: 4px solid var(--accent-gold);">
-                    <p style="color: var(--text-light); line-height: 1.6; margin: 0;">
-                        ${escapeHtml(data.description || 'No description provided.')}
-                    </p>
-                </div>
-            </div>
-
-            ${data.skills && data.skills.length > 0 ? `
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-                        <i class="fas fa-tools" style="margin-right: 10px;"></i> Skills
-                    </h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        ${data.skills.map(skill => `
-                            <span style="background: rgba(251, 191, 36, 0.1); color: var(--accent-gold); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(251, 191, 36, 0.3);">
-                                ${escapeHtml(skill)}
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-
-            ${certificates.length > 0 ? `
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-                        <i class="fas fa-award" style="margin-right: 10px;"></i> Certificates (${certificates.length})
-                    </h4>
-                    <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px;">
-                        <div id="certificateGallery" class="certificate-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
-                            ${certificates.map((cert, index) => `
-                                <div class="certificate-item" style="position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid rgba(255,255,255,0.1);">
-                                    <img src="${cert}" alt="Certificate ${index + 1}" 
-                                         style="width: 100%; height: 120px; object-fit: cover;"
-                                         onclick="openCertificateViewer('${cert}', ${index})">
-                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 5px; font-size: 0.8rem; text-align: center;">
-                                        Certificate ${index + 1}
-                                    </div>
-                                    <button onclick="viewCertificateFull('${cert}', event)" 
-                                            style="position: absolute; top: 5px; right: 5px; background: rgba(59, 130, 246, 0.8); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.8rem;">
-                                        <i class="fas fa-expand"></i>
-                                    </button>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <p style="color: var(--text-gray); font-size: 0.9rem; margin-top: 10px; text-align: center;">
-                            Click on any certificate to view it full screen
-                        </p>
-                    </div>
-                </div>
-            ` : ''}
-
-            ${data.location || data.experience_level ? `
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: var(--accent-gold); margin-bottom: 15px; display: flex; align-items: center;">
-                        <i class="fas fa-info-circle" style="margin-right: 10px;"></i> Details
-                    </h4>
-                    <div style="background: var(--secondary-dark); padding: 20px; border-radius: 12px;">
-                        ${data.location ? `
-                            <div style="color: var(--text-light); margin-bottom: 10px; display: flex; align-items: center;">
-                                <i class="fas fa-map-marker-alt" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
-                                <span>${escapeHtml(data.location)}</span>
-                            </div>
-                        ` : ''}
-                        ${data.experience_level ? `
-                            <div style="color: var(--text-light); margin-bottom: 10px; display: flex; align-items: center;">
-                                <i class="fas fa-chart-line" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
-                                <span>${data.experience_level.charAt(0).toUpperCase() + data.experience_level.slice(1)} Level</span>
-                            </div>
-                        ` : ''}
-                        ${data.availability ? `
-                            <div style="color: var(--text-light); display: flex; align-items: center;">
-                                <i class="fas fa-clock" style="color: var(--accent-gold); margin-right: 10px; width: 20px;"></i>
-                                <span>${data.availability === 'available' ? 'Available Now' :
-                                        data.availability === 'busy' ? 'Currently Busy' :
-                                        'Not Available'}</span>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            ` : ''}
-
-            <div style="display: flex; gap: 15px; margin-top: 30px;">
-                <button onclick="startConversationWithFreelancer(${userId}, '${escapeHtml(data.username || 'User')}')" 
-                        class="btn btn-primary" style="flex: 1; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="fas fa-comments"></i> Message
-                </button>
-                <button onclick="closeModal($('freelancerProfileModal'))" 
-                        class="btn btn-secondary" style="flex: 1; padding: 12px;">
-                    Close
-                </button>
-            </div>
-        `;
-
-        container.innerHTML = profileHtml;
-
+        
+        const profile = await response.json();
+        
+        // Create or show modal with profile info
+        showToast(`${profile.username}'s profile loaded`, 'success');
+        
+        // You can open a modal or redirect to profile page
+        window.open(`/profile.html?userId=${userId}`, '_blank');
+        
     } catch (err) {
-        const container = $("freelancerProfileContent");
-        if (container) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <div style="margin-bottom: 20px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ef4444;"></i>
-                    </div>
-                    <h3 style="color: var(--text-light); margin-bottom: 10px;">Failed to Load Profile</h3>
-                    <p style="color: var(--text-gray); margin-bottom: 20px;">
-                        ${err.message || 'Unable to load the freelancer profile.'}
-                    </p>
-                    <button onclick="closeModal($('freelancerProfileModal'))" class="btn btn-secondary">
-                        Close
-                    </button>
-                </div>
-            `;
-        }
-
-        const modal = $('freelancerProfileModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.style.display = 'flex';
-            modal.classList.add('open');
-        }
+        console.error("Error loading profile:", err);
+        showToast("Error loading profile", "error");
     }
 }
 

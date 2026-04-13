@@ -3928,9 +3928,7 @@
       <!-- Client View Tabs -->
       <div id="clientTabs" class="tabs hidden">
         <button class="tab active" id="browseTabBtn">Browse Services</button>
-        <button class="tab" id="myProvidersTabBtn">My Providers <span class="badge hidden" id="providersBadge"></span></button>
-        <button class="tab" id="favoritesTabBtn">Favorites</button>
-        <button class="tab" id="myOrdersTabBtn">My Orders</button>
+      <button class="tab" id="myProvidersTabBtn">My Freelancers <span class="badge hidden" id="providersBadge"></span></button>  
       </div>
 
       <!-- Provider View Tabs -->
@@ -3983,21 +3981,20 @@
 
       <!-- My Services Tab (Client View: My Providers) -->
       <div id="myServicesTab" class="tab-content hidden">
-        <!-- Client View: My Service Providers -->
-        <div id="clientServicesView" class="hidden">
-          <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <div>
-              <h3 style="color: var(--text-light); margin-bottom: 5px;">My Service Providers</h3>
-              <p style="color: var(--text-gray);">Freelancers you've recruited or worked with</p>
-            </div>
-            <button class="btn btn-primary" id="browseToRecruitBtn">
-              <i class="fas fa-search"></i> Browse to Recruit
-            </button>
-          </div>
-          <div id="clientServicesList" class="services-grid">
-            <!-- Client's service providers will be loaded here -->
-          </div>
-        </div>
+    <div id="clientServicesView" class="hidden">
+  <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <div>
+      <h3 style="color: var(--text-light); margin-bottom: 5px;">My Freelancers</h3>
+      <p style="color: var(--text-gray);">Freelancers you've recruited or worked with</p>
+    </div>
+    <button class="btn btn-primary" id="browseToRecruitBtn">
+      <i class="fas fa-search"></i> Browse to Recruit
+    </button>
+  </div>
+  <div id="clientServicesList" class="services-grid">
+    <!-- Client's freelancers will be loaded here -->
+  </div>
+</div>
 
         <!-- Provider View: My Services -->
         <div id="providerServicesView" class="hidden">
@@ -9479,54 +9476,65 @@ document.head.appendChild(styleSheet);
 
 // ==================== INITIALIZATION ====================
 
-
 /*********************
  *  Switch Tab Function *
  *********************/
 function switchTab(tabName) {
+    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(tab => {
         if (tab) tab.classList.add('hidden');
     });
     
+    // Remove active class from all tabs
     document.querySelectorAll('.tab').forEach(tab => {
         if (tab) tab.classList.remove('active');
     });
 
+    // Show the selected tab
     const tabElement = $(tabName + 'Tab');
     if (tabElement) {
         tabElement.classList.remove('hidden');
     }
 
+    // Highlight the clicked button
     const clickedButton = event?.target;
     if (clickedButton && clickedButton.classList.contains('tab')) {
         clickedButton.classList.add('active');
     }
 
+    // Load content based on tab
     if (tabName === 'browse') {
         loadServices();
-    } else if (tabName === 'myServices') {
+    } 
+    else if (tabName === 'myServices') {
         if (userRole === 'freelancer') {
             loadMyServices();
         } else {
-            loadClientServices();
+            loadMyFreelancers();  // Changed from loadClientServices to loadMyFreelancers
         }
-    } else if (tabName === 'subscription') {
+    } 
+    else if (tabName === 'subscription') {
         loadSubscriptionStatus();
-    } else if (tabName === 'clients') {
+    } 
+    else if (tabName === 'clients') {
         loadMyClients();
-    } else if (tabName === 'profile') {
+    } 
+    else if (tabName === 'profile') {
         showFreelancerProfile();
-    } else if (tabName === 'favorites') {
+    } 
+    else if (tabName === 'favorites') {
         loadFavorites();
-    } else if (tabName === 'myOrders') {
+    } 
+    else if (tabName === 'myOrders') {
         loadOrders();
-    } else if (tabName === 'providerOrders') {
+    } 
+    else if (tabName === 'providerOrders') {
         loadProviderOrders();
-    } else if (tabName === 'providerEarnings') {
+    } 
+    else if (tabName === 'providerEarnings') {
         loadProviderEarnings();
     }
 }
-
 /*********************
  *  Authentication Functions *
  *********************/
@@ -10505,7 +10513,179 @@ async function viewServiceDetailsModal(serviceId) {
         showToast("Failed to load service details", "error");
     }
 }
+// Load client's freelancers (formerly providers)
+async function loadMyFreelancers() {
+    const container = document.getElementById('clientServicesList');
+    if (!container) return;
 
+    try {
+        container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading your freelancers...</div>';
+        
+        const response = await fetch('/api/client/providers', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load freelancers');
+        }
+        
+        const freelancers = await response.json();
+        
+        if (!freelancers || freelancers.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; grid-column: 1 / -1;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🤝</div>
+                    <h3 style="color: var(--text-light); margin-bottom: 10px;">No Freelancers Yet</h3>
+                    <p style="color: var(--text-gray); margin-bottom: 20px;">Browse services and click "Recruit" to add freelancers to your list.</p>
+                    <button class="btn btn-primary" onclick="switchTab('browse')">
+                        <i class="fas fa-search"></i> Browse Services
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = freelancers.map(freelancer => {
+            const profilePicture = freelancer.profile_picture;
+            const profileInitial = freelancer.username ? freelancer.username.charAt(0).toUpperCase() : 'U';
+            
+            const profilePictureHtml = profilePicture ?
+                `<img src="${profilePicture}" alt="${freelancer.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` :
+                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; background: var(--gradient-primary); border-radius: 50%; color: white;">${profileInitial}</div>`;
+            
+            return `
+                <div class="service-card" data-freelancer-id="${freelancer.freelancer_id}">
+                    <div class="service-header">
+                        <h3 class="service-title">${escapeHtml(freelancer.username)}</h3>
+                        <div class="service-price">${freelancer.hourly_rate ? `$${freelancer.hourly_rate}/hr` : 'Rate not set'}</div>
+                    </div>
+                    
+                    <div class="service-provider-info">
+                        <div class="profile-picture-wrapper" style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden;">
+                            ${profilePictureHtml}
+                        </div>
+                        <div class="provider-info">
+                            <div class="service-provider-name">${escapeHtml(freelancer.headline || 'Freelancer')}</div>
+                            <div class="service-provider">${escapeHtml(freelancer.location || 'Location not specified')}</div>
+                            <div class="service-rating">
+                                <span class="stars">${generateStars(freelancer.avg_rating || 0)}</span>
+                                <span class="rating-count">(${freelancer.completed_orders || 0} orders)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${freelancer.service_title ? `
+                        <div style="margin: 10px 0; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                            <small style="color: var(--text-gray);">Recruited for:</small>
+                            <div style="color: var(--accent-blue); font-weight: 500;">${escapeHtml(freelancer.service_title)}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="service-actions">
+                        <button class="btn chat-btn" onclick="checkAndStartConversation(null, ${freelancer.freelancer_id})">
+                            <i class="fas fa-comments"></i> Message
+                        </button>
+                        <button class="btn profile-btn" onclick="openFreelancerProfile(${freelancer.freelancer_id})">
+                            <i class="fas fa-user"></i> View Profile
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (err) {
+        console.error("Error loading freelancers:", err);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--error-red); grid-column: 1 / -1;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <p>Failed to load your freelancers</p>
+                <button class="btn btn-primary" onclick="loadMyFreelancers()">Try Again</button>
+            </div>
+        `;
+    }
+}
+
+// Load favorites
+async function loadFavorites() {
+    const container = document.getElementById('favoritesList');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading favorites...</div>';
+        
+        const response = await fetch('/api/client/favorites', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load favorites');
+        }
+        
+        const favorites = await response.json();
+        const noFavoritesDiv = document.getElementById('noFavorites');
+        
+        if (!favorites || favorites.length === 0) {
+            if (noFavoritesDiv) noFavoritesDiv.style.display = 'block';
+            container.innerHTML = '';
+            return;
+        }
+        
+        if (noFavoritesDiv) noFavoritesDiv.style.display = 'none';
+        
+        container.innerHTML = favorites.map(service => {
+            const providerName = service.provider_name || service.username || 'Unknown';
+            const profilePicture = service.provider_picture;
+            const profileInitial = providerName.charAt(0).toUpperCase();
+            
+            const providerPictureHtml = profilePicture ?
+                `<img src="${profilePicture}" alt="${providerName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` :
+                `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; background: var(--gradient-primary); border-radius: 50%; color: white;">${profileInitial}</div>`;
+            
+            return `
+                <div class="service-card" data-service-id="${service.id}">
+                    <div class="service-header">
+                        <h3 class="service-title">${escapeHtml(service.title)}</h3>
+                        <div class="service-price">${service.price > 0 ? `$${service.price}` : 'Free'}</div>
+                    </div>
+                    
+                    <div class="service-provider-info">
+                        <div class="profile-picture-wrapper" style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden;">
+                            ${providerPictureHtml}
+                        </div>
+                        <div class="provider-info">
+                            <div class="service-provider-name">${escapeHtml(providerName)}</div>
+                            <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
+                        </div>
+                    </div>
+                    
+                    <p class="service-description">${escapeHtml((service.description || '').substring(0, 100))}${(service.description || '').length > 100 ? '...' : ''}</p>
+                    
+                    <div class="service-actions">
+                        <button class="btn chat-btn" onclick="checkAndStartConversation(${service.id}, ${service.provider_id})">
+                            <i class="fas fa-comments"></i> Chat
+                        </button>
+                        <button class="btn profile-btn" onclick="openFreelancerProfile(${service.provider_id})">
+                            <i class="fas fa-user"></i> View Profile
+                        </button>
+                        <button class="btn favorite-btn active" onclick="toggleServiceFavorite(${service.id}, this)">
+                            <i class="fas fa-heart"></i> Favorited
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (err) {
+        console.error("Error loading favorites:", err);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--error-red); grid-column: 1 / -1;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <p>Failed to load favorites</p>
+                <button class="btn btn-primary" onclick="loadFavorites()">Try Again</button>
+            </div>
+        `;
+    }
+}
 
 function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     if (!currentUser) {

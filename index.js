@@ -5526,6 +5526,97 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
         res.json({ certificate_images: [] });
     }
 });
+// ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
+app.get("/api/client/providers", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    if (req.session.user.role !== 'client' && req.session.user.role !== 'admin') {
+        return res.json([]);
+    }
+
+    try {
+        const clientId = req.session.user.id;
+
+        const result = await db.query(`
+            SELECT 
+                cp.*,
+                u.id as freelancer_id,
+                u.username,
+                u.email,
+                fp.profile_picture_url as profile_picture,
+                fp.headline,
+                fp.hourly_rate,
+                fp.skills,
+                fp.location,
+                fp.completed_orders,
+                fp.availability,
+                s.id as service_id,
+                s.title as service_title,
+                s.price as service_price,
+                s.category as service_category,
+                cp.recruited_at,
+                cp.last_contacted,
+                cp.status
+            FROM client_providers cp
+            JOIN users u ON cp.freelancer_id = u.id
+            LEFT JOIN freelancer_profiles fp ON fp.user_id = cp.freelancer_id
+            LEFT JOIN services s ON cp.service_id = s.id
+            WHERE cp.client_id = ? AND cp.status = 'active'
+            ORDER BY cp.last_contacted DESC, cp.recruited_at DESC
+        `, [clientId]);
+
+        let providers = [];
+        if (Array.isArray(result)) {
+            providers = result.length === 2 ? result[0] : result;
+        }
+
+        res.json(providers);
+
+    } catch (err) {
+        console.error("Error loading freelancers:", err);
+        res.status(500).json({ error: "Failed to load freelancers: " + err.message });
+    }
+});
+
+// ==================== GET CLIENT'S FAVORITES ====================
+app.get("/api/client/favorites", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        
+        const favorites = await db.query(`
+            SELECT 
+                s.*,
+                u.username as provider_name,
+                u.id as provider_id,
+                fp.profile_picture_url as provider_picture,
+                fp.headline as provider_headline,
+                sf.created_at as favorited_at
+            FROM service_favorites sf
+            JOIN services s ON sf.service_id = s.id
+            JOIN users u ON s.user_id = u.id
+            LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
+            WHERE sf.user_id = ? AND s.status = 'active'
+            ORDER BY sf.created_at DESC
+        `, [userId]);
+
+        let favoritesList = [];
+        if (Array.isArray(favorites)) {
+            favoritesList = favorites.length === 2 ? favorites[0] : favorites;
+        }
+
+        res.json(favoritesList);
+
+    } catch (err) {
+        console.error("Error loading favorites:", err);
+        res.status(500).json({ error: "Failed to load favorites: " + err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM BACKEND ROUTES
 // ============================================

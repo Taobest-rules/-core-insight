@@ -3928,7 +3928,8 @@
       <!-- Client View Tabs -->
       <div id="clientTabs" class="tabs hidden">
         <button class="tab active" id="browseTabBtn">Browse Services</button>
-      <button class="tab" id="myProvidersTabBtn">My Freelancers <span class="badge hidden" id="providersBadge"></span></button>  
+      <button class="tab" id="myProvidersTabBtn">My Freelancers <span class="badge hidden" id="providersBadge"></span></button>
+        <button class="tab" id="favoritesTabBtn">Favorites</button>  
       </div>
 
       <!-- Provider View Tabs -->
@@ -6956,7 +6957,6 @@ function openFreelancerProfileFromInbox(userId) {
     openFreelancerProfile(userId);
 }
 
-
 async function openFreelancerProfile(userId) {
     if (!userId) {
         showToast("Invalid user ID", "error");
@@ -6964,6 +6964,8 @@ async function openFreelancerProfile(userId) {
     }
     
     try {
+        showToast("Loading profile...", "info");
+        
         const response = await fetch(`/api/users/${userId}/profile`, {
             credentials: 'include'
         });
@@ -6974,15 +6976,73 @@ async function openFreelancerProfile(userId) {
         
         const profile = await response.json();
         
-        // Create or show modal with profile info
-        showToast(`${profile.username}'s profile loaded`, 'success');
+        // Create modal content
+        const modalContent = `
+            <div style="max-height: 70vh; overflow-y: auto;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 15px; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center;">
+                        ${profile.profile_picture ? 
+                            `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                            `<span style="font-size: 3rem; color: white;">${(profile.username || 'U').charAt(0).toUpperCase()}</span>`
+                        }
+                    </div>
+                    <h2 style="color: var(--text-light); margin-bottom: 5px;">${escapeHtml(profile.username)}</h2>
+                    <p style="color: var(--accent-gold);">${escapeHtml(profile.headline || 'Freelancer')}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold;">${profile.service_count || 0}</div>
+                        <div style="color: var(--text-gray); font-size: 0.85rem;">Services</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
+                        <div style="color: var(--text-gray); font-size: 0.85rem;">Hourly Rate</div>
+                    </div>
+                </div>
+                
+                ${profile.description ? `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--text-light); margin-bottom: 10px;">About</h4>
+                        <p style="color: var(--text-gray); line-height: 1.6;">${escapeHtml(profile.description)}</p>
+                    </div>
+                ` : ''}
+                
+                ${profile.skills && profile.skills.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--text-light); margin-bottom: 10px;">Skills</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${profile.skills.map(skill => `<span style="background: rgba(59,130,246,0.1); color: var(--accent-blue); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(skill)}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="checkAndStartConversation(null, ${userId}); closeModal(document.getElementById('freelancerProfileModal'));" style="flex: 1;">
+                        <i class="fas fa-comments"></i> Message
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal(document.getElementById('freelancerProfileModal'));" style="flex: 1;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
         
-        // You can open a modal or redirect to profile page
-        window.open(`/profile.html?userId=${userId}`, '_blank');
+        // Show modal
+        const modal = document.getElementById('freelancerProfileModal');
+        const content = document.getElementById('freelancerProfileContent');
+        
+        if (modal && content) {
+            content.innerHTML = modalContent;
+            openModal(modal);
+        } else {
+            // Fallback: show alert if modal doesn't exist
+            showToast(`${profile.username}'s profile loaded`, 'success');
+        }
         
     } catch (err) {
         console.error("Error loading profile:", err);
-        showToast("Error loading profile", "error");
+        showToast("Error loading profile: " + err.message, "error");
     }
 }
 
@@ -10513,6 +10573,327 @@ async function viewServiceDetailsModal(serviceId) {
         showToast("Failed to load service details", "error");
     }
 }
+
+// ==================== EDIT SERVICE FUNCTION ====================
+async function editService(serviceId) {
+    if (!currentUser) {
+        showToast('Please login to edit services', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        showToast('Loading service details...', 'info');
+        
+        const response = await fetch(`/api/services/${serviceId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load service');
+        }
+        
+        const service = await response.json();
+        
+        // Check if user owns this service
+        if (currentUser.id !== service.user_id && currentUser.role !== 'admin') {
+            showToast('You can only edit your own services', 'error');
+            return;
+        }
+        
+        // Populate edit form (you'll need to create an edit modal or form)
+        showEditServiceModal(service);
+        
+    } catch (err) {
+        console.error('Error loading service for edit:', err);
+        showToast('Error loading service: ' + err.message, 'error');
+    }
+}
+
+function showEditServiceModal(service) {
+    // Create modal for editing
+    let modal = document.getElementById('editServiceModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'editServiceModal';
+        modal.className = 'modal hidden';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-card" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--text-light);">Edit Service</h3>
+                <span class="close-x" onclick="closeModal(document.getElementById('editServiceModal'))">&times;</span>
+            </div>
+            <form id="editServiceForm">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="editTitle" value="${escapeHtml(service.title)}" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editDescription" rows="4" required>${escapeHtml(service.description)}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="editPrice" value="${service.price}" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="editCategory" value="${escapeHtml(service.category || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Time (days)</label>
+                    <input type="number" id="editDeliveryTime" value="${service.delivery_time || 7}">
+                </div>
+                <div class="form-group">
+                    <label>Revisions</label>
+                    <input type="number" id="editRevisions" value="${service.revisions || 2}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(document.getElementById('editServiceModal'))">Cancel</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    openModal(modal);
+    
+    // Handle form submission
+    const form = document.getElementById('editServiceForm');
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            await updateService(service.id);
+        };
+    }
+}
+
+async function updateService(serviceId) {
+    const updatedData = {
+        title: document.getElementById('editTitle')?.value,
+        description: document.getElementById('editDescription')?.value,
+        price: parseFloat(document.getElementById('editPrice')?.value) || 0,
+        category: document.getElementById('editCategory')?.value,
+        delivery_time: parseInt(document.getElementById('editDeliveryTime')?.value) || 7,
+        revisions: parseInt(document.getElementById('editRevisions')?.value) || 2
+    };
+    
+    try {
+        const response = await fetch(`/api/services/${serviceId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(updatedData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Service updated successfully!', 'success');
+            closeModal(document.getElementById('editServiceModal'));
+            await loadMyServices();
+            await loadServices();
+        } else {
+            showToast(result.error || 'Failed to update service', 'error');
+        }
+    } catch (err) {
+        console.error('Update error:', err);
+        showToast('Error updating service', 'error');
+    }
+}
+
+// ==================== VIEW SERVICE STATS FUNCTION ====================
+async function viewServiceStats(serviceId) {
+    if (!currentUser) {
+        showToast('Please login to view stats', 'warning');
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    try {
+        showToast('Loading statistics...', 'info');
+        
+        const response = await fetch(`/api/services/${serviceId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load service stats');
+        }
+        
+        const service = await response.json();
+        
+        // Create stats modal
+        let modal = document.getElementById('statsModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'statsModal';
+            modal.className = 'modal hidden';
+            document.body.appendChild(modal);
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: var(--text-light);">Service Statistics</h3>
+                    <span class="close-x" onclick="closeModal(document.getElementById('statsModal'))">&times;</span>
+                </div>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h4 style="color: var(--accent-gold);">${escapeHtml(service.title)}</h4>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 2rem; font-weight: bold;">${service.favorite_count || 0}</div>
+                        <div style="color: var(--text-gray);">Favorites</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 2rem; font-weight: bold;">${service.review_count || 0}</div>
+                        <div style="color: var(--text-gray);">Reviews</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 2rem; font-weight: bold;">${service.avg_rating ? service.avg_rating.toFixed(1) : '0.0'}</div>
+                        <div style="color: var(--text-gray);">Average Rating</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 2rem; font-weight: bold;">${service.total_orders || 0}</div>
+                        <div style="color: var(--text-gray);">Total Orders</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeModal(document.getElementById('statsModal'))">Close</button>
+                </div>
+            </div>
+        `;
+        
+        openModal(modal);
+        
+    } catch (err) {
+        console.error('Error loading stats:', err);
+        showToast('Error loading statistics', 'error');
+    }
+}
+
+// ==================== FIX DELETE SERVICE FUNCTION ====================
+async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
+    if (!currentUser) {
+        showToast("Please login to delete services", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    // Check if user has permission
+    if (!isOwner && currentUser.role !== 'admin') {
+        showToast("You don't have permission to delete this service", "error");
+        return;
+    }
+    
+    const confirmed = confirm(`Are you sure you want to delete "${serviceTitle}"? This action cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+        showToast("Deleting service...", "info");
+        
+        const response = await fetch(`/api/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                reason: `Deleted by ${isOwner ? 'owner' : 'admin'}`
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Service deleted successfully', 'success');
+            // Refresh the services lists
+            await loadMyServices();
+            await loadServices();
+        } else {
+            showToast(result.error || 'Failed to delete service', 'error');
+        }
+    } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Error deleting service', 'error');
+    }
+}
+
+// ==================== UPDATE THE RENDER MY SERVICES FUNCTION ====================
+// Replace the action buttons in renderMyServices
+function renderMyServices(services) {
+    const container = $('myServicesList');
+    if (!container) return;
+
+    container.innerHTML = services.map(service => {
+        const providerName = service.username || 'You';
+        const profilePicture = service.profile_picture_url || service.provider_profile_picture;
+        let providerPictureHtml = '';
+        
+        if (profilePicture) {
+            providerPictureHtml = `
+                <div class="profile-picture-wrapper">
+                    <img src="${profilePicture}" alt="${providerName}" 
+                         class="provider-profile-picture" 
+                         onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'provider-initials\\'>${providerName.charAt(0).toUpperCase()}</div>';">
+                </div>
+            `;
+        } else {
+            providerPictureHtml = `
+                <div class="provider-initials">
+                    ${providerName.charAt(0).toUpperCase()}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="service-card" data-service-id="${service.id}">
+                <div class="service-header">
+                    <h3 class="service-title">${escapeHtml(service.title)}</h3>
+                    <div class="service-price">
+                        ${service.price > 0 ? `$${service.price}` : 'Free'}
+                    </div>
+                </div>
+                
+                <div class="service-provider-info">
+                    ${providerPictureHtml}
+                    <div>
+                        <div class="service-provider-name">${escapeHtml(providerName)}</div>
+                        <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
+                    </div>
+                </div>
+                
+                <p>${escapeHtml((service.description || 'No description').substring(0, 100))}${(service.description || '').length > 100 ? '...' : ''}</p>
+                
+                ${service.favorite_count ? `
+                    <div style="margin: 10px 0; color: var(--accent-gold);">
+                        <i class="fas fa-heart"></i> ${service.favorite_count} favorites
+                    </div>
+                ` : ''}
+                
+                <div class="service-actions" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="editService(${service.id})" style="flex: 1;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewServiceStats(${service.id})" style="flex: 1;">
+                        <i class="fas fa-chart-bar"></i> Stats
+                    </button>
+                    <button class="btn btn-danger" onclick="confirmDeleteService(${service.id}, '${escapeHtml(service.title)}', ${service.user_id}, true)" style="flex: 1;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+                
+                <button class="btn btn-secondary view-details-btn" onclick="viewServiceDetailsModal(${service.id})" style="width:100%; margin-top:10px;">
+                    <i class="fas fa-info-circle"></i> View Details
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
 // Load client's freelancers (formerly providers)
 async function loadMyFreelancers() {
     const container = document.getElementById('clientServicesList');

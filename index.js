@@ -5617,6 +5617,48 @@ app.get("/api/client/favorites", async (req, res) => {
         res.status(500).json({ error: "Failed to load favorites: " + err.message });
     }
 });
+
+// UPDATE SERVICE (PUT endpoint)
+app.put("/api/services/:id", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+    
+    try {
+        const serviceId = req.params.id;
+        const userId = req.session.user.id;
+        
+        // Check if user owns the service
+        const serviceCheck = await db.query(
+            "SELECT user_id FROM services WHERE id = ?",
+            [serviceId]
+        );
+        
+        if (!serviceCheck || serviceCheck.length === 0) {
+            return res.status(404).json({ error: "Service not found" });
+        }
+        
+        if (serviceCheck[0].user_id !== userId && req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "You can only edit your own services" });
+        }
+        
+        const { title, description, price, category, delivery_time, revisions } = req.body;
+        
+        await db.query(
+            `UPDATE services 
+             SET title = ?, description = ?, price = ?, category = ?, 
+                 delivery_time = ?, revisions = ?, updated_at = NOW()
+             WHERE id = ?`,
+            [title, description, price, category, delivery_time, revisions, serviceId]
+        );
+        
+        res.json({ success: true, message: "Service updated successfully" });
+        
+    } catch (err) {
+        console.error("Update error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM BACKEND ROUTES
 // ============================================

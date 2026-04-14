@@ -30,9 +30,9 @@ const {
   uploadProfilePicture,
   uploadChatImage,
   uploadMultipleProducts,
-  uploadCourseFile
+  uploadCourseFile,
+  uploadCertificate      
 } = require('./cloudinary-storage');
-
 // Database & Email
 const db = require("./db");
 

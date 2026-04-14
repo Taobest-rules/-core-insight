@@ -4446,7 +4446,7 @@ app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async
   }
 });
 
-// Get messages for a conversation
+// Get messages for a conversation - FIXED to always return array
 app.get("/api/messages/:conversationId", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -4490,12 +4490,16 @@ app.get("/api/messages/:conversationId", async (req, res) => {
       [conversationId]
     );
 
+    // Ensure we always return an array
     const messages = extractRows(messagesResult);
-    return res.json(messages);
-
+    
+    // Return array, never null or object
+    return res.json(Array.isArray(messages) ? messages : []);
+    
   } catch (err) {
     console.error("Error fetching messages:", err);
-    res.status(500).json({ error: "Server error: " + err.message });
+    // Always return an array even on error
+    return res.json([]);
   }
 });
 

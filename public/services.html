@@ -6721,7 +6721,22 @@ async function loadMessagesForConversation(conversationId) {
             return;
         }
 
-        const messages = await res.json();
+        const data = await res.json();
+        
+        // FIX: Handle different response formats
+        let messages = [];
+        if (Array.isArray(data)) {
+            messages = data;
+        } else if (data && Array.isArray(data.messages)) {
+            messages = data.messages;
+        } else if (data && data.data && Array.isArray(data.data)) {
+            messages = data.data;
+        } else if (data && typeof data === 'object') {
+            // If it's a single object, wrap it in an array
+            messages = [data];
+        } else {
+            messages = [];
+        }
 
         const container = $('messagesContainer');
         if (!container) return;
@@ -6737,10 +6752,15 @@ async function loadMessagesForConversation(conversationId) {
             return;
         }
 
+        // Sort messages by date (oldest first)
+        const sortedMessages = [...messages].sort((a, b) => 
+            new Date(a.created_at) - new Date(b.created_at)
+        );
+
         const groupedMessages = [];
         let currentGroup = null;
         
-        for (const m of messages) {
+        for (const m of sortedMessages) {
             const messageDate = new Date(m.created_at);
             
             if (!currentGroup || 
@@ -6753,7 +6773,7 @@ async function loadMessagesForConversation(conversationId) {
                 
                 currentGroup = {
                     sender_id: m.sender_id,
-                    sender_name: m.sender_name,
+                    sender_name: m.sender_name || (m.sender_id === currentUser?.id ? 'You' : 'User'),
                     messages: [m],
                     firstTime: messageDate,
                     lastTime: messageDate
@@ -6770,7 +6790,7 @@ async function loadMessagesForConversation(conversationId) {
 
         container.innerHTML = '';
 
-        groupedMessages.forEach(group => {
+        for (const group of groupedMessages) {
             const isMe = group.sender_id === currentUser?.id;
             
             const groupDiv = document.createElement('div');
@@ -6783,7 +6803,7 @@ async function loadMessagesForConversation(conversationId) {
                 groupDiv.appendChild(headerDiv);
             }
             
-            group.messages.forEach((m, index) => {
+            for (const m of group.messages) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${isMe ? 'sent' : 'received'}`;
                 messageDiv.dataset.messageId = m.id;
@@ -6825,10 +6845,10 @@ async function loadMessagesForConversation(conversationId) {
                 `;
 
                 groupDiv.appendChild(messageDiv);
-            });
+            }
             
             container.appendChild(groupDiv);
-        });
+        }
 
         container.scrollTop = container.scrollHeight;
 
@@ -6848,7 +6868,6 @@ async function loadMessagesForConversation(conversationId) {
         }
     }
 }
-
 async function loadUserInfo(userId) {
     try {
         const response = await fetch(`/api/users/${userId}/profile`, {
@@ -7859,32 +7878,12 @@ function showOrderModal(product) {
         openModal(modal);
     }
 }
-// ==================== COMPLETE INBOX ATTACHMENTS WITH EXTENSIVE EMOJI PICKER ====================
-
-// Emoji categories with hundreds of emojis
-const EMOJI_CATEGORIES = {
-    smile: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
-    
-    heart: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '♦️', '♠️', '♣️', '💢', '💯', '💠', '🌀', '🌐', '💮', '💌', '💋', '💍', '💎'],
-    
-    hand: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏', '🙏', '🤝', '👊', '✊', '🤛', '🤜', '💪', '🖖', '🤙', '🙌', '👐', '🤲', '🤳', '💅', '👋', '🖐️', '✋', '🖖', '👌', '🤏', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤙', '💪', '🦾', '🖕', '✍️', '🙏', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '🫀', '🫁'],
-    
-    food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🧋', '🥛', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾'],
-    
-    animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🪶', '🐓', '🦃', '🦤', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫', '🦦', '🦔', '🐿️'],
-    
-    activity: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🎨', '🎬', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🪕', '🥁', '🪘', '🎮', '🕹️', '🎲', '♟️', '🎯', '🎳'],
-    
-    travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🏍️', '🛺', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩️', '💺', '🛰️', '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '🪝', '⛽', '🚧', '🚦', '🚥', '🚏', '🗺️', '🗿', '🗽', '🗼', '🏰', '🏯', '🏟️', '🎡', '🎢', '🎠', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '⛺', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭'],
-    
-    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🪫', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🔩', '⚙️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🧪', '🧫', '🧬', '🩸', '💊', '💉', '🩺', '🩻', '🌡️', '🧹', '🧺', '🧻', '🚽', '🚿', '🛁', '🪒', '🧽', '🧼', '🪥', '🪠', '🧴', '🪞', '🪟', '🪑', '🛏️', '🛋️', '🪤', '🪣', '🧸', '🪅', '🪩', '🪆', '🃏', '🎴', '🀄', '🎲', '♟️', '🎯', '🎳', '🎮', '🧩'],
-    
-    symbols: ['⭐', '🌟', '✨', '⚡', '🔥', '💧', '💨', '🌈', '☀️', '🌙', '☁️', '⛅', '🌊', '❄️', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢', '💠', '🌀', '🌐', '💮', '💌', '💋', '💍', '💎', '🔮', '🎐', '🎏', '🏮', '🪔', '🎃', '🎄', '🎋', '🎍', '🎎', '🎏', '🎐', '🎑', '🎇', '🎆', '🧨', '✨', '🎈', '🎉', '🎊', '🎋', '🎍', '🎎', '🎏', '🎐', '🎑', '🎇', '🎆']
-};
+// ==================== INBOX ATTACHMENTS & EMOJI PICKER ====================
 
 
 // Initialize all inbox features
-function initInboxFeatures() {
+function setupInboxAttachments() {
+    console.log("Setting up inbox attachments...");
     setupAttachButtons();
     setupEmojiPicker();
     setupImagePreview();
@@ -7898,7 +7897,6 @@ function setupAttachButtons() {
     const fileInput = document.getElementById('fileInput');
     
     if (attachImageBtn && fileInput) {
-        // Remove existing listeners by cloning
         const newImageBtn = attachImageBtn.cloneNode(true);
         attachImageBtn.parentNode.replaceChild(newImageBtn, attachImageBtn);
         
@@ -7939,12 +7937,11 @@ function setupAttachButtons() {
     }
 }
 
-// Setup emoji picker
+// Setup emoji picker button
 function setupEmojiPicker() {
     const emojiBtn = document.getElementById('emojiPickerBtn');
     if (!emojiBtn) return;
     
-    // Remove existing listener
     const newEmojiBtn = emojiBtn.cloneNode(true);
     emojiBtn.parentNode.replaceChild(newEmojiBtn, emojiBtn);
     
@@ -7954,7 +7951,7 @@ function setupEmojiPicker() {
     });
 }
 
-// Create and show emoji picker
+// Create emoji picker element
 function createEmojiPickerExtended() {
     const picker = document.createElement('div');
     picker.id = 'emojiPickerExtended';
@@ -7963,7 +7960,7 @@ function createEmojiPickerExtended() {
         position: fixed;
         bottom: 100px;
         left: 20px;
-        background: var(--card-bg);
+        background: #1e293b;
         border: 1px solid rgba(255,255,255,0.1);
         border-radius: 16px;
         padding: 15px;
@@ -7973,26 +7970,33 @@ function createEmojiPickerExtended() {
         max-width: calc(100vw - 40px);
         max-height: 400px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        backdrop-filter: blur(10px);
     `;
     
-    // Category tabs
+    // Emoji data
+    const emojis = {
+        smile: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
+        heart: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '💢', '💯', '💠', '🌀', '💌', '💋', '💍', '💎'],
+        hand: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏', '🙏', '🤝', '👊', '✊', '🤛', '🤜', '💪', '🖖', '🤙', '🙌', '👐', '🤲', '🤳', '💅', '👋', '🖐️', '✋', '👈', '👉', '👆', '👇', '☝️', '✍️', '🦾', '🦵', '🦶', '👣', '👂', '👃', '👀', '👅', '👄'],
+        food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🌮', '🌯', '🥗', '🥘', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🍾'],
+        animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🐇', '🦝', '🦡', '🦔', '🐿️'],
+        activity: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🎨', '🎬', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🪕', '🥁', '🪘', '🎮', '🕹️', '🎲', '♟️', '🎯', '🎳'],
+        travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛴', '🚲', '🛵', '🏍️', '🛺', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩️', '💺', '🛰️', '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '⛽', '🚧', '🚦', '🚥', '🚏', '🗺️', '🗿', '🗽', '🗼', '🏰', '🏯', '🏟️', '🎡', '🎢', '🎠', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '⛺', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭'],
+        objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🪫', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🔩', '⚙️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🧪', '🧫', '🧬', '🩸', '💊', '💉', '🩺', '🌡️', '🧹', '🧺', '🧻', '🚽', '🚿', '🛁', '🪒', '🧽', '🧼', '🪥', '🪠', '🧴', '🪞', '🪟', '🪑', '🛏️', '🛋️', '🪤', '🪣', '🧸', '🪅', '🪩', '🪆', '🃏', '🎴', '🀄', '🎲', '♟️', '🎯', '🎳', '🎮', '🧩'],
+        symbols: ['⭐', '🌟', '✨', '⚡', '🔥', '💧', '💨', '🌈', '☀️', '🌙', '☁️', '⛅', '🌊', '❄️', '🎉', '🎊', '🎈', '🎁', '🏆', '🎖️', '💯', '💢', '💠', '🌀', '🌐', '💮', '💌', '💋', '💍', '💎', '🔮', '🎐', '🎏', '🏮', '🪔', '🎃', '🎄', '🎋', '🎍', '🎎', '🎏', '🎐', '🎑', '🎇', '🎆', '🧨', '✨', '🎈', '🎉', '🎊']
+    };
+    
     const categories = ['smile', 'heart', 'hand', 'food', 'animals', 'activity', 'travel', 'objects', 'symbols'];
     const categoryNames = {
-        smile: '😊 Smileys', heart: '❤️ Hearts', hand: '👍 Hands', food: '🍕 Food', 
-        animals: '🐶 Animals', activity: '⚽ Activities', travel: '✈️ Travel', 
+        smile: '😊 Smileys', heart: '❤️ Hearts', hand: '👍 Hands', food: '🍕 Food',
+        animals: '🐶 Animals', activity: '⚽ Activities', travel: '✈️ Travel',
         objects: '📱 Objects', symbols: '⭐ Symbols'
     };
     
     let tabsHtml = `<div class="emoji-categories" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">`;
     categories.forEach(cat => {
-        tabsHtml += `<button class="emoji-cat-btn" data-category="${cat}" style="padding: 8px 12px; background: transparent; border: none; color: var(--text-gray); cursor: pointer; border-radius: 8px; font-size: 0.85rem; transition: all 0.2s;">${categoryNames[cat]}</button>`;
+        tabsHtml += `<button class="emoji-cat-btn" data-category="${cat}" style="padding: 8px 12px; background: transparent; border: none; color: #94a3b8; cursor: pointer; border-radius: 8px; font-size: 0.85rem; transition: all 0.2s;">${categoryNames[cat]}</button>`;
     });
     tabsHtml += `</div>`;
-    
-    tabsHtml += `<div class="emoji-search" style="margin-bottom: 10px;">
-        <input type="text" id="emojiSearchInput" placeholder="Search emojis..." style="width: 100%; padding: 8px 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
-    </div>`;
     
     tabsHtml += `<div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; padding: 5px;"></div>`;
     
@@ -8001,25 +8005,13 @@ function createEmojiPickerExtended() {
     
     const grid = picker.querySelector('.emoji-grid');
     let currentCategory = 'smile';
-    let allEmojis = [];
     
-    // Collect all emojis for search
-    Object.values(EMOJI_CATEGORIES).forEach(emojis => {
-        allEmojis = allEmojis.concat(emojis);
-    });
-    
-    function updateGrid(category, searchTerm = '') {
-        let emojis = searchTerm ? allEmojis : (EMOJI_CATEGORIES[category] || EMOJI_CATEGORIES.smile);
-        
-        if (searchTerm) {
-            emojis = emojis.filter(emoji => emoji.includes(searchTerm));
-        }
-        
-        grid.innerHTML = emojis.map(emoji => 
+    function updateGrid(category) {
+        const emojiList = emojis[category] || emojis.smile;
+        grid.innerHTML = emojiList.map(emoji => 
             `<div class="emoji-item" data-emoji="${emoji}" style="font-size: 1.8rem; cursor: pointer; padding: 8px; text-align: center; border-radius: 10px; transition: all 0.2s;">${emoji}</div>`
         ).join('');
         
-        // Add click handlers to emoji items
         grid.querySelectorAll('.emoji-item').forEach(item => {
             item.addEventListener('click', () => {
                 const input = document.getElementById('messageInput');
@@ -8047,48 +8039,28 @@ function createEmojiPickerExtended() {
         btn.addEventListener('click', () => {
             picker.querySelectorAll('.emoji-cat-btn').forEach(b => {
                 b.style.backgroundColor = 'transparent';
-                b.style.color = 'var(--text-gray)';
+                b.style.color = '#94a3b8';
             });
             btn.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
-            btn.style.color = 'var(--text-light)';
+            btn.style.color = 'white';
             currentCategory = btn.dataset.category;
-            updateGrid(currentCategory, '');
-            document.getElementById('emojiSearchInput').value = '';
+            updateGrid(currentCategory);
         });
     });
     
-    // Search input handler
-    const searchInput = picker.querySelector('#emojiSearchInput');
-    let debounceTimer;
-    searchInput.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            updateGrid(currentCategory, searchInput.value);
-        }, 300);
-    });
+    updateGrid('smile');
     
     // Set active category
     const firstBtn = picker.querySelector('.emoji-cat-btn');
     if (firstBtn) {
         firstBtn.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
-        firstBtn.style.color = 'var(--text-light)';
+        firstBtn.style.color = 'white';
     }
-    
-    updateGrid('smile');
-    
-    // Close picker when clicking outside
-    document.addEventListener('click', function closePicker(e) {
-        if (picker && picker.style.display === 'block') {
-            if (!picker.contains(e.target) && !document.getElementById('emojiPickerBtn')?.contains(e.target)) {
-                picker.style.display = 'none';
-                document.removeEventListener('click', closePicker);
-            }
-        }
-    });
     
     return picker;
 }
 
+// Toggle emoji picker
 function toggleEmojiPickerExtended() {
     if (!emojiPickerInstance) {
         emojiPickerInstance = createEmojiPickerExtended();
@@ -8110,7 +8082,7 @@ function showImagePreview(file) {
     reader.onload = function(e) {
         previewContainer.innerHTML = `
             <div style="position: relative; display: inline-block; margin: 10px 0;">
-                <img src="${e.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 2px solid var(--accent-blue);">
+                <img src="${e.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 2px solid #3b82f6;">
                 <button type="button" onclick="clearSelectedImage()" style="position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">×</button>
             </div>
         `;
@@ -8131,7 +8103,6 @@ function clearSelectedImage() {
 }
 
 function setupImagePreview() {
-    // Preview container already exists in HTML
     const preview = document.getElementById('imagePreview');
     if (preview) {
         preview.style.display = 'none';
@@ -8139,32 +8110,33 @@ function setupImagePreview() {
 }
 
 function setupDocumentUpload() {
-    // For future document upload implementation
     console.log('Document upload ready');
 }
 
-// Update char count function
+// Update char count
 function updateCharCount() {
     const input = document.getElementById('messageInput');
     const charCount = document.getElementById('charCount');
     if (input && charCount) {
         const len = input.value.length;
         charCount.textContent = `${len}/1000`;
-        charCount.style.color = len > 900 ? '#ef4444' : 'var(--text-gray)';
+        charCount.style.color = len > 900 ? '#ef4444' : '#94a3b8';
     }
 }
 
-// Clear selected file function for global use
+// Make functions global
 window.clearSelectedImage = clearSelectedImage;
+window.toggleEmojiPickerExtended = toggleEmojiPickerExtended;
 
 // Call this when inbox is opened
-const originalShowInboxExtended = window.showInbox;
+const originalShowInboxForAttachments = window.showInbox;
 window.showInbox = function() {
-    if (originalShowInboxExtended) originalShowInboxExtended();
+    if (originalShowInboxForAttachments) originalShowInboxForAttachments();
     setTimeout(() => {
-        initInboxFeatures();
+        setupInboxAttachments();
     }, 500);
 };
+
 async function placeOrder(productId) {
     const quantity = document.getElementById('orderQuantity')?.value || 1;
     const address = document.getElementById('shippingAddress')?.value;

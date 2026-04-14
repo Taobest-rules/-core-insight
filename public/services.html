@@ -3676,7 +3676,43 @@
       display: none !important;
     }
   }
+/* Emoji Picker Styles */
+.emoji-picker-extended {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(10px);
+}
 
+.emoji-picker-extended .emoji-cat-btn:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: var(--text-light) !important;
+}
+
+.emoji-picker-extended .emoji-item:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    transform: scale(1.1);
+}
+
+.emoji-picker-extended::-webkit-scrollbar {
+    width: 6px;
+}
+
+.emoji-picker-extended::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+}
+
+.emoji-picker-extended::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+/* Image preview styles */
+#imagePreview {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+}
   /* New Conversation Modal */
   #newConversationModal .modal-card {
     max-width: 500px;
@@ -6455,183 +6491,139 @@ function renderServices(servicesToRender) {
 /*********************
  *  Chat & Conversation Functions *
  *********************/
+// Update conversation loading to show profile pictures
 async function loadConversations() {
-    if (!currentUser) {
-        console.log('No user logged in, cannot load conversations');
-        return;
-    }
-
+    if (!currentUser) return;
+    
     const list = document.getElementById('conversationList');
-    if (!list) {
-        console.error("Conversation list element not found");
-        return;
-    }
-
-    list.innerHTML = `
-        <div class="conversation-skeleton">
-            <div class="skeleton-line" style="width: 60%;"></div>
-            <div class="skeleton-line" style="width: 80%;"></div>
-            <div class="skeleton-line" style="width: 40%;"></div>
-        </div>
-        <div class="conversation-skeleton">
-            <div class="skeleton-line" style="width: 70%;"></div>
-            <div class="skeleton-line" style="width: 90%;"></div>
-            <div class="skeleton-line" style="width: 50%;"></div>
-        </div>
-    `;
-
+    if (!list) return;
+    
+    list.innerHTML = '<div class="conversation-skeleton"><div class="skeleton-line"></div></div>';
+    
     try {
-        console.log('Fetching conversations for user:', currentUser.id);
-        
         const res = await fetch("/api/messages/conversations", {
-            credentials: "include",
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
+            credentials: "include"
         });
-
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
         
-        let convs = [];
-        if (Array.isArray(data)) {
-            convs = data;
-        } else if (data && Array.isArray(data.conversations)) {
-            convs = data.conversations;
-        } else if (data && data.data && Array.isArray(data.data)) {
-            convs = data.data;
-        }
-
-        if (!convs || convs.length === 0) {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const conversations = await res.json();
+        
+        if (!conversations || conversations.length === 0) {
             list.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
-                    <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
-                    <h4 style="color: var(--text-light); margin-bottom: 10px;">No conversations yet</h4>
-                    <p>Start a conversation by clicking on a service or user</p>
-                    <button class="btn btn-primary mt-20" onclick="startNewConversation()">
-                        <i class="fas fa-plus"></i> New Conversation
-                    </button>
+                <div style="text-align: center; padding: 40px; color: var(--text-gray);">
+                    <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <p>No conversations yet</p>
+                    <button class="btn btn-primary" onclick="startNewConversation()">Start New Chat</button>
                 </div>
             `;
             return;
         }
-
+        
         list.innerHTML = '';
         
-        for (const c of convs) {
+        for (const conv of conversations) {
+            const otherUserId = conv.other_user_id;
+            
+            // Fetch user profile picture
+            let profilePic = null;
+            let userName = conv.other_user_name || 'User';
+            
             try {
-                const conversationId = c.conversation_id || c.id;
-                const otherUserId = c.other_user_id || c.otherUserId;
-                let otherUserName = c.other_user_name || c.otherUserName || c.username || 'User';
-                
-                if (!otherUserName || otherUserName === 'null' || otherUserName === 'undefined') {
-                    otherUserName = 'User';
+                const userRes = await fetch(`/api/users/${otherUserId}/profile`, {
+                    credentials: 'include'
+                });
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    profilePic = userData.profile_picture;
+                    userName = userData.username || userName;
                 }
-                
-                const serviceTitle = c.service_title || c.serviceTitle || 'Direct Message';
-                const createdAt = c.created_at || c.createdAt || c.updated_at || new Date().toISOString();
-                
-                if (!conversationId) {
-                    continue;
-                }
-
-                const div = document.createElement('div');
-                div.className = 'conversation-item';
-                div.dataset.conversationId = conversationId;
-                div.dataset.otherUserId = otherUserId;
-
-                let previewText = 'Click to start conversation';
-                let lastMessageTime = createdAt;
-                let unreadCount = 0;
-
-                try {
-                    const msgRes = await fetch(`/api/messages/${conversationId}`, {
-                        credentials: "include"
-                    });
-                    if (msgRes.ok) {
-                        const messages = await msgRes.json();
-                        if (messages && messages.length > 0) {
-                            const lastMessage = messages[messages.length - 1];
-                            if (lastMessage) {
-                                previewText = lastMessage.message ? lastMessage.message.substring(0, 50) : '📷 Image';
-                                if (lastMessage.message && lastMessage.message.length > 50) previewText += '...';
-                                lastMessageTime = lastMessage.created_at || lastMessage.createdAt || createdAt;
-                                
-                                if (Array.isArray(messages)) {
-                                    unreadCount = messages.filter(m => 
-                                        !m.read && m.sender_id !== currentUser.id
-                                    ).length;
+            } catch (e) {}
+            
+            const div = document.createElement('div');
+            div.className = 'conversation-item';
+            div.dataset.conversationId = conv.conversation_id;
+            div.dataset.otherUserId = otherUserId;
+            
+            div.innerHTML = `
+                <div class="conversation-item-content">
+                    <div class="conversation-header">
+                        <div class="conversation-user-info">
+                            <div class="conversation-avatar">
+                                ${profilePic ? 
+                                    `<img src="${profilePic}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : 
+                                    `<span>${(userName.charAt(0) || 'U').toUpperCase()}</span>`
                                 }
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error fetching last message:", e);
-                }
-
-                const timeAgo = formatTimeAgo(lastMessageTime);
-                
-                div.innerHTML = `
-                    <div class="conversation-item-content">
-                        <div class="conversation-header">
-                            <div class="conversation-user-info">
-                                <div class="conversation-avatar">
-                                    ${escapeHtml(otherUserName.charAt(0).toUpperCase())}
-                                </div>
-                                <div class="conversation-details">
-                                    <div class="conversation-name">
-                                        ${escapeHtml(otherUserName)}
-                                        ${unreadCount > 0 ? `
-                                            <span class="unread-badge">${unreadCount}</span>
-                                        ` : ''}
-                                    </div>
-                                    <div class="conversation-preview ${unreadCount > 0 ? 'unread' : ''}">
-                                        ${escapeHtml(previewText)}
-                                    </div>
-                                </div>
                             </div>
-                            <div class="conversation-meta">
-                                <div class="conversation-time">${timeAgo}</div>
-                                <div class="conversation-service">${escapeHtml(serviceTitle)}</div>
+                            <div class="conversation-details">
+                                <div class="conversation-name">${escapeHtml(userName)}</div>
+                                <div class="conversation-preview">${escapeHtml(conv.last_message || 'Click to chat')}</div>
                             </div>
                         </div>
+                        <div class="conversation-time">${formatTimeAgo(conv.last_message_time || conv.created_at)}</div>
                     </div>
-                `;
-
-                div.onclick = () => openConversation(conversationId, otherUserName, otherUserId);
-                list.appendChild(div);
-
-            } catch (e) {
-                console.error("Error rendering conversation:", e);
-            }
+                </div>
+            `;
+            
+            div.onclick = () => openConversation(conv.conversation_id, userName, otherUserId);
+            list.appendChild(div);
         }
-
-        if (window.activeConversationId) {
-            const activeItem = document.querySelector(`.conversation-item[data-conversation-id="${window.activeConversationId}"]`);
-            if (activeItem) {
-                activeItem.classList.add('active');
-                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
-
+        
     } catch (err) {
         console.error("Failed to load conversations:", err);
-        list.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
-                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px; color: #ef4444;"></i>
-                <h4 style="color: var(--text-light); margin-bottom: 10px;">Failed to load conversations</h4>
-                <p style="margin-bottom: 20px;">${err.message}</p>
-                <button class="btn btn-primary" onclick="loadConversations()">
-                    <i class="fas fa-sync-alt"></i> Try Again
-                </button>
-            </div>
-        `;
+        list.innerHTML = '<div class="text-center" style="padding: 20px; color: var(--error-red);">Failed to load conversations</div>';
     }
 }
+
+// Add Close Inbox button
+function addInboxCloseButton() {
+    const inboxHeader = document.querySelector('.inbox-header');
+    if (inboxHeader && !document.getElementById('closeInboxBtn')) {
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'closeInboxBtn';
+        closeBtn.className = 'btn btn-secondary';
+        closeBtn.innerHTML = '<i class="fas fa-times"></i> Close';
+        closeBtn.style.marginLeft = '10px';
+        closeBtn.onclick = () => {
+            document.getElementById('inboxPage').classList.add('hidden');
+            showServicesBrowser();
+        };
+        inboxHeader.appendChild(closeBtn);
+    }
+}
+
+// Fix View Profile button in inbox
+function setupInboxButtons() {
+    const viewProfileBtn = document.getElementById('viewProfileBtn');
+    if (viewProfileBtn) {
+        viewProfileBtn.onclick = () => {
+            if (window.activeConversationUserId) {
+                openFreelancerProfile(window.activeConversationUserId);
+            } else {
+                showToast('No user selected', 'warning');
+            }
+        };
+    }
+    
+   // Update the search button in inbox
+const searchInChatBtn = document.getElementById('searchInChatBtn');
+if (searchInChatBtn) {
+    searchInChatBtn.onclick = () => {
+        searchInConversation();
+    };
+}
+}
+
+// Call these when opening inbox
+const originalShowInbox = showInbox;
+window.showInbox = function() {
+    originalShowInbox();
+    setTimeout(() => {
+        addInboxCloseButton();
+        setupInboxButtons();
+        setupInboxAttachments();
+    }, 100);
+};
 
 async function openConversation(conversationId, username = 'User', otherUserId = null) {
     if (username === null || username === undefined) {
@@ -7867,7 +7859,312 @@ function showOrderModal(product) {
         openModal(modal);
     }
 }
+// ==================== COMPLETE INBOX ATTACHMENTS WITH EXTENSIVE EMOJI PICKER ====================
 
+// Emoji categories with hundreds of emojis
+const EMOJI_CATEGORIES = {
+    smile: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
+    
+    heart: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '♦️', '♠️', '♣️', '💢', '💯', '💠', '🌀', '🌐', '💮', '💌', '💋', '💍', '💎'],
+    
+    hand: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏', '🙏', '🤝', '👊', '✊', '🤛', '🤜', '💪', '🖖', '🤙', '🙌', '👐', '🤲', '🤳', '💅', '👋', '🖐️', '✋', '🖖', '👌', '🤏', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤙', '💪', '🦾', '🖕', '✍️', '🙏', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '🫀', '🫁'],
+    
+    food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🧋', '🥛', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾'],
+    
+    animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🪶', '🐓', '🦃', '🦤', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫', '🦦', '🦔', '🐿️'],
+    
+    activity: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🎨', '🎬', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🪕', '🥁', '🪘', '🎮', '🕹️', '🎲', '♟️', '🎯', '🎳'],
+    
+    travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🏍️', '🛺', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩️', '💺', '🛰️', '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '🪝', '⛽', '🚧', '🚦', '🚥', '🚏', '🗺️', '🗿', '🗽', '🗼', '🏰', '🏯', '🏟️', '🎡', '🎢', '🎠', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '⛺', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭'],
+    
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🪫', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🔩', '⚙️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🧪', '🧫', '🧬', '🩸', '💊', '💉', '🩺', '🩻', '🌡️', '🧹', '🧺', '🧻', '🚽', '🚿', '🛁', '🪒', '🧽', '🧼', '🪥', '🪠', '🧴', '🪞', '🪟', '🪑', '🛏️', '🛋️', '🪤', '🪣', '🧸', '🪅', '🪩', '🪆', '🃏', '🎴', '🀄', '🎲', '♟️', '🎯', '🎳', '🎮', '🧩'],
+    
+    symbols: ['⭐', '🌟', '✨', '⚡', '🔥', '💧', '💨', '🌈', '☀️', '🌙', '☁️', '⛅', '🌊', '❄️', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢', '💠', '🌀', '🌐', '💮', '💌', '💋', '💍', '💎', '🔮', '🎐', '🎏', '🏮', '🪔', '🎃', '🎄', '🎋', '🎍', '🎎', '🎏', '🎐', '🎑', '🎇', '🎆', '🧨', '✨', '🎈', '🎉', '🎊', '🎋', '🎍', '🎎', '🎏', '🎐', '🎑', '🎇', '🎆']
+};
+
+
+// Initialize all inbox features
+function initInboxFeatures() {
+    setupAttachButtons();
+    setupEmojiPicker();
+    setupImagePreview();
+    setupDocumentUpload();
+}
+
+// Setup attach image and file buttons
+function setupAttachButtons() {
+    const attachImageBtn = document.getElementById('attachImageBtn');
+    const attachFileBtn = document.getElementById('attachFileBtn');
+    const fileInput = document.getElementById('fileInput');
+    
+    if (attachImageBtn && fileInput) {
+        // Remove existing listeners by cloning
+        const newImageBtn = attachImageBtn.cloneNode(true);
+        attachImageBtn.parentNode.replaceChild(newImageBtn, attachImageBtn);
+        
+        newImageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.click();
+        });
+    }
+    
+    if (fileInput) {
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        
+        newFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                if (file.type.startsWith('image/')) {
+                    selectedFile = file;
+                    showImagePreview(file);
+                    showToast('Image selected: ' + file.name, 'success');
+                } else {
+                    showToast('Please select an image file (JPEG, PNG, GIF)', 'warning');
+                    newFileInput.value = '';
+                }
+            }
+        });
+    }
+    
+    // Document upload button
+    if (attachFileBtn) {
+        const newFileBtn = attachFileBtn.cloneNode(true);
+        attachFileBtn.parentNode.replaceChild(newFileBtn, attachFileBtn);
+        
+        newFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showToast('File attachments coming soon', 'info');
+        });
+    }
+}
+
+// Setup emoji picker
+function setupEmojiPicker() {
+    const emojiBtn = document.getElementById('emojiPickerBtn');
+    if (!emojiBtn) return;
+    
+    // Remove existing listener
+    const newEmojiBtn = emojiBtn.cloneNode(true);
+    emojiBtn.parentNode.replaceChild(newEmojiBtn, emojiBtn);
+    
+    newEmojiBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleEmojiPickerExtended();
+    });
+}
+
+// Create and show emoji picker
+function createEmojiPickerExtended() {
+    const picker = document.createElement('div');
+    picker.id = 'emojiPickerExtended';
+    picker.className = 'emoji-picker-extended';
+    picker.style.cssText = `
+        position: fixed;
+        bottom: 100px;
+        left: 20px;
+        background: var(--card-bg);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 15px;
+        z-index: 10001;
+        display: none;
+        width: 450px;
+        max-width: calc(100vw - 40px);
+        max-height: 400px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px);
+    `;
+    
+    // Category tabs
+    const categories = ['smile', 'heart', 'hand', 'food', 'animals', 'activity', 'travel', 'objects', 'symbols'];
+    const categoryNames = {
+        smile: '😊 Smileys', heart: '❤️ Hearts', hand: '👍 Hands', food: '🍕 Food', 
+        animals: '🐶 Animals', activity: '⚽ Activities', travel: '✈️ Travel', 
+        objects: '📱 Objects', symbols: '⭐ Symbols'
+    };
+    
+    let tabsHtml = `<div class="emoji-categories" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">`;
+    categories.forEach(cat => {
+        tabsHtml += `<button class="emoji-cat-btn" data-category="${cat}" style="padding: 8px 12px; background: transparent; border: none; color: var(--text-gray); cursor: pointer; border-radius: 8px; font-size: 0.85rem; transition: all 0.2s;">${categoryNames[cat]}</button>`;
+    });
+    tabsHtml += `</div>`;
+    
+    tabsHtml += `<div class="emoji-search" style="margin-bottom: 10px;">
+        <input type="text" id="emojiSearchInput" placeholder="Search emojis..." style="width: 100%; padding: 8px 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
+    </div>`;
+    
+    tabsHtml += `<div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; padding: 5px;"></div>`;
+    
+    picker.innerHTML = tabsHtml;
+    document.body.appendChild(picker);
+    
+    const grid = picker.querySelector('.emoji-grid');
+    let currentCategory = 'smile';
+    let allEmojis = [];
+    
+    // Collect all emojis for search
+    Object.values(EMOJI_CATEGORIES).forEach(emojis => {
+        allEmojis = allEmojis.concat(emojis);
+    });
+    
+    function updateGrid(category, searchTerm = '') {
+        let emojis = searchTerm ? allEmojis : (EMOJI_CATEGORIES[category] || EMOJI_CATEGORIES.smile);
+        
+        if (searchTerm) {
+            emojis = emojis.filter(emoji => emoji.includes(searchTerm));
+        }
+        
+        grid.innerHTML = emojis.map(emoji => 
+            `<div class="emoji-item" data-emoji="${emoji}" style="font-size: 1.8rem; cursor: pointer; padding: 8px; text-align: center; border-radius: 10px; transition: all 0.2s;">${emoji}</div>`
+        ).join('');
+        
+        // Add click handlers to emoji items
+        grid.querySelectorAll('.emoji-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.value += item.dataset.emoji;
+                    updateCharCount();
+                    input.focus();
+                }
+                picker.style.display = 'none';
+            });
+            
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                item.style.transform = 'scale(1.1)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+                item.style.transform = 'scale(1)';
+            });
+        });
+    }
+    
+    // Category button handlers
+    picker.querySelectorAll('.emoji-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            picker.querySelectorAll('.emoji-cat-btn').forEach(b => {
+                b.style.backgroundColor = 'transparent';
+                b.style.color = 'var(--text-gray)';
+            });
+            btn.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+            btn.style.color = 'var(--text-light)';
+            currentCategory = btn.dataset.category;
+            updateGrid(currentCategory, '');
+            document.getElementById('emojiSearchInput').value = '';
+        });
+    });
+    
+    // Search input handler
+    const searchInput = picker.querySelector('#emojiSearchInput');
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateGrid(currentCategory, searchInput.value);
+        }, 300);
+    });
+    
+    // Set active category
+    const firstBtn = picker.querySelector('.emoji-cat-btn');
+    if (firstBtn) {
+        firstBtn.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+        firstBtn.style.color = 'var(--text-light)';
+    }
+    
+    updateGrid('smile');
+    
+    // Close picker when clicking outside
+    document.addEventListener('click', function closePicker(e) {
+        if (picker && picker.style.display === 'block') {
+            if (!picker.contains(e.target) && !document.getElementById('emojiPickerBtn')?.contains(e.target)) {
+                picker.style.display = 'none';
+                document.removeEventListener('click', closePicker);
+            }
+        }
+    });
+    
+    return picker;
+}
+
+function toggleEmojiPickerExtended() {
+    if (!emojiPickerInstance) {
+        emojiPickerInstance = createEmojiPickerExtended();
+    }
+    
+    if (emojiPickerInstance.style.display === 'block') {
+        emojiPickerInstance.style.display = 'none';
+    } else {
+        emojiPickerInstance.style.display = 'block';
+    }
+}
+
+// Show image preview
+function showImagePreview(file) {
+    const previewContainer = document.getElementById('imagePreview');
+    if (!previewContainer) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        previewContainer.innerHTML = `
+            <div style="position: relative; display: inline-block; margin: 10px 0;">
+                <img src="${e.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 2px solid var(--accent-blue);">
+                <button type="button" onclick="clearSelectedImage()" style="position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">×</button>
+            </div>
+        `;
+        previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearSelectedImage() {
+    selectedFile = null;
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) fileInput.value = '';
+    const preview = document.getElementById('imagePreview');
+    if (preview) {
+        preview.innerHTML = '';
+        preview.style.display = 'none';
+    }
+}
+
+function setupImagePreview() {
+    // Preview container already exists in HTML
+    const preview = document.getElementById('imagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+}
+
+function setupDocumentUpload() {
+    // For future document upload implementation
+    console.log('Document upload ready');
+}
+
+// Update char count function
+function updateCharCount() {
+    const input = document.getElementById('messageInput');
+    const charCount = document.getElementById('charCount');
+    if (input && charCount) {
+        const len = input.value.length;
+        charCount.textContent = `${len}/1000`;
+        charCount.style.color = len > 900 ? '#ef4444' : 'var(--text-gray)';
+    }
+}
+
+// Clear selected file function for global use
+window.clearSelectedImage = clearSelectedImage;
+
+// Call this when inbox is opened
+const originalShowInboxExtended = window.showInbox;
+window.showInbox = function() {
+    if (originalShowInboxExtended) originalShowInboxExtended();
+    setTimeout(() => {
+        initInboxFeatures();
+    }, 500);
+};
 async function placeOrder(productId) {
     const quantity = document.getElementById('orderQuantity')?.value || 1;
     const address = document.getElementById('shippingAddress')?.value;
@@ -8477,8 +8774,197 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ==================== FIXED SERVICE FORM SUBMIT ====================
+// ==================== SEARCH MESSAGES IN CONVERSATION ====================
+let searchModal = null;
+let currentSearchResults = [];
+let currentSearchIndex = 0;
 
+function searchInConversation() {
+    if (!window.activeConversationId) {
+        showToast('No active conversation selected', 'warning');
+        return;
+    }
+    
+    // Create search modal if not exists
+    if (!searchModal) {
+        searchModal = document.createElement('div');
+        searchModal.id = 'searchMessagesModal';
+        searchModal.className = 'modal hidden';
+        searchModal.innerHTML = `
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: var(--text-light);">
+                        <i class="fas fa-search"></i> Search Messages
+                    </h3>
+                    <span class="close-x" onclick="closeSearchModal()">&times;</span>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="searchQuery" placeholder="Enter keyword to search..." 
+                           style="width: 100%; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
+                </div>
+                <div id="searchResults" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
+                <div style="display: flex; gap: 10px; justify-content: space-between;">
+                    <div>
+                        <span id="resultCounter" style="color: var(--text-gray);">0 results</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" id="prevResultBtn" disabled>
+                            <i class="fas fa-chevron-up"></i> Previous
+                        </button>
+                        <button class="btn btn-secondary" id="nextResultBtn" disabled>
+                            Next <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(searchModal);
+        
+        // Add search input listener
+        const searchInput = document.getElementById('searchQuery');
+        if (searchInput) {
+            let debounceTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => performMessageSearch(), 500);
+            });
+        }
+        
+        // Add navigation buttons
+        document.getElementById('prevResultBtn')?.addEventListener('click', () => navigateSearchResults(-1));
+        document.getElementById('nextResultBtn')?.addEventListener('click', () => navigateSearchResults(1));
+    }
+    
+    document.getElementById('searchQuery').value = '';
+    document.getElementById('searchResults').innerHTML = '<p style="color: var(--text-gray); text-align: center; padding: 20px;">Type to search messages...</p>';
+    document.getElementById('resultCounter').textContent = '0 results';
+    
+    openModal(searchModal);
+    document.getElementById('searchQuery').focus();
+}
+
+function closeSearchModal() {
+    if (searchModal) closeModal(searchModal);
+}
+
+async function performMessageSearch() {
+    const query = document.getElementById('searchQuery')?.value.trim();
+    if (!query || query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '<p style="color: var(--text-gray); text-align: center; padding: 20px;">Type at least 2 characters to search...</p>';
+        document.getElementById('resultCounter').textContent = '0 results';
+        return;
+    }
+    
+    try {
+        showToast('Searching messages...', 'info');
+        
+        const response = await fetch(`/api/messages/${window.activeConversationId}/search?q=${encodeURIComponent(query)}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Search failed');
+        
+        const messages = await response.json();
+        currentSearchResults = messages || [];
+        currentSearchIndex = 0;
+        
+        const resultsContainer = document.getElementById('searchResults');
+        const prevBtn = document.getElementById('prevResultBtn');
+        const nextBtn = document.getElementById('nextResultBtn');
+        const counter = document.getElementById('resultCounter');
+        
+        if (currentSearchResults.length === 0) {
+            resultsContainer.innerHTML = '<p style="color: var(--text-gray); text-align: center; padding: 20px;">No messages found matching "' + escapeHtml(query) + '"</p>';
+            counter.textContent = '0 results';
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+        } else {
+            resultsContainer.innerHTML = currentSearchResults.map((msg, idx) => `
+                <div class="search-result-item" data-index="${idx}" 
+                     style="padding: 12px; margin-bottom: 10px; background: var(--secondary-dark); border-radius: 8px; cursor: pointer; border-left: 3px solid var(--accent-blue);"
+                     onclick="jumpToMessage(${msg.id}, ${idx})">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: var(--accent-gold); font-weight: 500;">${escapeHtml(msg.sender_name || 'User')}</span>
+                        <span style="color: var(--text-gray); font-size: 0.75rem;">${new Date(msg.created_at).toLocaleString()}</span>
+                    </div>
+                    <p style="color: var(--text-light); margin: 0;">${escapeHtml(msg.message || msg.content || '').substring(0, 100)}${(msg.message || '').length > 100 ? '...' : ''}</p>
+                </div>
+            `).join('');
+            
+            counter.textContent = `${currentSearchResults.length} result${currentSearchResults.length !== 1 ? 's' : ''}`;
+            prevBtn.disabled = true;
+            nextBtn.disabled = currentSearchResults.length <= 1;
+            
+            // Highlight first result
+            highlightSearchResult(0);
+        }
+        
+        showToast(`Found ${currentSearchResults.length} messages`, 'success');
+        
+    } catch (err) {
+        console.error('Search error:', err);
+        document.getElementById('searchResults').innerHTML = '<p style="color: var(--error-red); text-align: center; padding: 20px;">Error searching messages</p>';
+        showToast('Error searching messages', 'error');
+    }
+}
+
+function highlightSearchResult(index) {
+    document.querySelectorAll('.search-result-item').forEach((item, i) => {
+        if (i === index) {
+            item.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+            item.style.borderLeftColor = 'var(--accent-gold)';
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            item.style.backgroundColor = 'var(--secondary-dark)';
+            item.style.borderLeftColor = 'var(--accent-blue)';
+        }
+    });
+}
+
+function navigateSearchResults(direction) {
+    if (!currentSearchResults.length) return;
+    
+    const newIndex = currentSearchIndex + direction;
+    if (newIndex >= 0 && newIndex < currentSearchResults.length) {
+        currentSearchIndex = newIndex;
+        highlightSearchResult(currentSearchIndex);
+        
+        const prevBtn = document.getElementById('prevResultBtn');
+        const nextBtn = document.getElementById('nextResultBtn');
+        
+        if (prevBtn) prevBtn.disabled = currentSearchIndex === 0;
+        if (nextBtn) nextBtn.disabled = currentSearchIndex === currentSearchResults.length - 1;
+    }
+}
+
+async function jumpToMessage(messageId, index) {
+    if (!window.activeConversationId) return;
+    
+    closeSearchModal();
+    
+    // Scroll to message
+    const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+    if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        messageElement.style.backgroundColor = 'rgba(251, 191, 36, 0.2)';
+        setTimeout(() => {
+            messageElement.style.backgroundColor = '';
+        }, 2000);
+    } else {
+        // Reload messages and try again
+        await loadMessagesForConversation(window.activeConversationId);
+        setTimeout(() => {
+            const msgElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+            if (msgElement) {
+                msgElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                msgElement.style.backgroundColor = 'rgba(251, 191, 36, 0.2)';
+                setTimeout(() => {
+                    msgElement.style.backgroundColor = '';
+                }, 2000);
+            }
+        }, 500);
+    }
+}
 
 // ==================== FIXED PROFILE SECTION ====================
 // ==================== COMPLETE PROFILE SECTION ====================
@@ -8945,33 +9431,6 @@ function setupProfileEventListeners() {
     }
 }
 
-// Upload profile picture
-async function uploadProfilePicture(file) {
-    const formData = new FormData();
-    formData.append('profile_picture', file);
-    
-    showToast('Uploading profile picture...', 'info');
-    
-    try {
-        const response = await fetch('/api/freelancer/profile-picture', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showToast('✅ Profile picture updated!', 'success');
-            await showFreelancerProfile();
-        } else {
-            showToast(result.error || 'Failed to upload picture', 'error');
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading picture', 'error');
-    }
-}
 
 // Initialize profile section when page loads
 document.addEventListener('DOMContentLoaded', () => {
@@ -10777,6 +11236,7 @@ async function viewServiceStats(serviceId) {
 }
 
 // ==================== FIX DELETE SERVICE FUNCTION ====================
+// ==================== DELETE SERVICE FUNCTION (FIXED) ====================
 async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     if (!currentUser) {
         showToast("Please login to delete services", "warning");
@@ -10790,19 +11250,29 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         return;
     }
     
-    const confirmed = confirm(`Are you sure you want to delete "${serviceTitle}"? This action cannot be undone.`);
+    // Show confirmation dialog
+    const confirmed = confirm(`⚠️ Are you sure you want to delete "${serviceTitle}"?\n\nThis action cannot be undone!`);
     
     if (!confirmed) return;
+    
+    // Ask for reason
+    let reason = prompt("Please provide a reason for deletion:", "No longer offering this service");
+    if (reason === null) return;
+    if (reason.trim() === "") {
+        reason = "No reason provided";
+    }
     
     try {
         showToast("Deleting service...", "info");
         
         const response = await fetch(`/api/services/${serviceId}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json'
+            },
             credentials: 'include',
             body: JSON.stringify({ 
-                reason: `Deleted by ${isOwner ? 'owner' : 'admin'}`
+                reason: reason
             })
         });
         
@@ -10810,18 +11280,25 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         
         if (response.ok && result.success) {
             showToast('✅ Service deleted successfully', 'success');
+            
             // Refresh the services lists
             await loadMyServices();
             await loadServices();
+            
+            // Also refresh favorites if on favorites tab
+            const favoritesTab = document.getElementById('favoritesTab');
+            if (favoritesTab && !favoritesTab.classList.contains('hidden')) {
+                await loadFavorites();
+            }
         } else {
             showToast(result.error || 'Failed to delete service', 'error');
         }
     } catch (err) {
         console.error('Delete error:', err);
-        showToast('Error deleting service', 'error');
+        showToast('Error deleting service: ' + err.message, 'error');
     }
 }
-
+    
 // ==================== UPDATE THE RENDER MY SERVICES FUNCTION ====================
 // Replace the action buttons in renderMyServices
 function renderMyServices(services) {
@@ -11284,6 +11761,39 @@ function updateCategoriesFromServices() {
         }
     }
 }
+
+// ==================== FIX ALL MODAL CLOSE BUTTONS ====================
+function setupModalCloseButtons() {
+    // Close modals when clicking X button
+    const closeButtons = document.querySelectorAll('.close-x, .modal-close-btn');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) closeModal(modal);
+        });
+    });
+    
+    // Close modals when clicking Cancel button
+    const cancelButtons = document.querySelectorAll('#cancelSubscriptionBtn, #cancelFreelancerDeleteBtn, #cancelAdminDeleteBtn, #cancelStatementBtn');
+    cancelButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) closeModal(modal);
+        });
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            closeModal(e.target);
+        }
+    });
+}
+
+// Call this after DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    setupModalCloseButtons();
+});
 // ============================================
 // FLAGGING SYSTEM FUNCTIONS
 // ============================================
@@ -12213,12 +12723,29 @@ async function uploadCertificates(files) {
     }
 }
 
-// ==================== FIX PROFILE PICTURE UPLOAD ====================
+// ==================== PROFILE PICTURE UPLOAD ====================
 async function uploadProfilePicture(file) {
+    if (!file) {
+        showToast("No file selected", "warning");
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        showToast("Please select an image file (JPEG, PNG, GIF)", "warning");
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("File too large! Maximum 5MB", "warning");
+        return;
+    }
+    
     const formData = new FormData();
     formData.append('profile_picture', file);
     
-    showToast('Uploading profile picture...', 'info');
+    showToast("Uploading profile picture to Cloudinary...", "info");
     
     try {
         const response = await fetch('/api/freelancer/profile-picture', {
@@ -12230,17 +12757,114 @@ async function uploadProfilePicture(file) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast('✅ Profile picture updated!', 'success');
+            showToast('✅ Profile picture updated successfully!', 'success');
             await showFreelancerProfile();
         } else {
             showToast(result.error || 'Failed to upload picture', 'error');
         }
     } catch (err) {
         console.error('Upload error:', err);
-        showToast('Error uploading picture', 'error');
+        showToast('Error uploading picture: ' + err.message, 'error');
     }
 }
 
+// ==================== CERTIFICATE UPLOAD ====================
+async function uploadCertificates(files) {
+    const maxFiles = 5;
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    
+    const validFiles = [];
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!allowedTypes.includes(file.type)) {
+            showToast(`${file.name} is not an allowed format`, 'warning');
+            continue;
+        }
+        if (file.size > maxSize) {
+            showToast(`${file.name} exceeds 5MB limit`, 'warning');
+            continue;
+        }
+        validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) {
+        showToast("No valid files to upload", "warning");
+        return;
+    }
+    
+    if (validFiles.length > maxFiles) {
+        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
+        return;
+    }
+    
+    const formData = new FormData();
+    validFiles.forEach(file => {
+        formData.append('certificate_images', file);
+    });
+    
+    const progressDiv = document.getElementById('certificateProgress');
+    const progressBar = document.getElementById('certificateProgressBar');
+    const progressText = document.getElementById('certificateProgressText');
+    
+    if (progressDiv) progressDiv.style.display = 'block';
+    if (progressBar) progressBar.style.width = '50%';
+    if (progressText) progressText.textContent = 'Uploading to Cloudinary...';
+    
+    try {
+        const response = await fetch('/api/freelancer/certificate-images', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressText) progressText.textContent = 'Upload complete!';
+            showToast(`✅ ${validFiles.length} certificate(s) uploaded successfully!`, 'success');
+            await showFreelancerProfile();
+        } else {
+            showToast(result.error || 'Upload failed', 'error');
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error uploading certificates: ' + err.message, 'error');
+    } finally {
+        setTimeout(() => {
+            if (progressDiv) progressDiv.style.display = 'none';
+            if (progressBar) progressBar.style.width = '0%';
+        }, 2000);
+        
+        const certificateInput = document.getElementById('certificateImagesInput');
+        if (certificateInput) certificateInput.value = '';
+    }
+}
+
+// ==================== DELETE CERTIFICATE ====================
+async function removeCertificate(index) {
+    if (!confirm("Are you sure you want to remove this certificate?")) return;
+    
+    try {
+        const response = await fetch(`/api/freelancer/certificate-images/${index}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('✅ Certificate removed successfully', 'success');
+            await showFreelancerProfile();
+        } else {
+            showToast(result.error || 'Failed to remove certificate', 'error');
+        }
+    } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Error removing certificate', 'error');
+    }
+}
 // ==================== INITIALIZE EVERYTHING ====================
 document.addEventListener('DOMContentLoaded', function() {
     setupServiceForm();

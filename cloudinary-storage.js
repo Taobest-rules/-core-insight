@@ -152,7 +152,31 @@ const uploadProduct = multer({
   { name: 'file', maxCount: 1 },
   { name: 'images[]', maxCount: 10 }
 ]);
+// ========== STORAGE FOR CERTIFICATE IMAGES (Cloudinary - images only) ==========
+const certificateStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'core-insight/certificates',
+    resource_type: 'image',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
+    transformation: [
+      { width: 800, height: 600, crop: 'limit' },
+      { quality: 'auto' }
+    ]
+  }
+});
 
+// For certificate images (Cloudinary)
+const uploadCertificate = multer({ 
+  storage: certificateStorage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// For multiple certificate images upload
+const uploadMultipleCertificates = multer({ 
+  storage: certificateStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }
+}).array('certificate_images', 5);
 // Course upload with thumbnail (Cloudinary) and file (local)
 const uploadCourse = multer({
   storage: multer.diskStorage({}) // This will be overridden
@@ -171,5 +195,7 @@ module.exports = {
   uploadProfilePicture,
   uploadChatImage,
   uploadProduct,
+  uploadCertificate,        
+  uploadMultipleCertificates, 
   cloudinary
 };

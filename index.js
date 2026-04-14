@@ -3379,6 +3379,161 @@ app.get("/api/debug/directories", async (req, res) => {
     res.json(results);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+// =================== DELETE SERVICE (SOFT DELETE) ===================
+app.delete("/api/services/:id", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const serviceId = parseInt(req.params.id);
+        const userId = req.session.user.id;
+        const userRole = req.session.user.role;
+        const { reason } = req.body;
+
+        // Check if service exists and get ownership
+        const serviceResult = await db.query(
+            "SELECT id, user_id, title FROM services WHERE id = ?",
+            [serviceId]
+        );
+
+        let service = null;
+        if (Array.isArray(serviceResult) && serviceResult.length > 0) {
+            service = serviceResult[0];
+        }
+
+        if (!service) {
+            return res.status(404).json({ error: "Service not found" });
+        }
+
+        const isOwner = service.user_id === userId;
+        const isAdmin = userRole === 'admin';
+
+        // Check permission
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: "You can only delete your own services" });
+        }
+
+        // For freelancers (non-admin), check daily delete limit
+        if (!isAdmin && userRole === 'freelancer') {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                
+                const deleteCountResult = await db.query(
+                    `SELECT COUNT(*) as count FROM deleted_services 
+                     WHERE deleted_by = ? AND DATE(deleted_at) = ?`,
+                    [userId, today]
+                );
+
+                let deleteCount = 0;
+                if (Array.isArray(deleteCountResult) && deleteCountResult.length > 0) {
+                    deleteCount = deleteCountResult[0].count || 0;
+                }
+
+                if (deleteCount >= 3) {
+                    return res.status(403).json({ 
+                        error: "Daily delete limit reached (3 per day). Please try again tomorrow." 
+                    });
+                }
+            } catch (limitErr) {
+                console.error("Delete limit check error:", limitErr);
+            }
+        }
+
+        // Check if status column exists for soft delete
+        let hasStatusColumn = false;
+        try {
+            const columnCheck = await db.query(`
+                SELECT COUNT(*) as count 
+                FROM information_schema.columns 
+                WHERE table_name = 'services' AND column_name = 'status'
+            `);
+            
+            if (Array.isArray(columnCheck) && columnCheck.length > 0) {
+                hasStatusColumn = columnCheck[0].count > 0;
+            }
+        } catch (e) {
+            console.log("Could not check status column");
+        }
+
+        if (hasStatusColumn) {
+            // Soft delete - update status
+            await db.query(
+                "UPDATE services SET status = 'deleted', deleted_at = NOW() WHERE id = ?",
+                [serviceId]
+            );
+        } else {
+            // Hard delete if no status column
+            await db.query("DELETE FROM services WHERE id = ?", [serviceId]);
+        }
+
+        // Log deletion in deleted_services table
+        await db.query(
+            `INSERT INTO deleted_services 
+             (service_id, service_owner_id, service_title, deleted_by, deleted_by_role, reason, deleted_at) 
+             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            [
+                service.id, 
+                service.user_id, 
+                service.title,
+                userId, 
+                isAdmin ? 'admin' : 'freelancer', 
+                reason || (isAdmin ? 'Deleted by admin' : 'Deleted by owner')
+            ]
+        );
+
+        res.json({
+            success: true,
+            message: "Service deleted successfully"
+        });
+
+    } catch (err) {
+        console.error("Delete service error:", err);
+        res.status(500).json({ error: "Internal server error: " + err.message });
+    }
+});
+// Search messages in conversation
+app.get("/api/messages/:conversationId/search", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const conversationId = req.params.conversationId;
+        const query = req.query.q;
+        
+        if (!query || query.length < 2) {
+            return res.json([]);
+        }
+        
+        // Check access
+        const userId = req.session.user.id;
+        const convCheck = await db.query(
+            "SELECT id FROM conversations WHERE id = ? AND (client_id = ? OR freelancer_id = ?)",
+            [conversationId, userId, userId]
+        );
+        
+        if (!convCheck || convCheck.length === 0) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+        
+        const messages = await db.query(
+            `SELECT m.*, u.username as sender_name 
+             FROM messages m
+             JOIN users u ON m.sender_id = u.id
+             WHERE m.conversation_id = ? 
+             AND (m.message LIKE ? OR m.message LIKE ?)
+             ORDER BY m.created_at DESC`,
+            [conversationId, `%${query}%`, `%${query}%`]
+        );
+        
+        res.json(messages || []);
+        
+    } catch (err) {
+        console.error("Search error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
 // ============================================
@@ -5236,6 +5391,112 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
         res.json({ certificate_images: [] });
     }
 });
+
+// ==================== CERTIFICATE IMAGES UPLOAD (CLOUDINARY) ====================
+app.post("/api/freelancer/certificate-images", uploadCertificate.array("certificate_images", 5), async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login to upload certificates" });
+    }
+
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: "No files uploaded" });
+        }
+
+        // Get Cloudinary URLs
+        const certificateUrls = req.files.map(file => file.path);
+        
+        console.log(`✅ Uploaded ${certificateUrls.length} certificates to Cloudinary:`, certificateUrls);
+
+        // Get current certificate URLs
+        const currentProfile = await db.query(
+            "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
+            [req.session.user.id]
+        );
+
+        let currentCertificates = [];
+        
+        if (currentProfile && currentProfile.length > 0 && currentProfile[0].certificate_image_urls) {
+            try {
+                currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
+            } catch (e) {
+                currentCertificates = [];
+            }
+        }
+
+        // Limit to 5 certificates total
+        const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
+        
+        await db.query(`
+            UPDATE freelancer_profiles 
+            SET certificate_image_urls = ?, updated_at = NOW() 
+            WHERE user_id = ?
+        `, [JSON.stringify(updatedCertificates), req.session.user.id]);
+
+        res.json({ 
+            success: true,
+            message: `${certificateUrls.length} certificate(s) uploaded successfully`,
+            certificate_images: updatedCertificates
+        });
+        
+    } catch (err) {
+        console.error('❌ Error uploading certificates:', err);
+        res.status(500).json({ 
+            success: false,
+            error: "Error uploading certificate images: " + err.message 
+        });
+    }
+});
+
+// ==================== DELETE CERTIFICATE ====================
+app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const index = parseInt(req.params.index);
+        
+        const currentProfile = await db.query(
+            "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
+            [req.session.user.id]
+        );
+
+        if (!currentProfile || currentProfile.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+
+        let certificates = [];
+        if (currentProfile[0].certificate_image_urls) {
+            try {
+                certificates = JSON.parse(currentProfile[0].certificate_image_urls);
+            } catch (e) {
+                certificates = [];
+            }
+        }
+
+        if (index >= 0 && index < certificates.length) {
+            certificates.splice(index, 1);
+            
+            await db.query(
+                "UPDATE freelancer_profiles SET certificate_image_urls = ?, updated_at = NOW() WHERE user_id = ?",
+                [JSON.stringify(certificates), req.session.user.id]
+            );
+            
+            res.json({
+                success: true,
+                message: "Certificate removed successfully",
+                certificate_images: certificates
+            });
+        } else {
+            res.status(400).json({ error: "Invalid certificate index" });
+        }
+        
+    } catch (err) {
+        console.error("Error deleting certificate:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ==================== SERVICE FAVORITES ENDPOINT ====================
 app.post("/api/services/:serviceId/favorite", async (req, res) => {
     if (!req.session.user) {
@@ -6326,8 +6587,7 @@ app.put("/api/freelancer/update-profile", async (req, res) => {
         res.status(500).json({ error: "Error updating profile: " + err.message });
     }
 });
-
-// Upload profile picture
+// ==================== PROFILE PICTURE UPLOAD (CLOUDINARY) ====================
 app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile_picture"), async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login to upload picture" });
@@ -6338,8 +6598,11 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile
             return res.status(400).json({ error: "No file uploaded" });
         }
 
-        const profilePictureUrl = req.file.path; // Cloudinary URL or local path
+        // Get Cloudinary URL
+        const profilePictureUrl = req.file.path;
         
+        console.log("✅ Profile picture uploaded to Cloudinary:", profilePictureUrl);
+
         // Check if profile exists
         const profileCheck = await db.query(
             "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
@@ -6365,7 +6628,7 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile
         });
         
     } catch (err) {
-        console.error("Error uploading profile picture:", err);
+        console.error("❌ Error uploading profile picture:", err);
         res.status(500).json({ error: "Error uploading profile picture: " + err.message });
     }
 });

@@ -6481,6 +6481,13 @@ function renderServices(servicesToRender) {
 
     if (noServices) noServices.style.display = 'none';
 
+    // For clients, fetch their recruited freelancers to determine if review button should show
+    let recruitedFreelancerIds = [];
+    if (currentUser && currentUser.role === 'client') {
+        // Fetch recruited freelancers asynchronously - we'll handle this differently
+        // Instead, we'll make each card check individually
+    }
+
     container.innerHTML = servicesToRender.map(service => {
         const serviceId = service.id;
         const title = service.title || 'Untitled Service';
@@ -6505,6 +6512,7 @@ function renderServices(servicesToRender) {
 
         let actionButtons = '';
 
+        // Chat button
         actionButtons += `
             <button class="btn chat-btn" onclick="checkAndStartConversation(${serviceId}, ${userId})">
                 <i class="fas fa-comments"></i> Chat
@@ -6514,6 +6522,7 @@ function renderServices(servicesToRender) {
             </button>
         `;
 
+        // Recruit button for clients
         if (isLoggedIn && isClient && !isOwner) {
             actionButtons += `
                 <button class="btn recruit-btn" onclick="recruitFreelancer(${userId}, ${serviceId}, this)">
@@ -6522,6 +6531,7 @@ function renderServices(servicesToRender) {
             `;
         }
 
+        // Favorite button
         if (isLoggedIn && !isOwner) {
             const isFavorited = service.is_favorited ? true : false;
             const favoriteIcon = isFavorited ? 'fas fa-heart' : 'far fa-heart';
@@ -6532,14 +6542,26 @@ function renderServices(servicesToRender) {
             `;
         }
 
-        if (isLoggedIn && isClient) {
+        // Flag button for clients
+        if (isLoggedIn && isClient && !isOwner) {
             actionButtons += `
-                <button class="btn btn-secondary" onclick="showReviewModal(${serviceId}, '${escapeHtml(title)}')">
+                <button class="btn btn-secondary flag-btn" onclick="showFlagModal(${userId}, '${escapeHtml(providerName)}', ${serviceId})">
+                    <i class="fas fa-flag"></i> Report
+                </button>
+            `;
+        }
+
+        // REVIEW BUTTON - Show for clients who have recruited this freelancer
+        // We'll add a data attribute and check dynamically
+        if (isLoggedIn && isClient && !isOwner) {
+            actionButtons += `
+                <button class="btn btn-secondary review-btn" data-freelancer-id="${userId}" data-service-id="${serviceId}" data-freelancer-name="${escapeHtml(providerName)}" style="display: none;">
                     <i class="fas fa-star"></i> Review
                 </button>
             `;
         }
 
+        // Delete button for owners/admins
         if (isLoggedIn && (isOwner || isAdmin)) {
             actionButtons += `
                 <button class="btn btn-danger" onclick="confirmDeleteService(${serviceId}, '${escapeHtml(title)}', ${userId}, ${isOwner})">
@@ -6557,7 +6579,7 @@ function renderServices(servicesToRender) {
             </div>` : '';
 
         return `
-            <div class="service-card" data-service-id="${serviceId}">
+            <div class="service-card" data-service-id="${serviceId}" data-freelancer-id="${userId}">
                 <div class="service-header">
                     <h3 class="service-title">${escapeHtml(title)}</h3>
                     <div class="service-price">${price > 0 ? `$${price}` : 'Free'}</div>
@@ -6598,6 +6620,47 @@ function renderServices(servicesToRender) {
             </div>
         `;
     }).join('');
+
+    // After rendering, check which freelancers the client has recruited and show review buttons
+    if (currentUser && currentUser.role === 'client') {
+        checkAndShowReviewButtons();
+    }
+}
+
+// Function to check recruited freelancers and show review buttons
+async function checkAndShowReviewButtons() {
+    try {
+        const response = await fetch('/api/client/providers', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        
+        let providers = await response.json();
+        if (!Array.isArray(providers)) providers = [];
+        
+        // Create a set of recruited freelancer IDs
+        const recruitedIds = new Set(providers.map(p => p.freelancer_id));
+        
+        // Show review buttons for recruited freelancers
+        document.querySelectorAll('.review-btn').forEach(btn => {
+            const freelancerId = parseInt(btn.dataset.freelancerId);
+            if (recruitedIds.has(freelancerId)) {
+                btn.style.display = 'flex';
+                // Add click event
+                btn.onclick = () => {
+                    showReviewModalForFreelancer(
+                        freelancerId, 
+                        btn.dataset.freelancerName, 
+                        btn.dataset.serviceId
+                    );
+                };
+            }
+        });
+        
+    } catch (err) {
+        console.error("Error checking recruited freelancers:", err);
+    }
 }
 
 /*********************
@@ -10800,6 +10863,7 @@ function fixAllInboxButtons() {
  *  Event Listeners  *
  *********************/
 function setupEventListeners() {
+    // Find Services button
     if ($('findServicesBtn')) {
         $('findServicesBtn').addEventListener('click', () => {
             showServicesBrowser();
@@ -10807,26 +10871,32 @@ function setupEventListeners() {
         });
     }
 
+    // Offer Service button
     if ($('offerServiceBtn')) {
         $('offerServiceBtn').addEventListener('click', handleOfferServiceClick);
     }
 
+    // Service form submission
     if ($('serviceForm')) {
         $('serviceForm').addEventListener('submit', handleServiceFormSubmit);
     }
 
+    // Cancel create service button
     if ($('cancelCreateServiceBtn')) {
         $('cancelCreateServiceBtn').addEventListener('click', hideCreateServiceForm);
     }
 
+    // Login form
     if ($('loginForm')) {
         $('loginForm').addEventListener('submit', handleLoginSubmit);
     }
 
+    // Signup form
     if ($('signupForm')) {
         $('signupForm').addEventListener('submit', handleSignupSubmit);
     }
 
+    // Close modal buttons
     if ($('closeLogin')) {
         $('closeLogin').addEventListener('click', () => closeModal($('loginModal')));
     }
@@ -10847,6 +10917,7 @@ function setupEventListeners() {
         $('closeCertificateViewer').addEventListener('click', () => closeModal($('certificateViewerModal')));
     }
 
+    // New conversation modal
     if ($('closeNewConversationModal')) {
         $('closeNewConversationModal').addEventListener('click', closeNewConversationModal);
     }
@@ -10855,6 +10926,7 @@ function setupEventListeners() {
         $('cancelNewConversationBtn').addEventListener('click', closeNewConversationModal);
     }
 
+    // Login toggle buttons
     if ($('loginByUsername')) {
         $('loginByUsername').addEventListener('click', () => {
             $('loginByUsername').style.background = 'var(--accent-blue)';
@@ -10877,6 +10949,7 @@ function setupEventListeners() {
         });
     }
 
+    // Password visibility toggles
     if ($('toggleLoginPwd')) {
         $('toggleLoginPwd').addEventListener('click', () => {
             const field = $('loginPasswordInput');
@@ -10891,6 +10964,7 @@ function setupEventListeners() {
         });
     }
 
+    // Switch between login and signup
     if ($('openSignupFromLogin')) {
         $('openSignupFromLogin').addEventListener('click', () => {
             closeModal($('loginModal'));
@@ -10905,15 +10979,14 @@ function setupEventListeners() {
         });
     }
 
-    
-    
-
+    // Profile picture upload
     if ($('updatePhotoBtn') && $('profilePictureInput')) {
         $('updatePhotoBtn').addEventListener('click', () => {
             $('profilePictureInput').click();
         });
     }
 
+    // Profile tab buttons
     if ($('profileViewTabBtn')) {
         $('profileViewTabBtn').addEventListener('click', () => switchProfileTab('profileViewTabContent'));
     }
@@ -10937,14 +11010,17 @@ function setupEventListeners() {
         $('profileReviewsTabBtn').addEventListener('click', () => switchProfileTab('profileReviewsTabContent'));
     }
 
+    // Cancel edit button
     if ($('cancelEditBtn')) {
         $('cancelEditBtn').addEventListener('click', () => switchProfileTab('profileViewTabContent'));
     }
 
+    // Profile form
     if ($('profileForm')) {
         $('profileForm').addEventListener('submit', handleProfileFormSubmit);
     }
 
+    // Main navigation tabs
     if ($('browseTabBtn')) {
         $('browseTabBtn').addEventListener('click', () => switchTab('browse'));
     }
@@ -10961,6 +11037,7 @@ function setupEventListeners() {
         $('myOrdersTabBtn').addEventListener('click', () => switchTab('myOrders'));
     }
 
+    // Provider tabs
     if ($('providerBrowseTabBtn')) {
         $('providerBrowseTabBtn').addEventListener('click', () => switchTab('browse'));
     }
@@ -10981,18 +11058,12 @@ function setupEventListeners() {
         $('providerClientsTabBtn').addEventListener('click', () => switchTab('clients'));
     }
 
-    if ($('providerOrdersTabBtn')) {
-        $('providerOrdersTabBtn').addEventListener('click', () => switchTab('providerOrders'));
-    }
-
-    if ($('providerEarningsTabBtn')) {
-        $('providerEarningsTabBtn').addEventListener('click', () => switchTab('providerEarnings'));
-    }
-
+    // Create service button
     if ($('createServiceBtn')) {
         $('createServiceBtn').addEventListener('click', showCreateServiceForm);
     }
 
+    // Browse to recruit button
     if ($('browseToRecruitBtn')) {
         $('browseToRecruitBtn').addEventListener('click', () => switchTab('browse'));
     }
@@ -11005,6 +11076,7 @@ function setupEventListeners() {
         $('manageProfileBtn').addEventListener('click', showFreelancerProfile);
     }
 
+    // Subscription buttons
     if ($('startFreeTrialBtn')) {
         $('startFreeTrialBtn').addEventListener('click', startFreeTrial);
     }
@@ -11025,6 +11097,7 @@ function setupEventListeners() {
         $('subscribeYearlyFromTabBtn').addEventListener('click', () => subscribe('yearly'));
     }
 
+    // Inbox buttons
     if ($('startNewChatBtn')) {
         $('startNewChatBtn').addEventListener('click', startNewConversation);
     }
@@ -11047,6 +11120,7 @@ function setupEventListeners() {
         });
     }
 
+    // User search
     if ($('performUserSearchBtn')) {
         $('performUserSearchBtn').addEventListener('click', performUserSearch);
     }
@@ -11057,7 +11131,7 @@ function setupEventListeners() {
         });
     }
 
-    
+    // Inbox attachments
     if ($('attachImageBtn')) {
         $('attachImageBtn').addEventListener('click', () => {
             document.getElementById('fileInput').click();
@@ -11073,6 +11147,7 @@ function setupEventListeners() {
         });
     }
 
+    // Service search and filters
     if ($('serviceSearch')) {
         $('serviceSearch').addEventListener('input', debounce(() => {
             if ($('browseTab') && !$('browseTab').classList.contains('hidden')) {
@@ -11098,39 +11173,41 @@ function setupEventListeners() {
         });
     }
 
+    // Mobile menu toggle
     if ($('mobileMenuToggle')) {
         $('mobileMenuToggle').addEventListener('click', () => {
             $('mobileNav').classList.toggle('open');
         });
     }
     
+    // Service details modal close
     if ($('closeServiceDetails')) {
         $('closeServiceDetails').addEventListener('click', () => closeModal($('serviceDetailsModal')));
     }
 
-    // Add these to your setupEventListeners function
-
-// Admin Review Button (in header)
-const adminReviewBtn = document.getElementById('adminReviewBtn');
-if (adminReviewBtn) {
-    adminReviewBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log("Admin Review button clicked");
-        showAdminReviewPanel();
-    });
+    // ADMIN BUTTONS - Add these
+    // Admin Review Button (in header)
+    const adminReviewBtn = document.getElementById('adminReviewBtn');
+    if (adminReviewBtn) {
+        adminReviewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Admin Review button clicked");
+            showAdminReviewPanel();
+        });
+    }
+    
+    // Admin Dashboard Button
+    const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+    if (adminDashboardBtn) {
+        adminDashboardBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Admin Dashboard button clicked");
+            showAdminDashboard();
+        });
+    }
 }
-
-// Admin Dashboard Button (if exists)
-const adminDashboardBtn = document.getElementById('adminDashboardBtn');
-if (adminDashboardBtn) {
-    adminDashboardBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log("Admin Dashboard button clicked");
-        showAdminDashboard();
-    });
-}
-}
-
 function handleOfferServiceClick() {
     if (!currentUser) {
         openModal($('loginModal'));
@@ -11585,6 +11662,15 @@ async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
             buttonElement.innerHTML = '<i class="fas fa-check"></i> Recruited';
             buttonElement.disabled = true;
             showToast("Freelancer added to your providers!", "success");
+            
+            // Show the review button for this freelancer
+            const reviewBtn = document.querySelector(`.review-btn[data-freelancer-id="${freelancerId}"]`);
+            if (reviewBtn) {
+                reviewBtn.style.display = 'flex';
+                reviewBtn.onclick = () => {
+                    showReviewModalForFreelancer(freelancerId, reviewBtn.dataset.freelancerName, serviceId);
+                };
+            }
         } else {
             showToast(data.error || "Failed to recruit", "error");
         }
@@ -11593,7 +11679,6 @@ async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
         showToast("Error recruiting freelancer", "error");
     }
 }
-
 async function viewServiceDetailsModal(serviceId) {
     try {
         const response = await fetch(`/api/services/${serviceId}`, {
@@ -12043,9 +12128,14 @@ async function loadMyFreelancers() {
             throw new Error('Failed to load freelancers');
         }
         
-        const freelancers = await response.json();
+        let freelancers = await response.json();
         
-        if (!freelancers || freelancers.length === 0) {
+        // Ensure freelancers is an array
+        if (!Array.isArray(freelancers)) {
+            freelancers = [];
+        }
+        
+        if (freelancers.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; grid-column: 1 / -1;">
                     <div style="font-size: 4rem; margin-bottom: 20px;">🤝</div>
@@ -12118,13 +12208,12 @@ async function loadMyFreelancers() {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: var(--error-red); grid-column: 1 / -1;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <p>Failed to load your freelancers</p>
+                <p>Failed to load your freelancers: ${err.message}</p>
                 <button class="btn btn-primary" onclick="loadMyFreelancers()">Try Again</button>
             </div>
         `;
     }
 }
-// Load favorites
 async function loadFavorites() {
     const container = document.getElementById('favoritesList');
     if (!container) return;
@@ -12140,10 +12229,16 @@ async function loadFavorites() {
             throw new Error('Failed to load favorites');
         }
         
-        const favorites = await response.json();
+        let favorites = await response.json();
+        
+        // Ensure favorites is an array
+        if (!Array.isArray(favorites)) {
+            favorites = [];
+        }
+        
         const noFavoritesDiv = document.getElementById('noFavorites');
         
-        if (!favorites || favorites.length === 0) {
+        if (favorites.length === 0) {
             if (noFavoritesDiv) noFavoritesDiv.style.display = 'block';
             container.innerHTML = '';
             return;
@@ -12199,13 +12294,12 @@ async function loadFavorites() {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: var(--error-red); grid-column: 1 / -1;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <p>Failed to load favorites</p>
+                <p>Failed to load favorites: ${err.message}</p>
                 <button class="btn btn-primary" onclick="loadFavorites()">Try Again</button>
             </div>
         `;
     }
 }
-
 function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     if (!currentUser) {
         showToast("Please login to delete services", "warning");

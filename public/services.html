@@ -7885,6 +7885,7 @@ function showOrderModal(product) {
 function setupInboxAttachments() {
     console.log("Setting up inbox attachments...");
     setupAttachButtons();
+     setupEmojiPicker();
     setupEmojiPicker();
     setupImagePreview();
     setupDocumentUpload();
@@ -7937,19 +7938,10 @@ function setupAttachButtons() {
     }
 }
 
-// Setup emoji picker button
-function setupEmojiPicker() {
-    const emojiBtn = document.getElementById('emojiPickerBtn');
-    if (!emojiBtn) return;
-    
-    const newEmojiBtn = emojiBtn.cloneNode(true);
-    emojiBtn.parentNode.replaceChild(newEmojiBtn, emojiBtn);
-    
-    newEmojiBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        toggleEmojiPickerExtended();
-    });
-}
+    // ==================== WORKING EMOJI PICKER ====================
+
+// Global variable for emoji picker instance
+let emojiPickerInstance = null;
 
 // Create emoji picker element
 function createEmojiPickerExtended() {
@@ -7970,13 +7962,14 @@ function createEmojiPickerExtended() {
         max-width: calc(100vw - 40px);
         max-height: 400px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        overflow: hidden;
     `;
     
-    // Emoji data
+    // Complete emoji data with many emojis
     const emojis = {
         smile: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
-        heart: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '💢', '💯', '💠', '🌀', '💌', '💋', '💍', '💎'],
-        hand: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏', '🙏', '🤝', '👊', '✊', '🤛', '🤜', '💪', '🖖', '🤙', '🙌', '👐', '🤲', '🤳', '💅', '👋', '🖐️', '✋', '👈', '👉', '👆', '👇', '☝️', '✍️', '🦾', '🦵', '🦶', '👣', '👂', '👃', '👀', '👅', '👄'],
+        heart: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '💢', '💯', '💠', '🌀', '💌', '💋', '💍', '💎', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️'],
+        hand: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏', '🙏', '🤝', '👊', '✊', '🤛', '🤜', '💪', '🖖', '🤙', '🙌', '👐', '🤲', '🤳', '💅', '👋', '🖐️', '✋', '👈', '👉', '👆', '👇', '☝️', '✍️', '🦾', '🦵', '🦶', '👣', '👂', '👃', '👀', '👅', '👄', '🫀', '🫁', '🫂'],
         food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🌮', '🌯', '🥗', '🥘', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🍾'],
         animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🐇', '🦝', '🦡', '🦔', '🐿️'],
         activity: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🎨', '🎬', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🪕', '🥁', '🪘', '🎮', '🕹️', '🎲', '♟️', '🎯', '🎳'],
@@ -7992,11 +7985,17 @@ function createEmojiPickerExtended() {
         objects: '📱 Objects', symbols: '⭐ Symbols'
     };
     
+    // Create category tabs
     let tabsHtml = `<div class="emoji-categories" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">`;
     categories.forEach(cat => {
         tabsHtml += `<button class="emoji-cat-btn" data-category="${cat}" style="padding: 8px 12px; background: transparent; border: none; color: #94a3b8; cursor: pointer; border-radius: 8px; font-size: 0.85rem; transition: all 0.2s;">${categoryNames[cat]}</button>`;
     });
     tabsHtml += `</div>`;
+    
+    // Search input
+    tabsHtml += `<div class="emoji-search" style="margin-bottom: 10px;">
+        <input type="text" id="emojiSearchInput" placeholder="Search emojis..." style="width: 100%; padding: 8px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white;">
+    </div>`;
     
     tabsHtml += `<div class="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; padding: 5px;"></div>`;
     
@@ -8005,9 +8004,20 @@ function createEmojiPickerExtended() {
     
     const grid = picker.querySelector('.emoji-grid');
     let currentCategory = 'smile';
+    let allEmojis = [];
     
-    function updateGrid(category) {
-        const emojiList = emojis[category] || emojis.smile;
+    // Collect all emojis for search
+    Object.values(emojis).forEach(emojiArray => {
+        allEmojis = allEmojis.concat(emojiArray);
+    });
+    
+    function updateGrid(category, searchTerm = '') {
+        let emojiList = searchTerm ? allEmojis : (emojis[category] || emojis.smile);
+        
+        if (searchTerm) {
+            emojiList = emojiList.filter(emoji => emoji.includes(searchTerm));
+        }
+        
         grid.innerHTML = emojiList.map(emoji => 
             `<div class="emoji-item" data-emoji="${emoji}" style="font-size: 1.8rem; cursor: pointer; padding: 8px; text-align: center; border-radius: 10px; transition: all 0.2s;">${emoji}</div>`
         ).join('');
@@ -8045,7 +8055,20 @@ function createEmojiPickerExtended() {
             btn.style.color = 'white';
             currentCategory = btn.dataset.category;
             updateGrid(currentCategory);
+            // Clear search
+            const searchInput = picker.querySelector('#emojiSearchInput');
+            if (searchInput) searchInput.value = '';
         });
+    });
+    
+    // Search handler
+    const searchInput = picker.querySelector('#emojiSearchInput');
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateGrid(currentCategory, searchInput.value);
+        }, 300);
     });
     
     updateGrid('smile');
@@ -8057,10 +8080,21 @@ function createEmojiPickerExtended() {
         firstBtn.style.color = 'white';
     }
     
+    // Close picker when clicking outside
+    document.addEventListener('click', function closePicker(e) {
+        if (picker && picker.style.display === 'block') {
+            const emojiBtn = document.getElementById('emojiPickerBtn');
+            if (!picker.contains(e.target) && emojiBtn && !emojiBtn.contains(e.target)) {
+                picker.style.display = 'none';
+                document.removeEventListener('click', closePicker);
+            }
+        }
+    });
+    
     return picker;
 }
 
-// Toggle emoji picker
+// Toggle emoji picker - MAKE SURE THIS IS GLOBAL
 function toggleEmojiPickerExtended() {
     if (!emojiPickerInstance) {
         emojiPickerInstance = createEmojiPickerExtended();
@@ -8072,6 +8106,25 @@ function toggleEmojiPickerExtended() {
         emojiPickerInstance.style.display = 'block';
     }
 }
+
+// Setup emoji picker button
+function setupEmojiPicker() {
+    const emojiBtn = document.getElementById('emojiPickerBtn');
+    if (!emojiBtn) return;
+    
+    // Remove existing listeners
+    const newEmojiBtn = emojiBtn.cloneNode(true);
+    emojiBtn.parentNode.replaceChild(newEmojiBtn, emojiBtn);
+    
+    newEmojiBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleEmojiPickerExtended();
+    });
+}
+
+// Make sure it's globally accessible
+window.toggleEmojiPickerExtended = toggleEmojiPickerExtended;
 
 // Show image preview
 function showImagePreview(file) {
@@ -9113,7 +9166,7 @@ async function loadFreelancerDashboard() {
         const response = await fetch('/api/freelancer/dashboard', {
             credentials: 'include'
         });
-        
+         
         if (response.ok) {
             const data = await response.json();
             
@@ -9142,8 +9195,329 @@ async function loadFreelancerDashboard() {
         console.error('Error loading dashboard:', err);
     }
 }
+async function loadMyClients() {
+    const container = document.getElementById('clientsList');
+    if (!container) return;
 
-// Handle profile form submission
+    try {
+        container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading clients...</div>';
+        
+        const response = await fetch('/api/freelancer/clients', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load clients');
+        
+        const clients = await response.json();
+        
+        if (!clients || clients.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; grid-column: 1 / -1;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">👥</div>
+                    <h3 style="color: var(--text-light); margin-bottom: 10px;">No Clients Yet</h3>
+                    <p style="color: var(--text-gray);">When clients recruit you, they'll appear here.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = clients.map(client => {
+            const isFreelancer = currentUser?.role === 'freelancer';
+            
+            return `
+                <div class="service-card" data-client-id="${client.client_id}">
+                    <div class="service-header">
+                        <h3 class="service-title">${escapeHtml(client.username)}</h3>
+                        <div class="service-price">${client.total_orders || 0} orders</div>
+                    </div>
+                    <div class="service-provider-info">
+                        <div class="provider-initials">${(client.username || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="provider-info">
+                            <div class="service-provider-name">${escapeHtml(client.username)}</div>
+                            <div class="service-provider">Recruited: ${new Date(client.recruited_at).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="service-actions">
+                        <button class="btn chat-btn" onclick="checkAndStartConversation(null, ${client.client_id})">
+                            <i class="fas fa-comments"></i> Message
+                        </button>
+                        ${isFreelancer ? `
+                            <button class="btn btn-secondary flag-btn" onclick="showFlagClientModal(${client.client_id}, '${escapeHtml(client.username)}')">
+                                <i class="fas fa-flag"></i> Report Client
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (err) {
+        console.error("Error loading clients:", err);
+        container.innerHTML = '<div class="text-error" style="text-align: center; padding: 40px;">Failed to load clients</div>';
+    }
+}
+// Flag Client Modal for Freelancers
+function showFlagClientModal(clientId, clientName) {
+    const reason = prompt(`Why are you reporting ${clientName}?\n\nPlease provide a detailed reason (minimum 10 characters):`);
+    
+    if (!reason) return;
+    if (reason.length < 10) {
+        showToast("Please provide a detailed reason (minimum 10 characters)", "warning");
+        return;
+    }
+    
+    flagClient(clientId, reason);
+}
+
+async function flagClient(clientId, reason) {
+    if (!currentUser) {
+        showToast("Please login to report", "warning");
+        return;
+    }
+    
+    if (currentUser.role !== 'freelancer') {
+        showToast("Only freelancers can report clients", "error");
+        return;
+    }
+    
+    try {
+        showToast("Submitting report...", "info");
+        
+        const response = await fetch('/api/client/flag', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                client_id: clientId,
+                reason: reason
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(data.message || "Client reported successfully", "success");
+        } else {
+            showToast(data.error || "Failed to report client", "error");
+        }
+    } catch (err) {
+        console.error("Flag client error:", err);
+        showToast("Error reporting client", "error");
+    }
+}
+// ==================== SHOW ADMIN REVIEW PANEL (BOTH TYPES) ====================
+async function showAdminReviewPanel() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showToast("Admin access required", "error");
+        return;
+    }
+
+    // Create modal if not exists
+    let modal = document.getElementById('adminReviewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminReviewModal';
+        modal.className = 'modal hidden';
+        modal.innerHTML = `
+            <div class="modal-card large" style="max-width: 900px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: var(--text-light);">
+                        <i class="fas fa-gavel"></i> Admin Review Panel
+                    </h3>
+                    <span class="close-x" onclick="closeModal(document.getElementById('adminReviewModal'))">&times;</span>
+                </div>
+                <div style="display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <button id="tabFreelancersBtn" class="btn btn-primary" style="padding: 8px 16px;">Flagged Freelancers</button>
+                    <button id="tabClientsBtn" class="btn btn-secondary" style="padding: 8px 16px;">Flagged Clients</button>
+                </div>
+                <div id="adminReviewContent">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading flagged users...
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add tab switching
+        document.getElementById('tabFreelancersBtn')?.addEventListener('click', () => loadAdminReviewData('freelancers'));
+        document.getElementById('tabClientsBtn')?.addEventListener('click', () => loadAdminReviewData('clients'));
+    }
+    
+    openModal(modal);
+    await loadAdminReviewData('freelancers');
+}
+
+async function loadAdminReviewData(type = 'freelancers') {
+    const container = document.getElementById('adminReviewContent');
+    if (!container) return;
+    
+    // Update tab styles
+    const freelancersBtn = document.getElementById('tabFreelancersBtn');
+    const clientsBtn = document.getElementById('tabClientsBtn');
+    
+    if (type === 'freelancers') {
+        freelancersBtn?.classList.remove('btn-secondary');
+        freelancersBtn?.classList.add('btn-primary');
+        clientsBtn?.classList.remove('btn-primary');
+        clientsBtn?.classList.add('btn-secondary');
+    } else {
+        clientsBtn?.classList.remove('btn-secondary');
+        clientsBtn?.classList.add('btn-primary');
+        freelancersBtn?.classList.remove('btn-primary');
+        freelancersBtn?.classList.add('btn-secondary');
+    }
+    
+    container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/all-flagged-users', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        const users = type === 'freelancers' ? data.flagged_freelancers : data.flagged_clients;
+        const title = type === 'freelancers' ? 'Flagged Freelancers' : 'Flagged Clients';
+        
+        if (!users || users.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px; color: var(--text-gray);">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <p>No ${title.toLowerCase()} pending review</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <h4 style="color: var(--text-light); margin-bottom: 15px;">${title} (${users.length})</h4>
+            ${users.map(user => `
+                <div class="admin-review-card" data-user-id="${user.id}" data-user-type="${type.slice(0, -1)}" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h4 style="color: var(--text-light); margin-bottom: 5px;">
+                                ${escapeHtml(user.username)}
+                                <span class="badge" style="background: #ef4444;">${user.flag_count} Flag(s)</span>
+                                <span class="badge" style="background: ${user.account_locked ? '#ef4444' : '#10b981'}">${user.account_locked ? 'Locked' : 'Active'}</span>
+                            </h4>
+                            <p style="color: var(--text-gray); font-size: 0.9rem;">Email: ${escapeHtml(user.email)}</p>
+                            <p style="color: var(--text-gray); font-size: 0.9rem;">Member since: ${new Date(user.created_at).toLocaleDateString()}</p>
+                            ${user.flag_reasons ? `<p style="color: var(--text-gray); font-size: 0.85rem; margin-top: 8px;"><strong>Reasons:</strong> ${escapeHtml(user.flag_reasons.substring(0, 200))}${user.flag_reasons.length > 200 ? '...' : ''}</p>` : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="viewUserFlagDetails(${user.id}, '${type.slice(0, -1)}')" style="margin-right: 10px;">
+                                <i class="fas fa-list"></i> View Details
+                            </button>
+                            ${user.account_locked ? 
+                                `<button class="btn btn-success" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'clear_flags')">
+                                    <i class="fas fa-unlock"></i> Reactivate
+                                </button>` :
+                                `<button class="btn btn-danger" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'suspend')">
+                                    <i class="fas fa-lock"></i> Suspend
+                                </button>`
+                            }
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <textarea id="adminNote_${user.id}" class="form-textarea-enhanced" rows="2" 
+                                  placeholder="Add admin notes..."></textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button class="btn btn-success" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'clear_flags')">
+                                <i class="fas fa-check"></i> Clear Flags & Reactivate
+                            </button>
+                            <button class="btn btn-warning" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'warn')">
+                                <i class="fas fa-exclamation-triangle"></i> Issue Warning
+                            </button>
+                            <button class="btn btn-danger" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'suspend')">
+                                <i class="fas fa-ban"></i> Suspend Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+        
+    } catch (err) {
+        console.error("Error loading flagged users:", err);
+        container.innerHTML = `<div class="text-error" style="text-align: center; padding: 40px;">Error loading flagged users</div>`;
+    }
+}
+
+async function viewUserFlagDetails(userId, userType) {
+    try {
+        const response = await fetch(`/api/admin/user-flags-details/${userId}/${userType}`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        const modalContent = `
+            <div style="max-height: 60vh; overflow-y: auto;">
+                <h4 style="color: var(--text-light);">User: ${escapeHtml(data.user?.username)}</h4>
+                <p style="color: var(--text-gray);">Email: ${escapeHtml(data.user?.email)}</p>
+                <p style="color: var(--text-gray);">Status: ${data.user?.account_locked ? 'Locked' : 'Active'}</p>
+                <hr style="margin: 15px 0; border-color: rgba(255,255,255,0.1);">
+                <h5 style="color: var(--accent-gold);">Flag Details (${data.flags.length})</h5>
+                ${data.flags.map(flag => `
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: var(--accent-gold);">Flagged by: ${escapeHtml(flag.flagged_by_name || 'Unknown')}</span>
+                            <span style="color: var(--text-gray); font-size: 0.85rem;">${new Date(flag.created_at).toLocaleString()}</span>
+                        </div>
+                        <p style="color: var(--text-light);"><strong>Reason:</strong></p>
+                        <p style="color: var(--text-gray);">${escapeHtml(flag.reason)}</p>
+                        ${flag.service_title ? `<p style="color: var(--text-gray); font-size: 0.85rem; margin-top: 8px;"><strong>Service:</strong> ${escapeHtml(flag.service_title)}</p>` : ''}
+                    </div>
+                `).join('')}
+                ${data.review?.freelancer_statement ? `
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <h5 style="color: var(--text-light);">User's Statement:</h5>
+                        <p style="color: var(--text-gray);">${escapeHtml(data.review.freelancer_statement)}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        showModalWithContent('Flag Details', modalContent);
+        
+    } catch (err) {
+        console.error("Error viewing flag details:", err);
+        showToast("Error loading flag details", "error");
+    }
+}
+
+async function resolveUserFlags(userId, userType, action) {
+    const adminNote = document.getElementById(`adminNote_${userId}`)?.value || '';
+    
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    
+    try {
+        const response = await fetch(`/api/admin/resolve-user-flags/${userId}/${userType}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                action: action,
+                admin_notes: adminNote
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(data.message, "success");
+            await loadAdminReviewData(userType === 'freelancer' ? 'freelancers' : 'clients');
+        } else {
+            showToast(data.error || "Failed to process", "error");
+        }
+        
+    } catch (err) {
+        console.error("Error resolving flags:", err);
+        showToast("Error processing request", "error");
+    }
+}
+// Handle   profile form submission
 async function handleProfileFormSubmit(e) {
     e.preventDefault();
     

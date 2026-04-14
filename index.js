@@ -3534,6 +3534,226 @@ app.get("/api/messages/:conversationId/search", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// ==================== ADMIN GET ALL FLAGGED USERS (BOTH CLIENTS & FREELANCERS) ====================
+app.get("/api/admin/all-flagged-users", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        // Get flagged freelancers (from user_flags)
+        const flaggedFreelancers = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                u.email,
+                u.role,
+                u.created_at,
+                u.account_locked,
+                COUNT(uf.id) as flag_count,
+                GROUP_CONCAT(DISTINCT uf.reason SEPARATOR ' | ') as flag_reasons,
+                MAX(uf.created_at) as last_flag_date,
+                ar.status as review_status,
+                ar.freelancer_statement,
+                ar.id as review_id
+            FROM users u
+            LEFT JOIN user_flags uf ON uf.flagged_user_id = u.id AND uf.status = 'pending'
+            LEFT JOIN admin_reviews ar ON ar.user_id = u.id AND ar.user_type = 'freelancer'
+            WHERE u.role = 'freelancer'
+            GROUP BY u.id
+            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            ORDER BY flag_count DESC, last_flag_date DESC
+        `);
+
+        // Get flagged clients (from client_flags)
+        const flaggedClients = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                u.email,
+                u.role,
+                u.created_at,
+                u.account_locked,
+                COUNT(cf.id) as flag_count,
+                GROUP_CONCAT(DISTINCT cf.reason SEPARATOR ' | ') as flag_reasons,
+                MAX(cf.created_at) as last_flag_date,
+                ar.status as review_status,
+                ar.admin_notes,
+                ar.id as review_id
+            FROM users u
+            LEFT JOIN client_flags cf ON cf.client_id = u.id AND cf.status = 'pending'
+            LEFT JOIN admin_reviews ar ON ar.user_id = u.id AND ar.user_type = 'client'
+            WHERE u.role = 'client'
+            GROUP BY u.id
+            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            ORDER BY flag_count DESC, last_flag_date DESC
+        `);
+
+        res.json({
+            success: true,
+            flagged_freelancers: flaggedFreelancers || [],
+            flagged_clients: flaggedClients || [],
+            total_freelancers: flaggedFreelancers?.length || 0,
+            total_clients: flaggedClients?.length || 0
+        });
+
+    } catch (err) {
+        console.error("Error fetching flagged users:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== ADMIN GET DETAILED FLAGS FOR A SPECIFIC USER ====================
+app.get("/api/admin/user-flags-details/:userId/:userType", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        const userId = req.params.userId;
+        const userType = req.params.userType; // 'freelancer' or 'client'
+
+        let flags = [];
+        let userInfo = null;
+
+        if (userType === 'freelancer') {
+            // Get freelancer flags
+            flags = await db.query(`
+                SELECT 
+                    uf.*,
+                    u.username as flagged_by_name,
+                    u.email as flagged_by_email,
+                    s.title as service_title
+                FROM user_flags uf
+                LEFT JOIN users u ON uf.flagged_by_user_id = u.id
+                LEFT JOIN services s ON uf.service_id = s.id
+                WHERE uf.flagged_user_id = ?
+                ORDER BY uf.created_at DESC
+            `, [userId]);
+
+            userInfo = await db.query(
+                "SELECT id, username, email, role, created_at, account_locked FROM users WHERE id = ?",
+                [userId]
+            );
+        } else {
+            // Get client flags
+            flags = await db.query(`
+                SELECT 
+                    cf.*,
+                    u.username as flagged_by_name,
+                    u.email as flagged_by_email,
+                    s.title as service_title
+                FROM client_flags cf
+                LEFT JOIN users u ON cf.flagged_by_freelancer_id = u.id
+                LEFT JOIN services s ON cf.service_id = s.id
+                WHERE cf.client_id = ?
+                ORDER BY cf.created_at DESC
+            `, [userId]);
+
+            userInfo = await db.query(
+                "SELECT id, username, email, role, created_at, account_locked FROM users WHERE id = ?",
+                [userId]
+            );
+        }
+
+        // Get admin review record
+        const review = await db.query(
+            "SELECT * FROM admin_reviews WHERE user_id = ? AND user_type = ?",
+            [userId, userType]
+        );
+
+        res.json({
+            success: true,
+            user: userInfo[0] || null,
+            flags: flags || [],
+            review: review[0] || null
+        });
+
+    } catch (err) {
+        console.error("Error fetching flag details:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== ADMIN RESOLVE FLAGS (FOR BOTH TYPES) ====================
+app.post("/api/admin/resolve-user-flags/:userId/:userType", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        const userId = req.params.userId;
+        const userType = req.params.userType;
+        const { action, admin_notes } = req.body;
+
+        if (action === 'clear_flags') {
+            // Mark all pending flags as reviewed
+            if (userType === 'freelancer') {
+                await db.query(
+                    "UPDATE user_flags SET status = 'reviewed', updated_at = NOW() WHERE flagged_user_id = ? AND status = 'pending'",
+                    [userId]
+                );
+            } else {
+                await db.query(
+                    "UPDATE client_flags SET status = 'reviewed', updated_at = NOW() WHERE client_id = ? AND status = 'pending'",
+                    [userId]
+                );
+            }
+
+            // Update or create admin review record
+            await db.query(
+                `INSERT INTO admin_reviews (user_id, user_type, status, admin_notes, reviewed_by, reviewed_at)
+                 VALUES (?, ?, 'cleared', ?, ?, NOW())
+                 ON DUPLICATE KEY UPDATE 
+                 status = 'cleared', admin_notes = ?, reviewed_by = ?, reviewed_at = NOW()`,
+                [userId, userType, admin_notes, req.session.user.id, admin_notes, req.session.user.id]
+            );
+
+            // Unlock account if it was locked
+            await db.query(
+                "UPDATE users SET account_locked = 0, locked_at = NULL, lock_reason = NULL WHERE id = ?",
+                [userId]
+            );
+
+            res.json({ success: true, message: "Flags cleared. User account restored." });
+
+        } else if (action === 'suspend') {
+            // Update admin review record
+            await db.query(
+                `INSERT INTO admin_reviews (user_id, user_type, status, admin_notes, reviewed_by, reviewed_at)
+                 VALUES (?, ?, 'suspended', ?, ?, NOW())
+                 ON DUPLICATE KEY UPDATE 
+                 status = 'suspended', admin_notes = ?, reviewed_by = ?, reviewed_at = NOW()`,
+                [userId, userType, admin_notes, req.session.user.id, admin_notes, req.session.user.id]
+            );
+
+            // Lock the user's account
+            await db.query(
+                "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
+                [admin_notes || "Suspended by admin after review", userId]
+            );
+
+            res.json({ success: true, message: "User account suspended." });
+
+        } else if (action === 'warn') {
+            // Issue a warning
+            await db.query(
+                `INSERT INTO user_warnings (user_id, warning_type, reason, issued_by, expires_at, created_at)
+                 VALUES (?, 'flag', ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
+                [userId, admin_notes || "Warning issued after flag review", req.session.user.id]
+            );
+
+            res.json({ success: true, message: "Warning issued to user." });
+
+        } else {
+            res.status(400).json({ error: "Invalid action" });
+        }
+
+    } catch (err) {
+        console.error("Error resolving flags:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
 // ============================================
@@ -5924,6 +6144,285 @@ app.put("/api/services/:id", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ==================== GET FREELANCER'S CLIENTS ====================
+app.get("/api/freelancer/clients", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: "Access denied" });
+    }
+
+    try {
+        const freelancerId = req.session.user.id;
+        
+        const clients = await db.query(`
+            SELECT 
+                cp.*,
+                u.id as client_id,
+                u.username,
+                u.email,
+                u.created_at,
+                cp.recruited_at,
+                cp.last_contacted,
+                cp.total_orders,
+                cp.total_spent,
+                s.title as service_title,
+                s.id as service_id
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            LEFT JOIN services s ON cp.service_id = s.id
+            WHERE cp.freelancer_id = ? AND cp.status = 'active'
+            ORDER BY cp.last_contacted DESC, cp.total_orders DESC
+        `, [freelancerId]);
+
+        let clientsList = [];
+        if (Array.isArray(clients)) {
+            clientsList = clients.length === 2 ? clients[0] : clients;
+        }
+
+        res.json(clientsList);
+
+    } catch (err) {
+        console.error("Error loading freelancer's clients:", err);
+        res.status(500).json({ error: "Failed to load clients: " + err.message });
+    }
+});
+// ==================== GET FREELANCER RECRUITMENT STATS ====================
+app.get("/api/freelancer/recruitment-stats", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const freelancerId = req.session.user.id;
+        
+        const stats = await db.query(`
+            SELECT 
+                COUNT(DISTINCT cp.client_id) as total_clients,
+                COUNT(cp.id) as total_recruitments,
+                SUM(cp.total_orders) as total_orders,
+                SUM(cp.total_spent) as total_revenue,
+                MAX(cp.recruited_at) as last_recruitment,
+                (SELECT COUNT(*) FROM services WHERE user_id = ? AND status = 'active') as active_services,
+                (SELECT COUNT(*) FROM service_favorites WHERE service_id IN (SELECT id FROM services WHERE user_id = ?)) as total_favorites
+            FROM client_providers cp
+            WHERE cp.freelancer_id = ?
+        `, [freelancerId, freelancerId, freelancerId]);
+
+        let recruitmentStats = {
+            total_clients: 0,
+            total_recruitments: 0,
+            total_orders: 0,
+            total_revenue: 0,
+            active_services: 0,
+            total_favorites: 0
+        };
+
+        if (stats && stats.length > 0) {
+            recruitmentStats = {
+                total_clients: parseInt(stats[0].total_clients) || 0,
+                total_recruitments: parseInt(stats[0].total_recruitments) || 0,
+                total_orders: parseInt(stats[0].total_orders) || 0,
+                total_revenue: parseFloat(stats[0].total_revenue) || 0,
+                active_services: parseInt(stats[0].active_services) || 0,
+                total_favorites: parseInt(stats[0].total_favorites) || 0
+            };
+        }
+
+        // Get top clients
+        const topClients = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                cp.total_orders,
+                cp.total_spent,
+                cp.recruited_at
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            WHERE cp.freelancer_id = ?
+            ORDER BY cp.total_orders DESC, cp.total_spent DESC
+            LIMIT 5
+        `, [freelancerId]);
+
+        // Get recent orders/recruitments
+        const recentRecruitments = await db.query(`
+            SELECT 
+                u.username as client_name,
+                cp.recruited_at,
+                cp.total_orders,
+                s.title as service_title
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            LEFT JOIN services s ON cp.service_id = s.id
+            WHERE cp.freelancer_id = ?
+            ORDER BY cp.recruited_at DESC
+            LIMIT 10
+        `, [freelancerId]);
+
+        res.json({
+            success: true,
+            stats: recruitmentStats,
+            top_clients: topClients || [],
+            recent_recruitments: recentRecruitments || []
+        });
+
+    } catch (err) {
+        console.error("Error loading recruitment stats:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ==================== SUBMIT REVIEW FOR FREELANCER ====================
+app.post("/api/reviews/freelancer", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    if (req.session.user.role !== 'client') {
+        return res.status(403).json({ error: "Only clients can submit reviews" });
+    }
+
+    try {
+        const { freelancerId, serviceId, rating, comment } = req.body;
+        
+        if (!freelancerId || !rating || !comment) {
+            return res.status(400).json({ error: "Freelancer ID, rating, and comment are required" });
+        }
+        
+        if (rating < 1 || rating > 5) {
+            return res.status(400).json({ error: "Rating must be between 1 and 5" });
+        }
+        
+        if (comment.length < 10) {
+            return res.status(400).json({ error: "Review must be at least 10 characters" });
+        }
+
+        const clientId = req.session.user.id;
+
+        // Check if client has worked with this freelancer
+        const hasWorked = await db.query(
+            "SELECT id FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
+            [clientId, freelancerId]
+        );
+
+        if (!hasWorked || hasWorked.length === 0) {
+            return res.status(403).json({ error: "You can only review freelancers you've worked with" });
+        }
+
+        // Check if already reviewed
+        const existingReview = await db.query(
+            "SELECT id FROM freelancer_reviews WHERE client_id = ? AND freelancer_id = ?",
+            [clientId, freelancerId]
+        );
+
+        if (existingReview && existingReview.length > 0) {
+            // Update existing review
+            await db.query(
+                "UPDATE freelancer_reviews SET rating = ?, comment = ?, updated_at = NOW() WHERE client_id = ? AND freelancer_id = ?",
+                [rating, comment, clientId, freelancerId]
+            );
+        } else {
+            // Insert new review
+            await db.query(
+                `INSERT INTO freelancer_reviews (freelancer_id, client_id, service_id, rating, comment, created_at) 
+                 VALUES (?, ?, ?, ?, ?, NOW())`,
+                [freelancerId, clientId, serviceId || null, rating, comment]
+            );
+        }
+
+        // Update freelancer's average rating
+        const avgResult = await db.query(
+            "SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM freelancer_reviews WHERE freelancer_id = ?",
+            [freelancerId]
+        );
+
+        const avgRating = avgResult[0]?.avg_rating || 0;
+        const reviewCount = avgResult[0]?.count || 0;
+
+        await db.query(
+            "UPDATE freelancer_profiles SET avg_rating = ?, review_count = ? WHERE user_id = ?",
+            [avgRating, reviewCount, freelancerId]
+        );
+
+        res.json({
+            success: true,
+            message: existingReview && existingReview.length > 0 ? "Review updated successfully" : "Review submitted successfully",
+            avg_rating: avgRating,
+            review_count: reviewCount
+        });
+
+    } catch (err) {
+        console.error("Error submitting review:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ==================== FLAG CLIENT (FREELANCER REPORTS CLIENT) ====================
+app.post("/api/client/flag", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        if (req.session.user.role !== 'freelancer') {
+            return res.status(403).json({ error: "Only freelancers can flag clients" });
+        }
+        
+        const { client_id, service_id, reason } = req.body;
+        
+        if (!client_id || !reason) {
+            return res.status(400).json({ error: "Client ID and reason are required" });
+        }
+        
+        if (reason.length < 10) {
+            return res.status(400).json({ error: "Reason must be at least 10 characters" });
+        }
+        
+        if (parseInt(client_id) === parseInt(req.session.user.id)) {
+            return res.status(400).json({ error: "You cannot flag yourself" });
+        }
+        
+        // Check if client exists
+        const clientCheck = await db.query(
+            "SELECT role FROM users WHERE id = ?",
+            [client_id]
+        );
+        
+        if (!clientCheck || clientCheck.length === 0) {
+            return res.status(404).json({ error: "Client not found" });
+        }
+        
+        if (clientCheck[0].role !== 'client') {
+            return res.status(400).json({ error: "Only clients can be flagged by freelancers" });
+        }
+        
+        // Insert flag
+        await db.query(
+            `INSERT INTO client_flags (client_id, flagged_by_freelancer_id, service_id, reason, status, created_at)
+             VALUES (?, ?, ?, ?, 'pending', NOW())`,
+            [client_id, req.session.user.id, service_id || null, reason]
+        );
+        
+        // Count total flags for this client
+        const flagCountResult = await db.query(
+            "SELECT COUNT(*) as count FROM client_flags WHERE client_id = ? AND status = 'pending'",
+            [client_id]
+        );
+        
+        const flagCount = flagCountResult[0]?.count || 1;
+        
+        res.json({
+            success: true,
+            message: "Client flagged successfully. Admin will review.",
+            flagCount: flagCount
+        });
+        
+    } catch (err) {
+        console.error("❌ Flag client error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM BACKEND ROUTES
 // ============================================
@@ -6637,7 +7136,7 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile
     }
 });
 
-// Get freelancer dashboard stats
+// ==================== UPDATED FREELANCER DASHBOARD ====================
 app.get("/api/freelancer/dashboard", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -6652,23 +7151,51 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
             [userId]
         );
         
-        // Get order stats (if service_orders table exists)
-        let orderStats = { total_orders: 0, total_revenue: 0 };
-        try {
-            const orders = await db.query(
-                "SELECT COUNT(*) as total_orders, COALESCE(SUM(amount), 0) as total_revenue FROM service_orders WHERE freelancer_id = ?",
-                [userId]
-            );
-            if (orders && orders.length > 0) {
-                orderStats = orders[0];
-            }
-        } catch (e) {
-            console.log("Service orders table not ready yet");
-        }
+        // Get client stats (people who recruited this freelancer)
+        const clientStats = await db.query(
+            "SELECT COUNT(DISTINCT client_id) as total_clients FROM client_providers WHERE freelancer_id = ? AND status = 'active'",
+            [userId]
+        );
+        
+        // Get recruitment stats
+        const recruitmentStats = await db.query(
+            "SELECT COUNT(*) as total_recruitments, SUM(total_orders) as total_orders FROM client_providers WHERE freelancer_id = ?",
+            [userId]
+        );
+        
+        // Get recent clients (who recruited recently)
+        const recentClients = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                cp.recruited_at,
+                cp.total_orders,
+                s.title as service_title
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            LEFT JOIN services s ON cp.service_id = s.id
+            WHERE cp.freelancer_id = ?
+            ORDER BY cp.recruited_at DESC
+            LIMIT 5
+        `, [userId]);
+        
+        // Get top clients (most orders)
+        const topClients = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                cp.total_orders,
+                cp.total_spent
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            WHERE cp.freelancer_id = ?
+            ORDER BY cp.total_orders DESC, cp.total_spent DESC
+            LIMIT 5
+        `, [userId]);
         
         // Get profile stats
         const profile = await db.query(
-            "SELECT completed_orders, total_earnings, avg_rating FROM freelancer_profiles WHERE user_id = ?",
+            "SELECT completed_orders, total_earnings, avg_rating, review_count FROM freelancer_profiles WHERE user_id = ?",
             [userId]
         );
         
@@ -6676,26 +7203,70 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
             services: {
                 total_services: serviceStats[0]?.total_services || 0
             },
-            orders: {
-                total_orders: orderStats.total_orders || 0,
-                total_revenue: orderStats.total_revenue || 0
+            clients: {
+                total_clients: clientStats[0]?.total_clients || 0,
+                recent: recentClients || [],
+                top: topClients || []
+            },
+            recruitments: {
+                total: recruitmentStats[0]?.total_recruitments || 0,
+                total_orders: recruitmentStats[0]?.total_orders || 0
             },
             profile: {
                 completed_orders: profile[0]?.completed_orders || 0,
                 total_earnings: profile[0]?.total_earnings || 0,
-                avg_rating: profile[0]?.avg_rating || 0
-            },
-            clients: [] // Add clients data if needed
+                avg_rating: profile[0]?.avg_rating || 0,
+                review_count: profile[0]?.review_count || 0
+            }
         });
         
     } catch (err) {
         console.error("Error loading dashboard:", err);
         res.json({
             services: { total_services: 0 },
-            orders: { total_orders: 0, total_revenue: 0 },
-            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0 },
-            clients: []
+            clients: { total_clients: 0, recent: [], top: [] },
+            recruitments: { total: 0, total_orders: 0 },
+            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0, review_count: 0 }
         });
+    }
+});
+
+// Add to your index.js
+app.post("/api/client/flag", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        if (req.session.user.role !== 'freelancer') {
+            return res.status(403).json({ error: "Only freelancers can flag clients" });
+        }
+        
+        const { client_id, reason } = req.body;
+        
+        if (!client_id || !reason) {
+            return res.status(400).json({ error: "Client ID and reason are required" });
+        }
+        
+        if (reason.length < 10) {
+            return res.status(400).json({ error: "Reason must be at least 10 characters" });
+        }
+        
+        // Insert flag
+        await db.query(
+            `INSERT INTO client_flags (client_id, flagged_by_freelancer_id, reason, status, created_at)
+             VALUES (?, ?, ?, 'pending', NOW())`,
+            [client_id, req.session.user.id, reason]
+        );
+        
+        res.json({
+            success: true,
+            message: "Client reported successfully. Admin will review."
+        });
+        
+    } catch (err) {
+        console.error("Flag client error:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 // =================== SUBSCRIPTION SYSTEM ===================

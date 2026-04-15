@@ -4016,39 +4016,40 @@
         </div>
       </div>
 
-      <!-- My Services Tab (Client View: My Providers) -->
-      <div id="myServicesTab" class="tab-content hidden">
+    <!-- My Services Tab (Client View: My Providers) -->
+<div id="myServicesTab" class="tab-content hidden">
+    <!-- Client View: My Service Providers -->
     <div id="clientServicesView" class="hidden">
-  <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-    <div>
-      <h3 style="color: var(--text-light); margin-bottom: 5px;">My Freelancers</h3>
-      <p style="color: var(--text-gray);">Freelancers you've recruited or worked with</p>
-    </div>
-    <button class="btn btn-primary" id="browseToRecruitBtn">
-      <i class="fas fa-search"></i> Browse to Recruit
-    </button>
-  </div>
-  <div id="clientServicesList" class="services-grid">
-    <!-- Client's freelancers will be loaded here -->
-  </div>
-</div>
-
-        <!-- Provider View: My Services -->
-        <div id="providerServicesView" class="hidden">
-          <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
             <div>
-              <h3 style="color: var(--text-light); margin-bottom: 5px;">My Services</h3>
-              <p style="color: var(--text-gray);">Manage your service listings</p>
+                <h3 style="color: var(--text-light); margin-bottom: 5px;">My Freelancers</h3>
+                <p style="color: var(--text-gray);">Freelancers you've recruited or worked with</p>
+            </div>
+            <button class="btn btn-primary" id="browseToRecruitBtn">
+                <i class="fas fa-search"></i> Browse to Recruit
+            </button>
+        </div>
+        <div id="clientServicesList" class="services-grid">
+            <!-- Client's freelancers will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Provider View: My Services -->
+    <div id="providerServicesView" class="hidden">
+        <div class="flex items-center justify-between mb-20" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <h3 style="color: var(--text-light); margin-bottom: 5px;">My Services</h3>
+                <p style="color: var(--text-gray);">Manage your service listings</p>
             </div>
             <button class="btn btn-primary" id="createServiceBtn">
-              <i class="fas fa-plus"></i> Create New Service
+                <i class="fas fa-plus"></i> Create New Service
             </button>
-          </div>
-          <div id="myServicesList" class="services-grid">
-            <!-- Provider's services will be loaded here -->
-          </div>
         </div>
-      </div>
+        <div id="myServicesList" class="services-grid">
+            <!-- Provider's services will be loaded here -->
+        </div>
+    </div>
+</div>
 
       <!-- Favorites Tab -->
       <div id="favoritesTab" class="tab-content hidden">
@@ -8560,10 +8561,11 @@ async function updateUIForUserRole() {
     const servicesBrowser = document.getElementById('servicesBrowser');
     const createServiceBtn = document.getElementById('createServiceBtn');
     const subscriptionBanner = document.getElementById('subscriptionBanner');
+    const clientServicesView = document.getElementById('clientServicesView');
+    const providerServicesView = document.getElementById('providerServicesView');
     
     if (currentUser) {
         if (userRole === 'freelancer') {
-            // Check subscription status
             const subStatus = await checkSubscriptionStatus();
             const hasActiveSubscription = subStatus?.hasActiveSubscription || false;
             const daysLeft = subStatus?.daysLeft || 0;
@@ -8572,18 +8574,14 @@ async function updateUIForUserRole() {
             if (findServicesBtn) findServicesBtn.textContent = "Browse Services";
             
             if (offerServiceBtn) {
+                offerServiceBtn.textContent = hasActiveSubscription ? "Manage My Services" : (daysLeft > 0 ? `⚠️ Trial (${daysLeft} days left)` : "❌ Subscribe to Create");
+                offerServiceBtn.disabled = false;
                 if (hasActiveSubscription) {
-                    offerServiceBtn.textContent = "Manage My Services";
-                    offerServiceBtn.disabled = false;
                     offerServiceBtn.classList.remove('btn-secondary');
                     offerServiceBtn.classList.add('btn-primary');
-                    offerServiceBtn.title = "Create and manage your services";
                 } else {
-                    offerServiceBtn.textContent = daysLeft > 0 ? `⚠️ Trial (${daysLeft} days left)` : "❌ Subscribe to Create";
-                    offerServiceBtn.disabled = false;
                     offerServiceBtn.classList.add('btn-secondary');
                     offerServiceBtn.classList.remove('btn-primary');
-                    offerServiceBtn.title = daysLeft > 0 ? "You have an active free trial" : "Subscribe to start offering services";
                 }
             }
             
@@ -8591,38 +8589,23 @@ async function updateUIForUserRole() {
             if (clientTabs) clientTabs.classList.add('hidden');
             if (providerTabs) providerTabs.classList.remove('hidden');
             
-            if (createServiceBtn) {
-                if (hasActiveSubscription) {
-                    createServiceBtn.style.display = 'inline-flex';
-                    createServiceBtn.disabled = false;
+            if (createServiceBtn) createServiceBtn.style.display = hasActiveSubscription ? 'inline-flex' : 'none';
+            if (servicesBrowser) servicesBrowser.classList.remove('hidden');
+            
+            // Show/hide subscription banner
+            if (subscriptionBanner) {
+                if (hasActiveSubscription && subStatus?.subscriptionPlan === 'free_trial') {
+                    subscriptionBanner.classList.remove('hidden');
+                    const daysLeftEl = document.getElementById('daysLeft');
+                    if (daysLeftEl) daysLeftEl.textContent = daysLeft;
                 } else {
-                    createServiceBtn.style.display = 'none';
+                    subscriptionBanner.classList.add('hidden');
                 }
             }
             
-            if (servicesBrowser) {
-                servicesBrowser.classList.remove('hidden');
-            }
-            
-            // Show/hide subscription banner based on trial days
-           // Show/hide subscription banner based on trial days
-if (subscriptionBanner) {
-    // Only show for freelancers
-    if (currentUser && currentUser.role === 'freelancer') {
-        if (hasActiveSubscription && subStatus?.subscriptionPlan === 'free_trial') {
-            subscriptionBanner.classList.remove('hidden');
-            const daysLeftEl = document.getElementById('daysLeft');
-            if (daysLeftEl) daysLeftEl.textContent = daysLeft;
-        } else if (hasActiveSubscription && subStatus?.subscriptionPlan !== 'free_trial') {
-            subscriptionBanner.classList.add('hidden');
-        } else if (!hasActiveSubscription && daysLeft === 0) {
-            subscriptionBanner.classList.add('hidden');
-        }
-    } else {
-        // Hide for clients
-        subscriptionBanner.classList.add('hidden');
-    }
-}
+            // Show provider view, hide client view
+            if (clientServicesView) clientServicesView.classList.add('hidden');
+            if (providerServicesView) providerServicesView.classList.remove('hidden');
             
             switchTab('browse');
             
@@ -8637,25 +8620,12 @@ if (subscriptionBanner) {
             if (clientTabs) clientTabs.classList.remove('hidden');
             if (providerTabs) providerTabs.classList.add('hidden');
             if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
+            if (servicesBrowser) servicesBrowser.classList.remove('hidden');
             
-            if (servicesBrowser) {
-                servicesBrowser.classList.remove('hidden');
-            }
-            switchTab('browse');
+            // Show client view, hide provider view
+            if (clientServicesView) clientServicesView.classList.remove('hidden');
+            if (providerServicesView) providerServicesView.classList.add('hidden');
             
-        } else {
-            // No role selected
-            if (heroDescription) heroDescription.textContent = "Choose how you'd like to use our platform.";
-            if (findServicesBtn) findServicesBtn.textContent = "Find Services";
-            if (offerServiceBtn) offerServiceBtn.textContent = "Offer a Service";
-            if (pricingSection) pricingSection.classList.add('hidden');
-            if (clientTabs) clientTabs.classList.add('hidden');
-            if (providerTabs) providerTabs.classList.add('hidden');
-            if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
-            
-            if (servicesBrowser) {
-                servicesBrowser.classList.remove('hidden');
-            }
             switchTab('browse');
         }
     } else {
@@ -8667,10 +8637,11 @@ if (subscriptionBanner) {
         if (clientTabs) clientTabs.classList.add('hidden');
         if (providerTabs) providerTabs.classList.add('hidden');
         if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
+        if (servicesBrowser) servicesBrowser.classList.remove('hidden');
         
-        if (servicesBrowser) {
-            servicesBrowser.classList.remove('hidden');
-        }
+        if (clientServicesView) clientServicesView.classList.add('hidden');
+        if (providerServicesView) providerServicesView.classList.add('hidden');
+        
         switchTab('browse');
     }
 }
@@ -10665,7 +10636,9 @@ function switchTab(tabName) {
         if (userRole === 'freelancer') {
             loadMyServices();
         } else {
-            loadMyFreelancers();  // Changed from loadClientServices to loadMyFreelancers
+            // Make sure this is called for clients
+            console.log("Loading My Freelancers tab");
+            loadMyFreelancers();
         }
     } 
     else if (tabName === 'subscription') {
@@ -10682,12 +10655,6 @@ function switchTab(tabName) {
     } 
     else if (tabName === 'myOrders') {
         loadOrders();
-    } 
-    else if (tabName === 'providerOrders') {
-        loadProviderOrders();
-    } 
-    else if (tabName === 'providerEarnings') {
-        loadProviderEarnings();
     }
 }
 /*********************
@@ -12264,27 +12231,38 @@ function renderMyServices(services) {
 
 async function loadMyFreelancers() {
     const container = document.getElementById('clientServicesList');
-    if (!container) return;
+    if (!container) {
+        console.error("clientServicesList element not found!");
+        return;
+    }
 
     try {
+        console.log("Loading My Freelancers...");
         container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading your freelancers...</div>';
         
         const response = await fetch('/api/client/providers', {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
         
+        console.log("Response status:", response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to load freelancers');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         let freelancers = await response.json();
+        console.log("Raw response:", freelancers);
         
         // Ensure freelancers is an array
         if (!Array.isArray(freelancers)) {
+            console.log("Response is not an array, converting...");
             freelancers = [];
         }
         
-        console.log("Loaded freelancers:", freelancers);
+        console.log(`Found ${freelancers.length} freelancers`);
         
         if (freelancers.length === 0) {
             container.innerHTML = `
@@ -12300,7 +12278,9 @@ async function loadMyFreelancers() {
             return;
         }
         
-        container.innerHTML = freelancers.map(freelancer => {
+        // Build the HTML
+        let html = '';
+        for (const freelancer of freelancers) {
             const profilePicture = freelancer.profile_picture;
             const profileInitial = freelancer.username ? freelancer.username.charAt(0).toUpperCase() : 'U';
             
@@ -12308,7 +12288,7 @@ async function loadMyFreelancers() {
                 `<img src="${profilePicture}" alt="${freelancer.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` :
                 `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; background: var(--gradient-primary); border-radius: 50%; color: white;">${profileInitial}</div>`;
             
-            return `
+            html += `
                 <div class="service-card" data-freelancer-id="${freelancer.freelancer_id}">
                     <div class="service-header">
                         <h3 class="service-title">${escapeHtml(freelancer.username)}</h3>
@@ -12355,10 +12335,14 @@ async function loadMyFreelancers() {
                     </div>
                 </div>
             `;
-        }).join('');
+        }
+        
+        container.innerHTML = html;
         
         // Update badge count
         await updateProvidersBadge();
+        
+        console.log("My Freelancers loaded successfully");
         
     } catch (err) {
         console.error("Error loading freelancers:", err);
@@ -12372,7 +12356,7 @@ async function loadMyFreelancers() {
     }
 }
 
-// Add remove freelancer function
+// Remove freelancer function
 async function removeFreelancer(freelancerId, buttonElement) {
     if (!confirm("Are you sure you want to remove this freelancer from your list?")) return;
     
@@ -12402,11 +12386,10 @@ async function removeFreelancer(freelancerId, buttonElement) {
             await updateProvidersBadge();
             
             // Also update the recruit button on the service card if visible
-            const recruitBtn = document.querySelector(`.recruit-btn[onclick*="recruitFreelancer(${freelancerId}"]`);
+            const recruitBtn = document.querySelector(`.recruit-btn[data-freelancer-id="${freelancerId}"]`);
             if (recruitBtn) {
                 recruitBtn.classList.remove('recruited');
                 recruitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Recruit';
-                recruitBtn.disabled = false;
             }
         } else {
             showToast(data.error || "Failed to remove", "error");
@@ -12417,7 +12400,7 @@ async function removeFreelancer(freelancerId, buttonElement) {
     }
 }
 
-// Update the providers badge count
+// Update providers badge count
 async function updateProvidersBadge() {
     try {
         const response = await fetch('/api/client/providers', {
@@ -12438,11 +12421,26 @@ async function updateProvidersBadge() {
                 badge.classList.add('hidden');
             }
         }
+        
+        // Also update the tab text if needed
+        const myProvidersTab = document.getElementById('myProvidersTabBtn');
+        if (myProvidersTab) {
+            const span = myProvidersTab.querySelector('.badge');
+            if (span) {
+                if (providers.length > 0) {
+                    span.textContent = providers.length;
+                    span.classList.remove('hidden');
+                } else {
+                    span.classList.add('hidden');
+                }
+            }
+        }
+        
     } catch (err) {
         console.error("Error updating badge:", err);
     }
 }
-   
+
 async function loadFavorites() {
     const container = document.getElementById('favoritesList');
     if (!container) return;

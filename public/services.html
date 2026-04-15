@@ -6481,13 +6481,7 @@ function renderServices(servicesToRender) {
 
     if (noServices) noServices.style.display = 'none';
 
-    // For clients, fetch their recruited freelancers to determine if review button should show
-    let recruitedFreelancerIds = [];
-    if (currentUser && currentUser.role === 'client') {
-        // Fetch recruited freelancers asynchronously - we'll handle this differently
-        // Instead, we'll make each card check individually
-    }
-
+    // Build the HTML for all services
     container.innerHTML = servicesToRender.map(service => {
         const serviceId = service.id;
         const title = service.title || 'Untitled Service';
@@ -6512,20 +6506,37 @@ function renderServices(servicesToRender) {
 
         let actionButtons = '';
 
-        // Chat button
-        actionButtons += `
-            <button class="btn chat-btn" onclick="checkAndStartConversation(${serviceId}, ${userId})">
-                <i class="fas fa-comments"></i> Chat
-            </button>
-            <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
-                <i class="fas fa-user"></i> View Profile
-            </button>
-        `;
+        // Chat button - always show for logged in users
+        if (isLoggedIn && !isOwner) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="checkAndStartConversation(${serviceId}, ${userId})">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (!isLoggedIn) {
+            actionButtons += `
+                <button class="btn chat-btn" onclick="showToast('Please login to chat', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-comments"></i> Chat
+                </button>
+                <button class="btn profile-btn" onclick="showToast('Please login to view profile', 'warning'); openModal(document.getElementById('loginModal'))">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        } else if (isOwner) {
+            actionButtons += `
+                <button class="btn profile-btn" onclick="openFreelancerProfile(${userId})">
+                    <i class="fas fa-user"></i> View Profile
+                </button>
+            `;
+        }
 
-        // Recruit button for clients
+        // Recruit button for clients (with data attributes for status checking)
         if (isLoggedIn && isClient && !isOwner) {
             actionButtons += `
-                <button class="btn recruit-btn" onclick="recruitFreelancer(${userId}, ${serviceId}, this)">
+                <button class="btn recruit-btn" data-freelancer-id="${userId}" data-service-id="${serviceId}" onclick="recruitFreelancer(${userId}, ${serviceId}, this)">
                     <i class="fas fa-user-plus"></i> Recruit
                 </button>
             `;
@@ -6551,8 +6562,7 @@ function renderServices(servicesToRender) {
             `;
         }
 
-        // REVIEW BUTTON - Show for clients who have recruited this freelancer
-        // We'll add a data attribute and check dynamically
+        // Review button for clients (hidden by default, shown after recruitment check)
         if (isLoggedIn && isClient && !isOwner) {
             actionButtons += `
                 <button class="btn btn-secondary review-btn" data-freelancer-id="${userId}" data-service-id="${serviceId}" data-freelancer-name="${escapeHtml(providerName)}" style="display: none;">
@@ -6621,12 +6631,70 @@ function renderServices(servicesToRender) {
         `;
     }).join('');
 
-    // After rendering, check which freelancers the client has recruited and show review buttons
+    // After rendering, check recruited status and update buttons
     if (currentUser && currentUser.role === 'client') {
-        checkAndShowReviewButtons();
+        checkRecruitedAndReviewedStatus();
     }
 }
 
+// Function to check recruited status and update buttons
+async function checkRecruitedAndReviewedStatus() {
+    try {
+        const response = await fetch('/api/client/providers', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        
+        let providers = await response.json();
+        if (!Array.isArray(providers)) providers = [];
+        
+        const recruitedIds = new Set(providers.map(p => p.freelancer_id));
+        
+        // Update recruit buttons
+        document.querySelectorAll('.recruit-btn').forEach(btn => {
+            const freelancerId = parseInt(btn.dataset.freelancerId);
+            if (recruitedIds.has(freelancerId)) {
+                btn.classList.add('recruited');
+                btn.innerHTML = '<i class="fas fa-check"></i> Recruited';
+            } else {
+                btn.classList.remove('recruited');
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Recruit';
+            }
+        });
+        
+        // Show review buttons for recruited freelancers
+        document.querySelectorAll('.review-btn').forEach(btn => {
+            const freelancerId = parseInt(btn.dataset.freelancerId);
+            if (recruitedIds.has(freelancerId)) {
+                btn.style.display = 'flex';
+                btn.onclick = () => {
+                    showReviewModalForFreelancer(
+                        freelancerId, 
+                        btn.dataset.freelancerName, 
+                        btn.dataset.serviceId
+                    );
+                };
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+        
+        // Update badge count
+        const badge = document.getElementById('providersBadge');
+        if (badge) {
+            if (providers.length > 0) {
+                badge.textContent = providers.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        
+    } catch (err) {
+        console.error("Error checking recruited status:", err);
+    }
+}
 // Function to check recruited freelancers and show review buttons
 async function checkAndShowReviewButtons() {
     try {
@@ -11644,7 +11712,54 @@ async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
         return;
     }
     
+    // Check if already recruited
+    const isRecruited = buttonElement.classList.contains('recruited');
+    
+    if (isRecruited) {
+        const confirmRemove = confirm(`This freelancer is already in your list. Do you want to remove them?`);
+        if (!confirmRemove) return;
+        
+        try {
+            const response = await fetch("/api/freelancer/remove", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ freelancerId: freelancerId })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                buttonElement.classList.remove('recruited');
+                buttonElement.innerHTML = '<i class="fas fa-user-plus"></i> Recruit';
+                showToast("Freelancer removed from your list", "success");
+                
+                // Hide the review button for this freelancer
+                const reviewBtn = document.querySelector(`.review-btn[data-freelancer-id="${freelancerId}"]`);
+                if (reviewBtn) reviewBtn.style.display = 'none';
+                
+                // Update badge count
+                await updateProvidersBadge();
+                
+                // Refresh My Freelancers tab if open
+                const myServicesTab = document.getElementById('myServicesTab');
+                if (myServicesTab && !myServicesTab.classList.contains('hidden')) {
+                    await loadMyFreelancers();
+                }
+            } else {
+                showToast(data.error || "Failed to remove", "error");
+            }
+        } catch (err) {
+            console.error("Remove error:", err);
+            showToast("Error removing freelancer", "error");
+        }
+        return;
+    }
+    
+    // New recruitment
     try {
+        showToast("Adding freelancer to your list...", "info");
+        
         const response = await fetch("/api/freelancer/recruit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -11660,8 +11775,7 @@ async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
         if (response.ok) {
             buttonElement.classList.add('recruited');
             buttonElement.innerHTML = '<i class="fas fa-check"></i> Recruited';
-            buttonElement.disabled = true;
-            showToast("Freelancer added to your providers!", "success");
+            showToast("✅ Freelancer added to your providers list!", "success");
             
             // Show the review button for this freelancer
             const reviewBtn = document.querySelector(`.review-btn[data-freelancer-id="${freelancerId}"]`);
@@ -11671,12 +11785,47 @@ async function recruitFreelancer(freelancerId, serviceId, buttonElement) {
                     showReviewModalForFreelancer(freelancerId, reviewBtn.dataset.freelancerName, serviceId);
                 };
             }
+            
+            // Update badge count
+            await updateProvidersBadge();
+            
+            // Refresh My Freelancers tab if open
+            const myServicesTab = document.getElementById('myServicesTab');
+            if (myServicesTab && !myServicesTab.classList.contains('hidden')) {
+                await loadMyFreelancers();
+            }
         } else {
             showToast(data.error || "Failed to recruit", "error");
         }
     } catch (err) {
         console.error("Recruit error:", err);
         showToast("Error recruiting freelancer", "error");
+    }
+}
+
+// Update providers badge count
+async function updateProvidersBadge() {
+    try {
+        const response = await fetch('/api/client/providers', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        
+        let providers = await response.json();
+        if (!Array.isArray(providers)) providers = [];
+        
+        const badge = document.getElementById('providersBadge');
+        if (badge) {
+            if (providers.length > 0) {
+                badge.textContent = providers.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    } catch (err) {
+        console.error("Error updating badge:", err);
     }
 }
 async function viewServiceDetailsModal(serviceId) {
@@ -12135,6 +12284,8 @@ async function loadMyFreelancers() {
             freelancers = [];
         }
         
+        console.log("Loaded freelancers:", freelancers);
+        
         if (freelancers.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; grid-column: 1 / -1;">
@@ -12198,10 +12349,16 @@ async function loadMyFreelancers() {
                         <button class="btn btn-secondary" onclick="showReviewModalForFreelancer(${freelancer.freelancer_id}, '${escapeHtml(freelancer.username)}', null)">
                             <i class="fas fa-star"></i> Review
                         </button>
+                        <button class="btn btn-danger" onclick="removeFreelancer(${freelancer.freelancer_id}, this)">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
                     </div>
                 </div>
             `;
         }).join('');
+        
+        // Update badge count
+        await updateProvidersBadge();
         
     } catch (err) {
         console.error("Error loading freelancers:", err);
@@ -12214,6 +12371,78 @@ async function loadMyFreelancers() {
         `;
     }
 }
+
+// Add remove freelancer function
+async function removeFreelancer(freelancerId, buttonElement) {
+    if (!confirm("Are you sure you want to remove this freelancer from your list?")) return;
+    
+    try {
+        const response = await fetch("/api/freelancer/remove", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ freelancerId: freelancerId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast("Freelancer removed from your list", "success");
+            // Remove the card from UI
+            const card = buttonElement.closest('.service-card');
+            if (card) card.remove();
+            
+            // Check if list is empty
+            const container = document.getElementById('clientServicesList');
+            if (container && container.children.length === 0) {
+                loadMyFreelancers(); // This will show the empty state
+            }
+            
+            // Update badge count
+            await updateProvidersBadge();
+            
+            // Also update the recruit button on the service card if visible
+            const recruitBtn = document.querySelector(`.recruit-btn[onclick*="recruitFreelancer(${freelancerId}"]`);
+            if (recruitBtn) {
+                recruitBtn.classList.remove('recruited');
+                recruitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Recruit';
+                recruitBtn.disabled = false;
+            }
+        } else {
+            showToast(data.error || "Failed to remove", "error");
+        }
+    } catch (err) {
+        console.error("Remove error:", err);
+        showToast("Error removing freelancer", "error");
+    }
+}
+
+// Update the providers badge count
+async function updateProvidersBadge() {
+    try {
+        const response = await fetch('/api/client/providers', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        
+        let providers = await response.json();
+        if (!Array.isArray(providers)) providers = [];
+        
+        const badge = document.getElementById('providersBadge');
+        if (badge) {
+            if (providers.length > 0) {
+                badge.textContent = providers.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    } catch (err) {
+        console.error("Error updating badge:", err);
+    }
+}
+   
 async function loadFavorites() {
     const container = document.getElementById('favoritesList');
     if (!container) return;

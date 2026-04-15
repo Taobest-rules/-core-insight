@@ -3754,6 +3754,35 @@ app.post("/api/admin/resolve-user-flags/:userId/:userType", async (req, res) => 
         res.status(500).json({ error: err.message });
     }
 });
+// Remove freelancer from client's list
+app.post("/api/freelancer/remove", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    try {
+        const { freelancerId } = req.body;
+        const clientId = req.session.user.id;
+
+        if (req.session.user.role !== 'client') {
+            return res.status(403).json({ error: "Only clients can remove freelancers" });
+        }
+
+        await db.query(
+            "DELETE FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
+            [clientId, freelancerId]
+        );
+
+        res.json({
+            success: true,
+            message: "Freelancer removed from your list"
+        });
+
+    } catch (err) {
+        console.error("Remove error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
 // ============================================

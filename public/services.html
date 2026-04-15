@@ -5871,14 +5871,10 @@ function updateHeader() {
     if (currentUser) {
         const roleBadgeClass = userRole === 'freelancer' ? 'freelancer-badge' : '';
         
-        // Clear header
         headerAuth.innerHTML = '';
         
-        // Create welcome pill with username
         const welcomePill = document.createElement('span');
         welcomePill.className = 'welcome-pill';
-        
-        // Safely get username
         const username = currentUser.username || currentUser.email || 'User';
         welcomePill.innerHTML = `
             Welcome, ${escapeHtml(username)}
@@ -5886,76 +5882,76 @@ function updateHeader() {
         `;
         headerAuth.appendChild(welcomePill);
         
-        // Add admin dashboard if admin
+        // ADD ADMIN BUTTONS HERE
         if (userRole === 'admin') {
-            const adminBtn = document.createElement('button');
-            adminBtn.className = 'auth-btn';
-            adminBtn.textContent = 'Admin Dashboard';
-            adminBtn.onclick = function(e) {
+            const adminReviewBtn = document.createElement('button');
+            adminReviewBtn.id = 'adminReviewBtn';
+            adminReviewBtn.className = 'auth-btn';
+            adminReviewBtn.innerHTML = '<i class="fas fa-gavel"></i> Admin Review';
+            adminReviewBtn.onclick = function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-                if (typeof showAdminDeletedServices === 'function') {
-                    showAdminDeletedServices();
-                }
+                console.log("Admin Review clicked");
+                showAdminReviewPanel();
             };
-            headerAuth.appendChild(adminBtn);
+            headerAuth.appendChild(adminReviewBtn);
+            
+            const adminDashboardBtn = document.createElement('button');
+            adminDashboardBtn.id = 'adminDashboardBtn';
+            adminDashboardBtn.className = 'auth-btn';
+            adminDashboardBtn.innerHTML = '<i class="fas fa-chart-line"></i> Admin Dashboard';
+            adminDashboardBtn.onclick = function(e) {
+                e.preventDefault();
+                console.log("Admin Dashboard clicked");
+                showAdminDashboard();
+            };
+            headerAuth.appendChild(adminDashboardBtn);
         }
         
-        // Create inbox button with proper handler
+        // Inbox button
         const inboxBtn = document.createElement('button');
         inboxBtn.className = 'auth-btn';
         inboxBtn.id = 'inboxButton';
         inboxBtn.innerHTML = '📩 Inbox <span id="inboxBadge" class="badge hidden"></span>';
-        
         inboxBtn.onclick = function(e) {
             e.preventDefault();
-            e.stopPropagation();
-            console.log('Inbox button clicked');
             showInbox();
-            return false;
         };
-        
         headerAuth.appendChild(inboxBtn);
         
-        // Create switch account button
+        // Switch account button
         const switchBtn = document.createElement('button');
         switchBtn.className = 'auth-btn';
         switchBtn.textContent = 'Switch Account';
         switchBtn.onclick = function(e) {
             e.preventDefault();
-            e.stopPropagation();
             logout();
         };
         headerAuth.appendChild(switchBtn);
         
-        // Update mobile version
+        // Mobile version
         if (mobileAuth) {
             mobileAuth.innerHTML = '';
-            
-            // Clone welcome pill
             const mobileWelcome = welcomePill.cloneNode(true);
             mobileAuth.appendChild(mobileWelcome);
             
-            // Clone admin if exists
             if (userRole === 'admin') {
-                const mobileAdmin = document.createElement('button');
-                mobileAdmin.className = 'auth-btn';
-                mobileAdmin.textContent = 'Admin Dashboard';
-                mobileAdmin.onclick = function(e) {
-                    e.preventDefault();
-                    if (typeof showAdminDeletedServices === 'function') {
-                        showAdminDeletedServices();
-                    }
-                };
-                mobileAuth.appendChild(mobileAdmin);
+                const mobileAdminReview = document.createElement('button');
+                mobileAdminReview.className = 'auth-btn';
+                mobileAdminReview.innerHTML = '<i class="fas fa-gavel"></i> Admin Review';
+                mobileAdminReview.onclick = adminReviewBtn.onclick;
+                mobileAuth.appendChild(mobileAdminReview);
+                
+                const mobileAdminDashboard = document.createElement('button');
+                mobileAdminDashboard.className = 'auth-btn';
+                mobileAdminDashboard.innerHTML = '<i class="fas fa-chart-line"></i> Admin Dashboard';
+                mobileAdminDashboard.onclick = adminDashboardBtn.onclick;
+                mobileAuth.appendChild(mobileAdminDashboard);
             }
             
-            // Clone inbox
             const mobileInbox = inboxBtn.cloneNode(true);
             mobileInbox.onclick = inboxBtn.onclick;
             mobileAuth.appendChild(mobileInbox);
             
-            // Clone switch
             const mobileSwitch = switchBtn.cloneNode(true);
             mobileSwitch.onclick = switchBtn.onclick;
             mobileAuth.appendChild(mobileSwitch);
@@ -5972,7 +5968,6 @@ function updateHeader() {
             mobileAuth.innerHTML = headerAuth.innerHTML;
         }
 
-        // Attach login/signup listeners
         setTimeout(() => {
             const loginBtn = document.getElementById('loginOpen');
             const signupBtn = document.getElementById('signupOpen');
@@ -5980,7 +5975,6 @@ function updateHeader() {
             if (loginBtn) {
                 loginBtn.onclick = function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
                     const loginModal = document.getElementById('loginModal');
                     if (loginModal) {
                         loginModal.classList.remove('hidden');
@@ -5992,7 +5986,6 @@ function updateHeader() {
             if (signupBtn) {
                 signupBtn.onclick = function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
                     const signupModal = document.getElementById('signupModal');
                     if (signupModal) {
                         signupModal.classList.remove('hidden');
@@ -9578,12 +9571,94 @@ async function flagClient(clientId, reason) {
     }
 }
 // ==================== SHOW ADMIN REVIEW PANEL (BOTH TYPES) ====================
+
+// ==================== ADMIN DASHBOARD ====================
+async function showAdminDashboard() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showToast("Admin access required", "error");
+        return;
+    }
+    
+    // Create modal if not exists
+    let modal = document.getElementById('adminDashboardModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminDashboardModal';
+        modal.className = 'modal hidden';
+        modal.innerHTML = `
+            <div class="modal-card large" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: var(--text-light);">
+                        <i class="fas fa-chart-line"></i> Admin Dashboard
+                    </h3>
+                    <span class="close-x" onclick="closeModal(document.getElementById('adminDashboardModal'))">&times;</span>
+                </div>
+                <div id="adminDashboardContent">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading dashboard data...
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    openModal(modal);
+    await loadAdminDashboardData();
+}
+
+async function loadAdminDashboardData() {
+    const container = document.getElementById('adminDashboardContent');
+    if (!container) return;
+    
+    try {
+        const statsResponse = await fetch('/api/admin/platform-stats', {
+            credentials: 'include'
+        });
+        const stats = await statsResponse.json();
+        
+        container.innerHTML = `
+            <div class="admin-stats-grid" style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div class="admin-stat-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px;">
+                    <div class="admin-stat-value" style="font-size: 2rem; color: var(--accent-gold);">${stats.total_users || 0}</div>
+                    <div class="admin-stat-label">Total Users</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.total_products || 0}</div>
+                    <div class="admin-stat-label">Total Products</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">${stats.total_sales || 0}</div>
+                    <div class="admin-stat-label">Total Sales</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-value">$${stats.platform_revenue || 0}</div>
+                    <div class="admin-stat-label">Platform Revenue</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="closeModal(document.getElementById('adminDashboardModal')); showAdminReviewPanel();">
+                    <i class="fas fa-gavel"></i> Go to Review Panel
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal(document.getElementById('adminDashboardModal'))">
+                    Close
+                </button>
+            </div>
+        `;
+        
+    } catch (err) {
+        console.error("Error loading admin dashboard:", err);
+        container.innerHTML = '<div class="text-error" style="text-align: center; padding: 40px;">Failed to load dashboard data</div>';
+    }
+}
+
+// ==================== ADMIN REVIEW PANEL ====================
 async function showAdminReviewPanel() {
     if (!currentUser || currentUser.role !== 'admin') {
         showToast("Admin access required", "error");
         return;
     }
-
+    
     // Create modal if not exists
     let modal = document.getElementById('adminReviewModal');
     if (!modal) {
@@ -9591,16 +9666,12 @@ async function showAdminReviewPanel() {
         modal.id = 'adminReviewModal';
         modal.className = 'modal hidden';
         modal.innerHTML = `
-            <div class="modal-card large" style="max-width: 900px;">
+            <div class="modal-card large" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="margin: 0; color: var(--text-light);">
                         <i class="fas fa-gavel"></i> Admin Review Panel
                     </h3>
                     <span class="close-x" onclick="closeModal(document.getElementById('adminReviewModal'))">&times;</span>
-                </div>
-                <div style="display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                    <button id="tabFreelancersBtn" class="btn btn-primary" style="padding: 8px 16px;">Flagged Freelancers</button>
-                    <button id="tabClientsBtn" class="btn btn-secondary" style="padding: 8px 16px;">Flagged Clients</button>
                 </div>
                 <div id="adminReviewContent">
                     <div style="text-align: center; padding: 40px;">
@@ -9610,62 +9681,40 @@ async function showAdminReviewPanel() {
             </div>
         `;
         document.body.appendChild(modal);
-        
-        // Add tab switching
-        document.getElementById('tabFreelancersBtn')?.addEventListener('click', () => loadAdminReviewData('freelancers'));
-        document.getElementById('tabClientsBtn')?.addEventListener('click', () => loadAdminReviewData('clients'));
     }
     
     openModal(modal);
-    await loadAdminReviewData('freelancers');
+    await loadAdminReviewData();
 }
 
-async function loadAdminReviewData(type = 'freelancers') {
+async function loadAdminReviewData() {
     const container = document.getElementById('adminReviewContent');
     if (!container) return;
     
-    // Update tab styles
-    const freelancersBtn = document.getElementById('tabFreelancersBtn');
-    const clientsBtn = document.getElementById('tabClientsBtn');
-    
-    if (type === 'freelancers') {
-        freelancersBtn?.classList.remove('btn-secondary');
-        freelancersBtn?.classList.add('btn-primary');
-        clientsBtn?.classList.remove('btn-primary');
-        clientsBtn?.classList.add('btn-secondary');
-    } else {
-        clientsBtn?.classList.remove('btn-secondary');
-        clientsBtn?.classList.add('btn-primary');
-        freelancersBtn?.classList.remove('btn-primary');
-        freelancersBtn?.classList.add('btn-secondary');
-    }
-    
-    container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Loading flagged users...</div>';
     
     try {
-        const response = await fetch('/api/admin/all-flagged-users', {
+        const response = await fetch('/api/admin/flagged-users', {
             credentials: 'include'
         });
         
         const data = await response.json();
+        const users = data.users || [];
         
-        const users = type === 'freelancers' ? data.flagged_freelancers : data.flagged_clients;
-        const title = type === 'freelancers' ? 'Flagged Freelancers' : 'Flagged Clients';
-        
-        if (!users || users.length === 0) {
+        if (users.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px; color: var(--text-gray);">
                     <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                    <p>No ${title.toLowerCase()} pending review</p>
+                    <p>No flagged users pending review</p>
                 </div>
             `;
             return;
         }
         
         container.innerHTML = `
-            <h4 style="color: var(--text-light); margin-bottom: 15px;">${title} (${users.length})</h4>
+            <h4 style="color: var(--text-light); margin-bottom: 15px;">Flagged Users (${users.length})</h4>
             ${users.map(user => `
-                <div class="admin-review-card" data-user-id="${user.id}" data-user-type="${type.slice(0, -1)}" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <div class="admin-review-card" data-user-id="${user.id}" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h4 style="color: var(--text-light); margin-bottom: 5px;">
@@ -9675,33 +9724,21 @@ async function loadAdminReviewData(type = 'freelancers') {
                             </h4>
                             <p style="color: var(--text-gray); font-size: 0.9rem;">Email: ${escapeHtml(user.email)}</p>
                             <p style="color: var(--text-gray); font-size: 0.9rem;">Member since: ${new Date(user.created_at).toLocaleDateString()}</p>
-                            ${user.flag_reasons ? `<p style="color: var(--text-gray); font-size: 0.85rem; margin-top: 8px;"><strong>Reasons:</strong> ${escapeHtml(user.flag_reasons.substring(0, 200))}${user.flag_reasons.length > 200 ? '...' : ''}</p>` : ''}
                         </div>
                         <div>
-                            <button class="btn btn-primary" onclick="viewUserFlagDetails(${user.id}, '${type.slice(0, -1)}')" style="margin-right: 10px;">
+                            <button class="btn btn-primary" onclick="viewUserFlags(${user.id})">
                                 <i class="fas fa-list"></i> View Details
                             </button>
-                            ${user.account_locked ? 
-                                `<button class="btn btn-success" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'clear_flags')">
-                                    <i class="fas fa-unlock"></i> Reactivate
-                                </button>` :
-                                `<button class="btn btn-danger" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'suspend')">
-                                    <i class="fas fa-lock"></i> Suspend
-                                </button>`
-                            }
                         </div>
                     </div>
                     <div style="margin-top: 15px;">
                         <textarea id="adminNote_${user.id}" class="form-textarea-enhanced" rows="2" 
                                   placeholder="Add admin notes..."></textarea>
                         <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <button class="btn btn-success" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'clear_flags')">
+                            <button class="btn btn-success" onclick="resolveFlags(${user.id}, 'cleared')">
                                 <i class="fas fa-check"></i> Clear Flags & Reactivate
                             </button>
-                            <button class="btn btn-warning" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'warn')">
-                                <i class="fas fa-exclamation-triangle"></i> Issue Warning
-                            </button>
-                            <button class="btn btn-danger" onclick="resolveUserFlags(${user.id}, '${type.slice(0, -1)}', 'suspend')">
+                            <button class="btn btn-danger" onclick="resolveFlags(${user.id}, 'suspended')">
                                 <i class="fas fa-ban"></i> Suspend Account
                             </button>
                         </div>
@@ -9712,10 +9749,9 @@ async function loadAdminReviewData(type = 'freelancers') {
         
     } catch (err) {
         console.error("Error loading flagged users:", err);
-        container.innerHTML = `<div class="text-error" style="text-align: center; padding: 40px;">Error loading flagged users</div>`;
+        container.innerHTML = `<div class="text-error" style="text-align: center; padding: 40px;">Error loading flagged users: ${err.message}</div>`;
     }
 }
-
 async function viewUserFlagDetails(userId, userType) {
     try {
         const response = await fetch(`/api/admin/user-flags-details/${userId}/${userType}`, {
@@ -11287,96 +11323,8 @@ async function startFreeTrial() {
     updateUIForUserRole();
     showCreateServiceForm();
 }
-// ==================== ADMIN DASHBOARD ====================
-async function showAdminDashboard() {
-    if (!currentUser || currentUser.role !== 'admin') {
-        showToast("Admin access required", "error");
-        return;
-    }
-    
-    // Create modal for admin dashboard
-    let modal = document.getElementById('adminDashboardModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'adminDashboardModal';
-        modal.className = 'modal hidden';
-        modal.innerHTML = `
-            <div class="modal-card large" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0; color: var(--text-light);">
-                        <i class="fas fa-chart-line"></i> Admin Dashboard
-                    </h3>
-                    <span class="close-x" onclick="closeModal(document.getElementById('adminDashboardModal'))">&times;</span>
-                </div>
-                <div id="adminDashboardContent">
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-spinner fa-spin"></i> Loading dashboard data...
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    openModal(modal);
-    await loadAdminDashboardData();
-}
 
-async function loadAdminDashboardData() {
-    const container = document.getElementById('adminDashboardContent');
-    if (!container) return;
-    
-    try {
-        // Get platform stats
-        const statsResponse = await fetch('/api/admin/platform-stats', {
-            credentials: 'include'
-        });
-        const stats = await statsResponse.json();
-        
-        // Get flagged users counts
-        const flagsResponse = await fetch('/api/admin/all-flagged-users', {
-            credentials: 'include'
-        });
-        const flagsData = await flagsResponse.json();
-        
-        container.innerHTML = `
-            <div class="admin-stats-grid" style="margin-bottom: 30px;">
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value">${stats.total_users || 0}</div>
-                    <div class="admin-stat-label">Total Users</div>
-                </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value">${stats.total_products || 0}</div>
-                    <div class="admin-stat-label">Total Products</div>
-                </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value">${stats.total_sales || 0}</div>
-                    <div class="admin-stat-label">Total Sales</div>
-                </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value">${flagsData.total_freelancers || 0}</div>
-                    <div class="admin-stat-label">Flagged Freelancers</div>
-                </div>
-                <div class="admin-stat-card">
-                    <div class="admin-stat-value">${flagsData.total_clients || 0}</div>
-                    <div class="admin-stat-label">Flagged Clients</div>
-                </div>
-            </div>
-            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="closeModal(document.getElementById('adminDashboardModal')); showAdminReviewPanel();">
-                    <i class="fas fa-gavel"></i> Go to Review Panel
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal(document.getElementById('adminDashboardModal'))">
-                    Close
-                </button>
-            </div>
-        `;
-        
-    } catch (err) {
-        console.error("Error loading admin dashboard:", err);
-        container.innerHTML = '<div class="text-error" style="text-align: center; padding: 40px;">Failed to load dashboard data</div>';
-    }
-}
+
 // Add this function
 async function reportUserInChat(userId) {
     if (!currentUser) {
@@ -12094,8 +12042,9 @@ async function viewServiceStats(serviceId) {
 }
 
 // ==================== FIX DELETE SERVICE FUNCTION ====================
-// ==================== DELETE SERVICE FUNCTION (FIXED) ====================
 async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
+    console.log("Delete service called:", serviceId, serviceTitle, ownerId, isOwner);
+    
     if (!currentUser) {
         showToast("Please login to delete services", "warning");
         openModal(document.getElementById('loginModal'));
@@ -12135,6 +12084,7 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         });
         
         const result = await response.json();
+        console.log("Delete response:", result);
         
         if (response.ok && result.success) {
             showToast('✅ Service deleted successfully', 'success');
@@ -13042,19 +12992,6 @@ async function showFreelancerWarningIfFlagged() {
 // ADMIN REVIEW FUNCTIONS
 // ============================================
 
-// Show admin review panel for flagged users
-async function showAdminReviewPanel() {
-    if (!currentUser || currentUser.role !== 'admin') {
-        showToast("Admin access required", "error");
-        return;
-    }
-    
-    const modal = document.getElementById('adminReviewModal');
-    if (modal) {
-        await loadFlaggedUsersForReview();
-        openModal(modal);
-    }
-}
 
 // Load flagged users for admin review
 async function loadFlaggedUsersForReview() {

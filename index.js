@@ -6041,6 +6041,7 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
     }
 });
 // ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
+// ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
 app.get("/api/client/providers", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -6065,6 +6066,7 @@ app.get("/api/client/providers", async (req, res) => {
                 fp.skills,
                 fp.location,
                 fp.completed_orders,
+                fp.avg_rating,
                 fp.availability,
                 s.id as service_id,
                 s.title as service_title,
@@ -6081,16 +6083,30 @@ app.get("/api/client/providers", async (req, res) => {
             ORDER BY cp.last_contacted DESC, cp.recruited_at DESC
         `, [clientId]);
 
+        // Extract rows properly
         let providers = [];
-        if (Array.isArray(result)) {
-            providers = result.length === 2 ? result[0] : result;
+        if (result) {
+            if (Array.isArray(result)) {
+                // If it's [rows, fields] format
+                if (result.length === 2 && Array.isArray(result[0])) {
+                    providers = result[0];
+                } 
+                // If it's just rows array
+                else if (result.length > 0) {
+                    providers = result;
+                }
+            } else if (result.rows) {
+                providers = result.rows;
+            }
         }
 
+        // Ensure we return an array, even if empty
         res.json(providers);
 
     } catch (err) {
         console.error("Error loading freelancers:", err);
-        res.status(500).json({ error: "Failed to load freelancers: " + err.message });
+        // Always return an array on error
+        res.json([]);
     }
 });
 

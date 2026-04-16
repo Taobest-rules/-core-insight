@@ -3379,7 +3379,7 @@ app.get("/api/debug/directories", async (req, res) => {
     res.json(results);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// =================== DELETE SERVICE (SOFT DELETE) ===================
+// =================== DELETE SERVICE ===================
 app.delete("/api/services/:id", async (req, res) => {
     try {
         if (!req.session.user) {
@@ -3390,6 +3390,8 @@ app.delete("/api/services/:id", async (req, res) => {
         const userId = req.session.user.id;
         const userRole = req.session.user.role;
         const { reason } = req.body;
+
+        console.log(`🗑️ Delete request for service ${serviceId} by user ${userId} (${userRole})`);
 
         // Check if service exists and get ownership
         const serviceResult = await db.query(
@@ -3427,7 +3429,7 @@ app.delete("/api/services/:id", async (req, res) => {
 
                 let deleteCount = 0;
                 if (Array.isArray(deleteCountResult) && deleteCountResult.length > 0) {
-                    deleteCount = deleteCountResult[0].count || 0;
+                    deleteCount = deleteCountResult[0]?.count || 0;
                 }
 
                 if (deleteCount >= 3) {
@@ -3440,34 +3442,7 @@ app.delete("/api/services/:id", async (req, res) => {
             }
         }
 
-        // Check if status column exists for soft delete
-        let hasStatusColumn = false;
-        try {
-            const columnCheck = await db.query(`
-                SELECT COUNT(*) as count 
-                FROM information_schema.columns 
-                WHERE table_name = 'services' AND column_name = 'status'
-            `);
-            
-            if (Array.isArray(columnCheck) && columnCheck.length > 0) {
-                hasStatusColumn = columnCheck[0].count > 0;
-            }
-        } catch (e) {
-            console.log("Could not check status column");
-        }
-
-        if (hasStatusColumn) {
-            // Soft delete - update status
-            await db.query(
-                "UPDATE services SET status = 'deleted', deleted_at = NOW() WHERE id = ?",
-                [serviceId]
-            );
-        } else {
-            // Hard delete if no status column
-            await db.query("DELETE FROM services WHERE id = ?", [serviceId]);
-        }
-
-        // Log deletion in deleted_services table
+        // Log deletion in deleted_services table FIRST
         await db.query(
             `INSERT INTO deleted_services 
              (service_id, service_owner_id, service_title, deleted_by, deleted_by_role, reason, deleted_at) 
@@ -3481,6 +3456,25 @@ app.delete("/api/services/:id", async (req, res) => {
                 reason || (isAdmin ? 'Deleted by admin' : 'Deleted by owner')
             ]
         );
+        console.log(`✅ Logged deletion for service ${serviceId}`);
+
+        // Delete service packages
+        try {
+            await db.query("DELETE FROM service_packages WHERE service_id = ?", [serviceId]);
+        } catch (pkgErr) {
+            console.log("No service_packages table or already deleted");
+        }
+
+        // Delete service favorites
+        try {
+            await db.query("DELETE FROM service_favorites WHERE service_id = ?", [serviceId]);
+        } catch (favErr) {
+            console.log("No service_favorites table or already deleted");
+        }
+
+        // Finally delete the service
+        await db.query("DELETE FROM services WHERE id = ?", [serviceId]);
+        console.log(`✅ Deleted service ${serviceId}`);
 
         res.json({
             success: true,
@@ -3488,7 +3482,7 @@ app.delete("/api/services/:id", async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Delete service error:", err);
+        console.error("❌ Delete service error:", err);
         res.status(500).json({ error: "Internal server error: " + err.message });
     }
 });
@@ -5955,7 +5949,6 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
         res.json({ certificate_images: [] });
     }
 });
-// ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
 app.get("/api/client/providers", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -5970,6 +5963,7 @@ app.get("/api/client/providers", async (req, res) => {
         
         console.log("Fetching providers for client:", clientId);
 
+        // REMOVED fp.avg_rating since it doesn't exist
         const result = await db.query(`
             SELECT 
                 cp.*,
@@ -5982,7 +5976,6 @@ app.get("/api/client/providers", async (req, res) => {
                 fp.skills,
                 fp.location,
                 fp.completed_orders,
-                fp.avg_rating,
                 fp.availability,
                 s.id as service_id,
                 s.title as service_title,
@@ -5999,9 +5992,6 @@ app.get("/api/client/providers", async (req, res) => {
             ORDER BY cp.last_contacted DESC, cp.recruited_at DESC
         `, [clientId]);
 
-        console.log("Query result type:", Array.isArray(result) ? "array" : typeof result);
-        console.log("Result length:", result ? (result.length || (result[0] ? result[0].length : 0)) : 0);
-
         // Extract rows properly
         let providers = [];
         if (result) {
@@ -6016,7 +6006,12 @@ app.get("/api/client/providers", async (req, res) => {
             }
         }
 
-        // Always return an array
+        // Add default rating for each provider
+        providers = providers.map(provider => ({
+            ...provider,
+            avg_rating: 0 // Default rating since column doesn't exist
+        }));
+
         res.json(providers);
 
     } catch (err) {

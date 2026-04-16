@@ -12134,9 +12134,8 @@ async function viewServiceStats(serviceId) {
     }
 }
 
-// ==================== FIX DELETE SERVICE FUNCTION ====================
 async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
-    console.log("Delete service called:", serviceId, serviceTitle, ownerId, isOwner);
+    console.log("Delete button clicked for:", serviceId, serviceTitle);
     
     if (!currentUser) {
         showToast("Please login to delete services", "warning");
@@ -12199,7 +12198,6 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         showToast('Error deleting service: ' + err.message, 'error');
     }
 }
-    
 // ==================== UPDATE THE RENDER MY SERVICES FUNCTION ====================
 // Replace the action buttons in renderMyServices
 function renderMyServices(services) {
@@ -12274,38 +12272,27 @@ function renderMyServices(services) {
 
 async function loadMyFreelancers() {
     const container = document.getElementById('clientServicesList');
-    if (!container) {
-        console.error("clientServicesList element not found!");
-        return;
-    }
+    if (!container) return;
 
     try {
-        console.log("Loading My Freelancers...");
         container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading your freelancers...</div>';
         
         const response = await fetch('/api/client/providers', {
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
-            }
+            credentials: 'include'
         });
         
-        console.log("Response status:", response.status);
-        
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error('Failed to load freelancers');
         }
         
         let freelancers = await response.json();
-        console.log("Raw response:", freelancers);
         
-        // Ensure freelancers is an array
+        // Ensure it's an array
         if (!Array.isArray(freelancers)) {
-            console.log("Response is not an array, converting...");
             freelancers = [];
         }
         
-        console.log(`Found ${freelancers.length} freelancers`);
+        console.log("Found", freelancers.length, "freelancers");
         
         if (freelancers.length === 0) {
             container.innerHTML = `
@@ -12321,17 +12308,16 @@ async function loadMyFreelancers() {
             return;
         }
         
-        // Build the HTML
-        let html = '';
-        for (const freelancer of freelancers) {
+        container.innerHTML = freelancers.map(freelancer => {
             const profilePicture = freelancer.profile_picture;
             const profileInitial = freelancer.username ? freelancer.username.charAt(0).toUpperCase() : 'U';
+            const avgRating = freelancer.avg_rating || 0;
             
             const profilePictureHtml = profilePicture ?
                 `<img src="${profilePicture}" alt="${freelancer.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` :
                 `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; background: var(--gradient-primary); border-radius: 50%; color: white;">${profileInitial}</div>`;
             
-            html += `
+            return `
                 <div class="service-card" data-freelancer-id="${freelancer.freelancer_id}">
                     <div class="service-header">
                         <h3 class="service-title">${escapeHtml(freelancer.username)}</h3>
@@ -12346,7 +12332,7 @@ async function loadMyFreelancers() {
                             <div class="service-provider-name">${escapeHtml(freelancer.headline || 'Freelancer')}</div>
                             <div class="service-provider">${escapeHtml(freelancer.location || 'Location not specified')}</div>
                             <div class="service-rating">
-                                <span class="stars">${generateStars(freelancer.avg_rating || 0)}</span>
+                                <span class="stars">${generateStars(avgRating)}</span>
                                 <span class="rating-count">(${freelancer.completed_orders || 0} orders)</span>
                             </div>
                         </div>
@@ -12378,14 +12364,10 @@ async function loadMyFreelancers() {
                     </div>
                 </div>
             `;
-        }
-        
-        container.innerHTML = html;
+        }).join('');
         
         // Update badge count
         await updateProvidersBadge();
-        
-        console.log("My Freelancers loaded successfully");
         
     } catch (err) {
         console.error("Error loading freelancers:", err);
@@ -12398,8 +12380,7 @@ async function loadMyFreelancers() {
         `;
     }
 }
-
-// Remove freelancer function
+   // Remove freelancer function
 async function removeFreelancer(freelancerId, buttonElement) {
     if (!confirm("Are you sure you want to remove this freelancer from your list?")) return;
     

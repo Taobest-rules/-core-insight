@@ -6250,134 +6250,6 @@ async function loadServices() {
     }
 }
 
-async function loadMyServices() {
-    const myServicesList = $('myServicesList');
-    if (!myServicesList) {
-        return;
-    }
-
-    try {
-        showLoading('myServicesList');
-
-        const response = await fetch('/api/services/my-services', {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const myServices = await response.json();
-
-        if (!Array.isArray(myServices)) {
-            throw new Error('Invalid data: myServices is not an array');
-        }
-
-        const providerServicesView = $('providerServicesView');
-        const clientServicesView = $('clientServicesView');
-
-        if (providerServicesView) {
-            providerServicesView.classList.remove('hidden');
-        }
-        if (clientServicesView) {
-            clientServicesView.classList.add('hidden');
-        }
-
-        if (myServices.length === 0) {
-            myServicesList.innerHTML = `
-                <div style="text-align: center; padding: 40px; grid-column: 1 / -1;">
-                    <div style="font-size: 4rem; margin-bottom: 20px;">📭</div>
-                    <h3>No Services Yet</h3>
-                    <p>You haven't created any services yet. Create your first service to start earning!</p>
-                    <button class="btn btn-primary" onclick="showCreateServiceForm()">
-                        <i class="fas fa-plus"></i> Create Your First Service
-                    </button>
-                </div>
-            `;
-        } else {
-            renderMyServices(myServices);
-        }
-
-    } catch (err) {
-        console.error('Error loading my services:', err);
-        myServicesList.innerHTML = `
-            <div class="text-error" style="text-align: center; padding: 40px; grid-column: 1 / -1;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
-                <h3>Failed to Load Your Services</h3>
-                <p style="color: var(--text-gray);">Error: ${err.message}</p>
-                <button class="btn btn-primary" onclick="loadMyServices()">
-                    <i class="fas fa-redo"></i> Try Again
-                </button>
-            </div>
-        `;
-    }
-}
-
-function renderMyServices(services) {
-    const container = $('myServicesList');
-    if (!container) return;
-
-    container.innerHTML = services.map(service => {
-        const providerName = service.username || 'You';
-        const profilePicture = service.profile_picture_url || service.provider_profile_picture;
-        let providerPictureHtml = '';
-        
-        if (profilePicture) {
-            providerPictureHtml = `
-                <div class="profile-picture-wrapper">
-                    <img src="${profilePicture}" alt="${providerName}" 
-                         class="provider-profile-picture" 
-                         onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'provider-initials\\'>${providerName.charAt(0).toUpperCase()}</div>';">
-                </div>
-            `;
-        } else {
-            providerPictureHtml = `
-                <div class="provider-initials">
-                    ${providerName.charAt(0).toUpperCase()}
-                </div>
-            `;
-        }
-
-        return `
-            <div class="service-card" data-service-id="${service.id}">
-                <div class="service-header">
-                    <h3 class="service-title">${escapeHtml(service.title)}</h3>
-                    <div class="service-price">
-                        ${service.price > 0 ? `$${service.price}` : 'Free'}
-                    </div>
-                </div>
-                
-                <div class="service-provider-info">
-                    ${providerPictureHtml}
-                    <div>
-                        <div class="service-provider-name">${escapeHtml(providerName)}</div>
-                        <div class="service-provider">${escapeHtml(service.category || 'General')}</div>
-                    </div>
-                </div>
-                
-                <p>${escapeHtml(service.description || 'No description')}</p>
-                
-                ${service.favorite_count ? `
-                    <div style="margin: 10px 0; color: var(--accent-gold);">
-                        <i class="fas fa-heart"></i> ${service.favorite_count} favorites
-                    </div>
-                ` : ''}
-                
-                <div class="service-actions" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn btn-primary" onclick="editService(${service.id})">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn btn-secondary" onclick="viewServiceStats(${service.id})">
-                        <i class="fas fa-chart-bar"></i> Stats
-                    </button>
-                    <button class="btn btn-danger" onclick="confirmDeleteService(${service.id}, '${escapeHtml(service.title)}', ${service.user_id}, true)">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
 
 async function loadCategories() {
     try {
@@ -12366,6 +12238,13 @@ async function loadMyFreelancers() {
             `;
         }).join('');
         
+// Add this test function
+function testDelete(serviceId, serviceTitle) {
+    console.log("TEST DELETE BUTTON CLICKED!");
+    console.log("Service ID:", serviceId);
+    console.log("Service Title:", serviceTitle);
+    alert("Delete button works! Service ID: " + serviceId);
+}
         // Update badge count
         await updateProvidersBadge();
         

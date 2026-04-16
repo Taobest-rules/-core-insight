@@ -5483,74 +5483,7 @@ app.post("/api/services/:serviceId/favorite", async (req, res) => {
     }
 });
 
-// ==================== RECRUIT FREELANCER ENDPOINT ====================
-app.post("/api/freelancer/recruit", async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Please login" });
-    }
 
-    try {
-        const { freelancerId, serviceId } = req.body;
-        const clientId = req.session.user.id;
-
-        if (req.session.user.role !== 'client') {
-            return res.status(403).json({ error: "Only clients can recruit freelancers" });
-        }
-
-        if (parseInt(clientId) === parseInt(freelancerId)) {
-            return res.status(400).json({ error: "You cannot recruit yourself" });
-        }
-
-        // Check if freelancer exists
-        const freelancerCheck = await db.query(
-            "SELECT id FROM users WHERE id = ? AND role = 'freelancer'",
-            [freelancerId]
-        );
-
-        if (!freelancerCheck || freelancerCheck.length === 0) {
-            return res.status(404).json({ error: "Freelancer not found" });
-        }
-
-        // Check if already recruited
-        const existing = await db.query(
-            "SELECT id FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
-            [clientId, freelancerId]
-        );
-
-        if (existing && existing.length > 0) {
-            // Update existing
-            await db.query(
-                `UPDATE client_providers 
-                 SET service_id = COALESCE(?, service_id),
-                     last_contacted = NOW(),
-                     status = 'active'
-                 WHERE client_id = ? AND freelancer_id = ?`,
-                [serviceId || null, clientId, freelancerId]
-            );
-            
-            return res.json({
-                success: true,
-                message: "Provider already in your list, updated successfully"
-            });
-        }
-
-        // Insert new
-        await db.query(
-            `INSERT INTO client_providers (client_id, freelancer_id, service_id, recruited_at, last_contacted, status) 
-             VALUES (?, ?, ?, NOW(), NOW(), 'active')`,
-            [clientId, freelancerId, serviceId || null]
-        );
-
-        res.json({
-            success: true,
-            message: "Freelancer added to your providers list successfully!"
-        });
-
-    } catch (err) {
-        console.error("Recruit error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // ==================== GET USER PROFILE ENDPOINT ====================
 app.get("/api/users/:userId/profile", async (req, res) => {
@@ -5859,7 +5792,6 @@ app.get("/api/services/favorites", async (req, res) => {
     }
 });
 
-// ==================== RECRUIT FREELANCER ENDPOINT ====================
 app.post("/api/freelancer/recruit", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -5869,32 +5801,14 @@ app.post("/api/freelancer/recruit", async (req, res) => {
         const { freelancerId, serviceId } = req.body;
         const clientId = req.session.user.id;
 
+        console.log("Recruit attempt:", { clientId, freelancerId, serviceId });
+
         if (req.session.user.role !== 'client') {
             return res.status(403).json({ error: "Only clients can recruit freelancers" });
         }
 
         if (parseInt(clientId) === parseInt(freelancerId)) {
             return res.status(400).json({ error: "You cannot recruit yourself" });
-        }
-
-        // Create client_providers table if not exists
-        try {
-            await db.query(`
-                CREATE TABLE IF NOT EXISTS client_providers (
-                    id INT PRIMARY KEY AUTO_INCREMENT,
-                    client_id INT NOT NULL,
-                    freelancer_id INT NOT NULL,
-                    service_id INT NULL,
-                    recruited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_contacted TIMESTAMP NULL,
-                    status VARCHAR(50) DEFAULT 'active',
-                    UNIQUE KEY unique_provider (client_id, freelancer_id),
-                    FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
-                    FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            `);
-        } catch (tableErr) {
-            console.log("Table might already exist");
         }
 
         // Check if freelancer exists
@@ -5931,11 +5845,13 @@ app.post("/api/freelancer/recruit", async (req, res) => {
         }
 
         // Insert new
-        await db.query(
+        const insertResult = await db.query(
             `INSERT INTO client_providers (client_id, freelancer_id, service_id, recruited_at, last_contacted, status) 
              VALUES (?, ?, ?, NOW(), NOW(), 'active')`,
             [clientId, freelancerId, serviceId || null]
         );
+
+        console.log("Insert result:", insertResult);
 
         res.json({
             success: true,
@@ -5947,7 +5863,6 @@ app.post("/api/freelancer/recruit", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 // ==================== GET USER PROFILE ENDPOINT ====================
 app.get("/api/users/:userId/profile", async (req, res) => {
     try {
@@ -6041,7 +5956,6 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
     }
 });
 // ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
-// ==================== GET CLIENT'S FREELANCERS (PROVIDERS) ====================
 app.get("/api/client/providers", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -6053,6 +5967,8 @@ app.get("/api/client/providers", async (req, res) => {
 
     try {
         const clientId = req.session.user.id;
+        
+        console.log("Fetching providers for client:", clientId);
 
         const result = await db.query(`
             SELECT 
@@ -6072,27 +5988,27 @@ app.get("/api/client/providers", async (req, res) => {
                 s.title as service_title,
                 s.price as service_price,
                 s.category as service_category,
-                cp.recruited_at,
-                cp.last_contacted,
+                DATE_FORMAT(cp.recruited_at, '%Y-%m-%d %H:%i:%s') as recruited_at,
+                DATE_FORMAT(cp.last_contacted, '%Y-%m-%d %H:%i:%s') as last_contacted,
                 cp.status
             FROM client_providers cp
             JOIN users u ON cp.freelancer_id = u.id
             LEFT JOIN freelancer_profiles fp ON fp.user_id = cp.freelancer_id
             LEFT JOIN services s ON cp.service_id = s.id
-            WHERE cp.client_id = ? AND cp.status = 'active'
+            WHERE cp.client_id = ? AND (cp.status = 'active' OR cp.status IS NULL)
             ORDER BY cp.last_contacted DESC, cp.recruited_at DESC
         `, [clientId]);
+
+        console.log("Query result type:", Array.isArray(result) ? "array" : typeof result);
+        console.log("Result length:", result ? (result.length || (result[0] ? result[0].length : 0)) : 0);
 
         // Extract rows properly
         let providers = [];
         if (result) {
             if (Array.isArray(result)) {
-                // If it's [rows, fields] format
                 if (result.length === 2 && Array.isArray(result[0])) {
                     providers = result[0];
-                } 
-                // If it's just rows array
-                else if (result.length > 0) {
+                } else if (result.length > 0) {
                     providers = result;
                 }
             } else if (result.rows) {
@@ -6100,16 +6016,14 @@ app.get("/api/client/providers", async (req, res) => {
             }
         }
 
-        // Ensure we return an array, even if empty
+        // Always return an array
         res.json(providers);
 
     } catch (err) {
         console.error("Error loading freelancers:", err);
-        // Always return an array on error
         res.json([]);
     }
 });
-
 // ==================== GET CLIENT'S FAVORITES ====================
 app.get("/api/client/favorites", async (req, res) => {
     if (!req.session.user) {

@@ -6250,7 +6250,66 @@ async function loadServices() {
     }
 }
 
+async function loadMyServices() {
+    const myServicesList = $('myServicesList');
+    if (!myServicesList) return;
 
+    try {
+        showLoading('myServicesList');
+
+        const response = await fetch('/api/services/my-services', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const myServices = await response.json();
+
+        if (!Array.isArray(myServices)) {
+            throw new Error('Invalid data: myServices is not an array');
+        }
+
+        const providerServicesView = $('providerServicesView');
+        const clientServicesView = $('clientServicesView');
+
+        if (providerServicesView) {
+            providerServicesView.classList.remove('hidden');
+        }
+        if (clientServicesView) {
+            clientServicesView.classList.add('hidden');
+        }
+
+        if (myServices.length === 0) {
+            myServicesList.innerHTML = `
+                <div style="text-align: center; padding: 40px; grid-column: 1 / -1;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📭</div>
+                    <h3>No Services Yet</h3>
+                    <p>You haven't created any services yet. Create your first service to start earning!</p>
+                    <button class="btn btn-primary" onclick="showCreateServiceForm()">
+                        <i class="fas fa-plus"></i> Create Your First Service
+                    </button>
+                </div>
+            `;
+        } else {
+            renderMyServices(myServices);
+        }
+
+    } catch (err) {
+        console.error('Error loading my services:', err);
+        myServicesList.innerHTML = `
+            <div class="text-error" style="text-align: center; padding: 40px; grid-column: 1 / -1;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+                <h3>Failed to Load Your Services</h3>
+                <p style="color: var(--text-gray);">Error: ${err.message}</p>
+                <button class="btn btn-primary" onclick="loadMyServices()">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+        `;
+    }
+}
 async function loadCategories() {
     try {
         const response = await fetch('/api/services/categories', {
@@ -12007,7 +12066,9 @@ async function viewServiceStats(serviceId) {
 }
 
 async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
-    console.log("Delete button clicked for:", serviceId, serviceTitle);
+    console.log("===== DELETE FUNCTION CALLED =====");
+    console.log("Service ID:", serviceId);
+    console.log("Service Title:", serviceTitle);
     
     if (!currentUser) {
         showToast("Please login to delete services", "warning");
@@ -12015,18 +12076,10 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         return;
     }
     
-    // Check if user has permission
-    if (!isOwner && currentUser.role !== 'admin') {
-        showToast("You don't have permission to delete this service", "error");
-        return;
-    }
-    
-    // Show confirmation dialog
     const confirmed = confirm(`⚠️ Are you sure you want to delete "${serviceTitle}"?\n\nThis action cannot be undone!`);
     
     if (!confirmed) return;
     
-    // Ask for reason
     let reason = prompt("Please provide a reason for deletion:", "No longer offering this service");
     if (reason === null) return;
     if (reason.trim() === "") {
@@ -12036,15 +12089,14 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
     try {
         showToast("Deleting service...", "info");
         
+        // Use the same endpoint that worked in your test
         const response = await fetch(`/api/services/${serviceId}`, {
             method: 'DELETE',
             headers: { 
                 'Content-Type': 'application/json'
             },
             credentials: 'include',
-            body: JSON.stringify({ 
-                reason: reason
-            })
+            body: JSON.stringify({ reason: reason })
         });
         
         const result = await response.json();
@@ -12052,16 +12104,9 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
         
         if (response.ok && result.success) {
             showToast('✅ Service deleted successfully', 'success');
-            
             // Refresh the services lists
             await loadMyServices();
             await loadServices();
-            
-            // Also refresh favorites if on favorites tab
-            const favoritesTab = document.getElementById('favoritesTab');
-            if (favoritesTab && !favoritesTab.classList.contains('hidden')) {
-                await loadFavorites();
-            }
         } else {
             showToast(result.error || 'Failed to delete service', 'error');
         }
@@ -12075,6 +12120,8 @@ async function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
 function renderMyServices(services) {
     const container = $('myServicesList');
     if (!container) return;
+
+    console.log("Rendering my services, count:", services.length);
 
     container.innerHTML = services.map(service => {
         const providerName = service.username || 'You';
@@ -12129,7 +12176,7 @@ function renderMyServices(services) {
                     <button class="btn btn-secondary" onclick="viewServiceStats(${service.id})" style="flex: 1;">
                         <i class="fas fa-chart-bar"></i> Stats
                     </button>
-                    <button class="btn btn-danger" onclick="confirmDeleteService(${service.id}, '${escapeHtml(service.title)}', ${service.user_id}, true)" style="flex: 1;">
+                    <button class="btn btn-danger delete-svc-btn" data-id="${service.id}" data-title="${escapeHtml(service.title)}" data-owner="${service.user_id}" style="flex: 1;">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -12140,8 +12187,25 @@ function renderMyServices(services) {
             </div>
         `;
     }).join('');
+    
+    // Add event listeners to delete buttons
+    document.querySelectorAll('.delete-svc-btn').forEach(btn => {
+        btn.removeEventListener('click', handleDeleteClick);
+        btn.addEventListener('click', handleDeleteClick);
+    });
 }
 
+// Separate function for delete click handler
+function handleDeleteClick(e) {
+    e.preventDefault();
+    const btn = e.currentTarget;
+    const serviceId = btn.dataset.id;
+    const serviceTitle = btn.dataset.title;
+    const ownerId = btn.dataset.owner;
+    
+    console.log("Delete button clicked!", serviceId, serviceTitle);
+    confirmDeleteService(serviceId, serviceTitle, ownerId, true);
+}
 async function loadMyFreelancers() {
     const container = document.getElementById('clientServicesList');
     if (!container) return;

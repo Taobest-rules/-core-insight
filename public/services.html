@@ -4969,63 +4969,90 @@
         </form>
       </div>
     </div>
-
-    <!-- Admin Delete Modal -->
-    <div id="adminDeleteModal" class="modal hidden">
-      <div class="modal-card" style="max-width: 500px;">
+<div id="adminDeleteModal" class="modal hidden">
+    <div class="modal-card" style="max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; color: var(--error-red);"><i class="fas fa-trash"></i> Admin Delete Service</h3>
-          <span class="close-x" id="closeAdminDeleteModal">&times;</span>
+            <h3 style="margin: 0; color: var(--error-red);">
+                <i class="fas fa-trash"></i> Admin Delete Service
+            </h3>
+            <span class="close-x" id="closeAdminDeleteModal">&times;</span>
         </div>
         <div style="background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0; color: var(--error-red); font-weight: 500;">
-            <i class="fas fa-exclamation-triangle"></i> Admin Action Required
-          </p>
-          <p style="margin: 10px 0 0 0; color: var(--text-light);">
-            You are about to delete a service as an administrator. This action cannot be undone.
-          </p>
+            <p style="margin: 0; color: var(--error-red); font-weight: 500;">
+                <i class="fas fa-exclamation-triangle"></i> Admin Action Required
+            </p>
+            <p style="margin: 10px 0 0 0; color: var(--text-light);">
+                You are about to delete a service as an administrator. This action cannot be undone.
+            </p>
         </div>
-        <div id="adminDeleteServiceInfo" style="margin-bottom: 20px;"></div>
+        <div id="adminDeleteServiceInfo" style="margin-bottom: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+            <!-- Service info will be inserted here -->
+        </div>
         <div class="form-group">
-          <label style="color: var(--text-light);">Reason for deletion (required):</label>
-          <textarea id="adminDeleteReason" class="form-textarea-enhanced" placeholder="Why are you deleting this service?"></textarea>
+            <label style="color: var(--text-light); display: block; margin-bottom: 8px;">
+                <i class="fas fa-comment"></i> Reason for deletion (required):
+            </label>
+            <textarea id="adminDeleteReason" class="form-textarea-enhanced" rows="4" 
+                      placeholder="Why are you deleting this service? (e.g., 'Service violates terms', 'Duplicate listing', 'User requested removal')"
+                      style="width: 100%; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);"></textarea>
+            <div style="text-align: right; margin-top: 5px;">
+                <span id="adminDeleteCharCount" style="color: var(--text-gray); font-size: 0.85rem;">0/500</span>
+            </div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-danger" id="confirmAdminDeleteBtn">Confirm Delete</button>
-          <button class="btn btn-secondary" id="cancelAdminDeleteBtn">Cancel</button>
+        <div class="form-actions" style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="btn btn-danger" id="confirmAdminDeleteBtn" style="flex: 1; padding: 14px;">
+                <i class="fas fa-trash"></i> Confirm Delete
+            </button>
+            <button class="btn btn-secondary" id="cancelAdminDeleteBtn" style="flex: 1; padding: 14px;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
         </div>
-      </div>
     </div>
+</div>
 
-    <!-- Freelancer Delete Modal -->
-    <div id="freelancerDeleteModal" class="modal hidden">
-      <div class="modal-card" style="max-width: 500px;">
+  <!-- Freelancer Delete Modal - FIXED -->
+<div id="freelancerDeleteModal" class="modal hidden">
+    <div class="modal-card" style="max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; color: var(--warning-orange);"><i class="fas fa-exclamation-triangle"></i> Delete Your Service</h3>
-          <span class="close-x" id="closeFreelancerDeleteModal">&times;</span>
+            <h3 style="margin: 0; color: var(--warning-orange);">
+                <i class="fas fa-exclamation-triangle"></i> Delete Your Service
+            </h3>
+            <span class="close-x" id="closeFreelancerDeleteModal">&times;</span>
         </div>
         <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0; color: var(--warning-orange); font-weight: 500;">
-            <i class="fas fa-info-circle"></i> Important Information
-          </p>
-          <p style="margin: 10px 0 0 0; color: var(--text-light); font-size: 0.9rem;">
-            • You can delete up to <strong>3 services per day</strong><br>
-            • Remaining deletions today: <strong id="remainingDeletes">3/3</strong><br>
-            • All deletions are logged for quality monitoring
-          </p>
+            <p style="margin: 0; color: var(--warning-orange); font-weight: 500;">
+                <i class="fas fa-info-circle"></i> Important Information
+            </p>
+            <p style="margin: 10px 0 0 0; color: var(--text-light); font-size: 0.9rem;">
+                • You can delete up to <strong>3 services per day</strong><br>
+                • Remaining deletions today: <strong id="remainingDeletes">3/3</strong><br>
+                • All deletions are logged for quality monitoring
+            </p>
         </div>
-        <div id="freelancerDeleteServiceInfo" style="margin-bottom: 20px;"></div>
+        <div id="freelancerDeleteServiceInfo" style="margin-bottom: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+            <!-- Service info will be inserted here -->
+        </div>
         <div class="form-group">
-          <label style="color: var(--text-light);">Reason for deletion (required):</label>
-          <textarea id="freelancerDeleteReason" class="form-textarea-enhanced" placeholder="Why are you deleting this service?"></textarea>
+            <label style="color: var(--text-light); display: block; margin-bottom: 8px;">
+                <i class="fas fa-comment"></i> Reason for deletion (required):
+            </label>
+            <textarea id="freelancerDeleteReason" class="form-textarea-enhanced" rows="4" 
+                      placeholder="Why are you deleting this service? (e.g., 'No longer offering', 'Service outdated', 'Merged with another service')"
+                      style="width: 100%; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);"></textarea>
+            <div style="text-align: right; margin-top: 5px;">
+                <span id="freelancerDeleteCharCount" style="color: var(--text-gray); font-size: 0.85rem;">0/500</span>
+            </div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-warning" id="confirmFreelancerDeleteBtn">Delete Service</button>
-          <button class="btn btn-secondary" id="cancelFreelancerDeleteBtn">Cancel</button>
+        <div class="form-actions" style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="btn btn-warning" id="confirmFreelancerDeleteBtn" style="flex: 1; padding: 14px;">
+                <i class="fas fa-trash"></i> Delete Service
+            </button>
+            <button class="btn btn-secondary" id="cancelFreelancerDeleteBtn" style="flex: 1; padding: 14px;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
         </div>
-      </div>
     </div>
-
+</div>
   <!-- Subscription Modal - Updated -->
 <div id="subscriptionModal" class="modal hidden">
     <div class="modal-card" style="max-width: 600px;">
@@ -12381,7 +12408,225 @@ async function removeFreelancer(freelancerId, buttonElement) {
         showToast("Error removing freelancer", "error");
     }
 }
+// ==================== FIXED DELETE MODAL FUNCTIONS ====================
 
+// Global variables to track which service is being deleted
+let pendingDeleteServiceId = null;
+let pendingDeleteServiceTitle = null;
+let pendingDeleteOwnerId = null;
+
+// Show freelancer delete modal
+function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
+    console.log("===== DELETE FUNCTION CALLED =====");
+    console.log("Service ID:", serviceId);
+    console.log("Service Title:", serviceTitle);
+    
+    if (!currentUser) {
+        showToast("Please login to delete services", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    // Store pending deletion info
+    pendingDeleteServiceId = serviceId;
+    pendingDeleteServiceTitle = serviceTitle;
+    pendingDeleteOwnerId = ownerId;
+    
+    const isAdmin = currentUser.role === 'admin';
+    
+    if (isAdmin) {
+        // Show admin delete modal
+        const modal = document.getElementById('adminDeleteModal');
+        const infoDiv = document.getElementById('adminDeleteServiceInfo');
+        const reasonTextarea = document.getElementById('adminDeleteReason');
+        
+        if (modal && infoDiv) {
+            infoDiv.innerHTML = `
+                <p><strong>📦 Service:</strong> ${escapeHtml(serviceTitle)}</p>
+                <p><strong>🆔 ID:</strong> #${serviceId}</p>
+                <p><strong>👤 Owner ID:</strong> ${ownerId}</p>
+                <p style="color: var(--error-red); margin-top: 10px;">⚠️ This action cannot be undone.</p>
+            `;
+            
+            if (reasonTextarea) reasonTextarea.value = '';
+            updateDeleteCharCount('adminDeleteReason', 'adminDeleteCharCount');
+            
+            openModal(modal);
+        }
+    } else if (isOwner && currentUser.role === 'freelancer') {
+        // Show freelancer delete modal
+        const modal = document.getElementById('freelancerDeleteModal');
+        const infoDiv = document.getElementById('freelancerDeleteServiceInfo');
+        const reasonTextarea = document.getElementById('freelancerDeleteReason');
+        const remainingSpan = document.getElementById('remainingDeletes');
+        
+        if (modal && infoDiv) {
+            infoDiv.innerHTML = `
+                <p><strong>📦 Service:</strong> ${escapeHtml(serviceTitle)}</p>
+                <p><strong>🆔 ID:</strong> #${serviceId}</p>
+                <p style="color: var(--warning-orange); margin-top: 10px;">⚠️ This action cannot be undone.</p>
+            `;
+            
+            if (reasonTextarea) reasonTextarea.value = '';
+            updateDeleteCharCount('freelancerDeleteReason', 'freelancerDeleteCharCount');
+            
+            // Get remaining deletes for today
+            getRemainingDeletesCount().then(count => {
+                if (remainingSpan) {
+                    remainingSpan.textContent = `${count}/3`;
+                    if (count === 0) {
+                        const confirmBtn = document.getElementById('confirmFreelancerDeleteBtn');
+                        if (confirmBtn) confirmBtn.disabled = true;
+                        showToast("You've reached your daily delete limit (3 per day). Please try again tomorrow.", "warning");
+                    }
+                }
+            });
+            
+            openModal(modal);
+        }
+    } else {
+        showToast("You don't have permission to delete this service", "error");
+    }
+}
+
+// Get remaining deletes for today
+async function getRemainingDeletesCount() {
+    try {
+        const response = await fetch('/api/user/delete-count', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        return 3 - (data.todayCount || 0);
+    } catch (err) {
+        console.error("Error getting delete count:", err);
+        return 3;
+    }
+}
+
+// Update character count for reason textarea
+function updateDeleteCharCount(textareaId, countSpanId) {
+    const textarea = document.getElementById(textareaId);
+    const countSpan = document.getElementById(countSpanId);
+    
+    if (textarea && countSpan) {
+        textarea.addEventListener('input', function() {
+            const length = this.value.length;
+            countSpan.textContent = `${length}/500`;
+            countSpan.style.color = length > 450 ? '#ef4444' : 'var(--text-gray)';
+        });
+    }
+}
+
+// Setup delete modal buttons - CALL THIS ON PAGE LOAD
+function setupDeleteModalButtons() {
+    // Admin Delete Modal Buttons
+    const confirmAdminBtn = document.getElementById('confirmAdminDeleteBtn');
+    if (confirmAdminBtn) {
+        confirmAdminBtn.onclick = async function() {
+            const reason = document.getElementById('adminDeleteReason')?.value.trim();
+            if (!reason) {
+                showToast("Please provide a reason for deletion", "warning");
+                document.getElementById('adminDeleteReason')?.focus();
+                return;
+            }
+            if (reason.length < 5) {
+                showToast("Please provide a more detailed reason (minimum 5 characters)", "warning");
+                return;
+            }
+            await executeDelete(pendingDeleteServiceId, reason);
+            closeModal(document.getElementById('adminDeleteModal'));
+        };
+    }
+    
+    const cancelAdminBtn = document.getElementById('cancelAdminDeleteBtn');
+    if (cancelAdminBtn) {
+        cancelAdminBtn.onclick = function() {
+            closeModal(document.getElementById('adminDeleteModal'));
+            pendingDeleteServiceId = null;
+        };
+    }
+    
+    const closeAdminModal = document.getElementById('closeAdminDeleteModal');
+    if (closeAdminModal) {
+        closeAdminModal.onclick = function() {
+            closeModal(document.getElementById('adminDeleteModal'));
+            pendingDeleteServiceId = null;
+        };
+    }
+    
+    // Freelancer Delete Modal Buttons
+    const confirmFreelancerBtn = document.getElementById('confirmFreelancerDeleteBtn');
+    if (confirmFreelancerBtn) {
+        confirmFreelancerBtn.onclick = async function() {
+            const reason = document.getElementById('freelancerDeleteReason')?.value.trim();
+            if (!reason) {
+                showToast("Please provide a reason for deletion", "warning");
+                document.getElementById('freelancerDeleteReason')?.focus();
+                return;
+            }
+            if (reason.length < 5) {
+                showToast("Please provide a more detailed reason (minimum 5 characters)", "warning");
+                return;
+            }
+            await executeDelete(pendingDeleteServiceId, reason);
+            closeModal(document.getElementById('freelancerDeleteModal'));
+        };
+    }
+    
+    const cancelFreelancerBtn = document.getElementById('cancelFreelancerDeleteBtn');
+    if (cancelFreelancerBtn) {
+        cancelFreelancerBtn.onclick = function() {
+            closeModal(document.getElementById('freelancerDeleteModal'));
+            pendingDeleteServiceId = null;
+        };
+    }
+    
+    const closeFreelancerModal = document.getElementById('closeFreelancerDeleteModal');
+    if (closeFreelancerModal) {
+        closeFreelancerModal.onclick = function() {
+            closeModal(document.getElementById('freelancerDeleteModal'));
+            pendingDeleteServiceId = null;
+        };
+    }
+}
+
+// Execute the actual delete
+async function executeDelete(serviceId, reason) {
+    if (!serviceId) {
+        showToast("No service selected for deletion", "error");
+        return;
+    }
+    
+    try {
+        showToast("Deleting service...", "info");
+        
+        const response = await fetch(`/api/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ reason: reason })
+        });
+        
+        const result = await response.json();
+        console.log("Delete response:", result);
+        
+        if (response.ok && result.success) {
+            showToast('✅ Service deleted successfully', 'success');
+            // Refresh the services lists
+            await loadMyServices();
+            await loadServices();
+            // Clear pending
+            pendingDeleteServiceId = null;
+        } else {
+            showToast(result.error || 'Failed to delete service', 'error');
+        }
+    } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Error deleting service: ' + err.message, 'error');
+    }
+}
 // Update providers badge count
 async function updateProvidersBadge() {
     try {
@@ -12509,50 +12754,6 @@ async function loadFavorites() {
         `;
     }
 }
-function confirmDeleteService(serviceId, serviceTitle, ownerId, isOwner) {
-    if (!currentUser) {
-        showToast("Please login to delete services", "warning");
-        openModal(document.getElementById('loginModal'));
-        return;
-    }
-    
-    if (isOwner && currentUser.role !== 'admin') {
-        // Freelancer delete confirmation
-        const modal = document.getElementById('freelancerDeleteModal');
-        const infoDiv = document.getElementById('freelancerDeleteServiceInfo');
-        
-        if (modal && infoDiv) {
-            infoDiv.innerHTML = `
-                <p><strong>Service:</strong> ${escapeHtml(serviceTitle)}</p>
-                <p><strong>ID:</strong> #${serviceId}</p>
-                <p style="color: var(--warning-orange);">This action cannot be undone.</p>
-            `;
-            
-            // Store service ID for deletion
-            modal.dataset.serviceId = serviceId;
-            openModal(modal);
-        }
-    } else if (currentUser.role === 'admin') {
-        // Admin delete confirmation
-        const modal = document.getElementById('adminDeleteModal');
-        const infoDiv = document.getElementById('adminDeleteServiceInfo');
-        
-        if (modal && infoDiv) {
-            infoDiv.innerHTML = `
-                <p><strong>Service:</strong> ${escapeHtml(serviceTitle)}</p>
-                <p><strong>ID:</strong> #${serviceId}</p>
-                <p><strong>Owner ID:</strong> ${ownerId}</p>
-                <p style="color: var(--error-red);">This action cannot be undone.</p>
-            `;
-            
-            modal.dataset.serviceId = serviceId;
-            openModal(modal);
-        }
-    } else {
-        showToast("You don't have permission to delete this service", "error");
-    }
-}
-
 
 
 function showReviewModal(serviceId, serviceTitle) {
@@ -13342,6 +13543,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(async () => {
         await showFreelancerWarningIfFlagged();
     }, 1500);
+    // Setup delete modal buttons
+    setupDeleteModalButtons();
 });
 
 // Add admin review button if admin

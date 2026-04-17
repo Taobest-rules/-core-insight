@@ -3777,6 +3777,24 @@ app.post("/api/freelancer/remove", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.get("/api/user/delete-count", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const result = await db.query(
+            "SELECT COUNT(*) as count FROM deleted_services WHERE deleted_by = ? AND DATE(deleted_at) = ?",
+            [req.session.user.id, today]
+        );
+        
+        res.json({ todayCount: result[0]?.count || 0 });
+    } catch (err) {
+        console.error("Error getting delete count:", err);
+        res.json({ todayCount: 0 });
+    }
+});
 // ============================================
 // FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
 // ============================================

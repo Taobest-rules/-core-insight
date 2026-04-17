@@ -8003,11 +8003,17 @@ async function performUserSearch() {
         return;
     }
 
-    document.getElementById('userSearchResults').innerHTML = '<p style="color: var(--text-gray); padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Searching...</p>';
+    const resultsDiv = document.getElementById('userSearchResults');
+    if (!resultsDiv) return;
+    
+    resultsDiv.innerHTML = '<p style="color: var(--text-gray); padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Searching...</p>';
 
     try {
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
         
         if (!res.ok) {
@@ -8015,17 +8021,18 @@ async function performUserSearch() {
         }
         
         const users = await res.json();
-
-        const resultsDiv = document.getElementById('userSearchResults');
-        if (!resultsDiv) return;
         
-        if (!users || users.length === 0) {
+        // Ensure users is an array
+        const userList = Array.isArray(users) ? users : [];
+        
+        if (userList.length === 0) {
             resultsDiv.innerHTML = '<p style="color: var(--text-gray); padding: 20px; text-align: center;">No users found</p>';
         } else {
-            resultsDiv.innerHTML = users.map(user => {
+            resultsDiv.innerHTML = userList.map(user => {
                 const username = user.username || 'User';
-                const email = user.email || 'No email';
+                const email = user.email || '';
                 const userId = user.id;
+                const profilePic = user.profile_picture;
                 
                 return `
                 <div onclick="startConversationWithUser(${userId}, '${escapeHtml(username)}')" 
@@ -8033,7 +8040,7 @@ async function performUserSearch() {
                      onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                      onmouseout="this.style.background='transparent'">
                     <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">
-                        ${username.charAt(0).toUpperCase()}
+                        ${profilePic ? `<img src="${profilePic}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : username.charAt(0).toUpperCase()}
                     </div>
                     <div>
                         <div style="color: var(--text-light); font-weight: 600;">${escapeHtml(username)}</div>
@@ -8044,10 +8051,7 @@ async function performUserSearch() {
         }
     } catch (error) {
         console.error('User search error:', error);
-        const resultsDiv = document.getElementById('userSearchResults');
-        if (resultsDiv) {
-            resultsDiv.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error searching users. Please try again.</p>';
-        }
+        resultsDiv.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error searching users. Please try again.</p>';
     }
 }
 
@@ -12121,8 +12125,6 @@ function renderMyServices(services) {
     const container = $('myServicesList');
     if (!container) return;
 
-    console.log("Rendering my services, count:", services.length);
-
     container.innerHTML = services.map(service => {
         const providerName = service.username || 'You';
         const profilePicture = service.profile_picture_url || service.provider_profile_picture;
@@ -12188,11 +12190,24 @@ function renderMyServices(services) {
         `;
     }).join('');
     
-    // Add event listeners to delete buttons
-    document.querySelectorAll('.delete-svc-btn').forEach(btn => {
-        btn.removeEventListener('click', handleDeleteClick);
-        btn.addEventListener('click', handleDeleteClick);
-    });
+    // Use event delegation instead of individual listeners
+    container.removeEventListener('click', handleDeleteClick);
+    container.addEventListener('click', handleDeleteClick);
+}
+
+function handleDeleteClick(e) {
+    const deleteBtn = e.target.closest('.delete-svc-btn');
+    if (!deleteBtn) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const serviceId = deleteBtn.dataset.id;
+    const serviceTitle = deleteBtn.dataset.title;
+    const ownerId = deleteBtn.dataset.owner;
+    
+    console.log("Delete button clicked!", serviceId, serviceTitle);
+    confirmDeleteService(serviceId, serviceTitle, ownerId, true);
 }
 
 // Separate function for delete click handler

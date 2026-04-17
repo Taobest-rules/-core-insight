@@ -4764,7 +4764,7 @@ app.post("/api/messages/mark-read", async (req, res) => {
   }
 });
 
-// Search users for chat
+// Improved user search endpoint for chat
 app.get("/api/users/search", async (req, res) => {
     try {
         if (!req.session.user) {
@@ -4778,23 +4778,36 @@ app.get("/api/users/search", async (req, res) => {
 
         const currentUserId = req.session.user.id;
         
+        // Fix: Use proper escaping and handle potential errors
+        const searchTerm = `%${q}%`;
+        
         const result = await db.query(
             `SELECT id, username, email, 
-                    COALESCE(fp.profile_picture_url, NULL) as profile_picture
+                    COALESCE(fp.profile_picture_url, NULL) as profile_picture,
+                    'user' as type
              FROM users u
              LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
              WHERE (u.username LIKE ? OR u.email LIKE ?) 
                AND u.id != ?
              LIMIT 10`,
-            [`%${q}%`, `%${q}%`, currentUserId]
+            [searchTerm, searchTerm, currentUserId]
         );
-
-        const users = extractRows(result);
+        
+        // Extract rows properly
+        let users = [];
+        if (result) {
+            if (Array.isArray(result) && result.length === 2 && Array.isArray(result[0])) {
+                users = result[0];
+            } else if (Array.isArray(result)) {
+                users = result;
+            }
+        }
+        
         res.json(users);
         
     } catch (err) {
         console.error("User search error:", err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err.message, users: [] });
     }
 });
 

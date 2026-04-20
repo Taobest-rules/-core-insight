@@ -1680,15 +1680,12 @@ app.get('/api/check-access/:courseId', async (req, res) => {
   }
 });
 
-// =================== DOWNLOAD ENDPOINT ===================
 app.get('/api/download/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const userId = req.session?.user?.id;
     
-    console.log('='.repeat(50));
-    console.log(`📥 DOWNLOAD REQUEST - Course: ${courseId}, User: ${userId}`);
-    console.log('='.repeat(50));
+    console.log(`📥 Download request for course ${courseId}`);
     
     if (!userId) {
       return res.status(401).json({ error: 'Please login first' });
@@ -1701,94 +1698,41 @@ app.get('/api/download/:courseId', async (req, res) => {
     }
     
     const course = courses[0];
-    console.log(`✅ Course: "${course.title}"`);
-    console.log(`💰 Price: ${course.price}, Type: ${course.type}`);
     
-    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+    // Check access
+    const isFree = course.price === 0 || course.type === 'free';
     
-    if (isFree) {
-      console.log('✅ Course is FREE - granting access immediately');
-    } else {
-      console.log('💰 Paid course - checking purchase status');
-      
+    if (!isFree) {
       const purchases = await db.query(
         'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
         [courseId, userId]
       );
       
-      const hasPurchased = purchases && purchases.length > 0;
-      
-      if (!hasPurchased) {
-        const payments = await db.query(
-          'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
-          [courseId, userId]
-        );
-        
-        const hasPaid = payments && payments.length > 0;
-        
-        if (!hasPaid) {
-          console.log(`❌ User ${userId} has not purchased course ${courseId}`);
-          return res.status(403).json({ 
-            error: 'You do not have access to this course',
-            isPaidCourse: true,
-            price: course.price
-          });
-        }
+      if (!purchases || purchases.length === 0) {
+        return res.status(403).json({ error: 'You do not have access to this course' });
       }
-      console.log('✅ User has purchased this course');
     }
     
-    const dbFilePath = course.file_url || course.file_path;
+    const fileUrl = course.file_url;
     
-    if (!dbFilePath) {
-      console.log('❌ No file path in database');
-      return res.status(404).json({ error: 'No file associated with this course' });
+    if (!fileUrl) {
+      return res.status(404).json({ error: 'File not found' });
     }
     
-    const filename = path.basename(dbFilePath);
-    console.log(`📁 Looking for file: ${filename}`);
-    
-    const uploadDir = path.join(__dirname, 'uploads', 'courses');
-    const expectedPath = path.join(uploadDir, filename);
-    console.log(`📍 Expected path: ${expectedPath}`);
-    
-    const fileExists = fs.existsSync(expectedPath);
-    console.log(`📁 File exists: ${fileExists}`);
-    
-    if (!fileExists) {
-      if (fs.existsSync(uploadDir)) {
-        const files = fs.readdirSync(uploadDir);
-        console.log('📂 Files in uploads/courses:', files);
-        
-        const searchName = filename.replace(/^\d+-\d+-/, '');
-        const similarFile = files.find(f => f.includes(searchName) || searchName.includes(f.replace(/^\d+-\d+-/, '')));
-        
-        if (similarFile) {
-          console.log(`🔍 Found similar file: ${similarFile}`);
-          const correctPath = `/uploads/courses/${similarFile}`;
-          await db.query(
-            'UPDATE courses SET file_path = ? WHERE id = ?',
-            [correctPath, course.id]
-          );
-          console.log(`✅ Updated database with correct path: ${correctPath}`);
-          
-          const correctFullPath = path.join(uploadDir, similarFile);
-          return sendFile(res, correctFullPath, course.title);
-        }
-      }
-      
-      return res.status(404).json({ 
-        error: 'File not found on server',
-        message: 'The course file could not be located. Please contact support.',
-        filename: filename,
-        expected_path: expectedPath
+    // For MEGA links, redirect to the MEGA URL
+    if (fileUrl.includes('mega.nz')) {
+      // MEGA links work directly
+      return res.json({ 
+        download_url: fileUrl,
+        message: 'Click the link to download from MEGA'
       });
     }
     
-    sendFile(res, expectedPath, course.title);
+    // For local files (fallback)
+    res.redirect(fileUrl);
     
   } catch (error) {
-    console.error('❌ Fatal error:', error);
+    console.error('❌ Download error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1821,47 +1765,14 @@ function sendFile(res, filePath, title) {
   });
 }
 
-// =================== COURSE UPLOAD ===================
+// Add at the top of index.js with other imports
+const megaService = require('./services/mega.service');
+
+// Update your course upload endpoint
 app.post("/api/courses", (req, res) => {
-  console.log('📚 Course upload started');
+  console.log('📚 Course upload started with MEGA...');
   
-  const uploadDir = path.join(__dirname, 'uploads', 'courses');
-  
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log(`📁 Created upload directory: ${uploadDir}`);
-  }
-  
-  const upload = multer({
-    storage: multer.diskStorage({
-      destination: function (req, file, cb) {
-        cb(null, uploadDir);
-      },
-      filename: function (req, file, cb) {
-        const timestamp = Date.now();
-        const random = Math.floor(Math.random() * 1000000);
-        const ext = path.extname(file.originalname);
-        const baseName = path.basename(file.originalname, ext)
-          .replace(/[^a-zA-Z0-9]/g, '-')
-          .substring(0, 50);
-        const filename = `${timestamp}-${random}-${baseName}${ext}`;
-        console.log(`📝 Generated filename: ${filename}`);
-        cb(null, filename);
-      }
-    }),
-    limits: {
-      fileSize: 100 * 1024 * 1024,
-    },
-    fileFilter: (req, file, cb) => {
-      const allowedTypes = ['.pdf', '.epub', '.mp4', '.mov', '.zip', '.doc', '.docx'];
-      const ext = path.extname(file.originalname).toLowerCase();
-      if (allowedTypes.includes(ext)) {
-        cb(null, true);
-      } else {
-        cb(new Error(`File type ${ext} not allowed. Allowed: ${allowedTypes.join(', ')}`));
-      }
-    }
-  }).fields([
+  const upload = multer({ dest: 'uploads/temp/' }).fields([
     { name: 'file', maxCount: 1 },
     { name: 'thumbnail', maxCount: 1 }
   ]);
@@ -1878,8 +1789,7 @@ app.post("/api/courses", (req, res) => {
       }
 
       const { title, description, price, author, content_type } = req.body;
-      const user = req.session.user;
-
+      
       if (!title || title.trim() === '') {
         return res.status(400).json({ error: "Title is required" });
       }
@@ -1892,47 +1802,48 @@ app.post("/api/courses", (req, res) => {
         return res.status(400).json({ error: "Thumbnail image is required" });
       }
 
-      const courseFile = req.files.file[0];
+      // For now, store thumbnail locally (we'll add Imgur later)
       const thumbnailFile = req.files.thumbnail[0];
+      const thumbnailPath = `/uploads/temp/${thumbnailFile.filename}`;
       
-      const filePath = `/uploads/courses/${courseFile.filename}`;
-      const thumbnailPath = `/uploads/courses/${thumbnailFile.filename}`;
+      // Upload course file to MEGA
+      const courseFile = req.files.file[0];
+      const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const fileUrl = await megaService.uploadFile(courseFile.path, courseFile.originalname, folderName);
       
-      const absoluteFilePath = path.join(uploadDir, courseFile.filename);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (!fs.existsSync(absoluteFilePath)) {
-        console.error(`❌ File not found after upload: ${absoluteFilePath}`);
-        return res.status(500).json({ error: "File upload failed - file not saved" });
-      }
-      
-      const fileStats = fs.statSync(absoluteFilePath);
-      console.log(`✅ File verified: ${courseFile.filename} (${fileStats.size} bytes)`);
+      console.log(`✅ File uploaded to MEGA: ${fileUrl}`);
 
+      // Store in database
       const result = await db.query(
         `INSERT INTO courses (
-          title, description, file_path, thumbnail_path,
+          title, description, file_url, thumbnail_path,
           price, type, user_id, author, content_type, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           title.trim(),
           description ? description.trim() : '',
-          filePath,
+          fileUrl,
           thumbnailPath,
           parseFloat(price) || 0,
           (parseFloat(price) > 0) ? 'paid' : 'free',
-          user.id,
-          author || user.username,
+          req.session.user.id,
+          author || req.session.user.username,
           content_type || 'book'
         ]
       );
 
+      // Clean up temp files
+      try {
+        fs.unlinkSync(courseFile.path);
+        fs.unlinkSync(thumbnailFile.path);
+      } catch (cleanErr) {
+        console.log('Could not delete temp files:', cleanErr.message);
+      }
+
       res.json({
-        message: "✅ Course uploaded successfully!",
+        message: "✅ Course uploaded successfully to MEGA!",
         courseId: result.insertId,
-        file_path: filePath,
-        file_size: fileStats.size,
+        file_url: fileUrl,
         download_url: `/api/download/${result.insertId}`
       });
 

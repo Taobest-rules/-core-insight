@@ -1779,7 +1779,6 @@ function sendFile(res, filePath, title) {
 }
 
 const megaService = require('./services/mega.service');
-const { uploadCourse } = require('./mega-storage');
 
 app.post("/api/courses", uploadCourse, async (req, res) => {
   try {
@@ -5518,61 +5517,7 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
     }
 });
 
-// ==================== CERTIFICATE IMAGES UPLOAD (CLOUDINARY) ====================
-app.post("/api/freelancer/certificate-images", uploadCertificate.array("certificate_images", 5), async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Please login to upload certificates" });
-    }
 
-    try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: "No files uploaded" });
-        }
-
-        // Get Cloudinary URLs
-        const certificateUrls = req.files.map(file => file.path);
-        
-        console.log(`✅ Uploaded ${certificateUrls.length} certificates to Cloudinary:`, certificateUrls);
-
-        // Get current certificate URLs
-        const currentProfile = await db.query(
-            "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
-            [req.session.user.id]
-        );
-
-        let currentCertificates = [];
-        
-        if (currentProfile && currentProfile.length > 0 && currentProfile[0].certificate_image_urls) {
-            try {
-                currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
-            } catch (e) {
-                currentCertificates = [];
-            }
-        }
-
-        // Limit to 5 certificates total
-        const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
-        
-        await db.query(`
-            UPDATE freelancer_profiles 
-            SET certificate_image_urls = ?, updated_at = NOW() 
-            WHERE user_id = ?
-        `, [JSON.stringify(updatedCertificates), req.session.user.id]);
-
-        res.json({ 
-            success: true,
-            message: `${certificateUrls.length} certificate(s) uploaded successfully`,
-            certificate_images: updatedCertificates
-        });
-        
-    } catch (err) {
-        console.error('❌ Error uploading certificates:', err);
-        res.status(500).json({ 
-            success: false,
-            error: "Error uploading certificate images: " + err.message 
-        });
-    }
-});
 
 // ==================== DELETE CERTIFICATE ====================
 app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
@@ -6990,51 +6935,7 @@ app.put("/api/freelancer/update-profile", async (req, res) => {
         res.status(500).json({ error: "Error updating profile: " + err.message });
     }
 });
-// ==================== PROFILE PICTURE UPLOAD (CLOUDINARY) ====================
-app.post("/api/freelancer/profile-picture", uploadProfilePicture.single("profile_picture"), async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Please login to upload picture" });
-    }
 
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: "No file uploaded" });
-        }
-
-        // Get Cloudinary URL
-        const profilePictureUrl = req.file.path;
-        
-        console.log("✅ Profile picture uploaded to Cloudinary:", profilePictureUrl);
-
-        // Check if profile exists
-        const profileCheck = await db.query(
-            "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
-            [req.session.user.id]
-        );
-        
-        if (profileCheck && profileCheck.length > 0) {
-            await db.query(
-                "UPDATE freelancer_profiles SET profile_picture_url = ?, updated_at = NOW() WHERE user_id = ?",
-                [profilePictureUrl, req.session.user.id]
-            );
-        } else {
-            await db.query(
-                "INSERT INTO freelancer_profiles (user_id, profile_picture_url, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
-                [req.session.user.id, profilePictureUrl]
-            );
-        }
-        
-        res.json({
-            success: true,
-            message: "Profile picture updated successfully",
-            profile_picture: profilePictureUrl
-        });
-        
-    } catch (err) {
-        console.error("❌ Error uploading profile picture:", err);
-        res.status(500).json({ error: "Error uploading profile picture: " + err.message });
-    }
-});
 
 // ==================== UPDATED FREELANCER DASHBOARD ====================
 app.get("/api/freelancer/dashboard", async (req, res) => {
@@ -11049,7 +10950,7 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 // ============================================
 // PRODUCT UPLOAD ENDPOINT - COMPLETE FIXED
 // ============================================
-const megaService = require('./services/mega.service');
+
 const { uploadProduct } = require('./mega-storage');
 
 app.post("/api/upload-product", uploadProduct, async (req, res) => {

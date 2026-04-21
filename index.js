@@ -21,8 +21,6 @@ const MySQLStore = require("express-mysql-session")(session);
 const Flutterwave = require('flutterwave-node-v3');
 const csv = require('csv-parser');
 
-// Cloudinary
-const cloudinary = require('./cloudinary.config');
 const {
   uploadCourse,
   uploadThumbnail,
@@ -31,8 +29,10 @@ const {
   uploadChatImage,
   uploadMultipleProducts,
   uploadCourseFile,
-  uploadCertificate      
-} = require('./cloudinary-storage');
+  uploadCertificate,
+  uploadToMegaAndCleanup,
+  uploadMultipleToMega
+} = require('./mega-storage');
 // Database & Email
 const db = require("./db");
 
@@ -1719,16 +1719,29 @@ app.get('/api/download/:courseId', async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
     
-    // For MEGA links, redirect to the MEGA URL
-    if (fileUrl.includes('mega.nz')) {
-      // MEGA links work directly
+    // Check if it's a MEGA path
+    if (fileUrl.includes('mega:')) {
+      // For MEGA files, we need to generate a download link using rclone
+      try {
+        const { stdout } = await exec(`"C:\\Windows\\rclone.exe" link "${fileUrl}"`);
+        const megaLink = stdout.trim();
+        
+        if (megaLink && megaLink.startsWith('https://')) {
+          // Redirect to MEGA download
+          return res.redirect(megaLink);
+        }
+      } catch (linkError) {
+        console.error('Failed to get MEGA link:', linkError);
+      }
+      
+      // Fallback: Return the path (user can access via MEGA app)
       return res.json({ 
         download_url: fileUrl,
         message: 'Click the link to download from MEGA'
       });
     }
     
-    // For local files (fallback)
+    // For local files
     res.redirect(fileUrl);
     
   } catch (error) {
@@ -1765,95 +1778,86 @@ function sendFile(res, filePath, title) {
   });
 }
 
-// Add at the top of index.js with other imports
 const megaService = require('./services/mega.service');
+const { uploadCourse } = require('./mega-storage');
 
-// Update your course upload endpoint
-app.post("/api/courses", (req, res) => {
-  console.log('📚 Course upload started with MEGA...');
-  
-  const upload = multer({ dest: 'uploads/temp/' }).fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-  ]);
-
-  upload(req, res, async function(err) {
-    if (err) {
-      console.error('❌ Upload error:', err);
-      return res.status(400).json({ error: 'Upload error: ' + err.message });
+app.post("/api/courses", uploadCourse, async (req, res) => {
+  try {
+    console.log('📚 Course upload started with MEGA...');
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to upload courses" });
     }
 
+    const { title, description, price, author, content_type } = req.body;
+    
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    if (!req.files?.file || !req.files?.file[0]) {
+      return res.status(400).json({ error: "Course file is required" });
+    }
+
+    if (!req.files?.thumbnail || !req.files?.thumbnail[0]) {
+      return res.status(400).json({ error: "Thumbnail image is required" });
+    }
+
+    // Upload course file to MEGA
+    const courseFile = req.files.file[0];
+    const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const uploadResult = await megaService.uploadFile(courseFile.path, courseFile.originalname, folderName);
+    
+    // Handle thumbnail (store locally for now - we'll add Imgur later)
+    const thumbnailFile = req.files.thumbnail[0];
+    const thumbnailDir = path.join(__dirname, 'uploads/thumbnails');
+    if (!fs.existsSync(thumbnailDir)) {
+      fs.mkdirSync(thumbnailDir, { recursive: true });
+    }
+    const thumbnailFilename = `${Date.now()}-${thumbnailFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    fs.copyFileSync(thumbnailFile.path, thumbnailPath);
+    const thumbnailUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+    
+    // Clean up temp thumbnail
     try {
-      if (!req.session.user) {
-        return res.status(401).json({ error: "Please login to upload courses" });
-      }
-
-      const { title, description, price, author, content_type } = req.body;
-      
-      if (!title || title.trim() === '') {
-        return res.status(400).json({ error: "Title is required" });
-      }
-
-      if (!req.files?.file || !req.files?.file[0]) {
-        return res.status(400).json({ error: "Course file is required" });
-      }
-
-      if (!req.files?.thumbnail || !req.files?.thumbnail[0]) {
-        return res.status(400).json({ error: "Thumbnail image is required" });
-      }
-
-      // For now, store thumbnail locally (we'll add Imgur later)
-      const thumbnailFile = req.files.thumbnail[0];
-      const thumbnailPath = `/uploads/temp/${thumbnailFile.filename}`;
-      
-      // Upload course file to MEGA
-      const courseFile = req.files.file[0];
-      const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      const fileUrl = await megaService.uploadFile(courseFile.path, courseFile.originalname, folderName);
-      
-      console.log(`✅ File uploaded to MEGA: ${fileUrl}`);
-
-      // Store in database
-      const result = await db.query(
-        `INSERT INTO courses (
-          title, description, file_url, thumbnail_path,
-          price, type, user_id, author, content_type, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [
-          title.trim(),
-          description ? description.trim() : '',
-          fileUrl,
-          thumbnailPath,
-          parseFloat(price) || 0,
-          (parseFloat(price) > 0) ? 'paid' : 'free',
-          req.session.user.id,
-          author || req.session.user.username,
-          content_type || 'book'
-        ]
-      );
-
-      // Clean up temp files
-      try {
-        fs.unlinkSync(courseFile.path);
-        fs.unlinkSync(thumbnailFile.path);
-      } catch (cleanErr) {
-        console.log('Could not delete temp files:', cleanErr.message);
-      }
-
-      res.json({
-        message: "✅ Course uploaded successfully to MEGA!",
-        courseId: result.insertId,
-        file_url: fileUrl,
-        download_url: `/api/download/${result.insertId}`
-      });
-
+      fs.unlinkSync(thumbnailFile.path);
     } catch (err) {
-      console.error('❌ Upload error:', err);
-      res.status(500).json({ error: "Error uploading course: " + err.message });
+      console.log('Could not delete temp thumbnail:', err.message);
     }
-  });
-});
 
+    // Store in database
+    const result = await db.query(
+      `INSERT INTO courses (
+        title, description, file_url, thumbnail_url,
+        price, type, user_id, author, content_type, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        title.trim(),
+        description ? description.trim() : '',
+        uploadResult.url, // Store MEGA path
+        thumbnailUrl,
+        parseFloat(price) || 0,
+        (parseFloat(price) > 0) ? 'paid' : 'free',
+        req.session.user.id,
+        author || req.session.user.username,
+        content_type || 'book'
+      ]
+    );
+
+    res.json({
+      message: "✅ Course uploaded successfully to MEGA!",
+      courseId: result.insertId,
+      file_url: uploadResult.url,
+      thumbnail_url: thumbnailUrl,
+      download_url: `/api/download/${result.insertId}`
+    });
+
+  } catch (err) {
+    console.error('❌ Upload error:', err);
+    res.status(500).json({ error: "Error uploading course: " + err.message });
+  }
+});
 // =================== DELETE COURSE ===================
 app.delete('/api/courses/:id', async (req, res) => {
   try {
@@ -11045,152 +11049,139 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 // ============================================
 // PRODUCT UPLOAD ENDPOINT - COMPLETE FIXED
 // ============================================
-app.post("/api/upload-product", (req, res) => {
-  console.log("📤 Upload request received");
-  
-  const upload = multer({ 
-    storage: productStorage,
-    limits: { fileSize: 100 * 1024 * 1024 }
-  }).fields([
-    { name: 'file', maxCount: 1 }, 
-    { name: 'images[]', maxCount: 10 }
-  ]);
+const megaService = require('./services/mega.service');
+const { uploadProduct } = require('./mega-storage');
 
-  upload(req, res, async function(err) {
-    if (err) {
-      console.error("❌ Multer error:", err);
-      return res.status(400).json({ error: 'File upload error: ' + err.message });
+app.post("/api/upload-product", uploadProduct, async (req, res) => {
+  try {
+    console.log("📤 Product upload request received with MEGA...");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to upload products." });
     }
 
-    try {
-      if (!req.session.user) {
-        return res.status(401).json({ error: "Please log in to upload products." });
+    const { 
+      title, description, price, category, type, affiliate_link, paymentProvider,
+      delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
+      businessName, businessEmail, businessPhone, country, bankName, bankCode, 
+      accountNumber, accountName
+    } = req.body;
+
+    if (!title || !price || !type || !paymentProvider) {
+      return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
+    }
+
+    const listedPrice = parseFloat(price);
+    const productCostValue = type === 'physical' ? parseFloat(product_cost) || 3.00 : null;
+    
+    let sellerPrice = listedPrice;
+    let platformFee = 0;
+    let originalPrice = listedPrice;
+    
+    if (type === 'physical') {
+      originalPrice = listedPrice;
+      platformFee = 0;
+      sellerPrice = originalPrice;
+    } else if (type === 'digital') {
+      platformFee = listedPrice * 0.10;
+      sellerPrice = listedPrice - platformFee;
+    }
+
+    // Handle images (store locally for now - we'll add Imgur later)
+    let imageUrls = [];
+    if (req.files?.['images[]']?.length) {
+      const imagesDir = path.join(__dirname, 'uploads/products');
+      if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
       }
-
-      const { 
-        title, description, price, category, type, affiliate_link, paymentProvider,
-        delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
-        businessName, businessEmail, businessPhone, country, bankName, bankCode, accountNumber, accountName
-      } = req.body;
-
-      if (!title || !price || !type || !paymentProvider) {
-        return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
-      }
-
-      const listedPrice = parseFloat(price);
-      const productCostValue = type === 'physical' ? parseFloat(product_cost) || 3.00 : null;
       
-      let sellerPrice = listedPrice;
-      let platformFee = 0;
-      let originalPrice = listedPrice;
-      
-      if (type === 'physical') {
-        originalPrice = listedPrice;
-        platformFee = 0;
-        sellerPrice = originalPrice;
-      } else if (type === 'digital') {
-        platformFee = listedPrice * 0.10;
-        sellerPrice = listedPrice - platformFee;
-      }
-
-      // Process images
-      let imageUrls = [];
-      if (req.files?.['images[]']?.length) {
-        for (const imageFile of req.files['images[]']) {
-          try {
-            const cloudinary = require('cloudinary').v2;
-            const result = await cloudinary.uploader.upload(imageFile.path, { 
-              folder: 'core-insight/products',
-              transformation: [{ width: 800, height: 600, crop: 'limit' }]
-            });
-            imageUrls.push(result.secure_url);
-          } catch (cloudErr) { 
-            console.error('Cloudinary upload error:', cloudErr); 
-          }
-        }
-      }
-
-      // Handle product file
-      let fileUrl = null;
-      if (req.files?.file?.[0]) {
-        const productFile = req.files.file[0];
-        const filesDir = path.join(uploadDirs.products, 'files');
-        if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
-
-        const timestamp = Date.now();
-        const ext = path.extname(productFile.originalname);
-        const baseName = path.basename(productFile.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
-        const filename = `${timestamp}-${Math.floor(Math.random() * 1000000)}-${baseName}${ext}`;
-        const finalPath = path.join(filesDir, filename);
-        fs.copyFileSync(productFile.path, finalPath);
-        fs.unlinkSync(productFile.path);
-        fileUrl = `/uploads/products/files/${filename}`;
-      }
-
-      // Insert product
-      const result = await db.query(
-        `INSERT INTO products (
-          user_id, title, description, price, original_price, platform_fee, product_cost,
-          category, type, file_url, image_urls, affiliate_link, 
-          seller_payment_provider, delivery_type, delivery_locations, 
-          payment_option, estimated_delivery_days, rating, review_count, 
-          status, sales_count, favorite_count, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [
-          req.session.user.id, title, description || '', sellerPrice, originalPrice, platformFee, productCostValue,
-          category || '', type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, 
-          affiliate_link || null, paymentProvider,
-          type === 'physical' ? (delivery_type || 'delivery') : null,
-          type === 'physical' ? (delivery_locations || 'Worldwide') : null,
-          type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
-          type === 'physical' ? (parseInt(delivery_days) || 7) : null,
-          0.00, 0, 'active', 0, 0
-        ]
-      );
-
-      const productId = result.insertId;
-      
-      // Store business info - FIXED (provider column removed)
-      if (businessName && accountNumber) {
+      for (const imageFile of req.files['images[]']) {
+        const imageFilename = `${Date.now()}-${imageFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const imagePath = path.join(imagesDir, imageFilename);
+        fs.copyFileSync(imageFile.path, imagePath);
+        imageUrls.push(`/uploads/products/${imageFilename}`);
+        
+        // Clean up temp file
         try {
-          await db.query(
-            `INSERT INTO sellers (user_id, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE 
-             account_number = VALUES(account_number),
-             bank_code = VALUES(bank_code),
-             bank_name = VALUES(bank_name),
-             business_name = VALUES(business_name),
-             business_email = VALUES(business_email),
-             business_phone = VALUES(business_phone),
-             country = VALUES(country)`,
-            [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
-          );
-          console.log(`✅ Business info stored for seller ${req.session.user.id}`);
+          fs.unlinkSync(imageFile.path);
         } catch (err) {
-          console.error('❌ Error storing business info:', err.message);
+          console.log('Could not delete temp image:', err.message);
         }
       }
-
-      console.log(`✅ Product uploaded! ID: ${productId}`);
-      
-      res.json({ 
-        message: "✅ Product uploaded successfully!", 
-        productId: productId,
-        type: type,
-        pricing: {
-          customer_price: originalPrice,
-          platform_fee: platformFee,
-          seller_earnings: sellerPrice,
-          product_cost: productCostValue
-        }
-      });
-      
-    } catch (err) {
-      console.error('❌ Product upload error:', err);
-      res.status(500).json({ error: "Error uploading product: " + err.message });
     }
-  });
+
+    // Handle digital product file upload to MEGA
+    let fileUrl = null;
+    if (type === 'digital' && req.files?.file?.[0]) {
+      const productFile = req.files.file[0];
+      const folderName = `/products/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const uploadResult = await megaService.uploadFile(productFile.path, productFile.originalname, folderName);
+      fileUrl = uploadResult.url;
+    }
+
+    // Insert product into database
+    const result = await db.query(
+      `INSERT INTO products (
+        user_id, title, description, price, original_price, platform_fee, product_cost,
+        category, type, file_url, image_urls, affiliate_link, 
+        seller_payment_provider, delivery_type, delivery_locations, 
+        payment_option, estimated_delivery_days, rating, review_count, 
+        status, sales_count, favorite_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        req.session.user.id, title, description || '', sellerPrice, originalPrice, platformFee, productCostValue,
+        category || '', type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, 
+        affiliate_link || null, paymentProvider,
+        type === 'physical' ? (delivery_type || 'delivery') : null,
+        type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+        type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
+        type === 'physical' ? (parseInt(delivery_days) || 7) : null,
+        0.00, 0, 'active', 0, 0
+      ]
+    );
+
+    const productId = result.insertId;
+    
+    // Store business info
+    if (businessName && accountNumber) {
+      try {
+        await db.query(
+          `INSERT INTO sellers (user_id, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE 
+           account_number = VALUES(account_number),
+           bank_code = VALUES(bank_code),
+           bank_name = VALUES(bank_name),
+           business_name = VALUES(business_name),
+           business_email = VALUES(business_email),
+           business_phone = VALUES(business_phone),
+           country = VALUES(country)`,
+          [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
+        );
+        console.log(`✅ Business info stored for seller ${req.session.user.id}`);
+      } catch (err) {
+        console.error('❌ Error storing business info:', err.message);
+      }
+    }
+
+    console.log(`✅ Product uploaded! ID: ${productId}`);
+    
+    res.json({ 
+      message: "✅ Product uploaded successfully to MEGA!", 
+      productId: productId,
+      type: type,
+      pricing: {
+        customer_price: originalPrice,
+        platform_fee: platformFee,
+        seller_earnings: sellerPrice,
+        product_cost: productCostValue
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ Product upload error:', err);
+    res.status(500).json({ error: "Error uploading product: " + err.message });
+  }
 });
 // Delete product endpoint
 app.delete("/api/products/:id", async (req, res) => {

@@ -1,120 +1,132 @@
-﻿const mega = require('megajs');
-const fs = require('fs');
-const { Readable } = require('stream');
+﻿const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 class MegaService {
   constructor() {
-    this.client = null;
-    this.initialized = false;
+    this.rcloneAvailable = false;
+    this.rclonePath = 'C:\\Windows\\rclone.exe';
+    this.remoteName = process.env.MEGA_REMOTE_NAME || 'mega';
   }
 
-  async init() {
-    if (this.initialized && this.client) return this.client;
-    
-    if (!process.env.MEGA_EMAIL || !process.env.MEGA_PASSWORD) {
-      console.error('❌ MEGA credentials missing!');
-      throw new Error('MEGA credentials missing');
-    }
-    
-    return new Promise((resolve, reject) => {
-      console.log('🔐 Logging into MEGA...');
-      this.client = mega({
-        email: process.env.MEGA_EMAIL,
-        password: process.env.MEGA_PASSWORD,
-        autologin: true
-      }, (err) => {
-        if (err) {
-          console.error('❌ MEGA login error:', err);
-          reject(err);
-        } else {
-          this.initialized = true;
-          console.log('✅ MEGA service initialized');
-          resolve(this.client);
-        }
-      });
-    });
-  }
-
-  async ensureFolder(folderPath, root = null) {
-    const client = await this.init();
-    const parts = folderPath.split('/').filter(p => p);
-    let currentFolder = root || client.root;
-    
-    for (const part of parts) {
-      let subFolder = null;
-      
-      if (currentFolder.children) {
-        subFolder = currentFolder.children.find(child => 
-          child.name === part && child.directory === true
-        );
-      }
-      
-      if (!subFolder) {
-        subFolder = await new Promise((resolve, reject) => {
-          client.mkdir(part, currentFolder, (err, folder) => {
-            if (err) reject(err);
-            else resolve(folder);
-          });
-        });
-      }
-      currentFolder = subFolder;
-    }
-    
-    return currentFolder;
-  }
-
-  async uploadBuffer(buffer, filename, folderPath = '/') {
+  async checkRclone() {
     try {
-      const client = await this.init();
-      const targetFolder = await this.ensureFolder(folderPath);
+      if (!fs.existsSync(this.rclonePath)) {
+        console.log(`⚠️ rclone not found at ${this.rclonePath}`);
+        this.rcloneAvailable = false;
+        return false;
+      }
       
-      return new Promise((resolve, reject) => {
-        const stream = Readable.from(buffer);
+      await execPromise(`"${this.rclonePath}" --version`);
+      this.rcloneAvailable = true;
+      console.log('✅ rclone is available for MEGA uploads');
+      return true;
+    } catch (error) {
+      this.rcloneAvailable = false;
+      console.log('⚠️ rclone not available. Using local fallback.');
+      return false;
+    }
+  }
+
+  async uploadFile(filePath, filename, folder = '/courses') {
+    try {
+      if (!this.rcloneAvailable) {
+        await this.checkRclone();
+      }
+      
+      if (this.rcloneAvailable) {
+        const cleanFolder = folder.replace(/^\//, '');
+        const remotePath = cleanFolder ? `${this.remoteName}:${cleanFolder}/${filename}` : `${this.remoteName}:${filename}`;
         
-        const uploadStream = client.upload({
-          name: filename,
-          size: buffer.length,
-          parent: targetFolder
-        }, (err, file) => {
-          if (err) {
-            reject(err);
-          } else {
-            file.link((err, link) => {
-              if (err) {
-                reject(err);
-              } else {
-                console.log(`✅ File uploaded to MEGA: ${filename}`);
-                resolve(link);
-              }
-            });
+        console.log(`📤 Uploading to MEGA: ${remotePath}`);
+        
+        // Create folder if it doesn't exist
+        if (cleanFolder) {
+          try {
+            await execPromise(`"${this.rclonePath}" mkdir "${this.remoteName}:${cleanFolder}"`);
+          } catch (mkdirError) {
+            // Folder might already exist, ignore error
           }
-        });
+        }
         
-        stream.pipe(uploadStream);
-      });
+        // Upload the file
+        await execPromise(`"${this.rclonePath}" copy "${filePath}" "${remotePath}"`);
+        
+        // Clean up temp file
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.log('Could not delete temp file:', err.message);
+        }
+        
+        console.log(`✅ File uploaded to MEGA: ${filename}`);
+        
+        // Return the MEGA path (can be stored in database)
+        return {
+          url: remotePath,
+          filename: filename,
+          folder: folder
+        };
+      }
+      
+      // Fallback: Save locally
+      const uploadsDir = path.join(__dirname, '../uploads/mega');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      let targetDir = uploadsDir;
+      if (folder && folder !== '/') {
+        const subFolder = folder.replace(/^\//, '').replace(/\//g, '-');
+        targetDir = path.join(uploadsDir, subFolder);
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+      }
+      
+      const safeFilename = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const localPath = path.join(targetDir, safeFilename);
+      fs.copyFileSync(filePath, localPath);
+      
+      // Clean up temp file
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.log('Could not delete temp file:', err.message);
+      }
+      
+      const relativePath = path.relative(path.join(__dirname, '..'), localPath).replace(/\\/g, '/');
+      const localUrl = `/${relativePath}`;
+      
+      console.log(`✅ File saved locally: ${localUrl}`);
+      return {
+        url: localUrl,
+        filename: filename,
+        folder: folder
+      };
+      
     } catch (error) {
-      console.error('❌ MEGA upload error:', error);
-      throw error;
-    }
-  }
-
-  async uploadFile(filePath, filename, folderPath = '/') {
-    try {
-      const buffer = fs.readFileSync(filePath);
-      return this.uploadBuffer(buffer, filename, folderPath);
-    } catch (error) {
-      console.error('❌ MEGA file upload error:', error);
+      console.error('❌ Upload error:', error);
       throw error;
     }
   }
 
   async testConnection() {
     try {
-      const client = await this.init();
-      console.log('✅ MEGA connection successful!');
-      return true;
+      await this.checkRclone();
+      
+      if (this.rcloneAvailable) {
+        const { stdout } = await execPromise(`"${this.rclonePath}" ls ${this.remoteName}:`);
+        console.log('✅ MEGA connection successful!');
+        return true;
+      } else {
+        console.log('✅ Local storage ready');
+        return true;
+      }
     } catch (error) {
-      console.error('❌ MEGA connection failed:', error);
+      console.error('❌ Connection test failed:', error.message);
       return false;
     }
   }

@@ -10420,6 +10420,77 @@ async function buyProduct(productId) {
 }
     window.buyProduct = buyProduct;
 
+    // Show payment options modal
+async function buyProductWithChoice(productId) {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    // Create modal for payment method selection
+    const modalHtml = `
+        <div class="modal open" id="paymentMethodModal">
+            <div class="modal-card" style="max-width: 400px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Choose Payment Method</h3>
+                    <span class="close-x" onclick="closePaymentMethodModal()">&times;</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <button onclick="processPayment(${productId}, 'flutterwave')" 
+                            class="btn primary" style="padding: 16px; text-align: center;">
+                        <i class="fas fa-globe"></i> Pay with Flutterwave (USD)
+                        <small style="display: block; font-size: 12px;">Pay in US Dollars</small>
+                    </button>
+                    
+                    <button onclick="processPayment(${productId}, 'paystack')" 
+                            class="btn" style="padding: 16px; text-align: center; background: var(--success);">
+                        <i class="fas fa-map-marker-alt"></i> Pay with Paystack (₦ NGN)
+                        <small style="display: block; font-size: 12px;">Pay in Nigerian Naira</small>
+                    </button>
+                </div>
+                
+                <p style="margin-top: 20px; font-size: 12px; color: var(--text-gray); text-align: center;">
+                    <i class="fas fa-shield-alt"></i> Secure payment. 90% goes to seller, 10% platform fee.
+                </p>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function processPayment(productId, gateway) {
+    closePaymentMethodModal();
+    
+    // Show loading
+    showToast('Processing', `Creating ${gateway.toUpperCase()} payment...`, 'info');
+    
+    try {
+        const response = await fetch('/api/buy-product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, preferredGateway: gateway }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.paymentLink) {
+            window.location.href = data.paymentLink;
+        } else {
+            showToast('Error', data.error || 'Payment failed', 'danger');
+        }
+    } catch (err) {
+        showToast('Error', 'Network error. Please try again.', 'danger');
+    }
+}
+
+function closePaymentMethodModal() {
+    const modal = document.getElementById('paymentMethodModal');
+    if (modal) modal.remove();
+}
+
     async function deleteProduct(id) {
       console.log("🗑️ deleteProduct called for ID:", id);
 

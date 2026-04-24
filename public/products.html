@@ -10366,26 +10366,58 @@ function renderProducts() {
    
 
     // ---------- Buy Digital Product ----------
-    async function buyProduct(productId){
-      try {
-        const meR = await fetch('/api/me'); const me = await meR.json();
-        if (!me || !me.id) { openModal(loginModal); return; }
-        const res = await fetch('/api/buy-product', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': getCSRFToken() },
-          body: JSON.stringify({ productId })
-        });
-        const data = await res.json();
-        if (!res.ok) { alert(data.error || 'Error initiating purchase'); return; }
-        const link = data.link || data.paymentLink || data.payment_link;
-        if (link) window.location.href = link;
-        else alert('Payment link not returned by server.');
-      } catch(err){
-        console.error('buyProduct',err);
-        const message = handleApiError(err, 'Purchase');
-        alert(message);
-      }
+// Updated buyProduct function in your HTML
+async function buyProduct(productId) {
+    console.log("🛒 Buying product:", productId);
+    
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
     }
+    
+    // Show loading state
+    const buttons = document.querySelectorAll(`button[onclick*="buyProduct(${productId})"]`);
+    buttons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    });
+    
+    try {
+        const response = await fetch('/api/buy-product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: productId }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.paymentLink) {
+            // Redirect to payment page
+            window.location.href = data.paymentLink;
+        } else if (data.isDemo) {
+            // Demo mode - simulate successful purchase
+            showToast('Demo Mode', 'In production, this would redirect to payment.', 'info');
+            setTimeout(() => {
+                window.location.href = `/payment-callback.html?demo=true&productId=${productId}`;
+            }, 1500);
+        } else {
+            showToast('Error', data.error || 'Failed to initiate purchase', 'danger');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Buy Now';
+            });
+        }
+        
+    } catch (err) {
+        console.error('Buy product error:', err);
+        showToast('Error', 'Network error. Please try again.', 'danger');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Buy Now';
+        });
+    }
+}
     window.buyProduct = buyProduct;
 
     async function deleteProduct(id) {

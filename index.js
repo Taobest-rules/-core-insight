@@ -8637,7 +8637,394 @@ app.get("/api/debug/flutterwave", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ============================================
+// BUY DIGITAL PRODUCT ENDPOINT - COMPLETE
+// ============================================
 
+app.post("/api/buy-product", async (req, res) => {
+    try {
+        console.log("🛒 Buy product request received");
+        console.log("Request body:", req.body);
+        
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login to purchase" });
+        }
+        
+        const { productId } = req.body;
+        
+        if (!productId) {
+            return res.status(400).json({ error: "Product ID is required" });
+        }
+        
+        // Get product details
+        const products = await db.query(
+            `SELECT p.*, u.email as seller_email, u.username as seller_name 
+             FROM products p
+             LEFT JOIN users u ON p.user_id = u.id
+             WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)`,
+            [productId]
+        );
+        
+        if (!products || products.length === 0) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+        
+        const product = products[0];
+        const productPrice = parseFloat(product.price);
+        
+        // Calculate split (90/10)
+        const platformFee = productPrice * 0.10;
+        const sellerEarnings = productPrice - platformFee;
+        
+        // Create unique transaction reference
+        const transactionRef = `DIGITAL_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
+        
+        // Store order in database
+        const orderResult = await db.query(
+            `INSERT INTO digital_orders (
+                product_id, buyer_id, seller_id, amount, platform_fee, seller_earnings,
+                transaction_ref, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+            [
+                productId, 
+                req.session.user.id, 
+                product.user_id, 
+                productPrice, 
+                platformFee, 
+                sellerEarnings,
+                transactionRef
+            ]
+        );
+        
+        const orderId = orderResult.insertId;
+        
+        // Create payment with Flutterwave
+        if (!process.env.FLW_SECRET_KEY) {
+            console.error("❌ FLW_SECRET_KEY is missing!");
+            return res.status(500).json({ 
+                error: "Payment system not configured. Please contact support.",
+                fallback: true,
+                message: "Demo mode - In production, this would process payment."
+            });
+        }
+        
+        const paymentPayload = {
+            tx_ref: transactionRef,
+            amount: productPrice,
+            currency: "USD",
+            redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+            customer: {
+                email: req.session.user.email,
+                name: req.session.user.username,
+            },
+            customizations: {
+                title: "Core Insight Marketplace",
+                description: `Digital Product: ${product.title}`,
+            },
+            meta: {
+                product_id: productId,
+                order_id: orderId,
+                type: 'digital_product',
+                platform_fee: platformFee,
+                seller_earnings: sellerEarnings
+            }
+        };
+        
+        console.log("📤 Sending payment request to Flutterwave...");
+        console.log("Payload:", JSON.stringify(paymentPayload, null, 2));
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/payments',
+            paymentPayload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        console.log("📥 Flutterwave response:", response.data.status);
+        
+        if (response.data.status === 'success' && response.data.data?.link) {
+            // Update order with transaction reference
+            await db.query(
+                `UPDATE digital_orders SET flutterwave_reference = ? WHERE id = ?`,
+                [response.data.data.id, orderId]
+            );
+            
+            console.log(`✅ Payment link created for order #${orderId}`);
+            console.log(`💰 Amount: $${productPrice} | Platform: $${platformFee} | Seller: $${sellerEarnings}`);
+            
+            res.json({
+                success: true,
+                paymentLink: response.data.data.link,
+                transactionRef: transactionRef,
+                amount: productPrice,
+                platformFee: platformFee,
+                sellerEarnings: sellerEarnings,
+                message: "Redirecting to payment..."
+            });
+        } else {
+            throw new Error(response.data.message || "Payment creation failed");
+        }
+        
+    } catch (err) {
+        console.error("❌ Buy product error:", err);
+        
+        // If Flutterwave fails, return a demo link for testing
+        if (process.env.NODE_ENV !== 'production') {
+            console.log("⚠️ Returning demo payment link for testing");
+            return res.json({
+                success: true,
+                paymentLink: "https://core-insight-7.onrender.com/payment-callback.html?demo=true",
+                transactionRef: "DEMO_" + Date.now(),
+                isDemo: true,
+                message: "Demo mode: This is a test payment link"
+            });
+        }
+        
+        res.status(500).json({ 
+            error: err.message,
+            details: err.response?.data
+        });
+    }
+});
+// ============================================
+// VERIFY DIGITAL PRODUCT PAYMENT
+// ============================================
+
+app.get("/api/verify-digital-payment/:transaction_ref", async (req, res) => {
+    try {
+        const { transaction_ref } = req.params;
+        
+        console.log(`🔍 Verifying digital payment: ${transaction_ref}`);
+        
+        // Check if it's a demo transaction
+        if (transaction_ref.startsWith('DEMO_')) {
+            console.log("📝 Demo transaction - marking as completed");
+            
+            // Update order status
+            await db.query(
+                `UPDATE digital_orders 
+                 SET status = 'completed', completed_at = NOW() 
+                 WHERE transaction_ref = ?`,
+                [transaction_ref]
+            );
+            
+            // Get the order details
+            const order = await db.query(
+                `SELECT o.*, p.file_url, p.title 
+                 FROM digital_orders o
+                 JOIN products p ON o.product_id = p.id
+                 WHERE o.transaction_ref = ?`,
+                [transaction_ref]
+            );
+            
+            if (order && order.length > 0) {
+                // Generate download token
+                const downloadToken = crypto.randomBytes(32).toString('hex');
+                
+                await db.query(
+                    `UPDATE digital_orders 
+                     SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
+                     WHERE id = ?`,
+                    [`/api/download-digital/${order[0].id}?token=${downloadToken}`, order[0].id]
+                );
+                
+                // Update product download count
+                await db.query(
+                    `UPDATE products SET download_count = download_count + 1, sales_count = sales_count + 1 
+                     WHERE id = ?`,
+                    [order[0].product_id]
+                );
+                
+                return res.json({
+                    status: "success",
+                    type: "digital",
+                    order_id: order[0].id,
+                    product_title: order[0].title,
+                    download_url: order[0].download_url,
+                    message: "Payment successful! You can now download your product."
+                });
+            }
+        }
+        
+        // Verify with Flutterwave
+        const response = await axios.get(
+            `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
+            {
+                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+            }
+        );
+        
+        if (response.data.status === "success" && response.data.data.status === "successful") {
+            const transaction = response.data.data;
+            const amount = transaction.amount;
+            
+            // Update order status
+            await db.query(
+                `UPDATE digital_orders 
+                 SET status = 'completed', 
+                     completed_at = NOW(),
+                     flutterwave_reference = ?
+                 WHERE transaction_ref = ?`,
+                [transaction.id, transaction_ref]
+            );
+            
+            // Get the order details
+            const order = await db.query(
+                `SELECT o.*, p.file_url, p.title, p.user_id as seller_id
+                 FROM digital_orders o
+                 JOIN products p ON o.product_id = p.id
+                 WHERE o.transaction_ref = ?`,
+                [transaction_ref]
+            );
+            
+            if (order && order.length > 0) {
+                // Generate secure download token
+                const downloadToken = crypto.randomBytes(32).toString('hex');
+                const downloadExpiry = new Date();
+                downloadExpiry.setDate(downloadExpiry.getDate() + 7); // 7 days expiry
+                
+                await db.query(
+                    `UPDATE digital_orders 
+                     SET download_url = ?, 
+                         download_expires_at = ?
+                     WHERE id = ?`,
+                    [`/api/download-digital/${order[0].id}?token=${downloadToken}`, downloadExpiry, order[0].id]
+                );
+                
+                // Update product stats
+                await db.query(
+                    `UPDATE products 
+                     SET download_count = download_count + 1, 
+                         sales_count = sales_count + 1 
+                     WHERE id = ?`,
+                    [order[0].product_id]
+                );
+                
+                // Send email to buyer
+                const emailHtml = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Your Digital Product - Core Insight</title></head>
+                    <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                        <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                            <h1 style="color:#10b981;">✅ Purchase Successful!</h1>
+                            <p>Hello ${req.session.user?.username || 'there'},</p>
+                            <p>Thank you for purchasing <strong>${order[0].title}</strong>!</p>
+                            <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
+                                <p><strong>Download Link:</strong></p>
+                                <a href="https://core-insight-7.onrender.com${order[0].download_url}" 
+                                   style="color:#3b82f6;word-break:break-all;">
+                                    Click here to download your product
+                                </a>
+                                <p style="font-size:12px;margin-top:10px;">This link expires in 7 days.</p>
+                            </div>
+                            <p>Amount paid: <strong>$${amount}</strong></p>
+                            <p>Platform fee: $${(amount * 0.10).toFixed(2)} (10%)</p>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                await sendEmail(req.session.user.email, `Your Digital Product: ${order[0].title}`, emailHtml);
+                
+                // Notify seller
+                const sellerEmailHtml = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Product Sold - Core Insight</title></head>
+                    <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                        <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                            <h1 style="color:#10b981;">🎉 Product Sold!</h1>
+                            <p>Hello ${order[0].seller_name || 'Seller'},</p>
+                            <p>Your product <strong>${order[0].title}</strong> has been sold!</p>
+                            <p>Amount: <strong>$${amount}</strong></p>
+                            <p>Your earnings (90%): <strong>$${(amount * 0.90).toFixed(2)}</strong></p>
+                            <p>Platform fee (10%): <strong>$${(amount * 0.10).toFixed(2)}</strong></p>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                const sellerInfo = await db.query("SELECT email, username FROM users WHERE id = ?", [order[0].seller_id]);
+                if (sellerInfo && sellerInfo.length > 0) {
+                    await sendEmail(sellerInfo[0].email, `Product Sold: ${order[0].title}`, sellerEmailHtml);
+                }
+                
+                return res.json({
+                    status: "success",
+                    type: "digital",
+                    order_id: order[0].id,
+                    product_title: order[0].title,
+                    download_url: order[0].download_url,
+                    message: "Payment successful! You can now download your product."
+                });
+            }
+        }
+        
+        res.status(400).json({ 
+            status: "failed", 
+            message: "Payment not successful or not found" 
+        });
+        
+    } catch (err) {
+        console.error("❌ Verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================
+// DOWNLOAD DIGITAL PRODUCT
+// ============================================
+
+app.get("/api/download-digital/:orderId", async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(401).json({ error: "Download token required" });
+        }
+        
+        // Verify order and token
+        const order = await db.query(
+            `SELECT o.*, p.file_url, p.title, p.user_id as seller_id
+             FROM digital_orders o
+             JOIN products p ON o.product_id = p.id
+             WHERE o.id = ? AND o.download_url LIKE ? AND o.download_expires_at > NOW()`,
+            [orderId, `%token=${token}%`]
+        );
+        
+        if (!order || order.length === 0) {
+            return res.status(404).json({ error: "Download link invalid or expired" });
+        }
+        
+        const orderData = order[0];
+        
+        // Redirect to the actual file or provide download
+        if (orderData.file_url) {
+            // If file is on Cloudinary or external
+            return res.redirect(orderData.file_url);
+        } else if (orderData.file_path) {
+            // If file is local
+            const filePath = path.join(__dirname, orderData.file_path);
+            if (fs.existsSync(filePath)) {
+                res.download(filePath, `${orderData.title}.pdf`);
+            } else {
+                res.status(404).json({ error: "File not found" });
+            }
+        } else {
+            res.status(404).json({ error: "No file associated with this product" });
+        }
+        
+    } catch (err) {
+        console.error("❌ Download error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // COMPLETE PHYSICAL ORDER STATUS SYSTEM
 // ============================================

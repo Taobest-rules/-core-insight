@@ -4083,6 +4083,271 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ============================================
+// FLUTTERWAVE SUBACCOUNT ENDPOINTS
+// ============================================
+
+// Create Flutterwave subaccount for seller
+app.post("/api/flutterwave/create-subaccount", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { 
+            bank_code, 
+            account_number, 
+            business_name,
+            business_email,
+            business_mobile,
+            split_value = 0.9  // 90% to seller
+        } = req.body;
+        
+        // Validate required fields
+        if (!bank_code || !account_number || !business_name) {
+            return res.status(400).json({ 
+                error: "Bank code, account number, and business name are required" 
+            });
+        }
+        
+        // Check if subaccount already exists
+        const existingSubaccount = await db.query(
+            "SELECT flutterwave_subaccount_id FROM users WHERE id = ? AND flutterwave_subaccount_id IS NOT NULL",
+            [req.session.user.id]
+        );
+        
+        if (existingSubaccount && existingSubaccount.length > 0) {
+            return res.json({
+                success: true,
+                subaccount_id: existingSubaccount[0].flutterwave_subaccount_id,
+                message: "Subaccount already exists"
+            });
+        }
+        
+        // Create subaccount with Flutterwave
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/subaccounts',
+            {
+                account_bank: bank_code,
+                account_number: account_number,
+                business_name: business_name,
+                business_email: business_email || req.session.user.email,
+                business_mobile: business_mobile || "08012345678",
+                split_type: "percentage",
+                split_value: split_value,  // 0.9 = 90%
+                country: "NG"
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        if (response.data.status === 'success' && response.data.data) {
+            const subaccountId = response.data.data.subaccount_id;
+            
+            // Store in database
+            await db.query(
+                `UPDATE users 
+                 SET flutterwave_subaccount_id = ?,
+                     subaccount_created_at = NOW(),
+                     subaccount_status = 'active'
+                 WHERE id = ?`,
+                [subaccountId, req.session.user.id]
+            );
+            
+            // Also store in seller_bank_accounts
+            await db.query(
+                `INSERT INTO seller_bank_accounts (user_id, bank_name, bank_code, account_number, account_name, 
+                    flutterwave_subaccount_id, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())
+                 ON DUPLICATE KEY UPDATE 
+                    flutterwave_subaccount_id = ?,
+                    updated_at = NOW()`,
+                [req.session.user.id, response.data.data.bank_name, bank_code, account_number, 
+                 business_name, subaccountId, subaccountId]
+            );
+            
+            console.log(`✅ Flutterwave subaccount created for user ${req.session.user.id}: ${subaccountId}`);
+            
+            res.json({
+                success: true,
+                subaccount_id: subaccountId,
+                message: "Subaccount created successfully! Funds will be automatically split 90/10."
+            });
+        } else {
+            throw new Error(response.data.message || "Failed to create subaccount");
+        }
+        
+    } catch (err) {
+        console.error("❌ Flutterwave subaccount error:", err);
+        res.status(500).json({ 
+            error: err.response?.data?.message || err.message,
+            details: err.response?.data
+        });
+    }
+});
+
+// Get seller's Flutterwave subaccount status
+app.get("/api/flutterwave/subaccount-status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const result = await db.query(
+            `SELECT flutterwave_subaccount_id, subaccount_status, subaccount_created_at 
+             FROM users WHERE id = ?`,
+            [req.session.user.id]
+        );
+        
+        res.json({
+            has_subaccount: !!(result[0]?.flutterwave_subaccount_id),
+            subaccount_id: result[0]?.flutterwave_subaccount_id,
+            status: result[0]?.subaccount_status || 'pending',
+            created_at: result[0]?.subaccount_created_at
+        });
+        
+    } catch (err) {
+        console.error("Error fetching subaccount status:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================
+// PAYSTACK SUBACCOUNT ENDPOINTS
+// ============================================
+
+// Create Paystack subaccount for seller
+app.post("/api/paystack/create-subaccount", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { 
+            bank_code, 
+            account_number, 
+            business_name,
+            percentage_charge = 90  // 90% to seller
+        } = req.body;
+        
+        if (!bank_code || !account_number || !business_name) {
+            return res.status(400).json({ 
+                error: "Bank code, account number, and business name are required" 
+            });
+        }
+        
+        // Check if subaccount already exists
+        const existingSubaccount = await db.query(
+            "SELECT paystack_subaccount_code FROM users WHERE id = ? AND paystack_subaccount_code IS NOT NULL",
+            [req.session.user.id]
+        );
+        
+        if (existingSubaccount && existingSubaccount.length > 0) {
+            return res.json({
+                success: true,
+                subaccount_code: existingSubaccount[0].paystack_subaccount_code,
+                message: "Subaccount already exists"
+            });
+        }
+        
+        // Create subaccount with Paystack
+        const response = await axios.post(
+            'https://api.paystack.co/subaccount',
+            {
+                business_name: business_name,
+                settlement_bank: bank_code,
+                account_number: account_number,
+                percentage_charge: percentage_charge,  // 90%
+                primary_contact_email: req.session.user.email,
+                primary_contact_name: req.session.user.username,
+                metadata: {
+                    user_id: req.session.user.id,
+                    platform_fee: 10
+                }
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        if (response.data.status === true && response.data.data) {
+            const subaccountCode = response.data.data.subaccount_code;
+            
+            // Store in database
+            await db.query(
+                `UPDATE users 
+                 SET paystack_subaccount_code = ?,
+                     subaccount_created_at = NOW(),
+                     subaccount_status = 'active'
+                 WHERE id = ?`,
+                [subaccountCode, req.session.user.id]
+            );
+            
+            // Store in seller_bank_accounts
+            await db.query(
+                `INSERT INTO seller_bank_accounts (user_id, bank_name, bank_code, account_number, account_name, 
+                    paystack_subaccount_code, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())
+                 ON DUPLICATE KEY UPDATE 
+                    paystack_subaccount_code = ?,
+                    updated_at = NOW()`,
+                [req.session.user.id, response.data.data.bank_name, bank_code, account_number, 
+                 business_name, subaccountCode, subaccountCode]
+            );
+            
+            console.log(`✅ Paystack subaccount created for user ${req.session.user.id}: ${subaccountCode}`);
+            
+            res.json({
+                success: true,
+                subaccount_code: subaccountCode,
+                message: "Subaccount created successfully! Funds will be automatically split 90/10."
+            });
+        } else {
+            throw new Error(response.data.message || "Failed to create subaccount");
+        }
+        
+    } catch (err) {
+        console.error("❌ Paystack subaccount error:", err);
+        res.status(500).json({ 
+            error: err.response?.data?.message || err.message,
+            details: err.response?.data
+        });
+    }
+});
+
+// Get seller's Paystack subaccount status
+app.get("/api/paystack/subaccount-status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const result = await db.query(
+            `SELECT paystack_subaccount_code, subaccount_status, subaccount_created_at 
+             FROM users WHERE id = ?`,
+            [req.session.user.id]
+        );
+        
+        res.json({
+            has_subaccount: !!(result[0]?.paystack_subaccount_code),
+            subaccount_code: result[0]?.paystack_subaccount_code,
+            status: result[0]?.subaccount_status || 'pending',
+            created_at: result[0]?.subaccount_created_at
+        });
+        
+    } catch (err) {
+        console.error("Error fetching subaccount status:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Debug endpoint - check what's in the database
 app.get("/api/debug/orders", async (req, res) => {
@@ -7949,6 +8214,358 @@ app.get("/api/orders/:orderId", async (req, res) => {
     console.error("❌ Error loading order details:", err);
     res.status(500).json({ error: err.message });
   }
+});
+// ============================================
+// PHYSICAL ORDER PAYMENT WITH AUTO-SPLIT
+// ============================================
+
+app.post("/api/create-physical-order-payment", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { productId, quantity, deliveryAddress, deliveryPhone, city, state, country, notes } = req.body;
+        
+        // Get product and seller info
+        const productResult = await db.query(`
+            SELECT p.*, u.id as seller_id, u.email as seller_email, u.username as seller_name,
+                   u.flutterwave_subaccount_id, u.paystack_subaccount_code
+            FROM products p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
+        `, [productId]);
+        
+        if (!productResult || productResult.length === 0) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+        
+        const product = productResult[0];
+        const productPrice = parseFloat(product.price);
+        const totalAmount = quantity * productPrice;
+        
+        // Calculate split amounts
+        const platformAmount = totalAmount * 0.10;  // 10%
+        const sellerAmount = totalAmount * 0.90;     // 90%
+        
+        // Choose payment gateway based on what's available
+        const useFlutterwave = !!(product.flutterwave_subaccount_id);
+        const usePaystack = !!(product.paystack_subaccount_code);
+        
+        let transactionRef = null;
+        let paymentLink = null;
+        let gateway = null;
+        
+        // Try Flutterwave first if available
+        if (useFlutterwave && process.env.FLW_SECRET_KEY) {
+            gateway = 'flutterwave';
+            transactionRef = `ORD_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+            
+            const paymentPayload = {
+                tx_ref: transactionRef,
+                amount: totalAmount,
+                currency: "USD",
+                redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+                customer: {
+                    email: req.session.user.email,
+                    name: req.session.user.username,
+                },
+                customizations: {
+                    title: "Core Insight Marketplace",
+                    description: `Order: ${product.title} x${quantity}`,
+                },
+                subaccounts: [{
+                    id: product.flutterwave_subaccount_id,
+                    transaction_split_ratio: 0.9  // 90% to seller
+                }],
+                meta: {
+                    product_id: productId,
+                    seller_id: product.seller_id,
+                    buyer_id: req.session.user.id,
+                    quantity: quantity,
+                    total_amount: totalAmount,
+                    platform_amount: platformAmount,
+                    seller_amount: sellerAmount,
+                    payment_gateway: 'flutterwave'
+                }
+            };
+            
+            const response = await axios.post(
+                'https://api.flutterwave.com/v3/payments',
+                paymentPayload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+            
+            if (response.data.status === 'success' && response.data.data?.link) {
+                paymentLink = response.data.data.link;
+            }
+        }
+        
+        // Fallback to Paystack if Flutterwave failed or not available
+        if (!paymentLink && usePaystack && process.env.PAYSTACK_SECRET_KEY) {
+            gateway = 'paystack';
+            transactionRef = `PS_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+            
+            const paymentPayload = {
+                amount: totalAmount * 100, // Paystack uses kobo
+                email: req.session.user.email,
+                reference: transactionRef,
+                callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
+                metadata: {
+                    product_id: productId,
+                    seller_id: product.seller_id,
+                    buyer_id: req.session.user.id,
+                    quantity: quantity,
+                    total_amount: totalAmount,
+                    platform_amount: platformAmount,
+                    seller_amount: sellerAmount,
+                    payment_gateway: 'paystack',
+                    custom_fields: [
+                        { display_name: "Product", variable_name: "product", value: product.title },
+                        { display_name: "Quantity", variable_name: "quantity", value: quantity },
+                        { display_name: "Order Type", variable_name: "order_type", value: "physical_product" }
+                    ]
+                },
+                subaccount: {
+                    subaccount_code: product.paystack_subaccount_code,
+                    transaction_charge: parseInt(platformAmount * 100)  // Convert to kobo
+                }
+            };
+            
+            const response = await axios.post(
+                'https://api.paystack.co/transaction/initialize',
+                paymentPayload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+            
+            if (response.data.status === true && response.data.data?.authorization_url) {
+                paymentLink = response.data.data.authorization_url;
+            }
+        }
+        
+        if (!paymentLink) {
+            throw new Error("No payment gateway available. Please set up your bank account first.");
+        }
+        
+        // Create order in database
+        const orderResult = await db.query(
+            `INSERT INTO physical_orders (
+                product_id, seller_id, buyer_id, product_name, quantity, price,
+                total_amount, customer_name, customer_email, shipping_address,
+                delivery_phone, city, state, country, notes,
+                platform_fee, seller_earnings, split_percentage,
+                transaction_ref, payment_gateway, payment_status, order_status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending_seller_approval', NOW())`,
+            [
+                productId, product.seller_id, req.session.user.id, product.title, quantity, productPrice,
+                totalAmount, req.session.user.username, req.session.user.email,
+                deliveryAddress, deliveryPhone, city || null, state || null, country || null, notes || null,
+                platformAmount, sellerAmount, JSON.stringify({ platform: 10, seller: 90 }),
+                transactionRef, gateway
+            ]
+        );
+        
+        const orderId = orderResult.insertId;
+        
+        // Store split details
+        await db.query(
+            `INSERT INTO transaction_splits (
+                transaction_ref, order_id, total_amount, platform_amount, seller_amount,
+                platform_percentage, seller_percentage, payment_gateway, subaccount_id, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, 10.00, 90.00, ?, ?, 'pending', NOW())`,
+            [transactionRef, orderId, totalAmount, platformAmount, sellerAmount, gateway, 
+             gateway === 'flutterwave' ? product.flutterwave_subaccount_id : product.paystack_subaccount_code]
+        );
+        
+        console.log(`✅ Payment link created for order #${orderId} using ${gateway}`);
+        console.log(`💰 Split: Platform $${platformAmount} (10%), Seller $${sellerAmount} (90%)`);
+        
+        res.json({
+            success: true,
+            paymentLink: paymentLink,
+            transactionRef: transactionRef,
+            orderId: orderId,
+            amount: totalAmount,
+            platformFee: platformAmount,
+            sellerEarnings: sellerAmount,
+            gateway: gateway,
+            message: `Payment link created! ${sellerAmount} will go directly to seller's account.`
+        });
+        
+    } catch (err) {
+        console.error("❌ Payment creation error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================
+// FLUTTERWAVE WEBHOOK (for auto-split confirmation)
+// ============================================
+
+app.post("/api/webhooks/flutterwave", async (req, res) => {
+    try {
+        const event = req.body;
+        
+        console.log("📨 Flutterwave webhook received:", event.event);
+        
+        // Verify webhook signature (security)
+        const signature = req.headers['verif-hash'];
+        if (signature !== process.env.FLW_WEBHOOK_SECRET) {
+            return res.status(401).json({ error: "Invalid signature" });
+        }
+        
+        if (event.event === "charge.completed" && event.data.status === "successful") {
+            const transactionRef = event.data.tx_ref;
+            const amount = event.data.amount;
+            const subaccountId = event.data.subaccount?.id;
+            
+            // Update order status
+            await db.query(
+                `UPDATE physical_orders 
+                 SET payment_status = 'paid',
+                     order_status = 'paid',
+                     payment_collected_at = NOW(),
+                     payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY)
+                 WHERE transaction_ref = ?`,
+                [transactionRef]
+            );
+            
+            // Update split status
+            await db.query(
+                `UPDATE transaction_splits 
+                 SET status = 'completed'
+                 WHERE transaction_ref = ?`,
+                [transactionRef]
+            );
+            
+            console.log(`✅ Webhook: Payment confirmed for ${transactionRef}. Split executed automatically.`);
+        }
+        
+        res.sendStatus(200);
+        
+    } catch (err) {
+        console.error("❌ Webhook error:", err);
+        res.sendStatus(500);
+    }
+});
+
+// Paystack Webhook
+app.post("/api/webhooks/paystack", async (req, res) => {
+    try {
+        const event = req.body;
+        
+        console.log("📨 Paystack webhook received:", event.event);
+        
+        // Verify webhook signature
+        const signature = req.headers['x-paystack-signature'];
+        const crypto = require('crypto');
+        const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+            .update(JSON.stringify(req.body))
+            .digest('hex');
+        
+        if (hash !== signature) {
+            return res.status(401).json({ error: "Invalid signature" });
+        }
+        
+        if (event.event === 'charge.success') {
+            const transactionRef = event.data.reference;
+            const amount = event.data.amount / 100;
+            
+            await db.query(
+                `UPDATE physical_orders 
+                 SET payment_status = 'paid',
+                     order_status = 'paid',
+                     payment_collected_at = NOW(),
+                     payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY)
+                 WHERE transaction_ref = ?`,
+                [transactionRef]
+            );
+            
+            await db.query(
+                `UPDATE transaction_splits 
+                 SET status = 'completed'
+                 WHERE transaction_ref = ?`,
+                [transactionRef]
+            );
+            
+            console.log(`✅ Paystack webhook: Payment confirmed for ${transactionRef}`);
+        }
+        
+        res.sendStatus(200);
+        
+    } catch (err) {
+        console.error("❌ Paystack webhook error:", err);
+        res.sendStatus(500);
+    }
+});
+// Get banks for Flutterwave
+app.get("/api/banks/flutterwave", async (req, res) => {
+    try {
+        const response = await axios.get(
+            'https://api.flutterwave.com/v3/banks/NG',
+            { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+        );
+        res.json(response.data.data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get banks for Paystack
+app.get("/api/banks/paystack", async (req, res) => {
+    try {
+        const response = await axios.get(
+            'https://api.paystack.co/bank',
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+        );
+        res.json(response.data.data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify account number (Flutterwave)
+app.post("/api/verify-account/flutterwave", async (req, res) => {
+    try {
+        const { account_number, bank_code } = req.body;
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/accounts/resolve',
+            { account_number, account_bank: bank_code },
+            { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+        );
+        
+        res.json({ status: 'success', account_name: response.data.data.account_name });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify account number (Paystack)
+app.post("/api/verify-account/paystack", async (req, res) => {
+    try {
+        const { account_number, bank_code } = req.body;
+        
+        const response = await axios.get(
+            `https://api.paystack.co/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`,
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+        );
+        
+        res.json({ status: 'success', account_name: response.data.data.account_name });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 // Debug endpoint to test Flutterwave connection
 app.get("/api/debug/flutterwave", async (req, res) => {

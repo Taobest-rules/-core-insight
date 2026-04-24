@@ -3603,106 +3603,152 @@
     </div>
   </div>
 </div>
-     <!-- Payment Account Setup -->
-          <div class="payment-provider-section">
-            <div class="payment-provider-header">
-              <i class="fas fa-credit-card"></i>
-              <h4>Payment Account Setup</h4>
-            </div>
-            
-            <p style="color: var(--text-gray); margin-bottom: 20px; line-height: 1.6;">
-              Set up your payment account to receive payments directly to your bank.
-            </p>
-            
-            <div class="provider-options">
-              <div class="provider-option" data-provider="flutterwave">
-                <i class="fas fa-globe"></i>
-                <h5>Flutterwave</h5>
-                <p>Global coverage, supports multiple currencies</p>
-              </div>
-              
-              <div class="provider-option" data-provider="paystack">
-                <i class="fas fa-map-marker-alt"></i>
-                <h5>Paystack</h5>
-                <p>African markets focus, local payment methods</p>
-              </div>
-            </div>
-            
-            <input type="hidden" id="p_paymentProvider" value="" />
-            <div id="p_paymentProvider_error" class="form-error"></div>
-            
-            <div id="businessInfo" class="conditional-section" style="margin-top: 24px;">
-              <div class="form-section-header" style="margin-bottom: 16px;">
-                <i class="fas fa-building"></i>
-                <h4>Business Information</h4>
-              </div>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Business Name <span class="required">*</span></label>
-                  <input type="text" id="p_businessName" class="form-input" placeholder="e.g. John's Digital Store" required />
-                  <div id="p_businessName_error" class="form-error"></div>
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label">Country <span class="required">*</span></label>
-                  <input type="text" id="p_country" class="form-input" placeholder="e.g. United States, Germany, Kenya" required />
-                  <div id="p_country_error" class="form-error"></div>
-                </div>
-              </div>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Business Email <span class="required">*</span></label>
-                  <input type="email" id="p_businessEmail" class="form-input" placeholder="e.g. business@example.com" required />
-                  <div id="p_businessEmail_error" class="form-error"></div>
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label">Phone Number <span class="required">*</span></label>
-                  <input type="tel" id="p_businessPhone" class="form-input" placeholder="e.g. +1234567890" required />
-                  <div id="p_businessPhone_error" class="form-error"></div>
-                </div>
-              </div>
-              
-              <div id="bankDetails" class="conditional-section show">
-                <div class="form-section-header" style="margin-bottom: 16px;">
-                  <i class="fas fa-university"></i>
-                  <h4>Bank Account Details</h4>
-                </div>
-                
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Bank Name <span class="required">*</span></label>
-                    <input type="text" id="p_bankName" class="form-input" placeholder="e.g. Chase Bank, Barclays, Standard Bank" required />
-                    <div id="p_bankName_error" class="form-error"></div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label class="form-label">Bank Code <span class="required" style="color: var(--text-gray);">(optional)</span></label>
-                    <input type="text" id="p_bankCode" class="form-input" placeholder="e.g. 021000021, 20-00-00, 051001" />
-                    <div id="p_bankCode_error" class="form-error"></div>
-                    <span class="form-help">Routing number, sort code, or bank code (optional)</span>
-                  </div>
-                </div>
-                
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Account Number <span class="required">*</span></label>
-                    <input type="text" id="p_accountNumber" class="form-input" placeholder="e.g. 0123456789" required />
-                    <div id="p_accountNumber_error" class="form-error"></div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label class="form-label">Account Holder <span class="required">*</span></label>
-                    <input type="text" id="p_accountName" class="form-input" placeholder="e.g. Name" required />
-                    <div id="p_accountName_error" class="form-error"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- In your existing products.html, find this section (around line 700-800) -->
+<!-- REPLACE the current "Payment Account Setup" section with this: -->
 
+<!-- Payment Account Setup with Subaccount (Auto 90/10 Split) -->
+<div class="payment-provider-section">
+    <div class="payment-provider-header">
+        <i class="fas fa-credit-card"></i>
+        <h4>Payment Account Setup (Auto 90/10 Split)</h4>
+    </div>
+    
+    <p style="color: var(--text-gray); margin-bottom: 20px; line-height: 1.6;">
+        <i class="fas fa-info-circle"></i> 
+        Set up your bank account to receive <strong>90% of payments automatically</strong>. 
+        The platform automatically takes 10% before sending you your share.
+    </p>
+    
+    <!-- Payment Gateway Selection -->
+    <div class="provider-options" style="margin-bottom: 20px;">
+        <div class="provider-option" data-provider="flutterwave" onclick="selectPaymentGateway('flutterwave')">
+            <i class="fas fa-globe"></i>
+            <h5>Flutterwave</h5>
+            <p>Global coverage, supports multiple currencies</p>
+            <small style="color: var(--success);">✓ 90% to you, 10% platform fee</small>
+        </div>
+        
+        <div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
+            <i class="fas fa-map-marker-alt"></i>
+            <h5>Paystack</h5>
+            <p>African markets focus, local payment methods</p>
+            <small style="color: var(--success);">✓ 90% to you, 10% platform fee</small>
+        </div>
+    </div>
+    
+    <input type="hidden" id="p_paymentProvider" value="" />
+    <div id="p_paymentProvider_error" class="form-error"></div>
+    
+    <!-- Bank Account Details Form (shown after gateway selection) -->
+    <div id="bankDetailsSection" style="display: none;">
+        <div class="form-section-header" style="margin-bottom: 16px;">
+            <i class="fas fa-university"></i>
+            <h4>Bank Account Details</h4>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Select Bank <span class="required">*</span></label>
+                <select id="p_bankName" class="form-select" required>
+                    <option value="">Select your bank</option>
+                </select>
+                <div id="p_bankName_error" class="form-error"></div>
+                <span class="form-help">Choose the bank where you want to receive payments</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Bank Code <span class="required">*</span></label>
+                <input type="text" id="p_bankCode" class="form-input" placeholder="e.g. 011, 021, 058" readonly />
+                <div id="p_bankCode_error" class="form-error"></div>
+                <span class="form-help">Auto-filled when you select your bank</span>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Account Number <span class="required">*</span></label>
+                <input type="text" id="p_accountNumber" class="form-input" placeholder="e.g. 0123456789" required />
+                <div id="p_accountNumber_error" class="form-error"></div>
+                <span class="form-help">Enter your 10-digit account number</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Account Holder Name <span class="required">*</span></label>
+                <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
+                <div id="p_accountName_error" class="form-error"></div>
+                <span class="form-help">We'll verify this matches your bank records</span>
+            </div>
+        </div>
+        
+        <!-- Subaccount Status Display -->
+        <div id="subaccountStatus" style="display: none;" class="commission-card">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 24px;"></i>
+                <div>
+                    <strong style="color: var(--success);">Auto-split Active!</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 13px;" id="subaccountStatusText">
+                        Your payments will be automatically split: 90% to your bank, 10% platform fee.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Commission Info Card -->
+    <div class="commission-card" style="margin-top: 20px;">
+        <h5><i class="fas fa-percentage"></i> How Auto-Split Works</h5>
+        <div class="commission-structure">
+            <div class="commission-item">
+                <i class="fas fa-chart-line"></i>
+                <span><strong>Platform Fee:</strong> 10% (automatically deducted)</span>
+            </div>
+            <div class="commission-item">
+                <i class="fas fa-wallet"></i>
+                <span><strong>You Receive:</strong> 90% directly to your bank account</span>
+            </div>
+            <div class="commission-item">
+                <i class="fas fa-bolt"></i>
+                <span><strong>Settlement:</strong> 3-5 business days after delivery confirmation</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Business Information Section (keep as is) -->
+<div id="businessInfo" class="conditional-section" style="margin-top: 24px;">
+    <div class="form-section-header" style="margin-bottom: 16px;">
+        <i class="fas fa-building"></i>
+        <h4>Business Information</h4>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label">Business Name <span class="required">*</span></label>
+            <input type="text" id="p_businessName" class="form-input" placeholder="e.g. John's Digital Store" required />
+            <div id="p_businessName_error" class="form-error"></div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Country <span class="required">*</span></label>
+            <input type="text" id="p_country" class="form-input" placeholder="e.g. United States, Germany, Kenya" required />
+            <div id="p_country_error" class="form-error"></div>
+        </div>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label">Business Email <span class="required">*</span></label>
+            <input type="email" id="p_businessEmail" class="form-input" placeholder="e.g. business@example.com" required />
+            <div id="p_businessEmail_error" class="form-error"></div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="p_businessPhone" class="form-input" placeholder="e.g. +1234567890" required />
+            <div id="p_businessPhone_error" class="form-error"></div>
+        </div>
+    </div>
+</div>
           <!-- Product Images -->
           <div class="form-section">
             <div class="form-section-header">
@@ -6100,6 +6146,214 @@ window.submitRating = submitRating;
 window.confirmDelivery = confirmDelivery;
 window.requestRefund = requestRefund;
 window.checkRefundStatus = checkRefundStatus;
+
+// ==================== SUBACCOUNT FUNCTIONS ====================
+
+let selectedGateway = null;
+let banksList = [];
+
+// Select payment gateway
+function selectPaymentGateway(gateway) {
+    selectedGateway = gateway;
+    document.getElementById('p_paymentProvider').value = gateway;
+    
+    // Update UI
+    document.querySelectorAll('.provider-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.querySelector(`.provider-option[data-provider="${gateway}"]`).classList.add('selected');
+    
+    // Show bank details section
+    document.getElementById('bankDetailsSection').style.display = 'block';
+    
+    // Load banks for selected gateway
+    loadBanks(gateway);
+}
+
+// Load banks from API
+async function loadBanks(gateway) {
+    try {
+        const bankSelect = document.getElementById('p_bankName');
+        bankSelect.innerHTML = '<option value="">Loading banks...</option>';
+        bankSelect.disabled = true;
+        
+        const response = await fetch(`/api/banks/${gateway}`);
+        const banks = await response.json();
+        banksList = banks;
+        
+        bankSelect.innerHTML = '<option value="">Select your bank</option>';
+        
+        banks.forEach(bank => {
+            const option = document.createElement('option');
+            option.value = bank.code;
+            option.textContent = bank.name;
+            bankSelect.appendChild(option);
+        });
+        
+        bankSelect.disabled = false;
+        
+        // Add event listener for bank selection
+        bankSelect.onchange = function() {
+            const selectedBank = banks.find(b => b.code === this.value);
+            if (selectedBank) {
+                document.getElementById('p_bankCode').value = selectedBank.code;
+            } else {
+                document.getElementById('p_bankCode').value = '';
+            }
+        };
+        
+    } catch (err) {
+        console.error('Error loading banks:', err);
+        const bankSelect = document.getElementById('p_bankName');
+        bankSelect.innerHTML = '<option value="">Error loading banks. Please refresh.</option>';
+    }
+}
+
+// Verify account number
+document.getElementById('p_accountNumber')?.addEventListener('blur', async function() {
+    const accountNumber = this.value.trim();
+    const bankCode = document.getElementById('p_bankCode').value;
+    
+    if (!accountNumber || accountNumber.length < 10 || !bankCode || !selectedGateway) {
+        return;
+    }
+    
+    const messageEl = document.getElementById('p_accountName_error');
+    const accountNameField = document.getElementById('p_accountName');
+    
+    messageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying account...';
+    messageEl.classList.add('show');
+    
+    try {
+        const response = await fetch(`/api/verify-account/${selectedGateway}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                account_number: accountNumber, 
+                bank_code: bankCode 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.account_name) {
+            accountNameField.value = data.account_name;
+            messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified!</span>';
+            setTimeout(() => messageEl.classList.remove('show'), 3000);
+        } else {
+            accountNameField.value = '';
+            messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed. Check account number.</span>';
+        }
+    } catch (err) {
+        console.error('Verification error:', err);
+        messageEl.innerHTML = '<span style="color: var(--danger);">Error verifying account. Please try again.</span>';
+    }
+});
+
+// Create subaccount when uploading product
+async function createSubaccount() {
+    if (!selectedGateway) {
+        console.log('No gateway selected');
+        return null;
+    }
+    
+    const bankCode = document.getElementById('p_bankCode').value;
+    const accountNumber = document.getElementById('p_accountNumber').value;
+    const businessName = document.getElementById('p_businessName').value;
+    const businessEmail = document.getElementById('p_businessEmail').value;
+    const businessPhone = document.getElementById('p_businessPhone').value;
+    const country = document.getElementById('p_country').value;
+    
+    if (!bankCode || !accountNumber || !businessName) {
+        console.log('Missing bank details');
+        return null;
+    }
+    
+    try {
+        const endpoint = selectedGateway === 'flutterwave' 
+            ? '/api/flutterwave/create-subaccount' 
+            : '/api/paystack/create-subaccount';
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                bank_code: bankCode,
+                account_number: accountNumber,
+                business_name: businessName,
+                business_email: businessEmail,
+                business_mobile: businessPhone,
+                country: country
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Subaccount created:', data.subaccount_id || data.subaccount_code);
+            
+            // Show success message
+            const statusDiv = document.getElementById('subaccountStatus');
+            const statusText = document.getElementById('subaccountStatusText');
+            statusText.innerHTML = `✓ Auto-split active! 90% of payments will go to ${businessName} (${accountNumber})`;
+            statusDiv.style.display = 'block';
+            
+            return data;
+        } else {
+            console.error('Subaccount creation failed:', data.error);
+            return null;
+        }
+    } catch (err) {
+        console.error('Subaccount error:', err);
+        return null;
+    }
+}
+
+// Check if user already has subaccount
+async function checkExistingSubaccount() {
+    if (!selectedGateway) return;
+    
+    try {
+        const endpoint = selectedGateway === 'flutterwave' 
+            ? '/api/flutterwave/subaccount-status' 
+            : '/api/paystack/subaccount-status';
+        
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        
+        if (data.has_subaccount) {
+            const statusDiv = document.getElementById('subaccountStatus');
+            const statusText = document.getElementById('subaccountStatusText');
+            statusText.innerHTML = `✓ Auto-split already active! You'll receive 90% of payments automatically.`;
+            statusDiv.style.display = 'block';
+            
+            // Disable bank fields if already set up
+            document.getElementById('p_bankName').disabled = true;
+            document.getElementById('p_accountNumber').disabled = true;
+            document.getElementById('p_accountName').readOnly = true;
+        }
+    } catch (err) {
+        console.log('No existing subaccount found');
+    }
+}
+
+// Override the upload button to include subaccount creation
+const originalUploadHandler = document.getElementById('uploadProductBtn')?.onclick;
+if (originalUploadHandler) {
+    document.getElementById('uploadProductBtn').onclick = async (e) => {
+        e.preventDefault();
+        
+        // First create subaccount if needed
+        const subaccountResult = await createSubaccount();
+        
+        if (subaccountResult || !selectedGateway) {
+            // Call original upload handler
+            if (originalUploadHandler) originalUploadHandler(e);
+        } else if (selectedGateway && !subaccountResult) {
+            showToast('Please verify your bank account details first', 'warning');
+        }
+    };
+}
 // ================= UPDATED DASHBOARD FUNCTIONS =================
 
 // Load pending refunds for seller dashboard

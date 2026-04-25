@@ -8701,7 +8701,119 @@ app.get("/api/debug/flutterwave", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ============================================
+// FLUTTERWAVE INTERNATIONAL BANKS
+// ============================================
 
+app.get("/api/banks/flutterwave/:country", async (req, res) => {
+    try {
+        const country = req.params.country;
+        
+        // Map country codes to Flutterwave's required format
+        const countryMap = {
+            'NG': 'NG',
+            'KE': 'KE', 
+            'GH': 'GH',
+            'ZA': 'ZA',
+            'UG': 'UG',
+            'TZ': 'TZ',
+            'RW': 'RW',
+            'US': 'US',
+            'GB': 'GB',
+            'CA': 'CA'
+        };
+        
+        const countryCode = countryMap[country] || country;
+        
+        const response = await axios.get(
+            `https://api.flutterwave.com/v3/banks/${countryCode}`,
+            {
+                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+            }
+        );
+        
+        res.json(response.data.data);
+        
+    } catch (err) {
+        console.error("Error fetching banks:", err);
+        
+        // Return fallback banks for common countries
+        const fallbackBanks = {
+            'US': [
+                { code: '021000021', name: 'Chase Bank' },
+                { code: '026009593', name: 'Bank of America' },
+                { code: '121000358', name: 'Wells Fargo' }
+            ],
+            'GB': [
+                { code: '40-00-00', name: 'Barclays' },
+                { code: '60-00-00', name: 'NatWest' },
+                { code: '20-00-00', name: 'HSBC UK' }
+            ]
+        };
+        
+        res.json(fallbackBanks[country] || []);
+    }
+});
+
+// Verify international account (Flutterwave)
+app.post("/api/verify-account/flutterwave/:country", async (req, res) => {
+    try {
+        const { account_number, bank_code } = req.body;
+        const country = req.params.country;
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/accounts/resolve',
+            {
+                account_number: account_number,
+                account_bank: bank_code,
+                country: country
+            },
+            {
+                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+            }
+        );
+        
+        if (response.data.status === 'success') {
+            res.json({
+                status: 'success',
+                account_name: response.data.data.account_name
+            });
+        } else {
+            res.json({ status: 'error', message: response.data.message });
+        }
+        
+    } catch (err) {
+        console.error("Account verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify Nigerian account (Paystack)
+app.post("/api/verify-account/paystack", async (req, res) => {
+    try {
+        const { account_number, bank_code } = req.body;
+        
+        const response = await axios.get(
+            `https://api.paystack.co/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`,
+            {
+                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+            }
+        );
+        
+        if (response.data.status === true) {
+            res.json({
+                status: 'success',
+                account_name: response.data.data.account_name
+            });
+        } else {
+            res.json({ status: 'error', message: response.data.message });
+        }
+        
+    } catch (err) {
+        console.error("Paystack verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // BUY DIGITAL PRODUCT - AUTO CURRENCY CONVERSION
 // ============================================

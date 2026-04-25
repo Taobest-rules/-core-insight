@@ -3606,92 +3606,63 @@
     <!-- In your existing products.html, find this section (around line 700-800) -->
 <!-- REPLACE the current "Payment Account Setup" section with this: -->
 
-<!-- Payment Account Setup with Subaccount (Auto 90/10 Split) -->
+<!-- Payment Account Setup - Simplified for Paystack & Flutterwave -->
 <div class="payment-provider-section">
     <div class="payment-provider-header">
         <i class="fas fa-credit-card"></i>
         <h4>Payment Account Setup (Auto 90/10 Split)</h4>
     </div>
     
-    <p style="color: var(--text-gray); margin-bottom: 20px; line-height: 1.6;">
-        <i class="fas fa-info-circle"></i> 
-        Set up your bank account to receive <strong>90% of payments automatically</strong>. 
-        The platform automatically takes 10% before sending you your share.
+    <p style="color: var(--text-gray); margin-bottom: 20px;">
+        Choose how you want to receive your 90% share. Both options automatically split payments.
     </p>
     
-    <!-- Payment Gateway Selection -->
-    <div class="provider-options" style="margin-bottom: 20px;">
+    <!-- Two clear options side by side -->
+    <div class="provider-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        
+        <!-- Flutterwave Option -->
         <div class="provider-option" data-provider="flutterwave" onclick="selectPaymentGateway('flutterwave')">
-            <i class="fas fa-globe"></i>
-            <h5>Flutterwave</h5>
-            <p>Global coverage, supports multiple currencies</p>
-            <small style="color: var(--success);">✓ 90% to you, 10% platform fee</small>
+            <i class="fas fa-globe" style="font-size: 32px; color: var(--accent);"></i>
+            <h5 style="margin: 10px 0 5px;">Flutterwave</h5>
+            <p style="font-size: 12px;">🌍 International sellers (USA, UK, Europe, Africa)</p>
+            <p style="font-size: 11px; color: var(--success);">✓ Receive in USD, GBP, EUR</p>
+            <p style="font-size: 11px; color: var(--success);">✓ Best for international sellers</p>
         </div>
         
+        <!-- Paystack Option -->
         <div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
-            <i class="fas fa-map-marker-alt"></i>
-            <h5>Paystack</h5>
-            <p>African markets focus, local payment methods</p>
-            <small style="color: var(--success);">✓ 90% to you, 10% platform fee</small>
+            <i class="fas fa-map-marker-alt" style="font-size: 32px; color: var(--success);"></i>
+            <h5 style="margin: 10px 0 5px;">Paystack</h5>
+            <p style="font-size: 12px;">🇳🇬 Nigerian sellers only</p>
+            <p style="font-size: 11px; color: var(--success);">✓ Receive in NGN</p>
+            <p style="font-size: 11px; color: var(--success);">✓ Direct to Nigerian banks</p>
         </div>
     </div>
     
     <input type="hidden" id="p_paymentProvider" value="" />
-    <div id="p_paymentProvider_error" class="form-error"></div>
     
-    <!-- Bank Account Details Form (shown after gateway selection) -->
+    <!-- Country Selection (for international sellers) -->
+    <div id="countrySection" style="display: none; margin-bottom: 20px;">
+        <label class="form-label">Your Country <span class="required">*</span></label>
+        <select id="sellerCountry" class="form-select">
+            <option value="">Select your country</option>
+            <option value="USA">🇺🇸 United States</option>
+            <option value="UK">🇬🇧 United Kingdom</option>
+            <option value="Nigeria">🇳🇬 Nigeria</option>
+            <option value="Kenya">🇰🇪 Kenya</option>
+            <option value="Ghana">🇬🇭 Ghana</option>
+            <option value="South Africa">🇿🇦 South Africa</option>
+            <option value="Canada">🇨🇦 Canada</option>
+            <option value="Germany">🇩🇪 Germany</option>
+            <option value="France">🇫🇷 France</option>
+            <option value="Other">🌍 Other Country</option>
+        </select>
+        <span class="form-help">Flutterwave supports payouts to most countries</span>
+    </div>
+    
+    <!-- Bank Details Section (dynamic) -->
     <div id="bankDetailsSection" style="display: none;">
-        <div class="form-section-header" style="margin-bottom: 16px;">
-            <i class="fas fa-university"></i>
-            <h4>Bank Account Details</h4>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label">Select Bank <span class="required">*</span></label>
-                <select id="p_bankName" class="form-select" required>
-                    <option value="">Select your bank</option>
-                </select>
-                <div id="p_bankName_error" class="form-error"></div>
-                <span class="form-help">Choose the bank where you want to receive payments</span>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Bank Code <span class="required">*</span></label>
-                <input type="text" id="p_bankCode" class="form-input" placeholder="e.g. 011, 021, 058" readonly />
-                <div id="p_bankCode_error" class="form-error"></div>
-                <span class="form-help">Auto-filled when you select your bank</span>
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label">Account Number <span class="required">*</span></label>
-                <input type="text" id="p_accountNumber" class="form-input" placeholder="e.g. 0123456789" required />
-                <div id="p_accountNumber_error" class="form-error"></div>
-                <span class="form-help">Enter your 10-digit account number</span>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Account Holder Name <span class="required">*</span></label>
-                <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
-                <div id="p_accountName_error" class="form-error"></div>
-                <span class="form-help">We'll verify this matches your bank records</span>
-            </div>
-        </div>
-        
-        <!-- Subaccount Status Display -->
-        <div id="subaccountStatus" style="display: none;" class="commission-card">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <i class="fas fa-check-circle" style="color: var(--success); font-size: 24px;"></i>
-                <div>
-                    <strong style="color: var(--success);">Auto-split Active!</strong>
-                    <p style="margin: 4px 0 0 0; font-size: 13px;" id="subaccountStatusText">
-                        Your payments will be automatically split: 90% to your bank, 10% platform fee.
-                    </p>
-                </div>
-            </div>
-        </div>
+        <!-- Content loaded dynamically -->
     </div>
     
     <!-- Commission Info Card -->
@@ -3704,11 +3675,11 @@
             </div>
             <div class="commission-item">
                 <i class="fas fa-wallet"></i>
-                <span><strong>You Receive:</strong> 90% directly to your bank account</span>
+                <span><strong>You Receive:</strong> 90% directly to your account</span>
             </div>
             <div class="commission-item">
-                <i class="fas fa-bolt"></i>
-                <span><strong>Settlement:</strong> 3-5 business days after delivery confirmation</span>
+                <i class="fas fa-clock"></i>
+                <span><strong>Settlement:</strong> 3-5 business days after delivery</span>
             </div>
         </div>
     </div>
@@ -6148,11 +6119,10 @@ window.requestRefund = requestRefund;
 window.checkRefundStatus = checkRefundStatus;
 
 // ==================== SUBACCOUNT FUNCTIONS ====================
+// ==================== SIMPLIFIED GATEWAY SELECTION ====================
 
 let selectedGateway = null;
-let banksList = [];
 
-// Select payment gateway
 function selectPaymentGateway(gateway) {
     selectedGateway = gateway;
     document.getElementById('p_paymentProvider').value = gateway;
@@ -6163,93 +6133,244 @@ function selectPaymentGateway(gateway) {
     });
     document.querySelector(`.provider-option[data-provider="${gateway}"]`).classList.add('selected');
     
-    // Show bank details section
-    document.getElementById('bankDetailsSection').style.display = 'block';
+    // Show country selection for Flutterwave
+    const countrySection = document.getElementById('countrySection');
+    if (gateway === 'flutterwave') {
+        countrySection.style.display = 'block';
+    } else {
+        countrySection.style.display = 'none';
+    }
     
-    // Load banks for selected gateway
-    loadBanks(gateway);
+    // Load appropriate form
+    loadBankForm(gateway);
 }
 
-// Load banks from API
-async function loadBanks(gateway) {
-    try {
-        const bankSelect = document.getElementById('p_bankName');
-        bankSelect.innerHTML = '<option value="">Loading banks...</option>';
-        bankSelect.disabled = true;
+function loadBankForm(gateway) {
+    const detailsSection = document.getElementById('bankDetailsSection');
+    
+    if (gateway === 'paystack') {
+        // Paystack: Nigerian banks only
+        detailsSection.innerHTML = `
+            <div class="form-section-header" style="margin-bottom: 16px;">
+                <i class="fas fa-university"></i>
+                <h4>Nigerian Bank Account Details</h4>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Bank Name <span class="required">*</span></label>
+                    <select id="p_bankName" class="form-select" required>
+                        <option value="">Loading Nigerian banks...</option>
+                    </select>
+                    <div id="p_bankName_error" class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bank Code</label>
+                    <input type="text" id="p_bankCode" class="form-input" readonly />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Account Number <span class="required">*</span></label>
+                    <input type="text" id="p_accountNumber" class="form-input" placeholder="10-digit account number" required />
+                    <div id="p_accountNumber_error" class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account Holder Name</label>
+                    <input type="text" id="p_accountName" class="form-input" readonly />
+                </div>
+            </div>
+            <div class="commission-card" style="margin-top: 16px;">
+                <p style="margin: 0; font-size: 12px;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Nigerian sellers only.</strong> Your 90% will be sent to this Nigerian bank account.
+                </p>
+            </div>
+        `;
         
-        const response = await fetch(`/api/banks/${gateway}`);
+        // Load Nigerian banks
+        loadPaystackBanks();
+        
+    } else if (gateway === 'flutterwave') {
+        // Flutterwave: International + African banks
+        detailsSection.innerHTML = `
+            <div class="form-section-header" style="margin-bottom: 16px;">
+                <i class="fas fa-globe"></i>
+                <h4>International Bank Account Details</h4>
+            </div>
+            <div id="flutterwaveBankForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Select Bank Country <span class="required">*</span></label>
+                        <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+                            <option value="">Select country</option>
+                            <option value="NG">🇳🇬 Nigeria</option>
+                            <option value="KE">🇰🇪 Kenya</option>
+                            <option value="GH">🇬🇭 Ghana</option>
+                            <option value="ZA">🇿🇦 South Africa</option>
+                            <option value="UG">🇺🇬 Uganda</option>
+                            <option value="TZ">🇹🇿 Tanzania</option>
+                            <option value="RW">🇷🇼 Rwanda</option>
+                            <option value="US">🇺🇸 United States</option>
+                            <option value="GB">🇬🇧 United Kingdom</option>
+                            <option value="CA">🇨🇦 Canada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Bank Name <span class="required">*</span></label>
+                        <select id="p_bankName" class="form-select" required>
+                            <option value="">Select bank country first</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Bank Code</label>
+                        <input type="text" id="p_bankCode" class="form-input" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Account Number <span class="required">*</span></label>
+                        <input type="text" id="p_accountNumber" class="form-input" placeholder="Your account number" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Account Holder Name</label>
+                        <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Currency</label>
+                        <select id="payoutCurrency" class="form-select">
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="NGN">NGN - Nigerian Naira</option>
+                            <option value="KES">KES - Kenyan Shilling</option>
+                            <option value="GHS">GHS - Ghanaian Cedi</option>
+                            <option value="ZAR">ZAR - South African Rand</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="commission-card" style="margin-top: 16px;">
+                <p style="margin: 0; font-size: 12px;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>International sellers welcome!</strong> Flutterwave supports payouts to banks worldwide.
+                    Your 90% will be sent in your chosen currency.
+                </p>
+            </div>
+        `;
+    }
+    
+    detailsSection.style.display = 'block';
+    
+    // Add account verification listeners
+    setupAccountVerification();
+}
+
+// Load Nigerian banks for Paystack
+async function loadPaystackBanks() {
+    try {
+        const response = await fetch('/api/banks/paystack');
         const banks = await response.json();
-        banksList = banks;
         
-        bankSelect.innerHTML = '<option value="">Select your bank</option>';
-        
-        banks.forEach(bank => {
-            const option = document.createElement('option');
-            option.value = bank.code;
-            option.textContent = bank.name;
-            bankSelect.appendChild(option);
-        });
-        
-        bankSelect.disabled = false;
-        
-        // Add event listener for bank selection
-        bankSelect.onchange = function() {
-            const selectedBank = banks.find(b => b.code === this.value);
-            if (selectedBank) {
-                document.getElementById('p_bankCode').value = selectedBank.code;
-            } else {
-                document.getElementById('p_bankCode').value = '';
-            }
-        };
-        
-    } catch (err) {
-        console.error('Error loading banks:', err);
         const bankSelect = document.getElementById('p_bankName');
-        bankSelect.innerHTML = '<option value="">Error loading banks. Please refresh.</option>';
-    }
-}
-
-// Verify account number
-document.getElementById('p_accountNumber')?.addEventListener('blur', async function() {
-    const accountNumber = this.value.trim();
-    const bankCode = document.getElementById('p_bankCode').value;
-    
-    if (!accountNumber || accountNumber.length < 10 || !bankCode || !selectedGateway) {
-        return;
-    }
-    
-    const messageEl = document.getElementById('p_accountName_error');
-    const accountNameField = document.getElementById('p_accountName');
-    
-    messageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying account...';
-    messageEl.classList.add('show');
-    
-    try {
-        const response = await fetch(`/api/verify-account/${selectedGateway}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                account_number: accountNumber, 
-                bank_code: bankCode 
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.account_name) {
-            accountNameField.value = data.account_name;
-            messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified!</span>';
-            setTimeout(() => messageEl.classList.remove('show'), 3000);
-        } else {
-            accountNameField.value = '';
-            messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed. Check account number.</span>';
+        if (bankSelect) {
+            bankSelect.innerHTML = '<option value="">Select your bank</option>';
+            banks.forEach(bank => {
+                const option = document.createElement('option');
+                option.value = bank.code;
+                option.textContent = bank.name;
+                bankSelect.appendChild(option);
+            });
+            
+            bankSelect.onchange = function() {
+                document.getElementById('p_bankCode').value = this.value;
+            };
         }
     } catch (err) {
-        console.error('Verification error:', err);
-        messageEl.innerHTML = '<span style="color: var(--danger);">Error verifying account. Please try again.</span>';
+        console.error('Error loading Paystack banks:', err);
     }
-});
+}
 
+// Load banks for Flutterwave based on country
+async function loadFlutterwaveBanks() {
+    const country = document.getElementById('bankCountry').value;
+    if (!country) return;
+    
+    try {
+        const response = await fetch(`/api/banks/flutterwave/${country}`);
+        const banks = await response.json();
+        
+        const bankSelect = document.getElementById('p_bankName');
+        if (bankSelect) {
+            bankSelect.innerHTML = '<option value="">Select your bank</option>';
+            banks.forEach(bank => {
+                const option = document.createElement('option');
+                option.value = bank.code;
+                option.textContent = bank.name;
+                bankSelect.appendChild(option);
+            });
+            
+            bankSelect.onchange = function() {
+                document.getElementById('p_bankCode').value = this.value;
+            };
+        }
+    } catch (err) {
+        console.error('Error loading Flutterwave banks:', err);
+        document.getElementById('p_bankName').innerHTML = '<option value="">Error loading banks</option>';
+    }
+}
+
+// Setup account verification
+function setupAccountVerification() {
+    const accountNumberInput = document.getElementById('p_accountNumber');
+    if (accountNumberInput) {
+        accountNumberInput.addEventListener('blur', async function() {
+            const accountNumber = this.value.trim();
+            const bankCode = document.getElementById('p_bankCode')?.value;
+            const gateway = selectedGateway;
+            
+            if (!accountNumber || !bankCode || accountNumber.length < 8) return;
+            
+            const messageEl = document.getElementById('p_accountNumber_error');
+            messageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying account...';
+            messageEl.classList.add('show');
+            
+            try {
+                let endpoint = '';
+                if (gateway === 'paystack') {
+                    endpoint = '/api/verify-account/paystack';
+                } else {
+                    const country = document.getElementById('bankCountry')?.value;
+                    endpoint = `/api/verify-account/flutterwave/${country}`;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        account_number: accountNumber, 
+                        bank_code: bankCode 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.account_name) {
+                    document.getElementById('p_accountName').value = data.account_name;
+                    messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified!</span>';
+                    setTimeout(() => messageEl.classList.remove('show'), 3000);
+                } else {
+                    document.getElementById('p_accountName').value = '';
+                    messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed</span>';
+                }
+            } catch (err) {
+                console.error('Verification error:', err);
+                messageEl.innerHTML = '<span style="color: var(--danger);">Error verifying account</span>';
+            }
+        });
+    }
+}
 // Create subaccount when uploading product
 async function createSubaccount() {
     if (!selectedGateway) {

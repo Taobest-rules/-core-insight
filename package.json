@@ -15,7 +15,7 @@
   "dependencies": {
     "@getbrevo/brevo": "^5.0.1",
     "@sendgrid/mail": "^8.1.6",
-    "axios": "^1.15.1",
+    "axios": "^1.15.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.4",
     "cheerio": "^1.2.0",
@@ -28,6 +28,7 @@
     "express-session": "^1.19.0",
     "flutterwave-node-v3": "^1.0.11",
     "form-data": "^4.0.5",
+    "imgbb-image-uploader": "^1.0.6",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.17.1",

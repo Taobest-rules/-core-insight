@@ -30,8 +30,9 @@ const {
   uploadMultipleProducts,
   uploadCourseFile,
   uploadCertificate,
-  uploadToMegaAndCleanup,
-  uploadMultipleToMega
+  uploadImageToImgbb,
+  uploadMultipleImagesToImgbb,
+  uploadFileToMega
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");
@@ -1833,11 +1834,11 @@ function sendFile(res, filePath, title) {
   });
 }
 
-const megaService = require('./services/mega.service');
+const { uploadCourse, uploadToMega, uploadToImgbb } = require('./mega-storage');
 
 app.post("/api/courses", uploadCourse, async (req, res) => {
   try {
-    console.log('📚 Course upload started with MEGA...');
+    console.log('📚 Course upload started with MEGA + ImgBB...');
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login to upload courses" });
@@ -1860,25 +1861,14 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
     // Upload course file to MEGA
     const courseFile = req.files.file[0];
     const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const uploadResult = await megaService.uploadFile(courseFile.path, courseFile.originalname, folderName);
+    const fileUpload = await uploadToMega(courseFile.path, courseFile.originalname, folderName);
     
-    // Handle thumbnail (store locally for now - we'll add Imgur later)
+    // Upload thumbnail to ImgBB
     const thumbnailFile = req.files.thumbnail[0];
-    const thumbnailDir = path.join(__dirname, 'uploads/thumbnails');
-    if (!fs.existsSync(thumbnailDir)) {
-      fs.mkdirSync(thumbnailDir, { recursive: true });
-    }
-    const thumbnailFilename = `${Date.now()}-${thumbnailFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
-    fs.copyFileSync(thumbnailFile.path, thumbnailPath);
-    const thumbnailUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+    const thumbnailUpload = await uploadToImgbb(thumbnailFile.path, thumbnailFile.originalname);
     
-    // Clean up temp thumbnail
-    try {
-      fs.unlinkSync(thumbnailFile.path);
-    } catch (err) {
-      console.log('Could not delete temp thumbnail:', err.message);
-    }
+    console.log(`✅ File uploaded to MEGA: ${fileUpload.url}`);
+    console.log(`✅ Thumbnail uploaded to ImgBB: ${thumbnailUpload.url}`);
 
     // Store in database
     const result = await db.query(
@@ -1889,8 +1879,8 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       [
         title.trim(),
         description ? description.trim() : '',
-        uploadResult.url, // Store MEGA path
-        thumbnailUrl,
+        fileUpload.url,
+        thumbnailUpload.url,
         parseFloat(price) || 0,
         (parseFloat(price) > 0) ? 'paid' : 'free',
         req.session.user.id,
@@ -1900,10 +1890,10 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
     );
 
     res.json({
-      message: "✅ Course uploaded successfully to MEGA!",
+      message: "✅ Course uploaded successfully!",
       courseId: result.insertId,
-      file_url: uploadResult.url,
-      thumbnail_url: thumbnailUrl,
+      file_url: fileUpload.url,
+      thumbnail_url: thumbnailUpload.url,
       download_url: `/api/download/${result.insertId}`
     });
 
@@ -3764,6 +3754,51 @@ app.get("/api/user/delete-count", async (req, res) => {
         res.json({ todayCount: 0 });
     }
 });
+const { uploadProfilePicture, uploadImageToImgbb } = require('./mega-storage');
+
+app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to upload picture" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Upload to ImgBB
+    const imageUrl = await uploadImageToImgbb(req.file.path, req.file.originalname);
+    console.log(`✅ Profile picture uploaded to ImgBB: ${imageUrl}`);
+
+    // Check if profile exists
+    const profileCheck = await db.query(
+      "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
+      [req.session.user.id]
+    );
+    
+    if (profileCheck && profileCheck.length > 0) {
+      await db.query(
+        "UPDATE freelancer_profiles SET profile_picture_url = ?, updated_at = NOW() WHERE user_id = ?",
+        [imageUrl, req.session.user.id]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO freelancer_profiles (user_id, profile_picture_url, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
+        [req.session.user.id, imageUrl]
+      );
+    }
+    
+    res.json({
+      success: true,
+      message: "Profile picture updated successfully",
+      profile_picture: imageUrl
+    });
+    
+  } catch (err) {
+    console.error("❌ Error uploading profile picture:", err);
+    res.status(500).json({ error: "Error uploading profile picture: " + err.message });
+  }
+});
 // ============================================
 // FLAGGING SYSTEM - COURSE FLAGGING ENDPOINTS
 // ============================================
@@ -4860,8 +4895,9 @@ app.post("/api/messages/send", async (req, res) => {
   }
 });
 
-// Send message with image
-app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async (req, res) => {
+const { uploadChatImage, uploadImageToImgbb } = require('./mega-storage');
+
+app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Login required" });
@@ -4871,22 +4907,13 @@ app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async
       return res.status(400).json({ error: "Missing conversation ID" });
     }
 
-    console.log(`Sending message with image to conversation ${conversation_id} from user ${user.id}`);
-
-    // Check if user has access to this conversation
+    // Check access
     const convResult = await db.query(
       `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
       [conversation_id]
     );
 
-    const conversations = extractRows(convResult);
-    const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
-
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found" });
-    }
-
-    // Check if user is either client or freelancer
+    const conversation = convResult[0];
     const isClient = parseInt(conversation.client_id) === parseInt(user.id);
     const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
     
@@ -4894,31 +4921,26 @@ app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async
       return res.status(403).json({ error: "Access denied" });
     }
 
-    // Build message content
     let messageContent = message || '';
     let imageUrl = null;
     
     if (req.file) {
-      imageUrl = `/uploads/chat-images/${req.file.filename}`;
+      // Upload chat image to ImgBB
+      const uploadResult = await uploadImageToImgbb(req.file.path, req.file.originalname);
+      imageUrl = uploadResult;
       if (!messageContent) {
         messageContent = '📷 Sent an image';
       }
     }
 
-    // Insert message with image_url
-    const insertResult = await db.query(
+    const result = await db.query(
       `INSERT INTO messages (conversation_id, sender_id, message, image_url, created_at, is_read)
        VALUES (?, ?, ?, ?, NOW(), 0)`,
       [conversation_id, user.id, messageContent, imageUrl]
     );
 
-    const messageId = extractInsertId(insertResult);
+    const messageId = result.insertId;
 
-    if (!messageId) {
-      return res.status(500).json({ error: "Failed to insert message" });
-    }
-
-    // Get the inserted message with sender info
     const messageResult = await db.query(
       `SELECT m.*, u.username AS sender_name 
        FROM messages m 
@@ -4927,12 +4949,9 @@ app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async
       [messageId]
     );
 
-    const messages = extractRows(messageResult);
-    const newMessage = messages && messages.length > 0 ? messages[0] : null;
-
     res.status(200).json({ 
       success: true, 
-      data: newMessage 
+      data: messageResult[0] 
     });
     
   } catch (err) {
@@ -4940,7 +4959,60 @@ app.post("/api/messages/send-with-image", chatImageUpload.single('image'), async
     res.status(500).json({ error: err.message });
   }
 });
+const { uploadCertificate, uploadMultipleImagesToImgbb } = require('./mega-storage');
 
+app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to upload certificates" });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Upload to ImgBB
+    const certificateUrls = await uploadMultipleImagesToImgbb(req.files);
+    console.log(`✅ Uploaded ${certificateUrls.length} certificates to ImgBB`);
+
+    // Get current certificate URLs
+    const currentProfile = await db.query(
+      "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
+      [req.session.user.id]
+    );
+
+    let currentCertificates = [];
+    if (currentProfile && currentProfile.length > 0 && currentProfile[0].certificate_image_urls) {
+      try {
+        currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
+      } catch (e) {
+        currentCertificates = [];
+      }
+    }
+
+    // Limit to 5 certificates total
+    const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
+    
+    await db.query(`
+      UPDATE freelancer_profiles 
+      SET certificate_image_urls = ?, updated_at = NOW() 
+      WHERE user_id = ?
+    `, [JSON.stringify(updatedCertificates), req.session.user.id]);
+
+    res.json({ 
+      success: true,
+      message: `${certificateUrls.length} certificate(s) uploaded successfully`,
+      certificate_images: updatedCertificates
+    });
+    
+  } catch (err) {
+    console.error('❌ Error uploading certificates:', err);
+    res.status(500).json({ 
+      success: false,
+      error: "Error uploading certificate images: " + err.message 
+    });
+  }
+});
 // Get messages for a conversation - FIXED to always return array
 app.get("/api/messages/:conversationId", async (req, res) => {
   try {
@@ -12186,7 +12258,7 @@ const { uploadProduct } = require('./mega-storage');
 
 app.post("/api/upload-product", uploadProduct, async (req, res) => {
   try {
-    console.log("📤 Product upload request received with MEGA...");
+    console.log("📤 Product upload started with ImgBB + MEGA...");
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please log in to upload products." });
@@ -12199,6 +12271,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       accountNumber, accountName
     } = req.body;
 
+    // Validation
     if (!title || !price || !type || !paymentProvider) {
       return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
     }
@@ -12219,36 +12292,20 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       sellerPrice = listedPrice - platformFee;
     }
 
-    // Handle images (store locally for now - we'll add Imgur later)
+    // Upload product images to ImgBB
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
-      const imagesDir = path.join(__dirname, 'uploads/products');
-      if (!fs.existsSync(imagesDir)) {
-        fs.mkdirSync(imagesDir, { recursive: true });
-      }
-      
-      for (const imageFile of req.files['images[]']) {
-        const imageFilename = `${Date.now()}-${imageFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const imagePath = path.join(imagesDir, imageFilename);
-        fs.copyFileSync(imageFile.path, imagePath);
-        imageUrls.push(`/uploads/products/${imageFilename}`);
-        
-        // Clean up temp file
-        try {
-          fs.unlinkSync(imageFile.path);
-        } catch (err) {
-          console.log('Could not delete temp image:', err.message);
-        }
-      }
+      imageUrls = await uploadMultipleImagesToImgbb(req.files['images[]']);
+      console.log(`✅ ${imageUrls.length} images uploaded to ImgBB`);
     }
 
-    // Handle digital product file upload to MEGA
+    // Upload digital product file to MEGA
     let fileUrl = null;
     if (type === 'digital' && req.files?.file?.[0]) {
       const productFile = req.files.file[0];
       const folderName = `/products/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      const uploadResult = await megaService.uploadFile(productFile.path, productFile.originalname, folderName);
-      fileUrl = uploadResult.url;
+      fileUrl = await uploadFileToMega(productFile.path, productFile.originalname, folderName);
+      console.log(`✅ Digital file uploaded to MEGA: ${fileUrl}`);
     }
 
     // Insert product into database
@@ -12261,9 +12318,19 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
         status, sales_count, favorite_count, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        req.session.user.id, title, description || '', sellerPrice, originalPrice, platformFee, productCostValue,
-        category || '', type || 'digital', fileUrl, imageUrls.length ? JSON.stringify(imageUrls) : null, 
-        affiliate_link || null, paymentProvider,
+        req.session.user.id, 
+        title.trim(), 
+        description || '', 
+        sellerPrice, 
+        originalPrice, 
+        platformFee, 
+        productCostValue,
+        category || '', 
+        type, 
+        fileUrl, 
+        imageUrls.length ? JSON.stringify(imageUrls) : null, 
+        affiliate_link || null, 
+        paymentProvider,
         type === 'physical' ? (delivery_type || 'delivery') : null,
         type === 'physical' ? (delivery_locations || 'Worldwide') : null,
         type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
@@ -12274,7 +12341,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
 
     const productId = result.insertId;
     
-    // Store business info
+    // Store business info for seller payouts
     if (businessName && accountNumber) {
       try {
         await db.query(
@@ -12299,7 +12366,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     console.log(`✅ Product uploaded! ID: ${productId}`);
     
     res.json({ 
-      message: "✅ Product uploaded successfully to MEGA!", 
+      message: "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,
       pricing: {

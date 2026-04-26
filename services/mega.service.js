@@ -1,135 +1,128 @@
-﻿const fs = require('fs');
+﻿const multer = require('multer');
 const path = require('path');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+const fs = require('fs');
+const megaService = require('./services/mega.service');
+const imgbbService = require('./services/imgbb.service');
 
-class MegaService {
-  constructor() {
-    this.rcloneAvailable = false;
-    this.rclonePath = 'C:\\Windows\\rclone.exe';
-    this.remoteName = process.env.MEGA_REMOTE_NAME || 'mega';
-  }
-
-  async checkRclone() {
-    try {
-      if (!fs.existsSync(this.rclonePath)) {
-        console.log(`⚠️ rclone not found at ${this.rclonePath}`);
-        this.rcloneAvailable = false;
-        return false;
-      }
-      
-      await execPromise(`"${this.rclonePath}" --version`);
-      this.rcloneAvailable = true;
-      console.log('✅ rclone is available for MEGA uploads');
-      return true;
-    } catch (error) {
-      this.rcloneAvailable = false;
-      console.log('⚠️ rclone not available. Using local fallback.');
-      return false;
-    }
-  }
-
-  async uploadFile(filePath, filename, folder = '/courses') {
-    try {
-      if (!this.rcloneAvailable) {
-        await this.checkRclone();
-      }
-      
-      if (this.rcloneAvailable) {
-        const cleanFolder = folder.replace(/^\//, '');
-        const remotePath = cleanFolder ? `${this.remoteName}:${cleanFolder}/${filename}` : `${this.remoteName}:${filename}`;
-        
-        console.log(`📤 Uploading to MEGA: ${remotePath}`);
-        
-        // Create folder if it doesn't exist
-        if (cleanFolder) {
-          try {
-            await execPromise(`"${this.rclonePath}" mkdir "${this.remoteName}:${cleanFolder}"`);
-          } catch (mkdirError) {
-            // Folder might already exist, ignore error
-          }
-        }
-        
-        // Upload the file
-        await execPromise(`"${this.rclonePath}" copy "${filePath}" "${remotePath}"`);
-        
-        // Clean up temp file
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          console.log('Could not delete temp file:', err.message);
-        }
-        
-        console.log(`✅ File uploaded to MEGA: ${filename}`);
-        
-        // Return the MEGA path (can be stored in database)
-        return {
-          url: remotePath,
-          filename: filename,
-          folder: folder
-        };
-      }
-      
-      // Fallback: Save locally
-      const uploadsDir = path.join(__dirname, '../uploads/mega');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      
-      let targetDir = uploadsDir;
-      if (folder && folder !== '/') {
-        const subFolder = folder.replace(/^\//, '').replace(/\//g, '-');
-        targetDir = path.join(uploadsDir, subFolder);
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-      }
-      
-      const safeFilename = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const localPath = path.join(targetDir, safeFilename);
-      fs.copyFileSync(filePath, localPath);
-      
-      // Clean up temp file
-      try {
-        fs.unlinkSync(filePath);
-      } catch (err) {
-        console.log('Could not delete temp file:', err.message);
-      }
-      
-      const relativePath = path.relative(path.join(__dirname, '..'), localPath).replace(/\\/g, '/');
-      const localUrl = `/${relativePath}`;
-      
-      console.log(`✅ File saved locally: ${localUrl}`);
-      return {
-        url: localUrl,
-        filename: filename,
-        folder: folder
-      };
-      
-    } catch (error) {
-      console.error('❌ Upload error:', error);
-      throw error;
-    }
-  }
-
-  async testConnection() {
-    try {
-      await this.checkRclone();
-      
-      if (this.rcloneAvailable) {
-        const { stdout } = await execPromise(`"${this.rclonePath}" ls ${this.remoteName}:`);
-        console.log('✅ MEGA connection successful!');
-        return true;
-      } else {
-        console.log('✅ Local storage ready');
-        return true;
-      }
-    } catch (error) {
-      console.error('❌ Connection test failed:', error.message);
-      return false;
-    }
-  }
+// Ensure temp directory exists
+const tempDir = path.join(__dirname, 'uploads/temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
 }
 
-module.exports = new MegaService();
+// Configure temporary storage
+const tempStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, tempDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000);
+    const ext = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+    cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+  }
+});
+
+const upload = multer({ 
+  storage: tempStorage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
+
+// ============ IMAGE UPLOAD FUNCTIONS (ImgBB) ============
+const uploadImageToImgbb = async (filePath, filename) => {
+  try {
+    const result = await imgbbService.uploadFile(filePath);
+    // Clean up temp file after successful upload
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      console.log('Could not delete temp file:', err.message);
+    }
+    return result.url;
+  } catch (error) {
+    console.error('ImgBB upload failed:', error);
+    throw error;
+  }
+};
+
+const uploadMultipleImagesToImgbb = async (files) => {
+  const urls = [];
+  for (const file of files) {
+    const url = await uploadImageToImgbb(file.path, file.originalname);
+    urls.push(url);
+  }
+  return urls;
+};
+
+// ============ FILE UPLOAD FUNCTIONS (MEGA) ============
+const uploadFileToMega = async (filePath, filename, folder = '/') => {
+  try {
+    const result = await megaService.uploadFile(filePath, filename, folder);
+    // Clean up temp file after successful upload
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      console.log('Could not delete temp file:', err.message);
+    }
+    return result.url;
+  } catch (error) {
+    console.error('MEGA upload failed:', error);
+    throw error;
+  }
+};
+
+// ============ MULTER CONFIGURATIONS ============
+
+// Course upload (file + thumbnail)
+const uploadCourse = upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'thumbnail', maxCount: 1 }
+]);
+
+// Product upload (file + multiple images)
+const uploadProduct = upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'images[]', maxCount: 10 }
+]);
+
+// Product images only
+const uploadProductImages = upload.array('images[]', 10);
+
+// Thumbnail only
+const uploadThumbnail = upload.single('thumbnail');
+
+// Profile picture
+const uploadProfilePicture = upload.single('profile_picture');
+
+// Chat image
+const uploadChatImage = upload.single('image');
+
+// Certificate images (multiple)
+const uploadCertificate = upload.array('certificate_images', 5);
+
+// Course file only
+const uploadCourseFile = upload.single('file');
+
+// Product file only
+const uploadProductFile = upload.single('file');
+
+// Multiple product images
+const uploadMultipleProducts = upload.array('images[]', 10);
+
+module.exports = {
+  upload,
+  uploadCourse,
+  uploadProduct,
+  uploadProductImages,
+  uploadThumbnail,
+  uploadProfilePicture,
+  uploadChatImage,
+  uploadCertificate,
+  uploadCourseFile,
+  uploadProductFile,
+  uploadMultipleProducts,
+  uploadImageToImgbb,
+  uploadMultipleImagesToImgbb,
+  uploadFileToMega
+};

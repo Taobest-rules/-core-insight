@@ -1834,8 +1834,6 @@ function sendFile(res, filePath, title) {
   });
 }
 
-const { uploadCourse, uploadToMega, uploadToImgbb } = require('./mega-storage');
-
 app.post("/api/courses", uploadCourse, async (req, res) => {
   try {
     console.log('📚 Course upload started with MEGA + ImgBB...');
@@ -3754,7 +3752,7 @@ app.get("/api/user/delete-count", async (req, res) => {
         res.json({ todayCount: 0 });
     }
 });
-const { uploadProfilePicture, uploadImageToImgbb } = require('./mega-storage');
+
 
 app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, res) => {
   try {
@@ -4895,7 +4893,6 @@ app.post("/api/messages/send", async (req, res) => {
   }
 });
 
-const { uploadChatImage, uploadImageToImgbb } = require('./mega-storage');
 
 app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
   try {
@@ -4959,7 +4956,6 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-const { uploadCertificate, uploadMultipleImagesToImgbb } = require('./mega-storage');
 
 app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, res) => {
   try {

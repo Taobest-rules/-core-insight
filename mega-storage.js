@@ -2,42 +2,18 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const megaService = require('./services/mega.service');
+const imgbbService = require('./services/imgbb.service');
 
-// Create temp upload directories
-const tempDirs = [
-  path.join(__dirname, 'uploads/temp/courses'),
-  path.join(__dirname, 'uploads/temp/products'),
-  path.join(__dirname, 'uploads/temp/profiles'),
-  path.join(__dirname, 'uploads/temp/chat'),
-  path.join(__dirname, 'uploads/temp/certificates')
-];
+// Ensure temp directory exists
+const tempDir = path.join(__dirname, 'uploads/temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
-tempDirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-// Temporary local storage (files will be uploaded to MEGA then deleted)
+// Configure temporary storage
 const tempStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadPath = path.join(__dirname, 'uploads/temp');
-    
-    if (file.fieldname === 'thumbnail' || file.fieldname === 'thumbnails') {
-      uploadPath = path.join(__dirname, 'uploads/temp/courses');
-    } else if (file.fieldname === 'file') {
-      uploadPath = path.join(__dirname, 'uploads/temp/courses');
-    } else if (file.fieldname === 'images[]' || file.fieldname === 'images') {
-      uploadPath = path.join(__dirname, 'uploads/temp/products');
-    } else if (file.fieldname === 'profile_picture') {
-      uploadPath = path.join(__dirname, 'uploads/temp/profiles');
-    } else if (file.fieldname === 'certificate_images') {
-      uploadPath = path.join(__dirname, 'uploads/temp/certificates');
-    } else if (file.fieldname === 'image') {
-      uploadPath = path.join(__dirname, 'uploads/temp/chat');
-    }
-    
-    cb(null, uploadPath);
+    cb(null, tempDir);
   },
   filename: (req, file, cb) => {
     const timestamp = Date.now();
@@ -48,77 +24,93 @@ const tempStorage = multer.diskStorage({
   }
 });
 
-// Create multer instances for different upload types
-const upload = multer({ storage: tempStorage });
+const upload = multer({ 
+  storage: tempStorage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
 
-// Course upload (thumbnail + file)
-const uploadCourse = multer({ storage: tempStorage }).fields([
-  { name: 'file', maxCount: 1 },
-  { name: 'thumbnail', maxCount: 1 }
-]);
-
-// Product upload (images + file)
-const uploadProduct = multer({ storage: tempStorage }).fields([
-  { name: 'file', maxCount: 1 },
-  { name: 'images[]', maxCount: 10 }
-]);
-
-// Product images only
-const uploadProductImages = multer({ storage: tempStorage }).array('images[]', 10);
-
-// Thumbnail only
-const uploadThumbnail = multer({ storage: tempStorage }).single('thumbnail');
-
-// Profile picture
-const uploadProfilePicture = multer({ storage: tempStorage }).single('profile_picture');
-
-// Chat image
-const uploadChatImage = multer({ storage: tempStorage }).single('image');
-
-// Certificate images
-const uploadCertificate = multer({ storage: tempStorage }).array('certificate_images', 5);
-
-// Multiple product images
-const uploadMultipleProducts = multer({ storage: tempStorage }).array('images[]', 10);
-
-// Course file only
-const uploadCourseFile = multer({ storage: tempStorage }).single('file');
-
-// Product file only
-const uploadProductFile = multer({ storage: tempStorage }).single('file');
-
-// Helper function to upload to MEGA and cleanup
-const uploadToMegaAndCleanup = async (filePath, filename, folder = '/') => {
+// ============ IMAGE UPLOAD FUNCTIONS (ImgBB) ============
+const uploadImageToImgbb = async (filePath, filename) => {
   try {
-    // Upload to MEGA
-    const megaUrl = await megaService.uploadFile(filePath, filename, folder);
-    
-    // Delete local temp file
+    const result = await imgbbService.uploadFile(filePath);
+    // Clean up temp file after successful upload
     try {
       fs.unlinkSync(filePath);
     } catch (err) {
       console.log('Could not delete temp file:', err.message);
     }
-    
-    return megaUrl;
+    return result.url;
+  } catch (error) {
+    console.error('ImgBB upload failed:', error);
+    throw error;
+  }
+};
+
+const uploadMultipleImagesToImgbb = async (files) => {
+  const urls = [];
+  for (const file of files) {
+    const url = await uploadImageToImgbb(file.path, file.originalname);
+    urls.push(url);
+  }
+  return urls;
+};
+
+// ============ FILE UPLOAD FUNCTIONS (MEGA) ============
+const uploadFileToMega = async (filePath, filename, folder = '/') => {
+  try {
+    const result = await megaService.uploadFile(filePath, filename, folder);
+    // Clean up temp file after successful upload
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      console.log('Could not delete temp file:', err.message);
+    }
+    return result.url;
   } catch (error) {
     console.error('MEGA upload failed:', error);
     throw error;
   }
 };
 
-// Helper function to upload multiple files to MEGA
-const uploadMultipleToMega = async (files, folder = '/') => {
-  const uploads = [];
-  for (const file of files) {
-    const url = await uploadToMegaAndCleanup(file.path, file.originalname, folder);
-    uploads.push(url);
-  }
-  return uploads;
-};
+// ============ MULTER CONFIGURATIONS ============
+
+// Course upload (file + thumbnail)
+const uploadCourse = upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'thumbnail', maxCount: 1 }
+]);
+
+// Product upload (file + multiple images)
+const uploadProduct = upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'images[]', maxCount: 10 }
+]);
+
+// Product images only
+const uploadProductImages = upload.array('images[]', 10);
+
+// Thumbnail only
+const uploadThumbnail = upload.single('thumbnail');
+
+// Profile picture
+const uploadProfilePicture = upload.single('profile_picture');
+
+// Chat image
+const uploadChatImage = upload.single('image');
+
+// Certificate images (multiple)
+const uploadCertificate = upload.array('certificate_images', 5);
+
+// Course file only
+const uploadCourseFile = upload.single('file');
+
+// Product file only
+const uploadProductFile = upload.single('file');
+
+// Multiple product images
+const uploadMultipleProducts = upload.array('images[]', 10);
 
 module.exports = {
-  // Multer instances
   upload,
   uploadCourse,
   uploadProduct,
@@ -127,11 +119,10 @@ module.exports = {
   uploadProfilePicture,
   uploadChatImage,
   uploadCertificate,
-  uploadMultipleProducts,
   uploadCourseFile,
   uploadProductFile,
-  
-  // Helper functions
-  uploadToMegaAndCleanup,
-  uploadMultipleToMega
+  uploadMultipleProducts,
+  uploadImageToImgbb,
+  uploadMultipleImagesToImgbb,
+  uploadFileToMega
 };

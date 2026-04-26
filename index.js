@@ -20,7 +20,6 @@ const nodemailer = require("nodemailer");
 const MySQLStore = require("express-mysql-session")(session);
 const Flutterwave = require('flutterwave-node-v3');
 const csv = require('csv-parser');
-
 const {
   uploadCourse,
   uploadThumbnail,
@@ -1859,14 +1858,14 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
     // Upload course file to MEGA
     const courseFile = req.files.file[0];
     const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const fileUpload = await uploadToMega(courseFile.path, courseFile.originalname, folderName);
+    const fileUpload = await uploadFileToMega(courseFile.path, courseFile.originalname, folderName);
     
     // Upload thumbnail to ImgBB
     const thumbnailFile = req.files.thumbnail[0];
-    const thumbnailUpload = await uploadToImgbb(thumbnailFile.path, thumbnailFile.originalname);
+    const thumbnailUrl = await uploadImageToImgbb(thumbnailFile.path, thumbnailFile.originalname);
     
-    console.log(`✅ File uploaded to MEGA: ${fileUpload.url}`);
-    console.log(`✅ Thumbnail uploaded to ImgBB: ${thumbnailUpload.url}`);
+    console.log(`✅ File uploaded to MEGA: ${fileUpload}`);
+    console.log(`✅ Thumbnail uploaded to ImgBB: ${thumbnailUrl}`);
 
     // Store in database
     const result = await db.query(
@@ -1877,8 +1876,8 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       [
         title.trim(),
         description ? description.trim() : '',
-        fileUpload.url,
-        thumbnailUpload.url,
+        fileUpload,
+        thumbnailUrl,
         parseFloat(price) || 0,
         (parseFloat(price) > 0) ? 'paid' : 'free',
         req.session.user.id,
@@ -1888,10 +1887,11 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
     );
 
     res.json({
+      success: true,
       message: "✅ Course uploaded successfully!",
       courseId: result.insertId,
-      file_url: fileUpload.url,
-      thumbnail_url: thumbnailUpload.url,
+      file_url: fileUpload,
+      thumbnail_url: thumbnailUrl,
       download_url: `/api/download/${result.insertId}`
     });
 
@@ -3764,6 +3764,11 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, re
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    // Validate file type
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: "Only image files are allowed" });
+    }
+
     // Upload to ImgBB
     const imageUrl = await uploadImageToImgbb(req.file.path, req.file.originalname);
     console.log(`✅ Profile picture uploaded to ImgBB: ${imageUrl}`);
@@ -4904,11 +4909,15 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
       return res.status(400).json({ error: "Missing conversation ID" });
     }
 
-    // Check access
+    // Check access to conversation
     const convResult = await db.query(
       `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
       [conversation_id]
     );
+
+    if (!convResult || convResult.length === 0) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
 
     const conversation = convResult[0];
     const isClient = parseInt(conversation.client_id) === parseInt(user.id);
@@ -4922,12 +4931,21 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
     let imageUrl = null;
     
     if (req.file) {
+      // Validate file type
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: "Only image files are allowed" });
+      }
+      
       // Upload chat image to ImgBB
       const uploadResult = await uploadImageToImgbb(req.file.path, req.file.originalname);
       imageUrl = uploadResult;
       if (!messageContent) {
         messageContent = '📷 Sent an image';
       }
+    }
+
+    if (!messageContent && !imageUrl) {
+      return res.status(400).json({ error: "Message or image is required" });
     }
 
     const result = await db.query(
@@ -4965,6 +4983,14 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Validate file types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    for (const file of req.files) {
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({ error: `Invalid file type: ${file.originalname}. Only images and PDFs are allowed.` });
+      }
     }
 
     // Upload to ImgBB
@@ -12304,6 +12330,11 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       console.log(`✅ Digital file uploaded to MEGA: ${fileUrl}`);
     }
 
+    // Handle affiliate link
+    if (type === 'affiliate' && affiliate_link) {
+      fileUrl = affiliate_link;
+    }
+
     // Insert product into database
     const result = await db.query(
       `INSERT INTO products (
@@ -12362,6 +12393,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     console.log(`✅ Product uploaded! ID: ${productId}`);
     
     res.json({ 
+      success: true,
       message: "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,

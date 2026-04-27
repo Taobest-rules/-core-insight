@@ -5035,7 +5035,6 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
     });
   }
 });
-// Get messages for a conversation - FIXED to always return array
 app.get("/api/messages/:conversationId", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -5049,19 +5048,18 @@ app.get("/api/messages/:conversationId", async (req, res) => {
 
     const userId = req.session.user.id;
 
-    // First check if user has access to this conversation
+    // Check access
     const convResult = await db.query(
       `SELECT id FROM conversations WHERE id = ? AND (client_id = ? OR freelancer_id = ?)`,
       [conversationId, userId, userId]
     );
 
     const convRows = extractRows(convResult);
-
     if (!convRows || convRows.length === 0) {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    // Get messages WITH image_url
+    // Get messages with file info
     const messagesResult = await db.query(
       `SELECT 
         m.id, 
@@ -5069,6 +5067,9 @@ app.get("/api/messages/:conversationId", async (req, res) => {
         m.sender_id, 
         m.message, 
         m.image_url,
+        m.file_url,
+        m.file_name,
+        m.file_size,
         m.is_read, 
         m.created_at,
         u.username AS sender_name
@@ -5079,15 +5080,11 @@ app.get("/api/messages/:conversationId", async (req, res) => {
       [conversationId]
     );
 
-    // Ensure we always return an array
     const messages = extractRows(messagesResult);
-    
-    // Return array, never null or object
     return res.json(Array.isArray(messages) ? messages : []);
     
   } catch (err) {
     console.error("Error fetching messages:", err);
-    // Always return an array even on error
     return res.json([]);
   }
 });
@@ -5120,27 +5117,43 @@ const fileStorage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        // Get file extension from original name
         const ext = path.extname(file.originalname);
-        cb(null, 'file-' + uniqueSuffix + ext);
+        // Sanitize filename
+        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+        cb(null, uniqueSuffix + '-' + baseName + ext);
     }
 });
 
 const uploadFile = multer({ 
     storage: fileStorage,
-    limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
+    fileFilter: (req, file, cb) => {
+        // Allow common file types
+        const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.jpg', '.jpeg', '.png', '.gif'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedTypes.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('File type not allowed'));
+        }
+    }
 });
 
+// Send message with file attachment
 app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, res) => {
     try {
         const user = req.session.user;
-        if (!user) return res.status(401).json({ error: "Login required" });
+        if (!user) {
+            return res.status(401).json({ error: "Login required" });
+        }
 
         const { conversation_id, message } = req.body;
         if (!conversation_id) {
             return res.status(400).json({ error: "Missing conversation ID" });
         }
 
-        // Check access (same as image upload)
+        // Check access to conversation
         const convResult = await db.query(
             `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
             [conversation_id]
@@ -5160,15 +5173,24 @@ app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, 
 
         let messageContent = message || '';
         let fileUrl = null;
+        let fileName = null;
+        let fileSize = null;
         
         if (req.file) {
             fileUrl = `/uploads/chat-files/${req.file.filename}`;
+            fileName = req.file.originalname;
+            fileSize = req.file.size;
+            messageContent = messageContent || `📎 Sent a file: ${fileName}`;
+        }
+
+        if (!messageContent && !fileUrl) {
+            return res.status(400).json({ error: "Message or file is required" });
         }
 
         const result = await db.query(
             `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
              VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
-            [conversation_id, user.id, messageContent, fileUrl, req.file?.originalname, req.file?.size]
+            [conversation_id, user.id, messageContent, fileUrl, fileName, fileSize]
         );
 
         const messageId = result.insertId;
@@ -5192,7 +5214,7 @@ app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, 
     }
 });
 
-// Improved user search endpoint for chat - FIXED for your database
+
 app.get("/api/users/search", async (req, res) => {
     try {
         if (!req.session.user) {
@@ -5207,96 +5229,30 @@ app.get("/api/users/search", async (req, res) => {
         const currentUserId = req.session.user.id;
         const searchTerm = `%${q}%`;
         
-        try {
-            // Query that works with your table structure
-            const result = await db.query(
-                `SELECT u.id, u.username, u.email, 
-                        fp.profile_picture_url as profile_picture
-                 FROM users u
-                 LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
-                 WHERE (u.username LIKE ? OR u.email LIKE ?) 
-                   AND u.id != ?
-                 LIMIT 10`,
-                [searchTerm, searchTerm, currentUserId]
-            );
-            
-            // Extract rows properly - handle different return formats
-            let users = [];
-            if (result) {
-                // Case 1: result is an array with data in first element
-                if (Array.isArray(result) && result.length === 2 && Array.isArray(result[0])) {
-                    users = result[0];
-                } 
-                // Case 2: result is directly an array of rows
-                else if (Array.isArray(result) && result.length > 0 && result[0].id) {
-                    users = result;
-                }
-                // Case 3: result is an array with rows in result[0] but not wrapped
-                else if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
-                    users = result[0];
-                }
-                // Case 4: result has rows property
-                else if (result.rows && Array.isArray(result.rows)) {
-                    users = result.rows;
-                }
-                // Case 5: result is empty array
-                else if (Array.isArray(result) && result.length === 0) {
-                    users = [];
-                }
-                // Case 6: fallback - try to use as is
-                else if (Array.isArray(result)) {
-                    users = result;
-                }
+        // Only return id and username, no email
+        const result = await db.query(
+            `SELECT u.id, u.username
+             FROM users u
+             WHERE (u.username LIKE ?) 
+               AND u.id != ?
+             LIMIT 10`,
+            [searchTerm, currentUserId]
+        );
+        
+        let users = [];
+        if (result && Array.isArray(result)) {
+            if (result.length === 2 && Array.isArray(result[0])) {
+                users = result[0];
+            } else {
+                users = result;
             }
-            
-            // Ensure we return an array
-            if (!Array.isArray(users)) {
-                users = [];
-            }
-            
-            console.log(`User search for "${q}" found ${users.length} users`);
-            res.json(users);
-            
-        } catch (dbError) {
-            console.error("Database error in user search:", dbError);
-            // Return empty array instead of error
-            res.json([]);
         }
+        
+        res.json(users);
         
     } catch (err) {
         console.error("User search error:", err);
-        // Always return empty array, never 500
-        res.status(200).json([]);
-    }
-});
-
-// Debug endpoint for user search
-app.get("/api/debug/user-search-test", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Login required" });
-        }
-        
-        // Test a simple query
-        const testQuery = "SELECT 1 as test";
-        const testResult = await db.query(testQuery);
-        
-        // Get sample users
-        const sampleUsers = await db.query("SELECT id, username, email FROM users LIMIT 5");
-        
-        res.json({
-            success: true,
-            database_connected: true,
-            sample_users: sampleUsers,
-            test_query: testResult
-        });
-        
-    } catch (err) {
-        console.error("Debug error:", err);
-        res.status(500).json({ 
-            error: err.message,
-            stack: err.stack 
-        });
+        res.json([]);
     }
 });
 // Get conversation info

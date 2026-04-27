@@ -7034,9 +7034,7 @@ async function openConversation(conversationId, username = 'User', otherUserId =
 }
 
 async function loadMessagesForConversation(conversationId) {
-    if (!conversationId) {
-        return;
-    }
+    if (!conversationId) return;
 
     try {
         const res = await fetch(`/api/messages/${conversationId}`, {
@@ -7060,26 +7058,12 @@ async function loadMessagesForConversation(conversationId) {
         }
 
         const data = await res.json();
-        
-        // FIX: Handle different response formats
-        let messages = [];
-        if (Array.isArray(data)) {
-            messages = data;
-        } else if (data && Array.isArray(data.messages)) {
-            messages = data.messages;
-        } else if (data && data.data && Array.isArray(data.data)) {
-            messages = data.data;
-        } else if (data && typeof data === 'object') {
-            // If it's a single object, wrap it in an array
-            messages = [data];
-        } else {
-            messages = [];
-        }
+        let messages = Array.isArray(data) ? data : (data.messages || []);
 
         const container = $('messagesContainer');
         if (!container) return;
 
-        if (!messages || messages.length === 0) {
+        if (messages.length === 0) {
             container.innerHTML = `
                 <div style="text-align:center; color: var(--text-gray); padding: 40px;">
                     <i class="fas fa-comments" style="font-size: 2rem; margin-bottom: 15px; opacity: 0.5;"></i>
@@ -7090,7 +7074,6 @@ async function loadMessagesForConversation(conversationId) {
             return;
         }
 
-        // Sort messages by date (oldest first)
         const sortedMessages = [...messages].sort((a, b) => 
             new Date(a.created_at) - new Date(b.created_at)
         );
@@ -7105,9 +7088,7 @@ async function loadMessagesForConversation(conversationId) {
                 currentGroup.sender_id !== m.sender_id || 
                 (messageDate - currentGroup.lastTime) > 300000) {
                 
-                if (currentGroup) {
-                    groupedMessages.push(currentGroup);
-                }
+                if (currentGroup) groupedMessages.push(currentGroup);
                 
                 currentGroup = {
                     sender_id: m.sender_id,
@@ -7121,16 +7102,12 @@ async function loadMessagesForConversation(conversationId) {
                 currentGroup.lastTime = messageDate;
             }
         }
-        
-        if (currentGroup) {
-            groupedMessages.push(currentGroup);
-        }
+        if (currentGroup) groupedMessages.push(currentGroup);
 
         container.innerHTML = '';
 
         for (const group of groupedMessages) {
             const isMe = group.sender_id === currentUser?.id;
-            
             const groupDiv = document.createElement('div');
             groupDiv.className = `message-group ${isMe ? 'sent' : 'received'}`;
             
@@ -7146,62 +7123,65 @@ async function loadMessagesForConversation(conversationId) {
                 messageDiv.className = `message ${isMe ? 'sent' : 'received'}`;
                 messageDiv.dataset.messageId = m.id;
 
-                const messageDate = new Date(m.created_at);
-                const timeString = messageDate.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
+                const timeString = new Date(m.created_at).toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit', hour12: true
                 });
 
                 let contentHtml = '';
                 
-               if (m.image_url) {
-    let imageUrl = m.image_url;
-    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-        imageUrl = '/' + imageUrl;
-    }
-    
-    contentHtml += `
-        <div class="message-image">
-            <img src="${imageUrl}" alt="Shared image" 
-                 onclick="openImageViewer('${imageUrl}')" 
-                 loading="lazy"
-                 onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found'; this.style.opacity='0.7';">
-        </div>
-    `;
-}        
+                // Handle images
+                if (m.image_url) {
+                    let imageUrl = m.image_url;
+                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                        imageUrl = '/' + imageUrl;
+                    }
+                    contentHtml += `
+                        <div class="message-image">
+                            <img src="${imageUrl}" alt="Shared image" 
+                                 onclick="openImageViewer('${imageUrl}')" 
+                                 style="max-width: 180px; max-height: 150px; border-radius: 10px; cursor: pointer;"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
+                        </div>
+                    `;
+                }
+                
+                // Handle file attachments
+                if (m.file_url) {
+                    const fileIcon = m.file_name?.match(/\.(pdf)$/i) ? 'fa-file-pdf' :
+                                     m.file_name?.match(/\.(doc|docx)$/i) ? 'fa-file-word' :
+                                     m.file_name?.match(/\.(jpg|jpeg|png|gif)$/i) ? 'fa-file-image' :
+                                     'fa-file-alt';
+                    contentHtml += `
+                        <div class="message-file" style="margin: 8px 0;">
+                            <a href="${m.file_url}" target="_blank" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(100, 255, 218, 0.1); border-radius: 8px; text-decoration: none; color: var(--accent-primary);">
+                                <i class="fas ${fileIcon}" style="font-size: 1.2rem;"></i>
+                                <div style="flex: 1; overflow: hidden;">
+                                    <div style="font-weight: 500; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(m.file_name || 'File')}</div>
+                                    <div style="font-size: 0.7rem; opacity: 0.7;">${(m.file_size / 1024).toFixed(1)} KB</div>
+                                </div>
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+                
+                // Handle text message
                 if (m.message && m.message !== '📷 Sent an image') {
                     contentHtml += `<div class="message-text">${escapeHtml(m.message)}</div>`;
-                } else if (m.image_url && !m.message) {
-                    contentHtml += `<div class="message-text" style="opacity: 0.7; font-style: italic;">Sent an image</div>`;
                 }
 
-                messageDiv.innerHTML = `
-                    ${contentHtml}
-                    <div class="message-time">${timeString}</div>
-                `;
-
+                messageDiv.innerHTML = `${contentHtml}<div class="message-time">${timeString}</div>`;
                 groupDiv.appendChild(messageDiv);
             }
-            
             container.appendChild(groupDiv);
         }
-
         container.scrollTop = container.scrollHeight;
 
     } catch (err) {
         console.error("Failed to load messages:", err);
         const container = $('messagesContainer');
         if (container) {
-            container.innerHTML = `
-                <div style="text-align:center; color: var(--text-gray); padding: 40px;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                    <p>Error loading messages: ${escapeHtml(err.message)}</p>
-                    <button class="btn btn-primary" onclick="loadMessagesForConversation(${conversationId})" style="margin-top: 10px;">
-                        <i class="fas fa-sync-alt"></i> Try Again
-                    </button>
-                </div>
-            `;
+            container.innerHTML = `<div style="text-align:center; color: var(--text-gray); padding: 40px;"><p>Error loading messages</p></div>`;
         }
     }
 }
@@ -8094,9 +8074,7 @@ async function performUserSearch() {
         });
         
         if (!res.ok) {
-            const errorText = await res.text();
-            console.error('Search error response:', errorText);
-            throw new Error(`HTTP ${res.status}`);
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
         
         const users = await res.json();
@@ -8107,19 +8085,19 @@ async function performUserSearch() {
         } else {
             resultsDiv.innerHTML = userList.map(user => {
                 const username = user.username || 'User';
-                const email = user.email || '';
                 const userId = user.id;
                 const initial = username.charAt(0).toUpperCase();
                 
                 return `
                     <div onclick="startConversationWithUser(${userId}, '${escapeHtml(username)}')" 
-                         style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: var(--transition);">
+                         style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: var(--transition);"
+                         onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+                         onmouseout="this.style.background='transparent'">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">
                             ${initial}
                         </div>
                         <div>
                             <div style="color: var(--text-light); font-weight: 600;">${escapeHtml(username)}</div>
-                            <div style="color: var(--text-gray); font-size: 0.9rem;">${escapeHtml(email)}</div>
                         </div>
                     </div>
                 `;

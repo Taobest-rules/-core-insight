@@ -4929,9 +4929,9 @@
                 <button type="button" id="attachImageBtn" title="Attach Image">
                   <i class="fas fa-image"></i>
                 </button>
-                <button type="button" id="attachFileBtn" title="Attach File">
-                  <i class="fas fa-paperclip"></i>
-                </button>
+                <button type="button" id="attachDocumentBtn" title="Attach Document">
+    <i class="fas fa-file-alt"></i>
+</button>
                 <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" autocomplete="off">
                 <button type="submit" class="btn-primary" title="Send">
                   <i class="fas fa-paper-plane"></i>
@@ -9353,7 +9353,61 @@ async function jumpToMessage(messageId, index) {
         }, 500);
     }
 }
+// Add this function to auto-size image containers
+function adjustImageContainer(imgElement) {
+    const container = imgElement.closest('.message-image');
+    if (container && imgElement.complete) {
+        const imgWidth = imgElement.naturalWidth;
+        const imgHeight = imgElement.naturalHeight;
+        
+        // Set container to match image dimensions (up to max limits)
+        const maxWidth = 180;
+        const maxHeight = 150;
+        
+        let displayWidth = imgWidth;
+        let displayHeight = imgHeight;
+        
+        if (imgWidth > maxWidth) {
+            const ratio = maxWidth / imgWidth;
+            displayWidth = maxWidth;
+            displayHeight = imgHeight * ratio;
+        }
+        
+        if (displayHeight > maxHeight) {
+            const ratio = maxHeight / displayHeight;
+            displayHeight = maxHeight;
+            displayWidth = displayWidth * ratio;
+        }
+        
+        container.style.width = displayWidth + 'px';
+        container.style.height = displayHeight + 'px';
+        imgElement.style.width = '100%';
+        imgElement.style.height = '100%';
+        imgElement.style.objectFit = 'cover';
+    }
+}
 
+// Call this when images load
+document.addEventListener('DOMContentLoaded', function() {
+    // Use mutation observer to detect new images
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1 && node.tagName === 'IMG') {
+                    if (node.complete) {
+                        adjustImageContainer(node);
+                    } else {
+                        node.addEventListener('load', function() {
+                            adjustImageContainer(node);
+                        });
+                    }
+                }
+            });
+        });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+});
 // ==================== FIXED PROFILE SECTION ====================
 // ==================== COMPLETE PROFILE SECTION ====================
 

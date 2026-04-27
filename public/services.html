@@ -4922,21 +4922,21 @@
           <!-- Chat Input Area -->
           <div class="chat-input" id="messageInputArea" style="display: none;">
             <form id="sendMessageForm">
-              <div class="input-group">
-                <button type="button" id="emojiPickerBtn" title="Emoji">
-                  <i class="fas fa-smile"></i>
-                </button>
-                <button type="button" id="attachImageBtn" title="Attach Image">
-                  <i class="fas fa-image"></i>
-                </button>
-                <button type="button" id="attachDocumentBtn" title="Attach Document">
-    <i class="fas fa-file-alt"></i>
-</button>
-                <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" autocomplete="off">
-                <button type="submit" class="btn-primary" title="Send">
-                  <i class="fas fa-paper-plane"></i>
-                </button>
-              </div>
+      <div class="input-group">
+    <button type="button" id="emojiPickerBtn" title="Emoji">
+        <i class="fas fa-smile"></i>
+    </button>
+    <button type="button" id="attachImageBtn" title="Attach Image">
+        <i class="fas fa-image"></i>
+    </button>
+    <button type="button" id="attachDocumentBtn" title="Attach Document">
+        <i class="fas fa-paperclip"></i>
+    </button>
+    <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" autocomplete="off">
+    <button type="submit" class="btn-primary" title="Send">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+</div>
               <div class="input-footer">
                 <span id="charCount">0/1000</span>
                 <span>Press Enter to send</span>
@@ -8275,38 +8275,62 @@ function setupAttachButtons() {
     console.log("Setting up attach buttons...");
     
     const attachImageBtn = document.getElementById('attachImageBtn');
-    const fileInput = document.getElementById('fileInput');
     
-    if (attachImageBtn && fileInput) {
+    // Create a hidden file input if it doesn't exist
+    let fileInput = document.getElementById('fileInput');
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'fileInput';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+    }
+    
+    // Setup attach image button
+    if (attachImageBtn) {
+        // Remove existing event listeners by cloning
         const newImageBtn = attachImageBtn.cloneNode(true);
         attachImageBtn.parentNode.replaceChild(newImageBtn, attachImageBtn);
         
         newImageBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            console.log("Image button clicked, opening file picker...");
             fileInput.click();
         });
     }
     
-    if (fileInput) {
-        const newFileInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(newFileInput, fileInput);
-        
-        newFileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                if (file.type.startsWith('image/')) {
-                    selectedFile = file;
-                    showImagePreview(file);
-                    showToast('Image selected: ' + file.name, 'success');
-                } else {
-                    showToast('Please select an image file (JPEG, PNG, GIF)', 'warning');
-                    newFileInput.value = '';
-                }
+    // Handle file selection
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type.startsWith('image/')) {
+                selectedFile = file;
+                showImagePreview(file);
+                showToast('Image selected: ' + file.name, 'success');
+            } else {
+                showToast('Please select an image file (JPEG, PNG, GIF)', 'warning');
+                fileInput.value = '';
             }
+        }
+    });
+    
+    // Setup document upload button
+    const attachDocumentBtn = document.getElementById('attachDocumentBtn');
+    if (attachDocumentBtn) {
+        const newDocBtn = attachDocumentBtn.cloneNode(true);
+        attachDocumentBtn.parentNode.replaceChild(newDocBtn, attachDocumentBtn);
+        
+        newDocBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Document button clicked");
+            setupDocumentAttachment();
         });
     }
     
-    // Document upload button
+    // Setup generic attach file button (if exists)
     const attachFileBtn = document.getElementById('attachFileBtn');
     if (attachFileBtn) {
         const newFileBtn = attachFileBtn.cloneNode(true);
@@ -8314,33 +8338,37 @@ function setupAttachButtons() {
         
         newFileBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            setupDocumentAttachment();
+            e.stopPropagation();
+            showToast('File upload coming soon!', 'info');
         });
     }
 }
+let documentInput = null;
 
-// Setup document attachment
 function setupDocumentAttachment() {
-    const attachDocumentBtn = document.getElementById('attachDocumentBtn');
-    const documentInput = document.createElement('input');
-    documentInput.type = 'file';
-    documentInput.accept = '.pdf,.doc,.docx,.zip,.txt,.jpg,.png';
-    documentInput.style.display = 'none';
-    document.body.appendChild(documentInput);
+    console.log("Setting up document attachment...");
     
-    if (attachDocumentBtn) {
-        attachDocumentBtn.addEventListener('click', () => {
-            documentInput.click();
-        });
+    // Create hidden file input for documents if it doesn't exist
+    if (!documentInput) {
+        documentInput = document.createElement('input');
+        documentInput.type = 'file';
+        documentInput.id = 'documentInput';
+        documentInput.accept = '.pdf,.doc,.docx,.zip,.txt,.jpg,.png,.jpeg';
+        documentInput.style.display = 'none';
+        document.body.appendChild(documentInput);
         
         documentInput.addEventListener('change', async (e) => {
             if (e.target.files.length > 0) {
                 const file = e.target.files[0];
+                console.log("File selected:", file.name);
                 await sendDocument(file);
                 documentInput.value = '';
             }
         });
     }
+    
+    // Trigger file picker
+    documentInput.click();
 }
 
 async function sendDocument(file) {
@@ -8349,10 +8377,18 @@ async function sendDocument(file) {
         return;
     }
     
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('File too large! Maximum 10MB', 'error');
+        return;
+    }
+    
     const formData = new FormData();
     formData.append('conversation_id', window.activeConversationId);
     formData.append('message', `📎 Sent a file: ${file.name}`);
     formData.append('file', file);
+    
+    showToast(`Uploading ${file.name}...`, 'info');
     
     try {
         const response = await fetch('/api/messages/send-with-file', {
@@ -8375,7 +8411,6 @@ async function sendDocument(file) {
         showToast('Error sending file', 'error');
     }
 }
-
 // Setup emoji picker
 function setupEmojiPicker() {
     const emojiBtn = document.getElementById('emojiPickerBtn');

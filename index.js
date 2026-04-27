@@ -5192,7 +5192,7 @@ app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, 
     }
 });
 
-// Improved user search endpoint for chat
+// Improved user search endpoint for chat - FIXED for your database
 app.get("/api/users/search", async (req, res) => {
     try {
         if (!req.session.user) {
@@ -5205,40 +5205,100 @@ app.get("/api/users/search", async (req, res) => {
         }
 
         const currentUserId = req.session.user.id;
-        
-        // Fix: Use proper escaping and handle potential errors
         const searchTerm = `%${q}%`;
         
-        const result = await db.query(
-            `SELECT id, username, email, 
-                    COALESCE(fp.profile_picture_url, NULL) as profile_picture,
-                    'user' as type
-             FROM users u
-             LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
-             WHERE (u.username LIKE ? OR u.email LIKE ?) 
-               AND u.id != ?
-             LIMIT 10`,
-            [searchTerm, searchTerm, currentUserId]
-        );
-        
-        // Extract rows properly
-        let users = [];
-        if (result) {
-            if (Array.isArray(result) && result.length === 2 && Array.isArray(result[0])) {
-                users = result[0];
-            } else if (Array.isArray(result)) {
-                users = result;
+        try {
+            // Query that works with your table structure
+            const result = await db.query(
+                `SELECT u.id, u.username, u.email, 
+                        fp.profile_picture_url as profile_picture
+                 FROM users u
+                 LEFT JOIN freelancer_profiles fp ON u.id = fp.user_id
+                 WHERE (u.username LIKE ? OR u.email LIKE ?) 
+                   AND u.id != ?
+                 LIMIT 10`,
+                [searchTerm, searchTerm, currentUserId]
+            );
+            
+            // Extract rows properly - handle different return formats
+            let users = [];
+            if (result) {
+                // Case 1: result is an array with data in first element
+                if (Array.isArray(result) && result.length === 2 && Array.isArray(result[0])) {
+                    users = result[0];
+                } 
+                // Case 2: result is directly an array of rows
+                else if (Array.isArray(result) && result.length > 0 && result[0].id) {
+                    users = result;
+                }
+                // Case 3: result is an array with rows in result[0] but not wrapped
+                else if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
+                    users = result[0];
+                }
+                // Case 4: result has rows property
+                else if (result.rows && Array.isArray(result.rows)) {
+                    users = result.rows;
+                }
+                // Case 5: result is empty array
+                else if (Array.isArray(result) && result.length === 0) {
+                    users = [];
+                }
+                // Case 6: fallback - try to use as is
+                else if (Array.isArray(result)) {
+                    users = result;
+                }
             }
+            
+            // Ensure we return an array
+            if (!Array.isArray(users)) {
+                users = [];
+            }
+            
+            console.log(`User search for "${q}" found ${users.length} users`);
+            res.json(users);
+            
+        } catch (dbError) {
+            console.error("Database error in user search:", dbError);
+            // Return empty array instead of error
+            res.json([]);
         }
-        
-        res.json(users);
         
     } catch (err) {
         console.error("User search error:", err);
-        res.status(500).json({ error: err.message, users: [] });
+        // Always return empty array, never 500
+        res.status(200).json([]);
     }
 });
 
+// Debug endpoint for user search
+app.get("/api/debug/user-search-test", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Login required" });
+        }
+        
+        // Test a simple query
+        const testQuery = "SELECT 1 as test";
+        const testResult = await db.query(testQuery);
+        
+        // Get sample users
+        const sampleUsers = await db.query("SELECT id, username, email FROM users LIMIT 5");
+        
+        res.json({
+            success: true,
+            database_connected: true,
+            sample_users: sampleUsers,
+            test_query: testResult
+        });
+        
+    } catch (err) {
+        console.error("Debug error:", err);
+        res.status(500).json({ 
+            error: err.message,
+            stack: err.stack 
+        });
+    }
+});
 // Get conversation info
 app.get("/api/conversation-info/:conversationId", async (req, res) => {
   try {

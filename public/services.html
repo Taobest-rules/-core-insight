@@ -2716,33 +2716,83 @@
     text-align: right;
   }
 
-  /* Message Images */
-  .message-image {
-    margin: 8px 0;
-    max-width: 250px;
+ 
+/* Message Images - Improved Design */
+.message-image {
+    margin: 4px 0;
+    max-width: 180px;
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s;
-  }
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
 
-  .message-image:hover {
+.message-image:hover {
     transform: scale(1.02);
-  }
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 
-  .message-image img {
+.message-image img {
     width: 100%;
     height: auto;
-    max-height: 200px;
+    max-height: 150px;
     object-fit: cover;
-    border: 2px solid rgba(255,255,255,0.1);
+    display: block;
     border-radius: 12px;
-  }
+    transition: all 0.3s ease;
+}
 
-  .message.sent .message-image img {
-    border-color: rgba(255,255,255,0.2);
-  }
+.message.sent .message-image {
+    margin-left: auto;
+}
 
+.message.received .message-image {
+    margin-right: auto;
+}
+
+.message.sent .message-image img {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message.received .message-image img {
+    border: 1px solid rgba(100, 255, 218, 0.3);
+}
+
+/* Image counter for multiple images */
+.message-image .image-count {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    color: white;
+    font-weight: 500;
+}
+
+/* Compact message layout */
+.message-group {
+    max-width: 75%;
+    margin-bottom: 4px;
+}
+
+.message {
+    padding: 8px 12px;
+}
+
+.message-text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.message-time {
+    font-size: 0.65rem;
+    margin-top: 4px;
+    opacity: 0.7;
+}
   /* Input Area */
   .chat-input {
     padding: 20px 24px;
@@ -7105,22 +7155,21 @@ async function loadMessagesForConversation(conversationId) {
 
                 let contentHtml = '';
                 
-                if (m.image_url) {
-                    let imageUrl = m.image_url;
-                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-                        imageUrl = '/' + imageUrl;
-                    }
-                    
-                    contentHtml += `
-                        <div class="message-image">
-                            <img src="${imageUrl}" alt="Shared image" 
-                                 onclick="openImageViewer('${imageUrl}')" 
-                                 style="max-width: 250px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-bottom: 5px; border: 2px solid rgba(255,255,255,0.1);"
-                                 onerror="this.onerror=null; this.src='/placeholder-image.png'; this.style.opacity='0.5';">
-                        </div>
-                    `;
-                }
-                
+               if (m.image_url) {
+    let imageUrl = m.image_url;
+    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+        imageUrl = '/' + imageUrl;
+    }
+    
+    contentHtml += `
+        <div class="message-image">
+            <img src="${imageUrl}" alt="Shared image" 
+                 onclick="openImageViewer('${imageUrl}')" 
+                 loading="lazy"
+                 onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found'; this.style.opacity='0.7';">
+        </div>
+    `;
+}        
                 if (m.message && m.message !== '📷 Sent an image') {
                     contentHtml += `<div class="message-text">${escapeHtml(m.message)}</div>`;
                 } else if (m.image_url && !m.message) {
@@ -7707,20 +7756,21 @@ function appendMessageToChat(message) {
             let contentHtml = '';
             
             if (messageData.image_url) {
-                let imageUrl = messageData.image_url;
-                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-                    imageUrl = '/' + imageUrl;
-                }
-                
-                contentHtml += `
-                    <div class="message-image">
-                        <img src="${imageUrl}" alt="Shared image" 
-                             onclick="openImageViewer('${imageUrl}')" 
-                             style="max-width: 250px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-bottom: 5px; border: 2px solid rgba(255,255,255,0.1);"
-                             onerror="this.onerror=null; this.src='/placeholder-image.png'; this.style.opacity='0.5';">
-                    </div>
-                `;
-            }
+    let imageUrl = messageData.image_url;
+    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+        imageUrl = '/' + imageUrl;
+    }
+    
+    contentHtml += `
+        <div class="message-image">
+            <img src="${imageUrl}" alt="Shared image" 
+                 onclick="openImageViewer('${imageUrl}')" 
+                 loading="lazy"
+                 style="max-width: 150px; max-height: 120px; border-radius: 10px; cursor: pointer; object-fit: cover;"
+                 onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
+        </div>
+    `;
+}
             
             if (messageData.message && messageData.message !== '📷 Sent an image') {
                 contentHtml += `<div class="message-text">${escapeHtml(messageData.message)}</div>`;
@@ -8226,50 +8276,58 @@ function setupInboxAttachments() {
     setupDocumentUpload();
 }
 
-// Setup attach image and file buttons
-function setupAttachButtons() {
-    const attachImageBtn = document.getElementById('attachImageBtn');
-    const attachFileBtn = document.getElementById('attachFileBtn');
-    const fileInput = document.getElementById('fileInput');
+// Setup document attachment
+function setupDocumentAttachment() {
+    const attachDocumentBtn = document.getElementById('attachDocumentBtn');
+    const documentInput = document.createElement('input');
+    documentInput.type = 'file';
+    documentInput.accept = '.pdf,.doc,.docx,.zip,.txt';
+    documentInput.style.display = 'none';
+    document.body.appendChild(documentInput);
     
-    if (attachImageBtn && fileInput) {
-        const newImageBtn = attachImageBtn.cloneNode(true);
-        attachImageBtn.parentNode.replaceChild(newImageBtn, attachImageBtn);
-        
-        newImageBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            fileInput.click();
+    if (attachDocumentBtn) {
+        attachDocumentBtn.addEventListener('click', () => {
+            documentInput.click();
         });
-    }
-    
-    if (fileInput) {
-        const newFileInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(newFileInput, fileInput);
         
-        newFileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
+        documentInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
                 const file = e.target.files[0];
-                if (file.type.startsWith('image/')) {
-                    selectedFile = file;
-                    showImagePreview(file);
-                    showToast('Image selected: ' + file.name, 'success');
-                } else {
-                    showToast('Please select an image file (JPEG, PNG, GIF)', 'warning');
-                    newFileInput.value = '';
-                }
+                await sendDocument(file);
+                documentInput.value = '';
             }
         });
     }
+}
+
+async function sendDocument(file) {
+    if (!window.activeConversationId) {
+        showToast('No active conversation', 'warning');
+        return;
+    }
     
-    // Document upload button
-    if (attachFileBtn) {
-        const newFileBtn = attachFileBtn.cloneNode(true);
-        attachFileBtn.parentNode.replaceChild(newFileBtn, attachFileBtn);
-        
-        newFileBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast('File attachments coming soon', 'info');
+    const formData = new FormData();
+    formData.append('conversation_id', window.activeConversationId);
+    formData.append('message', `📎 Sent a file: ${file.name}`);
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/messages/send-with-file', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
         });
+        
+        const data = await response.json();
+        if (response.ok) {
+            showToast(`File "${file.name}" sent!`, 'success');
+            appendMessageToChat(data.data);
+        } else {
+            showToast(data.error || 'Failed to send file', 'error');
+        }
+    } catch (error) {
+        console.error('File send error:', error);
+        showToast('Error sending file', 'error');
     }
 }
 

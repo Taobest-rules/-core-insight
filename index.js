@@ -5109,6 +5109,88 @@ app.post("/api/messages/mark-read", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// Configure multer for file uploads (documents)
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads', 'chat-files');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'file-' + uniqueSuffix + ext);
+    }
+});
+
+const uploadFile = multer({ 
+    storage: fileStorage,
+    limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
+});
+
+app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, res) => {
+    try {
+        const user = req.session.user;
+        if (!user) return res.status(401).json({ error: "Login required" });
+
+        const { conversation_id, message } = req.body;
+        if (!conversation_id) {
+            return res.status(400).json({ error: "Missing conversation ID" });
+        }
+
+        // Check access (same as image upload)
+        const convResult = await db.query(
+            `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+            [conversation_id]
+        );
+
+        if (!convResult || convResult.length === 0) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        const conversation = convResult[0];
+        const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+        const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+        
+        if (!isClient && !isFreelancer) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        let messageContent = message || '';
+        let fileUrl = null;
+        
+        if (req.file) {
+            fileUrl = `/uploads/chat-files/${req.file.filename}`;
+        }
+
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
+            [conversation_id, user.id, messageContent, fileUrl, req.file?.originalname, req.file?.size]
+        );
+
+        const messageId = result.insertId;
+
+        const messageResult = await db.query(
+            `SELECT m.*, u.username AS sender_name 
+             FROM messages m 
+             JOIN users u ON m.sender_id = u.id 
+             WHERE m.id = ?`,
+            [messageId]
+        );
+
+        res.status(200).json({ 
+            success: true, 
+            data: messageResult[0] 
+        });
+        
+    } catch (err) {
+        console.error("Send file error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Improved user search endpoint for chat
 app.get("/api/users/search", async (req, res) => {

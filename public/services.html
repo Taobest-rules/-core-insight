@@ -8499,6 +8499,55 @@ function toggleEmojiPickerExtended() {
         emojiPickerInstance.style.display = 'block';
     }
 }
+// Setup attach image button (DEFINE THIS FIRST)
+function setupAttachButtons() {
+    console.log("Setting up attach buttons...");
+    
+    const attachImageBtn = document.getElementById('attachImageBtn');
+    const fileInput = document.getElementById('fileInput');
+    
+    if (attachImageBtn && fileInput) {
+        // Remove existing listeners by cloning
+        const newImageBtn = attachImageBtn.cloneNode(true);
+        attachImageBtn.parentNode.replaceChild(newImageBtn, attachImageBtn);
+        
+        newImageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.click();
+        });
+    }
+    
+    if (fileInput) {
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        
+        newFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                if (file.type.startsWith('image/')) {
+                    selectedFile = file;
+                    showImagePreview(file);
+                    showToast('Image selected: ' + file.name, 'success');
+                } else {
+                    showToast('Please select an image file (JPEG, PNG, GIF)', 'warning');
+                    newFileInput.value = '';
+                }
+            }
+        });
+    }
+    
+    // Document upload button (optional)
+    const attachFileBtn = document.getElementById('attachFileBtn');
+    if (attachFileBtn) {
+        const newFileBtn = attachFileBtn.cloneNode(true);
+        attachFileBtn.parentNode.replaceChild(newFileBtn, attachFileBtn);
+        
+        newFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showToast('Document upload coming soon!', 'info');
+        });
+    }
+}
 
 // Setup emoji picker button
 function setupEmojiPicker() {

@@ -704,32 +704,32 @@
       color: #ff6b6b; 
       border: 1px solid rgba(255, 100, 100, 0.3);
     }
-    /* Flag Button Styles */
+    
+/* Flag Button Styles - Icon Only */
 .flag-btn {
-  background: transparent;
+  background: rgba(255, 100, 100, 0.1);
   border: 1px solid rgba(255, 100, 100, 0.3);
   color: #ff6b6b;
-  padding: 0.5rem 1rem;
-  border-radius: 30px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 1rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: var(--transition);
-  width: 100%;
   justify-content: center;
-  margin-top: 0.5rem;
+  transition: var(--transition);
+  margin-left: auto;
 }
 
 .flag-btn:hover {
-  background: rgba(255, 100, 100, 0.1);
+  background: rgba(255, 100, 100, 0.2);
   border-color: #ff6b6b;
   transform: translateY(-2px);
 }
 
 .flag-btn.flagged {
-  background: rgba(255, 100, 100, 0.2);
+  background: rgba(255, 100, 100, 0.3);
   border-color: #ff6b6b;
   color: #ff6b6b;
   cursor: not-allowed;
@@ -738,15 +738,6 @@
 
 .flag-btn.flagged:hover {
   transform: none;
-}
-
-.flag-warning {
-  font-size: 0.75rem;
-  color: #ff6b6b;
-  margin-top: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
 }
 
 /* Flag Modal */
@@ -1055,11 +1046,24 @@
     }
     
     .card-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-top: 1rem;
-    }
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.card-actions .btn-primary,
+.card-actions .btn-secondary {
+  flex: 1;
+  margin: 0;
+  min-width: auto;
+}
+
+.flag-btn {
+  flex-shrink: 0;
+}
     
     /* Footer */
     footer { 
@@ -1964,150 +1968,157 @@ if (user) {
       return;
     }
     
-    // Generate course cards with flagging system
-    grid.innerHTML = courses.map(course => {
-      // Determine content type
-      const fileUrl = course.file_url || course.download_url || '';
-      const fileName = course.file_path || '';
-      
-      // Video detection
-      const isVideo = 
-        (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-        (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-        (course.content_type === 'video');
-      
-      // Check if course is free (price 0 OR type is 'free')
-      const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
-      const isPremium = course.price > 0 && !isFree;
-      
-      // Check if user has access (free OR purchased)
-      const hasAccess = isFree || purchasedCourses.has(Number(course.id));
-      
-      // Determine badge
-      let badgeClass = 'badge-free';
-      let badgeIcon = 'fas fa-book';
-      let badgeText = 'FREE';
-      
-      if (isPremium) {
-        badgeClass = 'badge-premium';
-        badgeIcon = 'fas fa-crown';
-        badgeText = 'PREMIUM';
-      }
-      
-      if (isVideo) {
-        badgeClass = 'badge-video';
-        badgeIcon = 'fas fa-video';
-        badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
-      }
-      
-      // Check if user is admin (flag button not shown for admin's own content)
-      const isAdmin = user && user.role === 'admin';
-      const isOwner = user && user.id === course.user_id;
-      const showFlagButton = user && !isOwner && user.role !== 'admin';
-      
-      // Get thumbnail URL
-      let thumbnailSrc;
-      if (course.thumbnail_url) {
-        thumbnailSrc = course.thumbnail_url;
-      } else if (course.thumbnail_path) {
-        thumbnailSrc = course.thumbnail_path;
-      } else {
-        const colors = ['1e293b', '172a45', '112240'];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const cleanTitle = (course.title || 'Course').substring(0, 25).replace(/[^\w\s]/gi, '');
-        thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
-      }
-      
-      // Generate price display
-      let priceDisplay = '';
-      if (hasAccess && isPremium) {
-        priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
-      } else if (isFree) {
-        priceDisplay = '<span style="color: #64ffda;">FREE</span>';
-      } else {
-        priceDisplay = formatCurrency(course.price, userCurrency);
-      }
-      
-      // Escape all user-generated content for safety
-      const safeTitle = escapeHtml(course.title);
-      const safeDescription = escapeHtml(course.description || 'No description available');
-      const safeAuthor = escapeHtml(course.author || '');
-      
-      // Check if user has already flagged this course
-      const hasFlagged = course.user_has_flagged === true;
-      
-      return `
-        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
-          <div class="card-header">
-            <img src="${thumbnailSrc}" 
-                 alt="${safeTitle}" 
-                 loading="lazy" 
-                 onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
-            <div class="card-badge ${badgeClass}">
-              <i class="${badgeIcon} type-icon"></i> ${badgeText}
-            </div>
-            ${hasAccess && isPremium ? `
-              <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
-                <i class="fas fa-check-circle"></i> Owned
-              </div>
-            ` : ''}
-          </div>
-          <div class="card-content">
-            <h3>${safeTitle}</h3>
-            <p>${safeDescription}</p>
-            <div class="card-meta">
-              <div class="price" data-original-price="${course.price}">
-                ${priceDisplay}
-              </div>
-              ${safeAuthor ? `
-                <div class="author">
-                  <i class="fas fa-user"></i>
-                  <span>${safeAuthor}</span>
-                </div>
-              ` : ''}
-            </div>
-            <div class="card-actions">
-              ${hasAccess ? `
-                <button onclick="handleDownload(${course.id})" class="btn-primary">
-                  <i class="fas fa-download"></i> Download Now
-                </button>
-                ${isVideo ? `
-                  <button onclick="watchVideo(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" class="btn-secondary">
-                    <i class="fas fa-play"></i> Watch Now
-                  </button>
-                ` : ''}
-              ` : (isPremium ? `
-                <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
-                        class="btn-primary">
-                  <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
-                </button>
-                <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
-                  <i class="fas fa-lock"></i> Check Access
-                </button>
-              ` : `
-                <button onclick="handleDownload(${course.id})" class="btn-primary">
-                  <i class="fas fa-download"></i> Download Free
-                </button>
-              `)}
-              ${showFlagButton ? `
-                <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
-                        class="flag-btn ${hasFlagged ? 'flagged' : ''}"
-                        ${hasFlagged ? 'disabled' : ''}>
-                  <i class="fas fa-flag"></i> ${hasFlagged ? 'Reported' : 'Report Content'}
-                </button>
-              ` : ''}
-              ${user && (user.role === 'admin' || user.id === course.user_id) ? `
-                <button onclick="deleteCourse(${course.id})" 
-                        class="btn-secondary" 
-                        style="background: #ff4444; color: white; border: none;">
-                  <i class="fas fa-trash"></i> Delete
-                </button>
-              ` : ''}
-            </div>
-          </div>
+    // Generate course cards with flag icon (not text)
+grid.innerHTML = courses.map(course => {
+  // Determine content type
+  const fileUrl = course.file_url || course.download_url || '';
+  const fileName = course.file_path || '';
+  
+  // Video detection
+  const isVideo = 
+    (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+    (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+    (course.content_type === 'video');
+  
+  // Check if course is free (price 0 OR type is 'free')
+  const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+  const isPremium = course.price > 0 && !isFree;
+  
+  // Check if user has access (free OR purchased)
+  const hasAccess = isFree || purchasedCourses.has(Number(course.id));
+  
+  // Determine badge
+  let badgeClass = 'badge-free';
+  let badgeIcon = 'fas fa-book';
+  let badgeText = 'FREE';
+  
+  if (isPremium) {
+    badgeClass = 'badge-premium';
+    badgeIcon = 'fas fa-crown';
+    badgeText = 'PREMIUM';
+  }
+  
+  if (isVideo) {
+    badgeClass = 'badge-video';
+    badgeIcon = 'fas fa-video';
+    badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
+  }
+  
+  // Check if user is admin or if content is uploaded by admin
+  const isAdmin = user && user.role === 'admin';
+  const isOwner = user && user.id === course.user_id;
+  const isUploadedByAdmin = course.user_role === 'admin' || (course.author && course.author.toLowerCase() === 'admin');
+  
+  // Show flag button ONLY for logged-in users who are NOT admin and content NOT uploaded by admin
+  const showFlagButton = user && !isOwner && user.role !== 'admin' && !isUploadedByAdmin;
+  
+  // Get thumbnail URL
+  let thumbnailSrc;
+  if (course.thumbnail_url) {
+    thumbnailSrc = course.thumbnail_url;
+  } else if (course.thumbnail_path) {
+    thumbnailSrc = course.thumbnail_path;
+  } else {
+    const colors = ['1e293b', '172a45', '112240'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const cleanTitle = (course.title || 'Course').substring(0, 25).replace(/[^\w\s]/gi, '');
+    thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
+  }
+  
+  // Generate price display
+  let priceDisplay = '';
+  if (hasAccess && isPremium) {
+    priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
+  } else if (isFree) {
+    priceDisplay = '<span style="color: #64ffda;">FREE</span>';
+  } else {
+    priceDisplay = formatCurrency(course.price, userCurrency);
+  }
+  
+  // Escape all user-generated content for safety
+  const safeTitle = escapeHtml(course.title);
+  const safeDescription = escapeHtml(course.description || 'No description available');
+  const safeAuthor = escapeHtml(course.author || '');
+  
+  // Check if user has already flagged this course
+  const hasFlagged = flaggedCourses.has(Number(course.id));
+  
+  return `
+    <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+      <div class="card-header">
+        <img src="${thumbnailSrc}" 
+             alt="${safeTitle}" 
+             loading="lazy" 
+             onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
+        <div class="card-badge ${badgeClass}">
+          <i class="${badgeIcon} type-icon"></i> ${badgeText}
         </div>
-      `;
-    }).join('');
+        ${hasAccess && isPremium ? `
+          <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
+            <i class="fas fa-check-circle"></i> Owned
+          </div>
+        ` : ''}
+      </div>
+      <div class="card-content">
+        <h3>${safeTitle}</h3>
+        <p>${safeDescription}</p>
+        <div class="card-meta">
+          <div class="price" data-original-price="${course.price}">
+            ${priceDisplay}
+          </div>
+          ${safeAuthor ? `
+            <div class="author">
+              <i class="fas fa-user"></i>
+              <span>${safeAuthor}</span>
+            </div>
+          ` : ''}
+        </div>
+        <div class="card-actions">
+          ${hasAccess ? `
+            <button onclick="handleDownload(${course.id})" class="btn-primary">
+              <i class="fas fa-download"></i> Download Now
+            </button>
+            ${isVideo ? `
+              <button onclick="watchVideo(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" class="btn-secondary">
+                <i class="fas fa-play"></i> Watch Now
+              </button>
+            ` : ''}
+          ` : (isPremium ? `
+            <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
+                    class="btn-primary">
+              <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
+            </button>
+            <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
+              <i class="fas fa-lock"></i> Check Access
+            </button>
+          ` : `
+            <button onclick="handleDownload(${course.id})" class="btn-primary">
+              <i class="fas fa-download"></i> Download Free
+            </button>
+          `)}
+          
+          <!-- Flag button - only shows as icon for non-admin, non-owner, non-admin-uploaded content -->
+          ${showFlagButton ? `
+            <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
+                    class="flag-btn ${hasFlagged ? 'flagged' : ''}"
+                    title="${hasFlagged ? 'Already reported' : 'Report this content'}"
+                    ${hasFlagged ? 'disabled' : ''}>
+              <i class="fas fa-flag"></i>
+            </button>
+          ` : ''}
+          
+          ${user && (user.role === 'admin' || user.id === course.user_id) ? `
+            <button onclick="deleteCourse(${course.id})" 
+                    class="btn-secondary" 
+                    style="background: #ff4444; color: white; border: none;">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}).join('');
     
     // Setup filters after loading courses
     setupFilters();

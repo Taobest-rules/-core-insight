@@ -4977,31 +4977,19 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
 app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, res) => {
   try {
     if (!req.session.user) {
-      return res.status(401).json({ error: "Please login to upload certificates" });
+      return res.status(401).json({ error: "Please login" });
     }
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
-    // Validate file types
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-    for (const file of req.files) {
-      if (!allowedTypes.includes(file.mimetype)) {
-        return res.status(400).json({ error: `Invalid file type: ${file.originalname}. Only images and PDFs are allowed.` });
-      }
-    }
-
-    // Upload to ImgBB (not Cloudinary)
     const certificateUrls = [];
     for (const file of req.files) {
       const url = await uploadImageToImgbb(file.path, file.originalname);
       certificateUrls.push(url);
     }
-    
-    console.log(`✅ Uploaded ${certificateUrls.length} certificates to ImgBB`);
 
-    // Get current certificate URLs
     const currentProfile = await db.query(
       "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
@@ -5016,7 +5004,6 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
       }
     }
 
-    // Limit to 5 certificates total
     const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
     
     await db.query(`

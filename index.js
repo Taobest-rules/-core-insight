@@ -3876,14 +3876,13 @@ app.post("/api/courses/flag", async (req, res) => {
     } 
     // Issue warning on first flag
     else if (flagCount === 1) {
-      await db.query(
-        `INSERT INTO user_warnings (user_id, warning_type, reason, created_at)
-         VALUES (?, 'content_flag', ?, NOW())`,
-        [course.user_id, `Your course "${course.title}" has been reported. Please review guidelines.`]
-      );
-      warningIssued = true;
-    }
-
+  await db.query(
+    `INSERT INTO user_warnings (user_id, warning_type, reason, created_at)
+     VALUES (?, 'flag', ?, NOW())`,
+    [course.user_id, `Your course "${course.title}" has been reported. Please review guidelines.`]
+  );
+  warningIssued = true;
+}
     res.json({
       success: true,
       message: deleted ? "Content removed due to reports" : "Report submitted successfully",

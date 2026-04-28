@@ -6631,7 +6631,7 @@ app.get("/api/freelancer/recruitment-stats", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// ==================== SUBMIT REVIEW FOR FREELANCER ====================
+// Submit review for freelancer
 app.post("/api/reviews/freelancer", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -6681,11 +6681,12 @@ app.post("/api/reviews/freelancer", async (req, res) => {
                 [rating, comment, clientId, freelancerId]
             );
         } else {
-            // Insert new review
+            // Insert new review - handle null service_id properly
+            const serviceIdValue = serviceId && serviceId !== 'null' && serviceId !== 'undefined' ? parseInt(serviceId) : null;
             await db.query(
                 `INSERT INTO freelancer_reviews (freelancer_id, client_id, service_id, rating, comment, created_at) 
                  VALUES (?, ?, ?, ?, ?, NOW())`,
-                [freelancerId, clientId, serviceId || null, rating, comment]
+                [freelancerId, clientId, serviceIdValue, rating, comment]
             );
         }
 
@@ -6698,8 +6699,14 @@ app.post("/api/reviews/freelancer", async (req, res) => {
         const avgRating = avgResult[0]?.avg_rating || 0;
         const reviewCount = avgResult[0]?.count || 0;
 
+        // Update both tables
         await db.query(
             "UPDATE freelancer_profiles SET avg_rating = ?, review_count = ? WHERE user_id = ?",
+            [avgRating, reviewCount, freelancerId]
+        );
+        
+        await db.query(
+            "UPDATE users SET avg_rating = ?, review_count = ? WHERE id = ?",
             [avgRating, reviewCount, freelancerId]
         );
 
@@ -6805,12 +6812,10 @@ app.post("/api/users/flag", async (req, res) => {
             return res.status(400).json({ error: "Reason must be at least 10 characters" });
         }
         
-        // Check if user is flagging themselves
         if (parseInt(flagged_user_id) === parseInt(req.session.user.id)) {
             return res.status(400).json({ error: "You cannot flag yourself" });
         }
         
-        // Get the flagged user's role
         const userResult = await db.query(
             "SELECT role FROM users WHERE id = ?",
             [flagged_user_id]
@@ -6824,34 +6829,17 @@ app.post("/api/users/flag", async (req, res) => {
             return res.status(400).json({ error: "Only freelancers can be flagged" });
         }
         
-        // Check if client has already flagged this user (optional: prevent duplicate flags)
-        const existingFlag = await db.query(
-            "SELECT id FROM user_flags WHERE flagged_user_id = ? AND flagged_by_user_id = ?",
-            [flagged_user_id, req.session.user.id]
-        );
+        // Handle null service_id properly
+        const serviceIdValue = service_id && service_id !== 'null' && service_id !== 'undefined' ? parseInt(service_id) : null;
         
-        if (existingFlag && existingFlag.length > 0) {
-            // Allow multiple flags but with a cooldown? For now, allow multiple
-            // But we'll count all flags for the threshold
-        }
-        
-        // Insert the flag
         const flagResult = await db.query(
             `INSERT INTO user_flags (flagged_user_id, flagged_by_user_id, service_id, reason, status, created_at)
              VALUES (?, ?, ?, ?, 'pending', NOW())`,
-            [flagged_user_id, req.session.user.id, service_id || null, reason]
+            [flagged_user_id, req.session.user.id, serviceIdValue, reason]
         );
         
         const flagId = flagResult.insertId;
         
-        // Log to history
-        await db.query(
-            `INSERT INTO flag_history (flag_id, action, notes, performed_by, performed_at)
-             VALUES (?, 'created', ?, ?, NOW())`,
-            [flagId, reason, req.session.user.id]
-        );
-        
-        // Count total flags for this user
         const flagCountResult = await db.query(
             "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
             [flagged_user_id]
@@ -6859,10 +6847,10 @@ app.post("/api/users/flag", async (req, res) => {
         
         const flagCount = flagCountResult[0]?.count || 1;
         
-        // Check if this is the first flag - issue warning
         let warningIssued = false;
+        let accountLocked = false;
+        
         if (flagCount === 1) {
-            // Add warning record
             await db.query(
                 `INSERT INTO user_warnings (user_id, warning_type, reason, issued_by, expires_at, created_at)
                  VALUES (?, 'flag', ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
@@ -6871,31 +6859,25 @@ app.post("/api/users/flag", async (req, res) => {
             warningIssued = true;
         }
         
-        // Check if this is the third flag - lock account and request freelancer statement
-        let accountLocked = false;
         if (flagCount >= 3) {
-            // Check if already in review
             const existingReview = await db.query(
                 "SELECT id FROM admin_reviews WHERE user_id = ? AND status IN ('pending', 'under_review')",
                 [flagged_user_id]
             );
             
             if (!existingReview || existingReview.length === 0) {
-                // Create admin review record
                 await db.query(
                     `INSERT INTO admin_reviews (user_id, flag_count, status, created_at)
                      VALUES (?, ?, 'pending', NOW())`,
                     [flagged_user_id, flagCount]
                 );
             } else {
-                // Update flag count
                 await db.query(
                     "UPDATE admin_reviews SET flag_count = ? WHERE user_id = ?",
                     [flagCount, flagged_user_id]
                 );
             }
             
-            // Lock the user's account temporarily
             await db.query(
                 "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
                 ["Multiple flags - pending admin review", flagged_user_id]

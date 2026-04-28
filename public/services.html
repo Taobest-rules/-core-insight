@@ -7328,7 +7328,8 @@ function openFreelancerProfileFromInbox(userId) {
     openFreelancerProfile(userId);
 }
 
-async function openFreelancerProfile(userId) {
+
+   async function openFreelancerProfile(userId) {
     if (!userId) {
         showToast("Invalid user ID", "error");
         return;
@@ -7347,10 +7348,47 @@ async function openFreelancerProfile(userId) {
         
         const profile = await response.json();
         
-        // Create modal content
+        // Get certificates separately
+        let certificates = [];
+        try {
+            const certResponse = await fetch(`/api/users/${userId}/certificates`, {
+                credentials: 'include'
+            });
+            if (certResponse.ok) {
+                const certData = await certResponse.json();
+                certificates = certData.certificate_images || [];
+            }
+        } catch (err) {
+            console.error("Error loading certificates:", err);
+        }
+        
+        // Format skills
+        const skillsList = profile.skills && Array.isArray(profile.skills) ? profile.skills : 
+                          (profile.skills ? profile.skills.split(',').map(s => s.trim()) : []);
+        
+        // Format languages
+        const languagesList = profile.languages && Array.isArray(profile.languages) ? profile.languages :
+                              (profile.languages ? profile.languages.split(',').map(l => l.trim()) : []);
+        
+        // Generate stars for rating
+        const avgRating = profile.avg_rating || 0;
+        const fullStars = Math.floor(avgRating);
+        const hasHalfStar = avgRating % 1 >= 0.5;
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= fullStars) {
+                starsHtml += '<i class="fas fa-star" style="color: var(--accent-gold);"></i>';
+            } else if (i === fullStars + 1 && hasHalfStar) {
+                starsHtml += '<i class="fas fa-star-half-alt" style="color: var(--accent-gold);"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star" style="color: var(--text-gray);"></i>';
+            }
+        }
+        
         const modalContent = `
-            <div style="max-height: 70vh; overflow-y: auto;">
-                <div style="text-align: center; margin-bottom: 20px;">
+            <div style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+                <!-- Header with Avatar -->
+                <div style="text-align: center; margin-bottom: 25px;">
                     <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 15px; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center;">
                         ${profile.profile_picture ? 
                             `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; object-fit: cover;">` :
@@ -7358,37 +7396,123 @@ async function openFreelancerProfile(userId) {
                         }
                     </div>
                     <h2 style="color: var(--text-light); margin-bottom: 5px;">${escapeHtml(profile.username)}</h2>
-                    <p style="color: var(--accent-gold);">${escapeHtml(profile.headline || 'Freelancer')}</p>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
-                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold;">${profile.service_count || 0}</div>
-                        <div style="color: var(--text-gray); font-size: 0.85rem;">Services</div>
-                    </div>
-                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; text-align: center;">
-                        <div style="color: var(--accent-gold); font-size: 1.5rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
-                        <div style="color: var(--text-gray); font-size: 0.85rem;">Hourly Rate</div>
+                    <p style="color: var(--accent-gold); font-size: 1rem;">${escapeHtml(profile.headline || 'Professional Freelancer')}</p>
+                    <div class="service-rating" style="justify-content: center; margin-top: 8px;">
+                        <div class="stars">${starsHtml}</div>
+                        <span class="rating-count" style="margin-left: 8px;">(${profile.review_count || 0} reviews)</span>
                     </div>
                 </div>
                 
+                <!-- Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 25px;">
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.service_count || 0}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Services</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.completed_orders || 0}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Orders</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Hourly Rate</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.total_earnings ? `$${profile.total_earnings}` : '$0'}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Earnings</div>
+                    </div>
+                </div>
+                
+                <!-- About Section -->
                 ${profile.description ? `
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--text-light); margin-bottom: 10px;">About</h4>
-                        <p style="color: var(--text-gray); line-height: 1.6;">${escapeHtml(profile.description)}</p>
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user" style="color: var(--accent-blue);"></i> About
+                        </h4>
+                        <p style="color: var(--text-gray); line-height: 1.6; white-space: pre-wrap;">${escapeHtml(profile.description)}</p>
                     </div>
                 ` : ''}
                 
-                ${profile.skills && profile.skills.length > 0 ? `
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--text-light); margin-bottom: 10px;">Skills</h4>
+                <!-- Skills Section -->
+                ${skillsList.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-code" style="color: var(--accent-blue);"></i> Skills
+                        </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            ${profile.skills.map(skill => `<span style="background: rgba(59,130,246,0.1); color: var(--accent-blue); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(skill)}</span>`).join('')}
+                            ${skillsList.map(skill => `<span style="background: rgba(59,130,246,0.1); color: var(--accent-blue); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(skill)}</span>`).join('')}
                         </div>
                     </div>
                 ` : ''}
                 
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <!-- Languages Section -->
+                ${languagesList.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-language" style="color: var(--accent-blue);"></i> Languages
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${languagesList.map(lang => `<span style="background: rgba(139,92,246,0.1); color: var(--premium-purple); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(lang)}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Certificates Section -->
+                ${certificates.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-certificate" style="color: var(--accent-gold);"></i> Certificates
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                            ${certificates.map((cert, idx) => `
+                                <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);" onclick="openCertificateViewer('${cert}', ${idx})">
+                                    <img src="${cert}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Contact & Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    ${profile.location ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Location</div>
+                            <div style="color: var(--text-light);">${escapeHtml(profile.location)}</div>
+                        </div>
+                    ` : ''}
+                    ${profile.availability ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Availability</div>
+                            <div style="color: ${profile.availability === 'available' ? '#10b981' : profile.availability === 'busy' ? '#f59e0b' : '#ef4444'}">
+                                ${profile.availability === 'available' ? '✓ Available' : profile.availability === 'busy' ? '⏰ Busy' : '✗ Unavailable'}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${profile.phone ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Phone</div>
+                            <div style="color: var(--text-light);">${escapeHtml(profile.phone)}</div>
+                        </div>
+                    ` : ''}
+                    ${profile.website ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Website</div>
+                            <a href="${profile.website}" target="_blank" style="color: var(--accent-blue); word-break: break-all;">${escapeHtml(profile.website)}</a>
+                        </div>
+                    ` : ''}
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                        <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Member Since</div>
+                        <div style="color: var(--text-light);">${profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                        <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Response Time</div>
+                        <div style="color: var(--text-light);">${profile.response_time ? `${profile.response_time} hours` : 'Typically within 24h'}</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
                     <button class="btn btn-primary" onclick="checkAndStartConversation(null, ${userId}); closeModal(document.getElementById('freelancerProfileModal'));" style="flex: 1;">
                         <i class="fas fa-comments"></i> Message
                     </button>
@@ -7399,7 +7523,6 @@ async function openFreelancerProfile(userId) {
             </div>
         `;
         
-        // Show modal
         const modal = document.getElementById('freelancerProfileModal');
         const content = document.getElementById('freelancerProfileContent');
         
@@ -7407,7 +7530,6 @@ async function openFreelancerProfile(userId) {
             content.innerHTML = modalContent;
             openModal(modal);
         } else {
-            // Fallback: show alert if modal doesn't exist
             showToast(`${profile.username}'s profile loaded`, 'success');
         }
         
@@ -7416,7 +7538,6 @@ async function openFreelancerProfile(userId) {
         showToast("Error loading profile: " + err.message, "error");
     }
 }
-
 function startConversationWithFreelancer(userId, username) {
     if (!currentUser) {
         showToast("Please login to start a conversation", "warning");

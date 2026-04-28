@@ -14108,8 +14108,16 @@ function setupProfilePictureUpload() {
     });
 }
 
-// Upload function
+
+// ==================== PROFILE PICTURE UPLOAD - FIXED ====================
+let isUploading = false;
+
 async function uploadProfilePicture(file) {
+    if (isUploading) {
+        console.log("Upload already in progress");
+        return;
+    }
+    
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
@@ -14122,10 +14130,11 @@ async function uploadProfilePicture(file) {
         return;
     }
     
+    isUploading = true;
+    showToast("Uploading profile picture...", "info");
+    
     const formData = new FormData();
     formData.append('profile_picture', file);
-    
-    showToast("Uploading...", "info");
     
     try {
         const response = await fetch('/api/freelancer/profile-picture', {
@@ -14138,96 +14147,94 @@ async function uploadProfilePicture(file) {
         
         if (response.ok && result.success) {
             showToast('✅ Profile picture updated!', 'success');
-            // Reload profile after 1 second
-            setTimeout(() => {
-                showFreelancerProfile();
-            }, 1000);
+            // Update the image immediately without reloading the whole profile
+            const profileImg = document.getElementById('profilePicture');
+            if (profileImg) {
+                profileImg.src = result.profile_picture;
+                profileImg.style.display = 'block';
+                const profileInitials = document.getElementById('profileInitials');
+                if (profileInitials) profileInitials.style.display = 'none';
+            }
         } else {
             showToast(result.error || 'Upload failed', 'error');
         }
     } catch (err) {
         console.error('Upload error:', err);
         showToast('Error uploading picture', 'error');
+    } finally {
+        isUploading = false;
+        // Clear the file input
+        const input = document.getElementById('profilePictureInput');
+        if (input) input.value = '';
     }
 }
-// ==================== PROFILE PICTURE UPLOAD ====================
-async function uploadProfilePicture(file) {
-    if (!file) {
-        showToast("No file selected", "warning");
-        return;
-    }
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        showToast("Please select an image file (JPEG, PNG, GIF)", "warning");
-        return;
-    }
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        showToast("File too large! Maximum 5MB", "warning");
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('profile_picture', file);
-    
-    showToast("Uploading profile picture...", "info");
-    
-    try {
-        const response = await fetch('/api/freelancer/profile-picture', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showToast('✅ Profile picture updated successfully!', 'success');
-            // Reload the profile to show new picture
-            setTimeout(() => {
-                showFreelancerProfile();
-            }, 1000);
-        } else {
-            showToast(result.error || 'Failed to upload picture', 'error');
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading picture: ' + err.message, 'error');
-    }
-}
-// ==================== CERTIFICATE UPLOAD ====================
 
-   async function uploadCertificates(files) {
-    const maxFiles = 5;
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+function initProfilePictureUpload() {
+    const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+    const profilePictureInput = document.getElementById('profilePictureInput');
     
-    // Filter valid files
+    if (!updatePhotoBtn || !profilePictureInput) {
+        console.log("Profile picture elements not found");
+        return;
+    }
+    
+    // Remove any existing listeners
+    const newBtn = updatePhotoBtn.cloneNode(true);
+    updatePhotoBtn.parentNode.replaceChild(newBtn, updatePhotoBtn);
+    
+    const newInput = profilePictureInput.cloneNode(true);
+    profilePictureInput.parentNode.replaceChild(newInput, profilePictureInput);
+    
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Update photo button clicked");
+        newInput.click();
+    });
+    
+    newInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            console.log("File selected:", e.target.files[0].name);
+            uploadProfilePicture(e.target.files[0]);
+        }
+    });
+    
+    console.log("Profile picture upload initialized");
+}
+// ==================== CERTIFICATE UPLOAD - FIXED ====================
+let isCertUploading = false;
+
+async function uploadCertificates(files) {
+    if (isCertUploading) {
+        console.log("Certificate upload already in progress");
+        return;
+    }
+    
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    const maxFiles = 5;
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
     const validFiles = [];
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (const file of fileArray) {
         if (!allowedTypes.includes(file.type)) {
-            showToast(`${file.name} is not an allowed format`, 'warning');
+            showToast(`${file.name} is not an image`, 'warning');
             continue;
         }
         if (file.size > maxSize) {
-            showToast(`${file.name} exceeds 5MB limit`, 'warning');
+            showToast(`${file.name} exceeds 5MB`, 'warning');
             continue;
         }
         validFiles.push(file);
     }
     
-    if (validFiles.length === 0) {
-        showToast("No valid files to upload", "warning");
+    if (validFiles.length === 0) return;
+    if (validFiles.length > maxFiles) {
+        showToast(`Maximum ${maxFiles} files`, 'warning');
         return;
     }
     
-    if (validFiles.length > maxFiles) {
-        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
-        return;
-    }
+    isCertUploading = true;
     
     const formData = new FormData();
     validFiles.forEach(file => {
@@ -14239,24 +14246,36 @@ async function uploadProfilePicture(file) {
     const progressText = document.getElementById('certificateProgressText');
     
     if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '30%';
-    if (progressText) progressText.textContent = 'Uploading to ImgBB...';
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.textContent = '';
     
     try {
+        // Animate progress
+        let progress = 0;
+        const interval = setInterval(() => {
+            if (progress < 90) {
+                progress += 10;
+                if (progressBar) progressBar.style.width = progress + '%';
+                if (progressText) progressText.textContent = `Uploading... ${progress}%`;
+            }
+        }, 200);
+        
         const response = await fetch('/api/freelancer/certificate-images', {
             method: 'POST',
             body: formData,
             credentials: 'include'
         });
         
+        clearInterval(interval);
+        
         const result = await response.json();
         
         if (response.ok && result.success) {
             if (progressBar) progressBar.style.width = '100%';
-            if (progressText) progressText.textContent = 'Upload complete!';
-            showToast(`✅ ${validFiles.length} certificate(s) uploaded successfully!`, 'success');
+            if (progressText) progressText.textContent = 'Complete!';
+            showToast(`✅ ${validFiles.length} certificate(s) uploaded!`, 'success');
             
-            // Reload profile to show new certificates
+            // Refresh profile after delay
             setTimeout(() => {
                 showFreelancerProfile();
             }, 1500);
@@ -14266,9 +14285,10 @@ async function uploadProfilePicture(file) {
         }
     } catch (err) {
         console.error('Upload error:', err);
-        showToast('Error uploading certificates: ' + err.message, 'error');
+        showToast('Error uploading certificates', 'error');
         if (progressDiv) progressDiv.style.display = 'none';
     } finally {
+        isCertUploading = false;
         setTimeout(() => {
             if (progressDiv) progressDiv.style.display = 'none';
             if (progressBar) progressBar.style.width = '0%';
@@ -14277,6 +14297,69 @@ async function uploadProfilePicture(file) {
         const certificateInput = document.getElementById('certificateImagesInput');
         if (certificateInput) certificateInput.value = '';
     }
+}
+
+function initCertificateUpload() {
+    const browseBtn = document.getElementById('browseCertificatesBtn');
+    const certificateInput = document.getElementById('certificateImagesInput');
+    const uploadArea = document.getElementById('certificateUploadArea');
+    
+    if (!browseBtn || !certificateInput) {
+        console.log("Certificate elements not found");
+        return;
+    }
+    
+    // Remove existing listeners by cloning
+    const newBrowseBtn = browseBtn.cloneNode(true);
+    browseBtn.parentNode.replaceChild(newBrowseBtn, browseBtn);
+    
+    const newInput = certificateInput.cloneNode(true);
+    certificateInput.parentNode.replaceChild(newInput, certificateInput);
+    
+    newBrowseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Browse certificates button clicked");
+        newInput.value = '';
+        newInput.click();
+    });
+    
+    if (uploadArea) {
+        const newUploadArea = uploadArea.cloneNode(true);
+        uploadArea.parentNode.replaceChild(newUploadArea, uploadArea);
+        
+        newUploadArea.addEventListener('click', function(e) {
+            if (e.target === newUploadArea || newUploadArea.contains(e.target)) {
+                newInput.click();
+            }
+        });
+        
+        newUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            newUploadArea.classList.add('dragover');
+        });
+        
+        newUploadArea.addEventListener('dragleave', () => {
+            newUploadArea.classList.remove('dragover');
+        });
+        
+        newUploadArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            newUploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                await uploadCertificates(Array.from(e.dataTransfer.files));
+            }
+        });
+    }
+    
+    newInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            console.log(`Selected ${e.target.files.length} certificate(s)`);
+            await uploadCertificates(Array.from(e.target.files));
+        }
+    });
+    
+    console.log("Certificate upload initialized");
 }
 // ==================== DELETE CERTIFICATE ====================
 async function removeCertificate(index) {

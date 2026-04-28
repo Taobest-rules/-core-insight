@@ -1570,14 +1570,13 @@ const checkCourseAccess = async (req, res, next) => {
 };
 
 // =================== COURSES ENDPOINTS ===================
-
-// Get all courses
 app.get("/api/courses", async (req, res) => {
   try {
     const courses = await db.query(`
       SELECT 
         c.*, 
         u.username as author_name,
+        u.role as user_role,
         COALESCE(c.file_url, c.file_path) as file_path_combined,
         COALESCE(c.thumbnail_url, c.thumbnail_path) as thumbnail_path_combined
       FROM courses c 
@@ -3756,24 +3755,26 @@ app.get("/api/user/delete-count", async (req, res) => {
 
 app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, res) => {
   try {
+    console.log("📸 Profile picture upload request received");
+    
     if (!req.session.user) {
-      return res.status(401).json({ error: "Please login to upload picture" });
+      return res.status(401).json({ error: "Please login" });
     }
 
     if (!req.file) {
+      console.log("❌ No file in request");
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Validate file type
+    console.log(`📁 File received: ${req.file.originalname}, size: ${req.file.size}`);
+
     if (!req.file.mimetype.startsWith('image/')) {
       return res.status(400).json({ error: "Only image files are allowed" });
     }
 
-    // Upload to ImgBB
     const imageUrl = await uploadImageToImgbb(req.file.path, req.file.originalname);
-    console.log(`✅ Profile picture uploaded to ImgBB: ${imageUrl}`);
+    console.log(`✅ Uploaded to ImgBB: ${imageUrl}`);
 
-    // Check if profile exists
     const profileCheck = await db.query(
       "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]

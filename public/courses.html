@@ -1967,8 +1967,8 @@ if (user) {
       hideLoading();
       return;
     }
-    
-    // Generate course cards with flag icon (not text)
+   
+  // Generate course cards with flag icon
 grid.innerHTML = courses.map(course => {
   // Determine content type
   const fileUrl = course.file_url || course.download_url || '';
@@ -2004,13 +2004,18 @@ grid.innerHTML = courses.map(course => {
     badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
   }
   
-  // Check if user is admin or if content is uploaded by admin
-  const isAdmin = user && user.role === 'admin';
-  const isOwner = user && user.id === course.user_id;
-  const isUploadedByAdmin = course.user_role === 'admin' || (course.author && course.author.toLowerCase() === 'admin');
+  // Check if content is uploaded by admin
+  const isUploadedByAdmin = course.user_role === 'admin' || 
+                            (course.author && course.author.toLowerCase() === 'admin');
   
-  // Show flag button ONLY for logged-in users who are NOT admin and content NOT uploaded by admin
-  const showFlagButton = user && !isOwner && user.role !== 'admin' && !isUploadedByAdmin;
+  // Show flag button for ALL logged-in users EXCEPT:
+  // 1. When content is uploaded by admin (hide completely)
+  // 2. For the content owner (can't flag own content)
+  // 3. For admin users (admins don't flag, they moderate)
+  const showFlagButton = user && 
+                        !isUploadedByAdmin &&  // HIDE on admin-uploaded courses
+                        !isOwner &&             // HIDE for own content
+                        user.role !== 'admin';  // HIDE for admin users
   
   // Get thumbnail URL
   let thumbnailSrc;
@@ -2097,7 +2102,7 @@ grid.innerHTML = courses.map(course => {
             </button>
           `)}
           
-          <!-- Flag button - only shows as icon for non-admin, non-owner, non-admin-uploaded content -->
+          <!-- Flag button - Shows for non-admin content, non-owner, non-admin users -->
           ${showFlagButton ? `
             <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
                     class="flag-btn ${hasFlagged ? 'flagged' : ''}"

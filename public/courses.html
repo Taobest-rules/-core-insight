@@ -1905,7 +1905,215 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
+async function openFreelancerProfile(userId) {
+    if (!userId) {
+        showToast("Invalid user ID", "error");
+        return;
+    }
+    
+    try {
+        showToast("Loading profile...", "info");
+        
+        const response = await fetch(`/api/users/${userId}/profile`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load profile');
+        }
+        
+        const profile = await response.json();
+        
+        // Get certificates separately
+        let certificates = [];
+        try {
+            const certResponse = await fetch(`/api/users/${userId}/certificates`, {
+                credentials: 'include'
+            });
+            if (certResponse.ok) {
+                const certData = await certResponse.json();
+                certificates = certData.certificate_images || [];
+            }
+        } catch (err) {
+            console.error("Error loading certificates:", err);
+        }
+        
+        // Format skills
+        const skillsList = profile.skills && Array.isArray(profile.skills) ? profile.skills : 
+                          (profile.skills ? profile.skills.split(',').map(s => s.trim()) : []);
+        
+        // Format languages
+        const languagesList = profile.languages && Array.isArray(profile.languages) ? profile.languages :
+                              (profile.languages ? profile.languages.split(',').map(l => l.trim()) : []);
+        
+        // Generate stars for rating
+        const avgRating = profile.avg_rating || 0;
+        const fullStars = Math.floor(avgRating);
+        const hasHalfStar = avgRating % 1 >= 0.5;
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= fullStars) {
+                starsHtml += '<i class="fas fa-star" style="color: var(--accent-gold);"></i>';
+            } else if (i === fullStars + 1 && hasHalfStar) {
+                starsHtml += '<i class="fas fa-star-half-alt" style="color: var(--accent-gold);"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star" style="color: var(--text-gray);"></i>';
+            }
+        }
+        
+        const modalContent = `
+            <div style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+                <!-- Header with Avatar -->
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 15px; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center;">
+                        ${profile.profile_picture ? 
+                            `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                            `<span style="font-size: 3rem; color: white;">${(profile.username || 'U').charAt(0).toUpperCase()}</span>`
+                        }
+                    </div>
+                    <h2 style="color: var(--text-light); margin-bottom: 5px;">${escapeHtml(profile.username)}</h2>
+                    <p style="color: var(--accent-gold); font-size: 1rem;">${escapeHtml(profile.headline || 'Professional Freelancer')}</p>
+                    <div class="service-rating" style="justify-content: center; margin-top: 8px;">
+                        <div class="stars">${starsHtml}</div>
+                        <span class="rating-count" style="margin-left: 8px;">(${profile.review_count || 0} reviews)</span>
+                    </div>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 25px;">
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.service_count || 0}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Services</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.completed_orders || 0}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Orders</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Hourly Rate</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
+                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.total_earnings ? `$${profile.total_earnings}` : '$0'}</div>
+                        <div style="color: var(--text-gray); font-size: 0.75rem;">Earnings</div>
+                    </div>
+                </div>
+                
+                <!-- About Section -->
+                ${profile.description ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user" style="color: var(--accent-blue);"></i> About
+                        </h4>
+                        <p style="color: var(--text-gray); line-height: 1.6; white-space: pre-wrap;">${escapeHtml(profile.description)}</p>
+                    </div>
+                ` : ''}
+                
+                <!-- Skills Section -->
+                ${skillsList.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-code" style="color: var(--accent-blue);"></i> Skills
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${skillsList.map(skill => `<span style="background: rgba(59,130,246,0.1); color: var(--accent-blue); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(skill)}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Languages Section -->
+                ${languagesList.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-language" style="color: var(--accent-blue);"></i> Languages
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${languagesList.map(lang => `<span style="background: rgba(139,92,246,0.1); color: var(--premium-purple); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;">${escapeHtml(lang)}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Certificates Section -->
+                ${certificates.length > 0 ? `
+                    <div class="content-card" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--text-light); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-certificate" style="color: var(--accent-gold);"></i> Certificates
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                            ${certificates.map((cert, idx) => `
+                                <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);" onclick="openCertificateViewer('${cert}', ${idx})">
+                                    <img src="${cert}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Contact & Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    ${profile.location ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Location</div>
+                            <div style="color: var(--text-light);">${escapeHtml(profile.location)}</div>
+                        </div>
+                    ` : ''}
+                    ${profile.availability ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Availability</div>
+                            <div style="color: ${profile.availability === 'available' ? '#10b981' : profile.availability === 'busy' ? '#f59e0b' : '#ef4444'}">
+                                ${profile.availability === 'available' ? '✓ Available' : profile.availability === 'busy' ? '⏰ Busy' : '✗ Unavailable'}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${profile.phone ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Phone</div>
+                            <div style="color: var(--text-light);">${escapeHtml(profile.phone)}</div>
+                        </div>
+                    ` : ''}
+                    ${profile.website ? `
+                        <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                            <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Website</div>
+                            <a href="${profile.website}" target="_blank" style="color: var(--accent-blue); word-break: break-all;">${escapeHtml(profile.website)}</a>
+                        </div>
+                    ` : ''}
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                        <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Member Since</div>
+                        <div style="color: var(--text-light);">${profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px;">
+                        <div style="color: var(--text-gray); font-size: 0.75rem; margin-bottom: 4px;">Response Time</div>
+                        <div style="color: var(--text-light);">${profile.response_time ? `${profile.response_time} hours` : 'Typically within 24h'}</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <button class="btn btn-primary" onclick="checkAndStartConversation(null, ${userId}); closeModal(document.getElementById('freelancerProfileModal'));" style="flex: 1;">
+                        <i class="fas fa-comments"></i> Message
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal(document.getElementById('freelancerProfileModal'));" style="flex: 1;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        const modal = document.getElementById('freelancerProfileModal');
+        const content = document.getElementById('freelancerProfileContent');
+        
+        if (modal && content) {
+            content.innerHTML = modalContent;
+            openModal(modal);
+        } else {
+            showToast(`${profile.username}'s profile loaded`, 'success');
+        }
+        
+    } catch (err) {
+        console.error("Error loading profile:", err);
+        showToast("Error loading profile: " + err.message, "error");
+    }
+}
 // =================== COMPLETE LOAD COURSES FUNCTION ===================
 // =================== SUPPORTING FUNCTIONS ===================
 // =================== COMPLETE LOAD COURSES FUNCTION WITH FLAGGING ===================
@@ -1924,21 +2132,23 @@ async function loadCourses() {
     const grid = document.getElementById('coursesGrid');
     
     document.getElementById('courseCount').textContent = `${courses.length} Courses`;
-    // Get flag status for courses (whether user has flagged them)
-let flaggedCourses = new Set();
-if (user) {
-  try {
-    const flaggedRes = await fetch('/api/courses/flagged-by-me');
-    const flagged = await flaggedRes.json();
-    if (flagged && flagged.length > 0) {
-      flagged.forEach(course => {
-        flaggedCourses.add(Number(course.id));
-      });
+    
+    // Get flag status for courses
+    let flaggedCourses = new Set();
+    if (user) {
+      try {
+        const flaggedRes = await fetch('/api/courses/flagged-by-me');
+        const flagged = await flaggedRes.json();
+        if (flagged && flagged.length > 0) {
+          flagged.forEach(course => {
+            flaggedCourses.add(Number(course.id));
+          });
+        }
+      } catch (error) {
+        console.error('Error loading flagged courses:', error);
+      }
     }
-  } catch (error) {
-    console.error('Error loading flagged courses:', error);
-  }
-}
+    
     // Get purchased courses if user is logged in
     let purchasedCourses = new Set();
     if (user) {
@@ -1967,163 +2177,163 @@ if (user) {
       hideLoading();
       return;
     }
-   
-  // Generate course cards with flag icon
-grid.innerHTML = courses.map(course => {
-  // Determine content type
-  const fileUrl = course.file_url || course.download_url || '';
-  const fileName = course.file_path || '';
-  
-  // Video detection
-  const isVideo = 
-    (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-    (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-    (course.content_type === 'video');
-  
-  // Check if course is free (price 0 OR type is 'free')
-  const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
-  const isPremium = course.price > 0 && !isFree;
-  
-  // Check if user has access (free OR purchased)
-  const hasAccess = isFree || purchasedCourses.has(Number(course.id));
-  
-  // Determine badge
-  let badgeClass = 'badge-free';
-  let badgeIcon = 'fas fa-book';
-  let badgeText = 'FREE';
-  
-  if (isPremium) {
-    badgeClass = 'badge-premium';
-    badgeIcon = 'fas fa-crown';
-    badgeText = 'PREMIUM';
-  }
-  
-  if (isVideo) {
-    badgeClass = 'badge-video';
-    badgeIcon = 'fas fa-video';
-    badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
-  }
-  
-  // Check if content is uploaded by admin
-  const isUploadedByAdmin = course.user_role === 'admin' || 
-                            (course.author && course.author.toLowerCase() === 'admin');
-  
-  // Show flag button for ALL logged-in users EXCEPT:
-  // 1. When content is uploaded by admin (hide completely)
-  // 2. For the content owner (can't flag own content)
-  // 3. For admin users (admins don't flag, they moderate)
-  const showFlagButton = user && 
-                        !isUploadedByAdmin &&  // HIDE on admin-uploaded courses
-                        !isOwner &&             // HIDE for own content
-                        user.role !== 'admin';  // HIDE for admin users
-  
-  // Get thumbnail URL
-  let thumbnailSrc;
-  if (course.thumbnail_url) {
-    thumbnailSrc = course.thumbnail_url;
-  } else if (course.thumbnail_path) {
-    thumbnailSrc = course.thumbnail_path;
-  } else {
-    const colors = ['1e293b', '172a45', '112240'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const cleanTitle = (course.title || 'Course').substring(0, 25).replace(/[^\w\s]/gi, '');
-    thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
-  }
-  
-  // Generate price display
-  let priceDisplay = '';
-  if (hasAccess && isPremium) {
-    priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
-  } else if (isFree) {
-    priceDisplay = '<span style="color: #64ffda;">FREE</span>';
-  } else {
-    priceDisplay = formatCurrency(course.price, userCurrency);
-  }
-  
-  // Escape all user-generated content for safety
-  const safeTitle = escapeHtml(course.title);
-  const safeDescription = escapeHtml(course.description || 'No description available');
-  const safeAuthor = escapeHtml(course.author || '');
-  
-  // Check if user has already flagged this course
-  const hasFlagged = flaggedCourses.has(Number(course.id));
-  
-  return `
-    <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
-      <div class="card-header">
-        <img src="${thumbnailSrc}" 
-             alt="${safeTitle}" 
-             loading="lazy" 
-             onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
-        <div class="card-badge ${badgeClass}">
-          <i class="${badgeIcon} type-icon"></i> ${badgeText}
-        </div>
-        ${hasAccess && isPremium ? `
-          <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
-            <i class="fas fa-check-circle"></i> Owned
-          </div>
-        ` : ''}
-      </div>
-      <div class="card-content">
-        <h3>${safeTitle}</h3>
-        <p>${safeDescription}</p>
-        <div class="card-meta">
-          <div class="price" data-original-price="${course.price}">
-            ${priceDisplay}
-          </div>
-          ${safeAuthor ? `
-            <div class="author">
-              <i class="fas fa-user"></i>
-              <span>${safeAuthor}</span>
+    
+    // Generate course cards
+    grid.innerHTML = courses.map(course => {
+      // Determine content type
+      const fileUrl = course.file_url || course.download_url || '';
+      const fileName = course.file_path || '';
+      
+      // Video detection
+      const isVideo = 
+        (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+        (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+        (course.content_type === 'video');
+      
+      // Check if course is free or premium
+      const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
+      const isPremium = course.price > 0 && !isFree;
+      
+      // Check if user has access
+      const hasAccess = isFree || purchasedCourses.has(Number(course.id));
+      
+      // Determine badge
+      let badgeClass = 'badge-free';
+      let badgeIcon = 'fas fa-book';
+      let badgeText = 'FREE';
+      
+      if (isPremium) {
+        badgeClass = 'badge-premium';
+        badgeIcon = 'fas fa-crown';
+        badgeText = 'PREMIUM';
+      }
+      
+      if (isVideo) {
+        badgeClass = 'badge-video';
+        badgeIcon = 'fas fa-video';
+        badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
+      }
+      
+      // DEFINE isOwner HERE - inside the map function
+      const isOwner = user && Number(course.user_id) === Number(user?.id);
+      const isUploadedByAdmin = course.user_role === 'admin';
+      
+      // Show flag button for ALL logged-in users EXCEPT:
+      // 1. When content is uploaded by admin (hide completely)
+      // 2. For the content owner (can't flag own content)
+      // 3. For admin users (admins don't flag, they moderate)
+      const showFlagButton = user && 
+                            !isUploadedByAdmin &&
+                            !isOwner &&
+                            user.role !== 'admin';
+      
+      // Get thumbnail URL
+      let thumbnailSrc;
+      if (course.thumbnail_url) {
+        thumbnailSrc = course.thumbnail_url;
+      } else if (course.thumbnail_path) {
+        thumbnailSrc = course.thumbnail_path;
+      } else {
+        const colors = ['1e293b', '172a45', '112240'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const cleanTitle = (course.title || 'Course').substring(0, 25).replace(/[^\w\s]/gi, '');
+        thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
+      }
+      
+      // Generate price display
+      let priceDisplay = '';
+      if (hasAccess && isPremium) {
+        priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
+      } else if (isFree) {
+        priceDisplay = '<span style="color: #64ffda;">FREE</span>';
+      } else {
+        priceDisplay = formatCurrency(course.price, userCurrency);
+      }
+      
+      // Escape all user-generated content for safety
+      const safeTitle = escapeHtml(course.title);
+      const safeDescription = escapeHtml(course.description || 'No description available');
+      const safeAuthor = escapeHtml(course.author || '');
+      
+      // Check if user has already flagged this course
+      const hasFlagged = flaggedCourses.has(Number(course.id));
+      
+      return `
+        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+          <div class="card-header">
+            <img src="${thumbnailSrc}" 
+                 alt="${safeTitle}" 
+                 loading="lazy" 
+                 onerror="this.onerror=null; this.src='https://placehold.co/400x200/1e293b/64ffda?text=Course+Image&font=montserrat'">
+            <div class="card-badge ${badgeClass}">
+              <i class="${badgeIcon} type-icon"></i> ${badgeText}
             </div>
-          ` : ''}
-        </div>
-        <div class="card-actions">
-          ${hasAccess ? `
-            <button onclick="handleDownload(${course.id})" class="btn-primary">
-              <i class="fas fa-download"></i> Download Now
-            </button>
-            ${isVideo ? `
-              <button onclick="watchVideo(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" class="btn-secondary">
-                <i class="fas fa-play"></i> Watch Now
-              </button>
+            ${hasAccess && isPremium ? `
+              <div class="card-badge" style="background: #64ffda; color: #0a192f; top: 1rem; left: 1rem; right: auto;">
+                <i class="fas fa-check-circle"></i> Owned
+              </div>
             ` : ''}
-          ` : (isPremium ? `
-            <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
-                    class="btn-primary">
-              <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
-            </button>
-            <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
-              <i class="fas fa-lock"></i> Check Access
-            </button>
-          ` : `
-            <button onclick="handleDownload(${course.id})" class="btn-primary">
-              <i class="fas fa-download"></i> Download Free
-            </button>
-          `)}
-          
-          <!-- Flag button - Shows for non-admin content, non-owner, non-admin users -->
-          ${showFlagButton ? `
-            <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
-                    class="flag-btn ${hasFlagged ? 'flagged' : ''}"
-                    title="${hasFlagged ? 'Already reported' : 'Report this content'}"
-                    ${hasFlagged ? 'disabled' : ''}>
-              <i class="fas fa-flag"></i>
-            </button>
-          ` : ''}
-          
-          ${user && (user.role === 'admin' || user.id === course.user_id) ? `
-            <button onclick="deleteCourse(${course.id})" 
-                    class="btn-secondary" 
-                    style="background: #ff4444; color: white; border: none;">
-              <i class="fas fa-trash"></i> Delete
-            </button>
-          ` : ''}
+          </div>
+          <div class="card-content">
+            <h3>${safeTitle}</h3>
+            <p>${safeDescription}</p>
+            <div class="card-meta">
+              <div class="price" data-original-price="${course.price}">
+                ${priceDisplay}
+              </div>
+              ${safeAuthor ? `
+                <div class="author">
+                  <i class="fas fa-user"></i>
+                  <span>${safeAuthor}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="card-actions">
+              ${hasAccess ? `
+                <button onclick="handleDownload(${course.id})" class="btn-primary">
+                  <i class="fas fa-download"></i> Download Now
+                </button>
+                ${isVideo ? `
+                  <button onclick="watchVideo(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" class="btn-secondary">
+                    <i class="fas fa-play"></i> Watch Now
+                  </button>
+                ` : ''}
+              ` : (isPremium ? `
+                <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
+                        class="btn-primary">
+                  <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
+                </button>
+                <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
+                  <i class="fas fa-lock"></i> Check Access
+                </button>
+              ` : `
+                <button onclick="handleDownload(${course.id})" class="btn-primary">
+                  <i class="fas fa-download"></i> Download Free
+                </button>
+              `)}
+              
+              <!-- Flag button - icon only -->
+              ${showFlagButton ? `
+                <button onclick="openFlagModal(${course.id}, '${safeTitle.replace(/'/g, "\\'")}')" 
+                        class="flag-btn ${hasFlagged ? 'flagged' : ''}"
+                        title="${hasFlagged ? 'Already reported' : 'Report this content'}"
+                        ${hasFlagged ? 'disabled' : ''}>
+                  <i class="fas fa-flag"></i>
+                </button>
+              ` : ''}
+              
+              ${user && (user.role === 'admin' || user.id === course.user_id) ? `
+                <button onclick="deleteCourse(${course.id})" 
+                        class="btn-secondary" 
+                        style="background: #ff4444; color: white; border: none;">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              ` : ''}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  `;
-}).join('');
+      `;
+    }).join('');
     
     // Setup filters after loading courses
     setupFilters();
@@ -2148,7 +2358,6 @@ grid.innerHTML = courses.map(course => {
     hideLoading();
   }
 }
-
 // =================== FLAGGING SYSTEM FUNCTIONS ===================
 
 let currentFlagCourseId = null;

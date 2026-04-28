@@ -3762,11 +3762,8 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, re
     }
 
     if (!req.file) {
-      console.log("❌ No file in request");
       return res.status(400).json({ error: "No file uploaded" });
     }
-
-    console.log(`📁 File received: ${req.file.originalname}, size: ${req.file.size}`);
 
     if (!req.file.mimetype.startsWith('image/')) {
       return res.status(400).json({ error: "Only image files are allowed" });
@@ -3775,22 +3772,17 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, re
     const imageUrl = await uploadImageToImgbb(req.file.path, req.file.originalname);
     console.log(`✅ Uploaded to ImgBB: ${imageUrl}`);
 
-    const profileCheck = await db.query(
-      "SELECT user_id FROM freelancer_profiles WHERE user_id = ?",
-      [req.session.user.id]
+    // Update BOTH profile picture columns for compatibility
+    const result = await db.query(
+      `UPDATE freelancer_profiles 
+       SET profile_picture_url = ?,
+           profile_picture = ?,
+           updated_at = NOW() 
+       WHERE user_id = ?`,
+      [imageUrl, imageUrl, req.session.user.id]
     );
     
-    if (profileCheck && profileCheck.length > 0) {
-      await db.query(
-        "UPDATE freelancer_profiles SET profile_picture_url = ?, updated_at = NOW() WHERE user_id = ?",
-        [imageUrl, req.session.user.id]
-      );
-    } else {
-      await db.query(
-        "INSERT INTO freelancer_profiles (user_id, profile_picture_url, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
-        [req.session.user.id, imageUrl]
-      );
-    }
+    console.log(`✅ Updated profile picture for user ${req.session.user.id}`);
     
     res.json({
       success: true,
@@ -4990,28 +4982,44 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
       const url = await uploadImageToImgbb(file.path, file.originalname);
       certificateUrls.push(url);
     }
+    
+    console.log(`✅ Uploaded ${certificateUrls.length} certificates to ImgBB`);
 
+    // Get current certificates
     const currentProfile = await db.query(
-      "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
+      "SELECT certificate_images, certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
     );
 
     let currentCertificates = [];
-    if (currentProfile && currentProfile.length > 0 && currentProfile[0].certificate_image_urls) {
-      try {
-        currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
-      } catch (e) {
-        currentCertificates = [];
+    if (currentProfile && currentProfile.length > 0) {
+      // Try certificate_images first, then certificate_image_urls
+      if (currentProfile[0].certificate_images) {
+        try {
+          currentCertificates = JSON.parse(currentProfile[0].certificate_images);
+        } catch (e) {
+          currentCertificates = currentProfile[0].certificate_images ? [currentProfile[0].certificate_images] : [];
+        }
+      } else if (currentProfile[0].certificate_image_urls) {
+        try {
+          currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
+        } catch (e) {
+          currentCertificates = [];
+        }
       }
     }
 
+    // Limit to 5 certificates total
     const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
     
+    // Update BOTH certificate columns
     await db.query(`
       UPDATE freelancer_profiles 
-      SET certificate_image_urls = ?, updated_at = NOW() 
+      SET certificate_images = ?,
+          certificate_image_urls = ?,
+          updated_at = NOW() 
       WHERE user_id = ?
-    `, [JSON.stringify(updatedCertificates), req.session.user.id]);
+    `, [JSON.stringify(updatedCertificates), JSON.stringify(updatedCertificates), req.session.user.id]);
 
     res.json({ 
       success: true,
@@ -7244,14 +7252,11 @@ app.post("/api/admin/reactivate-user/:userId", async (req, res) => {
 });
 
 // ==================== FREELANCER PROFILE ENDPOINTS ====================
-
-// Get freelancer profile
 app.get("/api/freelancer/profile", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login to view profile" });
     }
 
-    // Only freelancers and admins can access
     if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
         return res.status(403).json({ error: "Access denied. Freelancer profile only." });
     }
@@ -7259,7 +7264,6 @@ app.get("/api/freelancer/profile", async (req, res) => {
     try {
         const userId = req.session.user.id;
         
-        // Get user basic info
         const userResult = await db.query(
             "SELECT id, username, email, created_at, role FROM users WHERE id = ?",
             [userId]
@@ -7267,9 +7271,11 @@ app.get("/api/freelancer/profile", async (req, res) => {
         
         const user = userResult[0];
         
-        // Get freelancer profile
         const profileResult = await db.query(
-            `SELECT * FROM freelancer_profiles WHERE user_id = ?`,
+            `SELECT *, 
+                    profile_picture_url as profile_picture,
+                    certificate_images as certificates
+             FROM freelancer_profiles WHERE user_id = ?`,
             [userId]
         );
         
@@ -7277,7 +7283,6 @@ app.get("/api/freelancer/profile", async (req, res) => {
         if (profileResult && profileResult.length > 0) {
             profile = profileResult[0];
             
-            // Parse JSON fields if they exist
             if (profile.skills && typeof profile.skills === 'string') {
                 try {
                     profile.skills = JSON.parse(profile.skills);
@@ -7294,16 +7299,16 @@ app.get("/api/freelancer/profile", async (req, res) => {
                 }
             }
             
-            if (profile.certificate_image_urls && typeof profile.certificate_image_urls === 'string') {
+            if (profile.certificate_images) {
                 try {
-                    profile.certificate_images = JSON.parse(profile.certificate_image_urls);
+                    profile.certificate_images = JSON.parse(profile.certificate_images);
                 } catch (e) {
                     profile.certificate_images = [];
                 }
             }
         } else {
-            // Create default profile if not exists
-            const insertResult = await db.query(
+            // Create default profile
+            await db.query(
                 `INSERT INTO freelancer_profiles (user_id, headline, description, hourly_rate, skills, languages, experience_level, availability, created_at)
                  VALUES (?, 'New Freelancer', 'Tell clients about yourself...', 25, '[]', '[]', 'intermediate', 'available', NOW())`,
                 [userId]
@@ -7323,7 +7328,6 @@ app.get("/api/freelancer/profile", async (req, res) => {
             };
         }
         
-        // Combine user and profile data
         const fullProfile = {
             ...profile,
             username: user.username,

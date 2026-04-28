@@ -10239,7 +10239,7 @@ function setupProfileEventListeners() {
     }
     
     // Profile picture upload
-    const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+  const updatePhotoBtn = document.getElementById('updatePhotoBtn');
     const profilePictureInput = document.getElementById('profilePictureInput');
     if (updatePhotoBtn && profilePictureInput) {
         updatePhotoBtn.addEventListener('click', () => {
@@ -14013,7 +14013,7 @@ async function uploadProfilePicture(file) {
     const formData = new FormData();
     formData.append('profile_picture', file);
     
-    showToast("Uploading profile picture to Cloudinary...", "info");
+    showToast("Uploading profile picture...", "info");
     
     try {
         const response = await fetch('/api/freelancer/profile-picture', {
@@ -14026,7 +14026,10 @@ async function uploadProfilePicture(file) {
         
         if (response.ok && result.success) {
             showToast('✅ Profile picture updated successfully!', 'success');
-            await showFreelancerProfile();
+            // Reload the profile to show new picture
+            setTimeout(() => {
+                showFreelancerProfile();
+            }, 1000);
         } else {
             showToast(result.error || 'Failed to upload picture', 'error');
         }
@@ -14035,13 +14038,14 @@ async function uploadProfilePicture(file) {
         showToast('Error uploading picture: ' + err.message, 'error');
     }
 }
-
 // ==================== CERTIFICATE UPLOAD ====================
-async function uploadCertificates(files) {
+
+   async function uploadCertificates(files) {
     const maxFiles = 5;
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
     
+    // Filter valid files
     const validFiles = [];
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -14076,8 +14080,8 @@ async function uploadCertificates(files) {
     const progressText = document.getElementById('certificateProgressText');
     
     if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '50%';
-    if (progressText) progressText.textContent = 'Uploading to Cloudinary...';
+    if (progressBar) progressBar.style.width = '30%';
+    if (progressText) progressText.textContent = 'Uploading to ImgBB...';
     
     try {
         const response = await fetch('/api/freelancer/certificate-images', {
@@ -14092,24 +14096,29 @@ async function uploadCertificates(files) {
             if (progressBar) progressBar.style.width = '100%';
             if (progressText) progressText.textContent = 'Upload complete!';
             showToast(`✅ ${validFiles.length} certificate(s) uploaded successfully!`, 'success');
-            await showFreelancerProfile();
+            
+            // Reload profile to show new certificates
+            setTimeout(() => {
+                showFreelancerProfile();
+            }, 1500);
         } else {
             showToast(result.error || 'Upload failed', 'error');
+            if (progressDiv) progressDiv.style.display = 'none';
         }
     } catch (err) {
         console.error('Upload error:', err);
         showToast('Error uploading certificates: ' + err.message, 'error');
+        if (progressDiv) progressDiv.style.display = 'none';
     } finally {
         setTimeout(() => {
             if (progressDiv) progressDiv.style.display = 'none';
             if (progressBar) progressBar.style.width = '0%';
-        }, 2000);
+        }, 3000);
         
         const certificateInput = document.getElementById('certificateImagesInput');
         if (certificateInput) certificateInput.value = '';
     }
 }
-
 // ==================== DELETE CERTIFICATE ====================
 async function removeCertificate(index) {
     if (!confirm("Are you sure you want to remove this certificate?")) return;
@@ -14139,19 +14148,28 @@ document.addEventListener('DOMContentLoaded', function() {
     setupCertificateUpload();
     
     // Fix profile picture button
-    const updatePhotoBtn = document.getElementById('updatePhotoBtn');
-    const profilePictureInput = document.getElementById('profilePictureInput');
-    if (updatePhotoBtn && profilePictureInput) {
-        updatePhotoBtn.addEventListener('click', () => {
-            profilePictureInput.click();
-        });
-        
-        profilePictureInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                uploadProfilePicture(e.target.files[0]);
-            }
-        });
-    }
+   const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+const profilePictureInput = document.getElementById('profilePictureInput');
+
+if (updatePhotoBtn && profilePictureInput) {
+    // Remove existing listeners
+    const newBtn = updatePhotoBtn.cloneNode(true);
+    updatePhotoBtn.parentNode.replaceChild(newBtn, updatePhotoBtn);
+    
+    newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Update photo button clicked");
+        profilePictureInput.click();
+    });
+    
+    profilePictureInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            console.log("File selected:", e.target.files[0].name);
+            uploadProfilePicture(e.target.files[0]);
+        }
+    });
+}
     
     console.log('✅ All features initialized');
 });

@@ -4992,8 +4992,13 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
       }
     }
 
-    // Upload to ImgBB
-    const certificateUrls = await uploadMultipleImagesToImgbb(req.files);
+    // Upload to ImgBB (not Cloudinary)
+    const certificateUrls = [];
+    for (const file of req.files) {
+      const url = await uploadImageToImgbb(file.path, file.originalname);
+      certificateUrls.push(url);
+    }
+    
     console.log(`✅ Uploaded ${certificateUrls.length} certificates to ImgBB`);
 
     // Get current certificate URLs

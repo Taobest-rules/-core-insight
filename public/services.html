@@ -5877,7 +5877,7 @@ async function submitFreelancerReview(freelancerId, serviceId) {
             credentials: 'include',
             body: JSON.stringify({
                 freelancerId: freelancerId,
-                serviceId: serviceId,
+                serviceId: serviceId || null,  // Send null instead of 'null'
                 rating: rating,
                 comment: comment
             })
@@ -5896,6 +5896,7 @@ async function submitFreelancerReview(freelancerId, serviceId) {
         showToast('Error submitting review', 'error');
     }
 }
+
 async function logout() {
     try {
         showToast('Preparing login form...', 'info');

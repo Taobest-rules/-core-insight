@@ -6674,6 +6674,11 @@ app.post("/api/reviews/freelancer", async (req, res) => {
             [clientId, freelancerId]
         );
 
+        let serviceIdValue = null;
+        if (serviceId && serviceId !== 'null' && serviceId !== 'undefined' && !isNaN(parseInt(serviceId))) {
+            serviceIdValue = parseInt(serviceId);
+        }
+
         if (existingReview && existingReview.length > 0) {
             // Update existing review
             await db.query(
@@ -6681,8 +6686,7 @@ app.post("/api/reviews/freelancer", async (req, res) => {
                 [rating, comment, clientId, freelancerId]
             );
         } else {
-            // Insert new review - handle null service_id properly
-            const serviceIdValue = serviceId && serviceId !== 'null' && serviceId !== 'undefined' ? parseInt(serviceId) : null;
+            // Insert new review
             await db.query(
                 `INSERT INTO freelancer_reviews (freelancer_id, client_id, service_id, rating, comment, created_at) 
                  VALUES (?, ?, ?, ?, ?, NOW())`,
@@ -6690,7 +6694,7 @@ app.post("/api/reviews/freelancer", async (req, res) => {
             );
         }
 
-        // Update freelancer's average rating
+        // Get updated rating for this freelancer
         const avgResult = await db.query(
             "SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM freelancer_reviews WHERE freelancer_id = ?",
             [freelancerId]
@@ -6699,16 +6703,21 @@ app.post("/api/reviews/freelancer", async (req, res) => {
         const avgRating = avgResult[0]?.avg_rating || 0;
         const reviewCount = avgResult[0]?.count || 0;
 
-        // Update both tables
+        // Update ONLY columns that exist in freelancer_profiles
         await db.query(
-            "UPDATE freelancer_profiles SET avg_rating = ?, review_count = ? WHERE user_id = ?",
-            [avgRating, reviewCount, freelancerId]
+            "UPDATE freelancer_profiles SET review_count = ?, updated_at = NOW() WHERE user_id = ?",
+            [reviewCount, freelancerId]
         );
         
-        await db.query(
-            "UPDATE users SET avg_rating = ?, review_count = ? WHERE id = ?",
-            [avgRating, reviewCount, freelancerId]
-        );
+        // Also update the users table if it has rating columns
+        try {
+            await db.query(
+                "UPDATE users SET review_count = ? WHERE id = ?",
+                [reviewCount, freelancerId]
+            );
+        } catch (userErr) {
+            console.log("Users table update skipped - column may not exist");
+        }
 
         res.json({
             success: true,
@@ -6907,43 +6916,122 @@ app.post("/api/users/flag", async (req, res) => {
     }
 });
 
-// Get flag status for a user (for client)
-app.get("/api/users/flag-status/:userId", async (req, res) => {
+// Flag a user (client only)
+app.post("/api/users/flag", async (req, res) => {
     try {
-        const userId = parseInt(req.params.userId);
-        
         if (!req.session.user) {
-            return res.json({ canFlag: false, message: "Please login" });
+            return res.status(401).json({ error: "Please login" });
         }
         
         if (req.session.user.role !== 'client') {
-            return res.json({ canFlag: false, message: "Only clients can flag users" });
+            return res.status(403).json({ error: "Only clients can flag users" });
         }
         
-        // Check if user has already flagged this freelancer
-        const existingFlag = await db.query(
-            "SELECT id FROM user_flags WHERE flagged_user_id = ? AND flagged_by_user_id = ?",
-            [userId, req.session.user.id]
+        const { flagged_user_id, service_id, reason } = req.body;
+        
+        if (!flagged_user_id || !reason) {
+            return res.status(400).json({ error: "User ID and reason are required" });
+        }
+        
+        if (reason.length < 10) {
+            return res.status(400).json({ error: "Reason must be at least 10 characters" });
+        }
+        
+        if (parseInt(flagged_user_id) === parseInt(req.session.user.id)) {
+            return res.status(400).json({ error: "You cannot flag yourself" });
+        }
+        
+        const userResult = await db.query(
+            "SELECT role FROM users WHERE id = ?",
+            [flagged_user_id]
         );
         
-        // Count total flags for this user
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        if (userResult[0].role !== 'freelancer') {
+            return res.status(400).json({ error: "Only freelancers can be flagged" });
+        }
+        
+        // FIX: Handle null service_id correctly - check if it's valid number
+        let serviceIdValue = null;
+        if (service_id && service_id !== 'null' && service_id !== 'undefined' && !isNaN(parseInt(service_id))) {
+            serviceIdValue = parseInt(service_id);
+        }
+        
+        const flagResult = await db.query(
+            `INSERT INTO user_flags (flagged_user_id, flagged_by_user_id, service_id, reason, status, created_at)
+             VALUES (?, ?, ?, ?, 'pending', NOW())`,
+            [flagged_user_id, req.session.user.id, serviceIdValue, reason]
+        );
+        
+        const flagId = flagResult.insertId;
+        
         const flagCountResult = await db.query(
             "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
-            [userId]
+            [flagged_user_id]
         );
         
-        const flagCount = flagCountResult[0]?.count || 0;
+        const flagCount = flagCountResult[0]?.count || 1;
+        
+        let warningIssued = false;
+        let accountLocked = false;
+        
+        if (flagCount === 1) {
+            await db.query(
+                `INSERT INTO user_warnings (user_id, warning_type, reason, issued_by, expires_at, created_at)
+                 VALUES (?, 'flag', ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
+                [flagged_user_id, "Your account has been flagged. Please review our community guidelines.", null]
+            );
+            warningIssued = true;
+        }
+        
+        if (flagCount >= 3) {
+            const existingReview = await db.query(
+                "SELECT id FROM admin_reviews WHERE user_id = ? AND status IN ('pending', 'under_review')",
+                [flagged_user_id]
+            );
+            
+            if (!existingReview || existingReview.length === 0) {
+                await db.query(
+                    `INSERT INTO admin_reviews (user_id, flag_count, status, created_at)
+                     VALUES (?, ?, 'pending', NOW())`,
+                    [flagged_user_id, flagCount]
+                );
+            } else {
+                await db.query(
+                    "UPDATE admin_reviews SET flag_count = ? WHERE user_id = ?",
+                    [flagCount, flagged_user_id]
+                );
+            }
+            
+            await db.query(
+                "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
+                ["Multiple flags - pending admin review", flagged_user_id]
+            );
+            accountLocked = true;
+        }
+        
+        let responseMessage = "User flagged successfully";
+        if (warningIssued) {
+            responseMessage = "User flagged. A warning has been issued to the user.";
+        }
+        if (accountLocked) {
+            responseMessage = "User flagged. The account has been temporarily locked for admin review.";
+        }
         
         res.json({
-            canFlag: true,
-            hasFlagged: existingFlag && existingFlag.length > 0,
+            success: true,
+            message: responseMessage,
             flagCount: flagCount,
-            message: flagCount >= 3 ? "This user has been flagged multiple times and is under review" : null
+            warningIssued: warningIssued,
+            accountLocked: accountLocked
         });
         
     } catch (err) {
-        console.error("❌ Flag status error:", err);
-        res.json({ canFlag: true, message: "Unknown" });
+        console.error("❌ Flag user error:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 

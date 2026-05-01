@@ -1676,13 +1676,22 @@ function formatCurrency(amount, currency) {
   if (!amount && amount !== 0) return `${currency} 0.00`;
   
   try {
-    let convertedAmount = amount;
+    let displayAmount = amount;
     
-    // If we have live exchange rates, convert properly
-    if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
-      // Convert USD to target currency via NGN as base
-      const amountInNGN = amount / exchangeRates.USD;
-      convertedAmount = amountInNGN * (exchangeRates[currency] || 1);
+    // Check if amount is in USD or NGN based on value
+    // Courses are stored in NGN (typically larger numbers like 5000+)
+    // Products are stored in USD (typically smaller numbers like 5-100)
+    const isAmountInUSD = amount < 500; // If less than 500, assume USD
+    
+    if (exchangeRates && exchangeRates.USD) {
+      if (isAmountInUSD) {
+        // Amount is in USD → convert to target currency
+        const amountInNGN = amount / exchangeRates.USD;
+        displayAmount = amountInNGN * (exchangeRates[currency] || 1);
+      } else {
+        // Amount is in NGN → convert directly
+        displayAmount = amount * (exchangeRates[currency] || 1);
+      }
     }
     
     return new Intl.NumberFormat('en-US', {
@@ -1690,13 +1699,14 @@ function formatCurrency(amount, currency) {
       currency: currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(convertedAmount);
+    }).format(displayAmount);
     
   } catch (error) {
     console.error('Format error:', error);
     return `${currency} ${parseFloat(amount).toFixed(2)}`;
   }
 }
+
  
 function updateAllPrices() {
   const priceElements = document.querySelectorAll('.price[data-original-price]');
@@ -2112,15 +2122,16 @@ async function loadCourses() {
         thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
       }
       
-      // Generate price display
-      let priceDisplay = '';
-      if (hasAccess && isPremium) {
-        priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
-      } else if (isFree) {
-        priceDisplay = '<span style="color: #64ffda;">FREE</span>';
-      } else {
-        priceDisplay = formatCurrency(course.price, userCurrency);
-      }
+      // Inside the course card generation, replace the price display with:
+let priceDisplay = '';
+if (hasAccess && isPremium) {
+  priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
+} else if (isFree) {
+  priceDisplay = '<span style="color: #64ffda;">FREE</span>';
+} else {
+  // Store original price in NGN, but mark it as NGN currency
+  priceDisplay = formatCurrency(course.price, userCurrency);
+}
       
       // Escape all user-generated content for safety
       const safeTitle = escapeHtml(course.title);

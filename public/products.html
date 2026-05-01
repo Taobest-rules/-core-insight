@@ -3337,87 +3337,89 @@ In the name of Allah, the Most Gracious, the Most Merciful
       </div>
     </section>
 <section class="controls">
-  <div class="filter-group">
-    <i class="fas fa-search"></i>
-    <input id="searchInput" class="search-input" placeholder="Search products..." />
+  <div class="controls-row">
+    <div class="filter-group">
+      <i class="fas fa-search"></i>
+      <input id="searchInput" class="search-input" placeholder="Search products..." />
+    </div>
+    
+    <select id="filterType" class="select">
+      <option value="">All Types</option>
+      <option value="digital">📱 Digital</option>
+      <option value="physical">📦 Physical</option>
+      <option value="affiliate">🔗 Affiliate</option>
+    </select>
+    
+    <select id="filterCategory" class="select">
+      <option value="">All Categories</option>
+    </select>
+    
+    <select id="sortSelect" class="select">
+      <option value="newest">🆕 Newest</option>
+      <option value="affordable">💰 Price: Low to High</option>
+      <option value="rated">⭐ Highest Rated</option>
+      <option value="favorites">❤️ Most Favorited</option>
+    </select>
   </div>
-  
-  <select id="filterType" class="select">
-    <option value="">All Types</option>
-    <option value="digital">📱 Digital</option>
-    <option value="physical">📦 Physical</option>
-    <option value="affiliate">🔗 Affiliate</option>
-  </select>
-  
-  <select id="filterCategory" class="select">
-    <option value="">All Categories</option>
-  </select>
-  
-  <select id="filterCountry" class="select country-select">
-    <option value="">🌍 Ships to: Anywhere</option>
-    <option value="USA">🇺🇸 United States</option>
-    <option value="UK">🇬🇧 United Kingdom</option>
-    <option value="Nigeria">🇳🇬 Nigeria</option>
-    <option value="Canada">🇨🇦 Canada</option>
-    <option value="Australia">🇦🇺 Australia</option>
-    <option value="Germany">🇩🇪 Germany</option>
-    <option value="France">🇫🇷 France</option>
-    <option value="Italy">🇮🇹 Italy</option>
-    <option value="Spain">🇪🇸 Spain</option>
-    <option value="Netherlands">🇳🇱 Netherlands</option>
-    <option value="Kenya">🇰🇪 Kenya</option>
-    <option value="South Africa">🇿🇦 South Africa</option>
-    <option value="Ghana">🇬🇭 Ghana</option>
-    <option value="Egypt">🇪🇬 Egypt</option>
-    <option value="Morocco">🇲🇦 Morocco</option>
-    <option value="Brazil">🇧🇷 Brazil</option>
-    <option value="Mexico">🇲🇽 Mexico</option>
-    <option value="Japan">🇯🇵 Japan</option>
-    <option value="China">🇨🇳 China</option>
-    <option value="India">🇮🇳 India</option>
-    <option value="Singapore">🇸🇬 Singapore</option>
-    <option value="UAE">🇦🇪 UAE</option>
-    <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-    <option value="Worldwide">🌍 Worldwide</option>
-  </select>
-  
-  <select id="sortSelect" class="select">
-    <option value="newest">🆕 Newest</option>
-    <option value="affordable">💰 Price: Low to High</option>
-    <option value="rated">⭐ Highest Rated</option>
-    <option value="favorites">❤️ Most Favorited</option>
-  </select>
-  
-<div class="currency-selector">
-  <i class="fas fa-coins" style="color: var(--accent);"></i>
-  <select id="currencyHeader">
-    <option value="USD">USD $</option>
-    <option value="NGN">NGN ₦</option>
-    <option value="EUR">EUR €</option>
-    <option value="GBP">GBP £</option>
-    <option value="KES">KES KSh</option>
-    <option value="GHS">GHS GH₵</option>
-    <option value="ZAR">ZAR R</option>
-    <option value="CAD">CAD $</option>
-    <option value="AUD">AUD $</option>
-    <option value="JPY">JPY ¥</option>
-    <option value="CNY">CNY ¥</option>
-    <option value="INR">INR ₹</option>
-    <option value="BRL">BRL R$</option>
-    <option value="MXN">MXN $</option>
-    <option value="AED">AED د.إ</option>
-    <option value="SAR">SAR ر.س</option>
-    <option value="EGP">EGP £</option>
-    <option value="MAD">MAD د.م.</option>
-    <option value="TZS">TZS TSh</option>
-    <option value="UGX">UGX USh</option>
-    <option value="RWF">RWF FRw</option>
-    <option value="XOF">XOF CFA</option>
-    <option value="XAF">XAF FCFA</option>
-  </select>
-</div>
 
-  <div class="controls-actions">
+  <div class="controls-row">
+    <select id="filterCountry" class="select country-select">
+      <option value="">🌍 Ships to: Anywhere</option>
+      <option value="USA">🇺🇸 United States</option>
+      <option value="UK">🇬🇧 United Kingdom</option>
+      <option value="Nigeria">🇳🇬 Nigeria</option>
+      <option value="Canada">🇨🇦 Canada</option>
+      <option value="Australia">🇦🇺 Australia</option>
+      <option value="Germany">🇩🇪 Germany</option>
+      <option value="France">🇫🇷 France</option>
+      <option value="Italy">🇮🇹 Italy</option>
+      <option value="Spain">🇪🇸 Spain</option>
+      <option value="Netherlands">🇳🇱 Netherlands</option>
+      <option value="Kenya">🇰🇪 Kenya</option>
+      <option value="South Africa">🇿🇦 South Africa</option>
+      <option value="Ghana">🇬🇭 Ghana</option>
+      <option value="Egypt">🇪🇬 Egypt</option>
+      <option value="Morocco">🇲🇦 Morocco</option>
+      <option value="Brazil">🇧🇷 Brazil</option>
+      <option value="Mexico">🇲🇽 Mexico</option>
+      <option value="Japan">🇯🇵 Japan</option>
+      <option value="China">🇨🇳 China</option>
+      <option value="India">🇮🇳 India</option>
+      <option value="Singapore">🇸🇬 Singapore</option>
+      <option value="UAE">🇦🇪 UAE</option>
+      <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+      <option value="Worldwide">🌍 Worldwide</option>
+    </select>
+    
+    <div class="currency-selector">
+      <i class="fas fa-coins"></i>
+      <select id="currencyHeader">
+        <option value="USD">USD $</option>
+        <option value="NGN">NGN ₦</option>
+        <option value="EUR">EUR €</option>
+        <option value="GBP">GBP £</option>
+        <option value="KES">KES KSh</option>
+        <option value="GHS">GHS GH₵</option>
+        <option value="ZAR">ZAR R</option>
+        <option value="CAD">CAD $</option>
+        <option value="AUD">AUD $</option>
+        <option value="JPY">JPY ¥</option>
+        <option value="CNY">CNY ¥</option>
+        <option value="INR">INR ₹</option>
+        <option value="BRL">BRL R$</option>
+        <option value="MXN">MXN $</option>
+        <option value="AED">AED د.إ</option>
+        <option value="SAR">SAR ر.س</option>
+        <option value="EGP">EGP £</option>
+        <option value="MAD">MAD د.م.</option>
+        <option value="TZS">TZS TSh</option>
+        <option value="UGX">UGX USh</option>
+        <option value="RWF">RWF FRw</option>
+        <option value="XOF">XOF CFA</option>
+        <option value="XAF">XAF FCFA</option>
+      </select>
+    </div>
+    
     <button id="refreshBtn" class="btn primary">
       <i class="fas fa-sync-alt"></i> Refresh
     </button>
@@ -4413,25 +4415,29 @@ function showLiveRateIndicator() {
       return `${symbol}${formattedAmount}`;
     }
     
-    // Update all prices on the page
-    function updateAllPrices() {
-      // Update product cards
-      document.querySelectorAll('.product-card .price').forEach(priceElement => {
-        const productId = priceElement.closest('.product-card')?.getAttribute('data-id');
-        if (productId) {
-          const product = products.find(p => p.id == productId);
-          if (product) {
-            priceElement.textContent = formatPrice(product.price);
-          }
-        }
-      });
+   function updateAllPrices() {
+  const priceElements = document.querySelectorAll('.price[data-original-price]');
+  priceElements.forEach(element => {
+    const originalPrice = parseFloat(element.getAttribute('data-original-price'));
+    if (!isNaN(originalPrice) && exchangeRates && exchangeRates[userCurrency]) {
       
-      // Update dashboard stats
-      updateDashboardPrices();
+      let convertedPrice;
       
-      // Update seller form price display
-      updateSellerFormPriceDisplay();
+      if (userCurrency === 'NGN') {
+        // USD → NGN: MULTIPLY
+        convertedPrice = originalPrice * exchangeRates.USD;
+      } else if (userCurrency === 'USD') {
+        convertedPrice = originalPrice;
+      } else {
+        // USD → other: via NGN
+        const priceInNGN = originalPrice * exchangeRates.USD;
+        convertedPrice = priceInNGN / exchangeRates[userCurrency];
+      }
+      
+      element.textContent = formatCurrency(convertedPrice, userCurrency);
     }
+  });
+}
     
     // Update dashboard prices
     function updateDashboardPrices() {
@@ -9220,7 +9226,42 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
   document.getElementById('affiliateBlock').classList.remove('show'); // Hide initially
 
     });
-
+function formatCurrency(amount, targetCurrency) {
+  if (!amount && amount !== 0) return `${targetCurrency} 0.00`;
+  
+  try {
+    let displayAmount = amount;
+    
+    // Products are stored in USD
+    if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
+      
+      if (targetCurrency === 'NGN') {
+        // USD → NGN: MULTIPLY
+        displayAmount = amount * exchangeRates.USD;
+        
+      } else if (targetCurrency === 'USD') {
+        // USD → USD: keep as is
+        displayAmount = amount;
+        
+      } else {
+        // USD → other currency: via NGN
+        const amountInNGN = amount * exchangeRates.USD;
+        displayAmount = amountInNGN / (exchangeRates[targetCurrency] || 1);
+      }
+    }
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: targetCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(displayAmount);
+    
+  } catch (error) {
+    console.error('Format error:', error);
+    return `${targetCurrency} ${parseFloat(amount).toFixed(2)}`;
+  }
+}
     // ================= FORM VALIDATION WITH DETAILED DEBUGGING =================
 function validateProductForm() {
   console.log("🔍 Starting form validation...");

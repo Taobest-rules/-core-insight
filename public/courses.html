@@ -1,3 +1,7 @@
+<span style="color: gold;">
+بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
+In the name of Allah, the Most Gracious, the Most Merciful
+</span>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1580,8 +1584,7 @@
 
 async function loadExchangeRates() {
   try {
-    showLoading();
-    console.log("🌍 Fetching live exchange rates for courses...");
+    console.log("🌍 Fetching live exchange rates...");
     
     const response = await fetch('/api/currency-rates', {
       credentials: 'include',
@@ -1599,35 +1602,53 @@ async function loadExchangeRates() {
     
     const data = await response.json();
     
-    if (data && data.rates && data.rates.USD && data.rates.NGN) {
-      // Use live rates from backend
+    if (data && data.rates && data.rates.USD) {
+      // ✅ USE LIVE RATES FROM BACKEND
       exchangeRates = data.rates;
       console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
       
-      // Update currency selector display
-      updateCurrencySelector();
+      // Update currency selector
+      const currencySelect = document.getElementById('currencySelect');
+      if (currencySelect && !currencySelect.value) {
+        currencySelect.value = userCurrency;
+      }
+      
+      // Update all prices on the page
       updateAllPrices();
       
-      // Show live rate info to user
-      showLiveRateInfo();
+      // Show live rate to user
+      showLiveRateIndicator();
       
     } else {
       throw new Error('Invalid rate data structure');
     }
     
-    hideLoading();
-    
   } catch (error) {
     console.error('❌ Error loading exchange rates:', error);
     
-    // Don't use fake rates - show error and retry
+    // ❌ DON'T use fake rates - show error and retry
     console.log('⏳ Will retry in 30 seconds...');
     setTimeout(() => loadExchangeRates(), 30000);
     
-    // Show user a warning
-    showToast('Unable to fetch live exchange rates. Using cached rates. Retrying...', 'warning');
-    
-    hideLoading();
+    // Show warning to user
+    showToast('Unable to fetch live exchange rates. Retrying...', 'warning');
+  }
+}
+
+// Add this helper function
+function showLiveRateIndicator() {
+  // Remove existing indicator
+  const existing = document.querySelector('.live-rate-indicator');
+  if (existing) existing.remove();
+  
+  // Add new indicator near currency selector
+  const currencySelect = document.getElementById('currencySelect');
+  if (currencySelect && exchangeRates && exchangeRates.USD) {
+    const indicator = document.createElement('span');
+    indicator.className = 'live-rate-indicator';
+    indicator.style.cssText = 'font-size: 11px; color: var(--accent-primary); margin-left: 10px;';
+    indicator.innerHTML = `<i class="fas fa-chart-line"></i> 1 USD = ${exchangeRates.NGN?.toFixed(2)} NGN`;
+    currencySelect.parentNode.insertBefore(indicator, currencySelect.nextSibling);
   }
 }
 
@@ -1655,10 +1676,11 @@ function formatCurrency(amount, currency) {
   if (!amount && amount !== 0) return `${currency} 0.00`;
   
   try {
-    // If amount is in USD and we have exchange rates, convert
     let convertedAmount = amount;
-    if (exchangeRates && exchangeRates[currency] && exchangeRates.USD) {
-      // Convert from USD to target currency
+    
+    // If we have live exchange rates, convert properly
+    if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
+      // Convert USD to target currency via NGN as base
       const amountInNGN = amount / exchangeRates.USD;
       convertedAmount = amountInNGN * (exchangeRates[currency] || 1);
     }
@@ -1669,8 +1691,9 @@ function formatCurrency(amount, currency) {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(convertedAmount);
+    
   } catch (error) {
-    console.error('Format currency error:', error);
+    console.error('Format error:', error);
     return `${currency} ${parseFloat(amount).toFixed(2)}`;
   }
 }

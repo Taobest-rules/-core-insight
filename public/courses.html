@@ -1578,61 +1578,118 @@
       await loadExchangeRates();
     }
 
-    async function loadExchangeRates() {
-      try {
-        showLoading();
-        const response = await fetch('/api/currency-rates');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Response is not JSON');
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.rates) {
-          exchangeRates = data.rates;
-          updateCurrencySelector();
-          updateAllPrices();
-        } else {
-          exchangeRates = { NGN: 1, USD: 0.0011, EUR: 0.0010, GBP: 0.00085 };
-          console.log("Using default exchange rates");
-        }
-        
-        hideLoading();
-      } catch (error) {
-        console.error('Error loading exchange rates:', error);
-        exchangeRates = { NGN: 1, USD: 0.0011, EUR: 0.0010, GBP: 0.00085 };
-        hideLoading();
+async function loadExchangeRates() {
+  try {
+    showLoading();
+    console.log("🌍 Fetching live exchange rates for courses...");
+    
+    const response = await fetch('/api/currency-rates', {
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Response is not JSON');
+    }
+    
+    const data = await response.json();
+    
+    if (data && data.rates && data.rates.USD && data.rates.NGN) {
+      // Use live rates from backend
+      exchangeRates = data.rates;
+      console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
+      
+      // Update currency selector display
+      updateCurrencySelector();
+      updateAllPrices();
+      
+      // Show live rate info to user
+      showLiveRateInfo();
+      
+    } else {
+      throw new Error('Invalid rate data structure');
+    }
+    
+    hideLoading();
+    
+  } catch (error) {
+    console.error('❌ Error loading exchange rates:', error);
+    
+    // Don't use fake rates - show error and retry
+    console.log('⏳ Will retry in 30 seconds...');
+    setTimeout(() => loadExchangeRates(), 30000);
+    
+    // Show user a warning
+    showToast('Unable to fetch live exchange rates. Using cached rates. Retrying...', 'warning');
+    
+    hideLoading();
+  }
+}
+
+// Add this function to show live rate info
+function showLiveRateInfo() {
+  // Remove existing rate display if any
+  const existingRateDisplay = document.querySelector('.live-rate-info');
+  if (existingRateDisplay) existingRateDisplay.remove();
+  
+  // Add live rate display near currency selector
+  const currencySelect = document.getElementById('currencySelect');
+  if (currencySelect && exchangeRates && exchangeRates.USD) {
+    const rateDisplay = document.createElement('div');
+    rateDisplay.className = 'live-rate-info';
+    rateDisplay.style.cssText = 'font-size: 11px; color: var(--text-muted); margin-left: 10px; display: inline-flex; align-items: center; gap: 5px;';
+    rateDisplay.innerHTML = `
+      <i class="fas fa-chart-line"></i> 
+      <span>1 USD = ${exchangeRates.NGN?.toFixed(2) || '...'} NGN</span>
+    `;
+    currencySelect.parentNode.insertBefore(rateDisplay, currencySelect.nextSibling);
+  }
+}
+
+function formatCurrency(amount, currency) {
+  if (!amount && amount !== 0) return `${currency} 0.00`;
+  
+  try {
+    // If amount is in USD and we have exchange rates, convert
+    let convertedAmount = amount;
+    if (exchangeRates && exchangeRates[currency] && exchangeRates.USD) {
+      // Convert from USD to target currency
+      const amountInNGN = amount / exchangeRates.USD;
+      convertedAmount = amountInNGN * (exchangeRates[currency] || 1);
+    }
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(convertedAmount);
+  } catch (error) {
+    console.error('Format currency error:', error);
+    return `${currency} ${parseFloat(amount).toFixed(2)}`;
+  }
+}
+ 
+function updateAllPrices() {
+  const priceElements = document.querySelectorAll('.price[data-original-price]');
+  priceElements.forEach(element => {
+    const originalPrice = parseFloat(element.getAttribute('data-original-price'));
+    if (!isNaN(originalPrice) && exchangeRates && exchangeRates[userCurrency]) {
+      // Convert from USD to target currency
+      let convertedPrice = originalPrice;
+      if (exchangeRates.USD && exchangeRates.USD !== 1) {
+        const priceInNGN = originalPrice / exchangeRates.USD;
+        convertedPrice = priceInNGN * (exchangeRates[userCurrency] || 1);
       }
+      element.textContent = formatCurrency(convertedPrice, userCurrency);
     }
-
-    function updateAllPrices() {
-      const priceElements = document.querySelectorAll('.price[data-original-price]');
-      priceElements.forEach(element => {
-        const originalPrice = element.getAttribute('data-original-price');
-        if (originalPrice && exchangeRates[userCurrency]) {
-          const convertedPrice = originalPrice * exchangeRates[userCurrency];
-          element.textContent = formatCurrency(convertedPrice, userCurrency);
-        }
-      });
-    }
-
-    function formatCurrency(amount, currency) {
-      try {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: currency
-        }).format(amount);
-      } catch (error) {
-        return `${currency} ${parseFloat(amount).toFixed(2)}`;
-      }
-    }
-
+  });
+}
     function updateCurrencySelector() {
       const currencySelect = document.getElementById('currencySelect');
       if (currencySelect) {

@@ -1,41 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Payment Verification - Core Insight Services</title>
+    <title>Payment Verification - Core Insight</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-        .success { color: green; }
-        .loading { color: orange; }
+        body { background: #0a192f; color: #e6f1ff; font-family: Arial; text-align: center; padding: 50px; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .loading { color: #f59e0b; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,215,0,0.2); border-top-color: #FFD700; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div id="verificationStatus">
-        <h1>Verifying Your Payment...</h1>
+    <div id="status">
+        <div class="spinner"></div>
+        <h2>Verifying Payment...</h2>
         <p>Please wait while we confirm your transaction.</p>
     </div>
-    
+
     <script>
         async function verifyPayment() {
             const urlParams = new URLSearchParams(window.location.search);
             const transactionId = urlParams.get('transaction_id');
+            const status = urlParams.get('status');
+            const tx_ref = urlParams.get('tx_ref');
             
-            try {
-                const response = await fetch(`/api/verify-service-payment/${transactionId}`);
-                const data = await response.json();
+            console.log("Verifying payment:", { transactionId, status, tx_ref });
+            
+            if (status === 'successful' && (transactionId || tx_ref)) {
+                const idToVerify = transactionId || tx_ref;
                 
-                if (data.status === 'success') {
-                    document.getElementById('verificationStatus').innerHTML = `
-                        <h1 class="success">Payment Successful! ✅</h1>
-                        <p>Your payment has been verified successfully.</p>
-                        <p>You now have full access to our services platform.</p>
-                        <a href="/services.html">Return to Services</a>
+                try {
+                    const response = await fetch(`/api/verify-service-payment/${idToVerify}`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        document.getElementById('status').innerHTML = `
+                            <div class="success">✅</div>
+                            <h1 class="success">Payment Successful!</h1>
+                            <p>Your ${data.plan || 'subscription'} has been activated.</p>
+                            <p>Valid until: ${data.validUntil ? new Date(data.validUntil).toLocaleDateString() : 'N/A'}</p>
+                            <a href="/services.html" class="btn" style="display:inline-block;background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:20px;">Go to Services</a>
+                        `;
+                    } else {
+                        throw new Error(data.message || 'Verification failed');
+                    }
+                } catch (error) {
+                    document.getElementById('status').innerHTML = `
+                        <div class="error">❌</div>
+                        <h1 class="error">Verification Failed</h1>
+                        <p>${error.message}</p>
+                        <a href="/services.html" class="btn" style="display:inline-block;background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:20px;">Back to Services</a>
                     `;
-                } else {
-                    window.location.href = '/services-payment-failed.html';
                 }
-            } catch (error) {
-                console.error('Verification error:', error);
-                window.location.href = '/services-payment-failed.html';
+            } else {
+                document.getElementById('status').innerHTML = `
+                    <div class="error">❌</div>
+                    <h1 class="error">Payment Cancelled</h1>
+                    <p>Your payment was not completed.</p>
+                    <a href="/services.html" class="btn" style="display:inline-block;background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:20px;">Back to Services</a>
+                `;
             }
         }
         

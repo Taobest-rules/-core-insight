@@ -14493,6 +14493,46 @@ if (updatePhotoBtn && profilePictureInput) {
     
     console.log('✅ All features initialized');
 });
+// Make subscribe function globally accessible
+window.subscribe = async function(plan) {
+    if (!currentUser) {
+        showToast("Please login to subscribe", "warning");
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    showToast("Processing subscription...", "info");
+    
+    try {
+        const response = await fetch('/api/subscription/pay', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ plan: plan })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(data.error || "Failed to process subscription", "error");
+            return;
+        }
+        
+        if (data.paymentLink) {
+            sessionStorage.setItem('pendingSubscription', JSON.stringify({
+                transactionRef: data.transactionRef,
+                plan: plan,
+                amount: data.amount
+            }));
+            window.location.href = data.paymentLink;
+        } else {
+            showToast("No payment link received", "error");
+        }
+    } catch (err) {
+        console.error("Subscription error:", err);
+        showToast("Error processing subscription", "error");
+    }
+};
 </script>
 
 <!-- Include mobile-nav.js -->

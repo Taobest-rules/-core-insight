@@ -7568,6 +7568,109 @@ app.post("/api/client/flag", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ============================================
+// SERVICE PAYMENT VERIFICATION
+// ============================================
+
+app.get("/api/verify-service-payment/:transactionId", async (req, res) => {
+    try {
+        const transactionId = req.params.transactionId;
+        console.log(`🔍 Verifying service payment: ${transactionId}`);
+        
+        // Get payment record from subscription_payments table
+        const paymentResult = await db.query(
+            "SELECT * FROM subscription_payments WHERE transaction_ref = ? OR transaction_id = ?",
+            [transactionId, transactionId]
+        );
+        
+        let payment = null;
+        if (paymentResult && paymentResult.length > 0) {
+            payment = paymentResult[0];
+        }
+        
+        if (!payment) {
+            // Try to verify directly with Flutterwave
+            const response = await axios.get(
+                `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 15000
+                }
+            );
+            
+            if (response.data.status === "success" && response.data.data.status === "successful") {
+                const transaction = response.data.data;
+                const tx_ref = transaction.tx_ref;
+                
+                // Update subscription if this is a subscription payment
+                if (tx_ref && (tx_ref.startsWith('sub_monthly') || tx_ref.startsWith('sub_yearly'))) {
+                    await db.query(
+                        `UPDATE subscription_payments 
+                         SET payment_status = 'completed',
+                             transaction_id = ?,
+                             flutterwave_response = ?
+                         WHERE transaction_ref = ?`,
+                        [transactionId, JSON.stringify(transaction), tx_ref]
+                    );
+                    
+                    // Update user subscription
+                    const plan = tx_ref.includes('yearly') ? 'yearly' : 'monthly';
+                    const now = new Date();
+                    let subscriptionEnd = new Date();
+                    
+                    if (plan === 'monthly') {
+                        subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
+                    } else {
+                        subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+                    }
+                    
+                    await db.query(
+                        `UPDATE users 
+                         SET subscription_plan = ?,
+                             subscription_status = 'active',
+                             subscription_start_date = ?,
+                             subscription_end_date = ?,
+                             trial_end_date = NULL
+                         WHERE id = ?`,
+                        [plan, now, subscriptionEnd, transaction.meta?.user_id]
+                    );
+                    
+                    return res.json({
+                        status: "success",
+                        message: "Subscription activated successfully",
+                        plan: plan,
+                        validUntil: subscriptionEnd
+                    });
+                }
+            }
+        }
+        
+        if (payment && payment.payment_status === 'completed') {
+            res.json({
+                status: "success",
+                message: "Payment already verified",
+                plan: payment.plan,
+                amount: payment.amount
+            });
+        } else {
+            res.status(400).json({ 
+                status: "failed", 
+                message: "Payment not found or not completed" 
+            });
+        }
+        
+    } catch (err) {
+        console.error("❌ Service payment verification error:", err);
+        res.status(500).json({ 
+            status: "error", 
+            message: err.message 
+        });
+    }
+});
 // =================== SUBSCRIPTION SYSTEM ===================
 
 // Check subscription status for freelancers (updated)

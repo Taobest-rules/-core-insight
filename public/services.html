@@ -7418,11 +7418,7 @@ function openFreelancerProfileFromInbox(userId) {
                         <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
                         <div style="color: var(--text-gray); font-size: 0.75rem;">Hourly Rate</div>
                     </div>
-                    <div style="background: var(--secondary-dark); padding: 12px; border-radius: 10px; text-align: center;">
-                        <div style="color: var(--accent-gold); font-size: 1.3rem; font-weight: bold;">${profile.total_earnings ? `$${profile.total_earnings}` : '$0'}</div>
-                        <div style="color: var(--text-gray); font-size: 0.75rem;">Earnings</div>
-                    </div>
-                </div>
+                   
                 
                 <!-- About Section -->
                 ${profile.description ? `
@@ -9700,7 +9696,49 @@ async function showFreelancerProfile() {
         showToast('Error loading profile: ' + err.message, 'error');
     }
 }
-
+// Load reviews for freelancer dashboard - Add this function
+async function loadFreelancerReviews() {
+    const container = document.getElementById('profileReviewsList');
+    if (!container) {
+        console.log("Review container not found");
+        return;
+    }
+    
+    try {
+        container.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading reviews...</div>';
+        
+        const response = await fetch('/api/freelancer/reviews', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load reviews');
+        
+        const data = await response.json();
+        const reviews = data.reviews || [];
+        
+        if (reviews.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-gray);">No reviews yet</div>';
+            return;
+        }
+        
+        container.innerHTML = reviews.map(review => `
+            <div style="background: var(--secondary-dark); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <div>
+                        <strong style="color: var(--accent-gold);">${escapeHtml(review.client_name || 'Client')}</strong>
+                        <div style="margin-top: 5px;">${'⭐'.repeat(Math.floor(review.rating))}</div>
+                    </div>
+                    <small style="color: var(--text-gray);">${new Date(review.created_at).toLocaleDateString()}</small>
+                </div>
+                <p style="color: var(--text-light); margin: 10px 0 0 0;">${escapeHtml(review.comment)}</p>
+            </div>
+        `).join('');
+        
+    } catch (err) {
+        console.error('Error loading reviews:', err);
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-gray);">Error loading reviews</div>';
+    }
+}
 async function loadFreelancerDashboard() {
     try {
         const response = await fetch('/api/freelancer/dashboard', {
@@ -10279,37 +10317,7 @@ function removeLanguage(languageName) {
     });
 }
 
-// Switch between profile tabs
-function switchProfileTab(tabId) {
-    // Hide all tab contents
-    const tabContents = ['profileViewTabContent', 'profileEditTabContent', 'dashboardTabContent', 'profileReviewsTabContent'];
-    tabContents.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.classList.add('hidden');
-    });
-    
-    // Show selected tab
-    const selectedTab = document.getElementById(tabId);
-    if (selectedTab) selectedTab.classList.remove('hidden');
-    
-    // Update tab buttons
-    const tabBtns = ['profileViewTabBtn', 'profileEditTabBtn', 'dashboardTabBtn', 'profileReviewsTabBtn'];
-    tabBtns.forEach(btnId => {
-        const btn = document.getElementById(btnId);
-        if (btn) btn.classList.remove('active');
-    });
-    
-    // Find which button corresponds to this tab
-    const buttonMap = {
-        'profileViewTabContent': 'profileViewTabBtn',
-        'profileEditTabContent': 'profileEditTabBtn',
-        'dashboardTabContent': 'dashboardTabBtn',
-        'profileReviewsTabContent': 'profileReviewsTabBtn'
-    };
-    
-    const activeBtn = document.getElementById(buttonMap[tabId]);
-    if (activeBtn) activeBtn.classList.add('active');
-}
+
 
 // Make sure event listeners are set up
 function setupProfileEventListeners() {
@@ -10671,7 +10679,6 @@ function displayPlaceholderProfile() {
     }
 }
 
-// Make sure switchProfileTab is defined
 function switchProfileTab(tabId) {
     // Hide all tab contents
     const tabContents = ['profileViewTabContent', 'profileEditTabContent', 'dashboardTabContent', 'profileReviewsTabContent'];
@@ -10691,6 +10698,7 @@ function switchProfileTab(tabId) {
         if (btn) btn.classList.remove('active');
     });
     
+    // Find which button corresponds to this tab
     const buttonMap = {
         'profileViewTabContent': 'profileViewTabBtn',
         'profileEditTabContent': 'profileEditTabBtn',
@@ -11348,25 +11356,39 @@ function setupEventListeners() {
         });
     }
 
-    // Profile tab buttons
-    if ($('profileViewTabBtn')) {
-        $('profileViewTabBtn').addEventListener('click', () => switchProfileTab('profileViewTabContent'));
-    }
+    // Profile tab buttons - UPDATED with reviews loading
+if (document.getElementById('profileViewTabBtn')) {
+    document.getElementById('profileViewTabBtn').addEventListener('click', () => switchProfileTab('profileViewTabContent'));
+}
 
-    if ($('profileEditTabBtn')) {
-        $('profileEditTabBtn').addEventListener('click', () => switchProfileTab('profileEditTabContent'));
-    }
+if (document.getElementById('profileEditTabBtn')) {
+    document.getElementById('profileEditTabBtn').addEventListener('click', () => switchProfileTab('profileEditTabContent'));
+}
 
-    if ($('dashboardTabBtn')) {
-        $('dashboardTabBtn').addEventListener('click', () => switchProfileTab('dashboardTabContent'));
-    }
+if (document.getElementById('dashboardTabBtn')) {
+    document.getElementById('dashboardTabBtn').addEventListener('click', () => switchProfileTab('dashboardTabContent'));
+}
 
-    if ($('profileServicesTabBtn')) {
-        $('profileServicesTabBtn').addEventListener('click', () => {
-            showServicesBrowser();
-            switchTab('myServices');
-        });
-    }
+if (document.getElementById('profileServicesTabBtn')) {
+    document.getElementById('profileServicesTabBtn').addEventListener('click', () => {
+        showServicesBrowser();
+        switchTab('myServices');
+    });
+}
+
+// UPDATED: Profile Reviews Tab - Loads reviews when clicked
+if (document.getElementById('profileReviewsTabBtn')) {
+    const reviewsTabBtn = document.getElementById('profileReviewsTabBtn');
+    // Remove existing listeners by cloning
+    const newReviewsBtn = reviewsTabBtn.cloneNode(true);
+    reviewsTabBtn.parentNode.replaceChild(newReviewsBtn, reviewsTabBtn);
+    
+    newReviewsBtn.addEventListener('click', async () => {
+        console.log("Reviews tab clicked - loading reviews...");
+        switchProfileTab('profileReviewsTabContent');
+        await loadFreelancerReviews();
+    });
+}
 
     if ($('profileReviewsTabBtn')) {
         $('profileReviewsTabBtn').addEventListener('click', () => switchProfileTab('profileReviewsTabContent'));
@@ -13418,7 +13440,6 @@ function addFlagButtonToService(serviceElement, freelancerId, serviceId) {
     }
 }
 
-// Show warning banner for flagged freelancer
 async function showFreelancerWarningIfFlagged() {
     if (!currentUser || currentUser.role !== 'freelancer') return;
     
@@ -13430,22 +13451,66 @@ async function showFreelancerWarningIfFlagged() {
         const data = await response.json();
         
         if (data.hasFlags && data.flagCount > 0) {
+            // Fetch detailed flag information
+            const flagResponse = await fetch('/api/freelancer/flags', {
+                credentials: 'include'
+            });
+            const flagData = await flagResponse.json();
+            const flags = flagData.flags || [];
+            
+            // Build flags HTML with reasons
+            let flagsHtml = '';
+            if (flags.length > 0) {
+                flagsHtml = `
+                    <div style="margin-top: 15px; max-height: 200px; overflow-y: auto;">
+                        <strong style="color: var(--warning-orange);">Flag Details:</strong>
+                        ${flags.map(flag => `
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-gray); font-size: 12px;">Reported by: ${escapeHtml(flag.flagged_by_name || 'Anonymous')}</span>
+                                    <span style="color: var(--text-gray); font-size: 12px;">${new Date(flag.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-light);">
+                                    <strong>Reason:</strong> ${escapeHtml(flag.reason)}
+                                </p>
+                                <span style="font-size: 11px; color: ${flag.status === 'pending' ? 'var(--warning-orange)' : 'var(--success-green)'};">
+                                    Status: ${flag.status}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
             const warningBanner = document.createElement('div');
             warningBanner.className = 'subscription-banner warning';
             warningBanner.style.marginBottom = '20px';
+            warningBanner.style.position = 'relative';
+            warningBanner.style.zIndex = '100';
             warningBanner.innerHTML = `
-                <div class="subscription-info">
+                <div class="subscription-info" style="align-items: flex-start;">
                     <div class="subscription-icon" style="background: #f59e0b;">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <div class="subscription-text">
-                        <h3 style="color: var(--warning-orange);">⚠️ Warning: Your Account Has Been Flagged</h3>
-                        <p>Your account has received ${data.flagCount} flag(s). 
+                    <div class="subscription-text" style="flex: 1;">
+                        <h3 style="color: var(--warning-orange); margin: 0 0 8px 0;">⚠️ Warning: Your Account Has Been Flagged</h3>
+                        <p style="margin: 0 0 8px 0;">Your account has received ${data.flagCount} flag(s). 
                            ${data.flagCount >= 2 ? 'One more flag will temporarily lock your account for admin review.' : 
                              'Please review our community guidelines. If you receive 3 flags, your account will be temporarily locked.'}</p>
+                        ${flagsHtml}
+                        <div style="margin-top: 12px;">
+                            <button onclick="acknowledgeFlagWarning()" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">
+                                I Understand
+                            </button>
+                        </div>
                     </div>
                 </div>
+                <button onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-gray); cursor: pointer; font-size: 18px;">&times;</button>
             `;
+            
+            // Remove existing banner
+            const existingBanner = document.querySelector('.subscription-banner.warning');
+            if (existingBanner) existingBanner.remove();
             
             const heroSection = document.querySelector('.hero');
             if (heroSection) {
@@ -13457,6 +13522,43 @@ async function showFreelancerWarningIfFlagged() {
     }
 }
 
+function acknowledgeFlagWarning() {
+    const banner = document.querySelector('.subscription-banner.warning');
+    if (banner) banner.remove();
+    showToast("Thank you. Please review our community guidelines.", "info");
+}
+
+
+// Load notifications for freelancer
+async function loadFreelancerNotifications() {
+    if (!currentUser || currentUser.role !== 'freelancer') return;
+    
+    try {
+        const response = await fetch('/api/freelancer/notifications', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        const notifications = data.notifications || [];
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        
+        const notificationBadge = document.getElementById('notificationCount');
+        if (notificationBadge) {
+            if (unreadCount > 0) {
+                notificationBadge.textContent = unreadCount;
+                notificationBadge.style.display = 'flex';
+            } else {
+                notificationBadge.style.display = 'none';
+            }
+        }
+        
+        // Store for later display
+        window.freelancerNotifications = notifications;
+        
+    } catch (err) {
+        console.error("Error loading notifications:", err);
+    }
+}
 // ============================================
 // ADMIN REVIEW FUNCTIONS
 // ============================================
@@ -14073,133 +14175,8 @@ function setupCertificateUpload() {
     });
 }
 
-async function uploadCertificates(files) {
-    const maxFiles = 5;
-    const maxSize = 5 * 1024 * 1024;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    
-    const validFiles = files.filter(file => {
-        if (!allowedTypes.includes(file.type)) {
-            showToast(`${file.name} is not an image`, 'warning');
-            return false;
-        }
-        if (file.size > maxSize) {
-            showToast(`${file.name} exceeds 5MB`, 'warning');
-            return false;
-        }
-        return true;
-    });
-    
-    if (validFiles.length === 0) return;
-    if (validFiles.length > maxFiles) {
-        showToast(`Maximum ${maxFiles} files`, 'warning');
-        return;
-    }
-    
-    const formData = new FormData();
-    validFiles.forEach(file => {
-        formData.append('certificate_images', file);
-    });
-    
-    const progressDiv = document.getElementById('certificateProgress');
-    const progressBar = document.getElementById('certificateProgressBar');
-    const progressText = document.getElementById('certificateProgressText');
-    
-    if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '50%';
-    if (progressText) progressText.textContent = 'Uploading...';
-    
-    try {
-        const response = await fetch('/api/freelancer/certificate-images', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            if (progressBar) progressBar.style.width = '100%';
-            if (progressText) progressText.textContent = 'Complete!';
-            showToast(`✅ ${validFiles.length} certificate(s) uploaded!`, 'success');
-            
-            setTimeout(() => {
-                showFreelancerProfile();
-            }, 1500);
-        } else {
-            showToast(result.error || 'Upload failed', 'error');
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading certificates', 'error');
-    } finally {
-        setTimeout(() => {
-            if (progressDiv) progressDiv.style.display = 'none';
-            if (progressBar) progressBar.style.width = '0%';
-        }, 3000);
-        
-        const certificateInput = document.getElementById('certificateImagesInput');
-        if (certificateInput) certificateInput.value = '';
-    }
-}
-async function uploadCertificates(files) {
-    const maxFiles = 5;
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    
-    if (files.length > maxFiles) {
-        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
-        return;
-    }
-    
-    const formData = new FormData();
-    let validFiles = 0;
-    
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith('image/')) {
-            showToast(`${file.name} is not an image`, 'warning');
-            continue;
-        }
-        if (file.size > maxSize) {
-            showToast(`${file.name} exceeds 5MB limit`, 'warning');
-            continue;
-        }
-        formData.append('certificate_images', file);
-        validFiles++;
-    }
-    
-    if (validFiles === 0) return;
-    
-    const progressDiv = document.getElementById('certificateProgress');
-    const progressBar = document.getElementById('certificateProgressBar');
-    const progressText = document.getElementById('certificateProgressText');
-    
-    if (progressDiv) progressDiv.style.display = 'block';
-    
-    try {
-        const response = await fetch('/api/freelancer/certificate-images', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            showToast('Certificates uploaded successfully!', 'success');
-            await showFreelancerProfile(); // Refresh profile
-        } else {
-            showToast(result.error || 'Upload failed', 'error');
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading certificates', 'error');
-    } finally {
-        if (progressDiv) progressDiv.style.display = 'none';
-        if (progressBar) progressBar.style.width = '0%';
-        if (certificateInput) certificateInput.value = '';
-    }
-}
+
+
 // Profile picture upload - FIXED
 function setupProfilePictureUpload() {
     const updatePhotoBtn = document.getElementById('updatePhotoBtn');
@@ -14327,18 +14304,12 @@ function initProfilePictureUpload() {
 let isCertUploading = false;
 
 async function uploadCertificates(files) {
-    if (isCertUploading) {
-        console.log("Certificate upload already in progress");
-        return;
-    }
-    
-    const fileArray = Array.isArray(files) ? files : Array.from(files);
     const maxFiles = 5;
     const maxSize = 5 * 1024 * 1024;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     
     const validFiles = [];
-    for (const file of fileArray) {
+    for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
             showToast(`${file.name} is not an image`, 'warning');
             continue;
@@ -14356,8 +14327,6 @@ async function uploadCertificates(files) {
         return;
     }
     
-    isCertUploading = true;
-    
     const formData = new FormData();
     validFiles.forEach(file => {
         formData.append('certificate_images', file);
@@ -14368,27 +14337,15 @@ async function uploadCertificates(files) {
     const progressText = document.getElementById('certificateProgressText');
     
     if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '0%';
-    if (progressText) progressText.textContent = '';
+    if (progressBar) progressBar.style.width = '50%';
+    if (progressText) progressText.textContent = 'Uploading...';
     
     try {
-        // Animate progress
-        let progress = 0;
-        const interval = setInterval(() => {
-            if (progress < 90) {
-                progress += 10;
-                if (progressBar) progressBar.style.width = progress + '%';
-                if (progressText) progressText.textContent = `Uploading... ${progress}%`;
-            }
-        }, 200);
-        
         const response = await fetch('/api/freelancer/certificate-images', {
             method: 'POST',
             body: formData,
             credentials: 'include'
         });
-        
-        clearInterval(interval);
         
         const result = await response.json();
         
@@ -14397,20 +14354,17 @@ async function uploadCertificates(files) {
             if (progressText) progressText.textContent = 'Complete!';
             showToast(`✅ ${validFiles.length} certificate(s) uploaded!`, 'success');
             
-            // Refresh profile after delay
+            // IMPORTANT: Refresh the profile to show new certificates
             setTimeout(() => {
                 showFreelancerProfile();
-            }, 1500);
+            }, 1000);
         } else {
             showToast(result.error || 'Upload failed', 'error');
-            if (progressDiv) progressDiv.style.display = 'none';
         }
     } catch (err) {
         console.error('Upload error:', err);
         showToast('Error uploading certificates', 'error');
-        if (progressDiv) progressDiv.style.display = 'none';
     } finally {
-        isCertUploading = false;
         setTimeout(() => {
             if (progressDiv) progressDiv.style.display = 'none';
             if (progressBar) progressBar.style.width = '0%';

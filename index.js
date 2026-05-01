@@ -3484,14 +3484,13 @@ app.get("/api/messages/:conversationId/search", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// ==================== ADMIN GET ALL FLAGGED USERS (BOTH CLIENTS & FREELANCERS) ====================
 app.get("/api/admin/all-flagged-users", async (req, res) => {
     try {
         if (!req.session.user || req.session.user.role !== 'admin') {
             return res.status(403).json({ error: "Admin access required" });
         }
 
-        // Get flagged freelancers (from user_flags)
+        // Get flagged freelancers - FIXED
         const flaggedFreelancers = await db.query(`
             SELECT 
                 u.id,
@@ -3500,22 +3499,20 @@ app.get("/api/admin/all-flagged-users", async (req, res) => {
                 u.role,
                 u.created_at,
                 u.account_locked,
-                COUNT(uf.id) as flag_count,
-                GROUP_CONCAT(DISTINCT uf.reason SEPARATOR ' | ') as flag_reasons,
-                MAX(uf.created_at) as last_flag_date,
+                (SELECT COUNT(*) FROM user_flags WHERE flagged_user_id = u.id AND status = 'pending') as flag_count,
+                (SELECT GROUP_CONCAT(DISTINCT reason SEPARATOR ' | ') FROM user_flags WHERE flagged_user_id = u.id AND status = 'pending') as flag_reasons,
+                (SELECT MAX(created_at) FROM user_flags WHERE flagged_user_id = u.id) as last_flag_date,
                 ar.status as review_status,
                 ar.freelancer_statement,
                 ar.id as review_id
             FROM users u
-            LEFT JOIN user_flags uf ON uf.flagged_user_id = u.id AND uf.status = 'pending'
             LEFT JOIN admin_reviews ar ON ar.user_id = u.id AND ar.user_type = 'freelancer'
             WHERE u.role = 'freelancer'
-            GROUP BY u.id
-            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            HAVING flag_count > 0 OR review_status IS NOT NULL
             ORDER BY flag_count DESC, last_flag_date DESC
         `);
 
-        // Get flagged clients (from client_flags)
+        // Get flagged clients - FIXED
         const flaggedClients = await db.query(`
             SELECT 
                 u.id,
@@ -3524,18 +3521,16 @@ app.get("/api/admin/all-flagged-users", async (req, res) => {
                 u.role,
                 u.created_at,
                 u.account_locked,
-                COUNT(cf.id) as flag_count,
-                GROUP_CONCAT(DISTINCT cf.reason SEPARATOR ' | ') as flag_reasons,
-                MAX(cf.created_at) as last_flag_date,
+                (SELECT COUNT(*) FROM client_flags WHERE client_id = u.id AND status = 'pending') as flag_count,
+                (SELECT GROUP_CONCAT(DISTINCT reason SEPARATOR ' | ') FROM client_flags WHERE client_id = u.id AND status = 'pending') as flag_reasons,
+                (SELECT MAX(created_at) FROM client_flags WHERE client_id = u.id) as last_flag_date,
                 ar.status as review_status,
                 ar.admin_notes,
                 ar.id as review_id
             FROM users u
-            LEFT JOIN client_flags cf ON cf.client_id = u.id AND cf.status = 'pending'
             LEFT JOIN admin_reviews ar ON ar.user_id = u.id AND ar.user_type = 'client'
             WHERE u.role = 'client'
-            GROUP BY u.id
-            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            HAVING flag_count > 0 OR review_status IS NOT NULL
             ORDER BY flag_count DESC, last_flag_date DESC
         `);
 
@@ -3552,7 +3547,30 @@ app.get("/api/admin/all-flagged-users", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
+// Get flag details for freelancer (show reasons)
+app.get("/api/freelancer/flags", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const freelancerId = req.session.user.id;
+        
+        const flags = await db.query(`
+            SELECT uf.*, u.username as flagged_by_name
+            FROM user_flags uf
+            JOIN users u ON uf.flagged_by_user_id = u.id
+            WHERE uf.flagged_user_id = ? 
+            ORDER BY uf.created_at DESC
+        `, [freelancerId]);
+        
+        res.json({ flags: flags || [] });
+        
+    } catch (err) {
+        console.error("Error fetching flags:", err);
+        res.json({ flags: [] });
+    }
+});
 // ==================== ADMIN GET DETAILED FLAGS FOR A SPECIFIC USER ====================
 app.get("/api/admin/user-flags-details/:userId/:userType", async (req, res) => {
     try {
@@ -6731,6 +6749,30 @@ app.post("/api/reviews/freelancer", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// Get reviews for freelancer (their own reviews received)
+app.get("/api/freelancer/reviews", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const freelancerId = req.session.user.id;
+        
+        const reviews = await db.query(`
+            SELECT fr.*, u.username as client_name
+            FROM freelancer_reviews fr
+            JOIN users u ON fr.client_id = u.id
+            WHERE fr.freelancer_id = ?
+            ORDER BY fr.created_at DESC
+        `, [freelancerId]);
+        
+        res.json({ reviews: reviews || [] });
+        
+    } catch (err) {
+        console.error("Error fetching freelancer reviews:", err);
+        res.json({ reviews: [] });
+    }
+});
 // ==================== FLAG CLIENT (FREELANCER REPORTS CLIENT) ====================
 app.post("/api/client/flag", async (req, res) => {
     try {
@@ -6800,7 +6842,7 @@ app.post("/api/client/flag", async (req, res) => {
 // FLAGGING SYSTEM BACKEND ROUTES
 // ============================================
 
-// Flag a user (client only)
+// Flag a user (client only) - WITH NOTIFICATION
 app.post("/api/users/flag", async (req, res) => {
     try {
         if (!req.session.user) {
@@ -6838,123 +6880,7 @@ app.post("/api/users/flag", async (req, res) => {
             return res.status(400).json({ error: "Only freelancers can be flagged" });
         }
         
-        // Handle null service_id properly
-        const serviceIdValue = service_id && service_id !== 'null' && service_id !== 'undefined' ? parseInt(service_id) : null;
-        
-        const flagResult = await db.query(
-            `INSERT INTO user_flags (flagged_user_id, flagged_by_user_id, service_id, reason, status, created_at)
-             VALUES (?, ?, ?, ?, 'pending', NOW())`,
-            [flagged_user_id, req.session.user.id, serviceIdValue, reason]
-        );
-        
-        const flagId = flagResult.insertId;
-        
-        const flagCountResult = await db.query(
-            "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
-            [flagged_user_id]
-        );
-        
-        const flagCount = flagCountResult[0]?.count || 1;
-        
-        let warningIssued = false;
-        let accountLocked = false;
-        
-        if (flagCount === 1) {
-            await db.query(
-                `INSERT INTO user_warnings (user_id, warning_type, reason, issued_by, expires_at, created_at)
-                 VALUES (?, 'flag', ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())`,
-                [flagged_user_id, "Your account has been flagged. Please review our community guidelines.", null]
-            );
-            warningIssued = true;
-        }
-        
-        if (flagCount >= 3) {
-            const existingReview = await db.query(
-                "SELECT id FROM admin_reviews WHERE user_id = ? AND status IN ('pending', 'under_review')",
-                [flagged_user_id]
-            );
-            
-            if (!existingReview || existingReview.length === 0) {
-                await db.query(
-                    `INSERT INTO admin_reviews (user_id, flag_count, status, created_at)
-                     VALUES (?, ?, 'pending', NOW())`,
-                    [flagged_user_id, flagCount]
-                );
-            } else {
-                await db.query(
-                    "UPDATE admin_reviews SET flag_count = ? WHERE user_id = ?",
-                    [flagCount, flagged_user_id]
-                );
-            }
-            
-            await db.query(
-                "UPDATE users SET account_locked = 1, locked_at = NOW(), lock_reason = ? WHERE id = ?",
-                ["Multiple flags - pending admin review", flagged_user_id]
-            );
-            accountLocked = true;
-        }
-        
-        let responseMessage = "User flagged successfully";
-        if (warningIssued) {
-            responseMessage = "User flagged. A warning has been issued to the user.";
-        }
-        if (accountLocked) {
-            responseMessage = "User flagged. The account has been temporarily locked for admin review.";
-        }
-        
-        res.json({
-            success: true,
-            message: responseMessage,
-            flagCount: flagCount,
-            warningIssued: warningIssued,
-            accountLocked: accountLocked
-        });
-        
-    } catch (err) {
-        console.error("❌ Flag user error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Flag a user (client only)
-app.post("/api/users/flag", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-        
-        if (req.session.user.role !== 'client') {
-            return res.status(403).json({ error: "Only clients can flag users" });
-        }
-        
-        const { flagged_user_id, service_id, reason } = req.body;
-        
-        if (!flagged_user_id || !reason) {
-            return res.status(400).json({ error: "User ID and reason are required" });
-        }
-        
-        if (reason.length < 10) {
-            return res.status(400).json({ error: "Reason must be at least 10 characters" });
-        }
-        
-        if (parseInt(flagged_user_id) === parseInt(req.session.user.id)) {
-            return res.status(400).json({ error: "You cannot flag yourself" });
-        }
-        
-        const userResult = await db.query(
-            "SELECT role FROM users WHERE id = ?",
-            [flagged_user_id]
-        );
-        
-        if (!userResult || userResult.length === 0) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        if (userResult[0].role !== 'freelancer') {
-            return res.status(400).json({ error: "Only freelancers can be flagged" });
-        }
-        
-        // FIX: Handle null service_id correctly - check if it's valid number
+        // Handle null service_id
         let serviceIdValue = null;
         if (service_id && service_id !== 'null' && service_id !== 'undefined' && !isNaN(parseInt(service_id))) {
             serviceIdValue = parseInt(service_id);
@@ -6967,6 +6893,13 @@ app.post("/api/users/flag", async (req, res) => {
         );
         
         const flagId = flagResult.insertId;
+        
+        // INSERT NOTIFICATION FOR FREELANCER - USING YOUR TABLE STRUCTURE
+        await db.query(
+            `INSERT INTO freelancer_notifications (freelancer_id, client_id, notification_type, title, message, created_at)
+             VALUES (?, ?, 'flag', 'Account Flagged', ?, NOW())`,
+            [flagged_user_id, req.session.user.id, `Your account has been flagged. Reason: ${reason.substring(0, 100)}`]
+        );
         
         const flagCountResult = await db.query(
             "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ?",
@@ -7125,7 +7058,7 @@ app.post("/api/users/submit-statement", async (req, res) => {
     }
 });
 
-// ADMIN ROUTES - Get flagged users
+// ADMIN ROUTES - Get flagged users (FIXED for ONLY_FULL_GROUP_BY)
 app.get("/api/admin/flagged-users", async (req, res) => {
     try {
         if (!req.session.user || req.session.user.role !== 'admin') {
@@ -7141,23 +7074,21 @@ app.get("/api/admin/flagged-users", async (req, res) => {
                 u.account_locked,
                 u.locked_at,
                 u.lock_reason,
-                COUNT(uf.id) as flag_count,
+                (SELECT COUNT(*) FROM user_flags WHERE flagged_user_id = u.id AND status = 'pending') as flag_count,
                 ar.status as review_status,
                 ar.freelancer_statement,
                 ar.created_at as review_created_at
             FROM users u
-            LEFT JOIN user_flags uf ON uf.flagged_user_id = u.id AND uf.status = 'pending'
             LEFT JOIN admin_reviews ar ON ar.user_id = u.id
             WHERE u.role = 'freelancer'
-            GROUP BY u.id
-            HAVING flag_count > 0 OR ar.status IS NOT NULL
+            HAVING flag_count > 0 OR review_status IS NOT NULL
             ORDER BY flag_count DESC
         `);
         
         res.json({
             users: users.map(user => ({
                 ...user,
-                flag_count: parseInt(user.flag_count),
+                flag_count: parseInt(user.flag_count) || 0,
                 status: user.review_status || (user.account_locked ? 'suspended' : 'pending')
             }))
         });
@@ -7321,7 +7252,6 @@ app.post("/api/admin/reactivate-user/:userId", async (req, res) => {
     }
 });
 
-// ==================== FREELANCER PROFILE ENDPOINTS ====================
 app.get("/api/freelancer/profile", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login to view profile" });
@@ -7342,10 +7272,7 @@ app.get("/api/freelancer/profile", async (req, res) => {
         const user = userResult[0];
         
         const profileResult = await db.query(
-            `SELECT *, 
-                    profile_picture_url as profile_picture,
-                    certificate_images as certificates
-             FROM freelancer_profiles WHERE user_id = ?`,
+            `SELECT * FROM freelancer_profiles WHERE user_id = ?`,
             [userId]
         );
         
@@ -7353,6 +7280,7 @@ app.get("/api/freelancer/profile", async (req, res) => {
         if (profileResult && profileResult.length > 0) {
             profile = profileResult[0];
             
+            // Parse JSON fields
             if (profile.skills && typeof profile.skills === 'string') {
                 try {
                     profile.skills = JSON.parse(profile.skills);
@@ -7369,33 +7297,25 @@ app.get("/api/freelancer/profile", async (req, res) => {
                 }
             }
             
+            // Parse certificates - IMPORTANT
             if (profile.certificate_images) {
                 try {
-                    profile.certificate_images = JSON.parse(profile.certificate_images);
+                    profile.certificate_images = typeof profile.certificate_images === 'string' 
+                        ? JSON.parse(profile.certificate_images) 
+                        : profile.certificate_images;
                 } catch (e) {
                     profile.certificate_images = [];
                 }
             }
-        } else {
-            // Create default profile
-            await db.query(
-                `INSERT INTO freelancer_profiles (user_id, headline, description, hourly_rate, skills, languages, experience_level, availability, created_at)
-                 VALUES (?, 'New Freelancer', 'Tell clients about yourself...', 25, '[]', '[]', 'intermediate', 'available', NOW())`,
-                [userId]
-            );
-            
-            profile = {
-                user_id: userId,
-                headline: 'New Freelancer',
-                description: 'Tell clients about yourself...',
-                hourly_rate: 25,
-                skills: [],
-                languages: [],
-                experience_level: 'intermediate',
-                availability: 'available',
-                profile_picture: null,
-                certificate_images: []
-            };
+            if (profile.certificate_image_urls) {
+                try {
+                    profile.certificate_images = typeof profile.certificate_image_urls === 'string'
+                        ? JSON.parse(profile.certificate_image_urls)
+                        : profile.certificate_image_urls;
+                } catch (e) {
+                    // keep existing
+                }
+            }
         }
         
         const fullProfile = {

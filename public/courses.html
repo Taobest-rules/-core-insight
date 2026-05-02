@@ -1677,7 +1677,7 @@ function formatCurrency(amount, currency) {
   try {
     const amountInNGN = parseFloat(amount);
     
-    // If showing NGN, just format directly
+    // If showing NGN, just format directly (no conversion needed)
     if (currency === 'NGN') {
       return new Intl.NumberFormat('en-NG', {
         style: 'currency',
@@ -1687,8 +1687,9 @@ function formatCurrency(amount, currency) {
       }).format(amountInNGN);
     }
     
-    // Convert NGN to target currency (USD, EUR, etc.)
+    // Convert from NGN to target currency (USD, EUR, etc.)
     if (exchangeRates && exchangeRates.USD && exchangeRates[currency]) {
+      // First convert NGN to USD, then to target currency
       const amountInUSD = amountInNGN / exchangeRates.USD;
       const amountInTarget = amountInUSD * exchangeRates[currency];
       
@@ -1721,7 +1722,8 @@ function updateAllPrices() {
     // This value is already in NGN from your database
     const ngnPrice = parseFloat(element.getAttribute('data-original-price'));
     if (!isNaN(ngnPrice) && exchangeRates && exchangeRates[userCurrency]) {
-      element.textContent = formatCurrency(ngnPrice, userCurrency);
+      const formattedPrice = formatCurrency(ngnPrice, userCurrency);
+      element.textContent = formattedPrice;
     }
   });
 }
@@ -2131,10 +2133,8 @@ if (hasAccess && isPremium) {
 } else if (isFree) {
   priceDisplay = '<span style="color: #64ffda;">FREE</span>';
 } else {
-  // Store the RAW NGN price from database
-  const ngnPrice = parseFloat(course.price);
-  priceDisplay = formatCurrency(ngnPrice, userCurrency);
-}   
+  priceDisplay = formatCurrency(course.price, userCurrency);
+}
       // Escape all user-generated content for safety
       const safeTitle = escapeHtml(course.title);
       const safeDescription = escapeHtml(course.description || 'No description available');

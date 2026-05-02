@@ -4344,30 +4344,25 @@ function showLiveRateIndicator() {
       }
     }
     
-    // Convert price from USD to selected currency
-    function convertPrice(priceInUSD) {
-      if (!priceInUSD || priceInUSD <= 0) return 0;
-      
-      // If rates aren't loaded yet, return the original price
-      if (Object.keys(exchangeRates).length === 0) {
-        return priceInUSD;
-      }
-      
-      // Convert from USD to NGN first (since our base is NGN)
-      const priceInNGN = priceInUSD / exchangeRates.USD;
-      
-      // Then convert from NGN to target currency
-      if (userCurrency === 'NGN') {
-        return priceInNGN;
-      }
-      
-      const rate = exchangeRates[userCurrency];
-      if (!rate) {
-        return priceInNGN; // Fallback to NGN
-      }
-      
-      return priceInNGN * rate;
-    }
+   function convertPrice(priceInUSD) {
+  if (!priceInUSD || priceInUSD <= 0) return 0;
+  
+  if (Object.keys(exchangeRates).length === 0) {
+    return priceInUSD;
+  }
+  
+  // Products are stored in USD
+  if (userCurrency === 'NGN') {
+    // USD to NGN: MULTIPLY
+    return priceInUSD * exchangeRates.USD;
+  } else if (userCurrency === 'USD') {
+    return priceInUSD;
+  } else {
+    // USD to other currency: via NGN
+    const priceInNGN = priceInUSD * exchangeRates.USD;
+    return priceInNGN / exchangeRates[userCurrency];
+  }
+}
     function formatCurrency(amount, currency) {
   if (!amount && amount !== 0) return `${currency} 0.00`;
   
@@ -4424,20 +4419,27 @@ function showLiveRateIndicator() {
       let convertedPrice;
       
       if (userCurrency === 'NGN') {
-        // USD → NGN: MULTIPLY
+        // USD to NGN: MULTIPLY
         convertedPrice = originalPrice * exchangeRates.USD;
       } else if (userCurrency === 'USD') {
         convertedPrice = originalPrice;
       } else {
-        // USD → other currency: via NGN
+        // For other currencies: USD -> NGN -> target
         const priceInNGN = originalPrice * exchangeRates.USD;
         convertedPrice = priceInNGN / exchangeRates[userCurrency];
       }
       
-      element.textContent = formatCurrency(convertedPrice, userCurrency);
+      const formattedPrice = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: userCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(convertedPrice);
+      
+      element.textContent = formattedPrice;
     }
   });
-} 
+}
     // Update dashboard prices
     function updateDashboardPrices() {
       const totalRevenue = document.getElementById('totalRevenue');
@@ -9226,26 +9228,32 @@ document.getElementById('addressForm').addEventListener('submit', async (e) => {
 
     });
 function formatCurrency(amount, targetCurrency) {
-  if (!amount && amount !== 0) return `${targetCurrency} 0.00`;
+  if (!amount && amount !== 0) return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: targetCurrency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(0);
   
   try {
-    let displayAmount = amount;
-    
     // Products are stored in USD in your database
+    let displayAmount = parseFloat(amount);
+    
+    // If we have live exchange rates
     if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
       
       if (targetCurrency === 'NGN') {
-        // USD → NGN: MULTIPLY by exchange rate
+        // USD to NGN: MULTIPLY by exchange rate
         displayAmount = amount * exchangeRates.USD;
-        
-      } else if (targetCurrency === 'USD') {
-        // USD → USD: keep as is
+      } 
+      else if (targetCurrency === 'USD') {
+        // USD to USD: keep as is
         displayAmount = amount;
-        
-      } else {
-        // USD → other currency: first convert to NGN, then to target currency
+      }
+      else {
+        // For other currencies: USD -> NGN -> target
         const amountInNGN = amount * exchangeRates.USD;
-        displayAmount = amountInNGN / (exchangeRates[targetCurrency] || 1);
+        displayAmount = amountInNGN / exchangeRates[targetCurrency];
       }
     }
     
@@ -9258,19 +9266,24 @@ function formatCurrency(amount, targetCurrency) {
     
   } catch (error) {
     console.error('Format error:', error);
-    return `${targetCurrency} ${parseFloat(amount).toFixed(2)}`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: targetCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(0);
   }
 }
 
 function fmtPrice(amount) {
-  if (!amount && amount !== 0) return formatPrice(amount);
-  return formatCurrency(Number(amount || 0), userCurrency);
+  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
+  return formatCurrency(parseFloat(amount), userCurrency);
+}
+function formatPrice(amount) {
+  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
+  return formatCurrency(parseFloat(amount), userCurrency);
 }
 
-function formatPrice(amount) {
-  if (!amount && amount !== 0) return `$${0.00}`;
-  return formatCurrency(Number(amount || 0), userCurrency);
-}
     // ================= FORM VALIDATION WITH DETAILED DEBUGGING =================
 function validateProductForm() {
   console.log("🔍 Starting form validation...");
@@ -10435,7 +10448,8 @@ function renderProducts() {
 
     return `
       <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
-        <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
+       <div class="price" data-original-price="${p.price}">${fmtPrice(p.price)}</div>
+       <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
         ${paymentBadge}
         ${deliveryBadge}
         ${deliveryDaysBadge}

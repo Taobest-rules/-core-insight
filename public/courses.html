@@ -1671,40 +1671,62 @@ function showLiveRateInfo() {
     currencySelect.parentNode.insertBefore(rateDisplay, currencySelect.nextSibling);
   }
 }
-
 function formatCurrency(amount, currency) {
   if (!amount && amount !== 0) return `${currency} 0.00`;
   
   try {
-    let displayAmount = amount;
+    // Prices are stored in NGN in your database
+    const amountInNGN = parseFloat(amount);
     
-    // Check if amount is in USD or NGN based on value
-    // Courses are stored in NGN (typically larger numbers like 5000+)
-    // Products are stored in USD (typically smaller numbers like 5-100)
-    const isAmountInUSD = amount < 500; // If less than 500, assume USD
-    
-    if (exchangeRates && exchangeRates.USD) {
-      if (isAmountInUSD) {
-        // Amount is in USD → convert to target currency
-        const amountInNGN = amount / exchangeRates.USD;
-        displayAmount = amountInNGN * (exchangeRates[currency] || 1);
-      } else {
-        // Amount is in NGN → convert directly
-        displayAmount = amount * (exchangeRates[currency] || 1);
-      }
+    if (currency === 'NGN') {
+      // Show as NGN directly
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amountInNGN);
     }
     
+    // Convert from NGN to target currency
+    if (exchangeRates && exchangeRates.USD && exchangeRates[currency]) {
+      // First convert NGN to USD, then to target currency
+      const amountInUSD = amountInNGN / exchangeRates.USD;
+      const amountInTarget = amountInUSD * (exchangeRates[currency] || 1);
+      
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amountInTarget);
+    }
+    
+    // Fallback
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(displayAmount);
+    }).format(amountInNGN / (exchangeRates?.USD || 1500));
     
   } catch (error) {
     console.error('Format error:', error);
     return `${currency} ${parseFloat(amount).toFixed(2)}`;
   }
+}
+
+function updateAllPrices() {
+  const priceElements = document.querySelectorAll('.price[data-original-price]');
+  priceElements.forEach(element => {
+    // Get the original price (stored in NGN)
+    const originalPriceNGN = parseFloat(element.getAttribute('data-original-price'));
+    
+    if (!isNaN(originalPriceNGN) && exchangeRates && exchangeRates[userCurrency]) {
+      // Format based on current currency
+      element.textContent = formatCurrency(originalPriceNGN, userCurrency);
+    }
+  });
 }
 
  
@@ -2129,10 +2151,9 @@ if (hasAccess && isPremium) {
 } else if (isFree) {
   priceDisplay = '<span style="color: #64ffda;">FREE</span>';
 } else {
-  // Store original price in NGN, but mark it as NGN currency
+  // Store original price in NGN (your DB stores in NGN)
   priceDisplay = formatCurrency(course.price, userCurrency);
-}
-      
+}      
       // Escape all user-generated content for safety
       const safeTitle = escapeHtml(course.title);
       const safeDescription = escapeHtml(course.description || 'No description available');

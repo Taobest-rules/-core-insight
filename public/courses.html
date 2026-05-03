@@ -1602,10 +1602,27 @@ async function loadExchangeRates() {
     
     const data = await response.json();
     
-    if (data && data.rates && data.rates.USD) {
-      // ✅ USE LIVE RATES FROM BACKEND
-      exchangeRates = data.rates;
+    if (data && data.rates) {
+      // Store all exchange rates (USD is base = 1)
+      exchangeRates = {
+        USD: 1,
+        NGN: data.rates.NGN || 1500,
+        EUR: data.rates.EUR || 0.92,
+        GBP: data.rates.GBP || 0.79,
+        KES: data.rates.KES || 130,
+        GHS: data.rates.GHS || 15,
+        ZAR: data.rates.ZAR || 19,
+        CAD: data.rates.CAD || 1.37,
+        AUD: data.rates.AUD || 1.50,
+        JPY: data.rates.JPY || 150,
+        CNY: data.rates.CNY || 7.2,
+        INR: data.rates.INR || 83,
+        BRL: data.rates.BRL || 5.1,
+        MXN: data.rates.MXN || 17
+      };
+      
       console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
+      console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
       
       // Update currency selector
       const currencySelect = document.getElementById('currencySelect');
@@ -1626,12 +1643,28 @@ async function loadExchangeRates() {
   } catch (error) {
     console.error('❌ Error loading exchange rates:', error);
     
-    // ❌ DON'T use fake rates - show error and retry
-    console.log('⏳ Will retry in 30 seconds...');
-    setTimeout(() => loadExchangeRates(), 30000);
+    // Use fallback rates for all currencies
+    exchangeRates = {
+      USD: 1,
+      NGN: 1500,
+      EUR: 0.92,
+      GBP: 0.79,
+      KES: 130,
+      GHS: 15,
+      ZAR: 19,
+      CAD: 1.37,
+      AUD: 1.50,
+      JPY: 150,
+      CNY: 7.2
+    };
+    
+    console.log('⚠️ Using fallback exchange rates');
     
     // Show warning to user
-    showToast('Unable to fetch live exchange rates. Retrying...', 'warning');
+    showToast('Using approximate exchange rates. Real-time rates unavailable.', 'warning');
+    
+    // Retry after 30 seconds
+    setTimeout(() => loadExchangeRates(), 30000);
   }
 }
 
@@ -1677,7 +1710,7 @@ function formatCurrency(amount, currency) {
   try {
     const amountInNGN = parseFloat(amount);
     
-    // If showing NGN, just format directly (no conversion needed)
+    // If showing NGN, just format directly
     if (currency === 'NGN') {
       return new Intl.NumberFormat('en-NG', {
         style: 'currency',
@@ -1687,10 +1720,11 @@ function formatCurrency(amount, currency) {
       }).format(amountInNGN);
     }
     
-    // Convert from NGN to target currency (USD, EUR, etc.)
+    // For all other currencies: convert from NGN to target currency
     if (exchangeRates && exchangeRates.USD && exchangeRates[currency]) {
-      // First convert NGN to USD, then to target currency
+      // Step 1: Convert NGN to USD
       const amountInUSD = amountInNGN / exchangeRates.USD;
+      // Step 2: Convert USD to target currency using the target's rate relative to USD
       const amountInTarget = amountInUSD * exchangeRates[currency];
       
       return new Intl.NumberFormat('en-US', {
@@ -1701,15 +1735,29 @@ function formatCurrency(amount, currency) {
       }).format(amountInTarget);
     }
     
-    // Fallback with approximate rate
-    const fallbackRate = exchangeRates?.USD || 1500;
-    const approxUSD = amountInNGN / fallbackRate;
+    // Fallback if exchange rates not loaded yet
+    console.warn('Exchange rates not available, using fallback conversion');
+    const fallbackRates = {
+      'USD': 1500,
+      'EUR': 1650,
+      'GBP': 1900,
+      'KES': 11,
+      'GHS': 100,
+      'ZAR': 80,
+      'CAD': 1100,
+      'AUD': 1000,
+      'JPY': 10,
+      'CNY': 210
+    };
+    const fallbackRate = fallbackRates[currency] || 1500;
+    const convertedAmount = amountInNGN / fallbackRate;
+    
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(approxUSD);
+    }).format(convertedAmount);
     
   } catch (error) {
     console.error('Format error:', error);
@@ -1719,11 +1767,26 @@ function formatCurrency(amount, currency) {
 function updateAllPrices() {
   const priceElements = document.querySelectorAll('.price[data-original-price]');
   priceElements.forEach(element => {
-    // This value is already in NGN from your database
     const ngnPrice = parseFloat(element.getAttribute('data-original-price'));
     if (!isNaN(ngnPrice) && exchangeRates && exchangeRates[userCurrency]) {
-      const formattedPrice = formatCurrency(ngnPrice, userCurrency);
-      element.textContent = formattedPrice;
+      // Direct conversion from NGN to target currency
+      let convertedAmount;
+      
+      if (userCurrency === 'NGN') {
+        convertedAmount = ngnPrice;
+      } else {
+        // Convert NGN to target currency
+        // First get USD value, then convert to target
+        const usdValue = ngnPrice / exchangeRates.NGN;
+        convertedAmount = usdValue * exchangeRates[userCurrency];
+      }
+      
+      element.textContent = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: userCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(convertedAmount);
     }
   });
 }

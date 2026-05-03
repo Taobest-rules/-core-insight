@@ -6553,16 +6553,23 @@ app.get("/api/freelancer/clients", async (req, res) => {
             ORDER BY cp.last_contacted DESC, cp.total_orders DESC
         `, [freelancerId]);
 
+        // Ensure we return an array
         let clientsList = [];
-        if (Array.isArray(clients)) {
-            clientsList = clients.length === 2 ? clients[0] : clients;
+        if (clients) {
+            if (Array.isArray(clients)) {
+                if (clients.length === 2 && Array.isArray(clients[0])) {
+                    clientsList = clients[0];
+                } else {
+                    clientsList = clients;
+                }
+            }
         }
-
+        
         res.json(clientsList);
 
     } catch (err) {
         console.error("Error loading freelancer's clients:", err);
-        res.status(500).json({ error: "Failed to load clients: " + err.message });
+        res.json([]); // Always return an array
     }
 });
 // ==================== GET FREELANCER RECRUITMENT STATS ====================
@@ -6837,6 +6844,418 @@ app.post("/api/client/flag", async (req, res) => {
         console.error("❌ Flag client error:", err);
         res.status(500).json({ error: err.message });
     }
+});
+
+// ============================================
+// DATA EXPORT ENDPOINTS
+// ============================================
+
+// Export all user data (for admin)
+app.get("/api/export/user-data", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const userId = req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+    
+    // If not admin, only export their own data
+    const queryUserId = isAdmin && req.query.userId ? req.query.userId : userId;
+    
+    // Get user info
+    const userResult = await db.query(
+      "SELECT id, username, email, role, created_at, verified, account_locked FROM users WHERE id = ?",
+      [queryUserId]
+    );
+    
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    const user = userResult[0];
+    
+    // Get user's products
+    const products = await db.query(
+      `SELECT id, title, description, price, type, category, 
+              created_at, status, sales_count, favorite_count, rating
+       FROM products 
+       WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)
+       ORDER BY created_at DESC`,
+      [queryUserId]
+    );
+    
+    // Get user's orders (as buyer)
+    const buyerOrders = await db.query(
+      `SELECT o.id, o.product_name, o.quantity, o.total_amount, o.order_status,
+              o.payment_status, o.created_at, o.completed_at, o.seller_earnings,
+              o.platform_fee, o.delivery_phone, o.shipping_address
+       FROM physical_orders o
+       WHERE o.buyer_id = ?
+       ORDER BY o.created_at DESC`,
+      [queryUserId]
+    );
+    
+    // Get user's sales (as seller)
+    const sellerOrders = await db.query(
+      `SELECT o.id, o.product_name, o.quantity, o.total_amount, o.order_status,
+              o.payment_status, o.created_at, o.completed_at, o.seller_earnings,
+              o.platform_fee, o.customer_name, o.customer_email, o.shipping_address
+       FROM physical_orders o
+       WHERE o.seller_id = ?
+       ORDER BY o.created_at DESC`,
+      [queryUserId]
+    );
+    
+    // Get user's service orders (if freelancer)
+    const serviceOrders = await db.query(
+      `SELECT so.id, s.title as service_name, so.amount, so.status, so.created_at
+       FROM service_orders so
+       LEFT JOIN services s ON so.service_id = s.id
+       WHERE so.buyer_id = ? OR so.seller_id = ?
+       ORDER BY so.created_at DESC`,
+      [queryUserId, queryUserId]
+    );
+    
+    // Get user's reviews
+    const reviewsGiven = await db.query(
+      `SELECT r.id, r.rating, r.comment, p.title as product_name, r.created_at
+       FROM reviews r
+       LEFT JOIN products p ON r.product_id = p.id
+       WHERE r.user_id = ?
+       ORDER BY r.created_at DESC`,
+      [queryUserId]
+    );
+    
+    const reviewsReceived = await db.query(
+      `SELECT r.id, r.rating, r.comment, u.username as reviewer_name, 
+              p.title as product_name, r.created_at
+       FROM reviews r
+       LEFT JOIN products p ON r.product_id = p.id
+       LEFT JOIN users u ON r.user_id = u.id
+       WHERE p.user_id = ?
+       ORDER BY r.created_at DESC`,
+      [queryUserId]
+    );
+    
+    // Get favorites
+    const favorites = await db.query(
+      `SELECT f.id, p.title as product_name, f.created_at
+       FROM favorites f
+       LEFT JOIN products p ON f.product_id = p.id
+       WHERE f.user_id = ?
+       ORDER BY f.created_at DESC`,
+      [queryUserId]
+    );
+    
+    // Get notifications
+    const notifications = await db.query(
+      `SELECT n.id, n.notification_type, n.title, n.message, n.is_read, n.created_at
+       FROM buyer_notifications n
+       WHERE n.buyer_id = ?
+       ORDER BY n.created_at DESC
+       LIMIT 100`,
+      [queryUserId]
+    );
+    
+    const sellerNotifications = await db.query(
+      `SELECT n.id, n.notification_type, n.title, n.message, n.is_read, n.created_at
+       FROM seller_notifications n
+       WHERE n.seller_id = ?
+       ORDER BY n.created_at DESC
+       LIMIT 100`,
+      [queryUserId]
+    );
+    
+    // Compile all data
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      exported_by: {
+        id: req.session.user.id,
+        username: req.session.user.username,
+        role: req.session.user.role
+      },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        created_at: user.created_at,
+        verified: user.verified === 1,
+        account_locked: user.account_locked === 1
+      },
+      summary: {
+        total_products: products.length,
+        total_orders_as_buyer: buyerOrders.length,
+        total_sales_as_seller: sellerOrders.length,
+        total_reviews_given: reviewsGiven.length,
+        total_reviews_received: reviewsReceived.length,
+        total_favorites: favorites.length,
+        total_notifications: notifications.length + sellerNotifications.length
+      },
+      products: products.map(p => ({
+        id: p.id,
+        title: p.title,
+        price: parseFloat(p.price),
+        type: p.type,
+        category: p.category,
+        created_at: p.created_at,
+        status: p.status,
+        sales_count: p.sales_count || 0,
+        favorite_count: p.favorite_count || 0,
+        rating: parseFloat(p.rating) || 0
+      })),
+      orders_as_buyer: buyerOrders.map(o => ({
+        id: o.id,
+        product_name: o.product_name,
+        quantity: parseInt(o.quantity),
+        total_amount: parseFloat(o.total_amount),
+        order_status: o.order_status,
+        payment_status: o.payment_status,
+        created_at: o.created_at,
+        completed_at: o.completed_at,
+        platform_fee: parseFloat(o.platform_fee) || 0,
+        seller_earnings: parseFloat(o.seller_earnings) || 0
+      })),
+      sales_as_seller: sellerOrders.map(o => ({
+        id: o.id,
+        product_name: o.product_name,
+        quantity: parseInt(o.quantity),
+        total_amount: parseFloat(o.total_amount),
+        order_status: o.order_status,
+        payment_status: o.payment_status,
+        created_at: o.created_at,
+        completed_at: o.completed_at,
+        platform_fee: parseFloat(o.platform_fee) || 0,
+        seller_earnings: parseFloat(o.seller_earnings) || 0,
+        customer_name: o.customer_name,
+        customer_email: o.customer_email
+      })),
+      reviews_given: reviewsGiven.map(r => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        product_name: r.product_name,
+        created_at: r.created_at
+      })),
+      reviews_received: reviewsReceived.map(r => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        product_name: r.product_name,
+        reviewer_name: r.reviewer_name,
+        created_at: r.created_at
+      })),
+      favorites: favorites.map(f => ({
+        id: f.id,
+        product_name: f.product_name,
+        favorited_at: f.created_at
+      })),
+      notifications: [...notifications, ...sellerNotifications].map(n => ({
+        id: n.id,
+        type: n.notification_type,
+        title: n.title,
+        message: n.message,
+        is_read: n.is_read === 1,
+        created_at: n.created_at
+      }))
+    };
+    
+    // Return as JSON for download
+    res.json({
+      success: true,
+      message: "Data exported successfully",
+      data: exportData
+    });
+    
+  } catch (err) {
+    console.error("❌ Export error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download as CSV
+app.get("/api/export/csv/:type", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const { type } = req.params; // products, sales, orders, all
+    const userId = req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+    
+    let data = [];
+    let filename = '';
+    
+    if (type === 'products' || type === 'all') {
+      const products = await db.query(
+        `SELECT id, title, price, type, category, status, sales_count, 
+                favorite_count, created_at
+         FROM products 
+         WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)
+         ORDER BY created_at DESC`,
+        [userId]
+      );
+      
+      data = products.map(p => ({
+        'Product ID': p.id,
+        'Title': p.title,
+        'Price': parseFloat(p.price),
+        'Type': p.type,
+        'Category': p.category,
+        'Status': p.status,
+        'Sales Count': p.sales_count || 0,
+        'Favorites': p.favorite_count || 0,
+        'Created At': p.created_at
+      }));
+      
+      filename = `my_products_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+    
+    else if (type === 'sales') {
+      const sales = await db.query(
+        `SELECT o.id, o.product_name, o.quantity, o.total_amount, o.order_status,
+                o.payment_status, o.customer_name, o.customer_email, o.created_at,
+                o.completed_at, o.platform_fee, o.seller_earnings
+         FROM physical_orders o
+         WHERE o.seller_id = ?
+         ORDER BY o.created_at DESC`,
+        [userId]
+      );
+      
+      data = sales.map(s => ({
+        'Order ID': s.id,
+        'Product': s.product_name,
+        'Quantity': parseInt(s.quantity),
+        'Total Amount': parseFloat(s.total_amount),
+        'Status': s.order_status,
+        'Payment Status': s.payment_status,
+        'Customer': s.customer_name,
+        'Customer Email': s.customer_email,
+        'Platform Fee': parseFloat(s.platform_fee) || 0,
+        'Your Earnings': parseFloat(s.seller_earnings) || 0,
+        'Order Date': s.created_at,
+        'Completed Date': s.completed_at || ''
+      }));
+      
+      filename = `my_sales_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+    
+    else if (type === 'orders') {
+      const orders = await db.query(
+        `SELECT o.id, o.product_name, o.quantity, o.total_amount, o.order_status,
+                o.payment_status, o.seller_name, o.created_at, o.completed_at,
+                o.platform_fee, o.seller_earnings, o.shipping_address
+         FROM physical_orders o
+         WHERE o.buyer_id = ?
+         ORDER BY o.created_at DESC`,
+        [userId]
+      );
+      
+      data = orders.map(o => ({
+        'Order ID': o.id,
+        'Product': o.product_name,
+        'Quantity': parseInt(o.quantity),
+        'Total Amount': parseFloat(o.total_amount),
+        'Status': o.order_status,
+        'Payment Status': o.payment_status,
+        'Seller': o.seller_name,
+        'Platform Fee': parseFloat(o.platform_fee) || 0,
+        'Seller Earnings': parseFloat(o.seller_earnings) || 0,
+        'Order Date': o.created_at,
+        'Completed Date': o.completed_at || ''
+      }));
+      
+      filename = `my_orders_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+    
+    // Convert to CSV
+    if (data.length === 0) {
+      return res.status(404).json({ error: "No data to export" });
+    }
+    
+    const headers = Object.keys(data[0]);
+    const csvRows = [];
+    
+    csvRows.push(headers.join(','));
+    
+    for (const row of data) {
+      const values = headers.map(header => {
+        let val = row[header];
+        if (val === undefined || val === null) val = '';
+        if (typeof val === 'string') {
+          // Escape quotes and wrap in quotes if contains comma
+          val = val.replace(/"/g, '""');
+          if (val.includes(',') || val.includes('\n')) {
+            val = `"${val}"`;
+          }
+        }
+        return val;
+      });
+      csvRows.push(values.join(','));
+    }
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvRows.join('\n'));
+    
+  } catch (err) {
+    console.error("❌ CSV export error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get export summary (for dashboard)
+app.get("/api/export/summary", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const userId = req.session.user.id;
+    
+    const productCount = await db.query(
+      "SELECT COUNT(*) as count FROM products WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)",
+      [userId]
+    );
+    
+    const salesCount = await db.query(
+      "SELECT COUNT(*) as count, SUM(total_amount) as total FROM physical_orders WHERE seller_id = ?",
+      [userId]
+    );
+    
+    const orderCount = await db.query(
+      "SELECT COUNT(*) as count, SUM(total_amount) as total FROM physical_orders WHERE buyer_id = ?",
+      [userId]
+    );
+    
+    const reviewCount = await db.query(
+      "SELECT COUNT(*) as count FROM reviews WHERE user_id = ?",
+      [userId]
+    );
+    
+    res.json({
+      success: true,
+      summary: {
+        products: parseInt(productCount[0]?.count || 0),
+        sales: {
+          count: parseInt(salesCount[0]?.count || 0),
+          total: parseFloat(salesCount[0]?.total || 0)
+        },
+        orders: {
+          count: parseInt(orderCount[0]?.count || 0),
+          total: parseFloat(orderCount[0]?.total || 0)
+        },
+        reviews: parseInt(reviewCount[0]?.count || 0)
+      },
+      export_types: ['products', 'sales', 'orders', 'all_data']
+    });
+    
+  } catch (err) {
+    console.error("❌ Export summary error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 // ============================================
 // FLAGGING SYSTEM BACKEND ROUTES
@@ -7272,13 +7691,20 @@ app.get("/api/freelancer/profile", async (req, res) => {
         const user = userResult[0];
         
         const profileResult = await db.query(
-            `SELECT * FROM freelancer_profiles WHERE user_id = ?`,
+            `SELECT *, 
+                    profile_picture_url as profile_picture,
+                    profile_picture as profile_picture_alt
+             FROM freelancer_profiles WHERE user_id = ?`,
             [userId]
         );
         
         let profile = {};
         if (profileResult && profileResult.length > 0) {
             profile = profileResult[0];
+            
+            // Prioritize profile_picture_url, fallback to profile_picture
+            const profilePic = profile.profile_picture_url || profile.profile_picture;
+            profile.profile_picture = profilePic;
             
             // Parse JSON fields
             if (profile.skills && typeof profile.skills === 'string') {
@@ -7294,26 +7720,6 @@ app.get("/api/freelancer/profile", async (req, res) => {
                     profile.languages = JSON.parse(profile.languages);
                 } catch (e) {
                     profile.languages = [];
-                }
-            }
-            
-            // Parse certificates - IMPORTANT
-            if (profile.certificate_images) {
-                try {
-                    profile.certificate_images = typeof profile.certificate_images === 'string' 
-                        ? JSON.parse(profile.certificate_images) 
-                        : profile.certificate_images;
-                } catch (e) {
-                    profile.certificate_images = [];
-                }
-            }
-            if (profile.certificate_image_urls) {
-                try {
-                    profile.certificate_images = typeof profile.certificate_image_urls === 'string'
-                        ? JSON.parse(profile.certificate_image_urls)
-                        : profile.certificate_image_urls;
-                } catch (e) {
-                    // keep existing
                 }
             }
         }

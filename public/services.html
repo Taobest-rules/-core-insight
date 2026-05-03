@@ -9804,11 +9804,20 @@ async function loadMyClients() {
             credentials: 'include'
         });
         
-        if (!response.ok) throw new Error('Failed to load clients');
+        if (!response.ok) {
+            throw new Error('Failed to load clients');
+        }
         
-        const clients = await response.json();
+        let clients = await response.json();
         
-        if (!clients || clients.length === 0) {
+        // Ensure clients is an array
+        if (!clients) clients = [];
+        if (!Array.isArray(clients)) {
+            console.log("Clients is not an array:", clients);
+            clients = [];
+        }
+        
+        if (clients.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; grid-column: 1 / -1;">
                     <div style="font-size: 4rem; margin-bottom: 20px;">👥</div>
@@ -9823,24 +9832,24 @@ async function loadMyClients() {
             const isFreelancer = currentUser?.role === 'freelancer';
             
             return `
-                <div class="service-card" data-client-id="${client.client_id}">
+                <div class="service-card" data-client-id="${client.client_id || client.id}">
                     <div class="service-header">
-                        <h3 class="service-title">${escapeHtml(client.username)}</h3>
+                        <h3 class="service-title">${escapeHtml(client.username || 'Client')}</h3>
                         <div class="service-price">${client.total_orders || 0} orders</div>
                     </div>
                     <div class="service-provider-info">
-                        <div class="provider-initials">${(client.username || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="provider-initials">${(client.username || 'C').charAt(0).toUpperCase()}</div>
                         <div class="provider-info">
-                            <div class="service-provider-name">${escapeHtml(client.username)}</div>
-                            <div class="service-provider">Recruited: ${new Date(client.recruited_at).toLocaleDateString()}</div>
+                            <div class="service-provider-name">${escapeHtml(client.username || 'Client')}</div>
+                            <div class="service-provider">Recruited: ${client.recruited_at ? new Date(client.recruited_at).toLocaleDateString() : 'N/A'}</div>
                         </div>
                     </div>
                     <div class="service-actions">
-                        <button class="btn chat-btn" onclick="checkAndStartConversation(null, ${client.client_id})">
+                        <button class="btn chat-btn" onclick="checkAndStartConversation(null, ${client.client_id || client.id})">
                             <i class="fas fa-comments"></i> Message
                         </button>
                         ${isFreelancer ? `
-                            <button class="btn btn-secondary flag-btn" onclick="showFlagClientModal(${client.client_id}, '${escapeHtml(client.username)}')">
+                            <button class="btn btn-secondary flag-btn" onclick="showFlagClientModal(${client.client_id || client.id}, '${escapeHtml(client.username || 'Client')}')">
                                 <i class="fas fa-flag"></i> Report Client
                             </button>
                         ` : ''}
@@ -10563,21 +10572,26 @@ function updateProfileDisplay(profile) {
         }
     }
     
-    // Profile picture
+    // Profile picture - FIXED
     const profilePicture = document.getElementById('profilePicture');
     const profileInitials = document.getElementById('profileInitials');
     
-    if (profile.profile_picture) {
-        profilePicture.src = profile.profile_picture;
+    // Try both possible field names
+    const pictureUrl = profile.profile_picture || profile.profile_picture_url;
+    
+    if (pictureUrl && pictureUrl !== 'null' && pictureUrl !== 'undefined' && pictureUrl !== '') {
+        profilePicture.src = pictureUrl;
         profilePicture.style.display = 'block';
         if (profileInitials) profileInitials.style.display = 'none';
+        console.log("Profile picture loaded:", pictureUrl);
     } else {
-        if (profilePicture) profilePicture.style.display = 'none';
+        profilePicture.style.display = 'none';
         if (profileInitials) {
             profileInitials.style.display = 'flex';
             const initial = (currentUser?.username || 'U').charAt(0).toUpperCase();
             profileInitials.textContent = initial;
         }
+        console.log("No profile picture found");
     }
     
     // Skills
@@ -10603,6 +10617,24 @@ function updateProfileDisplay(profile) {
             `).join('');
         } else {
             languagesContainer.innerHTML = '<p style="color: var(--text-gray);">No languages specified.</p>';
+        }
+    }
+    
+    // Certificates
+    const certificatesContainer = document.getElementById('profileCertificates');
+    if (certificatesContainer) {
+        const certImages = profile.certificate_images || profile.certificate_image_urls;
+        if (certImages && Array.isArray(certImages) && certImages.length > 0) {
+            certificatesContainer.innerHTML = certImages.map((cert, index) => `
+                <div class="certificate-item">
+                    <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" 
+                         style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
+                         onclick="openCertificateViewer('${cert}', ${index})">
+                    <button class="remove-certificate" onclick="removeCertificate(${index})">&times;</button>
+                </div>
+            `).join('');
+        } else {
+            certificatesContainer.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
         }
     }
     
@@ -12467,7 +12499,8 @@ function renderMyServices(services) {
                     <button class="btn btn-secondary" onclick="viewServiceStats(${service.id})" style="flex: 1;">
                         <i class="fas fa-chart-bar"></i> Stats
                     </button>
-                    <button class="btn btn-danger delete-svc-btn" data-id="${service.id}" data-title="${escapeHtml(service.title)}" data-owner="${service.user_id}" style="flex: 1;">
+                    <!-- FIXED: Use onclick with proper values, not data attributes -->
+                    <button class="btn btn-danger" onclick="confirmDeleteService(${service.id}, '${escapeHtml(service.title).replace(/'/g, "\\'")}', ${service.user_id}, true)" style="flex: 1;">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -12478,10 +12511,6 @@ function renderMyServices(services) {
             </div>
         `;
     }).join('');
-    
-    // Use event delegation instead of individual listeners
-    container.removeEventListener('click', handleDeleteClick);
-    container.addEventListener('click', handleDeleteClick);
 }
 
 function handleDeleteClick(e) {
@@ -12499,17 +12528,7 @@ function handleDeleteClick(e) {
     confirmDeleteService(serviceId, serviceTitle, ownerId, true);
 }
 
-// Separate function for delete click handler
-function handleDeleteClick(e) {
-    e.preventDefault();
-    const btn = e.currentTarget;
-    const serviceId = btn.dataset.id;
-    const serviceTitle = btn.dataset.title;
-    const ownerId = btn.dataset.owner;
-    
-    console.log("Delete button clicked!", serviceId, serviceTitle);
-    confirmDeleteService(serviceId, serviceTitle, ownerId, true);
-}
+
 async function loadMyFreelancers() {
     const container = document.getElementById('clientServicesList');
     if (!container) return;

@@ -3028,7 +3028,244 @@ In the name of Allah, the Most Gracious, the Most Merciful
         justify-content: center;
       }
     }
+/* Improved Controls Section */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--card-bg);
+  padding: 20px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  margin: 24px 0 32px;
+}
 
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Filter Groups */
+.filter-group {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group i {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  font-size: 14px;
+  z-index: 1;
+}
+
+.filter-group .search-input,
+.filter-group .select {
+  padding-left: 40px;
+  width: 100%;
+}
+
+.country-filter-group {
+  flex: 1.5;
+  min-width: 180px;
+}
+
+/* Search Input */
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--primary-dark);
+  color: var(--text-light);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+/* All Selects */
+.select {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--primary-dark);
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+  min-width: 140px;
+}
+
+.select:hover {
+  border-color: var(--accent);
+  background: var(--card-bg-hover);
+}
+
+/* Currency Selector */
+.currency-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--primary-dark);
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  height: 48px;
+}
+
+.currency-selector i {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.currency-selector select {
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  outline: none;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.live-rate-badge {
+  font-size: 11px;
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.15);
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.live-rate-badge i {
+  font-size: 10px;
+  color: var(--success);
+}
+
+/* Refresh Button */
+.btn.primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  height: 48px;
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .controls-row {
+    flex-wrap: wrap;
+  }
+  
+  .filter-group {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 180px;
+  }
+  
+  .country-filter-group {
+    flex: 1 1 calc(40% - 12px);
+  }
+  
+  .currency-selector {
+    flex: 1 1 auto;
+  }
+  
+  .select {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .controls {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .controls-row {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .filter-group,
+  .country-filter-group,
+  .currency-selector,
+  .btn.primary {
+    width: 100%;
+    min-width: unset;
+  }
+  
+  .filter-group .search-input,
+  .filter-group .select {
+    width: 100%;
+  }
+  
+  .currency-selector {
+    justify-content: space-between;
+  }
+  
+  .btn.primary {
+    justify-content: center;
+  }
+  
+  .live-rate-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    padding: 12px;
+  }
+  
+  .select,
+  .search-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  
+  .filter-group i {
+    left: 12px;
+  }
+  
+  .filter-group .search-input,
+  .filter-group .select {
+    padding-left: 34px;
+  }
+  
+  .currency-selector {
+    height: 44px;
+    padding: 0 12px;
+  }
+  
+  .btn.primary {
+    height: 44px;
+    padding: 10px 16px;
+  }
+}
     /* Fix for mobile form inputs zoom issue */
     @media screen and (max-width: 768px) {
       input,
@@ -3337,6 +3574,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
       </div>
     </section>
 <section class="controls">
+  <!-- Row 1: Search and main filters -->
   <div class="controls-row">
     <div class="filter-group">
       <i class="fas fa-search"></i>
@@ -3362,34 +3600,38 @@ In the name of Allah, the Most Gracious, the Most Merciful
     </select>
   </div>
 
+  <!-- Row 2: Country filter, Currency, and Refresh -->
   <div class="controls-row">
-    <select id="filterCountry" class="select country-select">
-      <option value="">🌍 Ships to: Anywhere</option>
-      <option value="USA">🇺🇸 United States</option>
-      <option value="UK">🇬🇧 United Kingdom</option>
-      <option value="Nigeria">🇳🇬 Nigeria</option>
-      <option value="Canada">🇨🇦 Canada</option>
-      <option value="Australia">🇦🇺 Australia</option>
-      <option value="Germany">🇩🇪 Germany</option>
-      <option value="France">🇫🇷 France</option>
-      <option value="Italy">🇮🇹 Italy</option>
-      <option value="Spain">🇪🇸 Spain</option>
-      <option value="Netherlands">🇳🇱 Netherlands</option>
-      <option value="Kenya">🇰🇪 Kenya</option>
-      <option value="South Africa">🇿🇦 South Africa</option>
-      <option value="Ghana">🇬🇭 Ghana</option>
-      <option value="Egypt">🇪🇬 Egypt</option>
-      <option value="Morocco">🇲🇦 Morocco</option>
-      <option value="Brazil">🇧🇷 Brazil</option>
-      <option value="Mexico">🇲🇽 Mexico</option>
-      <option value="Japan">🇯🇵 Japan</option>
-      <option value="China">🇨🇳 China</option>
-      <option value="India">🇮🇳 India</option>
-      <option value="Singapore">🇸🇬 Singapore</option>
-      <option value="UAE">🇦🇪 UAE</option>
-      <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-      <option value="Worldwide">🌍 Worldwide</option>
-    </select>
+    <div class="filter-group country-filter-group">
+      <i class="fas fa-globe-americas"></i>
+      <select id="filterCountry" class="select country-select">
+        <option value="">🌍 Ships to Anywhere</option>
+        <option value="USA">🇺🇸 United States</option>
+        <option value="UK">🇬🇧 United Kingdom</option>
+        <option value="Nigeria">🇳🇬 Nigeria</option>
+        <option value="Canada">🇨🇦 Canada</option>
+        <option value="Australia">🇦🇺 Australia</option>
+        <option value="Germany">🇩🇪 Germany</option>
+        <option value="France">🇫🇷 France</option>
+        <option value="Italy">🇮🇹 Italy</option>
+        <option value="Spain">🇪🇸 Spain</option>
+        <option value="Netherlands">🇳🇱 Netherlands</option>
+        <option value="Kenya">🇰🇪 Kenya</option>
+        <option value="South Africa">🇿🇦 South Africa</option>
+        <option value="Ghana">🇬🇭 Ghana</option>
+        <option value="Egypt">🇪🇬 Egypt</option>
+        <option value="Morocco">🇲🇦 Morocco</option>
+        <option value="Brazil">🇧🇷 Brazil</option>
+        <option value="Mexico">🇲🇽 Mexico</option>
+        <option value="Japan">🇯🇵 Japan</option>
+        <option value="China">🇨🇳 China</option>
+        <option value="India">🇮🇳 India</option>
+        <option value="Singapore">🇸🇬 Singapore</option>
+        <option value="UAE">🇦🇪 UAE</option>
+        <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+        <option value="Worldwide">🌍 Worldwide</option>
+      </select>
+    </div>
     
     <div class="currency-selector">
       <i class="fas fa-coins"></i>
@@ -3418,6 +3660,9 @@ In the name of Allah, the Most Gracious, the Most Merciful
         <option value="XOF">XOF CFA</option>
         <option value="XAF">XAF FCFA</option>
       </select>
+      <span id="liveRateIndicator" class="live-rate-badge">
+        <i class="fas fa-chart-line"></i> Live
+      </span>
     </div>
     
     <button id="refreshBtn" class="btn primary">
@@ -4490,10 +4735,160 @@ function showLiveRateIndicator() {
       toggleDashboardView();
     });
 
-    // Refresh dashboard button
-    document.getElementById('exportData')?.addEventListener('click', function() {
-      showToast('Exporting dashboard data...', 'info');
+    // Update the exportData button handler in your products.html
+document.getElementById('exportData')?.addEventListener('click', async function() {
+  if (!currentUser) {
+    showToast('Please login to export data', 'warning');
+    return;
+  }
+  
+  // Show export options modal
+  const modalHtml = `
+    <div class="modal open" id="exportModal">
+      <div class="modal-card" style="max-width: 450px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0;"><i class="fas fa-download"></i> Export Data</h3>
+          <span class="close-x" onclick="closeExportModal()">&times;</span>
+        </div>
+        
+        <p style="margin-bottom: 20px;">Select the data you want to export:</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+          <button class="btn primary" onclick="exportDataType('products')" style="text-align: left; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-box"></i>
+            <div>
+              <strong>My Products</strong>
+              <small style="display: block; font-size: 11px;">Export all your listed products as CSV</small>
+            </div>
+          </button>
+          
+          <button class="btn primary" onclick="exportDataType('sales')" style="text-align: left; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-chart-line"></i>
+            <div>
+              <strong>Sales History</strong>
+              <small style="display: block; font-size: 11px;">Export your sales records as CSV</small>
+            </div>
+          </button>
+          
+          <button class="btn primary" onclick="exportDataType('orders')" style="text-align: left; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-shopping-cart"></i>
+            <div>
+              <strong>My Orders</strong>
+              <small style="display: block; font-size: 11px;">Export your purchase history as CSV</small>
+            </div>
+          </button>
+          
+          <button class="btn success" onclick="exportDataType('all_data')" style="text-align: left; display: flex; align-items: center; gap: 12px; background: var(--digital);">
+            <i class="fas fa-database"></i>
+            <div>
+              <strong>Complete User Data</strong>
+              <small style="display: block; font-size: 11px;">Export ALL your data (JSON format)</small>
+            </div>
+          </button>
+        </div>
+        
+        <div id="exportPreview" style="background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 12px; font-size: 12px; display: none;">
+          <i class="fas fa-spinner fa-spin"></i> Loading preview...
+        </div>
+        
+        <div class="footer" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted);">
+          <i class="fas fa-shield-alt"></i> Your data is exported securely
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal
+  const existingModal = document.getElementById('exportModal');
+  if (existingModal) existingModal.remove();
+  
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Load preview summary
+  try {
+    const response = await fetch('/api/export/summary', {
+      credentials: 'include'
     });
+    const data = await response.json();
+    
+    if (data.success) {
+      const previewDiv = document.getElementById('exportPreview');
+      previewDiv.style.display = 'block';
+      previewDiv.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fas fa-box"></i> Products:</span>
+            <strong>${data.summary.products}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fas fa-chart-line"></i> Sales:</span>
+            <strong>${data.summary.sales.count} ($${data.summary.sales.total.toFixed(2)})</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fas fa-shopping-cart"></i> Orders:</span>
+            <strong>${data.summary.orders.count} ($${data.summary.orders.total.toFixed(2)})</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fas fa-star"></i> Reviews:</span>
+            <strong>${data.summary.reviews}</strong>
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Preview error:', err);
+  }
+});
+
+// Export data function
+window.exportDataType = async function(type) {
+  // Close modal
+  closeExportModal();
+  
+  // Show loading
+  showToast('Preparing export...', 'info');
+  
+  try {
+    if (type === 'all_data') {
+      // Export complete user data as JSON
+      const response = await fetch('/api/export/user-data', {
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Create downloadable JSON file
+        const jsonStr = JSON.stringify(data.data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `core_insight_export_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('✅ Export complete!', `Your data has been exported`, 'success');
+      } else {
+        showToast('Export failed', data.error || 'Failed to export data', 'danger');
+      }
+    } else {
+      // Export CSV
+      window.location.href = `/api/export/csv/${type}`;
+      showToast('Export started', 'Your file will download shortly', 'success');
+    }
+  } catch (err) {
+    console.error('Export error:', err);
+    showToast('Export failed', err.message, 'danger');
+  }
+};
+
+function closeExportModal() {
+  const modal = document.getElementById('exportModal');
+  if (modal) modal.remove();
+}
 
    // Tab switching - update to include refunds tab
 document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {

@@ -4532,12 +4532,31 @@ async function loadExchangeRates() {
     const data = await response.json();
     
     if (data && data.rates && data.rates.USD) {
-      // ✅ USE LIVE RATES FROM BACKEND
-      exchangeRates = data.rates;
+      // Store all exchange rates (USD is base = 1)
+      exchangeRates = {
+        USD: 1,
+        NGN: data.rates.NGN || 1500,
+        EUR: data.rates.EUR || 0.92,
+        GBP: data.rates.GBP || 0.79,
+        KES: data.rates.KES || 130,
+        GHS: data.rates.GHS || 15,
+        ZAR: data.rates.ZAR || 19,
+        CAD: data.rates.CAD || 1.37,
+        AUD: data.rates.AUD || 1.50,
+        JPY: data.rates.JPY || 150,
+        CNY: data.rates.CNY || 7.2,
+        INR: data.rates.INR || 83,
+        BRL: data.rates.BRL || 5.1,
+        MXN: data.rates.MXN || 17,
+        AED: data.rates.AED || 3.67,
+        SAR: data.rates.SAR || 3.75
+      };
+      
       console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
+      console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
       
       // Update currency selector
-      const currencySelect = document.getElementById('currencySelect');
+      const currencySelect = document.getElementById('currencyHeader');
       if (currencySelect && !currencySelect.value) {
         currencySelect.value = userCurrency;
       }
@@ -4555,12 +4574,31 @@ async function loadExchangeRates() {
   } catch (error) {
     console.error('❌ Error loading exchange rates:', error);
     
-    // ❌ DON'T use fake rates - show error and retry
-    console.log('⏳ Will retry in 30 seconds...');
-    setTimeout(() => loadExchangeRates(), 30000);
+    // Use fallback rates for all currencies
+    exchangeRates = {
+      USD: 1,
+      NGN: 1500,
+      EUR: 0.92,
+      GBP: 0.79,
+      KES: 130,
+      GHS: 15,
+      ZAR: 19,
+      CAD: 1.37,
+      AUD: 1.50,
+      JPY: 150,
+      CNY: 7.2,
+      INR: 83,
+      BRL: 5.1,
+      MXN: 17,
+      AED: 3.67,
+      SAR: 3.75
+    };
     
-    // Show warning to user
-    showToast('Unable to fetch live exchange rates. Retrying...', 'warning');
+    console.log('⚠️ Using fallback exchange rates');
+    showToast('Using approximate exchange rates. Real-time rates unavailable.', 'warning');
+    
+    // Retry after 30 seconds
+    setTimeout(() => loadExchangeRates(), 30000);
   }
 }
 
@@ -4589,23 +4627,32 @@ function showLiveRateIndicator() {
       }
     }
     
-   function convertPrice(priceInUSD) {
+ function convertPrice(priceInUSD) {
   if (!priceInUSD || priceInUSD <= 0) return 0;
   
   if (Object.keys(exchangeRates).length === 0) {
     return priceInUSD;
   }
   
-  // Products are stored in USD
-  if (userCurrency === 'NGN') {
-    // USD to NGN: MULTIPLY
-    return priceInUSD * exchangeRates.USD;
-  } else if (userCurrency === 'USD') {
+  try {
+    // Products are stored in USD - convert to target currency
+    
+    if (userCurrency === 'USD') {
+      return priceInUSD;
+    }
+    
+    if (userCurrency === 'NGN') {
+      // USD to NGN: MULTIPLY by exchange rate
+      return priceInUSD * exchangeRates.USD;
+    }
+    
+    // For other currencies: USD → NGN → target currency
+    const amountInNGN = priceInUSD * exchangeRates.USD;
+    return amountInNGN / exchangeRates[userCurrency];
+    
+  } catch (error) {
+    console.error('Convert error:', error);
     return priceInUSD;
-  } else {
-    // USD to other currency: via NGN
-    const priceInNGN = priceInUSD * exchangeRates.USD;
-    return priceInNGN / exchangeRates[userCurrency];
   }
 }
     function formatCurrency(amount, currency) {
@@ -4635,25 +4682,10 @@ function showLiveRateIndicator() {
 }
     
     // Format price with currency symbol
-    function formatPrice(amount) {
-      const symbol = currencySymbols[userCurrency] || userCurrency;
-      const convertedAmount = convertPrice(amount);
-      
-      // Format the number based on currency
-      let formattedAmount;
-      if (userCurrency === 'NGN' || userCurrency === 'KES' || userCurrency === 'GHS' || userCurrency === 'ZAR') {
-        // African currencies: no decimal places
-        formattedAmount = Math.round(convertedAmount).toLocaleString();
-      } else {
-        // Other currencies: 2 decimal places
-        formattedAmount = convertedAmount.toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
-      }
-      
-      return `${symbol}${formattedAmount}`;
-    }
+ function formatPrice(amount) {
+  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
+  return formatCurrency(parseFloat(amount), userCurrency);
+}
     
  function updateAllPrices() {
   const priceElements = document.querySelectorAll('.price[data-original-price]');
@@ -4661,17 +4693,17 @@ function showLiveRateIndicator() {
     const originalPrice = parseFloat(element.getAttribute('data-original-price'));
     if (!isNaN(originalPrice) && exchangeRates && exchangeRates[userCurrency]) {
       // Products are stored in USD
-      let convertedPrice;
+      let convertedAmount;
       
-      if (userCurrency === 'NGN') {
+      if (userCurrency === 'USD') {
+        convertedAmount = originalPrice;
+      } else if (userCurrency === 'NGN') {
         // USD to NGN: MULTIPLY
-        convertedPrice = originalPrice * exchangeRates.USD;
-      } else if (userCurrency === 'USD') {
-        convertedPrice = originalPrice;
+        convertedAmount = originalPrice * exchangeRates.USD;
       } else {
         // For other currencies: USD -> NGN -> target
-        const priceInNGN = originalPrice * exchangeRates.USD;
-        convertedPrice = priceInNGN / exchangeRates[userCurrency];
+        const amountInNGN = originalPrice * exchangeRates.USD;
+        convertedAmount = amountInNGN / exchangeRates[userCurrency];
       }
       
       const formattedPrice = new Intl.NumberFormat('en-US', {
@@ -4679,7 +4711,7 @@ function showLiveRateIndicator() {
         currency: userCurrency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-      }).format(convertedPrice);
+      }).format(convertedAmount);
       
       element.textContent = formattedPrice;
     }
@@ -9631,25 +9663,69 @@ function formatCurrency(amount, targetCurrency) {
   }).format(0);
   
   try {
-    // Products are stored in USD in your database
-    let displayAmount = parseFloat(amount);
+    const amountInUSD = parseFloat(amount);
     
-    // If we have live exchange rates
-    if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
+    // If showing USD, just format directly
+    if (targetCurrency === 'USD') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amountInUSD);
+    }
+    
+    // For all other currencies: convert from USD to target currency
+    if (exchangeRates && exchangeRates.USD && exchangeRates[targetCurrency]) {
+      // Step 1: Convert USD to NGN using the USD rate (since rates are relative to USD)
+      const amountInNGN = amountInUSD * exchangeRates.USD;
+      // Step 2: Convert NGN to target currency using the target's rate
+      const amountInTarget = amountInNGN / (exchangeRates[targetCurrency] || 1);
       
-      if (targetCurrency === 'NGN') {
-        // USD to NGN: MULTIPLY by exchange rate
-        displayAmount = amount * exchangeRates.USD;
-      } 
-      else if (targetCurrency === 'USD') {
-        // USD to USD: keep as is
-        displayAmount = amount;
-      }
-      else {
-        // For other currencies: USD -> NGN -> target
-        const amountInNGN = amount * exchangeRates.USD;
-        displayAmount = amountInNGN / exchangeRates[targetCurrency];
-      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: targetCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amountInTarget);
+    }
+    
+    // Fallback if exchange rates not loaded yet
+    console.warn('Exchange rates not available, using fallback conversion');
+    const fallbackRates = {
+      'NGN': 1500,
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'KES': 130,
+      'GHS': 15,
+      'ZAR': 19,
+      'CAD': 1.37,
+      'AUD': 1.50,
+      'JPY': 150,
+      'CNY': 7.2,
+      'INR': 83,
+      'BRL': 5.1,
+      'MXN': 17
+    };
+    
+    if (targetCurrency === 'NGN') {
+      const convertedAmount = amountInUSD * fallbackRates.NGN;
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(convertedAmount);
+    } else if (fallbackRates[targetCurrency]) {
+      // Convert USD to target using fallback rates
+      const amountInNGN = amountInUSD * fallbackRates.NGN;
+      const amountInTarget = amountInNGN / fallbackRates[targetCurrency];
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: targetCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amountInTarget);
     }
     
     return new Intl.NumberFormat('en-US', {
@@ -9657,7 +9733,7 @@ function formatCurrency(amount, targetCurrency) {
       currency: targetCurrency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(displayAmount);
+      }).format(amountInUSD);
     
   } catch (error) {
     console.error('Format error:', error);
@@ -9674,10 +9750,7 @@ function fmtPrice(amount) {
   if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
   return formatCurrency(parseFloat(amount), userCurrency);
 }
-function formatPrice(amount) {
-  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
-  return formatCurrency(parseFloat(amount), userCurrency);
-}
+
 
     // ================= FORM VALIDATION WITH DETAILED DEBUGGING =================
 function validateProductForm() {

@@ -3539,20 +3539,20 @@ In the name of Allah, the Most Gracious, the Most Merciful
       <a href="products.html" class="active">Products</a>
     </nav>
 
-    <div class="header-actions">
-      <div id="notificationBadge" style="position:relative;display:inline-block;margin-right:10px;">
-        <button id="notificationBtn" class="auth-btn" style="background:transparent;border:none;padding:8px;">
-          <i class="fas fa-bell"></i>
-          <span id="notificationCount" 
-                style="position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border-radius:50%;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center;">
-          </span>
-        </button>
-      </div>
-      <div id="headerAuthButtons">
-        <button id="loginOpen" class="auth-btn">Login</button>
-        <button id="signupOpen" class="auth-btn signup">Sign Up</button>
-      </div>
-    </div>
+   <div class="header-actions">
+  <div id="notificationBadge" style="position:relative;display:inline-block;margin-right:10px;">
+    <button id="notificationBtn" class="auth-btn" style="background:transparent;border:none;padding:8px;">
+      <i class="fas fa-bell"></i>
+      <span id="notificationCount" 
+            style="position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border-radius:50%;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center;">
+      </span>
+    </button>
+  </div>
+  <div id="headerAuthButtons">
+    <button id="loginOpen" class="auth-btn">Login</button>
+    <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
+  </div>
+</div>
   </header>
 
   <!-- MAIN CONTENT -->
@@ -5316,7 +5316,6 @@ async function loadPendingOrders() {
   }
 }
   
-// Load product reviews
 async function loadProductReviews(productId) {
   try {
     console.log('Loading reviews for product:', productId);
@@ -5331,7 +5330,8 @@ async function loadProductReviews(productId) {
     
     const data = await response.json();
     const reviews = data.reviews || [];
-    const averageRating = data.averageRating || 0;
+    // FIX: Ensure averageRating is a number
+    let averageRating = parseFloat(data.averageRating) || 0;
     const reviewCount = data.count || 0;
     
     // Update average rating display
@@ -10281,7 +10281,7 @@ function updateProductCardFavoriteCount(productId, count) {
     ratingSection.textContent = `• ${count} ${count === 1 ? 'favorite' : 'favorites'}`;
   }
 }
-   function updateHeader(){
+function updateHeader(){
   const hb = $('headerAuthButtons');
   if (currentUser && currentUser.id){
     hb.innerHTML = `
@@ -10299,20 +10299,17 @@ function updateProductCardFavoriteCount(productId, count) {
   } else {
     hb.innerHTML = `
       <button id="loginOpen" class="auth-btn">Login</button>
-      <button id="signupOpen" class="auth-btn signup">Sign Up</button>
+      <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
     `;
     
     // RE-BIND the event listeners after creating the buttons
     setTimeout(() => {
       const loginOpen = document.getElementById('loginOpen');
-      const signupOpen = document.getElementById('signupOpen');
       
       if (loginOpen) {
         loginOpen.addEventListener('click', () => openModal(loginModal));
       }
-      if (signupOpen) {
-        signupOpen.addEventListener('click', () => openModal(signupModal));
-      }
+      // No need to bind signupOpen since it's now an anchor tag
     }, 0);
   }
   

@@ -6042,41 +6042,29 @@ function updateHeader() {
     } else {
         // Not logged in
         headerAuth.innerHTML = `
-            <button id="loginOpen" class="auth-btn">Login</button>
-            <button id="signupOpen" class="auth-btn signup">Sign Up</button>
-        `;
-        
-        if (mobileAuth) {
-            mobileAuth.innerHTML = headerAuth.innerHTML;
-        }
-
-        setTimeout(() => {
-            const loginBtn = document.getElementById('loginOpen');
-            const signupBtn = document.getElementById('signupOpen');
-            
-            if (loginBtn) {
-                loginBtn.onclick = function(e) {
-                    e.preventDefault();
-                    const loginModal = document.getElementById('loginModal');
-                    if (loginModal) {
-                        loginModal.classList.remove('hidden');
-                        loginModal.style.display = 'flex';
-                    }
-                };
-            }
-            
-            if (signupBtn) {
-                signupBtn.onclick = function(e) {
-                    e.preventDefault();
-                    const signupModal = document.getElementById('signupModal');
-                    if (signupModal) {
-                        signupModal.classList.remove('hidden');
-                        signupModal.style.display = 'flex';
-                    }
-                };
-            }
-        }, 50);
+        <button id="loginOpen" class="auth-btn">Login</button>
+        <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
+    `;
+    
+    if (mobileAuth) {
+        mobileAuth.innerHTML = headerAuth.innerHTML;
     }
+
+    setTimeout(() => {
+        const loginBtn = document.getElementById('loginOpen');
+        
+        if (loginBtn) {
+            loginBtn.onclick = function(e) {
+                e.preventDefault();
+                const loginModal = document.getElementById('loginModal');
+                if (loginModal) {
+                    loginModal.classList.remove('hidden');
+                    loginModal.style.display = 'flex';
+                }
+            };
+        }
+        // No need to bind signupOpen since it's now an anchor tag
+    }, 50);
 }
 
 /*********************

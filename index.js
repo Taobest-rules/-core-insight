@@ -9554,43 +9554,44 @@ app.post("/api/buy-product", async (req, res) => {
         const randomNum = Math.floor(Math.random() * 10000);
         const transactionRef = `DIGITAL_${timestamp}_${productId}_${randomNum}`;
         
-        // Store order in database
+        // Store order in database - FIXED: Added amount column
         let orderId = null;
         try {
             const orderResult = await db.query(
                 `INSERT INTO digital_orders (
                     product_id, buyer_id, seller_id, 
-                    amount_usd, amount_ngn, exchange_rate,
+                    amount, amount_usd, amount_ngn, exchange_rate,
                     platform_fee_usd, platform_fee_ngn,
                     seller_earnings_usd, seller_earnings_ngn,
                     transaction_ref, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
                 [
                     productId, req.session.user.id, product.user_id,
-                    usdAmount, ngnAmount, rates.USD_TO_NGN,
+                    usdAmount, usdAmount, ngnAmount, rates.USD_TO_NGN,
                     platformFeeUSD, platformFeeNGN,
                     sellerEarningsUSD, sellerEarningsNGN,
                     transactionRef
                 ]
             );
-            orderId = orderResult.insertId;
-            console.log(`✅ Order created with ID: ${orderId}, Ref: ${transactionRef}`);
+            
+            if (orderResult && orderResult.insertId) {
+                orderId = orderResult.insertId;
+            } else if (orderResult && orderResult[0] && orderResult[0].insertId) {
+                orderId = orderResult[0].insertId;
+            }
+            
+            console.log(`✅ Order created with ID: ${orderId}`);
         } catch (dbErr) {
-            console.error("Error creating order:", dbErr.message);
+            console.error("❌ Database insert error:", dbErr.message);
+            return res.status(500).json({ error: "Failed to create order: " + dbErr.message });
         }
         
-        // Determine which gateway to use
-        let gateway = preferredGateway;
-        if (!gateway) {
-            gateway = 'flutterwave';
-        }
-        
-        // Create payment based on gateway
+        // Create payment link
         let paymentLink = null;
         let usedGateway = null;
         
-        // Try Paystack first if preferred or if Nigerian customer
-        if (gateway === 'paystack' && process.env.PAYSTACK_SECRET_KEY) {
+        // Try Paystack first
+        if (process.env.PAYSTACK_SECRET_KEY && (!preferredGateway || preferredGateway === 'paystack')) {
             usedGateway = 'paystack';
             const paystackRef = `PS_${transactionRef}`;
             
@@ -9603,37 +9604,34 @@ app.post("/api/buy-product", async (req, res) => {
                     product_id: productId,
                     order_id: orderId,
                     type: 'digital_product',
-                    transaction_ref: transactionRef,
-                    original_amount_usd: usdAmount,
-                    converted_amount_ngn: ngnAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeNGN,
-                    seller_earnings: sellerEarningsNGN
+                    transaction_ref: transactionRef
                 }
             };
             
-            const response = await axios.post(
-                'https://api.paystack.co/transaction/initialize',
-                paystackPayload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 30000
+            try {
+                const response = await axios.post(
+                    'https://api.paystack.co/transaction/initialize',
+                    paystackPayload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 30000
+                    }
+                );
+                
+                if (response.data.status === true && response.data.data?.authorization_url) {
+                    paymentLink = response.data.data.authorization_url;
+                    console.log(`✅ Paystack payment link created`);
                 }
-            );
-            
-            if (response.data.status === true && response.data.data?.authorization_url) {
-                paymentLink = response.data.data.authorization_url;
-                console.log(`✅ Paystack payment link created: ₦${ngnAmount.toFixed(2)} ($${usdAmount} USD @ ${rates.USD_TO_NGN})`);
-            } else {
-                console.error("Paystack error:", response.data);
+            } catch (paystackErr) {
+                console.error("Paystack error:", paystackErr.message);
                 usedGateway = null;
             }
         }
         
-        // Fallback to Flutterwave (if Paystack failed or not selected)
+        // Fallback to Flutterwave
         if (!paymentLink && process.env.FLW_SECRET_KEY) {
             usedGateway = 'flutterwave';
             const flutterwaveRef = `FW_${transactionRef}`;
@@ -9648,63 +9646,49 @@ app.post("/api/buy-product", async (req, res) => {
                     name: req.session.user.username || "Customer"
                 },
                 customizations: {
-                    title: "Core Insight - Digital Product",
+                    title: "Core Insight",
                     description: product.title.substring(0, 50)
                 },
                 meta: {
                     product_id: productId,
                     order_id: orderId,
                     type: 'digital_product',
-                    transaction_ref: transactionRef,
-                    amount_usd: usdAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeUSD,
-                    seller_earnings: sellerEarningsUSD
+                    transaction_ref: transactionRef
                 }
             };
             
-            const response = await axios.post(
-                'https://api.flutterwave.com/v3/payments',
-                flutterwavePayload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 30000
+            try {
+                const response = await axios.post(
+                    'https://api.flutterwave.com/v3/payments',
+                    flutterwavePayload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 30000
+                    }
+                );
+                
+                if (response.data.status === 'success' && response.data.data?.link) {
+                    paymentLink = response.data.data.link;
+                    console.log(`✅ Flutterwave payment link created`);
                 }
-            );
-            
-            if (response.data.status === 'success' && response.data.data?.link) {
-                paymentLink = response.data.data.link;
-                console.log(`✅ Flutterwave payment link created: $${usdAmount} USD`);
-            } else {
-                console.error("Flutterwave error:", response.data);
+            } catch (flutterErr) {
+                console.error("Flutterwave error:", flutterErr.message);
                 usedGateway = null;
             }
         }
         
         if (!paymentLink) {
-            throw new Error("No payment gateway available");
+            return res.status(500).json({ error: "Unable to create payment link. Please try again." });
         }
         
-        // Update order with gateway info
-        if (orderId) {
-            await db.query(
-                `UPDATE digital_orders 
-                 SET payment_gateway = ?, payment_link = ? 
-                 WHERE id = ?`,
-                [usedGateway, paymentLink, orderId]
-            );
-        }
-        
-        // Store pending order info in session for callback
-        req.session.pendingDigitalOrder = {
-            orderId: orderId,
-            productId: productId,
-            productTitle: product.title,
-            transactionRef: transactionRef
-        };
+        // Update order with payment link
+        await db.query(
+            `UPDATE digital_orders SET payment_gateway = ?, payment_link = ? WHERE id = ?`,
+            [usedGateway, paymentLink, orderId]
+        );
         
         res.json({
             success: true,
@@ -9713,18 +9697,13 @@ app.post("/api/buy-product", async (req, res) => {
             orderId: orderId,
             gateway: usedGateway,
             amount_usd: usdAmount,
-            amount_local: usedGateway === 'paystack' ? ngnAmount : usdAmount,
-            currency: usedGateway === 'paystack' ? 'NGN' : 'USD',
-            exchange_rate: rates.USD_TO_NGN,
-            platform_fee: usedGateway === 'paystack' ? platformFeeNGN : platformFeeUSD,
-            seller_earnings: usedGateway === 'paystack' ? sellerEarningsNGN : sellerEarningsUSD,
-            message: `Redirecting to ${usedGateway === 'paystack' ? 'Paystack' : 'Flutterwave'} payment...`
+            message: `Redirecting to ${usedGateway} payment...`
         });
         
     } catch (err) {
         console.error("❌ Buy product error:", err.message);
         res.status(500).json({ 
-            error: err.response?.data?.message || err.message || "Failed to process purchase"
+            error: err.message || "Failed to process purchase"
         });
     }
 });

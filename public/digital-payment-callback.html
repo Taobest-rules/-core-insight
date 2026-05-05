@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Purchase Complete - Core Insight</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 550px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .bismillah {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 215, 0, 0.08);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+        }
+        .bismillah .arabic {
+            font-size: 1.5rem;
+            font-family: 'Amiri', 'Traditional Arabic', serif;
+            color: #FFD700;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .bismillah .english {
+            font-size: 0.85rem;
+            color: rgba(255, 215, 0, 0.9);
+        }
+        .spinner {
+            border: 4px solid #334155;
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .success { color: #10b981; font-size: 48px; margin: 20px 0; }
+        .error { color: #ef4444; font-size: 48px; margin: 20px 0; }
+        .btn, .download-btn {
+            display: inline-block;
+            padding: 12px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        .btn {
+            background: linear-gradient(135deg, #FFD700, #D4AF37);
+            color: #0f172a;
+        }
+        .download-btn {
+            background: #10b981;
+            color: white;
+            font-size: 1.1rem;
+            padding: 14px 32px;
+        }
+        .btn:hover, .download-btn:hover { transform: translateY(-2px); }
+        .download-btn:hover { background: #059669; }
+        .btn:hover { box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
+        .product-info {
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .product-info h3 { color: #10b981; margin-bottom: 10px; }
+        .expiry-note { font-size: 12px; color: #94a3b8; margin-top: 15px; }
+        .button-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bismillah">
+            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        </div>
+        <div id="paymentStatus">
+            <h2>Processing Your Digital Purchase...</h2>
+            <div class="spinner"></div>
+            <p id="message" style="color: #94a3b8;">Please wait while we verify your payment...</p>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref');
+        
+        if (reference && reference.startsWith('PS_')) {
+            reference = reference.substring(3);
+        }
+        
+        async function verifyPayment() {
+            if (!reference) {
+                showError('No payment reference found.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('paymentStatus').innerHTML = `
+                        <div class="bismillah">
+                            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                        </div>
+                        <div class="success">✅</div>
+                        <h2 style="color: #10b981;">Purchase Successful!</h2>
+                        <div class="product-info">
+                            <h3>${escapeHtml(data.product_title || 'Digital Product')}</h3>
+                            <p>Thank you for your purchase!</p>
+                        </div>
+                        <a href="${data.download_url}" class="download-btn" target="_blank">
+                            <i class="fas fa-download"></i> Download Now
+                        </a>
+                        <div class="expiry-note">
+                            <i class="fas fa-clock"></i> This link expires in 7 days.
+                        </div>
+                        <div class="button-group">
+                            <a href="/products.html" class="btn">Continue Shopping</a>
+                            <a href="/my-purchases.html" class="btn">My Purchases</a>
+                        </div>
+                    `;
+                } else {
+                    showError(data.message || 'Verification failed.');
+                }
+            } catch (error) {
+                showError('Error verifying payment. Please contact support.');
+            }
+        }
+        
+        function showError(msg) {
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="bismillah">
+                    <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                    <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                </div>
+                <div class="error">❌</div>
+                <h2 style="color: #ef4444;">Verification Failed</h2>
+                <p style="color: #94a3b8;">${escapeHtml(msg)}</p>
+                <div class="button-group">
+                    <a href="/products.html" class="btn">Browse Products</a>
+                    <a href="/contact.html" class="btn">Contact Support</a>
+                </div>
+            `;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
+        }
+        
+        verifyPayment();
+    </script>
+</body>
+</html>

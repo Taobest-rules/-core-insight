@@ -9504,7 +9504,6 @@ app.post("/api/verify-account/paystack", async (req, res) => {
 // ============================================
 // BUY DIGITAL PRODUCT - AUTO CURRENCY CONVERSION
 // ============================================
-
 app.post("/api/buy-product", async (req, res) => {
     try {
         console.log("🛒 Buy product request received");
@@ -9552,47 +9551,41 @@ app.post("/api/buy-product", async (req, res) => {
         // Create unique transaction reference
         const transactionRef = `DIGITAL_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
         
-        // Store order in database
+        // Store order in database - FIXED: Use correct column names
         let orderId = null;
         try {
             const orderResult = await db.query(
                 `INSERT INTO digital_orders (
-                    product_id, buyer_id, seller_id, amount_usd, amount_ngn, 
+                    product_id, buyer_id, seller_id, amount, amount_usd, amount_ngn, 
                     platform_fee_usd, platform_fee_ngn, seller_earnings_usd, seller_earnings_ngn,
                     exchange_rate, transaction_ref, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
                 [
                     productId, req.session.user.id, product.user_id,
-                    usdAmount, ngnAmount,
+                    usdAmount, usdAmount, ngnAmount,
                     platformFeeUSD, platformFeeNGN,
                     sellerEarningsUSD, sellerEarningsNGN,
                     rates.USD_TO_NGN, transactionRef
                 ]
             );
             orderId = orderResult.insertId;
-            console.log(`✅ Order created with ID: ${orderId}`);
+            console.log(`✅ Digital order created with ID: ${orderId}`);
         } catch (dbErr) {
-            console.error("Error creating order:", dbErr.message);
-        }
-        
-        // Determine which gateway to use (auto-detect or user preference)
-        let gateway = preferredGateway;
-        if (!gateway) {
-            // Auto-detect based on user's location or currency preference
-            gateway = 'flutterwave'; // Default to Flutterwave
+            console.error("Error creating digital order:", dbErr.message);
+            // Continue anyway - we can still process payment
         }
         
         // Create payment based on gateway
         let paymentLink = null;
         let usedGateway = null;
         
-        if (gateway === 'paystack' && process.env.PAYSTACK_SECRET_KEY) {
-            // PAYSTACK - Charges in NGN
+        // Try Paystack first if preferred or available
+        if ((preferredGateway === 'paystack' || !preferredGateway) && process.env.PAYSTACK_SECRET_KEY) {
             usedGateway = 'paystack';
             const paystackRef = `PS_${transactionRef}`;
             
             const paystackPayload = {
-                amount: Math.round(ngnAmount * 100), // Convert to kobo
+                amount: Math.round(ngnAmount * 100),
                 email: req.session.user.email,
                 reference: paystackRef,
                 callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
@@ -9602,9 +9595,7 @@ app.post("/api/buy-product", async (req, res) => {
                     type: 'digital_product',
                     original_amount_usd: usdAmount,
                     converted_amount_ngn: ngnAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeNGN,
-                    seller_earnings: sellerEarningsNGN
+                    exchange_rate: rates.USD_TO_NGN
                 }
             };
             
@@ -9621,16 +9612,15 @@ app.post("/api/buy-product", async (req, res) => {
             
             if (response.data.status === true && response.data.data?.authorization_url) {
                 paymentLink = response.data.data.authorization_url;
-                console.log(`✅ Paystack payment link created: ${ngnAmount.toFixed(2)} NGN (${usdAmount} USD @ ${rates.USD_TO_NGN})`);
+                console.log(`✅ Paystack payment link created: ₦${ngnAmount.toFixed(2)}`);
             }
         }
         
-        // Fallback to Flutterwave (USD or NGN)
+        // Fallback to Flutterwave
         if (!paymentLink && process.env.FLW_SECRET_KEY) {
             usedGateway = 'flutterwave';
             const flutterwaveRef = `FW_${transactionRef}`;
             
-            // Flutterwave can charge in USD directly
             const flutterwavePayload = {
                 tx_ref: flutterwaveRef,
                 amount: usdAmount,
@@ -9648,10 +9638,7 @@ app.post("/api/buy-product", async (req, res) => {
                     product_id: productId,
                     order_id: orderId,
                     type: 'digital_product',
-                    amount_usd: usdAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeUSD,
-                    seller_earnings: sellerEarningsUSD
+                    amount_usd: usdAmount
                 }
             };
             
@@ -9668,7 +9655,7 @@ app.post("/api/buy-product", async (req, res) => {
             
             if (response.data.status === 'success' && response.data.data?.link) {
                 paymentLink = response.data.data.link;
-                console.log(`✅ Flutterwave payment link created: ${usdAmount} USD`);
+                console.log(`✅ Flutterwave payment link created: $${usdAmount.toFixed(2)}`);
             }
         }
         
@@ -9676,7 +9663,7 @@ app.post("/api/buy-product", async (req, res) => {
             throw new Error("No payment gateway available");
         }
         
-        // Update order with gateway info
+        // Update order with payment gateway and link
         if (orderId) {
             await db.query(
                 `UPDATE digital_orders SET payment_gateway = ?, payment_link = ? WHERE id = ?`,
@@ -9692,9 +9679,6 @@ app.post("/api/buy-product", async (req, res) => {
             amount_usd: usdAmount,
             amount_local: usedGateway === 'paystack' ? ngnAmount : usdAmount,
             currency: usedGateway === 'paystack' ? 'NGN' : 'USD',
-            exchange_rate: rates.USD_TO_NGN,
-            platform_fee: usedGateway === 'paystack' ? platformFeeNGN : platformFeeUSD,
-            seller_earnings: usedGateway === 'paystack' ? sellerEarningsNGN : sellerEarningsUSD,
             message: `Redirecting to ${usedGateway === 'paystack' ? 'Paystack' : 'Flutterwave'} payment...`
         });
         
@@ -9705,6 +9689,7 @@ app.post("/api/buy-product", async (req, res) => {
         });
     }
 });
+
 // ============================================
 // VERIFY DIGITAL PRODUCT PAYMENT
 // ============================================

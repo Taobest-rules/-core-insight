@@ -1,158 +1,384 @@
-<span style="color: gold;">
-بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
-In the name of Allah, the Most Gracious, the Most Merciful
-</span>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Processing - Core Insight</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #0a192f; 
-            color: #e6f1ff; 
-            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
         }
         .container {
-            text-align: center;
-            padding: 40px;
-            background: #1e293b;
-            border-radius: 16px;
             max-width: 500px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
+        .bismillah {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 215, 0, 0.08);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+        }
+        .bismillah .arabic {
+            font-size: 1.5rem;
+            font-family: 'Amiri', 'Traditional Arabic', serif;
+            color: #FFD700;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .bismillah .english {
+            font-size: 0.85rem;
+            color: rgba(255, 215, 0, 0.9);
+        }
+        h2 { color: #e6f1ff; margin-bottom: 24px; }
         .spinner {
             border: 4px solid #334155;
-            border-top-color: #3b82f6;
+            border-top-color: #FFD700;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
             margin: 20px auto;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .success { color: #10b981; }
         .error { color: #ef4444; }
+        .info { color: #f59e0b; }
         .btn {
-            background: #3b82f6;
-            color: white;
-            padding: 12px 24px;
+            background: linear-gradient(135deg, #FFD700, #D4AF37);
+            color: #0f172a;
+            padding: 12px 28px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
             margin-top: 20px;
+            font-weight: 600;
+            transition: all 0.3s;
         }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
+        .escrow-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+            text-align: left;
+        }
+        .escrow-info i { color: #FFD700; margin-right: 8px; }
+        .message-box { margin: 20px 0; }
+        .download-btn {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        .download-btn:hover { background: #059669; transform: translateY(-2px); }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="bismillah">
+            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        </div>
         <h2>Processing Payment...</h2>
         <div class="spinner"></div>
-        <p id="message">Please wait while we verify your payment...</p>
+        <p id="message" style="color: #94a3b8;">Please wait while we verify your payment...</p>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const reference = urlParams.get('reference');  // Paystack
-        const trxref = urlParams.get('trxref');  // Paystack alternative
-        const transactionId = urlParams.get('transaction_id');  // Flutterwave
-        const tx_ref = urlParams.get('tx_ref');  // Flutterwave
+        const reference = urlParams.get('reference');
+        const trxref = urlParams.get('trxref');
+        const transactionId = urlParams.get('transaction_id');
+        const tx_ref = urlParams.get('tx_ref');
         const status = urlParams.get('status');
-        
-        // Get order ID from session storage or URL
         let orderId = urlParams.get('orderId');
+        
+        // Helper to extract order ID from transaction reference
+        function extractOrderIdFromReference(ref) {
+            if (!ref) return null;
+            // Check for digital product reference pattern
+            if (ref.startsWith('DIGITAL_')) {
+                const parts = ref.split('_');
+                if (parts.length >= 4) {
+                    return parts[3];
+                }
+            }
+            // Check for physical order reference pattern
+            if (ref.startsWith('ORD_')) {
+                const parts = ref.split('_');
+                if (parts.length >= 2) {
+                    return parts[1];
+                }
+            }
+            // Check for order ID in any part
+            const match = ref.match(/\d+/);
+            if (match) return match[0];
+            return null;
+        }
         
         async function verifyPayment() {
             try {
-                // Handle Paystack callback
+                // Determine payment type from reference pattern
+                const activeRef = tx_ref || reference || trxref || transactionId;
+                const isDigitalPayment = activeRef && activeRef.startsWith('DIGITAL_');
+                const isPhysicalPayment = activeRef && (activeRef.startsWith('ORD_') || activeRef.startsWith('FW_') || activeRef.startsWith('PS_'));
+                
+                console.log('Payment verification:', { activeRef, isDigitalPayment, isPhysicalPayment });
+                
+                // Handle DIGITAL PRODUCT payment
+                if (isDigitalPayment && activeRef) {
+                    console.log('Verifying digital product payment:', activeRef);
+                    
+                    try {
+                        const response = await fetch(`/api/verify-digital-payment/${activeRef}`, {
+                            credentials: 'include'
+                        });
+                        const data = await response.json();
+                        
+                        if (data.status === 'success') {
+                            document.getElementById('message').innerHTML = `
+                                <span class="success">✅ Payment Successful!</span><br>
+                                <strong>${data.product_title || 'Digital Product'}</strong><br>
+                                <div class="escrow-info" style="margin-top: 15px;">
+                                    <i class="fas fa-download"></i> Your product is ready to download!<br>
+                                    The download link will expire in 7 days.
+                                </div>
+                                <div style="margin-top: 20px;">
+                                    <a href="${data.download_url}" class="download-btn" target="_blank">
+                                        <i class="fas fa-download"></i> Download Now
+                                    </a>
+                                    <a href="/products.html" class="btn">Continue Shopping</a>
+                                </div>
+                            `;
+                            document.querySelector('.spinner').style.display = 'none';
+                            sessionStorage.removeItem('pendingDigitalOrder');
+                        } else {
+                            document.getElementById('message').innerHTML = `
+                                <span class="error">❌ ${data.message || 'Payment verification failed'}</span><br>
+                                Please contact support.
+                            `;
+                            document.querySelector('.spinner').style.display = 'none';
+                        }
+                    } catch (err) {
+                        console.error('Digital verification error:', err);
+                        document.getElementById('message').innerHTML = `
+                            <span class="error">❌ Error verifying digital product payment</span><br>
+                            ${err.message}<br>
+                            Please contact support.
+                        `;
+                        document.querySelector('.spinner').style.display = 'none';
+                    }
+                    return;
+                }
+                
+                // Handle Paystack callback (could be physical or digital)
                 if (reference || trxref) {
                     const paystackRef = reference || trxref;
                     console.log('Verifying Paystack payment:', paystackRef);
                     
-                    // Get order ID from session storage
-                    const pendingOrder = sessionStorage.getItem('pendingPhysicalOrder');
-                    if (pendingOrder) {
-                        const orderData = JSON.parse(pendingOrder);
+                    // Try to get order from session storage first
+                    const pendingPhysicalOrder = sessionStorage.getItem('pendingPhysicalOrder');
+                    const pendingDigitalOrder = sessionStorage.getItem('pendingDigitalOrder');
+                    
+                    if (pendingPhysicalOrder) {
+                        const orderData = JSON.parse(pendingPhysicalOrder);
                         orderId = orderData.orderId;
+                        console.log('Found physical order in session:', orderId);
+                    } else if (pendingDigitalOrder) {
+                        const digitalData = JSON.parse(pendingDigitalOrder);
+                        orderId = digitalData.orderId;
+                        console.log('Found digital order in session:', orderId);
+                    } else {
+                        // Try to extract order ID from reference
+                        orderId = extractOrderIdFromReference(paystackRef);
+                        console.log('Extracted order ID from reference:', orderId);
                     }
                     
-                    if (!orderId) {
-                        document.getElementById('message').innerHTML = 
-                            '<span class="error">❌ Order ID not found. Please contact support.</span>';
+                    // Determine if this is digital or physical based on reference pattern
+                    const isDigital = paystackRef.startsWith('DIGITAL_');
+                    
+                    if (isDigital) {
+                        // Digital product - verify via digital endpoint
+                        const response = await fetch(`/api/verify-digital-payment/${paystackRef}`, {
+                            credentials: 'include'
+                        });
+                        const data = await response.json();
+                        
+                        if (data.status === 'success') {
+                            document.getElementById('message').innerHTML = `
+                                <span class="success">✅ Payment Successful!</span><br>
+                                <strong>${data.product_title || 'Digital Product'}</strong><br>
+                                <div class="escrow-info" style="margin-top: 15px;">
+                                    <i class="fas fa-download"></i> Your product is ready to download!<br>
+                                    The download link will expire in 7 days.
+                                </div>
+                                <div style="margin-top: 20px;">
+                                    <a href="${data.download_url}" class="download-btn" target="_blank">
+                                        <i class="fas fa-download"></i> Download Now
+                                    </a>
+                                    <a href="/products.html" class="btn">Continue Shopping</a>
+                                </div>
+                            `;
+                            sessionStorage.removeItem('pendingDigitalOrder');
+                            document.querySelector('.spinner').style.display = 'none';
+                        } else {
+                            document.getElementById('message').innerHTML = `
+                                <span class="error">❌ ${data.message || 'Payment verification failed'}</span><br>
+                                Please contact support.
+                            `;
+                            document.querySelector('.spinner').style.display = 'none';
+                        }
                         return;
                     }
                     
-                    // Call your verification endpoint
+                    // Physical product - verify via Paystack endpoint
+                    if (!orderId) {
+                        document.getElementById('message').innerHTML = 
+                            '<span class="error">❌ Order ID not found. Please contact support with your transaction reference.</span>';
+                        document.querySelector('.spinner').style.display = 'none';
+                        return;
+                    }
+                    
                     const response = await fetch('/api/verify-paystack-payment', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            reference: paystackRef, 
-                            order_id: orderId 
-                        }),
+                        body: JSON.stringify({ reference: paystackRef, order_id: orderId }),
                         credentials: 'include'
                     });
                     
                     const data = await response.json();
-                    console.log('Verification response:', data);
                     
                     if (data.success) {
                         document.getElementById('message').innerHTML = `
                             <span class="success">✅ Payment Successful!</span><br>
                             Order #${orderId}<br>
-                            Redirecting to order tracking...
+                            <div class="escrow-info">
+                                <i class="fas fa-clock"></i> Funds are held in escrow for 5 days.<br>
+                                You can request a refund within 5 days if needed.<br>
+                                After 5 days, the seller will receive their payment.
+                            </div>
+                            <a href="/order-tracking.html?orderId=${orderId}" class="btn" style="margin-top: 20px;">Track Order</a>
                         `;
                         sessionStorage.removeItem('pendingPhysicalOrder');
-                        
-                        setTimeout(() => {
-                            window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                        }, 3000);
+                        document.querySelector('.spinner').style.display = 'none';
                     } else {
                         document.getElementById('message').innerHTML = `
                             <span class="error">❌ Payment verification failed</span><br>
                             ${data.message || 'Please contact support.'}
                         `;
+                        document.querySelector('.spinner').style.display = 'none';
                     }
+                    return;
                 }
+                
                 // Handle Flutterwave callback
-                else if (tx_ref || transactionId) {
+                if (tx_ref || transactionId) {
                     const flutterwaveRef = tx_ref || transactionId;
                     console.log('Verifying Flutterwave payment:', flutterwaveRef);
                     
-                    const response = await fetch(`/api/verify-physical-payment/${flutterwaveRef}`);
+                    const isDigital = flutterwaveRef.startsWith('DIGITAL_');
+                    
+                    if (isDigital) {
+                        // Digital product - verify via digital endpoint
+                        const response = await fetch(`/api/verify-digital-payment/${flutterwaveRef}`, {
+                            credentials: 'include'
+                        });
+                        const data = await response.json();
+                        
+                        if (data.status === 'success') {
+                            document.getElementById('message').innerHTML = `
+                                <span class="success">✅ Payment Successful!</span><br>
+                                <strong>${data.product_title || 'Digital Product'}</strong><br>
+                                <div class="escrow-info" style="margin-top: 15px;">
+                                    <i class="fas fa-download"></i> Your product is ready to download!<br>
+                                    The download link will expire in 7 days.
+                                </div>
+                                <div style="margin-top: 20px;">
+                                    <a href="${data.download_url}" class="download-btn" target="_blank">
+                                        <i class="fas fa-download"></i> Download Now
+                                    </a>
+                                    <a href="/products.html" class="btn">Continue Shopping</a>
+                                </div>
+                            `;
+                            sessionStorage.removeItem('pendingDigitalOrder');
+                            document.querySelector('.spinner').style.display = 'none';
+                        } else {
+                            document.getElementById('message').innerHTML = `
+                                <span class="error">❌ ${data.message || 'Payment verification failed'}</span><br>
+                                Please contact support.
+                            `;
+                            document.querySelector('.spinner').style.display = 'none';
+                        }
+                        return;
+                    }
+                    
+                    // Physical product - verify via physical endpoint
+                    const response = await fetch(`/api/verify-physical-payment/${flutterwaveRef}`, {
+                        credentials: 'include'
+                    });
                     const data = await response.json();
                     
                     if (data.status === 'success') {
                         document.getElementById('message').innerHTML = `
                             <span class="success">✅ Payment Successful!</span><br>
                             Order #${data.orderId}<br>
-                            Redirecting to order tracking...
+                            Amount: $${data.amount}
+                            <div class="escrow-info">
+                                <i class="fas fa-clock"></i> Funds are held in escrow for 5 days.<br>
+                                You can request a refund within 5 days if needed.<br>
+                                After 5 days, the seller will receive their payment.
+                            </div>
+                            <a href="/order-tracking.html?orderId=${data.orderId}" class="btn" style="margin-top: 20px;">Track Order</a>
                         `;
-                        
-                        setTimeout(() => {
-                            window.location.href = `/order-tracking.html?orderId=${data.orderId}`;
-                        }, 3000);
+                        sessionStorage.removeItem('pendingPhysicalOrder');
+                        document.querySelector('.spinner').style.display = 'none';
                     } else {
                         document.getElementById('message').innerHTML = `
                             <span class="error">❌ Payment verification failed</span><br>
-                            ${data.message || 'Please contact support.'}
+                            ${data.message || 'Please try again.'}
                         `;
+                        document.querySelector('.spinner').style.display = 'none';
                     }
-                }
-                else {
-                    document.getElementById('message').innerHTML = `
-                        <span class="error">❌ No payment information found</span><br>
-                        Please contact support.
-                    `;
+                    return;
                 }
                 
+                // No payment information found
+                document.getElementById('message').innerHTML = `
+                    <span class="error">❌ No payment information found</span><br>
+                    Please contact support with your transaction details.
+                    <div style="margin-top: 20px;">
+                        <a href="/products.html" class="btn">Browse Products</a>
+                        <a href="/contact.html" class="btn btn-outline">Contact Support</a>
+                    </div>
+                `;
                 document.querySelector('.spinner').style.display = 'none';
                 
             } catch (error) {
@@ -160,14 +386,34 @@ In the name of Allah, the Most Gracious, the Most Merciful
                 document.getElementById('message').innerHTML = `
                     <span class="error">❌ Error verifying payment</span><br>
                     ${error.message}<br>
-                    Please contact support with your order ID.
+                    Please contact support with your order ID or transaction reference.
+                    <div style="margin-top: 20px;">
+                        <a href="/products.html" class="btn">Browse Products</a>
+                        <a href="/contact.html" class="btn btn-outline">Contact Support</a>
+                    </div>
                 `;
                 document.querySelector('.spinner').style.display = 'none';
             }
         }
         
+        // Check for pending order in session storage and start verification
+        function checkPendingOrder() {
+            const pendingPhysical = sessionStorage.getItem('pendingPhysicalOrder');
+            const pendingDigital = sessionStorage.getItem('pendingDigitalOrder');
+            
+            if (pendingPhysical) {
+                console.log('Found pending physical order in session');
+            } else if (pendingDigital) {
+                console.log('Found pending digital order in session');
+            } else {
+                console.log('No pending order found in session, will try to verify using URL parameters');
+            }
+            
+            verifyPayment();
+        }
+        
         // Start verification
-        verifyPayment();
+        checkPendingOrder();
     </script>
 </body>
 </html>

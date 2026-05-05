@@ -1400,84 +1400,7 @@ app.post("/api/resend-verification", async (req, res) => {
         res.status(500).json({ success: false, error: "Failed to resend verification email." });
     }
 });
-// Debug endpoint to test actual payment creation
-app.post("/api/debug/test-payment", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    console.log("🔧 Testing payment creation with Flutterwave...");
-    
-    const testRef = `test_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-    
-    const payload = {
-      tx_ref: testRef,
-      amount: 10.00,
-      currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/test-callback.html",
-      customer: {
-        email: req.session.user.email,
-        name: req.session.user.username,
-      },
-      customizations: {
-        title: "Core Insight - Test Payment",
-        description: "Test payment to verify Flutterwave configuration",
-      },
-      meta: {
-        test: true,
-        user_id: req.session.user.id
-      }
-    };
-    
-    console.log("Test payload:", JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(
-      'https://api.flutterwave.com/v3/payments',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
-    
-    console.log("Flutterwave test response:", response.data);
-    
-    res.json({
-      success: true,
-      message: "Test payment created successfully!",
-      paymentLink: response.data.data?.link,
-      response: response.data
-    });
-    
-  } catch (err) {
-    console.error("❌ Test payment failed:");
-    console.error("Error message:", err.message);
-    
-    if (err.response) {
-      console.error("Flutterwave error response:");
-      console.error("- Status:", err.response.status);
-      console.error("- Status text:", err.response.statusText);
-      console.error("- Data:", JSON.stringify(err.response.data, null, 2));
-      
-      res.status(500).json({
-        error: "Test payment failed",
-        flutterwaveError: err.response.data,
-        statusCode: err.response.status,
-        statusText: err.response.statusText
-      });
-    } else {
-      console.error("No response from Flutterwave");
-      res.status(500).json({
-        error: "Test payment failed",
-        message: err.message
-      });
-    }
-  }
-});
+
 // ============================================
 // ROUTES - AUTHENTICATION (keep existing)
 // ============================================
@@ -1741,7 +1664,134 @@ app.get("/admin-files.html", (req, res) => {
 app.get("/admin-migrate", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-migrate.html"));
 });
-
+// Debug endpoint to test actual payment creation
+app.post("/api/debug/test-payment", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    console.log("🔧 Testing payment creation with Flutterwave...");
+    
+    const testRef = `test_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    
+    const payload = {
+      tx_ref: testRef,
+      amount: 10.00,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/test-callback.html",
+      customer: {
+        email: req.session.user.email,
+        name: req.session.user.username,
+      },
+      customizations: {
+        title: "Core Insight - Test Payment",
+        description: "Test payment to verify Flutterwave configuration",
+      },
+      meta: {
+        test: true,
+        user_id: req.session.user.id
+      }
+    };
+    
+    console.log("Test payload:", JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    console.log("Flutterwave test response:", response.data);
+    
+    res.json({
+      success: true,
+      message: "Test payment created successfully!",
+      paymentLink: response.data.data?.link,
+      response: response.data
+    });
+    
+  } catch (err) {
+    console.error("❌ Test payment failed:");
+    console.error("Error message:", err.message);
+    
+    if (err.response) {
+      console.error("Flutterwave error response:");
+      console.error("- Status:", err.response.status);
+      console.error("- Status text:", err.response.statusText);
+      console.error("- Data:", JSON.stringify(err.response.data, null, 2));
+      
+      res.status(500).json({
+        error: "Test payment failed",
+        flutterwaveError: err.response.data,
+        statusCode: err.response.status,
+        statusText: err.response.statusText
+      });
+    } else {
+      console.error("No response from Flutterwave");
+      res.status(500).json({
+        error: "Test payment failed",
+        message: err.message
+      });
+    }
+  }
+});
+app.get("/api/debug/flutterwave-test", async (req, res) => {
+  try {
+    console.log("🔧 Testing Flutterwave connection...");
+    
+    const testRef = "test_" + Date.now();
+    
+    const payload = {
+      tx_ref: testRef,
+      amount: 0.50,
+      currency: "USD",
+      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      customer: {
+        email: "test@example.com",
+        name: "Test User",
+      },
+      customizations: {
+        title: "Test Payment",
+        description: "Testing Flutterwave",
+      }
+    };
+    
+    console.log("Test payload:", JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+    
+    res.json({
+      success: true,
+      message: "Flutterwave is working!",
+      paymentLink: response.data.data?.link,
+      response: response.data
+    });
+    
+  } catch (err) {
+    console.error("❌ Test failed:", err.response?.data || err.message);
+    res.status(500).json({
+      success: false,
+      error: err.response?.data || err.message
+    });
+  }
+});
 // =================== COURSE ACCESS MIDDLEWARE ===================
 const checkCourseAccess = async (req, res, next) => {
   if (!req.session.user) {

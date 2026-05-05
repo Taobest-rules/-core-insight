@@ -587,99 +587,38 @@ async function getExchangeRate() {
         // Check if cache is stale (older than 1 hour)
         if (cachedExchangeRates.lastUpdated && 
             (Date.now() - cachedExchangeRates.lastUpdated) < 3600000) {
-            console.log('📊 Using cached exchange rates, USD_TO_NGN:', cachedExchangeRates.rates.NGN);
+            console.log('📊 Using cached exchange rates');
             return cachedExchangeRates;
         }
         
         console.log('🌍 Fetching fresh exchange rates...');
         
-        // Try multiple free APIs for redundancy
-        let rates = null;
+        // Use a reliable free API
+        const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD', {
+            timeout: 10000
+        });
         
-        // Try exchangerate-api.com first
-        try {
-            const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD', {
-                timeout: 10000
-            });
-            if (response.data && response.data.rates) {
-                rates = response.data.rates;
-                console.log('✅ Got rates from exchangerate-api.com');
-            }
-        } catch (err) {
-            console.log('Exchangerate-api.com failed:', err.message);
-        }
-        
-        // Fallback to frankfurter.app
-        if (!rates) {
-            try {
-                const response = await axios.get('https://api.frankfurter.app/latest?from=USD', {
-                    timeout: 10000
-                });
-                if (response.data && response.data.rates) {
-                    rates = response.data.rates;
-                    console.log('✅ Got rates from frankfurter.app');
-                }
-            } catch (err) {
-                console.log('Frankfurter.app failed:', err.message);
-            }
-        }
-        
-        // Final fallback to freecurrencyapi
-        if (!rates) {
-            try {
-                const response = await axios.get('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', {
-                    timeout: 10000
-                });
-                if (response.data && response.data.usd) {
-                    rates = response.data.usd;
-                    console.log('✅ Got rates from currency-api');
-                }
-            } catch (err) {
-                console.log('Currency-api failed:', err.message);
-            }
-        }
-        
-        if (rates) {
-            // Ensure NGN rate exists, otherwise use fallback
-            const ngnRate = rates.NGN || 1500;
+        if (response.data && response.data.rates && response.data.rates.NGN) {
             cachedExchangeRates = {
-                rates: {
-                    USD: 1,
-                    NGN: ngnRate,
-                    EUR: rates.EUR || 0.92,
-                    GBP: rates.GBP || 0.79,
-                    KES: rates.KES || 130,
-                    GHS: rates.GHS || 15,
-                    ZAR: rates.ZAR || 19,
-                    CAD: rates.CAD || 1.37,
-                    AUD: rates.AUD || 1.50,
-                    JPY: rates.JPY || 150,
-                    CNY: rates.CNY || 7.2,
-                    INR: rates.INR || 83,
-                    BRL: rates.BRL || 5.1,
-                    MXN: rates.MXN || 17,
-                    AED: rates.AED || 3.67,
-                    SAR: rates.SAR || 3.75,
-                    EGP: rates.EGP || 48,
-                    MAD: rates.MAD || 10,
-                    TZS: rates.TZS || 2600,
-                    UGX: rates.UGX || 3800,
-                    RWF: rates.RWF || 1300,
-                    XOF: rates.XOF || 610,
-                    XAF: rates.XAF || 610
-                },
+                USD_TO_NGN: response.data.rates.NGN,
+                rates: response.data.rates,
                 lastUpdated: Date.now()
             };
-            console.log(`💰 Exchange rate updated: 1 USD = ${cachedExchangeRates.rates.NGN} NGN`);
+            console.log(`💰 Exchange rate updated: 1 USD = ${cachedExchangeRates.USD_TO_NGN} NGN`);
+            return cachedExchangeRates;
         } else {
-            console.log('⚠️ Using cached/fallback exchange rates');
+            throw new Error('Invalid response from exchange rate API');
         }
-        
-        return cachedExchangeRates;
         
     } catch (err) {
         console.error("❌ Exchange rate fetch error:", err.message);
-        return cachedExchangeRates;
+        // Return fallback rate
+        return {
+            USD_TO_NGN: 1500,
+            rates: { NGN: 1500, USD: 1, EUR: 0.92, GBP: 0.79 },
+            lastUpdated: null,
+            isFallback: true
+        };
     }
 }
 
@@ -2232,23 +2171,22 @@ app.post("/api/initiate-payment", async (req, res) => {
       return res.status(400).json({ error: "Course ID is required" });
     }
 
+    // Get course from database
     const courses = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     
     let course = null;
-    if (courses && Array.isArray(courses)) {
-      if (courses.length === 2 && Array.isArray(courses[0])) {
-        course = courses[0][0];
-      } else if (courses.length > 0) {
-        course = courses[0];
-      }
+    if (courses && courses.length > 0) {
+      course = courses[0];
     }
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
 
-    if (course.price <= 0) {
-      return res.status(400).json({ error: "This course is free. No payment required." });
+    const priceInNGN = parseFloat(course.price);
+    
+    if (isNaN(priceInNGN) || priceInNGN <= 0) {
+      return res.status(400).json({ error: "Invalid course price" });
     }
 
     if (!process.env.FLW_SECRET_KEY) {
@@ -2258,44 +2196,48 @@ app.post("/api/initiate-payment", async (req, res) => {
       });
     }
     
-    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
-    
-    // Get exchange rate and convert NGN to USD
-    const rates = await getExchangeRate();
-    const amountInNGN = parseFloat(course.price);
-    let amountInUSD = amountInNGN / rates.USD_TO_NGN;
-    
-    // Ensure minimum amount for Flutterwave (minimum is usually $0.50 or 500 NGN)
-    // Flutterwave has a minimum transaction amount
-    const MINIMUM_USD = 0.50;
-    if (amountInUSD < MINIMUM_USD) {
-      console.log(`⚠️ Amount $${amountInUSD.toFixed(4)} is below minimum. Setting to minimum $${MINIMUM_USD}`);
-      amountInUSD = MINIMUM_USD;
+    // Get exchange rate
+    let usdRate = 1500; // Default fallback
+    try {
+      const rates = await getExchangeRate();
+      usdRate = rates.USD_TO_NGN || 1500;
+      console.log(`📊 Using exchange rate: 1 USD = ${usdRate} NGN`);
+    } catch (rateErr) {
+      console.error('Rate fetch error, using fallback:', rateErr.message);
     }
     
-    // IMPORTANT: Convert to number, not string
-    const finalAmount = Number(amountInUSD.toFixed(2));
+    // Convert NGN to USD
+    let amountInUSD = priceInNGN / usdRate;
     
-    console.log(`💰 Course price: ₦${amountInNGN} = $${finalAmount} (rate: 1 USD = ${rates.USD_TO_NGN} NGN)`);
+    // Round to 2 decimal places and ensure it's a valid number
+    amountInUSD = Math.round(amountInUSD * 100) / 100;
     
+    // Flutterwave minimum is usually 0.50 USD
+    if (amountInUSD < 0.50) {
+      console.log(`⚠️ Amount $${amountInUSD} is below minimum. Using $0.50`);
+      amountInUSD = 0.50;
+    }
+    
+    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    
+    // Create payload - amount MUST be a number
     const payload = {
       tx_ref: transaction_ref,
-      amount: finalAmount,  // MUST be a NUMBER, not a string
+      amount: amountInUSD,  // This is a NUMBER, not a string
       currency: "USD",
-      redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
+      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
       customer: {
-        email: req.session.user.email || `${req.session.user.username}@example.com`,
+        email: req.session.user.email,
         name: req.session.user.username,
       },
       customizations: {
-        title: "Core Insight",
-        description: `Payment for ${course.title}`,
+        title: "Core Insight Course",
+        description: course.title.substring(0, 50),
       },
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
-        amount_ngn: amountInNGN,
-        amount_usd: finalAmount
+        price_ngn: priceInNGN
       }
     };
     
@@ -2309,31 +2251,33 @@ app.post("/api/initiate-payment", async (req, res) => {
           Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
           'Content-Type': 'application/json'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
+    
+    console.log('📥 Flutterwave response status:', response.data.status);
     
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
       console.log('✅ Payment link created:', response.data.data.link);
       
+      // Store payment record in database
       try {
         await db.query(
-          `INSERT INTO payments 
-           (user_id, course_id, transaction_ref, amount, status, created_at)
+          `INSERT INTO payments (user_id, course_id, transaction_ref, amount, status, created_at)
            VALUES (?, ?, ?, ?, 'pending', NOW())`,
-          [req.session.user.id, courseId, transaction_ref, amountInNGN]
+          [req.session.user.id, courseId, transaction_ref, priceInNGN]
         );
-        console.log('✅ Payment recorded in database');
+        console.log('✅ Payment record saved to database');
       } catch (dbError) {
-        console.error('⚠️ Could not save payment to database:', dbError.message);
+        console.error('⚠️ Database error (non-critical):', dbError.message);
       }
       
       res.json({
         status: "success",
         paymentLink: response.data.data.link,
         transactionRef: transaction_ref,
-        amount_ngn: amountInNGN,
-        amount_usd: finalAmount
+        amount: amountInUSD,
+        currency: "USD"
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);
@@ -2344,9 +2288,17 @@ app.post("/api/initiate-payment", async (req, res) => {
     
   } catch (err) {
     console.error('❌ Payment error:', err.message);
+    
+    // Log more details for debugging
     if (err.response) {
-      console.error('❌ Flutterwave error response:', err.response.data);
+      console.error('❌ Flutterwave error details:', JSON.stringify(err.response.data, null, 2));
+      console.error('❌ Status code:', err.response.status);
+    } else if (err.request) {
+      console.error('❌ No response received from Flutterwave');
+    } else {
+      console.error('❌ Request error:', err.message);
     }
+    
     res.status(500).json({ 
       error: "Error initiating payment: " + err.message
     });

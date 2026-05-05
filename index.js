@@ -2259,12 +2259,18 @@ app.post("/api/initiate-payment", async (req, res) => {
     }
     
     const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
-    const amount = parseFloat(course.price);
+    
+    // IMPORTANT FIX: Get exchange rate and convert NGN to USD
+    const rates = await getExchangeRate();
+    const amountInNGN = parseFloat(course.price);
+    const amountInUSD = amountInNGN / rates.USD_TO_NGN;
+    
+    console.log(`💰 Course price: ₦${amountInNGN} = $${amountInUSD.toFixed(2)} (rate: 1 USD = ${rates.USD_TO_NGN} NGN)`);
     
     const payload = {
       tx_ref: transaction_ref,
-      amount: amount,
-      currency: "NGN",
+      amount: amountInUSD.toFixed(2),  // Send USD amount to Flutterwave
+      currency: "USD",                  // Flutterwave expects USD
       redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email || `${req.session.user.username}@example.com`,
@@ -2277,10 +2283,12 @@ app.post("/api/initiate-payment", async (req, res) => {
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
+        amount_ngn: amountInNGN,
+        amount_usd: amountInUSD
       }
     };
     
-    console.log('📤 Sending to Flutterwave...');
+    console.log('📤 Sending to Flutterwave:', payload);
     
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
@@ -2302,7 +2310,7 @@ app.post("/api/initiate-payment", async (req, res) => {
           `INSERT INTO payments 
            (user_id, course_id, transaction_ref, amount, status, created_at)
            VALUES (?, ?, ?, ?, 'pending', NOW())`,
-          [req.session.user.id, courseId, transaction_ref, amount]
+          [req.session.user.id, courseId, transaction_ref, amountInNGN]  // Store NGN amount
         );
         console.log('✅ Payment recorded in database');
       } catch (dbError) {
@@ -2312,7 +2320,9 @@ app.post("/api/initiate-payment", async (req, res) => {
       res.json({
         status: "success",
         paymentLink: response.data.data.link,
-        transactionRef: transaction_ref
+        transactionRef: transaction_ref,
+        amount_ngn: amountInNGN,
+        amount_usd: amountInUSD
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);

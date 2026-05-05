@@ -2260,17 +2260,28 @@ app.post("/api/initiate-payment", async (req, res) => {
     
     const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
     
-    // IMPORTANT FIX: Get exchange rate and convert NGN to USD
+    // Get exchange rate and convert NGN to USD
     const rates = await getExchangeRate();
     const amountInNGN = parseFloat(course.price);
-    const amountInUSD = amountInNGN / rates.USD_TO_NGN;
+    let amountInUSD = amountInNGN / rates.USD_TO_NGN;
     
-    console.log(`💰 Course price: ₦${amountInNGN} = $${amountInUSD.toFixed(2)} (rate: 1 USD = ${rates.USD_TO_NGN} NGN)`);
+    // Ensure minimum amount for Flutterwave (minimum is usually $0.50 or 500 NGN)
+    // Flutterwave has a minimum transaction amount
+    const MINIMUM_USD = 0.50;
+    if (amountInUSD < MINIMUM_USD) {
+      console.log(`⚠️ Amount $${amountInUSD.toFixed(4)} is below minimum. Setting to minimum $${MINIMUM_USD}`);
+      amountInUSD = MINIMUM_USD;
+    }
+    
+    // IMPORTANT: Convert to number, not string
+    const finalAmount = Number(amountInUSD.toFixed(2));
+    
+    console.log(`💰 Course price: ₦${amountInNGN} = $${finalAmount} (rate: 1 USD = ${rates.USD_TO_NGN} NGN)`);
     
     const payload = {
       tx_ref: transaction_ref,
-      amount: amountInUSD.toFixed(2),  // Send USD amount to Flutterwave
-      currency: "USD",                  // Flutterwave expects USD
+      amount: finalAmount,  // MUST be a NUMBER, not a string
+      currency: "USD",
       redirect_url: `https://core-insight-7.onrender.com/payment-callback.html`,
       customer: {
         email: req.session.user.email || `${req.session.user.username}@example.com`,
@@ -2284,11 +2295,11 @@ app.post("/api/initiate-payment", async (req, res) => {
         course_id: courseId,
         user_id: req.session.user.id,
         amount_ngn: amountInNGN,
-        amount_usd: amountInUSD
+        amount_usd: finalAmount
       }
     };
     
-    console.log('📤 Sending to Flutterwave:', payload);
+    console.log('📤 Sending to Flutterwave:', JSON.stringify(payload, null, 2));
     
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
@@ -2303,14 +2314,14 @@ app.post("/api/initiate-payment", async (req, res) => {
     );
     
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      console.log('✅ Payment link created');
+      console.log('✅ Payment link created:', response.data.data.link);
       
       try {
         await db.query(
           `INSERT INTO payments 
            (user_id, course_id, transaction_ref, amount, status, created_at)
            VALUES (?, ?, ?, ?, 'pending', NOW())`,
-          [req.session.user.id, courseId, transaction_ref, amountInNGN]  // Store NGN amount
+          [req.session.user.id, courseId, transaction_ref, amountInNGN]
         );
         console.log('✅ Payment recorded in database');
       } catch (dbError) {
@@ -2322,7 +2333,7 @@ app.post("/api/initiate-payment", async (req, res) => {
         paymentLink: response.data.data.link,
         transactionRef: transaction_ref,
         amount_ngn: amountInNGN,
-        amount_usd: amountInUSD
+        amount_usd: finalAmount
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);
@@ -2334,7 +2345,7 @@ app.post("/api/initiate-payment", async (req, res) => {
   } catch (err) {
     console.error('❌ Payment error:', err.message);
     if (err.response) {
-      console.error('❌ Flutterwave error:', err.response.data);
+      console.error('❌ Flutterwave error response:', err.response.data);
     }
     res.status(500).json({ 
       error: "Error initiating payment: " + err.message

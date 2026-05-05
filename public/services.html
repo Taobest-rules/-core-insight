@@ -6040,31 +6040,32 @@ function updateHeader() {
         }
         
     } else {
-        // Not logged in
+        // NOT LOGGED IN - USE ANCHOR TAG FOR SIGNUP
         headerAuth.innerHTML = `
-        <button id="loginOpen" class="auth-btn">Login</button>
-        <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
-    `;
-    
-    if (mobileAuth) {
-        mobileAuth.innerHTML = headerAuth.innerHTML;
-    }
-
-    setTimeout(() => {
-        const loginBtn = document.getElementById('loginOpen');
+            <button id="loginOpen" class="auth-btn">Login</button>
+            <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
+        `;
         
-        if (loginBtn) {
-            loginBtn.onclick = function(e) {
-                e.preventDefault();
-                const loginModal = document.getElementById('loginModal');
-                if (loginModal) {
-                    loginModal.classList.remove('hidden');
-                    loginModal.style.display = 'flex';
-                }
-            };
+        if (mobileAuth) {
+            mobileAuth.innerHTML = headerAuth.innerHTML;
         }
-        // No need to bind signupOpen since it's now an anchor tag
-    }, 50);
+
+        setTimeout(() => {
+            const loginBtn = document.getElementById('loginOpen');
+            
+            if (loginBtn) {
+                loginBtn.onclick = function(e) {
+                    e.preventDefault();
+                    const loginModal = document.getElementById('loginModal');
+                    if (loginModal) {
+                        loginModal.classList.remove('hidden');
+                        loginModal.style.display = 'flex';
+                    }
+                };
+            }
+            // No need to bind signupOpen since it's now an anchor tag
+        }, 50);
+    }
 }
 
 /*********************

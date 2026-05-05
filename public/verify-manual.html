@@ -1,13 +1,9 @@
-<span style="color: gold;">
-بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
-In the name of Allah, the Most Gracious, the Most Merciful
-</span>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Account - Core Insight</title>
+    <title>Verify Email - Core Insight</title>
     <style>
         * {
             margin: 0;
@@ -36,6 +32,34 @@ In the name of Allah, the Most Gracious, the Most Merciful
             text-align: center;
         }
         
+        /* Bismillah Banner */
+        .bismillah {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(100, 255, 218, 0.1);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        .bismillah span {
+            color: #64ffda;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            display: block;
+        }
+        
+        .bismillah .arabic {
+            font-size: 1.5rem;
+            font-family: 'Amiri', 'Traditional Arabic', 'Times New Roman', serif;
+            margin-bottom: 0.3rem;
+        }
+        
+        .bismillah .english {
+            font-size: 0.85rem;
+            letter-spacing: 0.3px;
+        }
+        
         h1 {
             color: #64ffda;
             margin-bottom: 20px;
@@ -47,17 +71,17 @@ In the name of Allah, the Most Gracious, the Most Merciful
             margin-bottom: 20px;
         }
         
+        .success-icon { color: #10b981; }
+        .error-icon { color: #ef4444; }
+        .info-icon { color: #64ffda; }
+        
         p {
             color: #a8b2d1;
             margin-bottom: 20px;
             line-height: 1.6;
         }
         
-        .input-group {
-            margin: 20px 0;
-        }
-        
-        input {
+        .token-input {
             width: 100%;
             padding: 15px;
             border-radius: 10px;
@@ -65,11 +89,13 @@ In the name of Allah, the Most Gracious, the Most Merciful
             background: #0a192f;
             color: white;
             font-size: 16px;
+            font-family: monospace;
+            margin: 20px 0;
             text-align: center;
             letter-spacing: 1px;
         }
         
-        input:focus {
+        .token-input:focus {
             outline: none;
             border-color: #4cd8b5;
             box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.2);
@@ -124,26 +150,32 @@ In the name of Allah, the Most Gracious, the Most Merciful
             border: 1px solid rgba(100, 255, 218, 0.3);
         }
         
-        .help-text {
-            font-size: 12px;
-            color: #8892b0;
-            margin-top: 10px;
+        .resend-link {
+            margin-top: 20px;
+            color: #64ffda;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
         }
         
-        hr {
-            border-color: rgba(100, 255, 218, 0.2);
-            margin: 20px 0;
+        .resend-link:hover {
+            color: #4cd8b5;
         }
         
         .login-link {
+            margin-top: 20px;
             display: inline-block;
-            margin-top: 15px;
             color: #64ffda;
             text-decoration: none;
         }
         
         .login-link:hover {
             text-decoration: underline;
+        }
+        
+        hr {
+            border-color: rgba(100, 255, 218, 0.2);
+            margin: 20px 0;
         }
         
         .spinner {
@@ -159,143 +191,53 @@ In the name of Allah, the Most Gracious, the Most Merciful
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        .info-box {
-            background: rgba(100, 255, 218, 0.05);
-            border: 1px solid rgba(100, 255, 218, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        
-        .info-box p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        
-        .code-highlight {
-            background: #0a192f;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 18px;
-            text-align: center;
-            margin: 10px 0;
-            word-break: break-all;
-        }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <div class="icon">🔐</div>
-        <h1>Verify Your Account</h1>
-        
-        <div class="info-box" id="infoBox">
-            <p><strong>📧 Check your email</strong> for a verification link.</p>
-            <p>Didn't receive it? You can verify manually below:</p>
+        <!-- Bismillah Banner - Properly placed at the top -->
+        <div class="bismillah">
+            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
         </div>
         
-        <div class="input-group">
-            <input type="text" id="emailInput" placeholder="Enter your email address" autocomplete="off">
+        <div class="icon">
+            <span id="icon" class="info-icon">📧</span>
         </div>
         
-        <button id="getCodeBtn" onclick="getVerificationCode()">Get Verification Code</button>
+        <h1 id="title">Verify Your Email</h1>
+        <p id="description">Enter the verification code sent to your email to activate your account.</p>
         
-        <div id="codeSection" style="display: none;">
-            <hr>
-            <div class="info-box">
-                <p><strong>📋 Your Verification Code</strong></p>
-                <div id="codeDisplay" class="code-highlight"></div>
-                <p style="font-size: 12px;">Enter this code to verify your account</p>
-            </div>
-            
-            <div class="input-group">
-                <input type="text" id="codeInput" placeholder="Enter verification code" autocomplete="off">
-            </div>
-            
-            <button onclick="verifyWithCode()">Verify Account</button>
-        </div>
+        <input type="text" id="tokenInput" class="token-input" placeholder="Paste verification code here">
+        
+        <button id="verifyBtn" onclick="verifyEmail()">Verify Account</button>
         
         <div id="message"></div>
         
-        <hr>
+        <div class="resend-link" onclick="resendVerification()">Didn't receive the email? Click to resend</div>
         
-        <div class="help-text">
-            <p>Having trouble? Contact support: support@coreinsight.com</p>
-        </div>
+        <hr>
         
         <a href="login.html" class="login-link">← Back to Login</a>
     </div>
 
     <script>
-        let currentToken = null;
-        let currentEmail = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
         
-        async function getVerificationCode() {
-            const email = document.getElementById('emailInput').value.trim();
-            const messageDiv = document.getElementById('message');
-            const getCodeBtn = document.getElementById('getCodeBtn');
-            
-            if (!email) {
-                showMessage('Please enter your email address', 'error');
-                return;
-            }
-            
-            getCodeBtn.disabled = true;
-            getCodeBtn.innerHTML = '<span class="spinner"></span> Sending...';
-            
-            try {
-                const response = await fetch('/api/resend-verification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.token) {
-                    currentToken = data.token;
-                    currentEmail = email;
-                    
-                    // Show the code section
-                    document.getElementById('codeSection').style.display = 'block';
-                    document.getElementById('codeDisplay').innerHTML = data.token;
-                    document.getElementById('codeInput').value = data.token;
-                    
-                    showMessage('✅ Verification code generated! You can now verify your account.', 'success');
-                    document.getElementById('infoBox').innerHTML = `
-                        <p><strong>✅ Verification code ready!</strong></p>
-                        <p>Use the code below to verify your account.</p>
-                    `;
-                } else if (response.ok) {
-                    // If token not returned, just show message
-                    showMessage('Verification code sent to your email! Check your inbox.', 'success');
-                    document.getElementById('infoBox').innerHTML = `
-                        <p><strong>📧 Email sent!</strong></p>
-                        <p>Check your inbox for the verification code. You can also verify manually below.</p>
-                    `;
-                } else {
-                    showMessage(data.error || 'Error getting verification code', 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showMessage('Network error. Please try again.', 'error');
-            } finally {
-                getCodeBtn.disabled = false;
-                getCodeBtn.innerHTML = 'Get Verification Code';
-            }
+        if (urlToken) {
+            document.getElementById('tokenInput').value = urlToken;
+            verifyEmail();
         }
         
-        async function verifyWithCode() {
-            const code = document.getElementById('codeInput').value.trim();
+        async function verifyEmail() {
+            const token = document.getElementById('tokenInput').value.trim();
             const messageDiv = document.getElementById('message');
-            const verifyBtn = event.target;
+            const verifyBtn = document.getElementById('verifyBtn');
             
-            if (!code) {
-                showMessage('Please enter the verification code', 'error');
+            if (!token) {
+                showMessage('Please enter your verification code', 'error');
                 return;
             }
             
@@ -308,26 +250,56 @@ In the name of Allah, the Most Gracious, the Most Merciful
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ token: code })
+                    body: JSON.stringify({ token: token })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    showMessage('✅ Account verified successfully! Redirecting to login...', 'success');
+                    showMessage('✅ Email verified successfully! Redirecting to login...', 'success');
                     setTimeout(() => {
                         window.location.href = '/login.html?verified=true';
                     }, 2000);
                 } else {
-                    showMessage(data.error || 'Invalid verification code', 'error');
+                    showMessage(data.error || 'Invalid or expired verification code', 'error');
+                    verifyBtn.innerHTML = 'Try Again';
                     verifyBtn.disabled = false;
-                    verifyBtn.innerHTML = 'Verify Account';
                 }
             } catch (error) {
                 console.error('Verification error:', error);
                 showMessage('Network error. Please try again.', 'error');
+                verifyBtn.innerHTML = 'Try Again';
                 verifyBtn.disabled = false;
-                verifyBtn.innerHTML = 'Verify Account';
+            }
+        }
+
+        async function resendVerification() {
+            const messageDiv = document.getElementById('message');
+            const email = prompt('Please enter your email address to receive a new verification link:');
+            
+            if (!email) return;
+            
+            showMessage('Sending new verification email...', 'info');
+            
+            try {
+                const response = await fetch('/api/resend-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showMessage(data.message || 'Verification email sent! Check your inbox.', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to resend verification email', 'error');
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                showMessage('Network error. Please try again.', 'error');
             }
         }
         
@@ -340,14 +312,6 @@ In the name of Allah, the Most Gracious, the Most Merciful
                     messageDiv.innerHTML = '';
                 }
             }, 5000);
-        }
-        
-        // Check if there's a token in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenParam = urlParams.get('token');
-        if (tokenParam) {
-            document.getElementById('codeInput').value = tokenParam;
-            verifyWithCode();
         }
     </script>
 </body>

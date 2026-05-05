@@ -10,24 +10,10 @@
   <script src="https://checkout.flutterwave.com/v3.js"></script>
   <script src="https://js.paystack.co/v1/inline.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%); color: #e6f1ff; min-height: 100vh; }
     
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
-      color: #e6f1ff;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
     
     .bismillah {
       text-align: center;
@@ -37,19 +23,8 @@
       margin-bottom: 2rem;
       border: 1px solid rgba(255, 215, 0, 0.25);
     }
-    
-    .bismillah .arabic {
-      font-size: 1.5rem;
-      font-family: 'Amiri', 'Traditional Arabic', serif;
-      color: #FFD700;
-      display: block;
-      margin-bottom: 0.3rem;
-    }
-    
-    .bismillah .english {
-      font-size: 0.85rem;
-      color: rgba(255, 215, 0, 0.9);
-    }
+    .bismillah .arabic { font-size: 1.5rem; font-family: 'Amiri', 'Traditional Arabic', serif; color: #FFD700; display: block; margin-bottom: 0.3rem; }
+    .bismillah .english { font-size: 0.85rem; color: rgba(255, 215, 0, 0.9); }
     
     .payment-card {
       background: rgba(30, 41, 59, 0.95);
@@ -59,25 +34,9 @@
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(255, 215, 0, 0.2);
     }
-    
-    .payment-header {
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      padding: 30px;
-      text-align: center;
-    }
-    
-    .payment-header h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-    
-    .payment-header p {
-      opacity: 0.9;
-    }
-    
-    .payment-body {
-      padding: 30px;
-    }
+    .payment-header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+    .payment-header h1 { font-size: 28px; margin-bottom: 8px; }
+    .payment-body { padding: 30px; }
     
     .order-summary {
       background: rgba(15, 23, 42, 0.5);
@@ -86,55 +45,11 @@
       margin-bottom: 24px;
       border: 1px solid rgba(255, 215, 0, 0.1);
     }
+    .summary-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row.total { margin-top: 12px; padding-top: 12px; border-top: 2px solid #FFD700; font-weight: 700; font-size: 18px; }
     
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #334155;
-    }
-    
-    .summary-row:last-child {
-      border-bottom: none;
-    }
-    
-    .summary-row.total {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 2px solid #FFD700;
-      font-weight: 700;
-      font-size: 18px;
-    }
-    
-    .fee-breakdown {
-      background: rgba(59, 130, 246, 0.1);
-      border-radius: 12px;
-      padding: 16px;
-      margin: 16px 0;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-    
-    .fee-breakdown h4 {
-      color: #FFD700;
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
-    
-    .breakdown-item {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      margin-bottom: 8px;
-      color: #94a3b8;
-    }
-    
-    .payment-methods {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin: 24px 0;
-    }
-    
+    .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 24px 0; }
     .method-btn {
       background: #0f172a;
       border: 2px solid #334155;
@@ -144,27 +59,10 @@
       transition: all 0.2s;
       text-align: center;
     }
-    
-    .method-btn:hover {
-      border-color: #FFD700;
-      transform: translateY(-2px);
-    }
-    
-    .method-btn.selected {
-      border-color: #FFD700;
-      background: rgba(255, 215, 0, 0.1);
-    }
-    
-    .method-btn i {
-      font-size: 32px;
-      margin-bottom: 8px;
-      display: block;
-    }
-    
-    .method-btn span {
-      display: block;
-      font-weight: 500;
-    }
+    .method-btn:hover { border-color: #FFD700; transform: translateY(-2px); }
+    .method-btn.selected { border-color: #FFD700; background: rgba(255, 215, 0, 0.1); }
+    .method-btn i { font-size: 32px; margin-bottom: 8px; display: block; }
+    .method-btn span { display: block; font-weight: 500; }
     
     .pay-btn {
       width: 100%;
@@ -179,51 +77,19 @@
       transition: all 0.3s;
       margin-top: 20px;
     }
+    .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3); }
+    .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     
-    .pay-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
-    }
-    
-    .pay-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .back-link {
-      display: inline-block;
-      margin-top: 20px;
-      color: #94a3b8;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    
-    .back-link:hover {
-      color: #FFD700;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 40px;
-    }
-    
-    .error-message {
-      background: rgba(239, 68, 68, 0.1);
-      border-left: 4px solid #ef4444;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      color: #ef4444;
-    }
+    .back-link { display: inline-block; margin-top: 20px; color: #94a3b8; text-decoration: none; }
+    .back-link:hover { color: #FFD700; }
+    .loading { text-align: center; padding: 40px; }
+    .spinner { width: 50px; height: 50px; border: 4px solid #334155; border-top-color: #FFD700; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-message { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px; margin-bottom: 20px; color: #ef4444; }
     
     @media (max-width: 640px) {
-      .payment-methods {
-        grid-template-columns: 1fr;
-      }
-      .payment-body {
-        padding: 20px;
-      }
+      .payment-methods { grid-template-columns: 1fr; }
+      .payment-body { padding: 20px; }
     }
   </style>
 </head>
@@ -254,29 +120,12 @@
         
         <div id="paymentContent" style="display: none;">
           <div class="order-summary">
-            <div class="summary-row">
-              <span>Order ID:</span>
-              <strong id="orderId">-</strong>
-            </div>
-            <div class="summary-row">
-              <span>Product:</span>
-              <strong id="productName">-</strong>
-            </div>
-            <div class="summary-row">
-              <span>Quantity:</span>
-              <span id="quantity">-</span>
-            </div>
-            <div class="summary-row">
-              <span>Unit Price:</span>
-              <span id="unitPrice">-</span>
-            </div>
-            <div class="summary-row total">
-              <span>Total Amount:</span>
-              <strong id="totalAmount" style="color: #10b981;">-</strong>
-            </div>
+            <div class="summary-row"><span>Order ID:</span><strong id="orderId">-</strong></div>
+            <div class="summary-row"><span>Product:</span><strong id="productName">-</strong></div>
+            <div class="summary-row"><span>Quantity:</span><span id="quantity">-</span></div>
+            <div class="summary-row"><span>Unit Price:</span><span id="unitPrice">-</span></div>
+            <div class="summary-row total"><span>Total Amount:</span><strong id="totalAmount" style="color: #10b981;">-</strong></div>
           </div>
-          
-          <div id="feeBreakdownContainer" style="display: none;"></div>
           
           <h3 style="margin-bottom: 16px;">Select Payment Method</h3>
           <div class="payment-methods">
@@ -315,6 +164,7 @@
       showError('No order ID provided');
     }
     
+    // Payment method selection
     document.querySelectorAll('.method-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
@@ -350,7 +200,8 @@
       }
     }
     
-    async function confirmPayment(orderId, reference, method) {
+    // Function to confirm payment on server
+    async function confirmPaymentOnServer(orderId, reference, method) {
       try {
         console.log(`Confirming payment for order #${orderId} via ${method}`);
         const response = await fetch('/api/confirm-payment', {
@@ -370,6 +221,131 @@
         console.error('Confirmation error:', error);
         return { success: false };
       }
+    }
+    
+    // Flutterwave Payment Handler
+    function initFlutterwavePayment() {
+      return new Promise((resolve, reject) => {
+        try {
+          if (!paymentKeys.flutterwave?.public_key) {
+            reject(new Error('Flutterwave is not configured'));
+            return;
+          }
+          
+          const amount = parseFloat(orderData.total_amount);
+          const email = orderData.buyer?.email || '';
+          const name = orderData.buyer?.name || 'Customer';
+          const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+          
+          FlutterwaveCheckout({
+            public_key: paymentKeys.flutterwave.public_key,
+            tx_ref: tx_ref,
+            amount: amount,
+            currency: "USD",
+            payment_options: "card, banktransfer, ussd",
+            customer: { 
+              email: email, 
+              name: name,
+              phone_number: orderData.delivery_phone || ''
+            },
+            customizations: { 
+              title: "Core Insight Marketplace", 
+              description: `Order #${orderId} - ${orderData.product_name?.substring(0, 30)}`,
+              logo: "https://coreinsightmarket.com/logo.png"
+            },
+            callback: function(response) {
+              console.log("Flutterwave callback response:", response);
+              // Verify transaction ID exists
+              if (response && response.transaction_id) {
+                confirmPaymentOnServer(orderId, response.transaction_id, 'flutterwave')
+                  .then(() => {
+                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                  })
+                  .catch(err => {
+                    console.error("Confirmation failed:", err);
+                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                  });
+              } else {
+                window.location.href = `/order-tracking.html?orderId=${orderId}`;
+              }
+            },
+            onclose: function() {
+              console.log("Flutterwave modal closed");
+              resolve({ closed: true });
+            }
+          });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+    
+    // Paystack Payment Handler
+    function initPaystackPayment() {
+      return new Promise((resolve, reject) => {
+        try {
+          if (!paymentKeys.paystack?.public_key) {
+            reject(new Error('Paystack is not configured'));
+            return;
+          }
+          
+          const amount = parseFloat(orderData.total_amount);
+          const email = orderData.buyer?.email || '';
+          const name = orderData.buyer?.name || 'Customer';
+          const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+          
+          // Convert USD to NGN
+          let ngnAmount = amount * 1550;
+          fetch('https://api.exchangerate-api.com/v4/latest/USD')
+            .then(res => res.json())
+            .then(data => {
+              if (data.rates?.NGN) ngnAmount = amount * data.rates.NGN;
+            })
+            .catch(() => {})
+            .finally(() => {
+              if (!confirm(`Pay ₦${ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} NGN via Paystack?`)) {
+                reject(new Error('Payment cancelled by user'));
+                return;
+              }
+              
+              const handler = PaystackPop.setup({
+                key: paymentKeys.paystack.public_key,
+                email: email,
+                amount: Math.round(ngnAmount * 100),
+                currency: "NGN",
+                ref: tx_ref,
+                metadata: {
+                  custom_fields: [
+                    { display_name: "Order ID", variable_name: "order_id", value: orderId },
+                    { display_name: "Product", variable_name: "product", value: orderData.product_name }
+                  ]
+                },
+                callback: function(response) {
+                  console.log("Paystack callback response:", response);
+                  if (response && response.reference) {
+                    confirmPaymentOnServer(orderId, response.reference, 'paystack')
+                      .then(() => {
+                        window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                      })
+                      .catch(err => {
+                        console.error("Confirmation failed:", err);
+                        window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                      });
+                  } else {
+                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                  }
+                },
+                onClose: function() {
+                  console.log("Paystack modal closed");
+                  resolve({ closed: true });
+                }
+              });
+              handler.openIframe();
+            });
+        } catch (err) {
+          reject(err);
+        }
+      });
     }
     
     async function loadOrderDetails() {
@@ -396,40 +372,33 @@
         
         orderData = data.order;
         
+        // Check if order is already paid
+        if (orderData.order_status === 'paid' || orderData.payment_status === 'paid') {
+          document.getElementById('errorState').style.display = 'block';
+          document.getElementById('errorMessage').innerHTML = `<strong>✅ Order Already Paid</strong><br><br>This order has already been paid for.<br><br><a href="/order-tracking.html?orderId=${orderId}" class="back-link">View Order Status →</a>`;
+          loadingState.style.display = 'none';
+          return;
+        }
+        
         if (orderData.order_status !== 'seller_accepted') {
-          let statusMessage = {
+          let statusMsg = {
             'pending_seller_approval': '⏳ Order Pending Seller Approval',
-            'paid': '✅ Order Already Paid',
             'completed': '✓ Order Completed',
             'cancelled': '❌ Order Cancelled'
           }[orderData.order_status] || `Order Status: ${orderData.order_status}`;
           
           document.getElementById('errorState').style.display = 'block';
-          document.getElementById('errorMessage').innerHTML = `<strong>${statusMessage}</strong><br><br><a href="/order-tracking.html?orderId=${orderId}" class="back-link">View Order Status →</a>`;
+          document.getElementById('errorMessage').innerHTML = `<strong>${statusMsg}</strong><br><br><a href="/order-tracking.html?orderId=${orderId}" class="back-link">View Order Status →</a>`;
           loadingState.style.display = 'none';
           return;
         }
         
+        // Update UI
         document.getElementById('orderId').textContent = `#${orderData.id}`;
         document.getElementById('productName').textContent = orderData.product_name || 'Product';
         document.getElementById('quantity').textContent = orderData.quantity;
         document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
         document.getElementById('totalAmount').textContent = `$${orderData.total_amount.toFixed(2)}`;
-        
-        if (orderData.fee_breakdown) {
-          const fb = orderData.fee_breakdown;
-          const container = document.getElementById('feeBreakdownContainer');
-          container.innerHTML = `
-            <div class="fee-breakdown">
-              <h4><i class="fas fa-calculator"></i> Fee Breakdown</h4>
-              <div class="breakdown-item"><span>Platform Fee (10%):</span><span>$${fb.platform_fee?.toFixed(2) || '0.00'}</span></div>
-              <div class="breakdown-item" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155;">
-                <span><strong>Seller Receives:</strong></span><span style="color: #10b981;"><strong>$${fb.seller_earnings?.toFixed(2) || '0.00'}</strong></span>
-              </div>
-            </div>
-          `;
-          container.style.display = 'block';
-        }
         
         loadingState.style.display = 'none';
         paymentContent.style.display = 'block';
@@ -440,6 +409,7 @@
       }
     }
     
+    // Pay button click handler
     document.getElementById('payNowBtn').addEventListener('click', async () => {
       if (!orderData) {
         alert('Order data not loaded. Please refresh the page.');
@@ -447,74 +417,19 @@
       }
       
       const payBtn = document.getElementById('payNowBtn');
-      const amount = parseFloat(orderData.total_amount);
-      const email = orderData.buyer?.email || '';
-      const name = orderData.buyer?.name || 'Customer';
-      const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-      
       payBtn.disabled = true;
       payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
       
       try {
         if (selectedMethod === 'flutterwave') {
-          if (!paymentKeys.flutterwave?.public_key) throw new Error('Flutterwave is not configured');
-          
-          FlutterwaveCheckout({
-            public_key: paymentKeys.flutterwave.public_key,
-            tx_ref: tx_ref,
-            amount: amount,
-            currency: "USD",
-            payment_options: "card, banktransfer, ussd",
-            customer: { email: email, name: name },
-            customizations: { title: "Core Insight", description: `Order #${orderId}` },
-            callback: async (response) => {
-              console.log("Flutterwave callback:", response);
-              // Force confirm payment
-              await confirmPayment(orderId, response.transaction_id, 'flutterwave');
-              window.location.href = `/order-tracking.html?orderId=${orderId}`;
-            },
-            onclose: () => {
-              payBtn.disabled = false;
-              payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-            }
-          });
+          await initFlutterwavePayment();
         } else if (selectedMethod === 'paystack') {
-          if (!paymentKeys.paystack?.public_key) throw new Error('Paystack is not configured');
-          
-          let ngnAmount = amount * 1550;
-          try {
-            const rateRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-            const rateData = await rateRes.json();
-            if (rateData.rates?.NGN) ngnAmount = amount * rateData.rates.NGN;
-          } catch (e) {}
-          
-          if (!confirm(`Pay ₦${ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} NGN via Paystack?`)) {
-            payBtn.disabled = false;
-            payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-            return;
-          }
-          
-          const handler = PaystackPop.setup({
-            key: paymentKeys.paystack.public_key,
-            email: email,
-            amount: Math.round(ngnAmount * 100),
-            currency: "NGN",
-            ref: tx_ref,
-            callback: async (response) => {
-              console.log("Paystack callback:", response);
-              // Force confirm payment
-              await confirmPayment(orderId, response.reference, 'paystack');
-              window.location.href = `/order-tracking.html?orderId=${orderId}`;
-            },
-            onClose: () => {
-              payBtn.disabled = false;
-              payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-            }
-          });
-          handler.openIframe();
+          await initPaystackPayment();
         }
       } catch (error) {
-        alert('Payment Error:\n' + error.message);
+        console.error('Payment error:', error);
+        alert('Payment Error: ' + error.message);
+      } finally {
         payBtn.disabled = false;
         payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
       }
@@ -526,6 +441,7 @@
       document.getElementById('errorMessage').innerHTML = message;
     }
     
+    // Initialize
     document.addEventListener('DOMContentLoaded', async () => {
       if (await checkAuth()) {
         await loadPaymentKeys();

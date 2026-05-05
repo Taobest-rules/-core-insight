@@ -9691,190 +9691,317 @@ app.post("/api/buy-product", async (req, res) => {
 });
 
 // ============================================
-// VERIFY DIGITAL PRODUCT PAYMENT
+// VERIFY DIGITAL PRODUCT PAYMENT - FIXED
 // ============================================
 
-app.get("/api/verify-digital-payment/:transaction_ref", async (req, res) => {
+app.get("/api/verify-digital-payment/:reference", async (req, res) => {
     try {
-        const { transaction_ref } = req.params;
+        const { reference } = req.params;
         
-        console.log(`🔍 Verifying digital payment: ${transaction_ref}`);
+        console.log(`🔍 Verifying digital payment for reference: ${reference}`);
         
-        // Check if it's a demo transaction
-        if (transaction_ref.startsWith('DEMO_')) {
-            console.log("📝 Demo transaction - marking as completed");
-            
-            // Update order status
-            await db.query(
-                `UPDATE digital_orders 
-                 SET status = 'completed', completed_at = NOW() 
-                 WHERE transaction_ref = ?`,
-                [transaction_ref]
-            );
-            
-            // Get the order details
-            const order = await db.query(
-                `SELECT o.*, p.file_url, p.title 
-                 FROM digital_orders o
-                 JOIN products p ON o.product_id = p.id
-                 WHERE o.transaction_ref = ?`,
-                [transaction_ref]
-            );
-            
-            if (order && order.length > 0) {
-                // Generate download token
-                const downloadToken = crypto.randomBytes(32).toString('hex');
-                
-                await db.query(
-                    `UPDATE digital_orders 
-                     SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
-                     WHERE id = ?`,
-                    [`/api/download-digital/${order[0].id}?token=${downloadToken}`, order[0].id]
-                );
-                
-                // Update product download count
-                await db.query(
-                    `UPDATE products SET download_count = download_count + 1, sales_count = sales_count + 1 
-                     WHERE id = ?`,
-                    [order[0].product_id]
-                );
-                
-                return res.json({
-                    status: "success",
-                    type: "digital",
-                    order_id: order[0].id,
-                    product_title: order[0].title,
-                    download_url: order[0].download_url,
-                    message: "Payment successful! You can now download your product."
-                });
-            }
+        // Remove any prefixes if present
+        let cleanRef = reference;
+        if (cleanRef.startsWith('PS_')) {
+            cleanRef = cleanRef.substring(3);
+        }
+        if (cleanRef.startsWith('FW_')) {
+            cleanRef = cleanRef.substring(3);
         }
         
-        // Verify with Flutterwave
-        const response = await axios.get(
-            `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
-            {
-                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
-            }
-        );
-        
-        if (response.data.status === "success" && response.data.data.status === "successful") {
-            const transaction = response.data.data;
-            const amount = transaction.amount;
+        // Check if this is a demo/test transaction
+        if (cleanRef.startsWith('DEMO_')) {
+            console.log("📝 Demo transaction - marking as completed");
             
-            // Update order status
-            await db.query(
-                `UPDATE digital_orders 
-                 SET status = 'completed', 
-                     completed_at = NOW(),
-                     flutterwave_reference = ?
-                 WHERE transaction_ref = ?`,
-                [transaction.id, transaction_ref]
-            );
-            
-            // Get the order details
-            const order = await db.query(
+            // Find the digital order
+            const orderResult = await db.query(
                 `SELECT o.*, p.file_url, p.title, p.user_id as seller_id
                  FROM digital_orders o
                  JOIN products p ON o.product_id = p.id
                  WHERE o.transaction_ref = ?`,
-                [transaction_ref]
+                [cleanRef]
             );
             
-            if (order && order.length > 0) {
-                // Generate secure download token
+            let order = null;
+            if (orderResult && orderResult.length > 0) {
+                order = orderResult[0];
+            }
+            
+            if (order) {
+                // Update order status
+                await db.query(
+                    `UPDATE digital_orders 
+                     SET status = 'completed', completed_at = NOW() 
+                     WHERE id = ?`,
+                    [order.id]
+                );
+                
+                // Generate download token
                 const downloadToken = crypto.randomBytes(32).toString('hex');
                 const downloadExpiry = new Date();
-                downloadExpiry.setDate(downloadExpiry.getDate() + 7); // 7 days expiry
+                downloadExpiry.setDate(downloadExpiry.getDate() + 7);
                 
                 await db.query(
                     `UPDATE digital_orders 
-                     SET download_url = ?, 
-                         download_expires_at = ?
+                     SET download_url = ?, download_expires_at = ?
                      WHERE id = ?`,
-                    [`/api/download-digital/${order[0].id}?token=${downloadToken}`, downloadExpiry, order[0].id]
+                    [`/api/download-digital/${order.id}?token=${downloadToken}`, downloadExpiry, order.id]
                 );
                 
                 // Update product stats
                 await db.query(
                     `UPDATE products 
-                     SET download_count = download_count + 1, 
-                         sales_count = sales_count + 1 
+                     SET download_count = download_count + 1, sales_count = sales_count + 1 
                      WHERE id = ?`,
-                    [order[0].product_id]
+                    [order.product_id]
                 );
-                
-                // Send email to buyer
-                const emailHtml = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head><title>Your Digital Product - Core Insight</title></head>
-                    <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-                        <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                            <h1 style="color:#10b981;">✅ Purchase Successful!</h1>
-                            <p>Hello ${req.session.user?.username || 'there'},</p>
-                            <p>Thank you for purchasing <strong>${order[0].title}</strong>!</p>
-                            <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
-                                <p><strong>Download Link:</strong></p>
-                                <a href="https://core-insight-7.onrender.com${order[0].download_url}" 
-                                   style="color:#3b82f6;word-break:break-all;">
-                                    Click here to download your product
-                                </a>
-                                <p style="font-size:12px;margin-top:10px;">This link expires in 7 days.</p>
-                            </div>
-                            <p>Amount paid: <strong>$${amount}</strong></p>
-                            <p>Platform fee: $${(amount * 0.10).toFixed(2)} (10%)</p>
-                        </div>
-                    </body>
-                    </html>
-                `;
-                
-                await sendEmail(req.session.user.email, `Your Digital Product: ${order[0].title}`, emailHtml);
-                
-                // Notify seller
-                const sellerEmailHtml = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head><title>Product Sold - Core Insight</title></head>
-                    <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-                        <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                            <h1 style="color:#10b981;">🎉 Product Sold!</h1>
-                            <p>Hello ${order[0].seller_name || 'Seller'},</p>
-                            <p>Your product <strong>${order[0].title}</strong> has been sold!</p>
-                            <p>Amount: <strong>$${amount}</strong></p>
-                            <p>Your earnings (90%): <strong>$${(amount * 0.90).toFixed(2)}</strong></p>
-                            <p>Platform fee (10%): <strong>$${(amount * 0.10).toFixed(2)}</strong></p>
-                        </div>
-                    </body>
-                    </html>
-                `;
-                
-                const sellerInfo = await db.query("SELECT email, username FROM users WHERE id = ?", [order[0].seller_id]);
-                if (sellerInfo && sellerInfo.length > 0) {
-                    await sendEmail(sellerInfo[0].email, `Product Sold: ${order[0].title}`, sellerEmailHtml);
-                }
                 
                 return res.json({
                     status: "success",
-                    type: "digital",
-                    order_id: order[0].id,
-                    product_title: order[0].title,
-                    download_url: order[0].download_url,
-                    message: "Payment successful! You can now download your product."
+                    message: "Demo payment successful!",
+                    product_title: order.title,
+                    download_url: `/api/download-digital/${order.id}?token=${downloadToken}`,
+                    order_id: order.id
                 });
             }
         }
         
-        res.status(400).json({ 
-            status: "failed", 
-            message: "Payment not successful or not found" 
+        // First, check our database for the order
+        const orderResult = await db.query(
+            `SELECT o.*, p.title as product_title, p.file_url, p.user_id as seller_id
+             FROM digital_orders o
+             JOIN products p ON o.product_id = p.id
+             WHERE o.transaction_ref = ? OR o.transaction_ref LIKE ?`,
+            [cleanRef, `%${cleanRef}%`]
+        );
+        
+        let order = null;
+        if (orderResult && orderResult.length > 0) {
+            order = orderResult[0];
+        }
+        
+        // If order exists and is already completed
+        if (order && order.status === 'completed') {
+            console.log(`✅ Order #${order.id} already completed`);
+            return res.json({
+                status: "success",
+                message: "Payment already verified",
+                product_title: order.product_title,
+                download_url: order.download_url,
+                order_id: order.id
+            });
+        }
+        
+        // If order exists but pending, try to verify with Flutterwave
+        if (order && order.status === 'pending') {
+            try {
+                // Try to verify with Flutterwave
+                const response = await axios.get(
+                    `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${cleanRef}`,
+                    {
+                        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+                    }
+                );
+                
+                if (response.data.status === "success" && response.data.data.status === "successful") {
+                    const transaction = response.data.data;
+                    const amount = transaction.amount;
+                    
+                    // Update order status
+                    await db.query(
+                        `UPDATE digital_orders 
+                         SET status = 'completed', 
+                             completed_at = NOW(),
+                             flutterwave_reference = ?
+                         WHERE id = ?`,
+                        [transaction.id, order.id]
+                    );
+                    
+                    // Generate download token
+                    const downloadToken = crypto.randomBytes(32).toString('hex');
+                    const downloadExpiry = new Date();
+                    downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+                    
+                    await db.query(
+                        `UPDATE digital_orders 
+                         SET download_url = ?, download_expires_at = ?
+                         WHERE id = ?`,
+                        [`/api/download-digital/${order.id}?token=${downloadToken}`, downloadExpiry, order.id]
+                    );
+                    
+                    // Update product stats
+                    await db.query(
+                        `UPDATE products 
+                         SET download_count = download_count + 1, sales_count = sales_count + 1 
+                         WHERE id = ?`,
+                        [order.product_id]
+                    );
+                    
+                    console.log(`✅ Digital order #${order.id} completed via Flutterwave`);
+                    
+                    return res.json({
+                        status: "success",
+                        message: "Payment verified successfully",
+                        product_title: order.product_title,
+                        download_url: `/api/download-digital/${order.id}?token=${downloadToken}`,
+                        order_id: order.id
+                    });
+                }
+            } catch (flutterErr) {
+                console.log("Flutterwave verification failed, trying Paystack...");
+            }
+            
+            // Try Paystack verification
+            try {
+                const paystackResponse = await axios.get(
+                    `https://api.paystack.co/transaction/verify/${cleanRef}`,
+                    {
+                        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+                    }
+                );
+                
+                if (paystackResponse.data.status === true && paystackResponse.data.data.status === "success") {
+                    const transaction = paystackResponse.data.data;
+                    const amountNGN = transaction.amount / 100;
+                    
+                    // Update order status
+                    await db.query(
+                        `UPDATE digital_orders 
+                         SET status = 'completed', 
+                             completed_at = NOW(),
+                             paystack_reference = ?
+                         WHERE id = ?`,
+                        [cleanRef, order.id]
+                    );
+                    
+                    // Generate download token
+                    const downloadToken = crypto.randomBytes(32).toString('hex');
+                    const downloadExpiry = new Date();
+                    downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+                    
+                    await db.query(
+                        `UPDATE digital_orders 
+                         SET download_url = ?, download_expires_at = ?
+                         WHERE id = ?`,
+                        [`/api/download-digital/${order.id}?token=${downloadToken}`, downloadExpiry, order.id]
+                    );
+                    
+                    // Update product stats
+                    await db.query(
+                        `UPDATE products 
+                         SET download_count = download_count + 1, sales_count = sales_count + 1 
+                         WHERE id = ?`,
+                        [order.product_id]
+                    );
+                    
+                    console.log(`✅ Digital order #${order.id} completed via Paystack`);
+                    
+                    return res.json({
+                        status: "success",
+                        message: "Payment verified successfully",
+                        product_title: order.product_title,
+                        download_url: `/api/download-digital/${order.id}?token=${downloadToken}`,
+                        order_id: order.id
+                    });
+                }
+            } catch (paystackErr) {
+                console.log("Paystack verification also failed");
+            }
+        }
+        
+        // If we get here, try to create a new order from the payment reference
+        // This handles cases where the order wasn't created before payment
+        try {
+            // Try Flutterwave to get transaction details
+            const response = await axios.get(
+                `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${cleanRef}`,
+                {
+                    headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+                }
+            );
+            
+            if (response.data.status === "success" && response.data.data.status === "successful") {
+                const transaction = response.data.data;
+                const meta = transaction.meta || {};
+                const productId = meta.product_id;
+                const userId = meta.user_id;
+                const amount = transaction.amount;
+                
+                if (productId && userId) {
+                    // Get product details
+                    const productResult = await db.query(
+                        "SELECT * FROM products WHERE id = ?",
+                        [productId]
+                    );
+                    
+                    let product = null;
+                    if (productResult && productResult.length > 0) {
+                        product = productResult[0];
+                    }
+                    
+                    if (product) {
+                        // Create digital order
+                        const insertResult = await db.query(
+                            `INSERT INTO digital_orders 
+                             (product_id, buyer_id, seller_id, amount_usd, transaction_ref, status, created_at)
+                             VALUES (?, ?, ?, ?, 'completed', NOW())`,
+                            [productId, userId, product.user_id, amount, cleanRef]
+                        );
+                        
+                        const orderId = insertResult.insertId;
+                        
+                        // Generate download token
+                        const downloadToken = crypto.randomBytes(32).toString('hex');
+                        const downloadExpiry = new Date();
+                        downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+                        
+                        await db.query(
+                            `UPDATE digital_orders 
+                             SET download_url = ?, download_expires_at = ?
+                             WHERE id = ?`,
+                            [`/api/download-digital/${orderId}?token=${downloadToken}`, downloadExpiry, orderId]
+                        );
+                        
+                        // Update product stats
+                        await db.query(
+                            `UPDATE products 
+                             SET download_count = download_count + 1, sales_count = sales_count + 1 
+                             WHERE id = ?`,
+                            [productId]
+                        );
+                        
+                        console.log(`✅ Created digital order #${orderId} from successful transaction`);
+                        
+                        return res.json({
+                            status: "success",
+                            message: "Payment verified and order created",
+                            product_title: product.title,
+                            download_url: `/api/download-digital/${orderId}?token=${downloadToken}`,
+                            order_id: orderId
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Transaction lookup error:", err.message);
+        }
+        
+        // If all else fails
+        res.status(400).json({
+            status: "failed",
+            message: "Could not verify payment. Please contact support with your transaction reference."
         });
         
     } catch (err) {
-        console.error("❌ Verification error:", err);
-        res.status(500).json({ error: err.message });
+        console.error("❌ Digital payment verification error:", err);
+        res.status(500).json({ 
+            status: "failed", 
+            message: "Error verifying payment: " + err.message 
+        });
     }
 });
+
+
 // ============================================
 // DOWNLOAD DIGITAL PRODUCT
 // ============================================

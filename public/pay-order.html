@@ -1,7 +1,3 @@
-<span style="color: gold;">
-بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
-In the name of Allah, the Most Gracious, the Most Merciful
-</span>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,10 +5,11 @@ In the name of Allah, the Most Gracious, the Most Merciful
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Complete Payment - Core Insight</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://checkout.flutterwave.com/v3.js"></script>
-<script src="https://js.paystack.co/v1/inline.js"></script>
- <style>
+  <script src="https://checkout.flutterwave.com/v3.js"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <style>
     * {
       margin: 0;
       padding: 0;
@@ -21,7 +18,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
     
     body {
       font-family: 'Inter', sans-serif;
-      background: #0a192f;
+      background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
       color: #e6f1ff;
       min-height: 100vh;
     }
@@ -32,12 +29,35 @@ In the name of Allah, the Most Gracious, the Most Merciful
       padding: 40px 20px;
     }
     
+    .bismillah {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255, 215, 0, 0.08);
+      border-radius: 20px;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 215, 0, 0.25);
+    }
+    
+    .bismillah .arabic {
+      font-size: 1.5rem;
+      font-family: 'Amiri', 'Traditional Arabic', serif;
+      color: #FFD700;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    
+    .bismillah .english {
+      font-size: 0.85rem;
+      color: rgba(255, 215, 0, 0.9);
+    }
+    
     .payment-card {
-      background: #1e293b;
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(10px);
       border-radius: 24px;
       overflow: hidden;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-      border: 1px solid #334155;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 215, 0, 0.2);
     }
     
     .payment-header {
@@ -60,11 +80,11 @@ In the name of Allah, the Most Gracious, the Most Merciful
     }
     
     .order-summary {
-      background: #0f172a;
+      background: rgba(15, 23, 42, 0.5);
       border-radius: 16px;
       padding: 20px;
       margin-bottom: 24px;
-      border: 1px solid #334155;
+      border: 1px solid rgba(255, 215, 0, 0.1);
     }
     
     .summary-row {
@@ -81,7 +101,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
     .summary-row.total {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 2px solid #3b82f6;
+      border-top: 2px solid #FFD700;
       font-weight: 700;
       font-size: 18px;
     }
@@ -95,7 +115,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
     }
     
     .fee-breakdown h4 {
-      color: #3b82f6;
+      color: #FFD700;
       margin-bottom: 12px;
       font-size: 14px;
     }
@@ -126,13 +146,13 @@ In the name of Allah, the Most Gracious, the Most Merciful
     }
     
     .method-btn:hover {
-      border-color: #3b82f6;
+      border-color: #FFD700;
       transform: translateY(-2px);
     }
     
     .method-btn.selected {
-      border-color: #3b82f6;
-      background: rgba(59, 130, 246, 0.1);
+      border-color: #FFD700;
+      background: rgba(255, 215, 0, 0.1);
     }
     
     .method-btn i {
@@ -148,22 +168,21 @@ In the name of Allah, the Most Gracious, the Most Merciful
     
     .pay-btn {
       width: 100%;
-      background: #3b82f6;
-      color: white;
+      background: linear-gradient(135deg, #FFD700, #D4AF37);
+      color: #0f172a;
       border: none;
       padding: 16px;
       border-radius: 12px;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s;
       margin-top: 20px;
     }
     
     .pay-btn:hover {
-      background: #2563eb;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
     }
     
     .pay-btn:disabled {
@@ -181,7 +200,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
     }
     
     .back-link:hover {
-      color: #3b82f6;
+      color: #FFD700;
     }
     
     .loading {
@@ -198,34 +217,10 @@ In the name of Allah, the Most Gracious, the Most Merciful
       color: #ef4444;
     }
     
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    
-    .status-pending {
-      background: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
-    }
-    
-    .status-success {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
-    }
-    
-    .status-error {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    
     @media (max-width: 640px) {
       .payment-methods {
         grid-template-columns: 1fr;
       }
-      
       .payment-body {
         padding: 20px;
       }
@@ -234,6 +229,11 @@ In the name of Allah, the Most Gracious, the Most Merciful
 </head>
 <body>
   <div class="container">
+    <div class="bismillah">
+      <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+      <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+    </div>
+
     <div class="payment-card">
       <div class="payment-header">
         <i class="fas fa-credit-card" style="font-size: 48px; margin-bottom: 16px;"></i>
@@ -306,19 +306,15 @@ In the name of Allah, the Most Gracious, the Most Merciful
   
   <script>
     let selectedMethod = 'flutterwave';
-let orderData = null;
-let currentUserId = null;
-let currentUser = null;  // ✅ ADD THIS LINE
-
-    // Get orderId from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('orderId');
+    let orderData = null;
+    let currentUserId = null;
+    let paymentKeys = { flutterwave: null, paystack: null };
+    const orderId = new URLSearchParams(window.location.search).get('orderId');
     
     if (!orderId) {
       showError('No order ID provided');
     }
     
-    // Payment method selection
     document.querySelectorAll('.method-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
@@ -327,173 +323,114 @@ let currentUser = null;  // ✅ ADD THIS LINE
       });
     });
     
-    // Check authentication first
     async function checkAuth() {
       try {
-        const res = await fetch('/api/me', { 
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        });
-        
+        const res = await fetch('/api/me', { credentials: 'include' });
         if (!res.ok) {
-          const returnUrl = encodeURIComponent(window.location.href);
-          window.location.href = `/login.html?redirect=${returnUrl}`;
+          window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
           return false;
         }
-        
         const user = await res.json();
         currentUserId = user?.id;
         return true;
       } catch (error) {
-        console.error('Auth check failed:', error);
         window.location.href = '/login.html';
         return false;
       }
     }
     
-    // Load order details
+    async function loadPaymentKeys() {
+      try {
+        const response = await fetch('/api/payment-keys', { credentials: 'include' });
+        const data = await response.json();
+        paymentKeys = data;
+        console.log('Payment keys loaded:', paymentKeys);
+      } catch (error) {
+        console.error('Failed to load payment keys:', error);
+      }
+    }
+    
+    async function confirmPayment(orderId, reference, method) {
+      try {
+        console.log(`Confirming payment for order #${orderId} via ${method}`);
+        const response = await fetch('/api/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            order_id: orderId, 
+            reference: reference,
+            payment_method: method 
+          }),
+          credentials: 'include'
+        });
+        const data = await response.json();
+        console.log('Confirmation result:', data);
+        return data;
+      } catch (error) {
+        console.error('Confirmation error:', error);
+        return { success: false };
+      }
+    }
+    
     async function loadOrderDetails() {
       const loadingState = document.getElementById('loadingState');
       const errorState = document.getElementById('errorState');
       const paymentContent = document.getElementById('paymentContent');
       
       try {
-        // Show loading
         loadingState.style.display = 'block';
         errorState.style.display = 'none';
         paymentContent.style.display = 'none';
         
-        const response = await fetch(`/api/orders/${orderId}`, {
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await fetch(`/api/orders/${orderId}`, { credentials: 'include' });
         
         if (response.status === 401) {
-          // Not authenticated - redirect to login
-          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-          window.location.href = `/login.html?redirect=${returnUrl}`;
+          window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
           return;
         }
         
-        if (response.status === 404) {
-          showError('Order not found. Please check the order ID and try again.');
-          return;
-        }
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
-        console.log('Order data received:', data);
-        
-        if (!data.success || !data.order) {
-          throw new Error('Invalid order data');
-        }
+        if (!data.success || !data.order) throw new Error('Invalid order data');
         
         orderData = data.order;
         
-        // Check if user is the buyer
-        if (orderData.buyer && orderData.buyer.id !== currentUserId) {
-          showError('You are not authorized to view this order.');
-          return;
-        }
-        
-        // Check if order is in correct state
         if (orderData.order_status !== 'seller_accepted') {
-          let statusMessage = '';
-          let actionMessage = '';
+          let statusMessage = {
+            'pending_seller_approval': '⏳ Order Pending Seller Approval',
+            'paid': '✅ Order Already Paid',
+            'completed': '✓ Order Completed',
+            'cancelled': '❌ Order Cancelled'
+          }[orderData.order_status] || `Order Status: ${orderData.order_status}`;
           
-          switch(orderData.order_status) {
-            case 'pending_seller_approval':
-              statusMessage = '⏳ Order Pending Seller Approval';
-              actionMessage = 'The seller has not yet accepted your order. Please wait for the seller to confirm availability. You will receive an email when accepted.';
-              break;
-            case 'paid':
-              statusMessage = '✅ Order Already Paid';
-              actionMessage = 'This order has already been paid for.';
-              break;
-            case 'completed':
-              statusMessage = '✓ Order Completed';
-              actionMessage = 'This order has been completed.';
-              break;
-            case 'cancelled':
-              statusMessage = '❌ Order Cancelled';
-              actionMessage = 'This order was cancelled by the seller.';
-              break;
-            default:
-              statusMessage = `Order Status: ${orderData.order_status}`;
-              actionMessage = 'Payment is not available for this order at this time.';
-          }
-          
-          document.getElementById('loadingState').style.display = 'none';
           document.getElementById('errorState').style.display = 'block';
-          document.getElementById('errorMessage').innerHTML = `
-            <strong>${statusMessage}</strong><br><br>
-            ${actionMessage}<br><br>
-            <a href="/products.html" class="back-link">← Back to Products</a>
-          `;
+          document.getElementById('errorMessage').innerHTML = `<strong>${statusMessage}</strong><br><br><a href="/order-tracking.html?orderId=${orderId}" class="back-link">View Order Status →</a>`;
+          loadingState.style.display = 'none';
           return;
         }
         
-        // Update UI with order details
         document.getElementById('orderId').textContent = `#${orderData.id}`;
         document.getElementById('productName').textContent = orderData.product_name || 'Product';
         document.getElementById('quantity').textContent = orderData.quantity;
         document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
         document.getElementById('totalAmount').textContent = `$${orderData.total_amount.toFixed(2)}`;
         
-        // Show fee breakdown if available
         if (orderData.fee_breakdown) {
           const fb = orderData.fee_breakdown;
           const container = document.getElementById('feeBreakdownContainer');
-          
-          let breakdownHtml = `
+          container.innerHTML = `
             <div class="fee-breakdown">
               <h4><i class="fas fa-calculator"></i> Fee Breakdown</h4>
-          `;
-          
-          if (fb.type === 'bulk') {
-            breakdownHtml += `
-              <div class="breakdown-item">
-                <span>Bulk Order Discount Applied!</span>
-                <span style="color: #10b981;">✓</span>
-              </div>
-              <div class="breakdown-item">
-                <span>Base Fee (10% of product price):</span>
-                <span>$${fb.base_fee?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div class="breakdown-item">
-                <span>Bulk Fee (10% of total):</span>
-                <span>$${fb.bulk_fee?.toFixed(2) || '0.00'}</span>
-              </div>
-            `;
-          } else {
-            breakdownHtml += `
-              <div class="breakdown-item">
-                <span>Platform Fee (10% of product price):</span>
-                <span>$${fb.platform_fee?.toFixed(2) || '0.00'}</span>
-              </div>
-            `;
-          }
-          
-          breakdownHtml += `
-              <div class="breakdown-item" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #334155;">
-                <span><strong>Seller Receives:</strong></span>
-                <span style="color: #10b981;"><strong>$${fb.seller_earnings?.toFixed(2) || '0.00'}</strong></span>
+              <div class="breakdown-item"><span>Platform Fee (10%):</span><span>$${fb.platform_fee?.toFixed(2) || '0.00'}</span></div>
+              <div class="breakdown-item" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155;">
+                <span><strong>Seller Receives:</strong></span><span style="color: #10b981;"><strong>$${fb.seller_earnings?.toFixed(2) || '0.00'}</strong></span>
               </div>
             </div>
           `;
-          
-          container.innerHTML = breakdownHtml;
           container.style.display = 'block';
         }
         
-        // Hide loading, show content
         loadingState.style.display = 'none';
         paymentContent.style.display = 'block';
         
@@ -502,270 +439,95 @@ let currentUser = null;  // ✅ ADD THIS LINE
         showError(error.message || 'Failed to load order details');
       }
     }
-
- // Pay button handler - FIXED (currentUser removed)
-document.getElementById('payNowBtn').addEventListener('click', async () => {
-  if (!orderData) {
-    alert('Order data not loaded. Please refresh the page.');
-    return;
-  }
-  
-  const payBtn = document.getElementById('payNowBtn');
-  const selectedMethod = document.querySelector('.method-btn.selected')?.getAttribute('data-method') || 'flutterwave';
-  
-  payBtn.disabled = true;
-  payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
-  
-  try {
-    const amount = parseFloat(orderData.total_amount);
-    // ✅ USE orderData.buyer instead of currentUser
-    const email = orderData.buyer?.email || '';
-    const name = orderData.buyer?.name || 'Customer';
-    const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
-    if (selectedMethod === 'flutterwave') {
-      if (!paymentKeys.flutterwave?.public_key) {
-        throw new Error('Flutterwave is not configured. Please contact support.');
+    document.getElementById('payNowBtn').addEventListener('click', async () => {
+      if (!orderData) {
+        alert('Order data not loaded. Please refresh the page.');
+        return;
       }
       
-      FlutterwaveCheckout({
-        public_key: paymentKeys.flutterwave.public_key,
-        tx_ref: tx_ref,
-        amount: amount,
-        currency: "USD",
-        payment_options: "card, banktransfer, ussd",
-        customer: {
-          email: email,
-          name: name,
-        },
-        customizations: {
-          title: "Core Insight Marketplace",
-          description: `Order #${orderId} - ${orderData.product_name}`,
-        },
-        callback: async (response) => {
-          await verifyPaymentOnServer(response.transaction_id, orderId, tx_ref);
-          window.location.href = `/payment-success.html?orderId=${orderId}`;
-        },
-        onclose: () => {
-          payBtn.disabled = false;
-          payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-        },
-      });
-  } else if (selectedMethod === 'paystack') {
-  if (!paymentKeys.paystack?.public_key) {
-    throw new Error('Paystack is not configured. Please contact support.');
-  }
-  
-  const usdAmount = amount;
-  
-  // Convert USD to NGN
-  let ngnAmount = usdAmount * 1550;
-  try {
-    const rateResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-    const rateData = await rateResponse.json();
-    if (rateData.rates && rateData.rates.NGN) {
-      ngnAmount = usdAmount * rateData.rates.NGN;
-    }
-  } catch (rateError) {}
-  
-  // Show confirmation
-  const ngnDisplay = ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (!confirm(`Pay ₦${ngnDisplay} NGN (≈ $${usdAmount.toFixed(2)} USD) via Paystack?`)) {
-    payBtn.disabled = false;
-    payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-    return;
-  }
-  
-  // Process payment
-  const handler = PaystackPop.setup({
-    key: paymentKeys.paystack.public_key,
-    email: email,
-    amount: Math.round(ngnAmount * 100),
-    currency: "NGN",
-    ref: tx_ref,
-    callback: function(response) {
-      verifyPaystackPayment(response.reference, orderId, usdAmount).then(() => {
-        window.location.href = `/payment-success.html?orderId=${orderId}`;
-      });
-    },
-    onClose: function() {
-      payBtn.disabled = false;
-      payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-    }
-  });
-  handler.openIframe();
-}
-  } catch (error) {
-    console.error('Payment error:', error);
-    alert('Payment Error:\n\n' + error.message);
-    payBtn.disabled = false;
-    payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
-  }
-});
-
-
-// Verify payment with your server after successful payment
-async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
-  try {
-    const response = await fetch('/api/verify-physical-payment-direct', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        transaction_id: transactionId, 
-        order_id: orderId,
-        tx_ref: tx_ref 
-      }),
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Verification result:', data);
-    return data;
-  } catch (error) {
-    console.error('Verification error:', error);
-    throw error;
-  }
-}
-
-async function verifyPaystackPayment(reference, orderId, usdAmount) {
-  try {
-    const response = await fetch('/api/verify-paystack-payment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        reference: reference, 
-        order_id: orderId,
-        usd_amount: usdAmount  // Pass the original USD amount
-      }),
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Paystack verification:', data);
-    return data;
-  } catch (error) {
-    console.error('Paystack verification error:', error);
-    throw error;
-  }
-}
-// Load payment keys when page loads
-async function loadPaymentKeys() {
-  try {
-    const response = await fetch('/api/payment-keys', {
-      credentials: 'include'
-    });
-    const data = await response.json();
-    paymentKeys = data;
-    
-    if (!paymentKeys.flutterwave?.isConfigured && !paymentKeys.paystack?.isConfigured) {
-      console.warn('⚠️ No payment gateways configured');
       const payBtn = document.getElementById('payNowBtn');
-      if (payBtn) {
-        payBtn.disabled = true;
-        payBtn.title = 'Payment not configured';
+      const amount = parseFloat(orderData.total_amount);
+      const email = orderData.buyer?.email || '';
+      const name = orderData.buyer?.name || 'Customer';
+      const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+      
+      payBtn.disabled = true;
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
+      
+      try {
+        if (selectedMethod === 'flutterwave') {
+          if (!paymentKeys.flutterwave?.public_key) throw new Error('Flutterwave is not configured');
+          
+          FlutterwaveCheckout({
+            public_key: paymentKeys.flutterwave.public_key,
+            tx_ref: tx_ref,
+            amount: amount,
+            currency: "USD",
+            payment_options: "card, banktransfer, ussd",
+            customer: { email: email, name: name },
+            customizations: { title: "Core Insight", description: `Order #${orderId}` },
+            callback: async (response) => {
+              console.log("Flutterwave callback:", response);
+              // Force confirm payment
+              await confirmPayment(orderId, response.transaction_id, 'flutterwave');
+              window.location.href = `/order-tracking.html?orderId=${orderId}`;
+            },
+            onclose: () => {
+              payBtn.disabled = false;
+              payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+            }
+          });
+        } else if (selectedMethod === 'paystack') {
+          if (!paymentKeys.paystack?.public_key) throw new Error('Paystack is not configured');
+          
+          let ngnAmount = amount * 1550;
+          try {
+            const rateRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+            const rateData = await rateRes.json();
+            if (rateData.rates?.NGN) ngnAmount = amount * rateData.rates.NGN;
+          } catch (e) {}
+          
+          if (!confirm(`Pay ₦${ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} NGN via Paystack?`)) {
+            payBtn.disabled = false;
+            payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+            return;
+          }
+          
+          const handler = PaystackPop.setup({
+            key: paymentKeys.paystack.public_key,
+            email: email,
+            amount: Math.round(ngnAmount * 100),
+            currency: "NGN",
+            ref: tx_ref,
+            callback: async (response) => {
+              console.log("Paystack callback:", response);
+              // Force confirm payment
+              await confirmPayment(orderId, response.reference, 'paystack');
+              window.location.href = `/order-tracking.html?orderId=${orderId}`;
+            },
+            onClose: () => {
+              payBtn.disabled = false;
+              payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+            }
+          });
+          handler.openIframe();
+        }
+      } catch (error) {
+        alert('Payment Error:\n' + error.message);
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
       }
-    }
+    });
     
-    console.log('✅ Payment keys loaded:', {
-      flutterwave: paymentKeys.flutterwave?.isConfigured ? 'configured' : 'not configured',
-      paystack: paymentKeys.paystack?.isConfigured ? 'configured' : 'not configured'
-    });
-  } catch (error) {
-    console.error('❌ Failed to load payment keys:', error);
-  }
-}
-// Fetch payment keys from server securely
-let paymentKeys = { flutterwave: null, paystack: null };
-
-async function loadPaymentKeys() {
-  try {
-    const response = await fetch('/api/payment-keys', {
-      credentials: 'include'
-    });
-    const data = await response.json();
-    paymentKeys = data;
-    
-    if (!paymentKeys.flutterwave.isConfigured && !paymentKeys.paystack.isConfigured) {
-      console.warn('No payment gateways configured');
-      const payBtn = document.getElementById('payNowBtn');
-      if (payBtn) {
-        payBtn.disabled = true;
-        payBtn.title = 'Payment not configured';
-      }
-    }
-    
-    console.log('Payment keys loaded:', {
-      flutterwave: paymentKeys.flutterwave.isConfigured,
-      paystack: paymentKeys.paystack.isConfigured
-    });
-  } catch (error) {
-    console.error('Failed to load payment keys:', error);
-  }
-}
-
-// Verify payment with your server after successful payment
-async function verifyPaymentOnServer(transactionId, orderId, tx_ref) {
-  try {
-    const response = await fetch('/api/verify-physical-payment-direct', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        transaction_id: transactionId, 
-        order_id: orderId,
-        tx_ref: tx_ref 
-      }),
-      credentials: 'include'
-    });
-    const data = await response.json();
-    console.log('Verification result:', data);
-    return data;
-  } catch (error) {
-    console.error('Verification error:', error);
-  }
-}
-
-async function verifyPaystackPayment(reference, orderId) {
-  try {
-    const response = await fetch('/api/verify-paystack-payment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reference: reference, order_id: orderId }),
-      credentials: 'include'
-    });
-    return await response.json();
-  } catch (error) {
-    console.error('Paystack verification error:', error);
-  }
-}
     function showError(message) {
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('errorState').style.display = 'block';
       document.getElementById('errorMessage').innerHTML = message;
     }
     
-    // Get current user info
-    async function getCurrentUser() {
-      try {
-        const response = await fetch('/api/me', { 
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        });
-        if (response.ok) {
-          const user = await response.json();
-          currentUserId = user?.id;
-           currentUser = user; 
-          console.log('Current user ID:', currentUserId);
-        }
-      } catch (error) {
-        console.error('Failed to get user:', error);
-      }
-    }
-    
-    // Initialize
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('Page loaded, checking authentication...');
-      const isAuthenticated = await checkAuth();
-      
-      if (isAuthenticated) {
-        await getCurrentUser();
+      if (await checkAuth()) {
         await loadPaymentKeys();
         await loadOrderDetails();
       }

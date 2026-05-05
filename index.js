@@ -842,64 +842,7 @@ async function sendOrderStatusUpdateEmail(orderData) {
   return await sendEmail(orderData.email, `Order Update #${orderData.orderId}`, htmlContent);
 }
 
-app.post("/api/verify-paystack-payment", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    const { reference, order_id, usd_amount } = req.body;
-    
-    console.log(`🔍 Verifying Paystack payment for order #${order_id}`);
-    
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-      }
-    );
-    
-    if (response.data.status === true && response.data.data.status === "success") {
-      const ngnAmountPaid = response.data.data.amount / 100;
-      
-      // IMPORTANT: Update BOTH payment_status AND order_status
-      await db.query(
-        `UPDATE physical_orders 
-         SET payment_status = 'paid',
-             order_status = 'paid',
-             payment_collected_at = NOW(),
-             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
-             transaction_ref = ?,
-             amount_paid_currency = 'NGN',
-             amount_paid = ?
-         WHERE id = ?`,
-        [reference, ngnAmountPaid, order_id]
-      );
-      
-      // Add to status history for tracking
-      await db.query(
-        `INSERT INTO order_status_history (order_id, status, notes, created_at)
-         VALUES (?, 'payment_completed', 'Payment received and held in escrow', NOW())`,
-        [order_id]
-      );
-      
-      console.log(`✅ Order #${order_id} updated to PAID status`);
-      
-      res.json({ 
-        success: true, 
-        message: "Payment verified successfully",
-        order_id: order_id,
-        order_status: 'paid'
-      });
-    } else {
-      console.log(`❌ Payment verification failed for order #${order_id}`);
-      res.status(400).json({ success: false, message: "Payment verification failed" });
-    }
-  } catch (err) {
-    console.error("❌ Paystack verification error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+
 // ============================================
 // COMPLAINT/SUPPORT EMAIL ENDPOINT
 // ============================================
@@ -2524,177 +2467,7 @@ app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
   }
 });
 
-// =================== MIGRATION ENDPOINTS ===================
-app.post("/api/admin/migrate-to-cloudinary", async (req, res) => {
-  try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
 
-    const { courseId } = req.body;
-    const results = {
-      success: [],
-      failed: [],
-      skipped: []
-    };
-
-    let courses = [];
-    if (courseId) {
-      const result = await db.query("SELECT * FROM courses WHERE id = ?", [courseId]);
-      courses = Array.isArray(result) ? result : (result[0] || []);
-    } else {
-      const result = await db.query(`
-        SELECT * FROM courses 
-        WHERE (file_url IS NULL OR file_url = '') 
-        AND file_path IS NOT NULL
-      `);
-      courses = Array.isArray(result) ? result : (result[0] || []);
-    }
-
-    console.log(`Found ${courses.length} courses to migrate`);
-
-    for (const course of courses) {
-      try {
-        console.log(`Processing course ${course.id}: ${course.title}`);
-        
-        if (course.file_url && course.file_url.includes('cloudinary.com')) {
-          results.skipped.push({
-            id: course.id,
-            title: course.title,
-            reason: "Already has Cloudinary URL"
-          });
-          continue;
-        }
-
-        let filePath = course.file_path;
-        const filename = path.basename(filePath);
-        
-        const possiblePaths = [
-          path.join(__dirname, "uploads/courses", filename),
-          path.join(__dirname, "uploads", filename),
-          path.join(__dirname, filePath),
-          path.join(__dirname, "public", "uploads", "courses", filename),
-          `/opt/render/project/src/uploads/courses/${filename}`,
-          `/opt/render/project/src/uploads/${filename}`,
-        ];
-
-        let foundPath = null;
-        for (const testPath of possiblePaths) {
-          if (fs.existsSync(testPath)) {
-            foundPath = testPath;
-            break;
-          }
-        }
-
-        if (!foundPath) {
-          results.failed.push({
-            id: course.id,
-            title: course.title,
-            error: "Local file not found",
-            searched_paths: possiblePaths
-          });
-          continue;
-        }
-
-        console.log(`Found file at: ${foundPath}`);
-
-        const uploadResult = await new Promise((resolve, reject) => {
-          const upload = uploadCourseFile.single('file');
-          
-          const mockReq = {
-            file: {
-              path: foundPath,
-              originalname: filename,
-              mimetype: 'application/pdf'
-            },
-            body: {}
-          };
-          
-          const mockRes = {
-            json: resolve,
-            status: () => ({ json: reject })
-          };
-          
-          upload(mockReq, mockRes, (err) => {
-            if (err) reject(err);
-            else resolve({ file: mockReq.file });
-          });
-        });
-
-        if (!uploadResult || !uploadResult.file || !uploadResult.file.path) {
-          throw new Error("Upload failed - no URL returned");
-        }
-
-        const cloudinaryUrl = uploadResult.file.path;
-        console.log(`Uploaded to Cloudinary: ${cloudinaryUrl}`);
-
-        await db.query(
-          "UPDATE courses SET file_url = ?, file_path = NULL WHERE id = ?",
-          [cloudinaryUrl, course.id]
-        );
-
-        results.success.push({
-          id: course.id,
-          title: course.title,
-          old_path: course.file_path,
-          new_url: cloudinaryUrl
-        });
-
-        try {
-          fs.unlinkSync(foundPath);
-          console.log(`Deleted local file: ${foundPath}`);
-        } catch (deleteErr) {
-          console.log(`Could not delete local file: ${deleteErr.message}`);
-        }
-
-      } catch (err) {
-        console.error(`Error migrating course ${course.id}:`, err);
-        results.failed.push({
-          id: course.id,
-          title: course.title,
-          error: err.message
-        });
-      }
-    }
-
-    res.json({
-      success: true,
-      message: `Migration completed. ${results.success.length} succeeded, ${results.failed.length} failed, ${results.skipped.length} skipped.`,
-      results: results
-    });
-
-  } catch (err) {
-    console.error("Migration error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/admin/migration-status", async (req, res) => {
-  try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
-    const result = await db.query(`
-      SELECT 
-        COUNT(*) as total_courses,
-        SUM(CASE WHEN file_url IS NOT NULL AND file_url != '' THEN 1 ELSE 0 END) as has_cloudinary,
-        SUM(CASE WHEN (file_url IS NULL OR file_url = '') AND file_path IS NOT NULL THEN 1 ELSE 0 END) as needs_migration,
-        SUM(CASE WHEN file_path IS NULL AND (file_url IS NULL OR file_url = '') THEN 1 ELSE 0 END) as no_file
-      FROM courses
-    `);
-
-    const courses = Array.isArray(result) ? result[0] : result;
-
-    res.json({
-      success: true,
-      stats: courses
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // =================== FIX COURSE PATHS ===================
 app.get("/api/admin/fix-course-paths", async (req, res) => {
@@ -4764,7 +4537,123 @@ app.get("/api/debug/orders", async (req, res) => {
   }
 });
 
-
+app.post("/api/verify-paystack-payment", async (req, res) => {
+  try {
+    console.log("🔍 Verifying Paystack payment...");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const { reference, order_id, usd_amount } = req.body;
+    
+    if (!reference || !order_id) {
+      return res.status(400).json({ error: "Reference and order_id are required" });
+    }
+    
+    console.log(`📝 Verifying Paystack payment for order #${order_id}, reference: ${reference}`);
+    
+    // Verify with Paystack API
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === true && response.data.data.status === "success") {
+      const transaction = response.data.data;
+      const ngnAmountPaid = transaction.amount / 100;
+      
+      // Update order status
+      const [updateResult] = await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+             transaction_ref = ?,
+             amount_paid_currency = 'NGN',
+             amount_paid = ?
+         WHERE id = ?`,
+        [reference, ngnAmountPaid, order_id]
+      );
+      
+      console.log(`✅ Order #${order_id} updated to PAID status`);
+      
+      res.json({ 
+        success: true, 
+        message: "Payment verified successfully",
+        order_id: order_id,
+        order_status: 'paid'
+      });
+    } else {
+      res.status(400).json({ 
+        success: false, 
+        message: "Payment verification failed" 
+      });
+    }
+  } catch (err) {
+    console.error("❌ Paystack verification error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/confirm-payment", async (req, res) => {
+  try {
+    const { order_id, reference, payment_method } = req.body;
+    
+    if (!order_id) {
+      return res.status(400).json({ error: "Order ID required" });
+    }
+    
+    console.log(`💰 Confirming payment for order #${order_id} via ${payment_method || 'direct'}`);
+    
+    // Update order status
+    await db.query(
+      `UPDATE physical_orders 
+       SET payment_status = 'paid',
+           order_status = 'paid',
+           payment_collected_at = NOW(),
+           payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+           transaction_ref = COALESCE(?, transaction_ref)
+       WHERE id = ? AND payment_status != 'paid'`,
+      [reference, order_id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: "Payment confirmed successfully"
+    });
+    
+  } catch (err) {
+    console.error("Confirm payment error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Add to index.js - Admin fix endpoint
+app.post("/api/admin/fix-order-payment", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin only" });
+    }
+    
+    const { order_id } = req.body;
+    
+    await db.query(
+      `UPDATE physical_orders 
+       SET payment_status = 'paid',
+           order_status = 'paid',
+           payment_collected_at = NOW(),
+           payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY)
+       WHERE id = ?`,
+      [order_id]
+    );
+    
+    res.json({ success: true, message: `Order #${order_id} fixed` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // TEST DATABASE CONNECTION
 app.get("/api/test-db", async (req, res) => {
   try {
@@ -12113,67 +12002,7 @@ app.post("/api/verify-physical-payment-direct", async (req, res) => {
   }
 });
 
-// Update this endpoint in your index.js
-app.post("/api/verify-paystack-payment", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    const { reference, order_id, usd_amount } = req.body;
-    
-    console.log(`🔍 Verifying Paystack payment for order #${order_id}, reference: ${reference}`);
-    
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-      }
-    );
-    
-    if (response.data.status === true && response.data.data.status === "success") {
-      const ngnAmountPaid = response.data.data.amount / 100; // Convert from kobo to NGN
-      const usdAmount = usd_amount || (ngnAmountPaid / 1500); // Approximate conversion
-      
-      console.log(`✅ Payment verified! Updating order #${order_id} to 'paid'`);
-      
-      // Update order with correct statuses
-      await db.query(
-        `UPDATE physical_orders 
-         SET payment_status = 'paid',
-             order_status = 'paid',
-             payment_collected_at = NOW(),
-             payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
-             transaction_ref = ?,
-             amount_paid_currency = 'NGN',
-             amount_paid = ?,
-             original_amount_usd = ?
-         WHERE id = ?`,
-        [reference, ngnAmountPaid, usdAmount, order_id]
-      );
-      
-      // Add status history entry
-      await db.query(
-        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-         VALUES (?, 'payment_completed', 'Payment received and held in escrow', ?, NOW())`,
-        [order_id, req.session.user.id]
-      );
-      
-      res.json({ 
-        success: true, 
-        message: "Payment verified successfully",
-        order_id: order_id,
-        order_status: 'paid'
-      });
-    } else {
-      console.log(`❌ Paystack verification failed for order #${order_id}`);
-      res.status(400).json({ success: false, message: "Payment verification failed" });
-    }
-  } catch (err) {
-    console.error("❌ Paystack verification error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+
 // ============================================
 // VERIFY PHYSICAL PAYMENT - FIXED ESCROW TIMING
 // ============================================

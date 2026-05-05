@@ -547,38 +547,139 @@ function getOrderStatusUpdateTemplate(orderData) {
 // CURRENCY CONVERSION ENDPOINT
 // ============================================
 
+// ============================================
+// CURRENCY CONVERSION - FIXED
+// ============================================
+
 // Store exchange rates (refresh every hour)
 let cachedExchangeRates = {
-    USD_TO_NGN: 1500,  // Default fallback rate
+    rates: {
+        USD: 1,
+        NGN: 1500,      // Default fallback
+        EUR: 0.92,
+        GBP: 0.79,
+        KES: 130,
+        GHS: 15,
+        ZAR: 19,
+        CAD: 1.37,
+        AUD: 1.50,
+        JPY: 150,
+        CNY: 7.2,
+        INR: 83,
+        BRL: 5.1,
+        MXN: 17,
+        AED: 3.67,
+        SAR: 3.75,
+        EGP: 48,
+        MAD: 10,
+        TZS: 2600,
+        UGX: 3800,
+        RWF: 1300,
+        XOF: 610,
+        XAF: 610
+    },
     lastUpdated: null
 };
 
-// Get current exchange rate
+// Get current exchange rate with USD as base
 async function getExchangeRate() {
     try {
         // Check if cache is stale (older than 1 hour)
         if (cachedExchangeRates.lastUpdated && 
             (Date.now() - cachedExchangeRates.lastUpdated) < 3600000) {
+            console.log('📊 Using cached exchange rates, USD_TO_NGN:', cachedExchangeRates.rates.NGN);
             return cachedExchangeRates;
         }
         
-        // Fetch from API (using free API)
-        const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
-        const usdToNgn = response.data.rates.NGN;
+        console.log('🌍 Fetching fresh exchange rates...');
         
-        cachedExchangeRates = {
-            USD_TO_NGN: usdToNgn,
-            lastUpdated: Date.now(),
-            rates: response.data.rates
-        };
+        // Try multiple free APIs for redundancy
+        let rates = null;
         
-        console.log(`💰 Exchange rate updated: 1 USD = ${usdToNgn} NGN`);
+        // Try exchangerate-api.com first
+        try {
+            const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD', {
+                timeout: 10000
+            });
+            if (response.data && response.data.rates) {
+                rates = response.data.rates;
+                console.log('✅ Got rates from exchangerate-api.com');
+            }
+        } catch (err) {
+            console.log('Exchangerate-api.com failed:', err.message);
+        }
+        
+        // Fallback to frankfurter.app
+        if (!rates) {
+            try {
+                const response = await axios.get('https://api.frankfurter.app/latest?from=USD', {
+                    timeout: 10000
+                });
+                if (response.data && response.data.rates) {
+                    rates = response.data.rates;
+                    console.log('✅ Got rates from frankfurter.app');
+                }
+            } catch (err) {
+                console.log('Frankfurter.app failed:', err.message);
+            }
+        }
+        
+        // Final fallback to freecurrencyapi
+        if (!rates) {
+            try {
+                const response = await axios.get('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', {
+                    timeout: 10000
+                });
+                if (response.data && response.data.usd) {
+                    rates = response.data.usd;
+                    console.log('✅ Got rates from currency-api');
+                }
+            } catch (err) {
+                console.log('Currency-api failed:', err.message);
+            }
+        }
+        
+        if (rates) {
+            // Ensure NGN rate exists, otherwise use fallback
+            const ngnRate = rates.NGN || 1500;
+            cachedExchangeRates = {
+                rates: {
+                    USD: 1,
+                    NGN: ngnRate,
+                    EUR: rates.EUR || 0.92,
+                    GBP: rates.GBP || 0.79,
+                    KES: rates.KES || 130,
+                    GHS: rates.GHS || 15,
+                    ZAR: rates.ZAR || 19,
+                    CAD: rates.CAD || 1.37,
+                    AUD: rates.AUD || 1.50,
+                    JPY: rates.JPY || 150,
+                    CNY: rates.CNY || 7.2,
+                    INR: rates.INR || 83,
+                    BRL: rates.BRL || 5.1,
+                    MXN: rates.MXN || 17,
+                    AED: rates.AED || 3.67,
+                    SAR: rates.SAR || 3.75,
+                    EGP: rates.EGP || 48,
+                    MAD: rates.MAD || 10,
+                    TZS: rates.TZS || 2600,
+                    UGX: rates.UGX || 3800,
+                    RWF: rates.RWF || 1300,
+                    XOF: rates.XOF || 610,
+                    XAF: rates.XAF || 610
+                },
+                lastUpdated: Date.now()
+            };
+            console.log(`💰 Exchange rate updated: 1 USD = ${cachedExchangeRates.rates.NGN} NGN`);
+        } else {
+            console.log('⚠️ Using cached/fallback exchange rates');
+        }
+        
         return cachedExchangeRates;
         
     } catch (err) {
-        console.error("Exchange rate fetch error:", err.message);
-        // Return cached or default rate
-        return { USD_TO_NGN: 1500, rates: { NGN: 1500 } };
+        console.error("❌ Exchange rate fetch error:", err.message);
+        return cachedExchangeRates;
     }
 }
 
@@ -587,18 +688,186 @@ app.get("/api/currency-rates", async (req, res) => {
     try {
         const rates = await getExchangeRate();
         res.json({
-            rates: {
-                USD: 1,
-                NGN: rates.USD_TO_NGN,
-                EUR: rates.rates?.EUR || 0.92,
-                GBP: rates.rates?.GBP || 0.79
-            },
-            lastUpdated: rates.lastUpdated
+            success: true,
+            rates: rates.rates,
+            lastUpdated: rates.lastUpdated,
+            base: 'USD'
         });
     } catch (err) {
+        console.error('Currency rates error:', err);
+        res.status(500).json({ 
+            success: false, 
+            error: err.message,
+            rates: { USD: 1, NGN: 1500 } // Fallback
+        });
+    }
+});
+
+// ============================================
+// AUTOMATIC ESCROW RELEASE SYSTEM
+// Runs every hour to check for orders ready for payment release
+// ============================================
+
+// Schedule automatic escrow release
+function startEscrowReleaseScheduler() {
+    console.log('🔄 Starting automatic escrow release scheduler...');
+    
+    // Run immediately on startup
+    setTimeout(() => {
+        releaseExpiredEscrowFunds();
+    }, 5000); // Wait 5 seconds after server start
+    
+    // Then run every hour
+    setInterval(async () => {
+        await releaseExpiredEscrowFunds();
+    }, 60 * 60 * 1000); // Every hour
+    
+    console.log('✅ Escrow release scheduler started (runs every hour)');
+}
+
+// Function to release expired escrow funds
+async function releaseExpiredEscrowFunds() {
+    try {
+        console.log(`🕐 Running escrow release check at ${new Date().toISOString()}`);
+        
+        // Find orders where:
+        // 1. Payment is held in escrow (payment_status = 'paid')
+        // 2. Order is in delivered status (customer confirmed receipt)
+        // 3. 5 days have passed since delivery (payment_held_until <= NOW)
+        // 4. Funds not yet released
+        const orders = await db.query(`
+            SELECT 
+                o.id,
+                o.seller_id,
+                o.total_amount,
+                o.seller_earnings,
+                o.platform_fee,
+                o.payment_held_until,
+                o.delivered_at,
+                u.email as seller_email,
+                u.username as seller_name
+            FROM physical_orders o
+            LEFT JOIN users u ON o.seller_id = u.id
+            WHERE o.payment_status = 'paid'
+                AND o.order_status = 'delivered'
+                AND o.payment_held_until IS NOT NULL
+                AND o.payment_held_until <= NOW()
+                AND o.funds_released_at IS NULL
+        `);
+        
+        if (!orders || orders.length === 0) {
+            console.log('  No orders ready for escrow release');
+            return;
+        }
+        
+        console.log(`  Found ${orders.length} orders ready for release`);
+        
+        let released = 0;
+        let failed = 0;
+        
+        for (const order of orders) {
+            try {
+                console.log(`  Releasing funds for order #${order.id}...`);
+                
+                // Update order to completed and release funds
+                await db.query(`
+                    UPDATE physical_orders 
+                    SET order_status = 'completed',
+                        funds_released_at = NOW()
+                    WHERE id = ?
+                `, [order.id]);
+                
+                // Record in status history
+                try {
+                    await db.query(`
+                        INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+                        VALUES (?, 'escrow_released', 'Funds automatically released after 5-day escrow period', NULL, NOW())
+                    `, [order.id]);
+                } catch (historyErr) {
+                    // Silently fail if table doesn't exist
+                }
+                
+                // Send email notification to seller
+                if (order.seller_email) {
+                    const emailHtml = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Funds Released - Core Insight</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+                                .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+                                .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+                                .success-icon { font-size: 48px; text-align: center; margin-bottom: 20px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="success-icon">💰</div>
+                                <h1 style="color: #10b981;">Funds Released!</h1>
+                                <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+                                <p>The escrow period for <strong>Order #${order.id}</strong> has completed successfully.</p>
+                                <p class="amount">$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
+                                <p>has been released to your account.</p>
+                                <p>Funds should appear in your bank account within 3-5 business days.</p>
+                                <hr style="border-color: #334155; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #94a3b8;">
+                                    Order total: $${parseFloat(order.total_amount).toFixed(2)}<br>
+                                    Platform fee (10%): $${parseFloat(order.platform_fee || order.total_amount * 0.1).toFixed(2)}
+                                </p>
+                                <a href="https://core-insight-7.onrender.com/dashboard" 
+                                   style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+                                    View Dashboard
+                                </a>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    await sendEmail(order.seller_email, `Funds Released for Order #${order.id}`, emailHtml);
+                    console.log(`  ✅ Email sent to seller for order #${order.id}`);
+                }
+                
+                released++;
+                console.log(`  ✅ Released funds for order #${order.id}`);
+                
+            } catch (err) {
+                console.error(`  ❌ Failed to release order #${order.id}:`, err.message);
+                failed++;
+            }
+        }
+        
+        console.log(`📊 Escrow release summary: ${released} released, ${failed} failed`);
+        
+    } catch (err) {
+        console.error('❌ Escrow release error:', err);
+    }
+}
+
+// Also add a manual trigger endpoint for testing
+app.post("/api/admin/trigger-escrow-release", async (req, res) => {
+    try {
+        if (!req.session.user || req.session.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        
+        console.log("🔄 Manual escrow release triggered by admin");
+        await releaseExpiredEscrowFunds();
+        
+        res.json({ 
+            success: true, 
+            message: "Escrow release check completed. Check server logs for details." 
+        });
+        
+    } catch (err) {
+        console.error("Manual escrow release error:", err);
         res.status(500).json({ error: err.message });
     }
 });
+
+// Start the scheduler when server starts
+startEscrowReleaseScheduler();
+
 // ============================================
 // UPDATE EXISTING FUNCTIONS TO USE NEW EMAIL SYSTEM
 // ============================================
@@ -11511,7 +11780,10 @@ app.post("/api/orders/:orderId/release-funds", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Verify delivery code and complete order (for buyer)
+// ============================================
+// VERIFY DELIVERY CODE AND START ESCROW COUNTDOWN
+// ============================================
+
 app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -11527,7 +11799,8 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     
     // Verify buyer owns this order
     const orderResult = await db.query(
-      `SELECT o.*, u.email as seller_email, u.username as seller_name, p.title as product_name
+      `SELECT o.*, u.email as seller_email, u.username as seller_name, 
+              p.title as product_name, p.id as product_id
        FROM physical_orders o
        LEFT JOIN users u ON o.seller_id = u.id
        LEFT JOIN products p ON o.product_id = p.id
@@ -11543,7 +11816,9 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     
     // Check if order is in shipped status (has delivery code)
     if (order.order_status !== 'shipped') {
-      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
+      return res.status(400).json({ 
+        error: `Cannot confirm delivery for order with status: ${order.order_status}` 
+      });
     }
     
     if (!order.delivery_code) {
@@ -11555,32 +11830,44 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
       return res.status(400).json({ error: "Invalid delivery code. Please check and try again." });
     }
     
-    // Mark delivery code as used
-    await db.query(
-      `UPDATE delivery_codes 
-       SET status = 'used', used_at = NOW(), used_by = ?
-       WHERE order_id = ? AND code = ?`,
-      [req.session.user.id, orderId, delivery_code]
-    );
-    
-    // Update order to delivered status (5-day escrow starts now)
+    // Calculate escrow release date: 5 days from NOW (delivery confirmation)
     const escrowReleaseDate = new Date();
     escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
     
+    // Get current time for delivered_at
+    const deliveredAt = new Date();
+    
+    // Update order to delivered status and START the 5-day escrow countdown
     await db.query(
       `UPDATE physical_orders 
        SET order_status = 'delivered',
-           delivered_at = NOW(),
-           payment_held_until = ?
+           delivered_at = ?,
+           payment_held_until = ?,  -- ✅ 5-day countdown STARTS NOW
+           delivery_code_verified_at = ?,
+           delivery_code_verified_by = ?
        WHERE id = ?`,
-      [escrowReleaseDate, orderId]
+      [deliveredAt, escrowReleaseDate, deliveredAt, req.session.user.id, orderId]
     );
+    
+    // Mark delivery code as used
+    try {
+      await db.query(
+        `UPDATE delivery_codes 
+         SET status = 'used', 
+             used_at = NOW(), 
+             used_by = ?
+         WHERE order_id = ? AND code = ?`,
+        [req.session.user.id, orderId, delivery_code]
+      );
+    } catch (codeErr) {
+      console.log('Delivery codes table not available yet');
+    }
     
     // Add to status history
     try {
       await db.query(
         `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-         VALUES (?, 'delivered', 'Buyer confirmed delivery with code', ?, NOW())`,
+         VALUES (?, 'delivered', 'Buyer confirmed delivery with code. 5-day escrow countdown started.', ?, NOW())`,
         [orderId, req.session.user.id]
       );
     } catch (historyErr) {
@@ -11597,28 +11884,122 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
           body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
           .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
           .success { color: #10b981; }
+          .info { color: #f59e0b; }
+          .release-date { font-size: 20px; font-weight: bold; color: #10b981; }
         </style>
       </head>
       <body>
         <div class="container">
           <h1 class="success">✅ Order Delivered!</h1>
-          <p>Hello ${order.seller_name},</p>
-          <p>Your order for <strong>${order.product_name}</strong> has been delivered and confirmed by the buyer.</p>
-          <p>Funds will be released to your account in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless a dispute is raised.</p>
-          <a href="https://core-insight-7.onrender.com/dashboard.html" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">View Dashboard</a>
+          <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+          <p>Great news! Your order for <strong>${escapeHtml(order.product_name)}</strong> has been delivered and confirmed by the buyer.</p>
+          
+          <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <h3>Order #${orderId}</h3>
+            <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+            <p><strong>Quantity:</strong> ${order.quantity}</p>
+            <p><strong>Total Amount:</strong> $${parseFloat(order.total_amount).toFixed(2)}</p>
+            <p><strong>Your Earnings (90%):</strong> $${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
+            <p><strong>Platform Fee (10%):</strong> $${parseFloat(order.platform_fee || order.total_amount * 0.1).toFixed(2)}</p>
+          </div>
+          
+          <div class="info" style="background: #f59e0b20; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>⏰ ESCROW RELEASE INFORMATION</strong><br>
+            <p>Funds will be automatically released to your account on:</p>
+            <p class="release-date">${escrowReleaseDate.toLocaleDateString()} (5 days from now)</p>
+            <p>If the buyer does not raise a dispute within 5 days, the funds will be released automatically.</p>
+          </div>
+          
+          <p>No action is needed from you at this time. The funds will be transferred to your bank account after the escrow period.</p>
+          
+          <a href="https://core-insight-7.onrender.com/dashboard" 
+             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+            View Dashboard
+          </a>
         </div>
       </body>
       </html>
     `;
     
-    await sendEmail(order.seller_email, `Order #${orderId} Delivered`, sellerEmailHtml);
+    await sendEmail(order.seller_email, `Order #${orderId} Delivered - Funds Held in Escrow`, sellerEmailHtml).catch(err => {
+      console.error('Seller delivery notification email failed:', err.message);
+    });
+    
+    // Send confirmation to buyer
+    const buyerEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Delivery Confirmed - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .success { color: #10b981; }
+          .warning { color: #f59e0b; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1 class="success">✅ Delivery Confirmed!</h1>
+          <p>Hello ${escapeHtml(order.seller_name ? 'Valued Customer' : 'there')},</p>
+          <p>Thank you for confirming delivery of <strong>${escapeHtml(order.product_name)}</strong>.</p>
+          
+          <div class="warning" style="background: #f59e0b20; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>⚠️ IMPORTANT - YOUR RIGHTS</strong><br>
+            <p>You have <strong>5 days</strong> from today (until ${escrowReleaseDate.toLocaleDateString()}) to request a refund if:</p>
+            <ul style="margin: 10px 0 0 20px;">
+              <li>The product is damaged or defective</li>
+              <li>The product doesn't match the description</li>
+              <li>You didn't receive what you ordered</li>
+            </ul>
+            <p style="margin-top: 10px;">After 5 days, funds will be automatically released to the seller.</p>
+          </div>
+          
+          <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>How to request a refund (if needed):</strong><br>
+            <p>1. Go to your Dashboard → My Orders<br>
+            2. Find this order and click "Request Refund"<br>
+            3. Provide the reason for your refund request</p>
+          </div>
+          
+          <p>Thank you for shopping with Core Insight!</p>
+          
+          <a href="https://core-insight-7.onrender.com/dashboard" 
+             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+            View My Orders
+          </a>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(req.session.user.email, `Delivery Confirmed for Order #${orderId}`, buyerEmailHtml).catch(err => {
+      console.error('Buyer delivery confirmation email failed:', err.message);
+    });
+    
+    // Create a notification for the buyer
+    try {
+      await db.query(
+        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
+         VALUES (?, ?, 'delivery_confirmed', 'Delivery Confirmed', 
+                 CONCAT('You have confirmed delivery for Order #', ?, '. You have 5 days to request a refund if needed.'), NOW())`,
+        [req.session.user.id, orderId, orderId]
+      );
+    } catch (notifErr) {
+      console.log('Notification table note available yet');
+    }
     
     res.json({
       success: true,
       message: "Delivery confirmed! Thank you for your purchase.",
       order_status: 'delivered',
       escrow_release_date: escrowReleaseDate,
-      days_until_release: 5
+      days_until_release: 5,
+      refund_available_until: escrowReleaseDate,
+      next_steps: {
+        for_buyer: "You have 5 days to request a refund if there are any issues with the product.",
+        for_seller: "Funds will be automatically released to your account after 5 days if no dispute is raised."
+      }
     });
     
   } catch (err) {
@@ -11770,133 +12151,243 @@ app.post("/api/verify-paystack-payment", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Update payment verification to send email
+// ============================================
+// VERIFY PHYSICAL PAYMENT - FIXED ESCROW TIMING
+// ============================================
+
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
     const { transaction_ref } = req.params;
     
     console.log(`🔍 Verifying payment for transaction: ${transaction_ref}`);
 
-    const response = await axios.get(
-      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
-      {
-        headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+    // First, check if this is a Paystack payment (starts with PS_)
+    let isPaystack = transaction_ref.startsWith('PS_');
+    let cleanRef = transaction_ref;
+    if (isPaystack) {
+      cleanRef = transaction_ref.substring(3);
+    }
+    
+    let response;
+    let transaction;
+    let amount;
+    let orderId;
+    let paymentProvider;
+    
+    // Try Paystack first if it's a Paystack reference
+    if (isPaystack && process.env.PAYSTACK_SECRET_KEY) {
+      try {
+        console.log(`  Verifying with Paystack: ${cleanRef}`);
+        response = await axios.get(
+          `https://api.paystack.co/transaction/verify/${cleanRef}`,
+          {
+            headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+            timeout: 15000
+          }
+        );
+        
+        if (response.data.status === true && response.data.data.status === "success") {
+          transaction = response.data.data;
+          amount = transaction.amount / 100; // Convert from kobo
+          paymentProvider = 'paystack';
+          orderId = transaction.metadata?.order_id;
+          
+          console.log(`✅ Paystack payment verified: ₦${amount}`);
+        }
+      } catch (paystackErr) {
+        console.log(`  Paystack verification failed: ${paystackErr.message}`);
       }
+    }
+    
+    // If Paystack failed or it's not a Paystack reference, try Flutterwave
+    if (!transaction && process.env.FLW_SECRET_KEY) {
+      try {
+        console.log(`  Verifying with Flutterwave: ${transaction_ref}`);
+        response = await axios.get(
+          `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
+          {
+            headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
+            timeout: 15000
+          }
+        );
+        
+        if (response.data.status === "success" && response.data.data.status === "successful") {
+          transaction = response.data.data;
+          amount = transaction.amount;
+          paymentProvider = 'flutterwave';
+          orderId = transaction.meta?.order_id;
+          
+          console.log(`✅ Flutterwave payment verified: $${amount}`);
+        }
+      } catch (flutterErr) {
+        console.log(`  Flutterwave verification failed: ${flutterErr.message}`);
+      }
+    }
+    
+    if (!transaction) {
+      return res.status(400).json({ 
+        status: "failed", 
+        message: "Payment not found or not successful" 
+      });
+    }
+    
+    // Calculate fees
+    const platformFee = amount * 0.10;
+    const sellerAmount = amount - platformFee;
+    
+    // IMPORTANT: Do NOT set payment_held_until here!
+    // The 5-day escrow period starts AFTER customer confirms delivery
+    // Set payment_held_until to NULL initially
+    
+    // Get order details for email
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_name, u.email as buyer_email, u.username as buyer_name,
+              s.email as seller_email, s.username as seller_name
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       LEFT JOIN users u ON o.buyer_id = u.id
+       LEFT JOIN users s ON o.seller_id = s.id
+       WHERE o.id = ?`,
+      [orderId]
     );
-
-    if (response.data.status === "success" && response.data.data.status === "successful") {
-      const transaction = response.data.data;
-      const orderId = transaction.meta?.order_id;
-      const amount = transaction.amount;
-      const platformFee = parseFloat(transaction.meta?.platform_fee) || (amount * 0.10);
-      const sellerAmount = parseFloat(transaction.meta?.seller_earnings) || (amount - platformFee);
-
-      const escrowReleaseDate = new Date();
-      escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
-
-      // Get order details for email
-      const orderResult = await db.query(
-        `SELECT o.*, p.title as product_name, u.email as buyer_email, u.username as buyer_name
-         FROM physical_orders o
-         LEFT JOIN products p ON o.product_id = p.id
-         LEFT JOIN users u ON o.buyer_id = u.id
-         WHERE o.id = ?`,
-        [orderId]
-      );
-      
-      const order = orderResult[0];
-
-      await db.query(
-        `UPDATE physical_orders 
-         SET payment_status = 'paid',
-             order_status = 'paid',
-             payment_collected_at = NOW(),
-             payment_held_until = ?,
-             platform_fee = ?,
-             seller_earnings = ?,
-             transaction_ref = ?
-         WHERE id = ?`,
-        [escrowReleaseDate, platformFee, sellerAmount, transaction_ref, orderId]
-      );
-
+    
+    const order = orderResult && orderResult.length > 0 ? orderResult[0] : null;
+    
+    if (!order) {
+      console.error(`  Order #${orderId} not found`);
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    // Update order status - FIXED: payment_held_until = NULL (starts after delivery)
+    await db.query(
+      `UPDATE physical_orders 
+       SET payment_status = 'paid',
+           order_status = 'paid',
+           payment_collected_at = NOW(),
+           payment_held_until = NULL,  -- ✅ IMPORTANT: NULL until delivery confirmed
+           platform_fee = ?,
+           seller_earnings = ?,
+           amount_paid = ?,
+           amount_paid_currency = ?,
+           transaction_ref = ?,
+           payment_gateway = ?
+       WHERE id = ?`,
+      [
+        platformFee, 
+        sellerAmount, 
+        amount, 
+        paymentProvider === 'paystack' ? 'NGN' : 'USD',
+        transaction_ref, 
+        paymentProvider,
+        orderId
+      ]
+    );
+    
+    // Create escrow record
+    try {
       await db.query(
         `INSERT INTO escrow_accounts 
          (order_id, buyer_id, seller_id, amount, platform_fee, seller_amount, 
           payment_reference, status, held_at, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'held', NOW(), NOW())`,
-        [orderId, transaction.meta?.buyer_id, transaction.meta?.seller_id, 
-         amount, platformFee, sellerAmount, transaction_ref]
+        [
+          orderId, 
+          order.buyer_id, 
+          order.seller_id, 
+          amount, 
+          platformFee, 
+          sellerAmount, 
+          transaction_ref
+        ]
       );
-// Add history entry
-await db.query(
-  `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-   VALUES (?, 'payment_completed', 'Payment received and held in escrow', ?, NOW())`,
-  [orderId, order.buyer_id]
-);
-      // Send payment confirmation email
-      if (order) {
-        const paymentData = {
-          email: order.buyer_email,
-          name: order.buyer_name || 'Valued Customer',
-          orderId: orderId,
-          productName: order.product_name,
-          quantity: order.quantity,
-          totalAmount: amount,
-          platformFee: platformFee,
-          sellerEarnings: sellerAmount
-        };
-        
-        sendPaymentConfirmationEmail(paymentData).catch(err => {
-          console.error('Payment confirmation email failed:', err.message);
-        });
-        
-        // Also send email to seller
-        const sellerResult = await db.query(
-          `SELECT u.email, u.username FROM users u WHERE u.id = ?`,
-          [order.seller_id]
-        );
-        
-        if (sellerResult && sellerResult[0]) {
-          const sellerEmailData = {
-            email: sellerResult[0].email,
-            name: sellerResult[0].username || 'Seller',
-            orderId: orderId,
-            productName: order.product_name,
-            quantity: order.quantity,
-            totalAmount: amount,
-            platformFee: platformFee,
-            sellerEarnings: sellerAmount
-          };
-          
-          const sellerPaymentHtml = getPaymentConfirmationTemplate({
-            ...sellerEmailData,
-            name: sellerEmailData.name,
-            // Modify message for seller
-            additionalNote: `Payment has been received and is being held in escrow for 5 days. Funds will be released after ${escrowReleaseDate.toLocaleDateString()} unless a dispute is raised.`
-          });
-          
-          sendEmail(sellerResult[0].email, `Payment Received - Order #${orderId}`, sellerPaymentHtml).catch(err => {
-            console.error('Seller payment notification failed:', err.message);
-          });
-        }
-      }
-
-      res.json({
-        status: "success",
-        message: "Payment verified and held in escrow",
-        orderId: orderId,
-        amount: amount,
-        platformFee: platformFee,
-        sellerAmount: sellerAmount,
-        escrowReleaseDate: escrowReleaseDate
-      });
-    } else {
-      res.status(400).json({ status: "failed", message: "Payment not successful" });
+      console.log(`  ✅ Escrow record created for order #${orderId}`);
+    } catch (escrowErr) {
+      console.log(`  Escrow record error (may already exist): ${escrowErr.message}`);
     }
-
+    
+    // Add to status history
+    try {
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'payment_completed', 'Payment received. Funds held in escrow until delivery confirmation.', ?, NOW())`,
+        [orderId, order.buyer_id]
+      );
+    } catch (historyErr) {
+      console.log('History table note available yet');
+    }
+    
+    // Send payment confirmation email to buyer
+    if (order && order.buyer_email) {
+      const paymentData = {
+        email: order.buyer_email,
+        name: order.buyer_name || 'Valued Customer',
+        orderId: orderId,
+        productName: order.product_name,
+        quantity: order.quantity,
+        totalAmount: amount,
+        platformFee: platformFee,
+        sellerEarnings: sellerAmount
+      };
+      
+      sendPaymentConfirmationEmail(paymentData).catch(err => {
+        console.error('Payment confirmation email failed:', err.message);
+      });
+      
+      // Send notification to seller
+      const sellerPaymentHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Payment Received - Core Insight</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+            .amount { font-size: 24px; color: #10b981; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1 style="color: #10b981;">💰 Payment Received!</h1>
+            <p>Hello ${order.seller_name || 'Seller'},</p>
+            <p>Payment for <strong>Order #${orderId}</strong> has been received.</p>
+            <p class="amount">Amount: $${amount.toFixed(2)}</p>
+            <p><strong>Your earnings (90%):</strong> $${sellerAmount.toFixed(2)}</p>
+            <p><strong>Platform fee (10%):</strong> $${platformFee.toFixed(2)}</p>
+            <p>⚠️ <strong>Important:</strong> Funds are held in escrow and will be released 5 days AFTER the customer confirms delivery.</p>
+            <p>You must ship the order and provide the delivery code to the customer.</p>
+            <a href="https://core-insight-7.onrender.com/dashboard" 
+               style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+              Go to Dashboard
+            </a>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      if (order.seller_email) {
+        sendEmail(order.seller_email, `Payment Received for Order #${orderId}`, sellerPaymentHtml).catch(err => {
+          console.error('Seller payment notification failed:', err.message);
+        });
+      }
+    }
+    
+    res.json({
+      status: "success",
+      message: "Payment verified successfully! Funds are held in escrow until delivery confirmation.",
+      orderId: orderId,
+      amount: amount,
+      platformFee: platformFee,
+      sellerAmount: sellerAmount,
+      nextStep: "Seller must ship the order and provide delivery code. Funds will be released 5 days after buyer confirms delivery."
+    });
+    
   } catch (err) {
-    console.error('❌ Verification error:', err);
-    res.status(500).json({ error: "Error verifying payment", details: err.message });
+    console.error('❌ Payment verification error:', err);
+    res.status(500).json({ 
+      status: "failed", 
+      error: "Error verifying payment", 
+      details: err.message 
+    });
   }
 });
 // ============================================

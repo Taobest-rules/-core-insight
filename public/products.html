@@ -4457,266 +4457,343 @@ window.switchMainImage = function(productId, thumbIndex) {
     main.src = prod._imageList[thumbIndex];
   }
 };
-    // ================= CURRENCY CONVERSION SYSTEM =================
-    // Variables for currency conversion
-    let userCurrency = 'NGN'; // Default currency
-    let exchangeRates = {};
     
-    // Currency symbols mapping
-    const currencySymbols = {
-      'USD': '$',
-      'NGN': '₦',
-      'EUR': '€',
-      'GBP': '£',
-      'KES': 'KSh',
-      'GHS': 'GH₵',
-      'ZAR': 'R'
-    };
-    
-    // Default exchange rates (fallback)
-    const defaultRates = {
-      NGN: 1,
-      USD: 0.0011,  // 1 NGN = 0.0011 USD
-      EUR: 0.0010,  // 1 NGN = 0.0010 EUR
-      GBP: 0.00085, // 1 NGN = 0.00085 GBP
-      KES: 0.15,    // 1 NGN = 0.15 KES
-      GHS: 0.013,   // 1 NGN = 0.013 GHS
-      ZAR: 0.021    // 1 NGN = 0.021 ZAR
-    };
-    
-    // Detect user's currency based on IP
-    async function detectUserCurrency() {
-      try {
+// ============================================
+// CURRENCY CONVERSION SYSTEM - FIXED
+// ============================================
+
+let userCurrency = 'USD'; // Default currency
+let exchangeRates = {
+    USD: 1,
+    NGN: 1500,
+    EUR: 0.92,
+    GBP: 0.79,
+    KES: 130,
+    GHS: 15,
+    ZAR: 19,
+    CAD: 1.37,
+    AUD: 1.50,
+    JPY: 150,
+    CNY: 7.2,
+    INR: 83,
+    BRL: 5.1,
+    MXN: 17,
+    AED: 3.67,
+    SAR: 3.75
+};
+
+// Currency symbols mapping
+const currencySymbols = {
+    'USD': '$',
+    'NGN': '₦',
+    'EUR': '€',
+    'GBP': '£',
+    'KES': 'KSh',
+    'GHS': 'GH₵',
+    'ZAR': 'R',
+    'CAD': 'C$',
+    'AUD': 'A$',
+    'JPY': '¥',
+    'CNY': '¥',
+    'INR': '₹',
+    'BRL': 'R$',
+    'MXN': '$',
+    'AED': 'د.إ',
+    'SAR': 'ر.س'
+};
+
+// Detect user's currency based on IP or browser
+async function detectUserCurrency() {
+    try {
         console.log("🌍 Detecting user currency...");
         
-        // Try to get from browser or IP detection
-        const response = await fetch('https://ipapi.co/currency/', {
-          timeout: 5000 // Add timeout
+        // Try to detect from browser
+        const userLocale = navigator.language || navigator.userLanguage;
+        
+        // Map locale to currency
+        const localeCurrencyMap = {
+            'en-NG': 'NGN',
+            'en-ZA': 'ZAR',
+            'en-KE': 'KES',
+            'en-GH': 'GHS',
+            'fr-SN': 'XOF',
+            'en': 'USD'
+        };
+        
+        let detectedCurrency = localeCurrencyMap[userLocale] || 'USD';
+        
+        // Also try to get from IP using free API
+        try {
+            const response = await fetch('https://ipapi.co/country/');
+            const country = await response.text();
+            
+            const countryCurrencyMap = {
+                'NG': 'NGN',
+                'ZA': 'ZAR',
+                'KE': 'KES',
+                'GH': 'GHS',
+                'US': 'USD',
+                'GB': 'GBP',
+                'CA': 'CAD',
+                'AU': 'AUD',
+                'DE': 'EUR',
+                'FR': 'EUR',
+                'IT': 'EUR',
+                'ES': 'EUR'
+            };
+            
+            if (countryCurrencyMap[country]) {
+                detectedCurrency = countryCurrencyMap[country];
+            }
+        } catch (ipErr) {
+            console.log('IP detection failed, using locale detection');
+        }
+        
+        userCurrency = detectedCurrency;
+        console.log("🌍 Detected currency:", userCurrency);
+        
+        // Save to localStorage
+        localStorage.setItem('ci_currency', userCurrency);
+        
+        // Update currency selector
+        const currencySelect = document.getElementById('currencyHeader');
+        if (currencySelect) {
+            currencySelect.value = userCurrency;
+        }
+        
+    } catch (error) {
+        console.log('Using default currency:', userCurrency);
+        // Try to get from localStorage
+        const savedCurrency = localStorage.getItem('ci_currency');
+        if (savedCurrency && currencySymbols[savedCurrency]) {
+            userCurrency = savedCurrency;
+        }
+    }
+    
+    await loadExchangeRates();
+}
+
+// Load exchange rates from server
+async function loadExchangeRates() {
+    try {
+        console.log("🌍 Fetching live exchange rates...");
+        
+        const response = await fetch('/api/currency-rates', {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
         });
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+            throw new Error(`HTTP ${response.status}`);
         }
         
-        const currency = await response.text();
-        if (currency && currency.length === 3) {
-          userCurrency = currency;
-          console.log("🌍 Detected currency:", userCurrency);
+        const data = await response.json();
+        
+        if (data.success && data.rates) {
+            // Update exchange rates
+            exchangeRates = {
+                USD: 1,
+                NGN: data.rates.NGN || 1500,
+                EUR: data.rates.EUR || 0.92,
+                GBP: data.rates.GBP || 0.79,
+                KES: data.rates.KES || 130,
+                GHS: data.rates.GHS || 15,
+                ZAR: data.rates.ZAR || 19,
+                CAD: data.rates.CAD || 1.37,
+                AUD: data.rates.AUD || 1.50,
+                JPY: data.rates.JPY || 150,
+                CNY: data.rates.CNY || 7.2,
+                INR: data.rates.INR || 83,
+                BRL: data.rates.BRL || 5.1,
+                MXN: data.rates.MXN || 17,
+                AED: data.rates.AED || 3.67,
+                SAR: data.rates.SAR || 3.75
+            };
+            
+            console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
+            console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
+            
+            // Update live rate indicator
+            updateLiveRateIndicator();
+            
+            // Update all prices on the page
+            updateAllPrices();
+            
+        } else {
+            throw new Error('Invalid rate data structure');
         }
-      } catch (error) {
-        console.log('Using default currency:', userCurrency);
-        // Set a default currency
-        userCurrency = 'NGN';
-      }
-      await loadExchangeRates();
+        
+    } catch (error) {
+        console.error('❌ Error loading exchange rates:', error);
+        console.log('⚠️ Using fallback exchange rates');
+        
+        // Show toast notification
+        showToast('Using approximate exchange rates. Real-time rates unavailable.', 'warning');
+        
+        // Still update prices with fallback rates
+        updateAllPrices();
     }
-    
-async function loadExchangeRates() {
-  try {
-    console.log("🌍 Fetching live exchange rates...");
-    
-    const response = await fetch('/api/currency-rates', {
-      credentials: 'include',
-      headers: { 'Accept': 'application/json' }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Response is not JSON');
-    }
-    
-    const data = await response.json();
-    
-    if (data && data.rates && data.rates.USD) {
-      // Store all exchange rates (USD is base = 1)
-      exchangeRates = {
-        USD: 1,
-        NGN: data.rates.NGN || 1500,
-        EUR: data.rates.EUR || 0.92,
-        GBP: data.rates.GBP || 0.79,
-        KES: data.rates.KES || 130,
-        GHS: data.rates.GHS || 15,
-        ZAR: data.rates.ZAR || 19,
-        CAD: data.rates.CAD || 1.37,
-        AUD: data.rates.AUD || 1.50,
-        JPY: data.rates.JPY || 150,
-        CNY: data.rates.CNY || 7.2,
-        INR: data.rates.INR || 83,
-        BRL: data.rates.BRL || 5.1,
-        MXN: data.rates.MXN || 17,
-        AED: data.rates.AED || 3.67,
-        SAR: data.rates.SAR || 3.75
-      };
-      
-      console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
-      console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
-      
-      // Update currency selector
-      const currencySelect = document.getElementById('currencyHeader');
-      if (currencySelect && !currencySelect.value) {
-        currencySelect.value = userCurrency;
-      }
-      
-      // Update all prices on the page
-      updateAllPrices();
-      
-      // Show live rate to user
-      showLiveRateIndicator();
-      
-    } else {
-      throw new Error('Invalid rate data structure');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error loading exchange rates:', error);
-    
-    // Use fallback rates for all currencies
-    exchangeRates = {
-      USD: 1,
-      NGN: 1500,
-      EUR: 0.92,
-      GBP: 0.79,
-      KES: 130,
-      GHS: 15,
-      ZAR: 19,
-      CAD: 1.37,
-      AUD: 1.50,
-      JPY: 150,
-      CNY: 7.2,
-      INR: 83,
-      BRL: 5.1,
-      MXN: 17,
-      AED: 3.67,
-      SAR: 3.75
-    };
-    
-    console.log('⚠️ Using fallback exchange rates');
-    showToast('Using approximate exchange rates. Real-time rates unavailable.', 'warning');
-    
-    // Retry after 30 seconds
-    setTimeout(() => loadExchangeRates(), 30000);
-  }
 }
 
-// Add this helper function
-function showLiveRateIndicator() {
-  // Remove existing indicator
-  const existing = document.querySelector('.live-rate-indicator');
-  if (existing) existing.remove();
-  
-  // Add new indicator near currency selector
-  const currencySelect = document.getElementById('currencySelect');
-  if (currencySelect && exchangeRates && exchangeRates.USD) {
-    const indicator = document.createElement('span');
-    indicator.className = 'live-rate-indicator';
-    indicator.style.cssText = 'font-size: 11px; color: var(--accent-primary); margin-left: 10px;';
-    indicator.innerHTML = `<i class="fas fa-chart-line"></i> 1 USD = ${exchangeRates.NGN?.toFixed(2)} NGN`;
-    currencySelect.parentNode.insertBefore(indicator, currencySelect.nextSibling);
-  }
-}
-    // Update currency selector dropdown
-    function updateCurrencySelector() {
-      const currencySelect = document.getElementById('currencyHeader');
-      if (currencySelect) {
-        // Set the selected currency
-        currencySelect.value = userCurrency;
-      }
+// Update live rate indicator
+function updateLiveRateIndicator() {
+    const indicator = document.getElementById('liveRateIndicator');
+    if (indicator && exchangeRates && exchangeRates.NGN) {
+        indicator.innerHTML = `<i class="fas fa-chart-line"></i> 1 USD = ${exchangeRates.NGN.toFixed(2)} NGN`;
     }
-    
- function convertPrice(priceInUSD) {
-  if (!priceInUSD || priceInUSD <= 0) return 0;
-  
-  if (Object.keys(exchangeRates).length === 0) {
-    return priceInUSD;
-  }
-  
-  try {
-    // Products are stored in USD - convert to target currency
+}
+
+// Convert price from USD to target currency
+function convertPrice(priceInUSD) {
+    if (!priceInUSD || priceInUSD <= 0) return 0;
     
     if (userCurrency === 'USD') {
-      return priceInUSD;
+        return priceInUSD;
     }
     
-    if (userCurrency === 'NGN') {
-      // USD to NGN: MULTIPLY by exchange rate
-      return priceInUSD * exchangeRates.USD;
+    // Get the exchange rate for the target currency
+    const rate = exchangeRates[userCurrency];
+    
+    if (!rate || rate <= 0) {
+        console.warn(`No exchange rate for ${userCurrency}, using USD`);
+        return priceInUSD;
     }
     
-    // For other currencies: USD → NGN → target currency
-    const amountInNGN = priceInUSD * exchangeRates.USD;
-    return amountInNGN / exchangeRates[userCurrency];
+    // Convert USD to target currency
+    // Example: If product is $10 USD and user wants NGN with rate 1500:
+    // 10 USD × 1500 = 15,000 NGN
+    const convertedAmount = priceInUSD * rate;
     
-  } catch (error) {
-    console.error('Convert error:', error);
-    return priceInUSD;
-  }
+    console.log(`💰 Conversion: $${priceInUSD} USD → ${convertedAmount.toFixed(2)} ${userCurrency} (rate: ${rate})`);
+    
+    return convertedAmount;
 }
-    function formatCurrency(amount, currency) {
-  if (!amount && amount !== 0) return `${currency} 0.00`;
-  
-  try {
-    let convertedAmount = amount;
+
+// Format price with proper currency symbol and decimals
+function formatPrice(amount) {
+    if (!amount && amount !== 0) return `${currencySymbols[userCurrency] || '$'}0.00`;
     
-    // If we have live exchange rates, convert properly
-    if (exchangeRates && exchangeRates.USD && exchangeRates.USD > 0) {
-      // Convert USD to target currency via NGN as base
-      const amountInNGN = amount / exchangeRates.USD;
-      convertedAmount = amountInNGN * (exchangeRates[currency] || 1);
+    try {
+        let formattedAmount = amount;
+        
+        // If we have exchange rates, convert properly
+        if (exchangeRates && exchangeRates[userCurrency]) {
+            // amount is already converted to target currency from convertPrice()
+            formattedAmount = amount;
+        }
+        
+        // Format based on currency
+        let decimals = 2;
+        let useGrouping = true;
+        
+        // Special formatting for certain currencies
+        switch(userCurrency) {
+            case 'JPY':
+                decimals = 0;
+                break;
+            case 'KRW':
+                decimals = 0;
+                break;
+            case 'TZS':
+            case 'UGX':
+            case 'RWF':
+                decimals = 0;
+                break;
+            default:
+                decimals = 2;
+        }
+        
+        const symbol = currencySymbols[userCurrency] || '$';
+        
+        // Handle different symbol positions
+        if (userCurrency === 'EUR') {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: userCurrency,
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(formattedAmount);
+        } else if (userCurrency === 'GBP') {
+            return new Intl.NumberFormat('en-GB', {
+                style: 'currency',
+                currency: userCurrency,
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(formattedAmount);
+        } else if (userCurrency === 'NGN') {
+            // Special formatting for Naira
+            return `${symbol} ${formattedAmount.toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            })}`;
+        } else {
+            return `${symbol}${formattedAmount.toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            })}`;
+        }
+        
+    } catch (error) {
+        console.error('Format error:', error);
+        const symbol = currencySymbols[userCurrency] || '$';
+        return `${symbol}${amount.toFixed(2)}`;
     }
-    
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(convertedAmount);
-    
-  } catch (error) {
-    console.error('Format error:', error);
-    return `${currency} ${parseFloat(amount).toFixed(2)}`;
-  }
 }
+
+
+
+
+// Update all prices on the page
+function updateAllPrices() {
+    console.log(`💰 Updating all prices to ${userCurrency}`);
     
-    // Format price with currency symbol
- function formatPrice(amount) {
-  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
-  return formatCurrency(parseFloat(amount), userCurrency);
-}
+    // Update product cards
+    const priceElements = document.querySelectorAll('.price');
+    priceElements.forEach(element => {
+        const originalPrice = element.getAttribute('data-original-price');
+        if (originalPrice) {
+            const newPrice = fmtPrice(parseFloat(originalPrice));
+            element.textContent = newPrice;
+        }
+    });
     
- function updateAllPrices() {
-  const priceElements = document.querySelectorAll('.price[data-original-price]');
-  priceElements.forEach(element => {
-    const originalPrice = parseFloat(element.getAttribute('data-original-price'));
-    if (!isNaN(originalPrice) && exchangeRates && exchangeRates[userCurrency]) {
-      // Products are stored in USD
-      let convertedAmount;
-      
-      if (userCurrency === 'USD') {
-        convertedAmount = originalPrice;
-      } else if (userCurrency === 'NGN') {
-        // USD to NGN: MULTIPLY
-        convertedAmount = originalPrice * exchangeRates.USD;
-      } else {
-        // For other currencies: USD -> NGN -> target
-        const amountInNGN = originalPrice * exchangeRates.USD;
-        convertedAmount = amountInNGN / exchangeRates[userCurrency];
-      }
-      
-      const formattedPrice = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: userCurrency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(convertedAmount);
-      
-      element.textContent = formattedPrice;
+    // Update any other price displays
+    const dashboardPrices = document.querySelectorAll('[data-price]');
+    dashboardPrices.forEach(element => {
+        const originalPrice = element.getAttribute('data-price');
+        if (originalPrice) {
+            const newPrice = fmtPrice(parseFloat(originalPrice));
+            element.textContent = newPrice;
+        }
+    });
+    
+    // Update currency display in header
+    const currencyDisplay = document.getElementById('currentCurrencyDisplay');
+    if (currencyDisplay) {
+        currencyDisplay.textContent = currencySymbols[userCurrency];
     }
-  });
 }
+
+// Initialize currency system
+async function initCurrency() {
+    await detectUserCurrency();
+    
+    // Set up currency selector listener
+    const currencySelect = document.getElementById('currencyHeader');
+    if (currencySelect) {
+        currencySelect.addEventListener('change', async (e) => {
+            userCurrency = e.target.value;
+            localStorage.setItem('ci_currency', userCurrency);
+            console.log(`💰 Currency changed to: ${userCurrency}`);
+            await loadExchangeRates();
+            updateAllPrices();
+            
+            // Show confirmation toast
+            showToast(`Currency changed to ${userCurrency}`, 'info');
+        });
+    }
+}  
+
     // Update dashboard prices
     function updateDashboardPrices() {
       const totalRevenue = document.getElementById('totalRevenue');
@@ -9914,10 +9991,7 @@ function formatCurrency(amount, targetCurrency) {
   }
 }
 
-function fmtPrice(amount) {
-  if (!amount && amount !== 0) return formatCurrency(0, userCurrency);
-  return formatCurrency(parseFloat(amount), userCurrency);
-}
+
 
 
     // ================= FORM VALIDATION WITH DETAILED DEBUGGING =================
@@ -10942,227 +11016,264 @@ function createAffiliateBlock() {
         }
       });
     }
+    // fmtPrice should be defined like this:
+function fmtPrice(amount) {
+    if (!amount && amount !== 0) return formatPrice(0);
+    const converted = convertPrice(parseFloat(amount));
+    return formatPrice(converted);
+}
+// =================== RENDER PRODUCTS WITH CURRENCY CONVERSION ===================
+
 function renderProducts() {
-  const grid = $('productsGrid');
-  const q = $('searchInput').value.trim().toLowerCase();
-  const typeFilter = $('filterType').value;
-  const catFilter = $('filterCategory').value;
-  const countryFilter = $('filterCountry')?.value || '';
-  const sort = $('sortSelect').value;
+    const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+    
+    const q = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+    const typeFilter = document.getElementById('filterType')?.value || '';
+    const catFilter = document.getElementById('filterCategory')?.value || '';
+    const countryFilter = document.getElementById('filterCountry')?.value || '';
+    const sort = document.getElementById('sortSelect')?.value || 'newest';
 
-  let list = products.slice();
+    let list = products.slice();
 
-  // Search filter
-  if (q) {
-    list = list.filter(p => 
-      (p.title || '').toLowerCase().includes(q) || 
-      (p.description || '').toLowerCase().includes(q) || 
-      (p.category || '').toLowerCase().includes(q)
-    );
-  }
-  
-  // Type filter
-  if (typeFilter) {
-    list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
-  }
-  
-  // Category filter
-  if (catFilter) {
-    list = list.filter(p => (p.category || '') === catFilter);
-  }
-  
-  // Country filter - NEW
-  if (countryFilter) {
-    list = list.filter(p => {
-      // Digital and affiliate products always show
-      if (p.type !== 'physical') return true;
-      // Physical products: check if they ship to selected country
-      const locations = p.delivery_locations || 'Worldwide';
-      const countriesList = locations.split(',').map(l => l.trim());
-      return countriesList.includes(countryFilter) || locations.includes('Worldwide');
+    // Search filter
+    if (q) {
+        list = list.filter(p => 
+            (p.title || '').toLowerCase().includes(q) || 
+            (p.description || '').toLowerCase().includes(q) || 
+            (p.category || '').toLowerCase().includes(q)
+        );
+    }
+    
+    // Type filter
+    if (typeFilter) {
+        list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
+    }
+    
+    // Category filter
+    if (catFilter) {
+        list = list.filter(p => (p.category || '') === catFilter);
+    }
+    
+    // Country filter for physical products
+    if (countryFilter) {
+        list = list.filter(p => {
+            if (p.type !== 'physical') return true;
+            const locations = p.delivery_locations || 'Worldwide';
+            const countriesList = locations.split(',').map(l => l.trim());
+            return countriesList.includes(countryFilter) || locations.includes('Worldwide');
+        });
+    }
+
+    // Sorting
+    if (sort === 'affordable') {
+        list.sort((a, b) => a.price - b.price);
+    } else if (sort === 'rated') {
+        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sort === 'favorites') {
+        list.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
+    } else {
+        list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    }
+
+    if (!list.length) {
+        const noProducts = document.getElementById('noProducts');
+        if (noProducts) noProducts.style.display = 'block';
+        grid.innerHTML = '';
+        return;
+    }
+    
+    const noProducts = document.getElementById('noProducts');
+    if (noProducts) noProducts.style.display = 'none';
+
+    // Generate product cards
+    grid.innerHTML = list.map(p => {
+        // Get images
+        const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 
+            ? p._imageList 
+            : (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
+        
+        const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+        
+        // Thumbnails for additional images
+        const thumbHtml = (() => {
+            if (!imageList || imageList.length <= 1) return '';
+            return imageList.slice(1, 4).map((thumbPath, idx) => {
+                return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
+                              onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
+                              loading="lazy"
+                              onerror="this.onerror=null; this.style.display='none';">`;
+            }).join('');
+        })();
+        
+        const seller = escapeHtml(p.seller_name || p.username || 'Seller');
+        const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
+        const desc = escapeHtml((p.description || '').slice(0, 120));
+        
+        // Get original price in USD
+        const originalPriceUSD = p.original_price || p.price || 0;
+        
+        // Calculate platform fee and seller earnings (for information display)
+        const platformFee = p.type === 'physical' || p.type === 'digital' ? originalPriceUSD * 0.10 : 0;
+        const sellerPriceUSD = originalPriceUSD - platformFee;
+        
+        const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
+        const isFavorite = userFavorites.has(p.id);
+        const isPhysical = p.type === 'physical';
+        const badgeClass = p.type === 'digital' ? 'badge-digital' : 
+                          p.type === 'physical' ? 'badge-physical' : 
+                          'badge-affiliate';
+
+        // Get delivery info for physical products
+        const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+        const deliveryLocations = p.delivery_locations || 'Worldwide';
+        const firstCountry = deliveryLocations.split(',')[0].trim();
+        
+        // Delivery info HTML for physical products
+        const deliveryInfo = isPhysical ? `
+            <div class="product-details">
+                <div class="detail-item">
+                    <i class="fas fa-truck"></i>
+                    <span><strong>Delivery:</strong> Home Delivery</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><strong>Ships to:</strong> ${deliveryLocations}</span>
+                </div>
+            </div>
+        ` : '';
+
+        // Badges
+        const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
+        
+        // Country badge
+        const countryBadge = isPhysical && deliveryLocations !== 'Worldwide' ? 
+            `<div class="country-badge">
+                <i class="fas fa-map-marker-alt"></i> 
+                ${firstCountry === 'USA' ? '🇺🇸' : firstCountry === 'UK' ? '🇬🇧' : firstCountry === 'Nigeria' ? '🇳🇬' : ''} ${firstCountry}
+            </div>` : 
+            (isPhysical ? `<div class="country-badge"><i class="fas fa-globe"></i> Worldwide</div>` : '');
+        
+        // Delivery days badge
+        const deliveryDaysBadge = isPhysical ? 
+            `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
+                <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
+            </div>` : '';
+
+        // Format prices with currency conversion
+        const formattedPrice = fmtPrice(originalPriceUSD);
+        const formattedPlatformFee = fmtPrice(platformFee);
+        const formattedSellerPrice = fmtPrice(sellerPriceUSD);
+
+        return `
+            <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
+                <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
+                <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
+                ${paymentBadge}
+                ${deliveryDaysBadge}
+                ${countryBadge}
+                <div class="card-media">
+                    <img id="mainimg-${p.id}" 
+                         src="${productImage}" 
+                         alt="${title}" 
+                         loading="lazy"
+                         onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
+                    
+                    ${imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
+                    
+                    <!-- Favorite button with visible count -->
+                    <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
+                            <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
+                        </button>
+                        <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
+                    </div>
+                    
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <h3>${title}</h3>
+                    <div class="seller-info">
+                        <i class="fas fa-user"></i>
+                        <span>By ${seller}</span>
+                    </div>
+                    <div class="meta">${desc}</div>
+                    ${deliveryInfo}
+                    <div class="rating">
+                        <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
+                        <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
+                        <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
+                    </div>
+                    <div class="price-row">
+                        <div>
+                            <div class="price">${formattedPrice}</div>
+                            ${p.type === 'physical' ? `
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    Free shipping
+                                </div>
+                            ` : (p.type === 'digital' ? `
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    Instant delivery
+                                </div>
+                            ` : '')}
+                        </div>
+                        <div class="card-actions">
+                            ${ isAffiliate ? `
+                                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
+                                    <i class="fas fa-external-link-alt"></i> Visit
+                                </button>
+                            ` : isPhysical ? `
+                                <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
+                                    <i class="fas fa-shopping-cart"></i> Order Now
+                                </button>
+                            ` : `
+                                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
+                                    <i class="fas fa-shopping-cart"></i> Buy Now
+                                </button>
+                            `}
+                            <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                    <div class="owner-controls">
+                        <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Initialize product ownership after rendering
+    initializeProductOwnership();
+    startProductCarousels();
+    
+    // Update any currency displays that need special handling
+    updateAllPrices();
+}
+
+// Helper function to escape HTML
+function escapeHtml(s) { 
+    if (!s) return ''; 
+    return String(s).replace(/[&<>"']/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        if (m === "'") return '&#39;';
+        return m;
     });
-  }
-
-  // Sorting
-  if (sort === 'affordable') {
-    list.sort((a, b) => a.price - b.price);
-  } else if (sort === 'rated') {
-    list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  } else if (sort === 'favorites') {
-    list.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
-  } else {
-    list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  }
-
-  if (!list.length) {
-    $('noProducts').style.display = 'block';
-    grid.innerHTML = '';
-    return;
-  }
-  $('noProducts').style.display = 'none';
-
-  // Generate product cards
-  grid.innerHTML = list.map(p => {
-    // Get images
-    const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 
-      ? p._imageList 
-      : (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
-    
-    const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
-    
-    // Thumbnails for additional images
-    const thumbHtml = (() => {
-      if (!imageList || imageList.length <= 1) return '';
-      return imageList.slice(1, 4).map((thumbPath, idx) => {
-        return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
-                      onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
-                      loading="lazy"
-                      onerror="this.onerror=null; this.style.display='none';">`;
-      }).join('');
-    })();
-    
-    const seller = escapeHtml(p.seller_name || p.username || 'Seller');
-    const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
-    const desc = escapeHtml((p.description || '').slice(0, 120));
-    
-    // Calculate prices
-    const totalPrice = p.original_price || p.price;
-    const platformFee = p.platform_fee || (totalPrice * 0.1);
-    const sellerPrice = totalPrice - platformFee;
-    
-    const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
-    const isFavorite = userFavorites.has(p.id);
-    const isPhysical = p.type === 'physical';
-    const badgeClass = p.type === 'digital' ? 'badge-digital' : 
-                      p.type === 'physical' ? 'badge-physical' : 
-                      'badge-affiliate';
-
-    // Get delivery info for physical products
-    const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
-    const deliveryLocations = p.delivery_locations || 'Worldwide';
-    const firstCountry = deliveryLocations.split(',')[0].trim();
-    
-    // Delivery and payment info for physical products
-    const deliveryInfo = isPhysical ? `
-      <div class="product-details">
-        <div class="detail-item">
-          <i class="fas fa-truck"></i>
-          <span><strong>Delivery:</strong> Home Delivery</span>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-calendar-day"></i>
-          <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-map-marker-alt"></i>
-          <span><strong>Ships to:</strong> ${deliveryLocations}</span>
-        </div>
-      </div>
-    ` : '';
-
-    // Badges
-    const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
-    const deliveryBadge = isPhysical && p.delivery_type ? 
-      `<div class="delivery-badge">Home Delivery</div>` : '';
-    
-    // Country badge (shows first country or flag)
-    const countryBadge = isPhysical && deliveryLocations !== 'Worldwide' ? 
-      `<div class="country-badge">
-        <i class="fas fa-map-marker-alt"></i> 
-        ${firstCountry === 'USA' ? '🇺🇸' : firstCountry === 'UK' ? '🇬🇧' : firstCountry === 'Nigeria' ? '🇳🇬' : ''} ${firstCountry}
-      </div>` : 
-      (isPhysical ? `<div class="country-badge"><i class="fas fa-globe"></i> Worldwide</div>` : '');
-    
-    // Delivery days badge
-    const deliveryDaysBadge = isPhysical ? 
-      `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
-        <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
-      </div>` : '';
-
-    return `
-      <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
-       <div class="price" data-original-price="${p.price}">${fmtPrice(p.price)}</div>
-       <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
-        ${paymentBadge}
-        ${deliveryBadge}
-        ${deliveryDaysBadge}
-        ${countryBadge}
-        <div class="card-media">
-          <img id="mainimg-${p.id}" 
-               src="${productImage}" 
-               alt="${title}" 
-               loading="lazy"
-               onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
-          
-          ${imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
-          
-          <!-- Favorite button with visible count -->
-          <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
-            <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
-              <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
-            </button>
-            <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
-          </div>
-          
-          <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-        <div class="card-body">
-          <h3>${title}</h3>
-          <div class="seller-info">
-            <i class="fas fa-user"></i>
-            <span>By ${seller}</span>
-          </div>
-          <div class="meta">${desc}</div>
-          ${deliveryInfo}
-          <div class="rating">
-            <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
-            <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
-            <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
-          </div>
-          <div class="price-row">
-            <div>
-              <div class="price">${fmtPrice(totalPrice)}</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                Free shipping
-              </div>
-            </div>
-            <div class="card-actions">
-              ${ isAffiliate ? `
-                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
-                  <i class="fas fa-external-link-alt"></i> Visit
-                </button>
-              ` : isPhysical ? `
-                <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
-                  <i class="fas fa-shopping-cart"></i> Order Now
-                </button>
-              ` : `
-                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
-                  <i class="fas fa-shopping-cart"></i> Buy Now
-                </button>
-              `}
-              <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
-                <i class="fas fa-eye"></i> View
-              </button>
-            </div>
-          </div>
-          <div class="owner-controls">
-            <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
-              <i class="fas fa-edit"></i> Edit
-            </button>
-            <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})">
-              <i class="fas fa-trash"></i> Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  // Initialize product ownership after rendering
-  initializeProductOwnership();
-  startProductCarousels();
 }
 
     // Function to select product for reviews
@@ -12085,23 +12196,23 @@ async function refreshCategoryDropdown() {
       }, 5000);
     }
 
-    // ---------- Initial load ----------
-    document.addEventListener('DOMContentLoaded', async ()=>{
-      // Load currency conversion system first
-      await detectUserCurrency();
-      
-      // Then load user and products
-      await loadUser();
-      await loadUserFavorites();
-      await loadProducts();
-      initializeCategories();
-      
-      // Load reviews for first product if available
-      if (products.length > 0) {
+    // Initialize currency system when page loads
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize currency
+    await initCurrency();
+    
+    // Load user and products
+    await loadUser();
+    await loadUserFavorites();
+    await loadProducts();
+    initializeCategories();
+    
+    // Load reviews for first product if available
+    if (products.length > 0) {
         currentProductId = products[0].id;
         loadProductReviews(currentProductId);
-      }
-    });
+    }
+});
   </script>
 </body>
 </html>

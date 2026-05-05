@@ -61,7 +61,6 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .success { color: #10b981; }
         .error { color: #ef4444; }
-        .info { color: #f59e0b; }
         .btn {
             background: linear-gradient(135deg, #FFD700, #D4AF37);
             color: #0f172a;
@@ -76,8 +75,6 @@
             transition: all 0.3s;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
-        .btn-outline { background: transparent; border: 1px solid #3b82f6; color: #3b82f6; }
-        .btn-outline:hover { background: rgba(59, 130, 246, 0.1); box-shadow: none; }
         .download-btn {
             display: inline-block;
             background: #10b981;
@@ -112,47 +109,36 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const reference = urlParams.get('reference');
-        const trxref = urlParams.get('trxref');
-        const transactionId = urlParams.get('transaction_id');
-        const tx_ref = urlParams.get('tx_ref');
-        const status = urlParams.get('status');
+        let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref') || urlParams.get('transaction_id');
         
-        // Get the actual reference from URL (Paystack uses 'reference' or 'trxref')
-        const paymentRef = reference || trxref || tx_ref || transactionId;
+        console.log('Payment callback received. Reference:', reference);
         
-        console.log('Payment callback received:', { reference, trxref, tx_ref, paymentRef, status });
+        // Clean the reference
+        if (reference && reference.startsWith('PS_')) {
+            reference = reference.substring(3);
+            console.log('Removed PS_ prefix. New reference:', reference);
+        }
         
-        async function verifyDigitalPayment() {
-            if (!paymentRef) {
+        async function verifyPayment() {
+            if (!reference) {
                 showError('No payment reference found. Please contact support.');
                 return;
             }
             
             try {
-                console.log('Verifying digital payment with reference:', paymentRef);
+                console.log('Verifying payment with reference:', reference);
                 
-                // Remove 'PS_' prefix if present (Paystack adds this)
-                let cleanRef = paymentRef;
-                if (cleanRef.startsWith('PS_')) {
-                    cleanRef = cleanRef.substring(3);
-                    console.log('Removed PS_ prefix, new reference:', cleanRef);
-                }
-                
-                // Call the digital payment verification endpoint
-                const response = await fetch(`/api/verify-digital-payment/${cleanRef}`, {
+                const response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
                     method: 'GET',
                     credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Accept': 'application/json' }
                 });
                 
                 const data = await response.json();
                 console.log('Verification response:', data);
                 
                 if (data.status === 'success') {
-                    // Digital product purchase successful - show download link
+                    // Payment successful - show download button
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="bismillah">
                             <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
@@ -179,45 +165,7 @@
                 
             } catch (error) {
                 console.error('Verification error:', error);
-                showError('Error verifying payment: ' + error.message);
-            }
-        }
-        
-        // For physical product payments - redirect to order tracking
-        async function verifyPhysicalPayment() {
-            if (!paymentRef) {
-                showError('No payment reference found. Please contact support.');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/verify-physical-payment/${paymentRef}`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    document.getElementById('paymentStatus').innerHTML = `
-                        <div class="bismillah">
-                            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-                            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-                        </div>
-                        <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
-                        <h2 style="color: #10b981;">Payment Successful!</h2>
-                        <p>Order #${data.orderId}</p>
-                        <div class="escrow-info" style="background: rgba(59,130,246,0.1); padding: 15px; border-radius: 12px; margin: 15px 0;">
-                            <i class="fas fa-clock"></i> Funds are held in escrow for 5 days.<br>
-                            You can request a refund within 5 days if needed.
-                        </div>
-                        <a href="/order-tracking.html?orderId=${data.orderId}" class="btn">Track Order</a>
-                        <a href="/products.html" class="btn btn-outline">Continue Shopping</a>
-                    `;
-                } else {
-                    showError('Payment verification failed');
-                }
-            } catch (error) {
-                console.error('Physical payment verification error:', error);
-                showError('Error verifying payment: ' + error.message);
+                showError('Error verifying payment. Please contact support with your transaction reference.');
             }
         }
         
@@ -230,9 +178,9 @@
                 <div class="error" style="font-size: 48px; margin: 20px 0;">❌</div>
                 <h2 style="color: #ef4444;">Verification Failed</h2>
                 <p style="color: #94a3b8;">${escapeHtml(message)}</p>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Transaction Reference: ${escapeHtml(reference)}</p>
                 <div style="margin-top: 20px;">
                     <a href="/products.html" class="btn">Browse Products</a>
-                    <a href="/contact.html" class="btn btn-outline">Contact Support</a>
                 </div>
             `;
         }
@@ -247,32 +195,12 @@
             });
         }
         
-        // Determine payment type from reference
-        function startVerification() {
-            if (!paymentRef) {
-                showError('No payment reference found in URL.');
-                return;
-            }
-            
-            // Check if this is a digital product payment (contains DIGITAL_ in reference)
-            if (paymentRef.includes('DIGITAL_')) {
-                console.log('Digital product payment detected');
-                verifyDigitalPayment();
-            } 
-            // Check if this is a physical product payment
-            else if (paymentRef.includes('ORD_') || paymentRef.includes('FW_') || paymentRef.includes('PS_')) {
-                console.log('Physical product payment detected');
-                verifyPhysicalPayment();
-            }
-            else {
-                // Try to detect by checking if reference starts with certain patterns
-                console.log('Unknown payment type, trying digital verification first');
-                verifyDigitalPayment();
-            }
-        }
-        
         // Start verification
-        startVerification();
+        if (reference) {
+            verifyPayment();
+        } else {
+            showError('No payment reference found in URL.');
+        }
     </script>
 </body>
 </html>

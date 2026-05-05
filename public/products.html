@@ -6634,6 +6634,7 @@ window.checkRefundStatus = checkRefundStatus;
 
 let selectedGateway = null;
 
+// Call this when payment provider is selected
 function selectPaymentGateway(gateway) {
     selectedGateway = gateway;
     document.getElementById('p_paymentProvider').value = gateway;
@@ -6654,6 +6655,11 @@ function selectPaymentGateway(gateway) {
     
     // Load appropriate form
     loadBankForm(gateway);
+    
+    // Re-setup verification after form loads
+    setTimeout(() => {
+        setupAccountVerification();
+    }, 200);
 }
 
 function loadBankForm(gateway) {
@@ -6776,6 +6782,10 @@ function loadBankForm(gateway) {
     
     // Add account verification listeners
     setupAccountVerification();
+    // Add account verification listeners AFTER the DOM is updated
+    setTimeout(() => {
+        setupAccountVerification();
+    }, 100);
 }
 
 // Load Nigerian banks for Paystack
@@ -6835,52 +6845,210 @@ async function loadFlutterwaveBanks() {
 // Setup account verification
 function setupAccountVerification() {
     const accountNumberInput = document.getElementById('p_accountNumber');
-    if (accountNumberInput) {
-        accountNumberInput.addEventListener('blur', async function() {
-            const accountNumber = this.value.trim();
-            const bankCode = document.getElementById('p_bankCode')?.value;
-            const gateway = selectedGateway;
-            
-            if (!accountNumber || !bankCode || accountNumber.length < 8) return;
-            
+    if (!accountNumberInput) {
+        console.log('Account number input not found');
+        return;
+    }
+    
+    // Remove any existing event listeners to prevent duplicates
+    const newInput = accountNumberInput.cloneNode(true);
+    accountNumberInput.parentNode.replaceChild(newInput, accountNumberInput);
+    
+    newInput.addEventListener('blur', async function() {
+        const accountNumber = this.value.trim();
+        const bankCode = document.getElementById('p_bankCode')?.value;
+        const gateway = selectedGateway;
+        const countrySelect = document.getElementById('bankCountry');
+        const country = countrySelect ? countrySelect.value : null;
+        
+        // Validate input
+        if (!accountNumber || accountNumber.length < 8) {
             const messageEl = document.getElementById('p_accountNumber_error');
+            if (messageEl) {
+                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please enter a valid account number</span>';
+                messageEl.classList.add('show');
+                setTimeout(() => messageEl.classList.remove('show'), 3000);
+            }
+            return;
+        }
+        
+        if (!bankCode) {
+            const messageEl = document.getElementById('p_accountNumber_error');
+            if (messageEl) {
+                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please select a bank first</span>';
+                messageEl.classList.add('show');
+                setTimeout(() => messageEl.classList.remove('show'), 3000);
+            }
+            return;
+        }
+        
+        if (!gateway) {
+            const messageEl = document.getElementById('p_accountNumber_error');
+            if (messageEl) {
+                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please select a payment provider first</span>';
+                messageEl.classList.add('show');
+                setTimeout(() => messageEl.classList.remove('show'), 3000);
+            }
+            return;
+        }
+        
+        const messageEl = document.getElementById('p_accountNumber_error');
+        const accountNameField = document.getElementById('p_accountName');
+        
+        if (messageEl) {
             messageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying account...';
             messageEl.classList.add('show');
+        }
+        
+        try {
+            let endpoint = '';
+            let requestBody = {};
             
-            try {
-                let endpoint = '';
-                if (gateway === 'paystack') {
-                    endpoint = '/api/verify-account/paystack';
-                } else {
-                    const country = document.getElementById('bankCountry')?.value;
-                    endpoint = `/api/verify-account/flutterwave/${country}`;
-                }
-                
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        account_number: accountNumber, 
-                        bank_code: bankCode 
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.account_name) {
-                    document.getElementById('p_accountName').value = data.account_name;
-                    messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified!</span>';
-                    setTimeout(() => messageEl.classList.remove('show'), 3000);
-                } else {
-                    document.getElementById('p_accountName').value = '';
-                    messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed</span>';
-                }
-            } catch (err) {
-                console.error('Verification error:', err);
-                messageEl.innerHTML = '<span style="color: var(--danger);">Error verifying account</span>';
+            if (gateway === 'paystack') {
+                // Paystack verification (Nigerian banks only)
+                endpoint = '/api/verify-account/paystack';
+                requestBody = {
+                    account_number: accountNumber,
+                    bank_code: bankCode
+                };
+            } else if (gateway === 'flutterwave') {
+                // Flutterwave verification (supports multiple countries)
+                endpoint = `/api/verify-account/flutterwave/${country || 'NG'}`;
+                requestBody = {
+                    account_number: accountNumber,
+                    bank_code: bankCode,
+                    country: country || 'NG'
+                };
+            } else {
+                throw new Error('Unknown payment gateway');
             }
-        });
-    }
+            
+            console.log(`🔍 Verifying account with ${gateway}...`);
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestBody),
+                credentials: 'include'
+            });
+            
+            // Check if response is OK and parse JSON
+            if (!response.ok) {
+                let errorMsg = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    // Use default error message
+                }
+                throw new Error(errorMsg);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned an invalid response');
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.account_name) {
+                // Account verified successfully
+                if (accountNameField) {
+                    accountNameField.value = data.account_name;
+                    accountNameField.readOnly = true;
+                    accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    accountNameField.style.color = 'var(--success)';
+                }
+                
+                if (messageEl) {
+                    messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified! Account holder: ' + escapeHtml(data.account_name) + '</span>';
+                    setTimeout(() => messageEl.classList.remove('show'), 3000);
+                }
+                
+                console.log(`✅ Account verified: ${data.account_name}`);
+                
+                // Store verification status
+                newInput.setAttribute('data-verified', 'true');
+                if (accountNameField) {
+                    accountNameField.setAttribute('data-verified', 'true');
+                }
+                
+            } else {
+                // Verification failed
+                if (accountNameField) {
+                    accountNameField.value = '';
+                    accountNameField.readOnly = false;
+                    accountNameField.style.backgroundColor = '';
+                    accountNameField.style.color = '';
+                }
+                
+                if (messageEl) {
+                    messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed. Please check your account number and bank.</span>';
+                }
+                
+                newInput.setAttribute('data-verified', 'false');
+                console.error('Verification failed:', data.message || 'Unknown error');
+            }
+            
+        } catch (err) {
+            console.error('Verification error:', err);
+            
+            const accountNameField = document.getElementById('p_accountName');
+            if (accountNameField) {
+                accountNameField.value = '';
+                accountNameField.readOnly = false;
+            }
+            
+            if (messageEl) {
+                let errorMessage = err.message;
+                if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                } else if (err.message.includes('500')) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
+                messageEl.innerHTML = `<span style="color: var(--danger);">✗ ${escapeHtml(errorMessage)}</span>`;
+            }
+            
+            if (newInput) {
+                newInput.setAttribute('data-verified', 'false');
+            }
+        }
+    });
+    
+    // Also add input event to clear verification when account number changes
+    newInput.addEventListener('input', function() {
+        const accountNameField = document.getElementById('p_accountName');
+        const messageEl = document.getElementById('p_accountNumber_error');
+        
+        if (accountNameField && accountNameField.value) {
+            accountNameField.value = '';
+            accountNameField.readOnly = false;
+            accountNameField.style.backgroundColor = '';
+            accountNameField.style.color = '';
+        }
+        
+        if (messageEl && messageEl.classList.contains('show')) {
+            messageEl.classList.remove('show');
+        }
+        
+        this.setAttribute('data-verified', 'false');
+    });
+    
+    console.log('✅ Account verification setup complete');
+}
+
+// Helper function to escape HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 // Create subaccount when uploading product
 async function createSubaccount() {

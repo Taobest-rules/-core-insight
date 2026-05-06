@@ -9170,6 +9170,389 @@ app.get("/api/check-payment-status/:reference", async (req, res) => {
   }
 });
 // ============================================
+// UNIFIED WEBHOOK - HANDLES ALL PAYMENT TYPES
+// ============================================
+
+app.post("/api/webhook/paystack", async (req, res) => {
+  try {
+    const event = req.body;
+    const signature = req.headers['x-paystack-signature'];
+    
+    console.log("📨 Paystack webhook received:", event.event);
+    
+    // Verify signature
+    const crypto = require('crypto');
+    const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+    
+    if (hash !== signature) {
+      console.log("⚠️ Invalid webhook signature");
+      return res.status(401).send('Invalid signature');
+    }
+    
+    if (event.event === 'charge.success') {
+      const transaction = event.data;
+      const reference = transaction.reference;
+      const amount = transaction.amount / 100;
+      
+      console.log(`✅ Payment successful! Reference: ${reference}, Amount: ₦${amount}`);
+      
+      // Detect payment type from reference
+      if (reference.includes('DIGITAL_')) {
+        // DIGITAL PRODUCT
+        await handleDigitalProductPayment(reference);
+      } 
+      else if (reference.includes('COURSE_')) {
+        // COURSE PAYMENT
+        await handleCoursePayment(reference);
+      }
+      else if (reference.includes('sub_monthly') || reference.includes('sub_yearly')) {
+        // SUBSCRIPTION PAYMENT
+        await handleSubscriptionPayment(reference);
+      }
+      else {
+        // PHYSICAL PRODUCT (default)
+        await handlePhysicalProductPayment(reference);
+      }
+    }
+    
+    res.sendStatus(200);
+    
+  } catch (err) {
+    console.error("❌ Webhook error:", err);
+    res.sendStatus(500);
+  }
+});
+
+// Helper functions
+async function handleDigitalProductPayment(reference) {
+  console.log(`📦 Processing digital product payment: ${reference}`);
+  
+  await db.query(
+    `UPDATE digital_orders 
+     SET status = 'completed', 
+         completed_at = NOW(),
+         paystack_reference = ?
+     WHERE transaction_ref = ? OR transaction_ref LIKE ?`,
+    [reference, reference, `%${reference}%`]
+  );
+  
+  // Generate download token
+  const orderResult = await db.query(
+    `SELECT id FROM digital_orders WHERE transaction_ref LIKE ?`,
+    [`%${reference}%`]
+  );
+  
+  if (orderResult && orderResult.length > 0) {
+    const orderId = orderResult[0].id;
+    const downloadToken = crypto.randomBytes(32).toString('hex');
+    
+    await db.query(
+      `UPDATE digital_orders 
+       SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
+       WHERE id = ?`,
+      [`/api/download-digital/${orderId}?token=${downloadToken}`, orderId]
+    );
+    
+    console.log(`✅ Digital order #${orderId} completed`);
+  }
+}
+
+async function handlePhysicalProductPayment(reference) {
+  console.log(`📦 Processing physical product payment: ${reference}`);
+  
+  let cleanRef = reference;
+  if (cleanRef.startsWith('PS_')) cleanRef = cleanRef.substring(3);
+  
+  await db.query(
+    `UPDATE physical_orders 
+     SET payment_status = 'paid',
+         order_status = 'paid',
+         payment_collected_at = NOW(),
+         payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+         transaction_ref = ?
+     WHERE transaction_ref = ? OR transaction_ref LIKE ?`,
+    [reference, cleanRef, `%${cleanRef}%`]
+  );
+  
+  console.log(`✅ Physical order updated`);
+}
+
+async function handleCoursePayment(reference) {
+  console.log(`📚 Processing course payment: ${reference}`);
+  
+  const courseResult = await db.query(
+    `SELECT * FROM payments WHERE transaction_ref = ?`,
+    [reference]
+  );
+  
+  if (courseResult && courseResult.length > 0) {
+    await db.query(
+      `UPDATE payments SET status = 'completed' WHERE transaction_ref = ?`,
+      [reference]
+    );
+    
+    // Add to user_courses
+    await db.query(
+      `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+       SELECT user_id, course_id, 'completed', NOW()
+       FROM payments WHERE transaction_ref = ?`,
+      [reference]
+    );
+  }
+}
+
+async function handleSubscriptionPayment(reference) {
+  console.log(`💳 Processing subscription payment: ${reference}`);
+  
+  await db.query(
+    `UPDATE subscription_payments 
+     SET payment_status = 'completed', payment_date = NOW()
+     WHERE transaction_ref = ?`,
+    [reference]
+  );
+  
+  // Extract plan from reference
+  const plan = reference.includes('yearly') ? 'yearly' : 'monthly';
+  const userId = await db.query(
+    `SELECT user_id FROM subscription_payments WHERE transaction_ref = ?`,
+    [reference]
+  );
+  
+  if (userId && userId.length > 0) {
+    const subscriptionEnd = new Date();
+    if (plan === 'monthly') {
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
+    } else {
+      subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+    }
+    
+    await db.query(
+      `UPDATE users 
+       SET subscription_plan = ?,
+           subscription_status = 'active',
+           subscription_start_date = NOW(),
+           subscription_end_date = ?,
+           trial_end_date = NULL
+       WHERE id = ?`,
+      [plan, subscriptionEnd, userId[0].user_id]
+    );
+  }
+}
+
+// ============================================
+// FLUTTERWAVE WEBHOOK - HANDLES ALL PAYMENT TYPES
+// ============================================
+
+app.post("/api/webhook/flutterwave", async (req, res) => {
+  try {
+    const event = req.body;
+    
+    console.log("📨 Flutterwave webhook received:", event.event);
+    
+    // Verify webhook signature (Flutterwave uses 'verif-hash' header)
+    const signature = req.headers['verif-hash'];
+    if (signature !== process.env.FLW_WEBHOOK_SECRET) {
+      console.log("⚠️ Invalid Flutterwave webhook signature");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+    
+    if (event.event === "charge.completed" && event.data.status === "successful") {
+      const transaction = event.data;
+      const tx_ref = transaction.tx_ref;
+      const amount = transaction.amount;
+      const currency = transaction.currency;
+      
+      console.log(`✅ Flutterwave payment successful! Reference: ${tx_ref}, Amount: ${amount} ${currency}`);
+      
+      // Detect payment type from reference
+      if (tx_ref && tx_ref.includes('DIGITAL_')) {
+        // DIGITAL PRODUCT
+        await handleFlutterwaveDigitalPayment(tx_ref, transaction);
+      }
+      else if (tx_ref && tx_ref.includes('COURSE_')) {
+        // COURSE PAYMENT
+        await handleFlutterwaveCoursePayment(tx_ref, transaction);
+      }
+      else if (tx_ref && (tx_ref.includes('sub_monthly') || tx_ref.includes('sub_yearly'))) {
+        // SUBSCRIPTION PAYMENT
+        await handleFlutterwaveSubscriptionPayment(tx_ref, transaction);
+      }
+      else if (tx_ref && (tx_ref.includes('ORD_') || tx_ref.includes('FW_'))) {
+        // PHYSICAL PRODUCT
+        await handleFlutterwavePhysicalPayment(tx_ref, transaction);
+      }
+      else if (tx_ref && tx_ref.includes('SERVICE_')) {
+        // SERVICE PAYMENT
+        await handleFlutterwaveServicePayment(tx_ref, transaction);
+      }
+    }
+    
+    res.sendStatus(200);
+    
+  } catch (err) {
+    console.error("❌ Flutterwave webhook error:", err);
+    res.sendStatus(500);
+  }
+});
+
+// Flutterwave Helper Functions
+async function handleFlutterwaveDigitalPayment(tx_ref, transaction) {
+  console.log(`📦 Processing Flutterwave digital product payment: ${tx_ref}`);
+  
+  // Clean reference
+  let cleanRef = tx_ref;
+  if (cleanRef.startsWith('FW_')) cleanRef = cleanRef.substring(3);
+  
+  await db.query(
+    `UPDATE digital_orders 
+     SET status = 'completed', 
+         completed_at = NOW(),
+         flutterwave_reference = ?,
+         amount_usd = ?
+     WHERE transaction_ref = ? OR transaction_ref LIKE ?`,
+    [transaction.id, transaction.amount, cleanRef, `%${cleanRef}%`]
+  );
+  
+  // Generate download token
+  const orderResult = await db.query(
+    `SELECT id FROM digital_orders WHERE transaction_ref LIKE ?`,
+    [`%${cleanRef}%`]
+  );
+  
+  if (orderResult && orderResult.length > 0) {
+    const orderId = orderResult[0].id;
+    const downloadToken = crypto.randomBytes(32).toString('hex');
+    
+    await db.query(
+      `UPDATE digital_orders 
+       SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
+       WHERE id = ?`,
+      [`/api/download-digital/${orderId}?token=${downloadToken}`, orderId]
+    );
+    
+    console.log(`✅ Digital order #${orderId} completed via Flutterwave`);
+  }
+}
+
+async function handleFlutterwavePhysicalPayment(tx_ref, transaction) {
+  console.log(`📦 Processing Flutterwave physical product payment: ${tx_ref}`);
+  
+  let cleanRef = tx_ref;
+  if (cleanRef.startsWith('FW_')) cleanRef = cleanRef.substring(3);
+  
+  // Extract order ID from reference (format: ORD_12345_timestamp_random)
+  let orderId = null;
+  const orderMatch = tx_ref.match(/ORD_(\d+)/);
+  if (orderMatch) orderId = orderMatch[1];
+  
+  if (orderId) {
+    await db.query(
+      `UPDATE physical_orders 
+       SET payment_status = 'paid',
+           order_status = 'paid',
+           payment_collected_at = NOW(),
+           payment_held_until = DATE_ADD(NOW(), INTERVAL 5 DAY),
+           transaction_ref = ?,
+           flutterwave_reference = ?
+       WHERE id = ?`,
+      [tx_ref, transaction.id, orderId]
+    );
+    console.log(`✅ Physical order #${orderId} updated via Flutterwave`);
+  }
+}
+
+async function handleFlutterwaveCoursePayment(tx_ref, transaction) {
+  console.log(`📚 Processing Flutterwave course payment: ${tx_ref}`);
+  
+  // Extract course ID and user ID from meta
+  const courseId = transaction.meta?.course_id;
+  const userId = transaction.meta?.user_id;
+  
+  if (courseId && userId) {
+    await db.query(
+      `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
+       VALUES (?, ?, 'completed', NOW())
+       ON DUPLICATE KEY UPDATE payment_status = 'completed', purchased_at = NOW()`,
+      [userId, courseId]
+    );
+    console.log(`✅ Course enrollment completed for user ${userId}, course ${courseId}`);
+  }
+}
+
+async function handleFlutterwaveSubscriptionPayment(tx_ref, transaction) {
+  console.log(`💳 Processing Flutterwave subscription payment: ${tx_ref}`);
+  
+  const userId = transaction.meta?.user_id;
+  const plan = tx_ref.includes('yearly') ? 'yearly' : 'monthly';
+  
+  if (userId) {
+    const subscriptionEnd = new Date();
+    if (plan === 'monthly') {
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
+    } else {
+      subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+    }
+    
+    await db.query(
+      `UPDATE users 
+       SET subscription_plan = ?,
+           subscription_status = 'active',
+           subscription_start_date = NOW(),
+           subscription_end_date = ?,
+           trial_end_date = NULL
+       WHERE id = ?`,
+      [plan, subscriptionEnd, userId]
+    );
+    
+    await db.query(
+      `UPDATE subscription_payments 
+       SET payment_status = 'completed', 
+           payment_date = NOW(),
+           flutterwave_response = ?
+       WHERE transaction_ref = ?`,
+      [JSON.stringify(transaction), tx_ref]
+    );
+    
+    console.log(`✅ Subscription activated for user ${userId} (${plan} plan)`);
+  }
+}
+
+async function handleFlutterwaveServicePayment(tx_ref, transaction) {
+  console.log(`🎯 Processing Flutterwave service payment: ${tx_ref}`);
+  // Add your service payment logic here
+}
+// Universal callback handler - handles all payment types
+app.get("/payment-callback", async (req, res) => {
+    const { reference, trxref, transaction_id, tx_ref } = req.query;
+    const paymentRef = reference || trxref || tx_ref || transaction_id;
+    
+    console.log(`🎯 Universal callback received. Reference: ${paymentRef}`);
+    
+    if (!paymentRef) {
+        return res.redirect('/products.html');
+    }
+    
+    // Determine payment type and redirect
+    if (paymentRef.includes('DIGITAL_')) {
+        return res.redirect(`/digital-payment-callback.html?reference=${paymentRef}`);
+    }
+    else if (paymentRef.includes('sub_monthly') || paymentRef.includes('sub_yearly')) {
+        return res.redirect(`/subscription-callback.html?tx_ref=${paymentRef}&status=successful`);
+    }
+    else if (paymentRef.includes('coreinsight_')) {
+        return res.redirect(`/payment-callback.html?reference=${paymentRef}&type=course`);
+    }
+    else if (paymentRef.includes('SERVICE_')) {
+        return res.redirect(`/services-payment-verification.html?tx_ref=${paymentRef}`);
+    }
+    else {
+        // Physical product (default)
+        return res.redirect(`/payment-callback.html?reference=${paymentRef}`);
+    }
+});
+// ============================================
 // PHYSICAL ORDER PAYMENT - AUTO CURRENCY CONVERSION
 // ============================================
 

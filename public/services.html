@@ -4749,17 +4749,18 @@ In the name of Allah, the Most Gracious, the Most Merciful
                   Upload images of your certificates, diplomas, or credentials. You can upload up to 5 images (JPG, PNG, max 5MB each).
                 </p>
                 
-                <div id="certificateUploadArea" class="upload-area">
+           <div id="certificateUploadArea" class="upload-area">
     <div class="upload-icon">
         <i class="fas fa-cloud-upload-alt"></i>
     </div>
     <h4 style="color: var(--text-light); margin-bottom: 10px;">Drag & drop your certificate images here</h4>
     <p style="color: var(--text-gray); margin-bottom: 20px;">or click to browse files</p>
-    <input type="file" id="certificateImagesInput" accept="image/*" multiple style="display: none;">
     <button type="button" id="browseCertificatesBtn" class="btn btn-secondary">
         <i class="fas fa-folder-open"></i> Browse Files
     </button>
 </div>
+<!-- Move file input OUTSIDE the upload area -->
+<input type="file" id="certificateImagesInput" accept="image/*" multiple style="display: none;">
                 <div id="certificateProgress" style="display: none; margin-top: 20px;">
                   <div style="color: var(--text-light); margin-bottom: 8px;">Uploading...</div>
                   <div style="background: var(--secondary-dark); border-radius: 10px; overflow: hidden;">
@@ -14258,75 +14259,157 @@ function initProfilePictureUpload() {
 // ==================== CERTIFICATE UPLOAD - FIXED ====================
 let isCertUploading = false;
 
-// ==================== FIXED CERTIFICATE UPLOAD ====================
+// ==================== FIXED CERTIFICATE UPLOAD - WORKING VERSION ====================
 function setupCertificateUpload() {
     const browseBtn = document.getElementById('browseCertificatesBtn');
     const certificateInput = document.getElementById('certificateImagesInput');
     const uploadArea = document.getElementById('certificateUploadArea');
     
     if (!browseBtn) {
-        console.log("Browse certificates button not found");
+        console.error("Browse certificates button not found - check if element exists");
         return;
     }
     
     if (!certificateInput) {
-        console.log("Certificate input not found");
+        console.error("Certificate input not found - check if element exists");
         return;
     }
     
-    // Simple direct event binding without cloning
-    // Remove existing listeners by creating fresh event handler
-    const handleBrowseClick = function(e) {
+    // Remove any existing listeners by creating fresh ones
+    const newBrowseBtn = browseBtn.cloneNode(true);
+    browseBtn.parentNode.replaceChild(newBrowseBtn, browseBtn);
+    
+    // Simple direct click handler for browse button
+    newBrowseBtn.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Browse certificates button clicked");
+        console.log("Browse certificates button clicked - opening file picker");
         certificateInput.click();
     };
     
-    const handleUploadAreaClick = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        certificateInput.click();
-    };
-    
-    const handleFileChange = async function(e) {
+    // Handle file selection
+    certificateInput.onchange = async function(e) {
         if (e.target.files && e.target.files.length > 0) {
             console.log(`Selected ${e.target.files.length} certificate(s)`);
             await uploadCertificates(Array.from(e.target.files));
         }
+        // Reset the input so same file can be selected again
+        this.value = '';
     };
     
-    const handleDragOver = function(e) {
-        e.preventDefault();
-        if (uploadArea) uploadArea.classList.add('dragover');
-    };
-    
-    const handleDragLeave = function(e) {
-        e.preventDefault();
-        if (uploadArea) uploadArea.classList.remove('dragover');
-    };
-    
-    const handleDrop = async function(e) {
-        e.preventDefault();
-        if (uploadArea) uploadArea.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            await uploadCertificates(Array.from(e.dataTransfer.files));
-        }
-    };
-    
-    // Attach listeners
-    browseBtn.addEventListener('click', handleBrowseClick);
-    certificateInput.addEventListener('change', handleFileChange);
-    
+    // Optional: Handle upload area click for drag & drop
     if (uploadArea) {
-        uploadArea.addEventListener('click', handleUploadAreaClick);
-        uploadArea.addEventListener('dragover', handleDragOver);
-        uploadArea.addEventListener('dragleave', handleDragLeave);
-        uploadArea.addEventListener('drop', handleDrop);
+        const newUploadArea = uploadArea.cloneNode(true);
+        uploadArea.parentNode.replaceChild(newUploadArea, uploadArea);
+        
+        newUploadArea.ondragover = function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        };
+        
+        newUploadArea.ondragleave = function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        };
+        
+        newUploadArea.ondrop = async function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                await uploadCertificates(Array.from(e.dataTransfer.files));
+            }
+        };
     }
     
     console.log("Certificate upload initialized successfully");
 }
+
+// Upload certificates function
+async function uploadCertificates(files) {
+    const maxFiles = 5;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    // Validate files
+    const validFiles = [];
+    for (const file of files) {
+        if (!allowedTypes.includes(file.type)) {
+            showToast(`${file.name} is not an image (use JPG, PNG, GIF, or WEBP)`, 'warning');
+            continue;
+        }
+        if (file.size > maxSize) {
+            showToast(`${file.name} exceeds 5MB limit`, 'warning');
+            continue;
+        }
+        validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) {
+        showToast('No valid files to upload', 'warning');
+        return;
+    }
+    
+    if (validFiles.length > maxFiles) {
+        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
+        return;
+    }
+    
+    // Show progress
+    const progressDiv = document.getElementById('certificateProgress');
+    const progressBar = document.getElementById('certificateProgressBar');
+    const progressText = document.getElementById('certificateProgressText');
+    
+    if (progressDiv) progressDiv.style.display = 'block';
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.textContent = 'Preparing upload...';
+    
+    // Create form data
+    const formData = new FormData();
+    validFiles.forEach(file => {
+        formData.append('certificate_images', file);
+    });
+    
+    try {
+        // Update progress
+        if (progressBar) progressBar.style.width = '30%';
+        if (progressText) progressText.textContent = 'Uploading...';
+        
+        const response = await fetch('/api/freelancer/certificate-images', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressText) progressText.textContent = 'Complete!';
+            showToast(`✅ Successfully uploaded ${validFiles.length} certificate(s)!`, 'success');
+            
+            // Refresh profile to show new certificates
+            setTimeout(() => {
+                if (typeof showFreelancerProfile === 'function') {
+                    showFreelancerProfile();
+                }
+            }, 1000);
+        } else {
+            showToast(result.error || 'Upload failed', 'error');
+            if (progressDiv) progressDiv.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error uploading certificates: ' + err.message, 'error');
+        if (progressDiv) progressDiv.style.display = 'none';
+    } finally {
+        // Hide progress after 3 seconds
+        setTimeout(() => {
+            if (progressDiv) progressDiv.style.display = 'none';
+            if (progressBar) progressBar.style.width = '0%';
+        }, 3000);
+    }
+}
+
 
 // Make sure uploadCertificates is defined and working
 async function uploadCertificates(files) {

@@ -10506,49 +10506,87 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
 // ============================================
 
 app.get("/api/download-digital/:orderId", async (req, res) => {
-    try {
-        const orderId = req.params.orderId;
-        const { token } = req.query;
-        
-        if (!token) {
-            return res.status(401).json({ error: "Download token required" });
-        }
-        
-        // Verify order and token
-        const order = await db.query(
-            `SELECT o.*, p.file_url, p.title, p.user_id as seller_id
-             FROM digital_orders o
-             JOIN products p ON o.product_id = p.id
-             WHERE o.id = ? AND o.download_url LIKE ? AND o.download_expires_at > NOW()`,
-            [orderId, `%token=${token}%`]
-        );
-        
-        if (!order || order.length === 0) {
-            return res.status(404).json({ error: "Download link invalid or expired" });
-        }
-        
-        const orderData = order[0];
-        
-        // Redirect to the actual file or provide download
-        if (orderData.file_url) {
-            // If file is on Cloudinary or external
-            return res.redirect(orderData.file_url);
-        } else if (orderData.file_path) {
-            // If file is local
-            const filePath = path.join(__dirname, orderData.file_path);
-            if (fs.existsSync(filePath)) {
-                res.download(filePath, `${orderData.title}.pdf`);
-            } else {
-                res.status(404).json({ error: "File not found" });
-            }
-        } else {
-            res.status(404).json({ error: "No file associated with this product" });
-        }
-        
-    } catch (err) {
-        console.error("❌ Download error:", err);
-        res.status(500).json({ error: err.message });
+  try {
+    const orderId = req.params.orderId;
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(401).json({ error: "Download token required" });
     }
+    
+    // Verify order and token
+    const order = await db.query(
+      `SELECT o.*, p.file_url, p.file_path, p.title, p.user_id as seller_id
+       FROM digital_orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.download_url LIKE ? AND o.download_expires_at > NOW()`,
+      [orderId, `%token=${token}%`]
+    );
+    
+    if (!order || order.length === 0) {
+      return res.status(404).json({ error: "Download link invalid or expired" });
+    }
+    
+    const orderData = order[0];
+    
+    // PRIORITY 1: Check if there's a direct file URL (Cloudinary, MEGA link, etc.)
+    if (orderData.file_url && (orderData.file_url.startsWith('http') || orderData.file_url.includes('cloudinary'))) {
+      console.log(`Redirecting to file URL: ${orderData.file_url}`);
+      return res.redirect(orderData.file_url);
+    }
+    
+    // PRIORITY 2: Check if there's a local file path
+    if (orderData.file_path) {
+      // Try multiple possible locations
+      const possiblePaths = [
+        path.join(__dirname, orderData.file_path),
+        path.join(__dirname, 'uploads', 'products', path.basename(orderData.file_path)),
+        path.join(__dirname, 'uploads', path.basename(orderData.file_path)),
+      ];
+      
+      for (const filePath of possiblePaths) {
+        if (fs.existsSync(filePath)) {
+          console.log(`Serving file from: ${filePath}`);
+          return res.download(filePath, `${orderData.title}.pdf`);
+        }
+      }
+    }
+    
+    // PRIORITY 3: Check products table for file
+    const product = await db.query(
+      `SELECT file_url, file_path FROM products WHERE id = ?`,
+      [orderData.product_id]
+    );
+    
+    if (product && product.length > 0) {
+      const prod = product[0];
+      
+      if (prod.file_url && prod.file_url.startsWith('http')) {
+        return res.redirect(prod.file_url);
+      }
+      
+      if (prod.file_path) {
+        const localPath = path.join(__dirname, prod.file_path);
+        if (fs.existsSync(localPath)) {
+          return res.download(localPath, `${orderData.title}.pdf`);
+        }
+      }
+    }
+    
+    // If all else fails
+    res.status(404).json({ 
+      error: "File not found. Please contact support.",
+      debug: {
+        order_file_url: orderData.file_url,
+        order_file_path: orderData.file_path,
+        order_id: orderId
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Download error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 // ============================================
 // COMPLETE PHYSICAL ORDER STATUS SYSTEM

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Purchase Complete - Core Insight</title>
+    <title>Digital Purchase Processing - Core Insight</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -60,6 +60,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .success { color: #10b981; font-size: 48px; margin: 20px 0; }
         .error { color: #ef4444; font-size: 48px; margin: 20px 0; }
+        .warning { color: #f59e0b; font-size: 48px; margin: 20px 0; }
         .btn, .download-btn {
             display: inline-block;
             padding: 12px 28px;
@@ -80,17 +81,25 @@
             padding: 14px 32px;
         }
         .btn:hover, .download-btn:hover { transform: translateY(-2px); }
-        .download-btn:hover { background: #059669; }
-        .btn:hover { box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
         .product-info {
             background: rgba(16, 185, 129, 0.1);
             border-radius: 12px;
             padding: 20px;
             margin: 20px 0;
         }
-        .product-info h3 { color: #10b981; margin-bottom: 10px; }
-        .expiry-note { font-size: 12px; color: #94a3b8; margin-top: 15px; }
         .button-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .refresh-btn:hover { background: #2563eb; }
+        .countdown { font-size: 14px; color: #94a3b8; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -100,7 +109,7 @@
             <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
         </div>
         <div id="paymentStatus">
-            <h2>Processing Your Digital Purchase...</h2>
+            <h2>Processing Payment...</h2>
             <div class="spinner"></div>
             <p id="message" style="color: #94a3b8;">Please wait while we verify your payment...</p>
         </div>
@@ -109,6 +118,9 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref');
+        const orderId = urlParams.get('orderId');
+        let retryCount = 0;
+        let checkInterval = null;
         
         if (reference && reference.startsWith('PS_')) {
             reference = reference.substring(3);
@@ -121,40 +133,118 @@
             }
             
             try {
-                const response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                console.log(`Verifying payment (attempt ${retryCount + 1}):`, reference);
+                
+                const response = await fetch(`/api/check-payment-status/${encodeURIComponent(reference)}`, {
                     credentials: 'include'
                 });
                 const data = await response.json();
                 
+                console.log('Payment status response:', data);
+                
                 if (data.status === 'success') {
+                    // Payment successful - now get the download link
+                    clearInterval(checkInterval);
+                    
+                    const verifyResponse = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                        credentials: 'include'
+                    });
+                    const verifyData = await verifyResponse.json();
+                    
+                    if (verifyData.status === 'success') {
+                        document.getElementById('paymentStatus').innerHTML = `
+                            <div class="bismillah">
+                                <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                                <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                            </div>
+                            <div class="success">✅</div>
+                            <h2 style="color: #10b981;">Payment Successful!</h2>
+                            <div class="product-info">
+                                <h3>${escapeHtml(verifyData.product_title || 'Digital Product')}</h3>
+                                <p>Thank you for your purchase!</p>
+                            </div>
+                            <a href="${verifyData.download_url}" class="download-btn" target="_blank">
+                                <i class="fas fa-download"></i> Download Now
+                            </a>
+                            <div class="button-group">
+                                <a href="/products.html" class="btn">Continue Shopping</a>
+                            </div>
+                        `;
+                    } else {
+                        showError('Could not retrieve download link. Please contact support.');
+                    }
+                    
+                } else if (data.status === 'pending') {
+                    // Payment still pending (bank transfer takes time)
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="bismillah">
                             <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
                             <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
                         </div>
-                        <div class="success">✅</div>
-                        <h2 style="color: #10b981;">Purchase Successful!</h2>
-                        <div class="product-info">
-                            <h3>${escapeHtml(data.product_title || 'Digital Product')}</h3>
-                            <p>Thank you for your purchase!</p>
+                        <div class="warning">⏳</div>
+                        <h2 style="color: #f59e0b;">Payment Pending</h2>
+                        <div class="product-info" style="background: rgba(245, 158, 11, 0.1);">
+                            <p>Your bank transfer is being processed.</p>
+                            <p><strong>Reference: ${reference}</strong></p>
+                            <p>Bank transfers typically take 10-30 minutes to confirm.</p>
                         </div>
-                        <a href="${data.download_url}" class="download-btn" target="_blank">
-                            <i class="fas fa-download"></i> Download Now
-                        </a>
-                        <div class="expiry-note">
-                            <i class="fas fa-clock"></i> This link expires in 7 days.
-                        </div>
+                        <p style="color: #94a3b8;">We will automatically check for updates.</p>
+                        <button class="refresh-btn" onclick="forceCheck()">
+                            <i class="fas fa-sync-alt"></i> Check Status Now
+                        </button>
+                        <div class="countdown" id="countdown">Checking again in 15 seconds...</div>
                         <div class="button-group">
                             <a href="/products.html" class="btn">Continue Shopping</a>
-                            <a href="/my-purchases.html" class="btn">My Purchases</a>
+                            <a href="/contact.html" class="btn">Contact Support</a>
                         </div>
                     `;
+                    
+                    // Start countdown and retry
+                    startRetryTimer();
+                    
                 } else {
-                    showError(data.message || 'Verification failed.');
+                    showError(data.message || 'Payment verification failed. Please contact support.');
                 }
+                
             } catch (error) {
+                console.error('Verification error:', error);
                 showError('Error verifying payment. Please contact support.');
             }
+        }
+        
+        function startRetryTimer() {
+            let seconds = 15;
+            const countdownEl = document.getElementById('countdown');
+            
+            if (checkInterval) clearInterval(checkInterval);
+            
+            checkInterval = setInterval(async () => {
+                seconds--;
+                if (countdownEl) {
+                    countdownEl.innerHTML = `Checking again in ${seconds} seconds...`;
+                }
+                
+                if (seconds <= 0) {
+                    clearInterval(checkInterval);
+                    retryCount++;
+                    await verifyPayment();
+                }
+            }, 1000);
+        }
+        
+        async function forceCheck() {
+            if (checkInterval) clearInterval(checkInterval);
+            retryCount = 0;
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="bismillah">
+                    <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                    <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                </div>
+                <h2>Checking Payment Status...</h2>
+                <div class="spinner"></div>
+                <p style="color: #94a3b8;">Please wait...</p>
+            `;
+            await verifyPayment();
         }
         
         function showError(msg) {
@@ -166,9 +256,10 @@
                 <div class="error">❌</div>
                 <h2 style="color: #ef4444;">Verification Failed</h2>
                 <p style="color: #94a3b8;">${escapeHtml(msg)}</p>
+                <p style="color: #94a3b8; font-size: 12px;">Reference: ${escapeHtml(reference)}</p>
                 <div class="button-group">
                     <a href="/products.html" class="btn">Browse Products</a>
-                    <a href="/contact.html" class="btn">Contact Support</a>
+                    <button class="refresh-btn" onclick="forceCheck()">Try Again</button>
                 </div>
             `;
         }
@@ -178,6 +269,7 @@
             return String(text).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
         }
         
+        // Start verification
         verifyPayment();
     </script>
 </body>

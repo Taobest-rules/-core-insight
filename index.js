@@ -9135,6 +9135,40 @@ app.get("/api/orders/:orderId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Check payment status for pending bank transfers
+app.get("/api/check-payment-status/:reference", async (req, res) => {
+  try {
+    const { reference } = req.params;
+    
+    console.log(`🔍 Checking payment status for reference: ${reference}`);
+    
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      }
+    );
+    
+    if (response.data.status === true) {
+      const transaction = response.data.data;
+      
+      res.json({
+        status: transaction.status,
+        message: transaction.status === 'success' ? 'Payment confirmed' : 'Payment still pending',
+        reference: reference,
+        amount: transaction.amount / 100,
+        paid_at: transaction.paid_at,
+        gateway_response: transaction.gateway_response
+      });
+    } else {
+      res.status(400).json({ status: 'error', message: 'Transaction not found' });
+    }
+  } catch (err) {
+    console.error('Check payment error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // PHYSICAL ORDER PAYMENT - AUTO CURRENCY CONVERSION
 // ============================================

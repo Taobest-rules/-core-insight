@@ -7467,10 +7467,22 @@ async function checkRefundStatus(orderId) {
               </div>
             </div>
             
-            <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 16px;">
-              <button class="btn primary" onclick="markOrderShipped(${order.id})" style="background: var(--success);">
-                <i class="fas fa-truck"></i> Begin Shipment
-              </button>
+           <!-- In the seller dashboard, for paid orders -->
+<button class="btn btn-primary" onclick="generateDeliveryCode(${order.id})">
+    <i class="fas fa-truck"></i> Begin Shipment
+</button>
+
+<!-- Delivery confirmation section (only shown after code is generated) -->
+<div id="deliveryConfirmSection_${order.id}" style="display: ${order.has_delivery_code ? 'block' : 'none'};">
+    <div class="tracking-card">
+        <h3><i class="fas fa-key"></i> Confirm Delivery</h3>
+        <p>Ask the customer for the 6-digit delivery code they received via email:</p>
+        <input type="text" id="deliveryCode_${order.id}" placeholder="Enter 6-digit code" maxlength="6" style="padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 20px; text-align: center; letter-spacing: 4px;">
+        <button class="btn btn-success" onclick="confirmDeliveryWithCode(${order.id})" style="margin-top: 10px;">
+            <i class="fas fa-check-circle"></i> Confirm Delivery
+        </button>
+    </div>
+</div>
               <button class="small-btn" onclick="viewOrderDetails(${order.id})">
                 <i class="fas fa-eye"></i> View Full Details
               </button>
@@ -7594,94 +7606,67 @@ async function markOrderShipped(orderId) {
     });
   }
 }
-// Confirm delivery (for buyers) - Starts 5-day escrow countdown
-async function confirmDelivery(orderId) {
-  if (!confirm('Have you received your order?\n\nConfirming delivery will:\n✅ Mark order as delivered\n✅ Start 5-day countdown for seller payment\n💰 You can still request a refund within 5 days\n\nDo you want to confirm delivery?')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Delivery Confirmed', 
-        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
-        'success');
-      loadBuyerOrders(); // Refresh the orders list
-    } else {
-      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+
+
+
+
+async function generateDeliveryCode(orderId) {
+    if (!confirm("Once you click OK, a delivery code will be sent to the customer. This will mark the order as shipped and cannot be undone.")) {
+        return;
     }
-  } catch (error) {
-    console.error('Delivery confirmation error:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
+    
+    try {
+        const response = await fetch(`/api/orders/${orderId}/generate-delivery-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert("✅ Delivery code sent to customer!\n\nThey will provide this code when they receive the package.");
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (error) {
+        alert("Network error: " + error.message);
+    }
 }
 
-
-
-// Confirm delivery (for buyers) - Starts 5-day escrow countdown
-async function confirmDelivery(orderId) {
-  if (!confirm('Have you received your order?\n\nConfirming delivery will:\n✅ Mark order as delivered\n✅ Start 5-day countdown for seller payment\n💰 You can still request a refund within 5 days\n\nDo you want to confirm delivery?')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
+async function confirmDeliveryWithCode(orderId) {
+    const codeInput = document.getElementById(`deliveryCode_${orderId}`);
+    const deliveryCode = codeInput?.value.trim();
     
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Delivery Confirmed', 
-        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
-        'success');
-      loadBuyerOrders(); // Refresh the orders list
-    } else {
-      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    if (!deliveryCode || deliveryCode.length !== 6) {
+        alert("Please enter the 6-digit delivery code provided by the customer.");
+        return;
     }
-  } catch (error) {
-    console.error('Delivery confirmation error:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
-}
-
-
-// Confirm delivery (for buyers) - This starts the 5-day escrow countdown
-async function confirmDelivery(orderId) {
-  if (!confirm('Have you received your order? Confirming delivery will start the 5-day countdown for seller payment. You can still request a refund within these 5 days.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
     
-    const data = await response.json();
-    
-    if (response.ok) {
-      showToast('Delivery Confirmed', 
-        'Thank you for confirming! The seller will receive payment after 5 days unless you request a refund.', 
-        'success');
-      loadBuyerOrders(); // Refresh the orders list
-    } else {
-      showToast('Error', data.error || 'Failed to confirm delivery', 'danger');
+    if (!confirm("Confirming delivery will start the 5-day escrow countdown. Funds will be released to you after 5 days unless the customer requests a refund.")) {
+        return;
     }
-  } catch (error) {
-    console.error('Delivery confirmation error:', error);
-    showToast('Error', 'Network error. Please try again.', 'danger');
-  }
+    
+    try {
+        const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ delivery_code: deliveryCode }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert("✅ Delivery confirmed! 5-day escrow period has started.\n\nFunds will be released after 5 days.");
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (error) {
+        alert("Network error: " + error.message);
+    }
 }
 // Check escrow status
 async function checkEscrowStatus(orderId) {

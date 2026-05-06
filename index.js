@@ -9072,14 +9072,12 @@ await db.query(
 // Get order details - STANDARDIZED
 app.get("/api/orders/:orderId", async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
     
     const orderId = req.params.orderId;
     
-    const order = await db.query(`
-      SELECT o.*, p.title as product_name, p.images, 
+    const orderResult = await db.query(`
+      SELECT o.*, p.title as product_name, p.images,
              u_seller.username as seller_name, u_seller.email as seller_email,
              u_buyer.username as buyer_name, u_buyer.email as buyer_email
       FROM physical_orders o
@@ -9089,52 +9087,51 @@ app.get("/api/orders/:orderId", async (req, res) => {
       WHERE o.id = ? AND (o.buyer_id = ? OR o.seller_id = ?)
     `, [orderId, req.session.user.id, req.session.user.id]);
     
-    if (!order || order.length === 0) {
+    if (!orderResult || orderResult.length === 0) {
       return res.status(404).json({ error: "Order not found" });
     }
     
-    const orderData = order[0];
+    const order = orderResult[0];
+    const isSeller = req.session.user.id === order.seller_id;
     
-    // Standardize response
-    const standardizedOrder = {
-      id: orderData.id,
-      product_id: orderData.product_id,
-      product_name: orderData.product_name,
-      product_images: orderData.images ? (typeof orderData.images === 'string' ? JSON.parse(orderData.images) : orderData.images) : [],
-      quantity: parseInt(orderData.quantity),
-      price: parseFloat(orderData.price),
-      total_amount: parseFloat(orderData.total_amount),
-      order_status: orderData.order_status,
-      payment_status: orderData.payment_status,
+    // Seller can see that code EXISTS but NOT the actual code
+    // Only the customer received the code via email
+    const responseOrder = {
+      id: order.id,
+      product_name: order.product_name,
+      quantity: parseInt(order.quantity),
+      price: parseFloat(order.price),
+      total_amount: parseFloat(order.total_amount),
+      order_status: order.order_status,
+      payment_status: order.payment_status,
+      shipping_address: order.shipping_address,
+      delivery_phone: order.delivery_phone,
+      created_at: order.created_at,
+      seller_accepted_at: order.seller_accepted_at,
+      payment_collected_at: order.payment_collected_at,
+      payment_held_until: order.payment_held_until,
+      
+      // IMPORTANT: Code is only shown as EXISTS, not the actual value
+      has_delivery_code: !!(order.delivery_code && order.order_status === 'shipped'),
+      delivery_code_generated_at: order.delivery_code_sent_at,
+      delivery_code_used: order.delivery_code_used === 1,
+      
       buyer: {
-        id: orderData.buyer_id,
-        name: orderData.buyer_name,
-        email: orderData.buyer_email
+        id: order.buyer_id,
+        name: order.buyer_name,
+        email: order.buyer_email
       },
       seller: {
-        id: orderData.seller_id,
-        name: orderData.seller_name,
-        email: orderData.seller_email
-      },
-      shipping_address: orderData.shipping_address,
-      delivery_phone: orderData.delivery_phone,
-      notes: orderData.notes,
-      created_at: orderData.created_at,
-      seller_accepted_at: orderData.seller_accepted_at,
-      payment_collected_at: orderData.payment_collected_at,
-      payment_held_until: orderData.payment_held_until,
-      funds_released_at: orderData.funds_released_at,
-      platform_fee: parseFloat(orderData.platform_fee) || 0,
-      seller_earnings: parseFloat(orderData.seller_earnings) || 0,
-      estimated_delivery_days: orderData.estimated_delivery_days || 7,
-      fee_breakdown: orderData.fee_breakdown ? 
-        (typeof orderData.fee_breakdown === 'string' ? JSON.parse(orderData.fee_breakdown) : orderData.fee_breakdown) : null
+        id: order.seller_id,
+        name: order.seller_name,
+        email: order.seller_email
+      }
     };
     
-    res.json({ success: true, order: standardizedOrder });
+    res.json({ success: true, order: responseOrder });
     
   } catch (err) {
-    console.error("❌ Error loading order details:", err);
+    console.error("❌ Error loading order:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -11021,56 +11018,108 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
     }
     
     const orderId = req.params.orderId;
+    const { delivery_code } = req.body;
     
-    // Verify buyer owns this order
+    if (!delivery_code) {
+      return res.status(400).json({ error: "Delivery code is required" });
+    }
+    
+    // Get order with buyer info
     const orderResult = await db.query(
-      `SELECT * FROM physical_orders WHERE id = ? AND buyer_id = ?`,
+      `SELECT o.*, u.email as buyer_email, u.username as buyer_name, p.title as product_name
+       FROM physical_orders o
+       LEFT JOIN users u ON o.buyer_id = u.id
+       LEFT JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.seller_id = ?`,
       [orderId, req.session.user.id]
     );
     
     if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found or you don't have permission" });
     }
     
     const order = orderResult[0];
     
-    if (order.order_status !== 'delivered' && order.order_status !== 'shipped') {
-      return res.status(400).json({ error: "Order cannot be confirmed as delivered yet" });
+    // Check if order is in shipped status
+    if (order.order_status !== 'shipped') {
+      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
     }
     
-    // Update order to completed
+    if (!order.delivery_code) {
+      return res.status(400).json({ error: "No delivery code generated for this order yet" });
+    }
+    
+    // Verify the code matches
+    if (order.delivery_code !== delivery_code) {
+      return res.status(400).json({ error: "Invalid delivery code. Please check with the customer and try again." });
+    }
+    
+    // Mark as delivered - START 5-DAY ESCROW COUNTDOWN
+    const escrowReleaseDate = new Date();
+    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+    
     await db.query(
       `UPDATE physical_orders 
-       SET order_status = 'completed', 
-           completed_at = NOW(),
-           funds_released_at = NOW()
+       SET order_status = 'delivered',
+           delivered_at = NOW(),
+           payment_held_until = ?
+       WHERE id = ?`,
+      [escrowReleaseDate, orderId]
+    );
+    
+    // Mark delivery code as used
+    await db.query(
+      `UPDATE physical_orders 
+       SET delivery_code_used = 1, delivery_code_used_at = NOW()
        WHERE id = ?`,
       [orderId]
     );
     
-    // Record in history
+    // Add to status history
     await db.query(
       `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-       VALUES (?, 'completed', 'Buyer confirmed delivery', ?, NOW())`,
+       VALUES (?, 'delivered', 'Delivery confirmed with code. 5-day escrow started.', ?, NOW())`,
       [orderId, req.session.user.id]
     );
     
-    // Update escrow account
-    await db.query(
-      `UPDATE escrow_accounts 
-       SET status = 'released', 
-           released_at = NOW()
-       WHERE order_id = ?`,
-      [orderId]
-    );
+    // Send confirmation email to buyer
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Delivery Confirmed - Core Insight</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .success { color: #10b981; font-size: 48px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="success">✅</div>
+          <h1>Delivery Confirmed!</h1>
+          <p>Hello ${order.buyer_name},</p>
+          <p>Your order for <strong>${order.product_name}</strong> has been confirmed as delivered.</p>
+          <p>Funds will be released to the seller in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless you request a refund.</p>
+          <p>If there are any issues with your order, you can request a refund within the next 5 days.</p>
+          <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">Track Your Order</a>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(order.buyer_email, `Delivery Confirmed for Order #${orderId}`, emailHtml);
     
     res.json({
       success: true,
-      message: "Delivery confirmed! Thank you for your purchase."
+      message: "Delivery confirmed! 5-day escrow period has started.",
+      order_status: 'delivered',
+      escrow_release_date: escrowReleaseDate,
+      days_until_release: 5
     });
     
   } catch (err) {
-    console.error("❌ Delivery confirmation error:", err);
+    console.error("❌ Confirm delivery error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -11387,7 +11436,6 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
 // ============================================
 // DELIVERY CODE SYSTEM - COMPLETE
 // ============================================
-// Generate and send delivery code when seller marks order as shipped
 app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -11413,12 +11461,8 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
     const order = orderResult[0];
     
     // Check if order is paid
-    const isPaid = order.payment_status === 'paid' || order.order_status === 'paid';
-    
-    if (!isPaid) {
-      return res.status(400).json({ 
-        error: `Order must be paid before generating delivery code. Current status: ${order.order_status}` 
-      });
+    if (order.payment_status !== 'paid' && order.order_status !== 'paid') {
+      return res.status(400).json({ error: "Order must be paid before generating delivery code" });
     }
     
     // Check if already has delivery code
@@ -11443,7 +11487,7 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
       [deliveryCode, orderId]
     );
     
-    // Send email with delivery code to buyer
+    // Send email with delivery code to CUSTOMER ONLY (not seller)
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -11452,32 +11496,46 @@ app.post("/api/orders/:orderId/generate-delivery-code", async (req, res) => {
         <style>
           body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
           .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          .code-box { background: #0f172a; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
-          .code { font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; }
+          .code-box { background: #0f172a; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; border: 2px solid #FFD700; }
+          .code { font-size: 48px; font-weight: bold; letter-spacing: 10px; color: #FFD700; font-family: monospace; }
+          .warning { color: #f59e0b; font-size: 12px; margin-top: 10px; }
         </style>
       </head>
       <body>
         <div class="container">
-          <h1>📦 Your Order #${orderId} is Out for Delivery!</h1>
+          <h1>📦 Your Order #${orderId} is Ready for Delivery!</h1>
           <p>Hello ${order.buyer_name},</p>
           <p>Your order for <strong>${order.product_name}</strong> has been shipped!</p>
           <div class="code-box">
-            <p style="margin-bottom: 10px;">Your Delivery Confirmation Code:</p>
+            <p style="margin-bottom: 10px;">🔐 Your 6-Digit Delivery Code:</p>
             <div class="code">${deliveryCode}</div>
-            <p style="margin-top: 10px; font-size: 12px;">Give this code to the delivery person when you receive your package</p>
+            <p class="warning">⚠️ Keep this code confidential! Do not share it with anyone except the delivery person.</p>
+            <p style="margin-top: 10px; font-size: 12px;">You will need to provide this code to confirm delivery.</p>
           </div>
-          <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;">Track Your Order</a>
+          <p><strong>How it works:</strong></p>
+          <ol style="margin-left: 20px; color: #94a3b8;">
+            <li>Show this code to the delivery person when you receive your package</li>
+            <li>The seller will enter this code to confirm delivery</li>
+            <li>Your 5-day escrow protection starts after delivery confirmation</li>
+          </ol>
+          <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">Track Your Order</a>
         </div>
       </body>
       </html>
     `;
     
-    await sendEmail(order.buyer_email, `Delivery Code for Order #${orderId}`, emailHtml);
+    await sendEmail(order.buyer_email, `🔐 Your Delivery Code for Order #${orderId}`, emailHtml);
+    
+    // Add to status history
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, 'shipped', 'Delivery code generated and sent to customer', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
     
     res.json({
       success: true,
-      message: "Delivery code generated and sent to buyer",
-      delivery_code: deliveryCode,
+      message: "Delivery code generated and sent to customer. The customer will provide this code for delivery confirmation.",
       order_status: 'shipped'
     });
     

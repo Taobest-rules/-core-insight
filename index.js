@@ -10323,91 +10323,175 @@ app.get("/api/check-payment-status/:reference", async (req, res) => {
     });
   }
 });
+// ============================================
+// VERIFY DIGITAL PAYMENT - COMPLETELY FIXED
+// ============================================
+
 app.get("/api/verify-digital-payment/:reference", async (req, res) => {
   try {
     let reference = req.params.reference;
     
     console.log(`🔍 Verifying digital payment for reference: ${reference}`);
     
-    // Check if this reference has PS_ prefix
-    let hasPSPrefix = reference.startsWith('PS_');
-    let cleanRef = hasPSPrefix ? reference.substring(3) : reference;
-    
-    console.log(`  Clean reference for DB: ${cleanRef}`);
-    console.log(`  Original reference for Paystack: ${reference}`);
-    
-    // First check database for the order
-    const orderResult = await db.query(
-      `SELECT o.*, p.title as product_title 
-       FROM digital_orders o
-       JOIN products p ON o.product_id = p.id
-       WHERE o.transaction_ref = ? OR o.transaction_ref = ?`,
-      [cleanRef, reference]
-    );
-    
-    // If order exists and is already completed
-    if (orderResult && orderResult.length > 0 && orderResult[0].status === 'completed') {
-      return res.json({
-        status: "success",
-        message: "Payment already verified",
-        product_title: orderResult[0].product_title,
-        download_url: orderResult[0].download_url,
-        order_id: orderResult[0].id
+    if (!reference) {
+      return res.status(400).json({ 
+        status: "failed", 
+        message: "No payment reference provided" 
       });
     }
     
-    // Verify with Paystack using the ORIGINAL reference (with PS_)
+    // First, find the order in database
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_title, p.file_url, p.user_id as seller_id
+       FROM digital_orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.transaction_ref = ? OR o.transaction_ref LIKE ?`,
+      [reference, `%${reference}%`]
+    );
+    
+    console.log('Order query result:', orderResult);
+    
+    let order = null;
+    if (orderResult && orderResult.length > 0) {
+      order = orderResult[0];
+    }
+    
+    if (!order) {
+      return res.status(404).json({ 
+        status: "failed", 
+        message: "Order not found for this reference" 
+      });
+    }
+    
+    // If order is already completed, return download link
+    if (order.status === 'completed') {
+      console.log(`✅ Order #${order.id} already completed`);
+      
+      let downloadUrl = order.download_url;
+      if (!downloadUrl) {
+        const downloadToken = crypto.randomBytes(32).toString('hex');
+        downloadUrl = `/api/download-digital/${order.id}?token=${downloadToken}`;
+        await db.query(
+          `UPDATE digital_orders SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?`,
+          [downloadUrl, order.id]
+        );
+      }
+      
+      return res.json({
+        status: "success",
+        message: "Payment already verified",
+        product_title: order.product_title,
+        download_url: downloadUrl,
+        order_id: order.id
+      });
+    }
+    
+    // Verify with Paystack using the reference with PS_ prefix
+    let paystackRef = reference;
+    if (!paystackRef.startsWith('PS_')) {
+      paystackRef = `PS_${reference}`;
+    }
+    
+    console.log(`Verifying with Paystack using: ${paystackRef}`);
+    
     const paystackResponse = await axios.get(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      `https://api.paystack.co/transaction/verify/${paystackRef}`,
       {
         headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
       }
     );
     
+    console.log('Paystack response status:', paystackResponse.data.status);
+    
     if (paystackResponse.data.status === true && 
         paystackResponse.data.data.status === "success") {
-      const transaction = paystackResponse.data.data;
       
-      // Update order
+      const transaction = paystackResponse.data.data;
+      const amount = transaction.amount / 100;
+      
+      console.log(`✅ Payment verified! Amount: ₦${amount}`);
+      
+      // Update order status
       await db.query(
         `UPDATE digital_orders 
          SET status = 'completed', 
              completed_at = NOW(),
-             paystack_reference = ?
-         WHERE transaction_ref = ?`,
-        [reference, cleanRef]
+             paystack_reference = ?,
+             amount_paid = ?,
+             amount_paid_currency = 'NGN'
+         WHERE id = ?`,
+        [paystackRef, amount, order.id]
       );
       
-      // Generate download token
-      const orderId = orderResult[0]?.id || (await getOrderIdByRef(cleanRef));
+      // Update product stats
+      await db.query(
+        `UPDATE products 
+         SET sales_count = sales_count + 1, 
+             download_count = download_count + 1 
+         WHERE id = ?`,
+        [order.product_id]
+      );
+      
+      // Generate download token and URL
       const downloadToken = crypto.randomBytes(32).toString('hex');
+      const downloadUrl = `/api/download-digital/${order.id}?token=${downloadToken}`;
+      const downloadExpiry = new Date();
+      downloadExpiry.setDate(downloadExpiry.getDate() + 7);
       
       await db.query(
         `UPDATE digital_orders 
-         SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY)
+         SET download_url = ?, download_expires_at = ?
          WHERE id = ?`,
-        [`/api/download-digital/${orderId}?token=${downloadToken}`, orderId]
+        [downloadUrl, downloadExpiry, order.id]
       );
+      
+      console.log(`✅ Digital order #${order.id} completed successfully!`);
+      
+      // Send confirmation email
+      try {
+        const userResult = await db.query(
+          `SELECT email, username FROM users WHERE id = ?`,
+          [order.buyer_id]
+        );
+        
+        if (userResult && userResult.length > 0) {
+          const emailHtml = `
+            <h2>Purchase Successful!</h2>
+            <p>Hello ${userResult[0].username},</p>
+            <p>Thank you for purchasing <strong>${order.product_title}</strong>.</p>
+            <p><a href="${downloadUrl}" style="background:#3b82f6;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Download Now</a></p>
+            <p>This link expires in 7 days.</p>
+          `;
+          sendEmail(userResult[0].email, `Your Digital Product: ${order.product_title}`, emailHtml);
+        }
+      } catch (emailErr) {
+        console.log('Email error:', emailErr.message);
+      }
       
       return res.json({
         status: "success",
         message: "Payment verified successfully",
-        product_title: orderResult[0]?.product_title || "Digital Product",
-        download_url: `/api/download-digital/${orderId}?token=${downloadToken}`,
-        order_id: orderId
+        product_title: order.product_title,
+        download_url: downloadUrl,
+        order_id: order.id
+      });
+      
+    } else {
+      return res.status(400).json({
+        status: "failed",
+        message: "Payment not successful or not found in Paystack"
       });
     }
     
-    res.status(400).json({
-      status: "failed",
-      message: "Payment not found or not completed"
-    });
-    
   } catch (err) {
     console.error("❌ Digital payment verification error:", err);
+    console.error("Error details:", err.message);
+    if (err.response) {
+      console.error("Paystack error response:", err.response.data);
+    }
     res.status(500).json({ 
       status: "failed", 
-      message: err.message 
+      message: "Error verifying payment: " + err.message
     });
   }
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Purchase Processing - Core Insight</title>
+    <title>Digital Purchase Complete - Core Insight</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -116,26 +116,44 @@
     </div>
 
     <script>
+        // ============================================
+        // FIXED: PROPER REFERENCE EXTRACTION
+        // ============================================
+        
         const urlParams = new URLSearchParams(window.location.search);
         let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref');
-        const orderId = urlParams.get('orderId');
+        
+        // IMPORTANT: Keep PS_ prefix for Paystack API calls
+        let paystackReference = reference;  // e.g., "PS_DIGITAL_xxx"
+        let databaseReference = reference;   // Will remove PS_ if present
+        
+        // Remove PS_ prefix ONLY for database lookup
+        if (reference && reference.startsWith('PS_')) {
+            databaseReference = reference.substring(3);  // "DIGITAL_xxx"
+            // paystackReference stays as "PS_DIGITAL_xxx"
+        }
+        
+        console.log('🔑 Paystack API Reference (with PS_):', paystackReference);
+        console.log('💾 Database Reference (without PS_):', databaseReference);
+        
         let retryCount = 0;
         let checkInterval = null;
         
-        if (reference && reference.startsWith('PS_')) {
-            reference = reference.substring(3);
-        }
+        // ============================================
+        // VERIFY PAYMENT WITH PAYSTACK
+        // ============================================
         
         async function verifyPayment() {
-            if (!reference) {
+            if (!paystackReference) {
                 showError('No payment reference found.');
                 return;
             }
             
             try {
-                console.log(`Verifying payment (attempt ${retryCount + 1}):`, reference);
+                console.log(`Verifying payment (attempt ${retryCount + 1}):`, paystackReference);
                 
-                const response = await fetch(`/api/check-payment-status/${encodeURIComponent(reference)}`, {
+                // Use the reference WITH PS_ prefix for Paystack API
+                const response = await fetch(`/api/check-payment-status/${encodeURIComponent(paystackReference)}`, {
                     credentials: 'include'
                 });
                 const data = await response.json();
@@ -146,7 +164,8 @@
                     // Payment successful - now get the download link
                     clearInterval(checkInterval);
                     
-                    const verifyResponse = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                    // Pass the database reference (without PS_) to get the order
+                    const verifyResponse = await fetch(`/api/verify-digital-payment/${encodeURIComponent(databaseReference)}`, {
                         credentials: 'include'
                     });
                     const verifyData = await verifyResponse.json();
@@ -158,7 +177,7 @@
                                 <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
                             </div>
                             <div class="success">✅</div>
-                            <h2 style="color: #10b981;">Payment Successful!</h2>
+                            <h2 style="color: #10b981;">Purchase Successful!</h2>
                             <div class="product-info">
                                 <h3>${escapeHtml(verifyData.product_title || 'Digital Product')}</h3>
                                 <p>Thank you for your purchase!</p>
@@ -168,6 +187,7 @@
                             </a>
                             <div class="button-group">
                                 <a href="/products.html" class="btn">Continue Shopping</a>
+                                <a href="/my-purchases.html" class="btn">My Purchases</a>
                             </div>
                         `;
                     } else {
@@ -184,8 +204,8 @@
                         <div class="warning">⏳</div>
                         <h2 style="color: #f59e0b;">Payment Pending</h2>
                         <div class="product-info" style="background: rgba(245, 158, 11, 0.1);">
-                            <p>Your bank transfer is being processed.</p>
-                            <p><strong>Reference: ${reference}</strong></p>
+                            <p>Your payment is being processed.</p>
+                            <p><strong>Reference: ${databaseReference}</strong></p>
                             <p>Bank transfers typically take 10-30 minutes to confirm.</p>
                         </div>
                         <p style="color: #94a3b8;">We will automatically check for updates.</p>
@@ -256,7 +276,7 @@
                 <div class="error">❌</div>
                 <h2 style="color: #ef4444;">Verification Failed</h2>
                 <p style="color: #94a3b8;">${escapeHtml(msg)}</p>
-                <p style="color: #94a3b8; font-size: 12px;">Reference: ${escapeHtml(reference)}</p>
+                <p style="color: #94a3b8; font-size: 12px;">Reference: ${escapeHtml(databaseReference)}</p>
                 <div class="button-group">
                     <a href="/products.html" class="btn">Browse Products</a>
                     <button class="refresh-btn" onclick="forceCheck()">Try Again</button>
@@ -270,7 +290,11 @@
         }
         
         // Start verification
-        verifyPayment();
+        if (paystackReference) {
+            verifyPayment();
+        } else {
+            showError('No payment reference found in URL.');
+        }
     </script>
 </body>
 </html>

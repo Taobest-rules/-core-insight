@@ -4750,17 +4750,16 @@ In the name of Allah, the Most Gracious, the Most Merciful
                 </p>
                 
                 <div id="certificateUploadArea" class="upload-area">
-                  <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                  </div>
-                  <h4 style="color: var(--text-light); margin-bottom: 10px;">Drag & drop your certificate images here</h4>
-                  <p style="color: var(--text-gray); margin-bottom: 20px;">or click to browse files</p>
-                  <input type="file" id="certificateImagesInput" accept="image/*" multiple style="display: none;">
-                  <button type="button" id="browseCertificatesBtn" class="btn btn-secondary">
-                    <i class="fas fa-folder-open"></i> Browse Files
-                  </button>
-                </div>
-                
+    <div class="upload-icon">
+        <i class="fas fa-cloud-upload-alt"></i>
+    </div>
+    <h4 style="color: var(--text-light); margin-bottom: 10px;">Drag & drop your certificate images here</h4>
+    <p style="color: var(--text-gray); margin-bottom: 20px;">or click to browse files</p>
+    <input type="file" id="certificateImagesInput" accept="image/*" multiple style="display: none;">
+    <button type="button" id="browseCertificatesBtn" class="btn btn-secondary">
+        <i class="fas fa-folder-open"></i> Browse Files
+    </button>
+</div>
                 <div id="certificateProgress" style="display: none; margin-top: 20px;">
                   <div style="color: var(--text-light); margin-bottom: 8px;">Uploading...</div>
                   <div style="background: var(--secondary-dark); border-radius: 10px; overflow: hidden;">
@@ -14130,62 +14129,6 @@ window.renderServices = function(servicesToRender) {
     }).join('');
 };
 
-// Certificate upload - FIXED
-function setupCertificateUpload() {
-    const browseBtn = document.getElementById('browseCertificatesBtn');
-    const certificateInput = document.getElementById('certificateImagesInput');
-    const uploadArea = document.getElementById('certificateUploadArea');
-    
-    if (!browseBtn || !certificateInput) return;
-    
-    // Clone to remove old listeners
-    const newBrowseBtn = browseBtn.cloneNode(true);
-    browseBtn.parentNode.replaceChild(newBrowseBtn, browseBtn);
-    
-    const newInput = certificateInput.cloneNode(true);
-    certificateInput.parentNode.replaceChild(newInput, certificateInput);
-    
-    newBrowseBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        newInput.value = '';
-        newInput.click();
-    });
-    
-    if (uploadArea) {
-        const newUploadArea = uploadArea.cloneNode(true);
-        uploadArea.parentNode.replaceChild(newUploadArea, uploadArea);
-        
-        newUploadArea.addEventListener('click', function(e) {
-            if (e.target === newUploadArea || e.target.closest('.upload-area')) {
-                newInput.click();
-            }
-        });
-        
-        newUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            newUploadArea.classList.add('dragover');
-        });
-        
-        newUploadArea.addEventListener('dragleave', () => {
-            newUploadArea.classList.remove('dragover');
-        });
-        
-        newUploadArea.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            newUploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                await uploadCertificates(Array.from(e.dataTransfer.files));
-            }
-        });
-    }
-    
-    newInput.addEventListener('change', async (e) => {
-        if (e.target.files.length > 0) {
-            await uploadCertificates(Array.from(e.target.files));
-        }
-    });
-}
 
 
 
@@ -14315,6 +14258,77 @@ function initProfilePictureUpload() {
 // ==================== CERTIFICATE UPLOAD - FIXED ====================
 let isCertUploading = false;
 
+// ==================== FIXED CERTIFICATE UPLOAD ====================
+function setupCertificateUpload() {
+    const browseBtn = document.getElementById('browseCertificatesBtn');
+    const certificateInput = document.getElementById('certificateImagesInput');
+    const uploadArea = document.getElementById('certificateUploadArea');
+    
+    if (!browseBtn) {
+        console.log("Browse certificates button not found");
+        return;
+    }
+    
+    if (!certificateInput) {
+        console.log("Certificate input not found");
+        return;
+    }
+    
+    // Simple direct event binding without cloning
+    // Remove existing listeners by creating fresh event handler
+    const handleBrowseClick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Browse certificates button clicked");
+        certificateInput.click();
+    };
+    
+    const handleUploadAreaClick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        certificateInput.click();
+    };
+    
+    const handleFileChange = async function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            console.log(`Selected ${e.target.files.length} certificate(s)`);
+            await uploadCertificates(Array.from(e.target.files));
+        }
+    };
+    
+    const handleDragOver = function(e) {
+        e.preventDefault();
+        if (uploadArea) uploadArea.classList.add('dragover');
+    };
+    
+    const handleDragLeave = function(e) {
+        e.preventDefault();
+        if (uploadArea) uploadArea.classList.remove('dragover');
+    };
+    
+    const handleDrop = async function(e) {
+        e.preventDefault();
+        if (uploadArea) uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            await uploadCertificates(Array.from(e.dataTransfer.files));
+        }
+    };
+    
+    // Attach listeners
+    browseBtn.addEventListener('click', handleBrowseClick);
+    certificateInput.addEventListener('change', handleFileChange);
+    
+    if (uploadArea) {
+        uploadArea.addEventListener('click', handleUploadAreaClick);
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+    }
+    
+    console.log("Certificate upload initialized successfully");
+}
+
+// Make sure uploadCertificates is defined and working
 async function uploadCertificates(files) {
     const maxFiles = 5;
     const maxSize = 5 * 1024 * 1024;
@@ -14366,9 +14380,11 @@ async function uploadCertificates(files) {
             if (progressText) progressText.textContent = 'Complete!';
             showToast(`✅ ${validFiles.length} certificate(s) uploaded!`, 'success');
             
-            // IMPORTANT: Refresh the profile to show new certificates
+            // Refresh the profile to show new certificates
             setTimeout(() => {
-                showFreelancerProfile();
+                if (typeof showFreelancerProfile === 'function') {
+                    showFreelancerProfile();
+                }
             }, 1000);
         } else {
             showToast(result.error || 'Upload failed', 'error');
@@ -14386,6 +14402,12 @@ async function uploadCertificates(files) {
         if (certificateInput) certificateInput.value = '';
     }
 }
+
+// Initialize certificate upload when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setupCertificateUpload();
+    console.log('Certificate upload initialized');
+});
 
 function initCertificateUpload() {
     const browseBtn = document.getElementById('browseCertificatesBtn');
@@ -14477,7 +14499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupServiceForm();
     setupCertificateUpload();
      setupProfilePictureUpload();
-    setupCertificateUpload();
+    
     
     // Fix profile picture button
    const updatePhotoBtn = document.getElementById('updatePhotoBtn');

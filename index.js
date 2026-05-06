@@ -10323,8 +10323,9 @@ app.get("/api/check-payment-status/:reference", async (req, res) => {
     });
   }
 });
+
 // ============================================
-// VERIFY DIGITAL PAYMENT - COMPLETELY FIXED
+// VERIFY DIGITAL PAYMENT - FIXED (No extra columns)
 // ============================================
 
 app.get("/api/verify-digital-payment/:reference", async (req, res) => {
@@ -10411,16 +10412,13 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       
       console.log(`✅ Payment verified! Amount: ₦${amount}`);
       
-      // Update order status
+      // Update order status (only columns that exist)
       await db.query(
         `UPDATE digital_orders 
          SET status = 'completed', 
-             completed_at = NOW(),
-             paystack_reference = ?,
-             amount_paid = ?,
-             amount_paid_currency = 'NGN'
+             completed_at = NOW()
          WHERE id = ?`,
-        [paystackRef, amount, order.id]
+        [order.id]
       );
       
       // Update product stats
@@ -10456,13 +10454,21 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
         
         if (userResult && userResult.length > 0) {
           const emailHtml = `
-            <h2>Purchase Successful!</h2>
-            <p>Hello ${userResult[0].username},</p>
-            <p>Thank you for purchasing <strong>${order.product_title}</strong>.</p>
-            <p><a href="${downloadUrl}" style="background:#3b82f6;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Download Now</a></p>
-            <p>This link expires in 7 days.</p>
+            <!DOCTYPE html>
+            <html>
+            <head><title>Purchase Successful - Core Insight</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+              <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                <h2 style="color:#10b981;">Purchase Successful! ✅</h2>
+                <p>Hello ${userResult[0].username},</p>
+                <p>Thank you for purchasing <strong>${order.product_title}</strong>.</p>
+                <p><a href="${downloadUrl}" style="background:#3b82f6;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Download Now</a></p>
+                <p>This link expires in 7 days.</p>
+              </div>
+            </body>
+            </html>
           `;
-          sendEmail(userResult[0].email, `Your Digital Product: ${order.product_title}`, emailHtml);
+          await sendEmail(userResult[0].email, `Your Digital Product: ${order.product_title}`, emailHtml);
         }
       } catch (emailErr) {
         console.log('Email error:', emailErr.message);

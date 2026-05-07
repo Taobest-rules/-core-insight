@@ -10065,12 +10065,12 @@ app.post("/api/verify-account/paystack", async (req, res) => {
     }
 });
 // ============================================
-// BUY DIGITAL PRODUCT - WITH DEDICATED CALLBACK
+// BUY DIGITAL PRODUCT - WITH SUBACCOUNT SPLIT
 // ============================================
 
 app.post("/api/buy-product", async (req, res) => {
     try {
-        console.log("🛒 Buy product request received");
+        console.log("🛒 Buy digital product request received");
         
         if (!req.session || !req.session.user) {
             return res.status(401).json({ error: "Please login to purchase" });
@@ -10082,9 +10082,13 @@ app.post("/api/buy-product", async (req, res) => {
             return res.status(400).json({ error: "Product ID is required" });
         }
         
-        // Get product details
+        // Get product details with seller subaccount info
         const products = await db.query(
-            `SELECT p.*, u.email as seller_email, u.username as seller_name 
+            `SELECT p.*, 
+                    u.email as seller_email, 
+                    u.username as seller_name,
+                    u.flutterwave_subaccount_id,
+                    u.paystack_subaccount_code
              FROM products p
              LEFT JOIN users u ON p.user_id = u.id
              WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)`,
@@ -10117,7 +10121,7 @@ app.post("/api/buy-product", async (req, res) => {
         const randomNum = Math.floor(Math.random() * 10000);
         const transactionRef = `DIGITAL_${timestamp}_${productId}_${randomNum}`;
         
-        // Store order in database - FIXED: Added amount column
+        // Store order in database
         let orderId = null;
         try {
             const orderResult = await db.query(
@@ -10143,7 +10147,7 @@ app.post("/api/buy-product", async (req, res) => {
                 orderId = orderResult[0].insertId;
             }
             
-            console.log(`✅ Order created with ID: ${orderId}`);
+            console.log(`✅ Digital order created with ID: ${orderId}`);
         } catch (dbErr) {
             console.error("❌ Database insert error:", dbErr.message);
             return res.status(500).json({ error: "Failed to create order: " + dbErr.message });
@@ -10157,9 +10161,10 @@ app.post("/api/buy-product", async (req, res) => {
         if (process.env.PAYSTACK_SECRET_KEY && (!preferredGateway || preferredGateway === 'paystack')) {
             usedGateway = 'paystack';
             const paystackRef = `PS_${transactionRef}`;
+            const ngnAmountKobo = Math.round(ngnAmount * 100);
             
             const paystackPayload = {
-                amount: Math.round(ngnAmount * 100),
+                amount: ngnAmountKobo,
                 email: req.session.user.email,
                 reference: paystackRef,
                 callback_url: "https://coreinsightmarket.com/digital-payment-callback.html",
@@ -10170,6 +10175,17 @@ app.post("/api/buy-product", async (req, res) => {
                     transaction_ref: transactionRef
                 }
             };
+            
+            // ✅ ADD SUBACCOUNT FOR DIGITAL PRODUCTS (90/10 SPLIT)
+            if (product.paystack_subaccount_code) {
+                paystackPayload.subaccount = {
+                    subaccount_code: product.paystack_subaccount_code,
+                    transaction_charge: Math.round(platformFeeNGN * 100)  // 10% platform fee
+                };
+                console.log(`✅ Paystack subaccount added: ${product.paystack_subaccount_code}`);
+            } else {
+                console.log(`⚠️ No Paystack subaccount found for seller ${product.user_id}`);
+            }
             
             try {
                 const response = await axios.post(
@@ -10186,7 +10202,7 @@ app.post("/api/buy-product", async (req, res) => {
                 
                 if (response.data.status === true && response.data.data?.authorization_url) {
                     paymentLink = response.data.data.authorization_url;
-                    console.log(`✅ Paystack payment link created`);
+                    console.log(`✅ Paystack payment link created (90/10 split)`);
                 }
             } catch (paystackErr) {
                 console.error("Paystack error:", paystackErr.message);
@@ -10220,6 +10236,17 @@ app.post("/api/buy-product", async (req, res) => {
                 }
             };
             
+            // ✅ ADD SUBACCOUNT FOR DIGITAL PRODUCTS (90/10 SPLIT)
+            if (product.flutterwave_subaccount_id) {
+                flutterwavePayload.subaccounts = [{
+                    id: product.flutterwave_subaccount_id,
+                    transaction_split_ratio: 0.9  // 90% to seller, 10% to platform
+                }];
+                console.log(`✅ Flutterwave subaccount added: ${product.flutterwave_subaccount_id}`);
+            } else {
+                console.log(`⚠️ No Flutterwave subaccount found for seller ${product.user_id}`);
+            }
+            
             try {
                 const response = await axios.post(
                     'https://api.flutterwave.com/v3/payments',
@@ -10235,7 +10262,7 @@ app.post("/api/buy-product", async (req, res) => {
                 
                 if (response.data.status === 'success' && response.data.data?.link) {
                     paymentLink = response.data.data.link;
-                    console.log(`✅ Flutterwave payment link created`);
+                    console.log(`✅ Flutterwave payment link created (90/10 split)`);
                 }
             } catch (flutterErr) {
                 console.error("Flutterwave error:", flutterErr.message);
@@ -10260,7 +10287,12 @@ app.post("/api/buy-product", async (req, res) => {
             orderId: orderId,
             gateway: usedGateway,
             amount_usd: usdAmount,
-            message: `Redirecting to ${usedGateway} payment...`
+            split: {
+                platform_fee: usdAmount * 0.10,
+                seller_earnings: usdAmount * 0.90,
+                message: "90% goes to seller, 10% platform fee"
+            },
+            message: `Redirecting to ${usedGateway} payment... (90/10 split)`
         });
         
     } catch (err) {
@@ -10270,6 +10302,7 @@ app.post("/api/buy-product", async (req, res) => {
         });
     }
 });
+
 
 // ============================================
 // VERIFY DIGITAL PRODUCT PAYMENT - FIXED
@@ -13748,7 +13781,7 @@ const { uploadProduct } = require('./mega-storage');
 
 app.post("/api/upload-product", uploadProduct, async (req, res) => {
   try {
-    console.log("📤 Product upload started with ImgBB + MEGA...");
+    console.log("📤 Product upload started...");
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please log in to upload products." });
@@ -13761,27 +13794,12 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       accountNumber, accountName
     } = req.body;
 
-    // Validation
     if (!title || !price || !type || !paymentProvider) {
       return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
     }
 
     const listedPrice = parseFloat(price);
-    const productCostValue = type === 'physical' ? parseFloat(product_cost) || 3.00 : null;
     
-    let sellerPrice = listedPrice;
-    let platformFee = 0;
-    let originalPrice = listedPrice;
-    
-    if (type === 'physical') {
-      originalPrice = listedPrice;
-      platformFee = 0;
-      sellerPrice = originalPrice;
-    } else if (type === 'digital') {
-      platformFee = listedPrice * 0.10;
-      sellerPrice = listedPrice - platformFee;
-    }
-
     // Upload product images to ImgBB
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
@@ -13789,13 +13807,20 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       console.log(`✅ ${imageUrls.length} images uploaded to ImgBB`);
     }
 
-    // Upload digital product file to MEGA
+    // CRITICAL: Upload digital file to MEGA and get the SHAREABLE URL
     let fileUrl = null;
+    
     if (type === 'digital' && req.files?.file?.[0]) {
       const productFile = req.files.file[0];
       const folderName = `/products/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      fileUrl = await uploadFileToMega(productFile.path, productFile.originalname, folderName);
-      console.log(`✅ Digital file uploaded to MEGA: ${fileUrl}`);
+      
+      // This should return the actual shareable URL
+      const uploadResult = await uploadFileToMega(productFile.path, productFile.originalname, folderName);
+      
+      // IMPORTANT: uploadResult is the URL string (from your mega-storage.js)
+      fileUrl = uploadResult;  // This should be "https://mega.nz/file/XXXXX#YYYYY"
+      
+      console.log(`✅ Digital file uploaded. URL: ${fileUrl ? fileUrl.substring(0, 60) + '...' : 'null'}`);
     }
 
     // Handle affiliate link
@@ -13803,7 +13828,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       fileUrl = affiliate_link;
     }
 
-    // Insert product into database
+    // Insert product into database - STORE THE ACTUAL MEGA URL
     const result = await db.query(
       `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
@@ -13816,13 +13841,13 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
         req.session.user.id, 
         title.trim(), 
         description || '', 
-        sellerPrice, 
-        originalPrice, 
-        platformFee, 
-        productCostValue,
+        listedPrice, 
+        listedPrice, 
+        type === 'digital' ? listedPrice * 0.10 : 0,
+        type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
         category || '', 
         type, 
-        fileUrl, 
+        fileUrl,  // ← STORE THE ACTUAL MEGA URL HERE!
         imageUrls.length ? JSON.stringify(imageUrls) : null, 
         affiliate_link || null, 
         paymentProvider,
@@ -13836,40 +13861,18 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
 
     const productId = result.insertId;
     
-    // Store business info for seller payouts
-    if (businessName && accountNumber) {
-      try {
-        await db.query(
-          `INSERT INTO sellers (user_id, account_number, bank_code, bank_name, business_name, business_email, business_phone, country, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-           ON DUPLICATE KEY UPDATE 
-           account_number = VALUES(account_number),
-           bank_code = VALUES(bank_code),
-           bank_name = VALUES(bank_name),
-           business_name = VALUES(business_name),
-           business_email = VALUES(business_email),
-           business_phone = VALUES(business_phone),
-           country = VALUES(country)`,
-          [req.session.user.id, accountNumber, bankCode || null, bankName || null, businessName, businessEmail || null, businessPhone || null, country || null]
-        );
-        console.log(`✅ Business info stored for seller ${req.session.user.id}`);
-      } catch (err) {
-        console.error('❌ Error storing business info:', err.message);
-      }
-    }
-
-    console.log(`✅ Product uploaded! ID: ${productId}`);
+    console.log(`✅ Product uploaded! ID: ${productId}, File URL: ${fileUrl ? 'YES' : 'NO'}`);
     
     res.json({ 
       success: true,
       message: "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,
+      file_url: fileUrl ? 'stored' : 'none',
       pricing: {
-        customer_price: originalPrice,
-        platform_fee: platformFee,
-        seller_earnings: sellerPrice,
-        product_cost: productCostValue
+        customer_price: listedPrice,
+        platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
+        seller_earnings: type === 'digital' ? listedPrice * 0.90 : listedPrice
       }
     });
     

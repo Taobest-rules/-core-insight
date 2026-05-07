@@ -22,13 +22,16 @@ const Flutterwave = require('flutterwave-node-v3');
 const csv = require('csv-parser');
 const {
   uploadCourse,
-  uploadThumbnail,
+  uploadProduct,
   uploadProductImages,
+  uploadThumbnail,
   uploadProfilePicture,
   uploadChatImage,
-  uploadMultipleProducts,
-  uploadCourseFile,
   uploadCertificate,
+  uploadCourseFile,
+  uploadProductFile,
+  uploadMultipleProducts,
+  uploadToImgbb,
   uploadImageToImgbb,
   uploadMultipleImagesToImgbb,
   uploadFileToMega
@@ -874,14 +877,12 @@ const complaintUpload = multer({
   }
 });
 
-// Support complaint endpoint with file upload
 app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (req, res) => {
   try {
     console.log("📧 Received complaint submission");
     
     const { name, email, subject, priority, message, orderId } = req.body;
     
-    // Validate required fields
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ error: "Please fill in all required fields" });
     }
@@ -890,11 +891,23 @@ app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (
       return res.status(400).json({ error: "Please enter a valid email address" });
     }
     
-    // Handle uploaded files
+    // Upload attachments to ImgBB
     const attachments = req.files || [];
-    const attachmentList = [];
+    const attachmentUrls = [];
     
-    // Prepare email HTML with images embedded
+    for (const file of attachments) {
+      const url = await uploadToImgbb(file.path, file.originalname);
+      attachmentUrls.push({
+        url: url,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size
+      });
+      // Clean up local file
+      try { fs.unlinkSync(file.path); } catch(e) {}
+    }
+    
+    // Prepare email HTML with attachment links
     let emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -904,15 +917,7 @@ app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (
           body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
           .container { max-width: 700px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
           h1 { color: #3b82f6; margin-top: 0; }
-          .priority-high { color: #ef4444; }
-          .priority-medium { color: #f59e0b; }
-          .priority-low { color: #10b981; }
           .complaint-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
-          .detail-row { margin-bottom: 12px; }
-          .detail-label { font-weight: bold; color: #3b82f6; width: 120px; display: inline-block; }
-          .message-box { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; white-space: pre-wrap; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
-          .attachments { margin-top: 20px; padding: 15px; background: #0f172a; border-radius: 12px; }
           .attachment-item { margin: 8px 0; padding: 8px; background: #1e293b; border-radius: 6px; }
         </style>
       </head>
@@ -920,62 +925,33 @@ app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (
         <div class="container">
           <h1>📧 New Support Complaint</h1>
           <div class="complaint-details">
-            <div class="detail-row"><span class="detail-label">From:</span> ${escapeHtml(name)}</div>
-            <div class="detail-row"><span class="detail-label">Email:</span> ${escapeHtml(email)}</div>
-            <div class="detail-row"><span class="detail-label">Subject:</span> ${escapeHtml(subject)}</div>
-            <div class="detail-row"><span class="detail-label">Priority:</span> <span class="priority-${priority.toLowerCase()}">${escapeHtml(priority)}</span></div>
-            ${orderId ? `<div class="detail-row"><span class="detail-label">Order ID:</span> ${escapeHtml(orderId)}</div>` : ''}
-            <div class="detail-row"><span class="detail-label">Submitted:</span> ${new Date().toLocaleString()}</div>
+            <p><strong>From:</strong> ${escapeHtml(name)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+            <p><strong>Priority:</strong> ${escapeHtml(priority)}</p>
+            ${orderId ? `<p><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ''}
           </div>
-          
-          <div class="message-box">
-            <strong>Message:</strong><br><br>
-            ${escapeHtml(message).replace(/\n/g, '<br>')}
+          <div class="complaint-details">
+            <strong>Message:</strong><br>
+            <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
           </div>
     `;
     
-    // Add attachments section if files were uploaded
-    if (attachments.length > 0) {
+    if (attachmentUrls.length > 0) {
       emailHtml += `
-        <div class="attachments">
-          <strong>📎 Attachments (${attachments.length} files):</strong>
+        <div class="complaint-details">
+          <strong>📎 Attachments (${attachmentUrls.length} files):</strong><br>
+          ${attachmentUrls.map(att => `
+            <div class="attachment-item">
+              <a href="${att.url}" target="_blank" style="color: #3b82f6;">${escapeHtml(att.filename)}</a>
+              <small>(${(att.size / 1024).toFixed(1)} KB)</small>
+            </div>
+          `).join('')}
+        </div>
       `;
-      
-      for (let i = 0; i < attachments.length; i++) {
-        const file = attachments[i];
-        const fileUrl = `/uploads/complaints/${path.basename(file.path)}`;
-        attachmentList.push({
-          filename: file.originalname,
-          path: file.path,
-          cid: `attachment_${i}`
-        });
-        
-        // If it's an image, embed it
-        if (file.mimetype.startsWith('image/')) {
-          emailHtml += `
-            <div class="attachment-item">
-              <strong>📷 ${escapeHtml(file.originalname)}</strong><br>
-              <img src="cid:attachment_${i}" style="max-width: 100%; max-height: 300px; margin-top: 10px; border-radius: 8px;">
-            </div>
-          `;
-        } else {
-          emailHtml += `
-            <div class="attachment-item">
-              <strong>📄 ${escapeHtml(file.originalname)}</strong><br>
-              <small>Type: ${file.mimetype} | Size: ${(file.size / 1024).toFixed(2)} KB</small>
-            </div>
-          `;
-        }
-      }
-      emailHtml += `</div>`;
     }
     
     emailHtml += `
-          <div class="footer">
-            <p>Core Insight Support Team<br>
-            This complaint was submitted via the contact form.<br>
-            Please respond to ${escapeHtml(email)} within 24 hours.</p>
-          </div>
         </div>
       </body>
       </html>
@@ -984,123 +960,15 @@ app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (
     // Send email to support
     const supportEmail = SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
     
-    // Prepare email options
-    const mailOptions = {
-      from: `"Core Insight Support" <${process.env.EMAIL_USER || 'coreinsightmail@gmail.com'}>`,
-      to: supportEmail,
-      replyTo: email,
-      subject: `[COMPLAINT] ${priority} - ${subject}`,
-      html: emailHtml
-    };
-    
-    // Add attachments if any
-    if (attachmentList.length > 0) {
-      mailOptions.attachments = attachmentList;
-    }
-    
-    // Send email using transporter
-    if (transporter) {
-      await transporter.sendMail(mailOptions);
-      console.log(`✅ Complaint email sent to ${supportEmail}`);
-    } else if (BREVO_API_KEY) {
-      // Fallback to Brevo
-      const brevoData = {
-        sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
-        to: [{ email: supportEmail }],
-        replyTo: { email: email, name: name },
-        subject: `[COMPLAINT] ${priority} - ${subject}`,
-        htmlContent: emailHtml
-      };
-      
-      if (attachmentList.length > 0) {
-        brevoData.attachment = attachmentList.map(att => ({
-          name: att.filename,
-          content: fs.readFileSync(att.path).toString('base64')
-        }));
-      }
-      
-      await axios({
-        method: 'POST',
-        url: 'https://api.brevo.com/v3/smtp/email',
-        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-        data: brevoData
-      });
-      console.log(`✅ Complaint sent via Brevo to ${supportEmail}`);
-    }
-    
-    // Send confirmation email to user
-    const userEmailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Complaint Received - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          h1 { color: #3b82f6; }
-          .success-icon { font-size: 48px; text-align: center; margin-bottom: 20px; }
-          .complaint-summary { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #334155; font-size: 12px; color: #94a3b8; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="success-icon">✅</div>
-          <h1>Complaint Received</h1>
-          <p>Hello ${escapeHtml(name)},</p>
-          <p>Thank you for contacting Core Insight support. We have received your complaint and our team will review it shortly.</p>
-          
-          <div class="complaint-summary">
-            <h3>Complaint Summary</h3>
-            <p><strong>Reference #:</strong> CMP-${Date.now()}</p>
-            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
-            <p><strong>Priority:</strong> ${escapeHtml(priority)}</p>
-            ${orderId ? `<p><strong>Order ID:</strong> ${escapeHtml(orderId)}</p>` : ''}
-            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-          </div>
-          
-          <p>We aim to respond to all complaints within 24 hours. If your issue is urgent, please reply to this email.</p>
-          
-          <div class="footer">
-            <p>Core Insight Support Team<br>
-            Need immediate assistance? Reply to this email or contact us at ${supportEmail}</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    // Send confirmation to user
     if (transporter) {
       await transporter.sendMail({
         from: `"Core Insight Support" <${process.env.EMAIL_USER || 'coreinsightmail@gmail.com'}>`,
-        to: email,
-        subject: `We received your complaint: ${subject}`,
-        html: userEmailHtml
+        to: supportEmail,
+        replyTo: email,
+        subject: `[COMPLAINT] ${priority} - ${subject}`,
+        html: emailHtml
       });
-    } else if (BREVO_API_KEY) {
-      await axios({
-        method: 'POST',
-        url: 'https://api.brevo.com/v3/smtp/email',
-        headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-        data: {
-          sender: { email: "coreinsightmail@gmail.com", name: "Core Insight Support" },
-          to: [{ email: email }],
-          subject: `We received your complaint: ${subject}`,
-          htmlContent: userEmailHtml
-        }
-      });
-    }
-    
-    // Clean up uploaded files after sending
-    for (const file of attachments) {
-      try {
-        if (file.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      } catch (err) {
-        console.error(`Failed to delete temp file ${file.path}:`, err.message);
-      }
+      console.log(`✅ Complaint email sent to ${supportEmail}`);
     }
     
     res.json({
@@ -1110,21 +978,7 @@ app.post("/api/send-complaint", complaintUpload.array('attachments', 5), async (
     
   } catch (error) {
     console.error("❌ Complaint submission error:", error);
-    
-    // Clean up files on error
-    if (req.files) {
-      for (const file of req.files) {
-        try {
-          if (file.path && fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-          }
-        } catch (err) {}
-      }
-    }
-    
-    res.status(500).json({
-      error: "Failed to submit complaint. Please try again or contact us directly at suppourtcoreinsight@gmail.com"
-    });
+    res.status(500).json({ error: "Failed to submit complaint" });
   }
 });
 
@@ -1935,6 +1789,7 @@ app.get('/api/check-access/:courseId', async (req, res) => {
   }
 });
 
+// =================== COURSE DOWNLOAD - UPDATED FOR IMGBB ===================
 app.get('/api/download/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
@@ -1954,7 +1809,7 @@ app.get('/api/download/:courseId', async (req, res) => {
     
     const course = courses[0];
     
-    // Check access
+    // Check access (free or purchased)
     const isFree = course.price === 0 || course.type === 'free';
     
     if (!isFree) {
@@ -1974,30 +1829,33 @@ app.get('/api/download/:courseId', async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
     
-    // Check if it's a MEGA path
-    if (fileUrl.includes('mega:')) {
-      // For MEGA files, we need to generate a download link using rclone
-      try {
-        const { stdout } = await exec(`"C:\\Windows\\rclone.exe" link "${fileUrl}"`);
-        const megaLink = stdout.trim();
-        
-        if (megaLink && megaLink.startsWith('https://')) {
-          // Redirect to MEGA download
-          return res.redirect(megaLink);
-        }
-      } catch (linkError) {
-        console.error('Failed to get MEGA link:', linkError);
-      }
+    // For ImgBB URLs - just redirect or provide the link
+    if (fileUrl.includes('imgbb.com') || fileUrl.includes('i.ibb.co')) {
+      console.log(`✅ Redirecting to ImgBB file: ${fileUrl}`);
+      // Option 1: Redirect directly to ImgBB
+      return res.redirect(fileUrl);
       
-      // Fallback: Return the path (user can access via MEGA app)
-      return res.json({ 
-        download_url: fileUrl,
-        message: 'Click the link to download from MEGA'
-      });
+      // Option 2: If you want to force download instead of redirect:
+      // return res.json({ 
+      //   download_url: fileUrl,
+      //   message: 'Click the link to download your course'
+      // });
     }
     
-    // For local files
-    res.redirect(fileUrl);
+    // For local files (fallback)
+    if (fileUrl.startsWith('/uploads/')) {
+      const localPath = path.join(__dirname, fileUrl);
+      if (fs.existsSync(localPath)) {
+        return res.download(localPath, `${course.title}.pdf`);
+      }
+    }
+    
+    // If it's a generic HTTP URL
+    if (fileUrl.startsWith('http')) {
+      return res.redirect(fileUrl);
+    }
+    
+    res.status(404).json({ error: 'File not found' });
     
   } catch (error) {
     console.error('❌ Download error:', error);
@@ -2033,9 +1891,10 @@ function sendFile(res, filePath, title) {
   });
 }
 
+// Course Upload (File + Thumbnail)
 app.post("/api/courses", uploadCourse, async (req, res) => {
   try {
-    console.log('📚 Course upload started with MEGA + ImgBB...');
+    console.log('📚 Course upload started with ImgBB...');
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login to upload courses" });
@@ -2055,16 +1914,15 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       return res.status(400).json({ error: "Thumbnail image is required" });
     }
 
-    // Upload course file to MEGA
+    // Upload course file to ImgBB
     const courseFile = req.files.file[0];
-    const folderName = `/courses/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const fileUpload = await uploadFileToMega(courseFile.path, courseFile.originalname, folderName);
+    const fileUrl = await uploadToImgbb(courseFile.path, courseFile.originalname);
     
     // Upload thumbnail to ImgBB
     const thumbnailFile = req.files.thumbnail[0];
-    const thumbnailUrl = await uploadImageToImgbb(thumbnailFile.path, thumbnailFile.originalname);
+    const thumbnailUrl = await uploadToImgbb(thumbnailFile.path, thumbnailFile.originalname);
     
-    console.log(`✅ File uploaded to MEGA: ${fileUpload}`);
+    console.log(`✅ File uploaded to ImgBB: ${fileUrl}`);
     console.log(`✅ Thumbnail uploaded to ImgBB: ${thumbnailUrl}`);
 
     // Store in database
@@ -2076,7 +1934,7 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       [
         title.trim(),
         description ? description.trim() : '',
-        fileUpload,
+        fileUrl,
         thumbnailUrl,
         parseFloat(price) || 0,
         (parseFloat(price) > 0) ? 'paid' : 'free',
@@ -2090,7 +1948,7 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       success: true,
       message: "✅ Course uploaded successfully!",
       courseId: result.insertId,
-      file_url: fileUpload,
+      file_url: fileUrl,
       thumbnail_url: thumbnailUrl,
       download_url: `/api/download/${result.insertId}`
     });
@@ -3836,6 +3694,7 @@ app.get("/api/user/delete-count", async (req, res) => {
 });
 
 
+// Profile Picture Upload
 app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, res) => {
   try {
     console.log("📸 Profile picture upload request received");
@@ -3852,11 +3711,12 @@ app.post("/api/freelancer/profile-picture", uploadProfilePicture, async (req, re
       return res.status(400).json({ error: "Only image files are allowed" });
     }
 
-    const imageUrl = await uploadImageToImgbb(req.file.path, req.file.originalname);
+    // Upload to ImgBB
+    const imageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
     console.log(`✅ Uploaded to ImgBB: ${imageUrl}`);
 
-    // Update BOTH profile picture columns for compatibility
-    const result = await db.query(
+    // Update profile picture in database
+    await db.query(
       `UPDATE freelancer_profiles 
        SET profile_picture_url = ?,
            profile_picture = ?,
@@ -5090,6 +4950,7 @@ app.post("/api/messages/send", async (req, res) => {
 });
 
 
+// Chat Image Upload
 app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
   try {
     const user = req.session.user;
@@ -5122,14 +4983,12 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
     let imageUrl = null;
     
     if (req.file) {
-      // Validate file type
       if (!req.file.mimetype.startsWith('image/')) {
         return res.status(400).json({ error: "Only image files are allowed" });
       }
       
       // Upload chat image to ImgBB
-      const uploadResult = await uploadImageToImgbb(req.file.path, req.file.originalname);
-      imageUrl = uploadResult;
+      imageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
       if (!messageContent) {
         messageContent = '📷 Sent an image';
       }
@@ -5166,6 +5025,8 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
   }
 });
 
+
+// Certificate Images Upload (Multiple)
 app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, res) => {
   try {
     if (!req.session.user) {
@@ -5178,7 +5039,7 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
 
     const certificateUrls = [];
     for (const file of req.files) {
-      const url = await uploadImageToImgbb(file.path, file.originalname);
+      const url = await uploadToImgbb(file.path, file.originalname);
       certificateUrls.push(url);
     }
     
@@ -5192,7 +5053,6 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
 
     let currentCertificates = [];
     if (currentProfile && currentProfile.length > 0) {
-      // Try certificate_images first, then certificate_image_urls
       if (currentProfile[0].certificate_images) {
         try {
           currentCertificates = JSON.parse(currentProfile[0].certificate_images);
@@ -5234,6 +5094,7 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
     });
   }
 });
+
 app.get("/api/messages/:conversationId", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -5339,79 +5200,108 @@ const uploadFile = multer({
     }
 });
 
-// Send message with file attachment
+// Chat File Attachment Upload (Documents, PDFs, etc.)
 app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, res) => {
-    try {
-        const user = req.session.user;
-        if (!user) {
-            return res.status(401).json({ error: "Login required" });
-        }
-
-        const { conversation_id, message } = req.body;
-        if (!conversation_id) {
-            return res.status(400).json({ error: "Missing conversation ID" });
-        }
-
-        // Check access to conversation
-        const convResult = await db.query(
-            `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
-            [conversation_id]
-        );
-
-        if (!convResult || convResult.length === 0) {
-            return res.status(404).json({ error: "Conversation not found" });
-        }
-
-        const conversation = convResult[0];
-        const isClient = parseInt(conversation.client_id) === parseInt(user.id);
-        const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
-        
-        if (!isClient && !isFreelancer) {
-            return res.status(403).json({ error: "Access denied" });
-        }
-
-        let messageContent = message || '';
-        let fileUrl = null;
-        let fileName = null;
-        let fileSize = null;
-        
-        if (req.file) {
-            fileUrl = `/uploads/chat-files/${req.file.filename}`;
-            fileName = req.file.originalname;
-            fileSize = req.file.size;
-            messageContent = messageContent || `📎 Sent a file: ${fileName}`;
-        }
-
-        if (!messageContent && !fileUrl) {
-            return res.status(400).json({ error: "Message or file is required" });
-        }
-
-        const result = await db.query(
-            `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
-            [conversation_id, user.id, messageContent, fileUrl, fileName, fileSize]
-        );
-
-        const messageId = result.insertId;
-
-        const messageResult = await db.query(
-            `SELECT m.*, u.username AS sender_name 
-             FROM messages m 
-             JOIN users u ON m.sender_id = u.id 
-             WHERE m.id = ?`,
-            [messageId]
-        );
-
-        res.status(200).json({ 
-            success: true, 
-            data: messageResult[0] 
-        });
-        
-    } catch (err) {
-        console.error("Send file error:", err);
-        res.status(500).json({ error: err.message });
+  try {
+    const user = req.session.user;
+    if (!user) {
+      return res.status(401).json({ error: "Login required" });
     }
+
+    const { conversation_id, message } = req.body;
+    if (!conversation_id) {
+      return res.status(400).json({ error: "Missing conversation ID" });
+    }
+
+    // Check access to conversation
+    const convResult = await db.query(
+      `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+      [conversation_id]
+    );
+
+    if (!convResult || convResult.length === 0) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const conversation = convResult[0];
+    const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+    
+    if (!isClient && !isFreelancer) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    let messageContent = message || '';
+    let fileUrl = null;
+    let fileName = null;
+    let fileSize = null;
+    
+    if (req.file) {
+      // Upload file to ImgBB
+      fileUrl = await uploadToImgbb(req.file.path, req.file.originalname);
+      fileName = req.file.originalname;
+      fileSize = req.file.size;
+      messageContent = messageContent || `📎 Sent a file: ${fileName}`;
+    }
+
+    if (!messageContent && !fileUrl) {
+      return res.status(400).json({ error: "Message or file is required" });
+    }
+
+    const result = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
+      [conversation_id, user.id, messageContent, fileUrl, fileName, fileSize]
+    );
+
+    const messageId = result.insertId;
+
+    const messageResult = await db.query(
+      `SELECT m.*, u.username AS sender_name 
+       FROM messages m 
+       JOIN users u ON m.sender_id = u.id 
+       WHERE m.id = ?`,
+      [messageId]
+    );
+
+    res.status(200).json({ 
+      success: true, 
+      data: messageResult[0] 
+    });
+    
+  } catch (err) {
+    console.error("Send file error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
+
+// Complaint Attachments Upload
+const complaintUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, "uploads", "complaints");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000000);
+      const ext = path.extname(file.originalname);
+      const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+      cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images, PDFs, and Word documents are allowed.'));
+    }
+  }
+});
+
 
 
 app.get("/api/users/search", async (req, res) => {
@@ -10357,10 +10247,7 @@ app.get("/api/check-payment-status/:reference", async (req, res) => {
   }
 });
 
-// ============================================
-// VERIFY DIGITAL PAYMENT - FIXED (No extra columns)
-// ============================================
-
+// =================== VERIFY DIGITAL PAYMENT - UPDATED ===================
 app.get("/api/verify-digital-payment/:reference", async (req, res) => {
   try {
     let reference = req.params.reference;
@@ -10374,7 +10261,7 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       });
     }
     
-    // First, find the order in database
+    // Find the order in database
     const orderResult = await db.query(
       `SELECT o.*, p.title as product_title, p.file_url, p.user_id as seller_id
        FROM digital_orders o
@@ -10382,8 +10269,6 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
        WHERE o.transaction_ref = ? OR o.transaction_ref LIKE ?`,
       [reference, `%${reference}%`]
     );
-    
-    console.log('Order query result:', orderResult);
     
     let order = null;
     if (orderResult && orderResult.length > 0) {
@@ -10420,7 +10305,7 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       });
     }
     
-    // Verify with Paystack using the reference with PS_ prefix
+    // Verify with Paystack
     let paystackRef = reference;
     if (!paystackRef.startsWith('PS_')) {
       paystackRef = `PS_${reference}`;
@@ -10435,8 +10320,6 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       }
     );
     
-    console.log('Paystack response status:', paystackResponse.data.status);
-    
     if (paystackResponse.data.status === true && 
         paystackResponse.data.data.status === "success") {
       
@@ -10445,7 +10328,7 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       
       console.log(`✅ Payment verified! Amount: ₦${amount}`);
       
-      // Update order status (only columns that exist)
+      // Update order status
       await db.query(
         `UPDATE digital_orders 
          SET status = 'completed', 
@@ -10478,66 +10361,36 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       
       console.log(`✅ Digital order #${order.id} completed successfully!`);
       
-      // Send confirmation email
-      try {
-        const userResult = await db.query(
-          `SELECT email, username FROM users WHERE id = ?`,
-          [order.buyer_id]
-        );
-        
-        if (userResult && userResult.length > 0) {
-          const emailHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head><title>Purchase Successful - Core Insight</title></head>
-            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-              <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                <h2 style="color:#10b981;">Purchase Successful! ✅</h2>
-                <p>Hello ${userResult[0].username},</p>
-                <p>Thank you for purchasing <strong>${order.product_title}</strong>.</p>
-                <p><a href="${downloadUrl}" style="background:#3b82f6;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">Download Now</a></p>
-                <p>This link expires in 7 days.</p>
-              </div>
-            </body>
-            </html>
-          `;
-          await sendEmail(userResult[0].email, `Your Digital Product: ${order.product_title}`, emailHtml);
-        }
-      } catch (emailErr) {
-        console.log('Email error:', emailErr.message);
-      }
+      // Get file URL for response
+      const fileUrl = order.file_url;
+      const isImgBB = fileUrl && (fileUrl.includes('imgbb.com') || fileUrl.includes('i.ibb.co'));
       
       return res.json({
         status: "success",
         message: "Payment verified successfully",
         product_title: order.product_title,
         download_url: downloadUrl,
+        file_url: fileUrl,  // Include the actual file URL for direct access
+        is_imgbb: isImgBB,
         order_id: order.id
-      });
-      
-    } else {
-      return res.status(400).json({
-        status: "failed",
-        message: "Payment not successful or not found in Paystack"
       });
     }
     
+    return res.status(400).json({
+      status: "failed",
+      message: "Payment not successful or not found in Paystack"
+    });
+    
   } catch (err) {
     console.error("❌ Digital payment verification error:", err);
-    console.error("Error details:", err.message);
-    if (err.response) {
-      console.error("Paystack error response:", err.response.data);
-    }
     res.status(500).json({ 
       status: "failed", 
       message: "Error verifying payment: " + err.message
     });
   }
 });
-// ============================================
-// DOWNLOAD DIGITAL PRODUCT
-// ============================================
 
+// =================== DIGITAL PRODUCT DOWNLOAD - UPDATED FOR IMGBB ===================
 app.get("/api/download-digital/:orderId", async (req, res) => {
   try {
     const orderId = req.params.orderId;
@@ -10548,7 +10401,7 @@ app.get("/api/download-digital/:orderId", async (req, res) => {
     }
     
     // Verify order and token
-    const order = await db.query(
+    const orders = await db.query(
       `SELECT o.*, p.file_url, p.file_path, p.title
        FROM digital_orders o
        JOIN products p ON o.product_id = p.id
@@ -10556,65 +10409,40 @@ app.get("/api/download-digital/:orderId", async (req, res) => {
       [orderId, `%token=${token}%`]
     );
     
-    if (!order || order.length === 0) {
+    if (!orders || orders.length === 0) {
       return res.status(404).json({ error: "Download link invalid or expired" });
     }
     
-    const orderData = order[0];
-    
-    // Check if the stored URL is a MEGA path or local path
+    const orderData = orders[0];
     let fileUrl = orderData.file_url;
     
-    // If it's a local path, we need to redirect to the actual MEGA URL
-    if (fileUrl && fileUrl.startsWith('/uploads/mega/')) {
-      // Try to get the actual MEGA URL from the products table
-      const product = await db.query(
-        `SELECT file_url, file_path FROM products WHERE id = ?`,
-        [orderData.product_id]
-      );
-      
-      if (product && product.length > 0) {
-        // If product has a real URL (starting with http), use that
-        if (product[0].file_url && product[0].file_url.startsWith('http')) {
-          fileUrl = product[0].file_url;
-        }
-        // If product has a mega: reference
-        else if (product[0].file_url && product[0].file_url.includes('mega:')) {
-          // For MEGA links, we need to generate a download link
-          return res.json({ 
-            download_url: product[0].file_url,
-            message: 'Click the link to download from MEGA'
-          });
-        }
-      }
+    if (!fileUrl) {
+      return res.status(404).json({ error: "File URL not found" });
     }
     
-    // Redirect to the actual file URL if it's a valid HTTP link
-    if (fileUrl && (fileUrl.startsWith('http') || fileUrl.startsWith('https'))) {
+    // For ImgBB URLs - redirect to download
+    if (fileUrl.includes('imgbb.com') || fileUrl.includes('i.ibb.co')) {
+      console.log(`✅ Redirecting to ImgBB file for order #${orderId}: ${fileUrl}`);
       return res.redirect(fileUrl);
     }
     
-    // If it's a MEGA reference
-    if (fileUrl && fileUrl.includes('mega:')) {
-      return res.json({ 
-        download_url: fileUrl,
-        message: 'Click the link to download from MEGA'
-      });
-    }
-    
-    // Check local file as fallback
-    if (fileUrl && !fileUrl.startsWith('http')) {
+    // For local files (fallback)
+    if (fileUrl.startsWith('/uploads/')) {
       const localPath = path.join(__dirname, fileUrl);
       if (fs.existsSync(localPath)) {
         return res.download(localPath, `${orderData.title}.pdf`);
       }
     }
     
+    // For generic HTTP URLs
+    if (fileUrl.startsWith('http')) {
+      return res.redirect(fileUrl);
+    }
+    
     res.status(404).json({ 
       error: "File not found. Please contact support.",
       debug: {
-        file_url: orderData.file_url,
-        product_id: orderData.product_id,
+        file_url: fileUrl,
         order_id: orderId
       }
     });
@@ -10624,6 +10452,7 @@ app.get("/api/download-digital/:orderId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // ============================================
 // COMPLETE PHYSICAL ORDER STATUS SYSTEM
 // ============================================
@@ -13777,11 +13606,12 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 // PRODUCT UPLOAD ENDPOINT - COMPLETE FIXED
 // ============================================
 
-const { uploadProduct } = require('./mega-storage');
 
+
+// Product Upload (Images + Digital File) - ALL to ImgBB
 app.post("/api/upload-product", uploadProduct, async (req, res) => {
   try {
-    console.log("📤 Product upload started...");
+    console.log("📤 Product upload started with ImgBB...");
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please log in to upload products." });
@@ -13803,24 +13633,19 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     // Upload product images to ImgBB
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
-      imageUrls = await uploadMultipleImagesToImgbb(req.files['images[]']);
+      for (const file of req.files['images[]']) {
+        const url = await uploadToImgbb(file.path, file.originalname);
+        imageUrls.push(url);
+      }
       console.log(`✅ ${imageUrls.length} images uploaded to ImgBB`);
     }
 
-    // CRITICAL: Upload digital file to MEGA and get the SHAREABLE URL
+    // Upload digital product file to ImgBB
     let fileUrl = null;
-    
     if (type === 'digital' && req.files?.file?.[0]) {
       const productFile = req.files.file[0];
-      const folderName = `/products/${title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      
-      // This should return the actual shareable URL
-      const uploadResult = await uploadFileToMega(productFile.path, productFile.originalname, folderName);
-      
-      // IMPORTANT: uploadResult is the URL string (from your mega-storage.js)
-      fileUrl = uploadResult;  // This should be "https://mega.nz/file/XXXXX#YYYYY"
-      
-      console.log(`✅ Digital file uploaded. URL: ${fileUrl ? fileUrl.substring(0, 60) + '...' : 'null'}`);
+      fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
+      console.log(`✅ Digital file uploaded to ImgBB: ${fileUrl}`);
     }
 
     // Handle affiliate link
@@ -13828,7 +13653,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       fileUrl = affiliate_link;
     }
 
-    // Insert product into database - STORE THE ACTUAL MEGA URL
+    // Insert product into database
     const result = await db.query(
       `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
@@ -13847,7 +13672,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
         type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
         category || '', 
         type, 
-        fileUrl,  // ← STORE THE ACTUAL MEGA URL HERE!
+        fileUrl, 
         imageUrls.length ? JSON.stringify(imageUrls) : null, 
         affiliate_link || null, 
         paymentProvider,
@@ -13881,6 +13706,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     res.status(500).json({ error: "Error uploading product: " + err.message });
   }
 });
+
 // Delete product endpoint
 app.delete("/api/products/:id", async (req, res) => {
   try {

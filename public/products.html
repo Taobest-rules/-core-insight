@@ -10674,7 +10674,7 @@ window.submitReview = submitReview;
       }
     }
 
-    async function submitReview() {
+   async function submitReview() {
       const rating = document.getElementById("reviewRating").value;
       const comment = document.getElementById("reviewComment").value.trim();
       const msg = document.getElementById("reviewMessage");
@@ -11666,7 +11666,20 @@ async function checkRefundStatus(orderId) {
     showToast('Error', 'Unable to check refund status', 'danger');
   }
 }
-
+async function loadOrderDetails(orderId) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    if (data.success) {
+      // Update order status display
+      updateOrderDisplay(data.order);
+    }
+  } catch (error) {
+    console.error('Error loading order:', error);
+  }
+}
 async function loadOrderDetails(orderId) {
   try {
     const response = await fetch(`/api/orders/${orderId}`, {

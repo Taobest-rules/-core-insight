@@ -5277,6 +5277,859 @@ app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, 
 
 
 
+// ============================================
+// SELLER PAID ORDERS ENDPOINT
+// ============================================
+
+app.get("/api/seller/paid-orders", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const sellerId = req.session.user.id;
+    
+    const orders = await db.query(`
+      SELECT 
+        o.id,
+        o.product_id,
+        o.product_name,
+        o.quantity,
+        o.price,
+        o.total_amount,
+        o.order_status,
+        o.payment_status,
+        o.customer_name,
+        o.customer_email,
+        o.shipping_address,
+        o.delivery_phone,
+        o.city,
+        o.state,
+        o.country,
+        o.notes,
+        o.created_at,
+        o.payment_collected_at,
+        o.platform_fee,
+        o.seller_earnings,
+        o.estimated_delivery_days,
+        o.delivery_code,
+        o.delivery_code_sent_at,
+        o.delivery_code_verified_at,
+        p.title as product_title,
+        p.images as product_images
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      WHERE o.seller_id = ? 
+        AND o.payment_status = 'paid'
+        AND o.order_status IN ('paid', 'processing', 'shipped')
+      ORDER BY o.payment_collected_at ASC
+    `, [sellerId]);
+    
+    const processedOrders = (orders || []).map(order => ({
+      id: order.id,
+      product_id: order.product_id,
+      product_name: order.product_name || order.product_title,
+      quantity: parseInt(order.quantity) || 1,
+      price: parseFloat(order.price) || 0,
+      total_amount: parseFloat(order.total_amount) || 0,
+      seller_earnings: parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9),
+      platform_fee: parseFloat(order.platform_fee) || (parseFloat(order.total_amount) * 0.1),
+      customer_name: order.customer_name || 'Customer',
+      customer_email: order.customer_email,
+      shipping_address: order.shipping_address,
+      delivery_phone: order.delivery_phone,
+      city: order.city,
+      state: order.state,
+      country: order.country,
+      notes: order.notes,
+      created_at: order.created_at,
+      payment_collected_at: order.payment_collected_at,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
+      order_status: order.order_status,
+      payment_status: order.payment_status,
+      has_delivery_code: !!order.delivery_code,
+      delivery_code_sent_at: order.delivery_code_sent_at,
+      delivery_code_verified_at: order.delivery_code_verified_at
+    }));
+    
+    res.json({
+      success: true,
+      orders: processedOrders,
+      count: processedOrders.length
+    });
+    
+  } catch (err) {
+    console.error("❌ Error loading paid orders:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      orders: [],
+      count: 0
+    });
+  }
+});
+
+// ============================================
+// PROCESS REFUND ENDPOINT (Seller/Admin)
+// ============================================
+
+app.post("/api/refunds/:orderId/process", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    const { action, admin_notes } = req.body;
+    
+    // Get order details with payment info
+    const orderResult = await db.query(`
+      SELECT o.*, p.title as product_name, 
+             u_buyer.email as buyer_email, u_buyer.username as buyer_name,
+             u_seller.email as seller_email, u_seller.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      WHERE o.id = ?
+    `, [orderId]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check permission (seller or admin)
+    const isAdmin = req.session.user.role === 'admin';
+    const isSeller = order.seller_id === req.session.user.id;
+    
+    if (!isAdmin && !isSeller) {
+      return res.status(403).json({ error: "Only the seller or admin can process refunds" });
+    }
+    
+    // Check if refund was already processed
+    if (order.order_status === 'refunded') {
+      return res.status(400).json({ error: "Refund already processed for this order" });
+    }
+    
+    // Check if refund was requested
+    if (order.order_status !== 'refund_requested') {
+      return res.status(400).json({ error: "No refund request found for this order" });
+    }
+    
+    if (action === 'approve') {
+      // APPROVE REFUND
+      const paymentProvider = order.payment_gateway || 'flutterwave';
+      let refundSuccess = false;
+      let refundError = null;
+      
+      // Process refund based on payment provider
+      if (paymentProvider === 'flutterwave' && order.transaction_ref) {
+        try {
+          // First verify the transaction exists
+          const verifyResponse = await axios.get(
+            `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${order.transaction_ref}`,
+            {
+              headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
+              timeout: 15000
+            }
+          );
+          
+          if (verifyResponse.data.status === 'success') {
+            const transactionId = verifyResponse.data.data.id;
+            
+            // Process refund
+            const refundResponse = await axios.post(
+              'https://api.flutterwave.com/v3/transactions/refund',
+              {
+                transaction_id: transactionId,
+                amount: order.total_amount,
+                full_refund: true,
+                narration: `Refund for order #${orderId} - ${order.product_name}`
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 15000
+              }
+            );
+            
+            if (refundResponse.data.status === 'success') {
+              refundSuccess = true;
+              console.log(`✅ Flutterwave refund processed for order #${orderId}`);
+            } else {
+              refundError = refundResponse.data.message;
+            }
+          } else {
+            refundError = 'Transaction not found';
+          }
+        } catch (err) {
+          refundError = err.response?.data?.message || err.message;
+          console.error('❌ Flutterwave refund error:', refundError);
+        }
+      } 
+      else if (paymentProvider === 'paystack' && order.transaction_ref) {
+        try {
+          // Clean reference (remove PS_ prefix if present)
+          let cleanRef = order.transaction_ref;
+          if (cleanRef.startsWith('PS_')) {
+            cleanRef = cleanRef.substring(3);
+          }
+          
+          const refundResponse = await axios.post(
+            'https://api.paystack.co/transaction/refund',
+            {
+              transaction: cleanRef,
+              amount: Math.round(order.total_amount * 100) // Convert to kobo
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 15000
+            }
+          );
+          
+          if (refundResponse.data.status === true) {
+            refundSuccess = true;
+            console.log(`✅ Paystack refund processed for order #${orderId}`);
+          } else {
+            refundError = refundResponse.data.message;
+          }
+        } catch (err) {
+          refundError = err.response?.data?.message || err.message;
+          console.error('❌ Paystack refund error:', refundError);
+        }
+      }
+      
+      if (refundSuccess) {
+        // Update order status
+        await db.query(`
+          UPDATE physical_orders 
+          SET order_status = 'refunded',
+              refund_processed_at = NOW(),
+              refund_approved_by = ?,
+              refund_notes = ?,
+              funds_released_at = NULL
+          WHERE id = ?
+        `, [req.session.user.id, admin_notes || 'Refund approved', orderId]);
+        
+        // Update escrow account if exists
+        try {
+          await db.query(`
+            UPDATE escrow_accounts 
+            SET status = 'refunded', 
+                refunded_at = NOW(),
+                refund_processed_by = ?
+            WHERE order_id = ?
+          `, [req.session.user.id, orderId]);
+        } catch (escrowErr) {
+          console.log('Escrow table might not exist');
+        }
+        
+        // Send email notification to buyer
+        const buyerEmailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Refund Approved - Core Insight</title>
+            <style>
+              body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+              .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+              .success { color: #10b981; font-size: 48px; text-align: center; }
+              .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="success">✅</div>
+              <h1 style="color: #10b981;">Refund Approved!</h1>
+              <p>Hello ${escapeHtml(order.buyer_name || 'Valued Customer')},</p>
+              <p>Your refund for <strong>Order #${orderId}</strong> has been approved.</p>
+              <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+                <p><strong>Quantity:</strong> ${order.quantity}</p>
+                <p><strong>Refund Amount:</strong> <span class="amount">$${parseFloat(order.total_amount).toFixed(2)}</span></p>
+                <p><strong>Notes:</strong> ${escapeHtml(admin_notes || 'Refund processed successfully')}</p>
+              </div>
+              <p>Please allow 5-10 business days for the refund to appear in your account.</p>
+              <a href="https://core-insight-7.onrender.com/dashboard" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+                View Dashboard
+              </a>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        await sendEmail(order.buyer_email, `Refund Approved for Order #${orderId}`, buyerEmailHtml).catch(err => {
+          console.error('Refund approval email failed:', err.message);
+        });
+        
+        // Send notification to seller
+        const sellerEmailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Refund Processed - Core Insight</title>
+            <style>
+              body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+              .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🔄 Refund Processed</h1>
+              <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+              <p>A refund has been processed for <strong>Order #${orderId}</strong>.</p>
+              <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+                <p><strong>Quantity:</strong> ${order.quantity}</p>
+                <p><strong>Refund Amount:</strong> $${parseFloat(order.total_amount).toFixed(2)}</p>
+                <p><strong>Reason:</strong> ${escapeHtml(order.refund_reason || 'Customer requested refund')}</p>
+              </div>
+              <p>The funds have been returned to the customer.</p>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        await sendEmail(order.seller_email, `Refund Processed for Order #${orderId}`, sellerEmailHtml).catch(err => {
+          console.error('Refund seller notification failed:', err.message);
+        });
+        
+        res.json({
+          success: true,
+          message: "Refund approved and processed successfully"
+        });
+        
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: `Refund failed: ${refundError || 'Unknown error'}` 
+        });
+      }
+      
+    } else if (action === 'deny') {
+      // DENY REFUND
+      await db.query(`
+        UPDATE physical_orders 
+        SET order_status = 'completed',
+            refund_denied_at = NOW(),
+            refund_denied_by = ?,
+            refund_notes = ?
+        WHERE id = ?
+      `, [req.session.user.id, admin_notes || 'Refund denied', orderId]);
+      
+      // Send email notification to buyer
+      const buyerEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Refund Request Denied - Core Insight</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+            .warning { color: #f59e0b; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1 class="warning">❌ Refund Request Denied</h1>
+            <p>Hello ${escapeHtml(order.buyer_name || 'Valued Customer')},</p>
+            <p>Your refund request for <strong>Order #${orderId}</strong> has been reviewed and denied.</p>
+            <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
+              <p><strong>Reason for denial:</strong></p>
+              <p style="color: #f59e0b;">${escapeHtml(admin_notes || 'No reason provided')}</p>
+            </div>
+            <p>If you have questions about this decision, please contact our support team.</p>
+            <a href="https://core-insight-7.onrender.com/support.html" 
+               style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
+              Contact Support
+            </a>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      await sendEmail(order.buyer_email, `Refund Request Denied for Order #${orderId}`, buyerEmailHtml).catch(err => {
+        console.error('Refund denial email failed:', err.message);
+      });
+      
+      res.json({
+        success: true,
+        message: "Refund request denied"
+      });
+    } else {
+      res.status(400).json({ error: "Invalid action. Must be 'approve' or 'deny'" });
+    }
+    
+  } catch (err) {
+    console.error("❌ Refund processing error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET PENDING REFUNDS ENDPOINT
+// ============================================
+
+app.get("/api/refunds/pending", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const isAdmin = req.session.user.role === 'admin';
+    let query = `
+      SELECT 
+        o.id,
+        o.product_name,
+        o.quantity,
+        o.total_amount,
+        o.refund_reason,
+        o.refund_requested_at,
+        o.order_status,
+        o.payment_gateway,
+        o.transaction_ref,
+        u_buyer.id as buyer_id,
+        u_buyer.username as buyer_name,
+        u_buyer.email as buyer_email,
+        u_seller.id as seller_id,
+        u_seller.username as seller_name,
+        u_seller.email as seller_email
+      FROM physical_orders o
+      LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+      LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+      WHERE o.order_status = 'refund_requested'
+    `;
+    
+    const params = [];
+    
+    if (!isAdmin) {
+      query += " AND o.seller_id = ?";
+      params.push(req.session.user.id);
+    }
+    
+    query += " ORDER BY o.refund_requested_at DESC";
+    
+    const refundRequests = await db.query(query, params);
+    
+    res.json({
+      success: true,
+      refunds: (refundRequests || []).map(r => ({
+        ...r,
+        total_amount: parseFloat(r.total_amount || 0)
+      }))
+    });
+    
+  } catch (err) {
+    console.error("❌ Error fetching refund requests:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET REFUND STATUS FOR SPECIFIC ORDER
+// ============================================
+
+app.get("/api/orders/:orderId/refund-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(`
+      SELECT o.order_status, o.refund_reason, o.refund_requested_at, 
+             o.refund_processed_at, o.refund_notes, o.refund_approved_by,
+             o.payment_collected_at, o.total_amount,
+             u.username as processed_by_name
+      FROM physical_orders o
+      LEFT JOIN users u ON o.refund_approved_by = u.id
+      WHERE o.id = ? AND (o.buyer_id = ? OR o.seller_id = ?)
+    `, [orderId, req.session.user.id, req.session.user.id]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    let refundStatus = 'none';
+    let message = '';
+    
+    // Check if refund window is still open (5 days after payment)
+    let refundWindowRemaining = null;
+    if (order.payment_collected_at && order.order_status !== 'refunded' && order.order_status !== 'refund_requested') {
+      const paymentDate = new Date(order.payment_collected_at);
+      const now = new Date();
+      const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
+      const remainingDays = Math.max(0, 5 - daysSincePayment);
+      refundWindowRemaining = remainingDays;
+    }
+    
+    if (order.order_status === 'refund_requested') {
+      refundStatus = 'pending';
+      message = 'Your refund request is pending review. The seller has 48 hours to respond.';
+    } else if (order.order_status === 'refunded') {
+      refundStatus = 'approved';
+      message = `Refund approved and processed on ${new Date(order.refund_processed_at).toLocaleDateString()}. Please allow 5-10 business days for the refund to appear in your account.`;
+    } else if (order.order_status === 'completed' && order.refund_denied_at) {
+      refundStatus = 'denied';
+      message = order.refund_notes || 'Refund request was denied.';
+    } else {
+      // Check if refund is still possible
+      const canRequestRefund = order.order_status === 'paid' || 
+                               order.order_status === 'processing' ||
+                               order.order_status === 'shipped';
+      
+      if (canRequestRefund && refundWindowRemaining && refundWindowRemaining > 0) {
+        message = `Refund window: ${Math.ceil(refundWindowRemaining)} days remaining. You can request a refund within 5 days of payment.`;
+      } else if (canRequestRefund && refundWindowRemaining === 0) {
+        message = 'Refund window has closed. Please contact support for assistance.';
+      }
+    }
+    
+    res.json({
+      success: true,
+      refundStatus: refundStatus,
+      refundReason: order.refund_reason,
+      requestedAt: order.refund_requested_at,
+      processedAt: order.refund_processed_at,
+      message: message,
+      notes: order.refund_notes,
+      refundWindowRemaining: refundWindowRemaining,
+      canRequestRefund: refundStatus === 'none' && refundWindowRemaining > 0
+    });
+    
+  } catch (err) {
+    console.error("❌ Error checking refund status:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// ADMIN: GET ALL USERS ENDPOINT
+// ============================================
+
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const users = await db.query(`
+      SELECT 
+        u.id,
+        u.username,
+        u.email,
+        u.role,
+        u.created_at,
+        u.verified,
+        u.account_locked,
+        (SELECT COUNT(*) FROM products WHERE user_id = u.id AND (is_deleted = 0 OR is_deleted IS NULL)) as product_count,
+        (SELECT COUNT(*) FROM physical_orders WHERE seller_id = u.id) as sales_count,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM physical_orders WHERE seller_id = u.id AND order_status = 'completed') as total_earnings
+      FROM users u
+      ORDER BY u.created_at DESC
+    `);
+    
+    res.json(users || []);
+    
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// ADMIN: GET PLATFORM STATS ENDPOINT
+// ============================================
+
+app.get("/api/admin/platform-stats", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const totalUsers = await db.query("SELECT COUNT(*) as count FROM users");
+    const totalProducts = await db.query("SELECT COUNT(*) as count FROM products WHERE is_deleted = 0 OR is_deleted IS NULL");
+    const totalSales = await db.query("SELECT COUNT(*) as count FROM physical_orders");
+    const totalOrders = await db.query("SELECT COUNT(*) as count FROM physical_orders");
+    const platformRevenue = await db.query("SELECT COALESCE(SUM(platform_fee), 0) as total FROM physical_orders WHERE order_status IN ('completed', 'refunded')");
+    
+    res.json({
+      total_users: totalUsers[0]?.count || 0,
+      total_products: totalProducts[0]?.count || 0,
+      total_sales: totalSales[0]?.count || 0,
+      total_orders: totalOrders[0]?.count || 0,
+      platform_revenue: parseFloat(platformRevenue[0]?.total || 0)
+    });
+    
+  } catch (err) {
+    console.error("Error fetching platform stats:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET ESCROW STATUS FOR ORDER
+// ============================================
+
+app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(`
+      SELECT 
+        id, 
+        payment_status, 
+        order_status, 
+        payment_held_until, 
+        total_amount, 
+        seller_earnings, 
+        platform_fee,
+        funds_released_at
+      FROM physical_orders
+      WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
+    `, [orderId, req.session.user.id, req.session.user.id]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const order = orderResult[0];
+    const isPaid = order.payment_status === 'paid';
+    const isCompleted = order.order_status === 'completed';
+    const isRefunded = order.order_status === 'refunded';
+    
+    let daysRemaining = null;
+    let releaseDate = null;
+    
+    if (order.payment_held_until && !isCompleted && !isRefunded) {
+      releaseDate = new Date(order.payment_held_until);
+      const now = new Date();
+      daysRemaining = Math.max(0, Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24)));
+    }
+    
+    res.json({
+      success: true,
+      is_escrow: isPaid && !isCompleted && !isRefunded,
+      amount_held: parseFloat(order.total_amount || 0),
+      seller_earnings: parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9),
+      platform_fee: parseFloat(order.platform_fee) || (parseFloat(order.total_amount) * 0.1),
+      payment_held_until: order.payment_held_until,
+      release_date: releaseDate,
+      days_remaining: daysRemaining,
+      funds_released: isCompleted,
+      is_refunded: isRefunded
+    });
+    
+  } catch (err) {
+    console.error("❌ Error checking escrow status:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// ESCROW RELEASE CRON JOB (Automatic)
+// ============================================
+
+// Run every hour to check for orders that need escrow release
+setInterval(async () => {
+  try {
+    console.log('🔄 Running automatic escrow release check...');
+    
+    const ordersToRelease = await db.query(`
+      SELECT o.id, o.seller_id, o.seller_earnings, o.total_amount, 
+             u.email as seller_email, u.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN users u ON o.seller_id = u.id
+      WHERE o.payment_status = 'paid' 
+        AND o.order_status = 'delivered'
+        AND o.payment_held_until IS NOT NULL
+        AND o.payment_held_until <= NOW()
+        AND o.funds_released_at IS NULL
+    `);
+    
+    for (const order of ordersToRelease) {
+      await db.query(`
+        UPDATE physical_orders 
+        SET order_status = 'completed',
+            funds_released_at = NOW()
+        WHERE id = ?
+      `, [order.id]);
+      
+      // Send email notification to seller
+      if (order.seller_email) {
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Funds Released - Core Insight</title>
+            <style>
+              body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+              .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+              .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1 style="color: #10b981;">💰 Funds Released!</h1>
+              <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+              <p>The escrow period for <strong>Order #${order.id}</strong> has completed.</p>
+              <p class="amount">$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
+              <p>has been released to your account. Funds should appear within 3-5 business days.</p>
+              <a href="https://core-insight-7.onrender.com/dashboard" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">View Dashboard</a>
+            </div>
+          </body>
+          </html>
+        `;
+        await sendEmail(order.seller_email, `Funds Released for Order #${order.id}`, emailHtml);
+      }
+    }
+    
+    if (ordersToRelease.length > 0) {
+      console.log(`✅ Released escrow for ${ordersToRelease.length} orders`);
+    }
+    
+  } catch (err) {
+    console.error('❌ Escrow release error:', err);
+  }
+}, 60 * 60 * 1000); // Run every hour
+
+// ============================================
+// ESCROW RELEASE MANUAL TRIGGER (Admin)
+// ============================================
+
+app.post("/api/admin/release-escrow/:orderId", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const orderId = req.params.orderId;
+    
+    const orderResult = await db.query(`
+      SELECT o.*, u.email as seller_email, u.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN users u ON o.seller_id = u.id
+      WHERE o.id = ? AND o.order_status = 'delivered'
+    `, [orderId]);
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found or not in delivered status" });
+    }
+    
+    const order = orderResult[0];
+    
+    await db.query(`
+      UPDATE physical_orders 
+      SET order_status = 'completed',
+          funds_released_at = NOW()
+      WHERE id = ?
+    `, [orderId]);
+    
+    // Send email notification
+    if (order.seller_email) {
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Funds Released (Admin) - Core Insight</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1 style="color: #10b981;">💰 Funds Released</h1>
+            <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+            <p>An administrator has manually released funds for <strong>Order #${order.id}</strong>.</p>
+            <p>Amount: <strong>$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</strong></p>
+          </div>
+        </body>
+        </html>
+      `;
+      await sendEmail(order.seller_email, `Funds Released for Order #${order.id}`, emailHtml);
+    }
+    
+    res.json({ success: true, message: "Funds released successfully" });
+    
+  } catch (err) {
+    console.error("Manual escrow release error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET SELLER NOTIFICATIONS
+// ============================================
+
+app.get("/api/seller/notifications", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const notifications = await db.query(`
+      SELECT * FROM seller_notifications 
+      WHERE seller_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `, [req.session.user.id]);
+    
+    const unreadCount = await db.query(`
+      SELECT COUNT(*) as count FROM seller_notifications 
+      WHERE seller_id = ? AND is_read = 0
+    `, [req.session.user.id]);
+    
+    res.json({
+      success: true,
+      notifications: notifications || [],
+      unreadCount: (unreadCount && unreadCount[0]) ? unreadCount[0].count : 0
+    });
+    
+  } catch (err) {
+    console.error("Error loading seller notifications:", err);
+    res.json({ success: true, notifications: [], unreadCount: 0 });
+  }
+});
+
+// ============================================
+// MARK NOTIFICATION AS READ
+// ============================================
+
+app.post("/api/seller/notifications/:id/read", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    await db.query(
+      "UPDATE seller_notifications SET is_read = 1 WHERE id = ? AND seller_id = ?",
+      [req.params.id, req.session.user.id]
+    );
+    
+    res.json({ success: true });
+    
+  } catch (err) {
+    console.error("Error marking notification read:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 app.get("/api/users/search", async (req, res) => {

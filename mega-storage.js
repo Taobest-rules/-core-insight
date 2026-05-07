@@ -4,10 +4,10 @@ const fs = require('fs');
 const FormData = require('form-data');
 const axios = require('axios');
 
-// ImgBB API Key - Make sure this is in your .env file
-const IMGBB_API_KEY = process.env.IMGBB_API_KEY || '6c5c6e2c4b8c3a9f6e5d4c3b2a1f0e9d8c7b6a5';
+// ImgBB API Key - MUST be set in environment variables
+const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 
-// Ensure temp directory exists
+// Create temp directory with absolute path
 const tempDir = path.join(__dirname, 'uploads/temp');
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -22,7 +22,9 @@ const tempStorage = multer.diskStorage({
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000);
     const ext = path.extname(file.originalname);
-    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+    const baseName = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .substring(0, 50);
     cb(null, `${timestamp}-${random}-${baseName}${ext}`);
   }
 });
@@ -32,39 +34,86 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
 });
 
-// ============ UNIVERSAL UPLOAD TO IMGBB (Images + Files) ============
+// ============ UNIVERSAL UPLOAD TO IMGBB ============
 const uploadToImgbb = async (filePath, filename) => {
+  // Check if API key is configured
+  if (!IMGBB_API_KEY) {
+    console.error('❌ IMGBB_API_KEY is not set in environment variables');
+    throw new Error('ImgBB API key is not configured. Please set IMGBB_API_KEY in your .env file');
+  }
+  
+  // Validate API key format (ImgBB keys are typically 14-16 characters)
+  if (IMGBB_API_KEY.length < 10 || IMGBB_API_KEY.length > 50) {
+    console.warn('⚠️ IMGBB_API_KEY length seems unusual. Please verify your API key.');
+  }
+  
+  console.log(`📤 Uploading to ImgBB: ${filename}`);
+  console.log(`📊 File size: ${fs.statSync(filePath).size} bytes`);
+  
   try {
-    console.log(`📤 Uploading to ImgBB: ${filename}`);
+    // Read file as buffer for better compatibility
+    const fileBuffer = fs.readFileSync(filePath);
     
     const formData = new FormData();
-    formData.append('image', fs.createReadStream(filePath));
+    formData.append('key', IMGBB_API_KEY);
+    formData.append('image', fileBuffer.toString('base64'));
     formData.append('name', filename);
     
-    const response = await axios.post(
-      `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,
-      formData,
-      { 
-        headers: { ...formData.getHeaders() },
-        timeout: 120000 // 2 minute timeout for larger files
-      }
-    );
+    const response = await axios.post('https://api.imgbb.com/1/upload', formData, {
+      headers: {
+        ...formData.getHeaders(),
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 120000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
     
-    if (response.data && response.data.data && response.data.data.url) {
+    // Check response structure
+    if (response.data && response.data.status === 200 && response.data.data && response.data.data.url) {
       // Clean up temp file after successful upload
-      try { fs.unlinkSync(filePath); } catch (err) {}
+      try { 
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath); 
+        }
+      } catch (err) {
+        console.warn('Could not delete temp file:', err.message);
+      }
       
       console.log(`✅ Uploaded to ImgBB: ${response.data.data.url}`);
       return response.data.data.url;
     }
-    throw new Error('Invalid ImgBB response');
+    
+    // If response has error message
+    if (response.data && response.data.error) {
+      throw new Error(`ImgBB API error: ${response.data.error.message || JSON.stringify(response.data.error)}`);
+    }
+    
+    throw new Error('Invalid ImgBB response structure');
+    
   } catch (error) {
-    console.error('ImgBB upload error:', error.message);
-    throw new Error(`Upload failed: ${error.message}`);
+    // Clean up temp file on error
+    try { 
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath); 
+      }
+    } catch (err) {}
+    
+    // Better error logging
+    if (error.response) {
+      console.error('ImgBB API Response:', error.response.data);
+      throw new Error(`ImgBB upload failed: ${error.response.data?.error?.message || error.response.statusText}`);
+    } else if (error.request) {
+      console.error('No response from ImgBB');
+      throw new Error('ImgBB server not responding. Please check your internet connection.');
+    } else {
+      console.error('Upload error:', error.message);
+      throw error;
+    }
   }
 };
 
-// Upload multiple images to ImgBB
+// Upload multiple images
 const uploadMultipleImagesToImgbb = async (files) => {
   const urls = [];
   for (const file of files) {
@@ -74,50 +123,32 @@ const uploadMultipleImagesToImgbb = async (files) => {
   return urls;
 };
 
-// ============ FILE UPLOAD FUNCTION (NOW USES IMGBB) ============
-const uploadFileToMega = async (filePath, filename, folder = '/') => {
-  // Just use ImgBB for everything - it's faster and more reliable
-  return await uploadToImgbb(filePath, filename);
-};
+// Alias for backward compatibility
+const uploadFileToMega = uploadToImgbb;
+const uploadImageToImgbb = uploadToImgbb;
 
 // ============ MULTER CONFIGURATIONS ============
 
-// Course upload (file + thumbnail)
 const uploadCourse = upload.fields([
   { name: 'file', maxCount: 1 },
   { name: 'thumbnail', maxCount: 1 }
 ]);
 
-// Product upload (file + multiple images)
 const uploadProduct = upload.fields([
   { name: 'file', maxCount: 1 },
   { name: 'images[]', maxCount: 10 }
 ]);
 
-// Product images only
 const uploadProductImages = upload.array('images[]', 10);
-
-// Thumbnail only
 const uploadThumbnail = upload.single('thumbnail');
-
-// Profile picture
 const uploadProfilePicture = upload.single('profile_picture');
-
-// Chat image
 const uploadChatImage = upload.single('image');
-
-// Certificate images (multiple)
 const uploadCertificate = upload.array('certificate_images', 5);
-
-// Course file only
 const uploadCourseFile = upload.single('file');
-
-// Product file only
 const uploadProductFile = upload.single('file');
-
-// Multiple product images
 const uploadMultipleProducts = upload.array('images[]', 10);
 
+// Export all modules
 module.exports = {
   upload,
   uploadCourse,
@@ -130,8 +161,8 @@ module.exports = {
   uploadCourseFile,
   uploadProductFile,
   uploadMultipleProducts,
-  uploadToImgbb,                    // Main function
-  uploadImageToImgbb: uploadToImgbb, // Alias for backward compatibility
+  uploadToImgbb,
+  uploadImageToImgbb,
   uploadMultipleImagesToImgbb,
-  uploadFileToMega                  // Now uses ImgBB
+  uploadFileToMega
 };

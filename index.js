@@ -4112,6 +4112,32 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.get("/api/debug/subaccount-creation", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin only" });
+    }
+    
+    // Check recent subaccount attempts from your database
+    const users = await db.query(`
+      SELECT id, username, flutterwave_subaccount_id, paystack_subaccount_code, 
+             subaccount_created_at, subaccount_status, bank_name, account_number
+      FROM users 
+      WHERE flutterwave_subaccount_id IS NOT NULL OR paystack_subaccount_code IS NOT NULL
+      ORDER BY subaccount_created_at DESC
+    `);
+    
+    res.json({
+      success: true,
+      subaccount_count: users.length,
+      subaccounts: users
+    });
+    
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // FLUTTERWAVE SUBACCOUNT ENDPOINTS
 // ============================================

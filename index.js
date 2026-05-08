@@ -4138,6 +4138,59 @@ app.get("/api/debug/subaccount-creation", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.post("/api/test-create-subaccount", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin only" });
+    }
+    
+    const { bank_code, account_number, business_name } = req.body;
+    
+    if (!bank_code || !account_number || !business_name) {
+      return res.status(400).json({ error: "bank_code, account_number, business_name required" });
+    }
+    
+    console.log("🧪 Testing subaccount creation with:");
+    console.log("- Bank code:", bank_code);
+    console.log("- Account number:", account_number);
+    console.log("- Business name:", business_name);
+    
+    const payload = {
+      account_bank: String(bank_code),
+      account_number: String(account_number),
+      business_name: business_name,
+      split_type: "percentage",
+      split_value: 0.9,
+      country: "NG"
+    };
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/subaccounts',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+    
+    console.log("Response:", JSON.stringify(response.data, null, 2));
+    
+    res.json({
+      success: response.data.status === 'success',
+      data: response.data
+    });
+    
+  } catch (err) {
+    console.error("Test error:", err.response?.data || err.message);
+    res.status(500).json({ 
+      error: err.response?.data?.message || err.message,
+      full_response: err.response?.data
+    });
+  }
+});
 // ============================================
 // FLUTTERWAVE SUBACCOUNT ENDPOINTS
 // ============================================

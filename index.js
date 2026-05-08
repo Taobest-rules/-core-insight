@@ -371,7 +371,7 @@ function getOrderConfirmationTemplate(orderData) {
           </div>
           
           <div style="text-align: center;">
-            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">Track Your Order</a>
+            <a href="https://coreinsightmarket.com/order-tracking?orderId=${orderId}" class="button">Track Your Order</a>
           </div>
           
           <p>You'll receive another email when the seller accepts your order.</p>
@@ -423,7 +423,7 @@ function getSellerNotificationTemplate(sellerData) {
           </div>
           
           <div style="text-align: center;">
-            <a href="https://core-insight-7.onrender.com/dashboard" class="button">Go to Dashboard</a>
+            <a href=" https://coreinsightmarket.com/dashboard" class="button">Go to Dashboard</a>
           </div>
           
           <p>Please log in to approve or reject this order. Funds will be held in escrow for 5 days after payment.</p>
@@ -437,7 +437,6 @@ function getSellerNotificationTemplate(sellerData) {
   `;
 }
 
-// 4. Payment Confirmation Template
 function getPaymentConfirmationTemplate(paymentData) {
   const { email, name, orderId, productName, quantity, totalAmount, platformFee, sellerEarnings } = paymentData;
   
@@ -445,53 +444,55 @@ function getPaymentConfirmationTemplate(paymentData) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Payment Confirmed - Order #${orderId}</title>
+      <title>Payment Confirmed - Core Insight Market</title>
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
         .header { background: linear-gradient(135deg, #10b981, #3b82f6); padding: 30px; text-align: center; }
+        .header h1 { margin: 0; color: white; }
         .content { padding: 30px; }
-        .payment-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
-        .success-icon { font-size: 48px; text-align: center; margin: 20px 0; }
-        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+        .order-details { background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; margin: 20px 0; }
         .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>✅ Payment Confirmed!</h1>
+          <h1>Core Insight Market</h1>
+          <p style="margin: 10px 0 0; opacity: 0.9;">Payment Confirmed</p>
         </div>
         <div class="content">
-          <div class="success-icon">💰</div>
-          <h2>Hello ${escapeHtml(name)}!</h2>
-          <p>Your payment has been successfully processed. Your order is now being prepared.</p>
+          <h2>Hello ${escapeHtml(name || 'Valued Customer')},</h2>
+          <p>Your payment has been successfully processed!</p>
           
-          <div class="payment-details">
-            <h3>Payment Details</h3>
-            <div class="detail-row"><strong>Order ID:</strong> <span>#${orderId}</span></div>
-            <div class="detail-row"><strong>Product:</strong> <span>${escapeHtml(productName)}</span></div>
-            <div class="detail-row"><strong>Quantity:</strong> <span>${quantity}</span></div>
-            <div class="detail-row"><strong>Amount Paid:</strong> <span>$${totalAmount.toFixed(2)}</span></div>
-            <div class="detail-row"><strong>Platform Fee:</strong> <span>$${platformFee.toFixed(2)}</span></div>
-            <div class="detail-row"><strong>Seller Receives:</strong> <span>$${sellerEarnings.toFixed(2)} (after 5-day escrow)</span></div>
+          <div class="order-details">
+            <p><strong>Order #${orderId}</strong></p>
+            <p>${escapeHtml(productName)} × ${quantity}</p>
+            <p class="amount">Total Paid: $${parseFloat(totalAmount).toFixed(2)}</p>
+            <hr style="border-color: #334155; margin: 15px 0;">
+            <p><strong>Platform Fee:</strong> $${parseFloat(platformFee || totalAmount * 0.1).toFixed(2)}</p>
+            <p><strong>Seller Receives:</strong> $${parseFloat(sellerEarnings || totalAmount * 0.9).toFixed(2)} <small>(after 5-day escrow)</small></p>
           </div>
           
           <div style="text-align: center;">
-            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">Track Your Order</a>
+            <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" class="button">
+              Track Your Order
+            </a>
           </div>
           
-          <p>Your payment is held in escrow for 5 days to ensure product delivery. Funds will be released to the seller after you confirm receipt.</p>
+          <p>Your payment is held in escrow and will be released to the seller 5 days after you confirm delivery.</p>
         </div>
         <div class="footer">
-          <p>Core Insight Marketplace<br>Questions? Contact support at ${SUPPORT_EMAIL}</p>
+          <p>© ${new Date().getFullYear()} Core Insight Market. All rights reserved.</p>
+          <p>Need help? Contact suppourt@coreinsightmarket.com</p>
         </div>
       </div>
     </body>
     </html>
   `;
 }
-
 // 5. Order Status Update Template
 function getOrderStatusUpdateTemplate(orderData) {
   const { name, orderId, productName, orderStatus, message } = orderData;
@@ -535,7 +536,7 @@ function getOrderStatusUpdateTemplate(orderData) {
             <p style="margin-top: 15px;">${statusMessage}</p>
           </div>
           <div style="text-align: center;">
-            <a href="https://core-insight-7.onrender.com/order-tracking?orderId=${orderId}" class="button">View Order Details</a>
+            <a href="https://coreinsightmarket.com/order-tracking?orderId=${orderId}" class="button">View Order Details</a>
           </div>
         </div>
         <div class="footer">
@@ -757,7 +758,7 @@ async function releaseExpiredEscrowFunds() {
                                     Order total: $${parseFloat(order.total_amount).toFixed(2)}<br>
                                     Platform fee (10%): $${parseFloat(order.platform_fee || order.total_amount * 0.1).toFixed(2)}
                                 </p>
-                                <a href="https://core-insight-7.onrender.com/dashboard" 
+                                <a href="https://coreinsightmarket.com/dashboard " 
                                    style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
                                     View Dashboard
                                 </a>
@@ -816,7 +817,7 @@ startEscrowReleaseScheduler();
 
 // Update verification email function
 async function sendVerificationEmail(to, username, verifyToken) {
-  const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+  const verifyLink = `https://coreinsightmarket.com/verify.html?token=${verifyToken}`;
   const htmlContent = getVerificationEmailTemplate(username, verifyLink);
   return await sendEmail(to, "Verify Your Email - Core Insight Marketplace", htmlContent);
 }
@@ -1010,7 +1011,7 @@ app.post("/api/debug/flutterwave-payment-test", async (req, res) => {
       tx_ref: testRef,
       amount: testAmount,
       currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,
@@ -1281,7 +1282,7 @@ app.post("/api/signup", async (req, res) => {
         }
         
         // Send verification email
-        const verifyLink = `https://core-insight-7.onrender.com/verify.html?token=${verifyToken}`;
+        const verifyLink = `https://coreinsightmarket.com/verify.html?token=${verifyToken}`;
         
         const emailHtml = getVerificationEmailTemplate(username, verifyLink);
         
@@ -1549,7 +1550,7 @@ app.get("/api/debug/flutterwave-test", async (req, res) => {
       tx_ref: testRef,
       amount: 0.50,
       currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
         email: "test@example.com",
         name: "Test User",
@@ -2076,7 +2077,7 @@ app.post("/api/initiate-payment", async (req, res) => {
       tx_ref: transaction_ref,
       amount: amountInUSD,  // This is a NUMBER, not a string
       currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,
@@ -5278,9 +5279,8 @@ app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, 
 
 
 // ============================================
-// SELLER PAID ORDERS ENDPOINT
+// SELLER PAID ORDERS - FIXED
 // ============================================
-
 app.get("/api/seller/paid-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -5289,6 +5289,7 @@ app.get("/api/seller/paid-orders", async (req, res) => {
 
     const sellerId = req.session.user.id;
     
+    // Get orders that are paid and ready for delivery/shipment
     const orders = await db.query(`
       SELECT 
         o.id,
@@ -5368,6 +5369,8 @@ app.get("/api/seller/paid-orders", async (req, res) => {
     });
   }
 });
+
+
 
 // ============================================
 // PROCESS REFUND ENDPOINT (Seller/Admin)
@@ -5557,7 +5560,7 @@ app.post("/api/refunds/:orderId/process", async (req, res) => {
                 <p><strong>Notes:</strong> ${escapeHtml(admin_notes || 'Refund processed successfully')}</p>
               </div>
               <p>Please allow 5-10 business days for the refund to appear in your account.</p>
-              <a href="https://core-insight-7.onrender.com/dashboard" 
+              <a href="https://coreinsightmarket.com/dashboard" 
                  style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
                 View Dashboard
               </a>
@@ -5990,7 +5993,7 @@ setInterval(async () => {
               <p>The escrow period for <strong>Order #${order.id}</strong> has completed.</p>
               <p class="amount">$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
               <p>has been released to your account. Funds should appear within 3-5 business days.</p>
-              <a href="https://core-insight-7.onrender.com/dashboard" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">View Dashboard</a>
+              <a href="https://coreinsightmarket.com/dashboard" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">View Dashboard</a>
             </div>
           </body>
           </html>
@@ -9135,7 +9138,7 @@ app.post("/api/subscription/pay", async (req, res) => {
             tx_ref: transactionRef,
             amount: amount,
             currency: "USD",
-            redirect_url: "https://core-insight-7.onrender.com/subscription-callback.html",
+            redirect_url: "https://coreinsightmarket.com/subscription-callback.html",
             customer: {
                 email: req.session.user.email,
                 name: req.session.user.username,
@@ -9347,7 +9350,7 @@ app.post("/api/subscription/pay", async (req, res) => {
             tx_ref: transactionRef,
             amount: amount,
             currency: "USD",
-            redirect_url: "https://core-insight-7.onrender.com/subscription-callback.html",
+            redirect_url: "https://coreinsightmarket.com/subscription-callback.html",
             customer: {
                 email: req.session.user.email,
                 name: req.session.user.username,
@@ -9718,7 +9721,7 @@ await db.query(
 );
       // Send payment link email
       try {
-        const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
+        const paymentLink = `https://coreinsightmarket.com/pay-order.html?orderId=${orderId}`;
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -10296,7 +10299,7 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
                 amount: Math.round(ngnAmount * 100), // Convert to kobo
                 email: req.session.user.email,
                 reference: paystackRef,
-                callback_url: "https://core-insight-7.onrender.com/payment-callback.html",
+                callback_url: "https://coreinsightmarket.com/payment-callback.html",
                 metadata: {
                     product_id: productId,
                     seller_id: product.seller_id,
@@ -10346,7 +10349,7 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
                 tx_ref: flutterwaveRef,
                 amount: usdAmount,
                 currency: "USD",
-                redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+                redirect_url: "https://coreinsightmarket.com/payment-callback.html",
                 customer: {
                     email: req.session.user.email,
                     name: req.session.user.username || "Customer"
@@ -11773,7 +11776,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
           <p>Hello ${order.buyer_name || 'Valued Customer'},</p>
           <div class="status-badge">${statusMessages[status] || `Status: ${status}`}</div>
           ${notes ? `<p><strong>Notes from seller:</strong> ${notes}</p>` : ''}
-          <p>You can track your order here: <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
+          <p>You can track your order here: <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
         </div>
       </body>
       </html>
@@ -12166,7 +12169,7 @@ app.post("/api/physical-orders/:orderId/get-payment-link", async (req, res) => {
       tx_ref: reference,
       amount: amount,
       currency: "USD",
-      redirect_url: "https://core-insight-7.onrender.com/payment-callback.html",
+      redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
         email: req.session.user.email,
         name: req.session.user.username,
@@ -12409,7 +12412,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
           <p>Hello ${order.buyer_name || 'Valued Customer'},</p>
           <div class="status-badge">${statusMessages[status] || `Status: ${status}`}</div>
           ${notes ? `<p><strong>Notes from seller:</strong> ${notes}</p>` : ''}
-          <p>You can track your order here: <a href="https://core-insight-7.onrender.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
+          <p>You can track your order here: <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}">Track Order</a></p>
         </div>
       </body>
       </html>
@@ -12666,7 +12669,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
           
           <p>No action is needed from you at this time. The funds will be transferred to your bank account after the escrow period.</p>
           
-          <a href="https://core-insight-7.onrender.com/dashboard" 
+          <a href="https://coreinsightmarket.com/dashboard" 
              style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
             View Dashboard
           </a>
@@ -12718,7 +12721,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
           
           <p>Thank you for shopping with Core Insight!</p>
           
-          <a href="https://core-insight-7.onrender.com/dashboard" 
+          <a href="https://coreinsightmarket.com/dashboard" 
              style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
             View My Orders
           </a>
@@ -12848,6 +12851,9 @@ app.post("/api/verify-physical-payment-direct", async (req, res) => {
 // ============================================
 // VERIFY PHYSICAL PAYMENT - FIXED ESCROW TIMING
 // ============================================
+// ============================================
+// VERIFY PHYSICAL PAYMENT - COMPLETE FIXED VERSION
+// ============================================
 
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
@@ -12855,110 +12861,63 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
     
     console.log(`🔍 Verifying payment for transaction: ${transaction_ref}`);
 
-    // First, check if this is a Paystack payment (starts with PS_)
+    // Check if Paystack payment (starts with PS_)
     let isPaystack = transaction_ref.startsWith('PS_');
-    let cleanRef = transaction_ref;
-    if (isPaystack) {
-      cleanRef = transaction_ref.substring(3);
-    }
+    let cleanRef = isPaystack ? transaction_ref.substring(3) : transaction_ref;
     
-    let response;
-    let transaction;
-    let amount;
-    let orderId;
-    let paymentProvider;
+    let transaction = null;
+    let amount = 0;
+    let orderId = null;
+    let paymentProvider = null;
     
-    // Try Paystack first if it's a Paystack reference
+    // Verify with Paystack
     if (isPaystack && process.env.PAYSTACK_SECRET_KEY) {
-      try {
-        console.log(`  Verifying with Paystack: ${cleanRef}`);
-        response = await axios.get(
-          `https://api.paystack.co/transaction/verify/${cleanRef}`,
-          {
-            headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
-            timeout: 15000
-          }
-        );
-        
-        if (response.data.status === true && response.data.data.status === "success") {
-          transaction = response.data.data;
-          amount = transaction.amount / 100; // Convert from kobo
-          paymentProvider = 'paystack';
-          orderId = transaction.metadata?.order_id;
-          
-          console.log(`✅ Paystack payment verified: ₦${amount}`);
-        }
-      } catch (paystackErr) {
-        console.log(`  Paystack verification failed: ${paystackErr.message}`);
+      const response = await axios.get(
+        `https://api.paystack.co/transaction/verify/${cleanRef}`,
+        { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+      );
+      
+      if (response.data.status === true && response.data.data.status === "success") {
+        transaction = response.data.data;
+        amount = transaction.amount / 100;
+        paymentProvider = 'paystack';
+        orderId = transaction.metadata?.order_id;
+        console.log(`✅ Paystack payment verified: ₦${amount}`);
       }
     }
     
-    // If Paystack failed or it's not a Paystack reference, try Flutterwave
+    // Fallback to Flutterwave
     if (!transaction && process.env.FLW_SECRET_KEY) {
-      try {
-        console.log(`  Verifying with Flutterwave: ${transaction_ref}`);
-        response = await axios.get(
-          `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
-          {
-            headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
-            timeout: 15000
-          }
-        );
-        
-        if (response.data.status === "success" && response.data.data.status === "successful") {
-          transaction = response.data.data;
-          amount = transaction.amount;
-          paymentProvider = 'flutterwave';
-          orderId = transaction.meta?.order_id;
-          
-          console.log(`✅ Flutterwave payment verified: $${amount}`);
-        }
-      } catch (flutterErr) {
-        console.log(`  Flutterwave verification failed: ${flutterErr.message}`);
+      const response = await axios.get(
+        `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
+        { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+      );
+      
+      if (response.data.status === "success" && response.data.data.status === "successful") {
+        transaction = response.data.data;
+        amount = transaction.amount;
+        paymentProvider = 'flutterwave';
+        orderId = transaction.meta?.order_id;
+        console.log(`✅ Flutterwave payment verified: $${amount}`);
       }
     }
     
-    if (!transaction) {
-      return res.status(400).json({ 
-        status: "failed", 
-        message: "Payment not found or not successful" 
-      });
+    if (!transaction || !orderId) {
+      return res.status(400).json({ status: "failed", message: "Payment verification failed" });
     }
     
     // Calculate fees
     const platformFee = amount * 0.10;
     const sellerAmount = amount - platformFee;
+    const currency = paymentProvider === 'paystack' ? 'NGN' : 'USD';
     
-    // IMPORTANT: Do NOT set payment_held_until here!
-    // The 5-day escrow period starts AFTER customer confirms delivery
-    // Set payment_held_until to NULL initially
-    
-    // Get order details for email
-    const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name, u.email as buyer_email, u.username as buyer_name,
-              s.email as seller_email, s.username as seller_name
-       FROM physical_orders o
-       LEFT JOIN products p ON o.product_id = p.id
-       LEFT JOIN users u ON o.buyer_id = u.id
-       LEFT JOIN users s ON o.seller_id = s.id
-       WHERE o.id = ?`,
-      [orderId]
-    );
-    
-    const order = orderResult && orderResult.length > 0 ? orderResult[0] : null;
-    
-    if (!order) {
-      console.error(`  Order #${orderId} not found`);
-      return res.status(404).json({ error: "Order not found" });
-    }
-    
-    // Update order status - FIXED: payment_held_until = NULL (starts after delivery)
+    // IMPORTANT: payment_held_until = NULL - escrow starts AFTER delivery confirmation
     await db.query(
       `UPDATE physical_orders 
        SET payment_status = 'paid',
            order_status = 'paid',
            payment_collected_at = NOW(),
-           payment_held_until = NULL,  -- ✅ IMPORTANT: NULL until delivery confirmed
+           payment_held_until = NULL,
            platform_fee = ?,
            seller_earnings = ?,
            amount_paid = ?,
@@ -12966,124 +12925,57 @@ app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
            transaction_ref = ?,
            payment_gateway = ?
        WHERE id = ?`,
-      [
-        platformFee, 
-        sellerAmount, 
-        amount, 
-        paymentProvider === 'paystack' ? 'NGN' : 'USD',
-        transaction_ref, 
-        paymentProvider,
-        orderId
-      ]
+      [platformFee, sellerAmount, amount, currency, transaction_ref, paymentProvider, orderId]
     );
     
-    // Create escrow record
-    try {
-      await db.query(
-        `INSERT INTO escrow_accounts 
-         (order_id, buyer_id, seller_id, amount, platform_fee, seller_amount, 
-          payment_reference, status, held_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'held', NOW(), NOW())`,
-        [
-          orderId, 
-          order.buyer_id, 
-          order.seller_id, 
-          amount, 
-          platformFee, 
-          sellerAmount, 
-          transaction_ref
-        ]
-      );
-      console.log(`  ✅ Escrow record created for order #${orderId}`);
-    } catch (escrowErr) {
-      console.log(`  Escrow record error (may already exist): ${escrowErr.message}`);
-    }
+    // Send confirmation email
+    const orderResult = await db.query(
+      `SELECT o.*, u.email as buyer_email, u.username as buyer_name 
+       FROM physical_orders o 
+       JOIN users u ON o.buyer_id = u.id 
+       WHERE o.id = ?`,
+      [orderId]
+    );
     
-    // Add to status history
-    try {
-      await db.query(
-        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-         VALUES (?, 'payment_completed', 'Payment received. Funds held in escrow until delivery confirmation.', ?, NOW())`,
-        [orderId, order.buyer_id]
-      );
-    } catch (historyErr) {
-      console.log('History table note available yet');
-    }
-    
-    // Send payment confirmation email to buyer
-    if (order && order.buyer_email) {
-      const paymentData = {
-        email: order.buyer_email,
-        name: order.buyer_name || 'Valued Customer',
-        orderId: orderId,
-        productName: order.product_name,
-        quantity: order.quantity,
-        totalAmount: amount,
-        platformFee: platformFee,
-        sellerEarnings: sellerAmount
-      };
-      
-      sendPaymentConfirmationEmail(paymentData).catch(err => {
-        console.error('Payment confirmation email failed:', err.message);
-      });
-      
-      // Send notification to seller
-      const sellerPaymentHtml = `
+    if (orderResult && orderResult.length > 0) {
+      const order = orderResult[0];
+      const emailHtml = `
         <!DOCTYPE html>
         <html>
-        <head>
-          <title>Payment Received - Core Insight</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
-            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-            .amount { font-size: 24px; color: #10b981; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1 style="color: #10b981;">💰 Payment Received!</h1>
-            <p>Hello ${order.seller_name || 'Seller'},</p>
-            <p>Payment for <strong>Order #${orderId}</strong> has been received.</p>
-            <p class="amount">Amount: $${amount.toFixed(2)}</p>
-            <p><strong>Your earnings (90%):</strong> $${sellerAmount.toFixed(2)}</p>
-            <p><strong>Platform fee (10%):</strong> $${platformFee.toFixed(2)}</p>
-            <p>⚠️ <strong>Important:</strong> Funds are held in escrow and will be released 5 days AFTER the customer confirms delivery.</p>
-            <p>You must ship the order and provide the delivery code to the customer.</p>
-            <a href="https://core-insight-7.onrender.com/dashboard" 
-               style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
-              Go to Dashboard
+        <head><title>Payment Confirmed - Core Insight Market</title></head>
+        <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+          <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+            <h1 style="color:#10b981;">✅ Payment Confirmed!</h1>
+            <p>Hello ${order.buyer_name},</p>
+            <p>Your payment for <strong>Order #${orderId}</strong> has been confirmed.</p>
+            <p>Funds are held in escrow and will be released to the seller 5 days AFTER you confirm delivery.</p>
+            <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" 
+               style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">
+              Track Your Order
             </a>
           </div>
         </body>
         </html>
       `;
-      
-      if (order.seller_email) {
-        sendEmail(order.seller_email, `Payment Received for Order #${orderId}`, sellerPaymentHtml).catch(err => {
-          console.error('Seller payment notification failed:', err.message);
-        });
-      }
+      await sendEmail(order.buyer_email, `Payment Confirmed for Order #${orderId}`, emailHtml);
     }
     
     res.json({
       status: "success",
-      message: "Payment verified successfully! Funds are held in escrow until delivery confirmation.",
+      message: "Payment verified! Funds held in escrow until delivery confirmation.",
       orderId: orderId,
       amount: amount,
-      platformFee: platformFee,
-      sellerAmount: sellerAmount,
-      nextStep: "Seller must ship the order and provide delivery code. Funds will be released 5 days after buyer confirms delivery."
+      platform_fee: platformFee,
+      seller_earnings: sellerAmount,
+      nextStep: "Funds will be released 5 days after buyer confirms delivery."
     });
     
   } catch (err) {
     console.error('❌ Payment verification error:', err);
-    res.status(500).json({ 
-      status: "failed", 
-      error: "Error verifying payment", 
-      details: err.message 
-    });
+    res.status(500).json({ error: err.message });
   }
 });
+
 // ============================================
 // UNIFIED PAYMENT VERIFICATION ENDPOINT
 // Handles both Courses and Physical Products
@@ -13425,74 +13317,7 @@ app.get("/api/buyer/physical-orders", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
-// GET /api/seller/paid-orders - Orders ready for shipment
-app.get("/api/seller/paid-orders", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
-    
-    const sellerId = req.session.user.id;
-    
-    const orders = await db.query(`
-      SELECT 
-        o.id,
-        o.product_name,
-        o.quantity,
-        o.total_amount,
-        o.order_status,
-        o.customer_name,
-        o.customer_email,
-        o.shipping_address,
-        o.delivery_phone,
-        o.city,
-        o.state,
-        o.country,
-        o.created_at,
-        o.payment_collected_at,
-        o.platform_fee,
-        o.seller_earnings,
-        o.estimated_delivery_days,
-        p.id as product_id,
-        p.title as product_title
-      FROM physical_orders o
-      LEFT JOIN products p ON o.product_id = p.id
-      WHERE o.seller_id = ? 
-        AND o.order_status = 'paid'
-        AND o.payment_status = 'paid'
-      ORDER BY o.payment_collected_at ASC
-    `, [sellerId]);
-    
-    const processedOrders = (orders || []).map(order => ({
-      id: order.id,
-      product_name: order.product_name || order.product_title,
-      quantity: parseInt(order.quantity) || 1,
-      total_amount: parseFloat(order.total_amount) || 0,
-      seller_earnings: parseFloat(order.seller_earnings) || (parseFloat(order.total_amount) * 0.9),
-      platform_fee: parseFloat(order.platform_fee) || (parseFloat(order.total_amount) * 0.1),
-      customer_name: order.customer_name || 'Customer',
-      customer_email: order.customer_email,
-      shipping_address: order.shipping_address,
-      delivery_phone: order.delivery_phone,
-      city: order.city,
-      state: order.state,
-      country: order.country,
-      created_at: order.created_at,
-      payment_collected_at: order.payment_collected_at,
-      estimated_delivery_days: order.estimated_delivery_days || 7
-    }));
-    
-    res.json({
-      success: true,
-      orders: processedOrders,
-      count: processedOrders.length
-    });
-    
-  } catch (err) {
-    console.error("❌ Error fetching paid orders:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+
 // Favorites endpoints
 app.post("/api/favorites/toggle", async (req, res) => {
   try {
@@ -14436,12 +14261,14 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 
 
 
-// Product Upload (Images + Digital File) - ALL to ImgBB
 app.post("/api/upload-product", uploadProduct, async (req, res) => {
   try {
-    console.log("📤 Product upload started with ImgBB...");
+    console.log("📤 PRODUCT UPLOAD STARTED");
+    console.log("📋 Request body:", req.body);
+    console.log("📎 Files received:", req.files ? Object.keys(req.files) : "No files");
     
     if (!req.session.user) {
+      console.log("❌ No user session");
       return res.status(401).json({ error: "Please log in to upload products." });
     }
 
@@ -14452,7 +14279,10 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       accountNumber, accountName
     } = req.body;
 
+    console.log("📦 Product data:", { title, price, type, paymentProvider });
+
     if (!title || !price || !type || !paymentProvider) {
+      console.log("❌ Missing required fields");
       return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
     }
 
@@ -14461,9 +14291,17 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     // Upload product images to ImgBB
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
+      console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
       for (const file of req.files['images[]']) {
-        const url = await uploadToImgbb(file.path, file.originalname);
-        imageUrls.push(url);
+        try {
+          console.log(`  Uploading: ${file.originalname} (${file.size} bytes)`);
+          const url = await uploadToImgbb(file.path, file.originalname);
+          imageUrls.push(url);
+          console.log(`  ✅ Uploaded: ${url.substring(0, 50)}...`);
+        } catch (imgError) {
+          console.error(`  ❌ Image upload failed: ${imgError.message}`);
+          // Continue with other images
+        }
       }
       console.log(`✅ ${imageUrls.length} images uploaded to ImgBB`);
     }
@@ -14472,16 +14310,25 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     let fileUrl = null;
     if (type === 'digital' && req.files?.file?.[0]) {
       const productFile = req.files.file[0];
-      fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
-      console.log(`✅ Digital file uploaded to ImgBB: ${fileUrl}`);
+      console.log(`📁 Uploading digital file: ${productFile.originalname} (${productFile.size} bytes)`);
+      try {
+        fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
+        console.log(`✅ Digital file uploaded to ImgBB: ${fileUrl.substring(0, 50)}...`);
+      } catch (fileError) {
+        console.error(`❌ Digital file upload failed: ${fileError.message}`);
+        // Don't fail the whole upload if just the file fails? Or do fail?
+        // We'll continue for now
+      }
     }
 
     // Handle affiliate link
     if (type === 'affiliate' && affiliate_link) {
       fileUrl = affiliate_link;
+      console.log(`🔗 Affiliate link set: ${affiliate_link.substring(0, 50)}...`);
     }
 
     // Insert product into database
+    console.log("💾 Saving to database...");
     const result = await db.query(
       `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
@@ -14513,8 +14360,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     );
 
     const productId = result.insertId;
-    
-    console.log(`✅ Product uploaded! ID: ${productId}, File URL: ${fileUrl ? 'YES' : 'NO'}`);
+    console.log(`✅ Product uploaded successfully! ID: ${productId}`);
     
     res.json({ 
       success: true,
@@ -14522,6 +14368,7 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
       productId: productId,
       type: type,
       file_url: fileUrl ? 'stored' : 'none',
+      images_uploaded: imageUrls.length,
       pricing: {
         customer_price: listedPrice,
         platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
@@ -14531,7 +14378,11 @@ app.post("/api/upload-product", uploadProduct, async (req, res) => {
     
   } catch (err) {
     console.error('❌ Product upload error:', err);
-    res.status(500).json({ error: "Error uploading product: " + err.message });
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      error: "Error uploading product: " + err.message,
+      details: err.stack
+    });
   }
 });
 

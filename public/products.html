@@ -3633,37 +3633,29 @@ In the name of Allah, the Most Gracious, the Most Merciful
       </select>
     </div>
     
-    <div class="currency-selector">
-      <i class="fas fa-coins"></i>
-      <select id="currencyHeader">
-        <option value="USD">USD $</option>
-        <option value="NGN">NGN ₦</option>
-        <option value="EUR">EUR €</option>
-        <option value="GBP">GBP £</option>
-        <option value="KES">KES KSh</option>
-        <option value="GHS">GHS GH₵</option>
-        <option value="ZAR">ZAR R</option>
-        <option value="CAD">CAD $</option>
-        <option value="AUD">AUD $</option>
-        <option value="JPY">JPY ¥</option>
-        <option value="CNY">CNY ¥</option>
-        <option value="INR">INR ₹</option>
-        <option value="BRL">BRL R$</option>
-        <option value="MXN">MXN $</option>
-        <option value="AED">AED د.إ</option>
-        <option value="SAR">SAR ر.س</option>
-        <option value="EGP">EGP £</option>
-        <option value="MAD">MAD د.م.</option>
-        <option value="TZS">TZS TSh</option>
-        <option value="UGX">UGX USh</option>
-        <option value="RWF">RWF FRw</option>
-        <option value="XOF">XOF CFA</option>
-        <option value="XAF">XAF FCFA</option>
-      </select>
-      <span id="liveRateIndicator" class="live-rate-badge">
-        <i class="fas fa-chart-line"></i> Live
-      </span>
-    </div>
+   <!-- Simplified Currency Selector - Removed Live Rate Display -->
+<div class="currency-selector">
+  <i class="fas fa-coins"></i>
+  <select id="currencyHeader">
+    <option value="USD">USD $</option>
+    <option value="NGN">NGN ₦</option>
+    <option value="EUR">EUR €</option>
+    <option value="GBP">GBP £</option>
+    <option value="KES">KES KSh</option>
+    <option value="GHS">GHS GH₵</option>
+    <option value="ZAR">ZAR R</option>
+    <option value="CAD">CAD $</option>
+    <option value="AUD">AUD $</option>
+    <option value="JPY">JPY ¥</option>
+    <option value="CNY">CNY ¥</option>
+    <option value="INR">INR ₹</option>
+    <option value="BRL">BRL R$</option>
+    <option value="MXN">MXN $</option>
+    <option value="AED">AED د.إ</option>
+    <option value="SAR">SAR ر.س</option>
+  </select>
+  <!-- REMOVED: live rate indicator span -->
+</div>
     
     <button id="refreshBtn" class="btn primary">
       <i class="fas fa-sync-alt"></i> Refresh
@@ -3893,14 +3885,14 @@ In the name of Allah, the Most Gracious, the Most Merciful
             <p style="font-size: 11px; color: var(--success);">✓ Best for international sellers</p>
         </div>
         
-        <!-- Paystack Option -->
-        <div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
-            <i class="fas fa-map-marker-alt" style="font-size: 32px; color: var(--success);"></i>
-            <h5 style="margin: 10px 0 5px;">Paystack</h5>
-            <p style="font-size: 12px;">🇳🇬 Nigerian sellers only</p>
-            <p style="font-size: 11px; color: var(--success);">✓ Receive in NGN</p>
-            <p style="font-size: 11px; color: var(--success);">✓ Direct to Nigerian banks</p>
-        </div>
+      <!-- Paystack Option - Updated text -->
+<div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
+  <i class="fas fa-map-marker-alt" style="font-size: 32px; color: var(--success);"></i>
+  <h5 style="margin: 10px 0 5px;">Paystack</h5>
+  <p style="font-size: 12px;">🇳🇬 Local Payment</p>
+  <p style="font-size: 11px; color: var(--success);">✓ Receive in NGN</p>
+  <p style="font-size: 11px; color: var(--success);">✓ Direct to bank account</p>
+</div>
     </div>
     
     <input type="hidden" id="p_paymentProvider" value="" />
@@ -4129,10 +4121,8 @@ In the name of Allah, the Most Gracious, the Most Merciful
     <div class="tabs-header">
       <button class="tab-btn active" data-tab="products">My Products</button>
       <button class="tab-btn" data-tab="sales">Sales History</button>
-      <button class="tab-btn" data-tab="pending-orders">Pending Orders <span id="pendingBadge" class="badge" style="display:none;"></span></button>
       <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders <span id="paidBadge" class="badge" style="display:none;"></span></button>
-      <button class="tab-btn" data-tab="buyer-orders">My Orders</button>
-      <button class="tab-btn" data-tab="analytics">Analytics</button>
+     <button class="tab-btn" data-tab="analytics">Analytics</button>
       <button class="tab-btn" data-tab="refunds">Refund Requests</button>
       <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
     </div>
@@ -7961,6 +7951,8 @@ async function loadSalesHistory() {
     }
   }
 }
+
+// Load seller notifications
 async function loadSellerNotifications() {
   try {
     if (!currentUser) return;
@@ -7968,12 +7960,6 @@ async function loadSellerNotifications() {
     const response = await fetch('/api/seller/notifications', {
       credentials: 'include'
     });
-    
-    if (!response.ok) {
-      // Silently fail - notifications are optional
-      console.log('Notifications not available');
-      return;
-    }
     
     const data = await response.json();
     const notificationCount = document.getElementById('notificationCount');
@@ -7985,10 +7971,19 @@ async function loadSellerNotifications() {
       notificationCount.style.display = 'none';
     }
   } catch (error) {
-    // Silent fail
     console.log('Notifications not available');
   }
 }
+
+// Call this after user loads
+
+window.loadUser = async function() {
+  if (originalLoadUser) await originalLoadUser();
+  if (currentUser) {
+    await loadSellerNotifications();
+    setInterval(loadSellerNotifications, 30000);
+  }
+};
 // Updated loadMyProducts with better error handling
 async function loadMyProducts() {
   const container = document.getElementById('myProductsList');
@@ -11772,7 +11767,100 @@ if (priceCalc) {
 }
 // ================= SELLER REFUND MANAGEMENT =================
 
+// ============================================
+// AUTOMATIC ESCROW RELEASE - FIXED
+// Funds released 5 days AFTER delivery confirmation
+// ============================================
 
+async function releaseExpiredEscrowFunds() {
+  try {
+    console.log(`🕐 Running escrow release check at ${new Date().toISOString()}`);
+    
+    // Find orders where:
+    // 1. Payment is held in escrow (payment_status = 'paid')
+    // 2. Order is in delivered status (customer confirmed receipt)
+    // 3. 5 days have passed since delivery (payment_held_until <= NOW)
+    const orders = await db.query(`
+      SELECT 
+        o.id,
+        o.seller_id,
+        o.total_amount,
+        o.seller_earnings,
+        o.platform_fee,
+        o.payment_held_until,
+        o.delivered_at,
+        u.email as seller_email,
+        u.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN users u ON o.seller_id = u.id
+      WHERE o.payment_status = 'paid'
+        AND o.order_status = 'delivered'
+        AND o.payment_held_until IS NOT NULL
+        AND o.payment_held_until <= NOW()
+        AND o.funds_released_at IS NULL
+    `);
+    
+    if (!orders || orders.length === 0) {
+      console.log('  No orders ready for escrow release');
+      return;
+    }
+    
+    console.log(`  Found ${orders.length} orders ready for release`);
+    
+    for (const order of orders) {
+      try {
+        console.log(`  Releasing funds for order #${order.id}...`);
+        
+        await db.query(`
+          UPDATE physical_orders 
+          SET order_status = 'completed',
+              funds_released_at = NOW()
+          WHERE id = ?
+        `, [order.id]);
+        
+        // Send email notification to seller
+        if (order.seller_email) {
+          const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Funds Released - Core Insight Market</title>
+              <style>
+                body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+                .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1 style="color: #10b981;">💰 Funds Released!</h1>
+                <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
+                <p>The escrow period for <strong>Order #${order.id}</strong> has completed successfully.</p>
+                <p class="amount">$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
+                <p>has been released to your account.</p>
+                <p>Funds should appear in your bank account within 3-5 business days.</p>
+                <a href="https://coreinsightmarket.com/dashboard" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">View Dashboard</a>
+              </div>
+            </body>
+            </html>
+          `;
+          
+          await sendEmail(order.seller_email, `Funds Released for Order #${order.id}`, emailHtml);
+        }
+        
+        released++;
+        console.log(`  ✅ Released funds for order #${order.id}`);
+        
+      } catch (err) {
+        console.error(`  ❌ Failed to release order #${order.id}:`, err.message);
+        failed++;
+      }
+    }
+    
+  } catch (err) {
+    console.error('❌ Escrow release error:', err);
+  }
+}
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

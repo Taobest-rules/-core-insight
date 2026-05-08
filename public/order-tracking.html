@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Tracking - Core Insight</title>
+  <title>Order Tracking - Core Insight Market</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -174,7 +174,7 @@
   <header>
     <div class="logo">
       <div class="logo-icon"><i class="fas fa-store"></i></div>
-      <div class="logo-text">Core Insight</div>
+      <div class="logo-text">Core Insight Market</div>
     </div>
     <nav>
       <a href="index.html">Home</a>
@@ -325,7 +325,6 @@
       `;
     }
     
-    // SELLER: Confirm delivery with code
     function openDeliveryCodeModal() {
       document.getElementById('deliveryCodeModal').classList.add('open');
       document.getElementById('deliveryCodeInput').value = '';
@@ -366,7 +365,6 @@
       }
     }
     
-    // BUYER: Cancel order / Request refund
     function openCancelModal() {
       document.getElementById('cancelModal').classList.add('open');
       document.getElementById('cancelReason').value = '';
@@ -500,7 +498,7 @@
             <div class="product-details">
               <h2>${escapeHtml(order.product_name)}</h2>
               <p>Quantity: ${order.quantity} | Total: $${order.total_amount.toFixed(2)}</p>
-              <p>Seller: ${escapeHtml(order.seller_name || 'Core Insight')}</p>
+              <p>Seller: ${escapeHtml(order.seller_name || 'Core Insight Market')}</p>
               <span class="status-badge status-${order.order_status}">${getStatusDisplay(order.order_status)}</span>
             </div>
           </div>
@@ -542,39 +540,88 @@
       }
     }
     
+    // FIXED: renderTimeline that properly shows all steps including delivered and completed
     function renderTimeline(timeline, currentStatus) {
       if (!timeline || timeline.length === 0) {
         return '<div class="timeline-step"><div class="step-content">No timeline information available</div></div>';
       }
       
       const allSteps = [
-        { status: 'order_placed', title: 'Order Placed', icon: 'fa-shopping-cart', description: 'Your order has been placed' },
+        { status: 'order_placed', title: 'Order Placed', icon: 'fa-shopping-cart', description: 'Your order has been placed and is awaiting seller approval' },
         { status: 'seller_accepted', title: 'Order Accepted', icon: 'fa-check-circle', description: 'Seller has accepted your order' },
         { status: 'payment_completed', title: 'Payment Received', icon: 'fa-credit-card', description: 'Payment received and held in escrow' },
-        { status: 'shipped', title: 'Shipped', icon: 'fa-truck', description: 'Order has been shipped' },
-        { status: 'delivered', title: 'Delivered', icon: 'fa-box-open', description: 'Order has been delivered' },
-        { status: 'completed', title: 'Completed', icon: 'fa-trophy', description: 'Order completed' }
+        { status: 'shipped', title: 'Shipped', icon: 'fa-truck', description: 'Your order has been shipped' },
+        { status: 'delivered', title: 'Delivered', icon: 'fa-box-open', description: 'Your order has been delivered' },
+        { status: 'completed', title: 'Completed', icon: 'fa-trophy', description: 'Order completed. Funds released to seller.' }
       ];
       
-      let currentIndex = -1;
+      // Create a map of completed statuses from timeline
+      const completedStatuses = new Set();
+      timeline.forEach(step => {
+        if (step.completed === true || step.completed === undefined) {
+          completedStatuses.add(step.status);
+        }
+      });
+      
+      // Also mark current status as completed if it's in the list
+      completedStatuses.add(currentStatus);
+      
+      // Find the highest index that is completed
+      let highestCompletedIndex = -1;
       for (let i = 0; i < allSteps.length; i++) {
-        if (timeline.some(t => t.status === allSteps[i].status && t.completed)) {
-          currentIndex = i;
+        if (completedStatuses.has(allSteps[i].status)) {
+          highestCompletedIndex = i;
         }
       }
       
+      // If order is delivered but completed isn't marked, mark it
+      if (currentStatus === 'delivered' && !completedStatuses.has('completed')) {
+        // Don't mark completed yet - funds not released
+      }
+      
+      if (currentStatus === 'completed') {
+        highestCompletedIndex = allSteps.length - 1;
+      }
+      
+      // Special case: if order is delivered, mark up to delivered
+      if (currentStatus === 'delivered' && highestCompletedIndex < 4) {
+        highestCompletedIndex = 4; // delivered index
+      }
+      
       return allSteps.map((step, index) => {
-        const isCompleted = index <= currentIndex;
-        const isCurrent = index === currentIndex;
+        const isCompleted = index <= highestCompletedIndex;
+        const isCurrent = index === highestCompletedIndex + 1 && !isCompleted;
+        
+        // Find matching timeline entry for timestamp
         const stepData = timeline.find(t => t.status === step.status);
+        let timestamp = stepData?.timestamp;
+        
+        // If no timestamp but step is completed, try to infer from order data
+        if (!timestamp && isCompleted) {
+          if (step.status === 'order_placed' && currentOrder.created_at) timestamp = currentOrder.created_at;
+          if (step.status === 'seller_accepted' && currentOrder.seller_accepted_at) timestamp = currentOrder.seller_accepted_at;
+          if (step.status === 'payment_completed' && currentOrder.payment_collected_at) timestamp = currentOrder.payment_collected_at;
+          if (step.status === 'delivered' && currentOrder.delivered_at) timestamp = currentOrder.delivered_at;
+          if (step.status === 'completed' && currentOrder.completed_at) timestamp = currentOrder.completed_at;
+          if (step.status === 'shipped' && currentOrder.shipped_at) timestamp = currentOrder.shipped_at;
+        }
+        
+        let description = step.description;
+        if (step.status === 'delivered' && isCompleted && currentOrder.payment_held_until) {
+          const releaseDate = new Date(currentOrder.payment_held_until).toLocaleDateString();
+          description = `Order delivered! Funds will be released to seller on ${releaseDate}`;
+        }
+        if (step.status === 'completed' && isCompleted) {
+          description = 'Order completed successfully. Thank you for shopping with us!';
+        }
         
         return `
           <div class="timeline-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}">
             <div class="step-icon"><i class="fas ${step.icon}"></i></div>
             <div class="step-content">
               <div class="step-title">${step.title}</div>
-              ${stepData?.timestamp ? `<div class="step-date">${formatDate(stepData.timestamp)}</div>` : ''}
-              <div class="step-description">${stepData?.description || (isCompleted ? step.description : (index === currentIndex + 1 ? 'Awaiting...' : 'Pending'))}</div>
+              ${timestamp ? `<div class="step-date">${formatDate(timestamp)}</div>` : (isCompleted ? '<div class="step-date">Completed</div>' : '')}
+              <div class="step-description">${description}</div>
             </div>
           </div>
         `;
@@ -591,7 +638,8 @@
         'delivered': '🚚 Delivered',
         'completed': '🎉 Completed',
         'cancelled': '❌ Cancelled',
-        'refund_requested': '🔄 Cancellation Requested'
+        'refund_requested': '🔄 Cancellation Requested',
+        'refunded': '✅ Refunded'
       };
       return map[status] || status.replace(/_/g, ' ');
     }

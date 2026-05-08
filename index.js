@@ -4116,110 +4116,86 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
 // FLUTTERWAVE SUBACCOUNT ENDPOINTS
 // ============================================
 
-// Create Flutterwave subaccount for seller
 app.post("/api/flutterwave/create-subaccount", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-        
-        const { 
-            bank_code, 
-            account_number, 
-            business_name,
-            business_email,
-            business_mobile,
-            split_value = 0.9  // 90% to seller
-        } = req.body;
-        
-        // Validate required fields
-        if (!bank_code || !account_number || !business_name) {
-            return res.status(400).json({ 
-                error: "Bank code, account number, and business name are required" 
-            });
-        }
-        
-        // Check if subaccount already exists
-        const existingSubaccount = await db.query(
-            "SELECT flutterwave_subaccount_id FROM users WHERE id = ? AND flutterwave_subaccount_id IS NOT NULL",
-            [req.session.user.id]
-        );
-        
-        if (existingSubaccount && existingSubaccount.length > 0) {
-            return res.json({
-                success: true,
-                subaccount_id: existingSubaccount[0].flutterwave_subaccount_id,
-                message: "Subaccount already exists"
-            });
-        }
-        
-        // Create subaccount with Flutterwave
-        const response = await axios.post(
-            'https://api.flutterwave.com/v3/subaccounts',
-            {
-                account_bank: bank_code,
-                account_number: account_number,
-                business_name: business_name,
-                business_email: business_email || req.session.user.email,
-                business_mobile: business_mobile || "08012345678",
-                split_type: "percentage",
-                split_value: split_value,  // 0.9 = 90%
-                country: "NG"
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 30000
-            }
-        );
-        
-        if (response.data.status === 'success' && response.data.data) {
-            const subaccountId = response.data.data.subaccount_id;
-            
-            // Store in database
-            await db.query(
-                `UPDATE users 
-                 SET flutterwave_subaccount_id = ?,
-                     subaccount_created_at = NOW(),
-                     subaccount_status = 'active'
-                 WHERE id = ?`,
-                [subaccountId, req.session.user.id]
-            );
-            
-            // Also store in seller_bank_accounts
-            await db.query(
-                `INSERT INTO seller_bank_accounts (user_id, bank_name, bank_code, account_number, account_name, 
-                    flutterwave_subaccount_id, status, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())
-                 ON DUPLICATE KEY UPDATE 
-                    flutterwave_subaccount_id = ?,
-                    updated_at = NOW()`,
-                [req.session.user.id, response.data.data.bank_name, bank_code, account_number, 
-                 business_name, subaccountId, subaccountId]
-            );
-            
-            console.log(`✅ Flutterwave subaccount created for user ${req.session.user.id}: ${subaccountId}`);
-            
-            res.json({
-                success: true,
-                subaccount_id: subaccountId,
-                message: "Subaccount created successfully! Funds will be automatically split 90/10."
-            });
-        } else {
-            throw new Error(response.data.message || "Failed to create subaccount");
-        }
-        
-    } catch (err) {
-        console.error("❌ Flutterwave subaccount error:", err);
-        res.status(500).json({ 
-            error: err.response?.data?.message || err.message,
-            details: err.response?.data
-        });
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
     }
+    
+    const { bank_code, account_number, business_name, split_value = 0.9 } = req.body;
+    
+    // Validate
+    if (!bank_code || !account_number || !business_name) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    
+    console.log("🔧 Creating Flutterwave subaccount:");
+    console.log("- Bank code:", bank_code);
+    console.log("- Account number:", account_number);
+    console.log("- Business name:", business_name);
+    
+    // Make sure bank_code is a string (not number)
+    const bankCodeStr = String(bank_code).padStart(3, '0');
+    
+    const payload = {
+      account_bank: bankCodeStr,
+      account_number: account_number,
+      business_name: business_name,
+      split_type: "percentage",
+      split_value: split_value,
+      country: "NG"
+    };
+    
+    console.log("📤 Payload:", JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      'https://api.flutterwave.com/v3/subaccounts',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+    
+    console.log("📥 Flutterwave Response:", JSON.stringify(response.data, null, 2));
+    
+    if (response.data.status === 'success') {
+      const subaccountId = response.data.data.subaccount_id;
+      
+      // Save to database
+      await db.query(
+        `UPDATE users 
+         SET flutterwave_subaccount_id = ?,
+             subaccount_created_at = NOW(),
+             subaccount_status = 'active'
+         WHERE id = ?`,
+        [subaccountId, req.session.user.id]
+      );
+      
+      res.json({
+        success: true,
+        subaccount_id: subaccountId,
+        message: "Subaccount created successfully!"
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: response.data.message,
+        details: response.data
+      });
+    }
+    
+  } catch (err) {
+    console.error("❌ Subaccount error:", err.response?.data || err.message);
+    res.status(500).json({ 
+      error: err.response?.data?.message || err.message,
+      full_response: err.response?.data
+    });
+  }
 });
-
 // Get seller's Flutterwave subaccount status
 app.get("/api/flutterwave/subaccount-status", async (req, res) => {
     try {
@@ -13661,7 +13637,7 @@ app.post("/api/dashboard/orders/:orderId/respond", async (req, res) => {
       `, [orderId, req.session.user.id, message || null]);
       
       // Send notification to buyer
-      const paymentLink = `https://core-insight-7.onrender.com/pay-order.html?orderId=${orderId}`;
+      const paymentLink = `https://coreinsightmarket.com/pay-order.html?orderId=${orderId}`;
       
       await db.query(`
         INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)

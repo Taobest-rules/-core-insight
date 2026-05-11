@@ -1,7 +1,3 @@
-<span style="color: gold;">
-بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
-In the name of Allah, the Most Gracious, the Most Merciful
-</span>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,12 +9,16 @@ In the name of Allah, the Most Gracious, the Most Merciful
             --primary-dark: #0f172a;
             --secondary-dark: #1e293b;
             --accent-gold: #FFD700;
+            --accent-blue: #3b82f6;
             --text-light: #e6f1ff;
             --text-gray: #a8b2d1;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
         }
         
         body {
-            background: var(--primary-dark);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             color: var(--text-light);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -26,8 +26,29 @@ In the name of Allah, the Most Gracious, the Most Merciful
             padding: 0;
         }
         
+        .bismillah {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 215, 0, 0.08);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.25);
+            margin-bottom: 2rem;
+        }
+        
+        .bismillah .arabic {
+            font-size: 1.8rem;
+            font-family: 'Amiri', 'Traditional Arabic', serif;
+            color: #FFD700;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .bismillah .english {
+            font-size: 0.9rem;
+            color: rgba(255, 215, 0, 0.9);
+        }
+        
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -40,11 +61,19 @@ In the name of Allah, the Most Gracious, the Most Merciful
             border-bottom: 2px solid var(--accent-gold);
             padding-bottom: 1rem;
             margin-bottom: 2rem;
+            font-size: 2rem;
         }
         
         h2 {
             margin-top: 2rem;
             margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
         }
         
         p, li {
@@ -56,25 +85,29 @@ In the name of Allah, the Most Gracious, the Most Merciful
             font-style: italic;
             margin-bottom: 2rem;
             text-align: right;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
         }
         
         .back-link {
             display: inline-block;
             margin-top: 2rem;
-            padding: 0.5rem 1rem;
-            background: var(--accent-gold);
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
             color: var(--primary-dark);
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 8px;
             font-weight: bold;
+            transition: all 0.3s;
         }
         
         .back-link:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
         }
         
         hr {
-            border-color: var(--secondary-dark);
+            border-color: rgba(255, 255, 255, 0.1);
             margin: 2rem 0;
         }
         
@@ -87,21 +120,40 @@ In the name of Allah, the Most Gracious, the Most Merciful
         }
         
         .highlight {
-            background: rgba(255, 215, 0, 0.1);
-            padding: 1rem;
+            background: rgba(255, 215, 0, 0.08);
+            padding: 1.5rem;
             border-left: 4px solid var(--accent-gold);
-            border-radius: 4px;
-            margin: 1rem 0;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+        
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            padding: 1.5rem;
+            border-left: 4px solid var(--danger);
+            border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+        
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 12px;
+            margin: 1.5rem 0;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 1rem 0;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
         }
         
         th, td {
-            border: 1px solid var(--secondary-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 0.75rem;
             text-align: left;
         }
@@ -110,14 +162,56 @@ In the name of Allah, the Most Gracious, the Most Merciful
             background: var(--secondary-dark);
             color: var(--accent-gold);
         }
+        
+        .contact-card {
+            background: var(--secondary-dark);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .contact-card a {
+            color: var(--accent-gold);
+            text-decoration: none;
+        }
+        
+        .contact-card a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 1.2rem;
+            }
+            
+            .bismillah .arabic {
+                font-size: 1.3rem;
+            }
+        }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="bismillah">
+        <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+        <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+    </div>
+
     <div class="container">
         <h1>📜 Core Insight Terms of Service</h1>
         
         <div class="last-updated">
-            <strong>Last Updated:</strong> March 20, 2026
+            <strong>Last Updated:</strong> May 11, 2026
         </div>
         
         <div class="highlight">
@@ -182,24 +276,54 @@ In the name of Allah, the Most Gracious, the Most Merciful
             </tbody>
         </table>
         
-        <h3>3.3 Payment Processing</h3>
-        <p>We use secure third-party payment processors:</p>
-        <ul>
-            <li><strong>Flutterwave</strong> - For international payments</li>
-            <li><strong>Paystack</strong> - For African markets</li>
-        </ul>
+        <h2>4. Services Section - Important Disclosure</h2>
         
-        <h3>3.4 Refund Policy</h3>
-        <ul>
-            <li><strong>Digital Products:</strong> Non-refundable once downloaded</li>
-            <li><strong>Physical Products:</strong> Returns accepted within 14 days of delivery</li>
-            <li><strong>Services:</strong> Refunds determined on a case-by-case basis</li>
-            <li><strong>Courses:</strong> Full refund within 7 days of purchase</li>
-        </ul>
+        <div class="warning-box">
+            <h3 style="color: var(--danger); margin-top: 0;">⚠️ Services Are Between Buyers and Freelancers</h3>
+            <p><strong>Core Insight is a marketplace that connects buyers with freelancers.</strong> The platform provides a medium for both parties to meet, discuss, offer, and receive services. However:</p>
+            <ul>
+                <li><strong>We do not handle funds for services</strong> - Payments for services are arranged directly between buyers and freelancers outside of our platform.</li>
+                <li><strong>We are not a party to any service agreement</strong> - The terms, pricing, delivery, and quality of services are solely between the buyer and the freelancer.</li>
+                <li><strong>Fraudulent practices can be reported</strong> - If you encounter fraudulent behavior, please report it immediately through our support system.</li>
+                <li><strong>We provide the meeting ground</strong> - Our role is limited to providing the platform where freelancers and clients can connect and communicate.</li>
+                <li><strong>The rest is up to you</strong> - Due diligence, negotiations, and final agreements are the responsibility of the parties involved.</li>
+            </ul>
+            <p style="margin-top: 10px;"><strong>Recommendation:</strong> Always communicate clearly about deliverables, timelines, and payment terms before starting any service arrangement.</p>
+        </div>
         
-        <h2>4. Content Guidelines</h2>
+        <h2>5. Digital Products - Important Disclosure</h2>
         
-        <h3>4.1 Prohibited Content</h3>
+        <div class="warning-box">
+            <h3 style="color: var(--warning); margin-top: 0;">📱 Digital Products Are Sold Directly by Sellers</h3>
+            <p><strong>Core Insight does not handle funds for digital products either.</strong> When you purchase a digital product:</p>
+            <ul>
+                <li>The transaction is between you and the seller via the integrated payment gateway (Paystack/Flutterwave).</li>
+                <li>The 10% platform fee is automatically deducted, but the funds are not held by Core Insight.</li>
+                <li>If you feel scammed or the product does not match the description, you may report the seller through our support system.</li>
+                <li>We will investigate and take appropriate action against fraudulent sellers, including account suspension or banning.</li>
+                <li>However, <strong>Core Insight cannot issue refunds for digital products</strong> - the funds are directly with the seller after the 10% platform fee is deducted.</li>
+                <li>We encourage buyers to check seller ratings and reviews before making a purchase.</li>
+            </ul>
+            <p style="margin-top: 10px;"><strong>⚠️ Note:</strong> Digital products are generally non-refundable once downloaded. Report any seller misconduct immediately.</p>
+        </div>
+        
+        <h2>6. Your Responsibility as a User</h2>
+        
+        <div class="info-box">
+            <h3 style="color: var(--accent-blue); margin-top: 0;">🤝 Due Diligence Is Your Responsibility</h3>
+            <p>Core Insight provides the platform, but <strong>you are responsible for:</strong></p>
+            <ul>
+                <li>Verifying the credibility of freelancers or buyers before engaging in any transaction.</li>
+                <li>Negotiating clear terms for services, including pricing, deliverables, and timelines.</li>
+                <li>Keeping records of your communications and agreements.</li>
+                <li>Reporting any suspicious or fraudulent activity immediately.</li>
+                <li>Understanding that we are not liable for any losses arising from service agreements made through our platform.</li>
+            </ul>
+        </div>
+        
+        <h2>7. Content Guidelines</h2>
+        
+        <h3>7.1 Prohibited Content</h3>
         <p>You may not upload, share, or sell content that:</p>
         <ul>
             <li>Infringes on intellectual property rights</li>
@@ -210,73 +334,101 @@ In the name of Allah, the Most Gracious, the Most Merciful
             <li>Includes adult or explicit content</li>
         </ul>
         
-        <h3>4.2 Content Ownership</h3>
-        <p>You retain ownership of content you upload. By uploading, you grant Core Insight a license to display, distribute, and promote your content on our platform.</p>
-        
-        <h2>5. Seller Responsibilities</h2>
+        <h3>7.2 Reporting Violations</h3>
+        <p>If you encounter any prohibited content or suspicious behavior:</p>
         <ul>
-            <li>Accurately describe products and services</li>
-            <li>Deliver products or services as promised</li>
-            <li>Respond to customer inquiries within 24 hours</li>
-            <li>Maintain quality standards</li>
-            <li>Handle refunds and disputes professionally</li>
-            <li>Comply with tax obligations</li>
+            <li>Use the flag button on products, courses, or user profiles</li>
+            <li>Email our support team at <strong>suppourtcoreinsight@gmail.com</strong></li>
+            <li>Provide as much detail as possible (screenshots, links, descriptions)</li>
+            <li>Our team will investigate and take appropriate action within 48 hours</li>
         </ul>
         
-        <h2>6. Buyer Responsibilities</h2>
+        <h2>8. Payment Processing & Refunds</h2>
+        
+        <h3>8.1 Payment Providers</h3>
+        <p>We use secure third-party payment processors:</p>
         <ul>
-            <li>Provide accurate information when making purchases</li>
-            <li>Not misuse the platform or engage in fraudulent activity</li>
-            <li>Respect intellectual property rights</li>
-            <li>Provide constructive feedback</li>
+            <li><strong>Flutterwave</strong> - For international payments</li>
+            <li><strong>Paystack</strong> - For African markets</li>
         </ul>
         
-        <h2>7. Account Suspension & Termination</h2>
+        <h3>8.2 Refund Policy</h3>
+        <ul>
+            <li><strong>Digital Products:</strong> Non-refundable once downloaded. Report fraudulent sellers instead.</li>
+            <li><strong>Physical Products:</strong> Returns accepted within 14 days of delivery (subject to seller's policy).</li>
+            <li><strong>Services:</strong> Refunds are determined between you and the freelancer. Core Insight does not mediate service refunds.</li>
+            <li><strong>Courses:</strong> Full refund within 7 days of purchase if not satisfied.</li>
+        </ul>
+        
+        <h2>9. Account Suspension & Termination</h2>
         <p>Core Insight reserves the right to suspend or terminate accounts that:</p>
         <ul>
             <li>Violate these Terms of Service</li>
             <li>Engage in fraudulent or deceptive practices</li>
-            <li>Receive excessive negative feedback</li>
-            <li>Attempt to manipulate the platform</li>
+            <li>Receive multiple valid complaints from other users</li>
+            <li>Attempt to manipulate the platform or scam other users</li>
             <li>Fail to maintain subscription (for freelancers)</li>
         </ul>
         
-        <h2>8. Intellectual Property</h2>
-        <p>All platform content, including logos, designs, and code, is owned by Core Insight. You may not copy, modify, or distribute our intellectual property without permission.</p>
+        <h2>10. Limitation of Liability</h2>
+        <div class="warning-box">
+            <p><strong>Core Insight is NOT liable for:</strong></p>
+            <ul>
+                <li><strong>Services:</strong> Any losses, damages, or disputes arising from service agreements between buyers and freelancers.</li>
+                <li><strong>Digital Products:</strong> Quality, functionality, or delivery of digital products (report issues directly to the seller).</li>
+                <li><strong>Payment Issues:</strong> Problems with third-party payment processors (Paystack, Flutterwave).</li>
+                <li><strong>Fraud:</strong> Losses resulting from fraudulent activity by other users (report such activity to us immediately).</li>
+                <li><strong>Technical Issues:</strong> Platform downtime, data loss, or technical errors beyond our reasonable control.</li>
+            </ul>
+            <p style="margin-top: 10px;">Our maximum liability is limited to the amount you paid in platform fees over the past 12 months.</p>
+        </div>
         
-        <h2>9. Limitation of Liability</h2>
-        <p>Core Insight is not liable for:</p>
+        <h2>11. Reporting Fraud & Dispute Resolution</h2>
+        
+        <h3>11.1 How to Report Fraud</h3>
         <ul>
-            <li>Losses arising from platform use</li>
-            <li>Quality of products or services sold by third parties</li>
-            <li>Technical issues or downtime</li>
-            <li>Third-party payment processing errors</li>
+            <li>Use the <strong>flag/report button</strong> on any suspicious user, product, or service</li>
+            <li>Email: <strong>suppourtcoreinsight@gmail.com</strong> with details and evidence</li>
+            <li>Include order numbers, screenshots, and communication logs</li>
+            <li>Our team will investigate within 24-48 hours</li>
         </ul>
         
-        <h2>10. Dispute Resolution</h2>
-        <p>Any disputes shall first be attempted to be resolved through customer support. If unresolved, disputes may be submitted to binding arbitration.</p>
+        <h3>11.2 What Happens After a Report</h3>
+        <ul>
+            <li>We review the complaint and gather information from both parties</li>
+            <li>If a violation is confirmed, we may warn, suspend, or ban the offending account</li>
+            <li>We keep records of flagged accounts and may take legal action in serious cases</li>
+            <li><strong>However, Core Insight cannot recover lost funds</strong> - that responsibility lies with law enforcement and payment providers</li>
+        </ul>
         
-        <h2>11. Privacy & Data Protection</h2>
-        <p>We collect and process personal data as described in our <a href="/privacy.html">Privacy Policy</a>. By using Core Insight, you consent to this data collection.</p>
-        
-        <h2>12. Changes to Terms</h2>
+        <h2>12. Modifications to Terms</h2>
         <p>We may update these Terms periodically. Continued use of the platform after changes constitutes acceptance of new Terms. We will notify users of significant changes via email or platform notification.</p>
         
-        <h2>13. Contact Information</h2>
-        <p>For questions or concerns about these Terms:</p>
-        <ul>
-            <li><strong>Email:</strong> support@coreinsight.com</li>
-            <li><strong>Support Hours:</strong> Monday-Friday, 9 AM - 6 PM</li>
-            <li><strong>Response Time:</strong> Within 24 hours</li>
-        </ul>
+        <h2>13. Need More Information?</h2>
+        
+        <div class="contact-card">
+            <h3 style="color: var(--accent-gold); margin-top: 0;">📧 Contact Us</h3>
+            <p>If you have questions, concerns, or need clarification about these Terms:</p>
+            <p><strong>Email:</strong> <a href="mailto:suppourtcoreinsight@gmail.com">suppourtcoreinsight@gmail.com</a></p>
+            <p><strong>Response Time:</strong> Within 24-48 hours</p>
+            <p><strong>Support Hours:</strong> Monday-Friday, 9 AM - 6 PM (WAT)</p>
+            <hr style="margin: 1rem 0;">
+            <p style="font-size: 0.9rem;">For urgent matters, include "URGENT" in your email subject line.</p>
+        </div>
         
         <div class="highlight">
-            <p><strong>📧 Need Help?</strong> Contact our support team at support@coreinsight.com</p>
+            <p><strong>📌 Remember:</strong> Core Insight is a marketplace connecting buyers and sellers. For services, the transaction is between you and the freelancer. For digital products, the sale is direct. We provide the platform, but due diligence is your responsibility. Always communicate clearly, verify before paying, and report suspicious activity immediately.</p>
         </div>
         
         <hr>
         
-        <p><a href="/signup.html" class="back-link">← Back to Sign Up</a></p>
+        <p style="text-align: center;">
+            <a href="/signup.html" class="back-link">← Back to Sign Up</a>
+        </p>
+        
+        <p style="text-align: center; font-size: 0.8rem; color: var(--text-gray); margin-top: 2rem;">
+            &copy; 2026 Core Insight. All rights reserved.
+        </p>
     </div>
 </body>
 </html>

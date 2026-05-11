@@ -1084,6 +1084,321 @@ app.post("/api/debug/flutterwave-payment-test", async (req, res) => {
     }
   }
 });
+
+// ============================================
+// SIMPLIFIED AUTO VERIFICATION - NO TWILIO
+// ============================================
+
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for verification documents
+const verificationStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads', 'verification');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+        cb(null, `${req.session.user.id}_${timestamp}_${random}_${baseName}${ext}`);
+    }
+});
+
+const uploadVerification = multer({ 
+    storage: verificationStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only images and PDF files are allowed'));
+        }
+    }
+});
+
+// 1. Send OTP via Email (no Twilio needed)
+app.post("/api/verification/send-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { phone_number } = req.body;
+        
+        if (!phone_number) {
+            return res.status(400).json({ error: "Phone number is required" });
+        }
+
+        // Generate 6-digit OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+        // Store OTP in database
+        await db.query(
+            `INSERT INTO phone_verifications (user_id, phone_number, otp_code, expires_at, verified, created_at)
+             VALUES (?, ?, ?, ?, 0, NOW())
+             ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?, created_at = NOW()`,
+            [req.session.user.id, phone_number, otpCode, expiresAt, otpCode, expiresAt]
+        );
+
+        // Send OTP via email instead of SMS (free, no Twilio)
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Phone Verification - Core Insight Market</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#FFD700;">📱 Phone Verification</h1>
+                    <p>Hello ${req.session.user.username},</p>
+                    <p>Your verification code is:</p>
+                    <div style="font-size: 48px; font-weight: bold; text-align: center; padding: 20px; background: #0f172a; border-radius: 12px; letter-spacing: 10px;">
+                        ${otpCode}
+                    </div>
+                    <p>This code expires in 10 minutes.</p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(req.session.user.email, "Phone Verification Code - Core Insight Market", emailHtml);
+        
+        console.log(`📧 OTP sent to email: ${otpCode} for phone: ${phone_number}`);
+
+        res.json({
+            success: true,
+            message: "Verification code sent to your email. Valid for 10 minutes."
+        });
+
+    } catch (err) {
+        console.error("OTP send error:", err);
+        res.status(500).json({ error: "Failed to send OTP" });
+    }
+});
+
+// 2. Verify OTP (free, no Twilio)
+app.post("/api/verification/verify-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { otp_code } = req.body;
+
+        if (!otp_code) {
+            return res.status(400).json({ error: "OTP code is required" });
+        }
+
+        const verification = await db.query(
+            `SELECT * FROM phone_verifications 
+             WHERE user_id = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0
+             ORDER BY created_at DESC LIMIT 1`,
+            [req.session.user.id, otp_code]
+        );
+
+        if (!verification || verification.length === 0) {
+            return res.status(400).json({ error: "Invalid or expired OTP code" });
+        }
+
+        // Mark phone as verified
+        await db.query(
+            `UPDATE phone_verifications SET verified = 1 WHERE id = ?`,
+            [verification[0].id]
+        );
+
+        // Update user with verified phone
+        await db.query(
+            `UPDATE users SET phone_verified = 1, phone_number = ? WHERE id = ?`,
+            [verification[0].phone_number, req.session.user.id]
+        );
+
+        res.json({
+            success: true,
+            message: "Phone number verified successfully!"
+        });
+
+    } catch (err) {
+        console.error("OTP verify error:", err);
+        res.status(500).json({ error: "Failed to verify OTP" });
+    }
+});
+
+// 3. Auto-verify seller (no admin review)
+app.post("/api/verification/auto-verify", uploadVerification.fields([
+    { name: 'government_id', maxCount: 1 },
+    { name: 'selfie_with_id', maxCount: 1 },
+    { name: 'address_proof', maxCount: 1 },
+    { name: 'business_certificate', maxCount: 1 },
+    { name: 'tax_id_document', maxCount: 1 }
+]), async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { verification_type, business_name, tax_id } = req.body;
+
+        // Check if phone is verified first
+        const phoneCheck = await db.query(
+            "SELECT phone_verified FROM users WHERE id = ?",
+            [req.session.user.id]
+        );
+
+        if (!phoneCheck[0]?.phone_verified) {
+            return res.status(400).json({ error: "Please verify your phone number first" });
+        }
+
+        let documentsUploaded = 0;
+
+        // Upload Government ID
+        if (req.files['government_id']) {
+            const file = req.files['government_id'][0];
+            const url = await uploadToImgbb(file.path, file.originalname);
+            await db.query(
+                `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at)
+                 VALUES (?, 'government_id', ?, NOW())`,
+                [req.session.user.id, url]
+            );
+            documentsUploaded++;
+        } else {
+            return res.status(400).json({ error: "Government ID is required" });
+        }
+
+        // Upload Selfie with ID
+        if (req.files['selfie_with_id']) {
+            const file = req.files['selfie_with_id'][0];
+            const url = await uploadToImgbb(file.path, file.originalname);
+            await db.query(
+                `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at)
+                 VALUES (?, 'selfie_with_id', ?, NOW())`,
+                [req.session.user.id, url]
+            );
+            documentsUploaded++;
+        } else {
+            return res.status(400).json({ error: "Selfie with ID is required" });
+        }
+
+        // Upload Address Proof
+        if (req.files['address_proof']) {
+            const file = req.files['address_proof'][0];
+            const url = await uploadToImgbb(file.path, file.originalname);
+            await db.query(
+                `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at)
+                 VALUES (?, 'address_proof', ?, NOW())`,
+                [req.session.user.id, url]
+            );
+            documentsUploaded++;
+        } else {
+            return res.status(400).json({ error: "Proof of address is required" });
+        }
+
+        // Optional business documents
+        if (verification_type === 'business') {
+            if (req.files['business_certificate']) {
+                const file = req.files['business_certificate'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at)
+                     VALUES (?, 'business_certificate', ?, NOW())`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+            
+            if (req.files['tax_id_document']) {
+                const file = req.files['tax_id_document'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at)
+                     VALUES (?, 'tax_id', ?, NOW())`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+        }
+
+        // AUTO-VERIFY - No admin review needed
+        await db.query(
+            `UPDATE users 
+             SET verification_status = 'verified',
+                 verification_type = ?,
+                 verified_at = NOW()
+             WHERE id = ?`,
+            [verification_type || 'individual', req.session.user.id]
+        );
+
+        // Send welcome email
+        const welcomeHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Welcome Seller - Core Insight Market</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#10b981;">✅ Verification Complete!</h1>
+                    <p>Hello ${req.session.user.username},</p>
+                    <p>Congratulations! Your seller account has been automatically verified.</p>
+                    <p>You can now list products and start selling on Core Insight Market.</p>
+                    <a href="https://coreinsightmarket.com/products.html" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">Start Selling</a>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(req.session.user.email, "Welcome to Core Insight Market - Seller", welcomeHtml);
+
+        res.json({
+            success: true,
+            message: "Verification complete! You can now start selling.",
+            documents_uploaded: documentsUploaded,
+            verified: true
+        });
+
+    } catch (err) {
+        console.error("Auto-verify error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Check verification status
+app.get("/api/verification/status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const user = await db.query(
+            `SELECT verification_status, verification_type, verified_at, phone_verified, phone_number
+             FROM users WHERE id = ?`,
+            [req.session.user.id]
+        );
+
+        const documents = await db.query(
+            `SELECT document_type, document_url, uploaded_at
+             FROM verification_documents WHERE user_id = ?`,
+            [req.session.user.id]
+        );
+
+        res.json({
+            success: true,
+            status: user[0]?.verification_status || 'unverified',
+            verification_type: user[0]?.verification_type,
+            verified_at: user[0]?.verified_at,
+            phone_verified: user[0]?.phone_verified === 1,
+            phone_number: user[0]?.phone_number,
+            documents_uploaded: documents.length
+        });
+
+    } catch (err) {
+        console.error("Status check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // EMAIL VERIFICATION ENDPOINT
 // ============================================
@@ -4056,7 +4371,330 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ============================================
+// AUTO VERIFICATION SYSTEM - NO ADMIN REVIEW
+// ============================================
 
+// Configure multer for verification documents
+const verificationStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads', 'verification');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+        cb(null, `${timestamp}-${random}-${baseName}${ext}`);
+    }
+});
+
+const uploadVerification = multer({ 
+    storage: verificationStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only images and PDF files are allowed'));
+        }
+    }
+});
+
+// 1. Send OTP via Email (no Twilio needed)
+app.post("/api/verification/send-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { phone_number } = req.body;
+        
+        if (!phone_number) {
+            return res.status(400).json({ error: "Phone number is required" });
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+        await db.query(
+            `INSERT INTO phone_verifications (user_id, phone_number, otp_code, expires_at, verified, created_at)
+             VALUES (?, ?, ?, ?, 0, NOW())
+             ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?, created_at = NOW()`,
+            [req.session.user.id, phone_number, otpCode, expiresAt, otpCode, expiresAt]
+        );
+
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Phone Verification - Core Insight Market</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#FFD700;">📱 Phone Verification</h1>
+                    <p>Hello ${req.session.user.username},</p>
+                    <p>Your verification code is:</p>
+                    <div style="font-size: 48px; font-weight: bold; text-align: center; padding: 20px; background: #0f172a; border-radius: 12px; letter-spacing: 10px;">
+                        ${otpCode}
+                    </div>
+                    <p>This code expires in 10 minutes.</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(req.session.user.email, "Phone Verification Code - Core Insight Market", emailHtml);
+
+        res.json({
+            success: true,
+            message: "Verification code sent to your email. Valid for 10 minutes."
+        });
+
+    } catch (err) {
+        console.error("OTP send error:", err);
+        res.status(500).json({ error: "Failed to send OTP" });
+    }
+});
+
+// 2. Verify OTP
+app.post("/api/verification/verify-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { otp_code } = req.body;
+
+        if (!otp_code) {
+            return res.status(400).json({ error: "OTP code is required" });
+        }
+
+        const verification = await db.query(
+            `SELECT * FROM phone_verifications 
+             WHERE user_id = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0
+             ORDER BY created_at DESC LIMIT 1`,
+            [req.session.user.id, otp_code]
+        );
+
+        if (!verification || verification.length === 0) {
+            return res.status(400).json({ error: "Invalid or expired OTP code" });
+        }
+
+        await db.query(
+            `UPDATE phone_verifications SET verified = 1 WHERE id = ?`,
+            [verification[0].id]
+        );
+
+        await db.query(
+            `UPDATE users SET phone_verified = 1, phone_number = ? WHERE id = ?`,
+            [verification[0].phone_number, req.session.user.id]
+        );
+
+        res.json({
+            success: true,
+            message: "Phone number verified successfully!"
+        });
+
+    } catch (err) {
+        console.error("OTP verify error:", err);
+        res.status(500).json({ error: "Failed to verify OTP" });
+    }
+});
+
+// 3. AUTO VERIFY - Immediate verification after document upload
+app.post("/api/verification/auto-verify", 
+    uploadVerification.fields([
+        { name: 'government_id', maxCount: 1 },
+        { name: 'selfie_with_id', maxCount: 1 },
+        { name: 'address_proof', maxCount: 1 }
+    ]), 
+    async (req, res) => {
+        try {
+            if (!req.session.user) {
+                return res.status(401).json({ error: "Please login" });
+            }
+
+            const { verification_type, business_name } = req.body;
+
+            // Check if phone is verified first
+            const phoneCheck = await db.query(
+                "SELECT phone_verified FROM users WHERE id = ?",
+                [req.session.user.id]
+            );
+
+            if (!phoneCheck[0]?.phone_verified) {
+                return res.status(400).json({ error: "Please verify your phone number first" });
+            }
+
+            // Required documents
+            if (!req.files['government_id']) {
+                return res.status(400).json({ error: "Government ID is required" });
+            }
+
+            if (!req.files['selfie_with_id']) {
+                return res.status(400).json({ error: "Selfie with ID is required" });
+            }
+
+            if (!req.files['address_proof']) {
+                return res.status(400).json({ error: "Proof of address is required" });
+            }
+
+            let documentsUploaded = 0;
+
+            // Upload Government ID
+            if (req.files['government_id']) {
+                const file = req.files['government_id'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'government_id', ?, NOW(), 'approved')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // Upload Selfie with ID
+            if (req.files['selfie_with_id']) {
+                const file = req.files['selfie_with_id'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'selfie_with_id', ?, NOW(), 'approved')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // Upload Address Proof
+            if (req.files['address_proof']) {
+                const file = req.files['address_proof'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'address_proof', ?, NOW(), 'approved')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // AUTO-VERIFY - Mark as verified immediately
+            await db.query(
+                `UPDATE users 
+                 SET verification_status = 'verified',
+                     verification_type = ?,
+                     verified_at = NOW(),
+                     business_name = ?
+                 WHERE id = ?`,
+                [verification_type || 'individual', business_name || null, req.session.user.id]
+            );
+
+            // Send welcome email
+            const welcomeHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head><title>Welcome Seller - Core Insight Market</title></head>
+                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                        <h1 style="color:#10b981;">✅ Verification Complete!</h1>
+                        <p>Hello ${req.session.user.username},</p>
+                        <p>Congratulations! Your seller account has been automatically verified.</p>
+                        <p>You can now list products and start selling on Core Insight Market.</p>
+                        <a href="https://coreinsightmarket.com/products.html" 
+                           style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">
+                            Start Selling
+                        </a>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            await sendEmail(req.session.user.email, "Welcome to Core Insight Market - Seller", welcomeHtml);
+
+            res.json({
+                success: true,
+                message: "Verification complete! You can now start selling.",
+                documents_uploaded: documentsUploaded,
+                verified: true
+            });
+
+        } catch (err) {
+            console.error("Auto-verify error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// 4. Check verification status
+app.get("/api/verification/status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const user = await db.query(
+            `SELECT verification_status, verification_type, verified_at, phone_verified, phone_number
+             FROM users WHERE id = ?`,
+            [req.session.user.id]
+        );
+
+        const documents = await db.query(
+            `SELECT document_type, document_url, uploaded_at
+             FROM verification_documents WHERE user_id = ?`,
+            [req.session.user.id]
+        );
+
+        res.json({
+            success: true,
+            status: user[0]?.verification_status || 'unverified',
+            verification_type: user[0]?.verification_type,
+            verified_at: user[0]?.verified_at,
+            phone_verified: user[0]?.phone_verified === 1,
+            phone_number: user[0]?.phone_number,
+            documents_uploaded: documents.length
+        });
+
+    } catch (err) {
+        console.error("Status check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5. Middleware to check if seller is verified
+const checkSellerVerification = async (req, res, next) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    if (req.session.user.role !== 'freelancer') {
+        return next();
+    }
+
+    try {
+        const user = await db.query(
+            "SELECT verification_status FROM users WHERE id = ?",
+            [req.session.user.id]
+        );
+
+        const verificationStatus = user[0]?.verification_status;
+
+        if (verificationStatus !== 'verified') {
+            return res.status(403).json({ 
+                error: "You must complete identity verification before offering services",
+                verification_required: true,
+                verification_status: verificationStatus || 'unverified',
+                redirect_url: '/verification.html'
+            });
+        }
+
+        next();
+    } catch (err) {
+        console.error("Verification check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED
 // ============================================
@@ -5370,7 +6008,7 @@ app.get("/api/seller/paid-orders", async (req, res) => {
         o.estimated_delivery_days,
         o.delivery_code,
         o.delivery_code_sent_at,
-        o.delivery_code_verified_at,
+        
         p.title as product_title,
         p.images as product_images
       FROM physical_orders o
@@ -6712,7 +7350,7 @@ app.get("/api/services/:id", async (req, res) => {
 });
 
 // CREATE SERVICE
-app.post("/api/services", async (req, res) => {
+app.post("/api/services", checkSellerVerification, async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login to create a service" });
     }
@@ -11909,13 +12547,13 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
       [escrowReleaseDate, orderId]
     );
     
-    // Mark delivery code as used
-    await db.query(
-      `UPDATE physical_orders 
-       SET delivery_code_used = 1, delivery_code_used_at = NOW()
-       WHERE id = ?`,
-      [orderId]
-    );
+    // NEW - Replace with this
+await db.query(
+  `UPDATE physical_orders 
+   SET delivery_code_used = 1
+   WHERE id = ?`,
+  [orderId]
+);
     
     // Add to status history
     await db.query(
@@ -14316,7 +14954,7 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 
 
 
-app.post("/api/upload-product", uploadProduct, async (req, res) => {
+app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
   try {
     console.log("📤 PRODUCT UPLOAD STARTED");
     console.log("📋 Request body:", req.body);

@@ -821,6 +821,21 @@ In the name of Allah, the Most Gracious, the Most Merciful
 .refund-card:hover {
   border-color: var(--accent);
 }
+.delivery-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
     /* ================= PROFESSIONAL SELLER FORM ================= */
     .upload-section {
       background: var(--card-bg);
@@ -3773,7 +3788,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
               </div>
             </div>
           </div>
-          <div id="physicalBlock" class="conditional-section">
+      <div id="physicalBlock" class="conditional-section">
   <div class="form-section">
     <div class="form-section-header">
       <i class="fas fa-shipping-fast"></i>
@@ -3782,80 +3797,85 @@ In the name of Allah, the Most Gracious, the Most Merciful
     
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Delivery Method</label>
-        <select id="p_deliveryType" class="form-select">
-          <option value="delivery">🚚 Home Delivery</option>
-          <option value="pickup">🏪 Store Pickup</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label class="form-label">Payment Option</label>
-        <select id="p_paymentOption" class="form-select">
-          <option value="pay_before_delivery">💳 Pay Before Delivery</option>
-          <option value="pay_on_delivery">💰 Pay On Delivery</option>
+        <label class="form-label">Delivery Method <span class="required">*</span></label>
+        <select id="p_deliveryType" class="form-select" onchange="toggleDeliveryMethod()">
+          <option value="delivery">🚚 Home Delivery Only</option>
+          <option value="pickup">🏪 Store Pickup Only</option>
+          <option value="both">🚚🏪 Both (Delivery & Pickup)</option>
         </select>
       </div>
     </div>
-    <div class="form-group">
-  <label class="form-label">Product Cost (Your cost to fulfill) <span style="color: var(--text-muted);">(optional)</span></label>
-  <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" 
-         placeholder="e.g. 3.00 (optional, defaults to $3.00)" />
-  <div id="p_productCost_error" class="form-error"></div>
-  <span class="form-help">How much it costs YOU to buy/fulfill this product (optional - defaults to $3.00)</span>
-</div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
-        <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" 
-               placeholder="Number of days for delivery" required />
-        <span class="form-help">How many days it typically takes to deliver this product</span>
+    <!-- Home Delivery Section (shown when delivery or both selected) -->
+    <div id="deliverySection" class="conditional-section" style="margin-top: 20px;">
+      <div style="padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
+        <h5 style="margin: 0 0 12px 0; color: var(--accent);"><i class="fas fa-truck"></i> Home Delivery Settings</h5>
+        
+        <div class="form-group">
+          <label class="form-label">Delivery Countries <span class="required">*</span></label>
+          <select id="p_deliveryCountries" class="form-select" multiple size="4">
+            <option value="USA">🇺🇸 United States</option>
+            <option value="UK">🇬🇧 United Kingdom</option>
+            <option value="Nigeria">🇳🇬 Nigeria</option>
+            <option value="Canada">🇨🇦 Canada</option>
+            <option value="Australia">🇦🇺 Australia</option>
+            <option value="Germany">🇩🇪 Germany</option>
+            <option value="France">🇫🇷 France</option>
+            <option value="Italy">🇮🇹 Italy</option>
+            <option value="Spain">🇪🇸 Spain</option>
+            <option value="Kenya">🇰🇪 Kenya</option>
+            <option value="Ghana">🇬🇭 Ghana</option>
+            <option value="South Africa">🇿🇦 South Africa</option>
+            <option value="Worldwide">🌍 Worldwide</option>
+          </select>
+          <span class="form-help">Hold Ctrl (Windows) or Cmd (Mac) to select multiple countries</span>
+          <div id="p_deliveryCountries_error" class="form-error"></div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">States/Provinces You Deliver To <span class="required">*</span></label>
+          <input type="text" id="p_deliveryStates" class="form-input" placeholder="e.g. Lagos, Abuja, Rivers, Western Cape, Ontario, Texas" />
+          <div id="p_deliveryStates_error" class="form-error"></div>
+          <span class="form-help">Enter states/provinces separated by commas (e.g., Lagos, Abuja, Rivers)</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
+          <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" placeholder="Number of days for delivery" required />
+          <span class="form-help">How many days it typically takes to deliver this product</span>
+        </div>
       </div>
     </div>
-    
-    <div class="form-group">
-      <label class="form-label">Delivery Locations <span class="required">*</span></label>
-      <input type="text" id="p_deliveryLocations" class="form-input" placeholder="e.g. USA, UK, Nigeria, Worldwide" required />
-      <div id="p_deliveryLocations_error" class="form-error"></div>
-      <span class="form-help">Comma separated countries where you ship to (e.g., USA, UK, Nigeria). Enter "Worldwide" for global shipping.</span>
+
+    <!-- Store Pickup Section (shown when pickup or both selected) -->
+    <div id="pickupSection" class="conditional-section" style="margin-top: 20px;">
+      <div style="padding: 16px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1);">
+        <h5 style="margin: 0 0 12px 0; color: var(--success);"><i class="fas fa-store"></i> Store Pickup Settings</h5>
+        
+        <div class="form-group">
+          <label class="form-label">Pickup Location Address <span class="required">*</span></label>
+          <textarea id="p_pickupAddress" class="form-textarea" rows="3" placeholder="Enter the full address where customers can pick up the product (e.g., 123 Main Street, Lagos, Nigeria)"></textarea>
+          <div id="p_pickupAddress_error" class="form-error"></div>
+          <span class="form-help">Customers will come to this address to pick up their order</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Pickup Hours (Optional)</label>
+          <input type="text" id="p_pickupHours" class="form-input" placeholder="e.g., Mon-Fri 9am-6pm, Sat 10am-2pm" />
+          <span class="form-help">Let customers know when they can pick up</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Pickup Instructions (Optional)</label>
+          <textarea id="p_pickupInstructions" class="form-textarea" rows="2" placeholder="e.g., Bring your order confirmation, Call upon arrival"></textarea>
+        </div>
+      </div>
     </div>
-    
-    <!-- Commission info for physical products -->
-    <div class="commission-card" style="margin-top: 20px;">
-      <h5><i class="fas fa-calculator"></i> How Your Earnings Work</h5>
-      <div class="commission-structure">
-        <div class="commission-item">
-          <i class="fas fa-tag"></i>
-          <span><strong>Customer pays:</strong> Full price × quantity</span>
-        </div>
-        <div class="commission-item">
-          <i class="fas fa-chart-line"></i>
-          <span><strong>Standard orders (1-5 units):</strong> Platform fee = 10% of single product price</span>
-        </div>
-        <div class="commission-item">
-          <i class="fas fa-chart-line"></i>
-          <span><strong>Bulk orders (6+ units):</strong> Platform fee = 10% of single price + 10% of total order value</span>
-        </div>
-        <div class="commission-item">
-          <i class="fas fa-wallet"></i>
-          <span><strong>You receive:</strong> Total order - platform fee</span>
-        </div>
-      </div>
-      
-      <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
-        <p style="margin: 0; font-size: 11px; color: var(--text-muted);">
-          <i class="fas fa-chart-simple"></i> <strong>Quick Calculator:</strong> See what you earn
-        </p>
-        <div style="display: flex; gap: 10px; margin-top: 8px; align-items: center; flex-wrap: wrap;">
-          <input type="number" id="calcPrice" class="form-input" placeholder="Your price" style="width: 100px; padding: 6px 10px;" value="40">
-          <span style="color: var(--text-gray);">→</span>
-          <div style="font-size: 12px;">
-            <div><span style="color: var(--text-muted);">3 units (standard):</span> <strong id="calcStandard" style="color: var(--success);">$108</strong></div>
-            <div><span style="color: var(--text-muted);">7 units (bulk):</span> <strong id="calcBulk" style="color: var(--success);">$248</strong></div>
-          </div>
-        </div>
-      </div>
+
+    <div class="form-group" style="margin-top: 20px;">
+      <label class="form-label">Product Cost (Your cost to fulfill) <span style="color: var(--text-muted);">(optional)</span></label>
+      <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" placeholder="e.g. 3.00 (optional, defaults to $3.00)" />
+      <span class="form-help">How much it costs YOU to buy/fulfill this product (optional - defaults to $3.00)</span>
     </div>
   </div>
 </div>
@@ -4081,6 +4101,91 @@ In the name of Allah, the Most Gracious, the Most Merciful
         <p id="reviewMessage" class="form-message"></p>
       </div>
     </div>
+    <!-- Seller Auto-Verification Modal -->
+<div id="verificationModal" class="modal">
+    <div class="modal-card" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3><i class="fas fa-shield-alt"></i> Seller Verification Required</h3>
+            <span class="close-x" onclick="closeVerificationModal()">&times;</span>
+        </div>
+        
+        <div id="verificationStep1">
+            <p>Please complete verification to start selling. This takes 2 minutes.</p>
+            
+            <div class="form-group">
+                <label>Verification Type</label>
+                <select id="verificationType" class="form-select" onchange="toggleVerificationType()">
+                    <option value="individual">👤 Individual Seller</option>
+                    <option value="business">🏢 Business Seller</option>
+                </select>
+            </div>
+            
+            <!-- Phone Verification (No Twilio - uses email) -->
+            <div class="form-group">
+                <label>Phone Number <span class="required">*</span></label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="tel" id="verifyPhone" class="form-input" placeholder="080XXXXXXXX" style="flex: 2;">
+                    <button type="button" id="sendOtpBtn" class="btn secondary" onclick="sendOTP()">Send Code</button>
+                </div>
+                <div id="otpSection" style="display: none; margin-top: 10px;">
+                    <input type="text" id="verifyOtp" class="form-input" placeholder="Enter 6-digit code" maxlength="6">
+                    <button type="button" class="btn primary" onclick="verifyOTP()" style="margin-top: 10px;">Verify Code</button>
+                </div>
+                <div id="phoneVerifiedStatus" class="form-help"></div>
+            </div>
+        </div>
+        
+        <div id="verificationStep2" style="display: none;">
+            <div class="form-group">
+                <label>Government ID (Passport/Driver's License/NIN) <span class="required">*</span></label>
+                <input type="file" id="verifyGovernmentId" accept="image/*,.pdf" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Selfie with ID <span class="required">*</span></label>
+                <input type="file" id="verifySelfie" accept="image/*" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Proof of Address (Utility bill/Bank statement) <span class="required">*</span></label>
+                <input type="file" id="verifyAddressProof" accept="image/*,.pdf" class="form-input">
+            </div>
+            
+            <div id="businessSection" style="display: none;">
+                <h4>Business Information</h4>
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" id="verifyBusinessName" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Business Registration Certificate</label>
+                    <input type="file" id="verifyBusinessCert" accept="image/*,.pdf" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Tax ID / VAT Number</label>
+                    <input type="text" id="verifyTaxId" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Tax ID Document</label>
+                    <input type="file" id="verifyTaxDoc" accept="image/*,.pdf" class="form-input">
+                </div>
+            </div>
+            
+            <div class="action-buttons" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="submitVerification()">
+                    <i class="fas fa-check-circle"></i> Complete Verification
+                </button>
+                <button class="btn btn-outline" onclick="closeVerificationModal()">Cancel</button>
+            </div>
+        </div>
+        
+        <div id="verificationProcessing" style="display: none; text-align: center; padding: 30px;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 48px;"></i>
+            <h4>Verifying...</h4>
+            <p>Please wait while we process your documents</p>
+        </div>
+    </div>
+</div>
 <!-- DASHBOARD SECTION - UPDATED -->
 <section id="dashboardSection" class="dashboard-section" style="display: none;">
   <div class="dashboard-header">
@@ -4807,7 +4912,30 @@ async function initCurrency() {
         // You could add a real-time conversion display here
       }
     }
+function toggleDeliveryMethod() {
+  const deliveryType = document.getElementById('p_deliveryType').value;
+  const deliverySection = document.getElementById('deliverySection');
+  const pickupSection = document.getElementById('pickupSection');
+  
+  // Hide both sections initially
+  if (deliverySection) deliverySection.style.display = 'none';
+  if (pickupSection) pickupSection.style.display = 'none';
+  
+  // Show appropriate section(s)
+  if (deliveryType === 'delivery') {
+    if (deliverySection) deliverySection.style.display = 'block';
+  } else if (deliveryType === 'pickup') {
+    if (pickupSection) pickupSection.style.display = 'block';
+  } else if (deliveryType === 'both') {
+    if (deliverySection) deliverySection.style.display = 'block';
+    if (pickupSection) pickupSection.style.display = 'block';
+  }
+}
 
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  toggleDeliveryMethod();
+});
     // ================= DASHBOARD STATE =================
     let dashboardData = {
       orders: [],
@@ -7693,7 +7821,198 @@ async function checkEscrowStatus(orderId) {
     showToast('Error', 'Unable to check escrow status', 'danger');
   }
 }
+let phoneVerified = false;
 
+async function checkSellerVerification() {
+    try {
+        const response = await fetch('/api/verification/status', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'verified') {
+            return true;
+        }
+        
+        // Auto-verify if user just completed the process
+        if (data.status === 'unverified') {
+            openVerificationModal();
+            return false;
+        }
+        
+        return false;
+    } catch (err) {
+        console.error('Verification check error:', err);
+        return false;
+    }
+}
+
+function openVerificationModal() {
+    document.getElementById('verificationModal').classList.add('open');
+    document.getElementById('verificationStep1').style.display = 'block';
+    document.getElementById('verificationStep2').style.display = 'none';
+    document.getElementById('verificationProcessing').style.display = 'none';
+}
+
+function closeVerificationModal() {
+    document.getElementById('verificationModal').classList.remove('open');
+}
+
+function toggleVerificationType() {
+    const type = document.getElementById('verificationType').value;
+    const businessSection = document.getElementById('businessSection');
+    businessSection.style.display = type === 'business' ? 'block' : 'none';
+}
+
+async function sendOTP() {
+    const phone = document.getElementById('verifyPhone').value.trim();
+    
+    if (!phone) {
+        showToast('Error', 'Please enter your phone number', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('sendOtpBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    
+    try {
+        const response = await fetch('/api/verification/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone_number: phone }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Code Sent', 'Check your email for verification code', 'success');
+            document.getElementById('otpSection').style.display = 'block';
+        } else {
+            showToast('Error', data.error || 'Failed to send code', 'error');
+        }
+    } catch (err) {
+        showToast('Error', 'Network error. Please try again.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Code';
+    }
+}
+
+async function verifyOTP() {
+    const otp = document.getElementById('verifyOtp').value.trim();
+    
+    if (!otp || otp.length !== 6) {
+        showToast('Error', 'Please enter the 6-digit code', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/verification/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ otp_code: otp }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            phoneVerified = true;
+            document.getElementById('phoneVerifiedStatus').innerHTML = '<span style="color: var(--success);">✓ Phone verified!</span>';
+            document.getElementById('otpSection').style.display = 'none';
+            document.getElementById('verifyPhone').disabled = true;
+            
+            // Move to document upload step
+            document.getElementById('verificationStep1').style.display = 'none';
+            document.getElementById('verificationStep2').style.display = 'block';
+        } else {
+            showToast('Error', data.error || 'Invalid code', 'error');
+        }
+    } catch (err) {
+        showToast('Error', 'Network error. Please try again.', 'error');
+    }
+}
+
+async function submitVerification() {
+    const formData = new FormData();
+    
+    // Required documents
+    const governmentId = document.getElementById('verifyGovernmentId').files[0];
+    const selfie = document.getElementById('verifySelfie').files[0];
+    const addressProof = document.getElementById('verifyAddressProof').files[0];
+    
+    if (!governmentId) {
+        showToast('Error', 'Government ID is required', 'error');
+        return;
+    }
+    if (!selfie) {
+        showToast('Error', 'Selfie with ID is required', 'error');
+        return;
+    }
+    if (!addressProof) {
+        showToast('Error', 'Proof of address is required', 'error');
+        return;
+    }
+    
+    formData.append('government_id', governmentId);
+    formData.append('selfie_with_id', selfie);
+    formData.append('address_proof', addressProof);
+    
+    // Business info if selected
+    const verificationType = document.getElementById('verificationType').value;
+    formData.append('verification_type', verificationType);
+    
+    if (verificationType === 'business') {
+        const businessName = document.getElementById('verifyBusinessName').value;
+        const businessCert = document.getElementById('verifyBusinessCert').files[0];
+        const taxId = document.getElementById('verifyTaxId').value;
+        const taxDoc = document.getElementById('verifyTaxDoc').files[0];
+        
+        if (businessName) formData.append('business_name', businessName);
+        if (businessCert) formData.append('business_certificate', businessCert);
+        if (taxId) formData.append('tax_id', taxId);
+        if (taxDoc) formData.append('tax_id_document', taxDoc);
+    }
+    
+    // Show processing
+    document.getElementById('verificationStep2').style.display = 'none';
+    document.getElementById('verificationProcessing').style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/verification/auto-verify', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Verification Complete!', 'You can now start selling', 'success');
+            closeVerificationModal();
+            
+            // Switch to seller mode automatically
+            sellerMode = true;
+            document.getElementById('becomeSeller').textContent = 'Back to Buyer View';
+            document.getElementById('sellerView').classList.add('active');
+            document.getElementById('browseModeText').innerHTML = 'Seller';
+            
+            // Reload page to show seller features
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Error', data.error || 'Verification failed', 'error');
+            document.getElementById('verificationStep2').style.display = 'block';
+            document.getElementById('verificationProcessing').style.display = 'none';
+        }
+    } catch (err) {
+        showToast('Error', 'Network error. Please try again.', 'error');
+        document.getElementById('verificationStep2').style.display = 'block';
+        document.getElementById('verificationProcessing').style.display = 'none';
+    }
+}
 // Request refund (for buyers)
 async function requestRefund(orderId) {
   if (!currentUser) {
@@ -11093,10 +11412,6 @@ function renderProducts() {
         // Get original price in USD
         const originalPriceUSD = p.original_price || p.price || 0;
         
-        // Calculate platform fee and seller earnings (for information display)
-        const platformFee = p.type === 'physical' || p.type === 'digital' ? originalPriceUSD * 0.10 : 0;
-        const sellerPriceUSD = originalPriceUSD - platformFee;
-        
         const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
         const isFavorite = userFavorites.has(p.id);
         const isPhysical = p.type === 'physical';
@@ -11105,57 +11420,80 @@ function renderProducts() {
                           'badge-affiliate';
 
         // Get delivery info for physical products
+        const deliveryType = p.delivery_type || 'delivery';
+        const deliveryCountries = p.delivery_countries || 'Worldwide';
+        const deliveryStates = p.delivery_states || '';
+        const pickupAddress = p.pickup_address || '';
+        const pickupHours = p.pickup_hours || '';
         const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
-        const deliveryLocations = p.delivery_locations || 'Worldwide';
-        const firstCountry = deliveryLocations.split(',')[0].trim();
-        
-        // Delivery info HTML for physical products
-        const deliveryInfo = isPhysical ? `
-            <div class="product-details">
-                <div class="detail-item">
-                    <i class="fas fa-truck"></i>
-                    <span><strong>Delivery:</strong> Home Delivery</span>
-                </div>
-                <div class="detail-item">
-                    <i class="fas fa-calendar-day"></i>
-                    <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
-                </div>
-                <div class="detail-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span><strong>Ships to:</strong> ${deliveryLocations}</span>
-                </div>
-            </div>
-        ` : '';
 
-        // Badges
-        const paymentBadge = isPhysical ? `<div class="payment-badge">Pay Online</div>` : '';
-        
-        // Country badge
-        const countryBadge = isPhysical && deliveryLocations !== 'Worldwide' ? 
-            `<div class="country-badge">
-                <i class="fas fa-map-marker-alt"></i> 
-                ${firstCountry === 'USA' ? '🇺🇸' : firstCountry === 'UK' ? '🇬🇧' : firstCountry === 'Nigeria' ? '🇳🇬' : ''} ${firstCountry}
-            </div>` : 
-            (isPhysical ? `<div class="country-badge"><i class="fas fa-globe"></i> Worldwide</div>` : '');
-        
-        // Delivery days badge
-        const deliveryDaysBadge = isPhysical ? 
-            `<div class="delivery-badge" style="top: 76px; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
-                <i class="fas fa-clock"></i> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}
-            </div>` : '';
+        // Build delivery/pickup info HTML
+        let deliveryInfoHtml = '';
+
+        if (deliveryType === 'delivery' || deliveryType === 'both') {
+          deliveryInfoHtml += `
+            <div class="product-details">
+              <div class="detail-item">
+                <i class="fas fa-truck"></i>
+                <span><strong>Delivery:</strong> Home Delivery</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-globe"></i>
+                <span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span>
+              </div>
+              ${deliveryStates ? `
+              <div class="detail-item">
+                <i class="fas fa-map-pin"></i>
+                <span><strong>States/Provinces:</strong> ${escapeHtml(deliveryStates)}</span>
+              </div>
+              ` : ''}
+              <div class="detail-item">
+                <i class="fas fa-calendar-day"></i>
+                <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        if (deliveryType === 'pickup' || deliveryType === 'both') {
+          deliveryInfoHtml += `
+            <div class="product-details" style="border-left-color: var(--success);">
+              <div class="detail-item">
+                <i class="fas fa-store"></i>
+                <span><strong>Pickup:</strong> Store Pickup Available</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-location-dot"></i>
+                <span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span>
+              </div>
+              ${pickupHours ? `
+              <div class="detail-item">
+                <i class="fas fa-clock"></i>
+                <span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span>
+              </div>
+              ` : ''}
+            </div>
+          `;
+        }
+
+        // Badge for delivery type
+        let deliveryBadgeHtml = '';
+        if (deliveryType === 'delivery') {
+          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(59, 130, 246, 0.2); color: var(--accent);"><i class="fas fa-truck"></i> Home Delivery</div>`;
+        } else if (deliveryType === 'pickup') {
+          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success);"><i class="fas fa-store"></i> Store Pickup</div>`;
+        } else if (deliveryType === 'both') {
+          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning);"><i class="fas fa-truck"></i> <i class="fas fa-store"></i> Delivery & Pickup</div>`;
+        }
 
         // Format prices with currency conversion
         const formattedPrice = fmtPrice(originalPriceUSD);
-        const formattedPlatformFee = fmtPrice(platformFee);
-        const formattedSellerPrice = fmtPrice(sellerPriceUSD);
 
         return `
             <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
                 <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
                 <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
-                ${paymentBadge}
-                ${deliveryDaysBadge}
-                ${countryBadge}
+                ${deliveryBadgeHtml}
                 <div class="card-media">
                     <img id="mainimg-${p.id}" 
                          src="${productImage}" 
@@ -11184,7 +11522,7 @@ function renderProducts() {
                         <span>By ${seller}</span>
                     </div>
                     <div class="meta">${desc}</div>
-                    ${deliveryInfo}
+                    ${deliveryInfoHtml}
                     <div class="rating">
                         <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
                         <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
@@ -11943,6 +12281,22 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     affiliateLink = document.getElementById('p_affiliate')?.value.trim() || '';
     externalImage = $('p_external_image')?.value.trim() || '';
   }
+// Get delivery method values
+const deliveryType = document.getElementById('p_deliveryType').value;
+const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
+  Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
+const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
+const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
+const pickupHours = document.getElementById('p_pickupHours')?.value || '';
+const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
+
+// Append to FormData
+fd.append('delivery_type', deliveryType);
+fd.append('delivery_countries', deliveryCountries);
+fd.append('delivery_states', deliveryStates);
+fd.append('pickup_address', pickupAddress);
+fd.append('pickup_hours', pickupHours);
+fd.append('pickup_instructions', pickupInstructions);
 
   // Business info
   const businessName = $('p_businessName')?.value.trim();

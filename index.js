@@ -1089,8 +1089,7 @@ app.post("/api/debug/flutterwave-payment-test", async (req, res) => {
 // SIMPLIFIED AUTO VERIFICATION - NO TWILIO
 // ============================================
 
-const multer = require('multer');
-const path = require('path');
+
 
 // Configure multer for verification documents
 const verificationStorage = multer.diskStorage({
@@ -1364,6 +1363,8 @@ app.post("/api/verification/auto-verify", uploadVerification.fields([
         res.status(500).json({ error: err.message });
     }
 });
+
+
 
 // 4. Check verification status
 app.get("/api/verification/status", async (req, res) => {
@@ -4375,34 +4376,6 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
 // AUTO VERIFICATION SYSTEM - NO ADMIN REVIEW
 // ============================================
 
-// Configure multer for verification documents
-const verificationStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, 'uploads', 'verification');
-        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const timestamp = Date.now();
-        const random = Math.floor(Math.random() * 1000000);
-        const ext = path.extname(file.originalname);
-        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
-        cb(null, `${timestamp}-${random}-${baseName}${ext}`);
-    }
-});
-
-const uploadVerification = multer({ 
-    storage: verificationStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-        if (allowedTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only images and PDF files are allowed'));
-        }
-    }
-});
 
 // 1. Send OTP via Email (no Twilio needed)
 app.post("/api/verification/send-otp", async (req, res) => {

@@ -3569,780 +3569,777 @@ In the name of Allah, the Most Gracious, the Most Merciful
   </div>
 </div>
   </header>
-
-  <!-- MAIN CONTENT -->
-  <main>
-    <!-- HERO SECTION -->
-    <section class="hero">
-      <div class="left">
-        <h1>Discover Digital & Physical Products</h1>
-        <p>Shop from creators worldwide or start selling your own products — no inventory needed.</p>
-      </div>
-      <div class="right" style="min-width:260px;text-align:right">
-        <div class="view-toggle">
-          <span style="color:var(--text-gray)">Viewing as <strong id="browseModeText" style="color:var(--accent)">Buyer</strong></span>
-          <button id="becomeSeller" class="become-seller">Become a Seller</button>
-          <button id="toggleDashboardBtn" class="become-seller" style="margin-left: 8px;">
-            <i class="fas fa-chart-line"></i> Dashboard
-          </button>
-        </div>
-      </div>
-    </section>
-<section class="controls">
-  <!-- Row 1: Search and main filters -->
-  <div class="controls-row">
-    <div class="filter-group">
-      <i class="fas fa-search"></i>
-      <input id="searchInput" class="search-input" placeholder="Search products..." />
+<!-- MAIN CONTENT -->
+<main>
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="left">
+      <h1>Discover Digital & Physical Products</h1>
+      <p>Shop from creators worldwide or start selling your own products — no inventory needed.</p>
     </div>
-    
-    <select id="filterType" class="select">
-      <option value="">All Types</option>
-      <option value="digital">📱 Digital</option>
-      <option value="physical">📦 Physical</option>
-      <option value="affiliate">🔗 Affiliate</option>
-    </select>
-    
-    <select id="filterCategory" class="select">
-      <option value="">All Categories</option>
-    </select>
-    
-    <select id="sortSelect" class="select">
-      <option value="newest">🆕 Newest</option>
-      <option value="affordable">💰 Price: Low to High</option>
-      <option value="rated">⭐ Highest Rated</option>
-      <option value="favorites">❤️ Most Favorited</option>
-    </select>
-  </div>
-
-  <!-- Row 2: Country filter, Currency, and Refresh -->
-  <div class="controls-row">
-    <div class="filter-group country-filter-group">
-      <i class="fas fa-globe-americas"></i>
-      <select id="filterCountry" class="select country-select">
-        <option value="">🌍 Ships to Anywhere</option>
-        <option value="USA">🇺🇸 United States</option>
-        <option value="UK">🇬🇧 United Kingdom</option>
-        <option value="Nigeria">🇳🇬 Nigeria</option>
-        <option value="Canada">🇨🇦 Canada</option>
-        <option value="Australia">🇦🇺 Australia</option>
-        <option value="Germany">🇩🇪 Germany</option>
-        <option value="France">🇫🇷 France</option>
-        <option value="Italy">🇮🇹 Italy</option>
-        <option value="Spain">🇪🇸 Spain</option>
-        <option value="Netherlands">🇳🇱 Netherlands</option>
-        <option value="Kenya">🇰🇪 Kenya</option>
-        <option value="South Africa">🇿🇦 South Africa</option>
-        <option value="Ghana">🇬🇭 Ghana</option>
-        <option value="Egypt">🇪🇬 Egypt</option>
-        <option value="Morocco">🇲🇦 Morocco</option>
-        <option value="Brazil">🇧🇷 Brazil</option>
-        <option value="Mexico">🇲🇽 Mexico</option>
-        <option value="Japan">🇯🇵 Japan</option>
-        <option value="China">🇨🇳 China</option>
-        <option value="India">🇮🇳 India</option>
-        <option value="Singapore">🇸🇬 Singapore</option>
-        <option value="UAE">🇦🇪 UAE</option>
-        <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-        <option value="Worldwide">🌍 Worldwide</option>
-      </select>
-    </div>
-    
-   <!-- Simplified Currency Selector - Removed Live Rate Display -->
-<div class="currency-selector">
-  <i class="fas fa-coins"></i>
-  <select id="currencyHeader">
-    <option value="USD">USD $</option>
-    <option value="NGN">NGN ₦</option>
-    <option value="EUR">EUR €</option>
-    <option value="GBP">GBP £</option>
-    <option value="KES">KES KSh</option>
-    <option value="GHS">GHS GH₵</option>
-    <option value="ZAR">ZAR R</option>
-    <option value="CAD">CAD $</option>
-    <option value="AUD">AUD $</option>
-    <option value="JPY">JPY ¥</option>
-    <option value="CNY">CNY ¥</option>
-    <option value="INR">INR ₹</option>
-    <option value="BRL">BRL R$</option>
-    <option value="MXN">MXN $</option>
-    <option value="AED">AED د.إ</option>
-    <option value="SAR">SAR ر.س</option>
-  </select>
-  <!-- REMOVED: live rate indicator span -->
-</div>
-    
-    <button id="refreshBtn" class="btn primary">
-      <i class="fas fa-sync-alt"></i> Refresh
-    </button>
-  </div>
-</section>
-
-      <!-- SELLER FORM SECTION -->
-    <section id="sellerView" class="upload-section" aria-hidden="true">
-      <div class="form-header">
-        <h3><i class="fas fa-upload"></i> List Your Product</h3>
-        <button id="cancelSeller" class="close-form" title="Close form">
-          <i class="fas fa-times"></i>
+    <div class="right" style="min-width:260px;text-align:right">
+      <div class="view-toggle">
+        <span style="color:var(--text-gray)">Viewing as <strong id="browseModeText" style="color:var(--accent)">Buyer</strong></span>
+        <button id="becomeSeller" class="become-seller">Become a Seller</button>
+        <button id="toggleDashboardBtn" class="become-seller" style="margin-left: 8px;">
+          <i class="fas fa-chart-line"></i> Dashboard
         </button>
       </div>
+    </div>
+  </section>
 
-      <div class="upload-grid">
-        <!-- Main Form -->
-        <div class="form-container">
-          <!-- Basic Information -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <i class="fas fa-info-circle"></i>
-              <h4>Basic Information</h4>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Product Name <span class="required">*</span></label>
-                <input type="text" id="p_title" class="form-input" placeholder="e.g. Premium Photoshop Brushes" required />
-                <div id="p_title_error" class="form-error"></div>
-                <span class="form-help">Choose a clear, descriptive name</span>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Product Type <span class="required">*</span></label>
-                <select id="p_type" class="form-select" required>
-                  <option value="">Select product type</option>
-                  <option value="digital">📱 Digital Product</option>
-                  <option value="physical">📦 Physical Product</option>
-                  <option value="affiliate">🔗 Affiliate Link</option>
-                </select>
-                <div id="p_type_error" class="form-error"></div>
-              </div>
+  <section class="controls">
+    <!-- Row 1: Search and main filters -->
+    <div class="controls-row">
+      <div class="filter-group">
+        <i class="fas fa-search"></i>
+        <input id="searchInput" class="search-input" placeholder="Search products..." />
+      </div>
+      
+      <select id="filterType" class="select">
+        <option value="">All Types</option>
+        <option value="digital">📱 Digital</option>
+        <option value="physical">📦 Physical</option>
+        <option value="affiliate">🔗 Affiliate</option>
+      </select>
+      
+      <select id="filterCategory" class="select">
+        <option value="">All Categories</option>
+      </select>
+      
+      <select id="sortSelect" class="select">
+        <option value="newest">🆕 Newest</option>
+        <option value="affordable">💰 Price: Low to High</option>
+        <option value="rated">⭐ Highest Rated</option>
+        <option value="favorites">❤️ Most Favorited</option>
+      </select>
+    </div>
+
+    <!-- Row 2: Country filter, Currency, and Refresh -->
+    <div class="controls-row">
+      <div class="filter-group country-filter-group">
+        <i class="fas fa-globe-americas"></i>
+        <select id="filterCountry" class="select country-select">
+          <option value="">🌍 Ships to Anywhere</option>
+          <option value="USA">🇺🇸 United States</option>
+          <option value="UK">🇬🇧 United Kingdom</option>
+          <option value="Nigeria">🇳🇬 Nigeria</option>
+          <option value="Canada">🇨🇦 Canada</option>
+          <option value="Australia">🇦🇺 Australia</option>
+          <option value="Germany">🇩🇪 Germany</option>
+          <option value="France">🇫🇷 France</option>
+          <option value="Italy">🇮🇹 Italy</option>
+          <option value="Spain">🇪🇸 Spain</option>
+          <option value="Netherlands">🇳🇱 Netherlands</option>
+          <option value="Kenya">🇰🇪 Kenya</option>
+          <option value="South Africa">🇿🇦 South Africa</option>
+          <option value="Ghana">🇬🇭 Ghana</option>
+          <option value="Egypt">🇪🇬 Egypt</option>
+          <option value="Morocco">🇲🇦 Morocco</option>
+          <option value="Brazil">🇧🇷 Brazil</option>
+          <option value="Mexico">🇲🇽 Mexico</option>
+          <option value="Japan">🇯🇵 Japan</option>
+          <option value="China">🇨🇳 China</option>
+          <option value="India">🇮🇳 India</option>
+          <option value="Singapore">🇸🇬 Singapore</option>
+          <option value="UAE">🇦🇪 UAE</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Worldwide">🌍 Worldwide</option>
+        </select>
+      </div>
+      
+      <div class="currency-selector">
+        <i class="fas fa-coins"></i>
+        <select id="currencyHeader">
+          <option value="USD">USD $</option>
+          <option value="NGN">NGN ₦</option>
+          <option value="EUR">EUR €</option>
+          <option value="GBP">GBP £</option>
+          <option value="KES">KES KSh</option>
+          <option value="GHS">GHS GH₵</option>
+          <option value="ZAR">ZAR R</option>
+          <option value="CAD">CAD $</option>
+          <option value="AUD">AUD $</option>
+          <option value="JPY">JPY ¥</option>
+          <option value="CNY">CNY ¥</option>
+          <option value="INR">INR ₹</option>
+          <option value="BRL">BRL R$</option>
+          <option value="MXN">MXN $</option>
+          <option value="AED">AED د.إ</option>
+          <option value="SAR">SAR ر.س</option>
+        </select>
+      </div>
+      
+      <button id="refreshBtn" class="btn primary">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </section>
+
+  <!-- SELLER FORM SECTION -->
+  <section id="sellerView" class="upload-section" aria-hidden="true">
+    <div class="form-header">
+      <h3><i class="fas fa-upload"></i> List Your Product</h3>
+      <button id="cancelSeller" class="close-form" title="Close form">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="upload-grid">
+      <!-- Main Form -->
+      <div class="form-container">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <i class="fas fa-info-circle"></i>
+            <h4>Basic Information</h4>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Product Name <span class="required">*</span></label>
+              <input type="text" id="p_title" class="form-input" placeholder="e.g. Premium Photoshop Brushes" required />
+              <div id="p_title_error" class="form-error"></div>
+              <span class="form-help">Choose a clear, descriptive name</span>
             </div>
             
             <div class="form-group">
-              <label class="form-label">Description <span class="required">*</span></label>
-              <textarea id="p_description" class="form-textarea" rows="4" placeholder="Describe your product features, benefits..." required></textarea>
-              <div id="p_description_error" class="form-error"></div>
-              <span class="form-help">Be detailed about what customers will receive</span>
+              <label class="form-label">Product Type <span class="required">*</span></label>
+              <select id="p_type" class="form-select" required>
+                <option value="">Select product type</option>
+                <option value="digital">📱 Digital Product</option>
+                <option value="physical">📦 Physical Product</option>
+                <option value="affiliate">🔗 Affiliate Link</option>
+              </select>
+              <div id="p_type_error" class="form-error"></div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description <span class="required">*</span></label>
+            <textarea id="p_description" class="form-textarea" rows="4" placeholder="Describe your product features, benefits..." required></textarea>
+            <div id="p_description_error" class="form-error"></div>
+            <span class="form-help">Be detailed about what customers will receive</span>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category <span class="required">*</span></label>
+              <div style="display: flex; gap: 12px; align-items: flex-end;">
+                <select id="p_category_select" class="form-select" style="flex: 1;">
+                  <option value="">Select existing category</option>
+                </select>
+                <span style="color: var(--text-muted); margin: 0 8px;">or</span>
+                <input type="text" id="p_category_new" class="form-input" placeholder="Create new category" style="flex: 1;" />
+              </div>
+              <div id="p_category_error" class="form-error"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Price (USD) <span class="required">*</span></label>
+              <input type="number" id="p_price" class="form-input" step="0.01" min="0.01" placeholder="0.00" required />
+              <div id="p_price_error" class="form-error"></div>
+              <span class="form-help">Enter price in US dollars</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Digital Product Section -->
+        <div id="digitalBlock" class="conditional-section">
+          <div class="form-section">
+            <div class="form-section-header">
+              <i class="fas fa-file-archive"></i>
+              <h4>Digital Product Details</h4>
+            </div>
+            
+            <div id="digitalUpload" class="conditional-section show" style="margin-top: 20px;">
+              <label class="form-label">Product File <span class="required">*</span></label>
+              <div class="file-upload">
+                <input type="file" id="p_file" accept=".zip,.pdf,.mp3,.mp4,.epub,.docx" required />
+                <label for="p_file" class="file-upload-label">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <span>Click to upload digital file</span>
+                  <small>Max file size: 100MB • Supported: ZIP, PDF, MP3, MP4, EPUB, DOCX</small>
+                </label>
+              </div>
+              <div id="p_file_error" class="form-error"></div>
+            </div>
+            
+            <div class="commission-card" style="margin-top: 20px;">
+              <h5><i class="fas fa-percentage"></i> Digital Product Commission</h5>
+              <div class="commission-structure">
+                <div class="commission-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span><strong>10%</strong> Platform Fee</span>
+                </div>
+                <div class="commission-item">
+                  <i class="fas fa-wallet"></i>
+                  <span><strong>90%</strong> You Keep</span>
+                </div>
+              </div>
+              <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
+                <p style="margin: 0; font-size: 12px; color: var(--success);">
+                  <i class="fas fa-info-circle"></i> <strong>Example:</strong> $30 digital product → Customer pays $30, you receive $27
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Product Section -->
+        <div id="physicalBlock" class="conditional-section">
+          <div class="form-section">
+            <div class="form-section-header">
+              <i class="fas fa-shipping-fast"></i>
+              <h4>Physical Product Details</h4>
             </div>
             
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Category <span class="required">*</span></label>
-                <div style="display: flex; gap: 12px; align-items: flex-end;">
-                  <select id="p_category_select" class="form-select" style="flex: 1;">
-                    <option value="">Select existing category</option>
+                <label class="form-label">Delivery Method <span class="required">*</span></label>
+                <select id="p_deliveryType" class="form-select" onchange="toggleDeliveryMethod()">
+                  <option value="delivery">🚚 Home Delivery Only</option>
+                  <option value="pickup">🏪 Store Pickup Only</option>
+                  <option value="both">🚚🏪 Both (Delivery & Pickup)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Home Delivery Section -->
+            <div id="deliverySection" class="conditional-section" style="margin-top: 20px;">
+              <div style="padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
+                <h5 style="margin: 0 0 12px 0; color: var(--accent);"><i class="fas fa-truck"></i> Home Delivery Settings</h5>
+                
+                <div class="form-group">
+                  <label class="form-label">Delivery Countries <span class="required">*</span></label>
+                  <select id="p_deliveryCountries" class="form-select" multiple size="4">
+                    <option value="USA">🇺🇸 United States</option>
+                    <option value="UK">🇬🇧 United Kingdom</option>
+                    <option value="Nigeria">🇳🇬 Nigeria</option>
+                    <option value="Canada">🇨🇦 Canada</option>
+                    <option value="Australia">🇦🇺 Australia</option>
+                    <option value="Germany">🇩🇪 Germany</option>
+                    <option value="France">🇫🇷 France</option>
+                    <option value="Italy">🇮🇹 Italy</option>
+                    <option value="Spain">🇪🇸 Spain</option>
+                    <option value="Kenya">🇰🇪 Kenya</option>
+                    <option value="Ghana">🇬🇭 Ghana</option>
+                    <option value="South Africa">🇿🇦 South Africa</option>
+                    <option value="Worldwide">🌍 Worldwide</option>
                   </select>
-                  <span style="color: var(--text-muted); margin: 0 8px;">or</span>
-                  <input type="text" id="p_category_new" class="form-input" placeholder="Create new category" style="flex: 1;" />
+                  <span class="form-help">Hold Ctrl (Windows) or Cmd (Mac) to select multiple countries</span>
+                  <div id="p_deliveryCountries_error" class="form-error"></div>
                 </div>
-                <div id="p_category_error" class="form-error"></div>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Price (USD) <span class="required">*</span></label>
-                <input type="number" id="p_price" class="form-input" step="0.01" min="0.01" placeholder="0.00" required />
-                <div id="p_price_error" class="form-error"></div>
-                <span class="form-help">Enter price in US dollars</span>
+                
+                <div class="form-group">
+                  <label class="form-label">States/Provinces You Deliver To <span class="required">*</span></label>
+                  <input type="text" id="p_deliveryStates" class="form-input" placeholder="e.g. Lagos, Abuja, Rivers, Western Cape, Ontario, Texas" />
+                  <div id="p_deliveryStates_error" class="form-error"></div>
+                  <span class="form-help">Enter states/provinces separated by commas</span>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
+                  <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" required />
+                  <span class="form-help">How many days it typically takes to deliver</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Product Type Specific Sections -->
-          <div id="digitalBlock" class="conditional-section">
-            <div class="form-section">
-              <div class="form-section-header">
-                <i class="fas fa-file-archive"></i>
-                <h4>Digital Product Details</h4>
-              </div>
-              
-              <div id="digitalUpload" class="conditional-section show" style="margin-top: 20px;">
-                <label class="form-label">Product File <span class="required">*</span></label>
-                <div class="file-upload">
-                  <input type="file" id="p_file" accept=".zip,.pdf,.mp3,.mp4,.epub,.docx" required />
-                  <label for="p_file" class="file-upload-label">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <span>Click to upload digital file</span>
-                    <small>Max file size: 100MB • Supported: ZIP, PDF, MP3, MP4, EPUB, DOCX</small>
-                  </label>
+            <!-- Store Pickup Section -->
+            <div id="pickupSection" class="conditional-section" style="margin-top: 20px;">
+              <div style="padding: 16px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1);">
+                <h5 style="margin: 0 0 12px 0; color: var(--success);"><i class="fas fa-store"></i> Store Pickup Settings</h5>
+                
+                <div class="form-group">
+                  <label class="form-label">Pickup Location Address <span class="required">*</span></label>
+                  <textarea id="p_pickupAddress" class="form-textarea" rows="3" placeholder="Enter the full address where customers can pick up the product"></textarea>
+                  <div id="p_pickupAddress_error" class="form-error"></div>
                 </div>
-                <div id="p_file_error" class="form-error"></div>
-              </div>
-              
-              <!-- Commission info for digital products -->
-              <div class="commission-card" style="margin-top: 20px;">
-                <h5><i class="fas fa-percentage"></i> Digital Product Commission</h5>
-                <div class="commission-structure">
-                  <div class="commission-item">
-                    <i class="fas fa-chart-line"></i>
-                    <span><strong>10%</strong> Platform Fee</span>
-                  </div>
-                  <div class="commission-item">
-                    <i class="fas fa-wallet"></i>
-                    <span><strong>90%</strong> You Keep</span>
-                  </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Pickup Hours (Optional)</label>
+                  <input type="text" id="p_pickupHours" class="form-input" placeholder="e.g., Mon-Fri 9am-6pm, Sat 10am-2pm" />
                 </div>
-                <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
-                  <p style="margin: 0; font-size: 12px; color: var(--success);">
-                    <i class="fas fa-info-circle"></i> <strong>Example:</strong> $30 digital product → Customer pays $30, you receive $27
-                  </p>
+                
+                <div class="form-group">
+                  <label class="form-label">Pickup Instructions (Optional)</label>
+                  <textarea id="p_pickupInstructions" class="form-textarea" rows="2" placeholder="e.g., Bring your order confirmation, Call upon arrival"></textarea>
                 </div>
               </div>
             </div>
           </div>
-      <div id="physicalBlock" class="conditional-section">
-  <div class="form-section">
-    <div class="form-section-header">
-      <i class="fas fa-shipping-fast"></i>
-      <h4>Physical Product Details</h4>
-    </div>
-    
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Delivery Method <span class="required">*</span></label>
-        <select id="p_deliveryType" class="form-select" onchange="toggleDeliveryMethod()">
-          <option value="delivery">🚚 Home Delivery Only</option>
-          <option value="pickup">🏪 Store Pickup Only</option>
-          <option value="both">🚚🏪 Both (Delivery & Pickup)</option>
-        </select>
-      </div>
-    </div>
+        </div>
 
-    <!-- Home Delivery Section (shown when delivery or both selected) -->
-    <div id="deliverySection" class="conditional-section" style="margin-top: 20px;">
-      <div style="padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.1);">
-        <h5 style="margin: 0 0 12px 0; color: var(--accent);"><i class="fas fa-truck"></i> Home Delivery Settings</h5>
-        
-        <div class="form-group">
-          <label class="form-label">Delivery Countries <span class="required">*</span></label>
-          <select id="p_deliveryCountries" class="form-select" multiple size="4">
-            <option value="USA">🇺🇸 United States</option>
-            <option value="UK">🇬🇧 United Kingdom</option>
-            <option value="Nigeria">🇳🇬 Nigeria</option>
-            <option value="Canada">🇨🇦 Canada</option>
-            <option value="Australia">🇦🇺 Australia</option>
-            <option value="Germany">🇩🇪 Germany</option>
-            <option value="France">🇫🇷 France</option>
-            <option value="Italy">🇮🇹 Italy</option>
-            <option value="Spain">🇪🇸 Spain</option>
-            <option value="Kenya">🇰🇪 Kenya</option>
-            <option value="Ghana">🇬🇭 Ghana</option>
-            <option value="South Africa">🇿🇦 South Africa</option>
-            <option value="Worldwide">🌍 Worldwide</option>
-          </select>
-          <span class="form-help">Hold Ctrl (Windows) or Cmd (Mac) to select multiple countries</span>
-          <div id="p_deliveryCountries_error" class="form-error"></div>
+        <!-- Affiliate Product Section -->
+        <div id="affiliateBlock" class="conditional-section">
+          <div class="form-section">
+            <div class="form-section-header">
+              <i class="fas fa-link"></i>
+              <h4>Affiliate Product Details</h4>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Affiliate URL <span class="required">*</span></label>
+              <input type="url" id="p_affiliate" class="form-input" placeholder="https://affiliate.example.com/product/123" />
+              <div id="p_affiliate_error" class="form-error"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">External Product Image URL (Optional)</label>
+              <input type="url" id="p_external_image" class="form-input" placeholder="https://example.com/image.jpg" />
+            </div>
+            
+            <div class="commission-card" style="margin-top: 20px;">
+              <h5><i class="fas fa-percentage"></i> Affiliate Commission</h5>
+              <div class="commission-structure">
+                <div class="commission-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span><strong>10%</strong> Platform Fee</span>
+                </div>
+                <div class="commission-item">
+                  <i class="fas fa-wallet"></i>
+                  <span><strong>90%</strong> You Keep</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">States/Provinces You Deliver To <span class="required">*</span></label>
-          <input type="text" id="p_deliveryStates" class="form-input" placeholder="e.g. Lagos, Abuja, Rivers, Western Cape, Ontario, Texas" />
-          <div id="p_deliveryStates_error" class="form-error"></div>
-          <span class="form-help">Enter states/provinces separated by commas (e.g., Lagos, Abuja, Rivers)</span>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Estimated Delivery Days <span class="required">*</span></label>
-          <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" placeholder="Number of days for delivery" required />
-          <span class="form-help">How many days it typically takes to deliver this product</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- Store Pickup Section (shown when pickup or both selected) -->
-    <div id="pickupSection" class="conditional-section" style="margin-top: 20px;">
-      <div style="padding: 16px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1);">
-        <h5 style="margin: 0 0 12px 0; color: var(--success);"><i class="fas fa-store"></i> Store Pickup Settings</h5>
-        
-        <div class="form-group">
-          <label class="form-label">Pickup Location Address <span class="required">*</span></label>
-          <textarea id="p_pickupAddress" class="form-textarea" rows="3" placeholder="Enter the full address where customers can pick up the product (e.g., 123 Main Street, Lagos, Nigeria)"></textarea>
-          <div id="p_pickupAddress_error" class="form-error"></div>
-          <span class="form-help">Customers will come to this address to pick up their order</span>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Pickup Hours (Optional)</label>
-          <input type="text" id="p_pickupHours" class="form-input" placeholder="e.g., Mon-Fri 9am-6pm, Sat 10am-2pm" />
-          <span class="form-help">Let customers know when they can pick up</span>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Pickup Instructions (Optional)</label>
-          <textarea id="p_pickupInstructions" class="form-textarea" rows="2" placeholder="e.g., Bring your order confirmation, Call upon arrival"></textarea>
-        </div>
-      </div>
-    </div>
-// In your products.html, replace the product cost section with:
-
-<!-- Product Condition Section -->
-<div class="form-section">
-    <div class="form-section-header">
-        <i class="fas fa-clipboard-list"></i>
-        <h4>Product Condition & Specifications</h4>
-    </div>
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label class="form-label">Product Condition <span class="required">*</span></label>
-            <select id="p_condition_type" class="form-select" required>
+        <!-- Product Condition Section -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <i class="fas fa-clipboard-list"></i>
+            <h4>Product Condition & Specifications</h4>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Product Condition <span class="required">*</span></label>
+              <select id="p_condition_type" class="form-select" required>
                 <option value="new">🌟 Brand New (Unopened/Sealed)</option>
                 <option value="like_new">✨ Like New (Opened but unused)</option>
                 <option value="excellent">⭐ Excellent (Very light use, no defects)</option>
                 <option value="good">👍 Good (Normal wear, fully functional)</option>
                 <option value="fair">👌 Fair (Visible wear, fully functional)</option>
                 <option value="acceptable">📦 Acceptable (Heavy wear, functional)</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Manufacturing Date (if applicable)</label>
-            <input type="date" id="p_manufacturing_date" class="form-input" />
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Detailed Condition Description</label>
-        <textarea id="p_condition_description" class="form-textarea" rows="3" 
-                  placeholder="Describe any scratches, dents, wear, or issues. Be honest to avoid disputes."></textarea>
-        <span class="form-help">⚠️ Accurate descriptions reduce refund disputes by 70%</span>
-    </div>
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label class="form-label">Warranty Period (months)</label>
-            <input type="number" id="p_warranty_months" class="form-input" value="0" min="0" max="60" />
-            <span class="form-help">0 = No warranty, 12 = 1 year warranty</span>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Original Packaging</label>
-            <select id="p_original_packaging" class="form-select">
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Manufacturing Date (if applicable)</label>
+              <input type="date" id="p_manufacturing_date" class="form-input" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Detailed Condition Description</label>
+            <textarea id="p_condition_description" class="form-textarea" rows="3" 
+                      placeholder="Describe any scratches, dents, wear, or issues. Be honest to avoid disputes."></textarea>
+            <span class="form-help">⚠️ Accurate descriptions reduce refund disputes by 70%</span>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Warranty Period (months)</label>
+              <input type="number" id="p_warranty_months" class="form-input" value="0" min="0" max="60" />
+              <span class="form-help">0 = No warranty, 12 = 1 year warranty</span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Original Packaging</label>
+              <select id="p_original_packaging" class="form-select">
                 <option value="1">✅ Yes, original packaging included</option>
                 <option value="0">📦 No, generic/replacement packaging</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Accessories Included</label>
+            <input type="text" id="p_accessories" class="form-input" 
+                   placeholder="e.g., Charger, manual, box, original cable, warranty card" />
+            <span class="form-help">List all included items to avoid returns</span>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Visible Defects (if any)</label>
+            <textarea id="p_defects" class="form-textarea" rows="2" 
+                      placeholder="List any scratches, dents, marks, or issues with photos"></textarea>
+          </div>
+        </div>
+
+        <!-- Payment Account Setup -->
+        <div class="payment-provider-section">
+          <div class="payment-provider-header">
+            <i class="fas fa-credit-card"></i>
+            <h4>Payment Account Setup (Auto 90/10 Split)</h4>
+          </div>
+          
+          <p style="color: var(--text-gray); margin-bottom: 20px;">
+            Choose how you want to receive your 90% share. Both options automatically split payments.
+          </p>
+          
+          <div class="provider-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="provider-option" data-provider="flutterwave" onclick="selectPaymentGateway('flutterwave')">
+              <i class="fas fa-globe" style="font-size: 32px; color: var(--accent);"></i>
+              <h5 style="margin: 10px 0 5px;">Flutterwave</h5>
+              <p style="font-size: 12px;">🌍 International sellers (USA, UK, Europe, Africa)</p>
+              <p style="font-size: 11px; color: var(--success);">✓ Receive in USD, GBP, EUR</p>
+            </div>
+            
+            <div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
+              <i class="fas fa-map-marker-alt" style="font-size: 32px; color: var(--success);"></i>
+              <h5 style="margin: 10px 0 5px;">Paystack</h5>
+              <p style="font-size: 12px;">🇳🇬 Local Payment</p>
+              <p style="font-size: 11px; color: var(--success);">✓ Receive in NGN</p>
+            </div>
+          </div>
+          
+          <input type="hidden" id="p_paymentProvider" value="" />
+          
+          <div id="countrySection" style="display: none; margin-bottom: 20px;">
+            <label class="form-label">Your Country <span class="required">*</span></label>
+            <select id="sellerCountry" class="form-select">
+              <option value="">Select your country</option>
+              <option value="USA">🇺🇸 United States</option>
+              <option value="UK">🇬🇧 United Kingdom</option>
+              <option value="Nigeria">🇳🇬 Nigeria</option>
+              <option value="Kenya">🇰🇪 Kenya</option>
+              <option value="Ghana">🇬🇭 Ghana</option>
+              <option value="South Africa">🇿🇦 South Africa</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="Germany">🇩🇪 Germany</option>
+              <option value="France">🇫🇷 France</option>
+              <option value="Other">🌍 Other Country</option>
             </select>
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Accessories Included</label>
-        <input type="text" id="p_accessories" class="form-input" 
-               placeholder="e.g., Charger, manual, box, original cable, warranty card" />
-        <span class="form-help">List all included items to avoid returns</span>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Visible Defects (if any)</label>
-        <textarea id="p_defects" class="form-textarea" rows="2" 
-                  placeholder="List any scratches, dents, marks, or issues with photos"></textarea>
-    </div>
-</div>
-
-<!-- Remove the product cost section entirely -->
-    <!-- In your existing products.html, find this section (around line 700-800) -->
-<!-- REPLACE the current "Payment Account Setup" section with this: -->
-
-<!-- Payment Account Setup - Simplified for Paystack & Flutterwave -->
-<div class="payment-provider-section">
-    <div class="payment-provider-header">
-        <i class="fas fa-credit-card"></i>
-        <h4>Payment Account Setup (Auto 90/10 Split)</h4>
-    </div>
-    
-    <p style="color: var(--text-gray); margin-bottom: 20px;">
-        Choose how you want to receive your 90% share. Both options automatically split payments.
-    </p>
-    
-    <!-- Two clear options side by side -->
-    <div class="provider-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-        
-        <!-- Flutterwave Option -->
-        <div class="provider-option" data-provider="flutterwave" onclick="selectPaymentGateway('flutterwave')">
-            <i class="fas fa-globe" style="font-size: 32px; color: var(--accent);"></i>
-            <h5 style="margin: 10px 0 5px;">Flutterwave</h5>
-            <p style="font-size: 12px;">🌍 International sellers (USA, UK, Europe, Africa)</p>
-            <p style="font-size: 11px; color: var(--success);">✓ Receive in USD, GBP, EUR</p>
-            <p style="font-size: 11px; color: var(--success);">✓ Best for international sellers</p>
-        </div>
-        
-      <!-- Paystack Option - Updated text -->
-<div class="provider-option" data-provider="paystack" onclick="selectPaymentGateway('paystack')">
-  <i class="fas fa-map-marker-alt" style="font-size: 32px; color: var(--success);"></i>
-  <h5 style="margin: 10px 0 5px;">Paystack</h5>
-  <p style="font-size: 12px;">🇳🇬 Local Payment</p>
-  <p style="font-size: 11px; color: var(--success);">✓ Receive in NGN</p>
-  <p style="font-size: 11px; color: var(--success);">✓ Direct to bank account</p>
-</div>
-    </div>
-    
-    <input type="hidden" id="p_paymentProvider" value="" />
-    
-    <!-- Country Selection (for international sellers) -->
-    <div id="countrySection" style="display: none; margin-bottom: 20px;">
-        <label class="form-label">Your Country <span class="required">*</span></label>
-        <select id="sellerCountry" class="form-select">
-            <option value="">Select your country</option>
-            <option value="USA">🇺🇸 United States</option>
-            <option value="UK">🇬🇧 United Kingdom</option>
-            <option value="Nigeria">🇳🇬 Nigeria</option>
-            <option value="Kenya">🇰🇪 Kenya</option>
-            <option value="Ghana">🇬🇭 Ghana</option>
-            <option value="South Africa">🇿🇦 South Africa</option>
-            <option value="Canada">🇨🇦 Canada</option>
-            <option value="Germany">🇩🇪 Germany</option>
-            <option value="France">🇫🇷 France</option>
-            <option value="Other">🌍 Other Country</option>
-        </select>
-        <span class="form-help">Flutterwave supports payouts to most countries</span>
-    </div>
-    
-    <!-- Bank Details Section (dynamic) -->
-    <div id="bankDetailsSection" style="display: none;">
-        <!-- Content loaded dynamically -->
-    </div>
-    
-    <!-- Commission Info Card -->
-    <div class="commission-card" style="margin-top: 20px;">
-        <h5><i class="fas fa-percentage"></i> How Auto-Split Works</h5>
-        <div class="commission-structure">
-            <div class="commission-item">
+          </div>
+          
+          <div id="bankDetailsSection" style="display: none;"></div>
+          
+          <div class="commission-card" style="margin-top: 20px;">
+            <h5><i class="fas fa-percentage"></i> How Auto-Split Works</h5>
+            <div class="commission-structure">
+              <div class="commission-item">
                 <i class="fas fa-chart-line"></i>
                 <span><strong>Platform Fee:</strong> 10% (automatically deducted)</span>
-            </div>
-            <div class="commission-item">
+              </div>
+              <div class="commission-item">
                 <i class="fas fa-wallet"></i>
                 <span><strong>You Receive:</strong> 90% directly to your account</span>
-            </div>
-            <div class="commission-item">
+              </div>
+              <div class="commission-item">
                 <i class="fas fa-clock"></i>
                 <span><strong>Settlement:</strong> 3-5 business days after delivery</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Business Information Section (keep as is) -->
-<div id="businessInfo" class="conditional-section" style="margin-top: 24px;">
-    <div class="form-section-header" style="margin-bottom: 16px;">
-        <i class="fas fa-building"></i>
-        <h4>Business Information</h4>
-    </div>
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label class="form-label">Business Name <span class="required">*</span></label>
-            <input type="text" id="p_businessName" class="form-input" placeholder="e.g. John's Digital Store" required />
-            <div id="p_businessName_error" class="form-error"></div>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Country <span class="required">*</span></label>
-            <input type="text" id="p_country" class="form-input" placeholder="e.g. United States, Germany, Kenya" required />
-            <div id="p_country_error" class="form-error"></div>
-        </div>
-    </div>
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label class="form-label">Business Email <span class="required">*</span></label>
-            <input type="email" id="p_businessEmail" class="form-input" placeholder="e.g. business@example.com" required />
-            <div id="p_businessEmail_error" class="form-error"></div>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">Phone Number <span class="required">*</span></label>
-            <input type="tel" id="p_businessPhone" class="form-input" placeholder="e.g. +1234567890" required />
-            <div id="p_businessPhone_error" class="form-error"></div>
-        </div>
-    </div>
-</div>
-          <!-- Product Images -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <i class="fas fa-images"></i>
-              <h4>Product Images</h4>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">Upload Images <span class="required">*</span></label>
-              <div class="file-upload">
-                <input type="file" id="p_images" accept="image/*" multiple required />
-                <label for="p_images" class="file-upload-label">
-                  <i class="fas fa-camera"></i>
-                  <span>Click to upload product images</span>
-                  <small>Select multiple images (JPG, PNG, WebP) • At least one required</small>
-                </label>
               </div>
-              <div id="p_images_error" class="form-error"></div>
             </div>
           </div>
+        </div>
 
-          <!-- Form Actions -->
-          <div class="form-actions">
-            <button id="uploadProductBtn" class="form-btn primary">
-              <i class="fas fa-rocket"></i>
-              Create Account & Publish Product
-            </button>
-            <button id="saveDraftBtn" class="form-btn secondary">
-              <i class="fas fa-save"></i>
-              Save as Draft
-            </button>
+        <!-- Business Information Section -->
+        <div id="businessInfo" class="conditional-section" style="margin-top: 24px;">
+          <div class="form-section-header" style="margin-bottom: 16px;">
+            <i class="fas fa-building"></i>
+            <h4>Business Information</h4>
           </div>
           
-          <div id="uploadMessage" class="form-success"></div>
-        </div>
-
-        <!-- Sidebar Tips -->
-        <div class="form-sidebar">
-          <div class="info-card">
-            <h4><i class="fas fa-lightbulb"></i> Tips for Success</h4>
-            <ul class="info-list">
-              <li><i class="fas fa-check-circle"></i> <strong>High-quality images</strong> increase sales by up to 40%</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Detailed descriptions</strong> build trust with customers</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Clear pricing</strong> reduces confusion and cart abandonment</li>
-              <li><i class="fas fa-check-circle"></i> <strong>Multiple images</strong> from different angles show product quality</li>
-            </ul>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Business Name <span class="required">*</span></label>
+              <input type="text" id="p_businessName" class="form-input" placeholder="e.g. John's Digital Store" required />
+              <div id="p_businessName_error" class="form-error"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Country <span class="required">*</span></label>
+              <input type="text" id="p_country" class="form-input" placeholder="e.g. United States, Germany, Kenya" required />
+              <div id="p_country_error" class="form-error"></div>
+            </div>
           </div>
           
-          <div class="info-card">
-            <h4><i class="fas fa-shield-alt"></i> Secure & Reliable</h4>
-            <ul class="info-list">
-              <li><i class="fas fa-lock"></i> <strong>Bank-level security</strong> for all transactions</li>
-              <li><i class="fas fa-bolt"></i> <strong>Instant payouts</strong> after 5-day escrow</li>
-              <li><i class="fas fa-headset"></i> <strong>24/7 support</strong> for sellers</li>
-              <li><i class="fas fa-chart-line"></i> <strong>Real-time sales analytics</strong> in your dashboard</li>
-            </ul>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Business Email <span class="required">*</span></label>
+              <input type="email" id="p_businessEmail" class="form-input" placeholder="e.g. business@example.com" required />
+              <div id="p_businessEmail_error" class="form-error"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Phone Number <span class="required">*</span></label>
+              <input type="tel" id="p_businessPhone" class="form-input" placeholder="e.g. +1234567890" required />
+              <div id="p_businessPhone_error" class="form-error"></div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- PRODUCTS GRID SECTION -->
-    <section id="buyerView">
-      <div id="productsGrid" class="grid"></div>
-      <div id="noProducts" style="display:none;">
-        <i class="fas fa-search"></i>
-        <h3>No products found</h3>
-        <p>Try adjusting your search or filter criteria</p>
-      </div>
-    </section>
+        <!-- Product Images -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <i class="fas fa-images"></i>
+            <h4>Product Images</h4>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Upload Images <span class="required">*</span></label>
+            <div class="file-upload">
+              <input type="file" id="p_images" accept="image/*" multiple required />
+              <label for="p_images" class="file-upload-label">
+                <i class="fas fa-camera"></i>
+                <span>Click to upload product images</span>
+                <small>Select multiple images (JPG, PNG, WebP) • At least one required</small>
+              </label>
+            </div>
+            <div id="p_images_error" class="form-error"></div>
+          </div>
+        </div>
 
-    <!-- REVIEWS SECTION -->
-    <div id="productReviewsSection" class="reviews-section">
-      <h3>Customer Reviews</h3>
-
-      <!-- Average rating -->
-      <div id="averageRating" class="average-rating"></div>
-
-      <!-- Reviews list -->
-      <div id="reviewsList" class="reviews-list">
-        <p style="color: var(--text-gray)">Select a product to view reviews</p>
-      </div>
-
-      <!-- Submit review (logged-in users only) -->
-      <div id="reviewFormWrapper" class="review-form hidden">
-        <h4>Leave a Review</h4>
-
-        <select id="reviewRating" class="form-select">
-          <option value="">Select rating</option>
-          <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-          <option value="4">⭐⭐⭐⭐ (4)</option>
-          <option value="3">⭐⭐⭐ (3)</option>
-          <option value="2">⭐⭐ (2)</option>
-          <option value="1">⭐ (1)</option>
-        </select>
-
-        <textarea
-          id="reviewComment"
-          placeholder="Share your experience with this product..."
-        ></textarea>
-
-        <button onclick="submitReview()">Submit Review</button>
-        <p id="reviewMessage" class="form-message"></p>
-      </div>
-    </div>
-    <!-- Seller Auto-Verification Modal -->
-<div id="verificationModal" class="modal">
-    <div class="modal-card" style="max-width: 600px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3><i class="fas fa-shield-alt"></i> Seller Verification Required</h3>
-            <span class="close-x" onclick="closeVerificationModal()">&times;</span>
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button id="uploadProductBtn" class="form-btn primary">
+            <i class="fas fa-rocket"></i>
+            Create Account & Publish Product
+          </button>
+          <button id="saveDraftBtn" class="form-btn secondary">
+            <i class="fas fa-save"></i>
+            Save as Draft
+          </button>
         </div>
         
-        <div id="verificationStep1">
-            <p>Please complete verification to start selling. This takes 2 minutes.</p>
-            
-            <div class="form-group">
-                <label>Verification Type</label>
-                <select id="verificationType" class="form-select" onchange="toggleVerificationType()">
-                    <option value="individual">👤 Individual Seller</option>
-                    <option value="business">🏢 Business Seller</option>
-                </select>
-            </div>
-            
-            <!-- Phone Verification (No Twilio - uses email) -->
-            <div class="form-group">
-                <label>Phone Number <span class="required">*</span></label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="tel" id="verifyPhone" class="form-input" placeholder="080XXXXXXXX" style="flex: 2;">
-                    <button type="button" id="sendOtpBtn" class="btn secondary" onclick="sendOTP()">Send Code</button>
-                </div>
-                <div id="otpSection" style="display: none; margin-top: 10px;">
-                    <input type="text" id="verifyOtp" class="form-input" placeholder="Enter 6-digit code" maxlength="6">
-                    <button type="button" class="btn primary" onclick="verifyOTP()" style="margin-top: 10px;">Verify Code</button>
-                </div>
-                <div id="phoneVerifiedStatus" class="form-help"></div>
-            </div>
-        </div>
-        
-        <div id="verificationStep2" style="display: none;">
-            <div class="form-group">
-                <label>Government ID (Passport/Driver's License/NIN) <span class="required">*</span></label>
-                <input type="file" id="verifyGovernmentId" accept="image/*,.pdf" class="form-input">
-            </div>
-            
-            <div class="form-group">
-                <label>Selfie with ID <span class="required">*</span></label>
-                <input type="file" id="verifySelfie" accept="image/*" class="form-input">
-            </div>
-            
-            <div class="form-group">
-                <label>Proof of Address (Utility bill/Bank statement) <span class="required">*</span></label>
-                <input type="file" id="verifyAddressProof" accept="image/*,.pdf" class="form-input">
-            </div>
-            
-            <div id="businessSection" style="display: none;">
-                <h4>Business Information</h4>
-                <div class="form-group">
-                    <label>Business Name</label>
-                    <input type="text" id="verifyBusinessName" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Business Registration Certificate</label>
-                    <input type="file" id="verifyBusinessCert" accept="image/*,.pdf" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Tax ID / VAT Number</label>
-                    <input type="text" id="verifyTaxId" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Tax ID Document</label>
-                    <input type="file" id="verifyTaxDoc" accept="image/*,.pdf" class="form-input">
-                </div>
-            </div>
-            
-            <div class="action-buttons" style="margin-top: 20px;">
-                <button class="btn btn-primary" onclick="submitVerification()">
-                    <i class="fas fa-check-circle"></i> Complete Verification
-                </button>
-                <button class="btn btn-outline" onclick="closeVerificationModal()">Cancel</button>
-            </div>
-        </div>
-        
-        <div id="verificationProcessing" style="display: none; text-align: center; padding: 30px;">
-            <i class="fas fa-spinner fa-spin" style="font-size: 48px;"></i>
-            <h4>Verifying...</h4>
-            <p>Please wait while we process your documents</p>
-        </div>
-    </div>
-</div>
-<!-- DASHBOARD SECTION - UPDATED -->
-<section id="dashboardSection" class="dashboard-section" style="display: none;">
-  <div class="dashboard-header">
-    <div class="dashboard-title">
-      <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
-      <span id="dashboardRoleBadge" class="role-badge">Seller</span>
-    </div>
-    <div class="dashboard-actions">
-      <button id="toggleDashboard" class="btn primary"><i class="fas fa-store"></i> Back to Products</button>
-      <button id="exportData" class="btn secondary"><i class="fas fa-file-export"></i> Export</button>
-    </div>
-  </div>
+        <div id="uploadMessage" class="form-success"></div>
+      </div>
 
-  <!-- Admin Controls -->
-  <div id="adminControls" class="admin-controls" style="display: none;">
-    <div class="admin-search-bar">
-      <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." class="search-input" style="flex: 1;">
-      <select id="adminSearchCategory" class="select">
-        <option value="all">All Categories</option>
-        <option value="users">Users</option>
-        <option value="products">Products</option>
-        <option value="orders">Orders</option>
+      <!-- Sidebar Tips -->
+      <div class="form-sidebar">
+        <div class="info-card">
+          <h4><i class="fas fa-lightbulb"></i> Tips for Success</h4>
+          <ul class="info-list">
+            <li><i class="fas fa-check-circle"></i> <strong>High-quality images</strong> increase sales by up to 40%</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Detailed descriptions</strong> build trust with customers</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Clear pricing</strong> reduces confusion and cart abandonment</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Multiple images</strong> from different angles show product quality</li>
+            <li><i class="fas fa-clipboard-list"></i> <strong>Accurate condition descriptions</strong> prevent refund disputes</li>
+          </ul>
+        </div>
+        
+        <div class="info-card">
+          <h4><i class="fas fa-shield-alt"></i> Secure & Reliable</h4>
+          <ul class="info-list">
+            <li><i class="fas fa-lock"></i> <strong>Bank-level security</strong> for all transactions</li>
+            <li><i class="fas fa-bolt"></i> <strong>Instant payouts</strong> after 5-day escrow</li>
+            <li><i class="fas fa-headset"></i> <strong>24/7 support</strong> for sellers</li>
+            <li><i class="fas fa-chart-line"></i> <strong>Real-time sales analytics</strong> in your dashboard</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS GRID SECTION -->
+  <section id="buyerView">
+    <div id="productsGrid" class="grid"></div>
+    <div id="noProducts" style="display:none;">
+      <i class="fas fa-search"></i>
+      <h3>No products found</h3>
+      <p>Try adjusting your search or filter criteria</p>
+    </div>
+  </section>
+
+  <!-- REVIEWS SECTION -->
+  <div id="productReviewsSection" class="reviews-section">
+    <h3>Customer Reviews</h3>
+    <div id="averageRating" class="average-rating"></div>
+    <div id="reviewsList" class="reviews-list">
+      <p style="color: var(--text-gray)">Select a product to view reviews</p>
+    </div>
+    <div id="reviewFormWrapper" class="review-form hidden">
+      <h4>Leave a Review</h4>
+      <select id="reviewRating" class="form-select">
+        <option value="">Select rating</option>
+        <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+        <option value="4">⭐⭐⭐⭐ (4)</option>
+        <option value="3">⭐⭐⭐ (3)</option>
+        <option value="2">⭐⭐ (2)</option>
+        <option value="1">⭐ (1)</option>
       </select>
-      <button id="adminSearchBtn" class="btn primary"><i class="fas fa-search"></i> Search</button>
+      <textarea id="reviewComment" placeholder="Share your experience with this product..."></textarea>
+      <button onclick="submitReview()">Submit Review</button>
+      <p id="reviewMessage" class="form-message"></p>
     </div>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);"><i class="fas fa-box-open" style="color: var(--accent);"></i></div><div class="stat-content"><h3 id="totalProducts">0</h3><p>Total Products</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);"><i class="fas fa-shopping-cart" style="color: var(--success);"></i></div><div class="stat-content"><h3 id="totalSales">0</h3><p>Total Sales</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);"><i class="fas fa-money-bill-wave" style="color: var(--warning);"></i></div><div class="stat-content"><h3 id="totalRevenue">$0</h3><p>Total Revenue</p></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);"><i class="fas fa-star" style="color: var(--digital);"></i></div><div class="stat-content"><h3 id="avgRating">0.0</h3><p>Average Rating</p></div></div>
+  <!-- Seller Auto-Verification Modal -->
+  <div id="verificationModal" class="modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3><i class="fas fa-shield-alt"></i> Seller Verification Required</h3>
+        <span class="close-x" onclick="closeVerificationModal()">&times;</span>
+      </div>
+      
+      <div id="verificationStep1">
+        <p>Please complete verification to start selling. This takes 2 minutes.</p>
+        
+        <div class="form-group">
+          <label>Verification Type</label>
+          <select id="verificationType" class="form-select" onchange="toggleVerificationType()">
+            <option value="individual">👤 Individual Seller</option>
+            <option value="business">🏢 Business Seller</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Phone Number <span class="required">*</span></label>
+          <div style="display: flex; gap: 10px;">
+            <input type="tel" id="verifyPhone" class="form-input" placeholder="080XXXXXXXX" style="flex: 2;">
+            <button type="button" id="sendOtpBtn" class="btn secondary" onclick="sendOTP()">Send Code</button>
+          </div>
+          <div id="otpSection" style="display: none; margin-top: 10px;">
+            <input type="text" id="verifyOtp" class="form-input" placeholder="Enter 6-digit code" maxlength="6">
+            <button type="button" class="btn primary" onclick="verifyOTP()" style="margin-top: 10px;">Verify Code</button>
+          </div>
+          <div id="phoneVerifiedStatus" class="form-help"></div>
+        </div>
+      </div>
+      
+      <div id="verificationStep2" style="display: none;">
+        <div class="form-group">
+          <label>Government ID (Passport/Driver's License/NIN) <span class="required">*</span></label>
+          <input type="file" id="verifyGovernmentId" accept="image/*,.pdf" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <label>Selfie with ID <span class="required">*</span></label>
+          <input type="file" id="verifySelfie" accept="image/*" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <label>Proof of Address (Utility bill/Bank statement) <span class="required">*</span></label>
+          <input type="file" id="verifyAddressProof" accept="image/*,.pdf" class="form-input">
+        </div>
+        
+        <div id="businessSection" style="display: none;">
+          <h4>Business Information</h4>
+          <div class="form-group">
+            <label>Business Name</label>
+            <input type="text" id="verifyBusinessName" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Business Registration Certificate</label>
+            <input type="file" id="verifyBusinessCert" accept="image/*,.pdf" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Tax ID / VAT Number</label>
+            <input type="text" id="verifyTaxId" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Tax ID Document</label>
+            <input type="file" id="verifyTaxDoc" accept="image/*,.pdf" class="form-input">
+          </div>
+        </div>
+        
+        <div class="action-buttons" style="margin-top: 20px;">
+          <button class="btn btn-primary" onclick="submitVerification()">
+            <i class="fas fa-check-circle"></i> Complete Verification
+          </button>
+          <button class="btn btn-outline" onclick="closeVerificationModal()">Cancel</button>
+        </div>
+      </div>
+      
+      <div id="verificationProcessing" style="display: none; text-align: center; padding: 30px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 48px;"></i>
+        <h4>Verifying...</h4>
+        <p>Please wait while we process your documents</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Dashboard Tabs -->
-  <div class="dashboard-tabs">
-    <div class="tabs-header">
-      <button class="tab-btn active" data-tab="products">My Products</button>
-      <button class="tab-btn" data-tab="sales">Sales History</button>
-      <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders <span id="paidBadge" class="badge" style="display:none;"></span></button>
-     <button class="tab-btn" data-tab="analytics">Analytics</button>
-      <button class="tab-btn" data-tab="refunds">Refund Requests</button>
-      <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
-    </div>
-    
-    <div class="tabs-content">
-      <!-- Products Tab -->
-      <div id="productsTab" class="tab-content active">
-        <div class="tab-header"><h3><i class="fas fa-box"></i> My Listed Products</h3><div class="tab-actions"><input type="text" id="searchMyProducts" placeholder="Search..." class="search-input"><select id="filterMyProducts" class="select"><option value="all">All Status</option><option value="active">Active</option><option value="sold">Sold</option></select></div></div>
-        <div id="myProductsList" class="products-table"><div class="empty-state"><i class="fas fa-box-open"></i><h4>No products yet</h4><p>Start by listing your first product</p></div></div>
+  <!-- DASHBOARD SECTION -->
+  <section id="dashboardSection" class="dashboard-section" style="display: none;">
+    <div class="dashboard-header">
+      <div class="dashboard-title">
+        <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
+        <span id="dashboardRoleBadge" class="role-badge">Seller</span>
       </div>
-      
-      <!-- Sales Tab -->
-      <div id="salesTab" class="tab-content">
-        <div class="tab-header"><h3><i class="fas fa-chart-bar"></i> Sales History</h3><div class="tab-actions"><select id="salesPeriod" class="select"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select><select id="salesStatus" class="select"><option value="all">All Status</option><option value="pending_seller_approval">Pending</option><option value="seller_accepted">Accepted</option><option value="paid">Paid</option><option value="completed">Completed</option></select></div></div>
-        <div id="salesList" class="sales-table"><div class="empty-state"><i class="fas fa-shopping-cart"></i><h4>No sales yet</h4></div></div>
-        <div class="sales-summary"><div class="summary-card"><h4>Total Sales Value</h4><h2 id="totalSalesValue">$0.00</h2></div><div class="summary-card"><h4>Your Earnings</h4><h2 id="yourEarnings">$0.00</h2></div><div class="summary-card"><h4>Platform Fee</h4><h2 id="platformFee">$0.00</h2></div></div>
-      </div>
-      
-      <!-- Pending Orders Tab -->
-      <div id="pendingOrdersTab" class="tab-content">
-        <div class="tab-header"><h3><i class="fas fa-clock"></i> Orders Awaiting Response</h3><div class="tab-actions"><button id="refreshPendingOrders" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
-        <div id="pendingOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending orders</h4></div></div>
-      </div>
-      
-      <!-- PAID ORDERS TAB - Ready for Delivery -->
-      <div id="paidOrdersTab" class="tab-content">
-        <div class="tab-header"><h3><i class="fas fa-money-bill-wave"></i> Paid Orders - Ready for Delivery</h3><div class="tab-actions"><span style="color: var(--success); font-size: 13px;"><i class="fas fa-info-circle"></i> Payment confirmed - Ready to ship</span></div></div>
-        <div id="paidOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No paid orders</h4><p>Orders with confirmed payment appear here</p></div></div>
-      </div>
-      
-    
-      <!-- Analytics Tab -->
-      <div id="analyticsTab" class="tab-content">
-        <div class="analytics-grid">
-          <div class="analytics-card"><h3><i class="fas fa-chart-line"></i> Sales Overview</h3><div class="chart-container"><canvas id="salesChart"></canvas></div></div>
-          <div class="analytics-card"><h3><i class="fas fa-chart-pie"></i> Product Categories</h3><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
-          <div class="analytics-card"><h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3><div class="stats-list"><div class="stat-item"><span>Best Selling Product</span><strong id="bestProduct">N/A</strong></div><div class="stat-item"><span>Conversion Rate</span><strong id="conversionRate">0%</strong></div></div></div>
-        </div>
-      </div>
-      
-      <!-- Refunds Tab -->
-      <div id="refundsTab" class="tab-content">
-        <div class="tab-header"><h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3><div class="tab-actions"><span style="color: var(--text-gray); font-size: 13px;"><i class="fas fa-info-circle"></i> Respond within 48 hours</span></div></div>
-        <div id="pendingRefundsList" class="refunds-grid"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4></div></div>
-      </div>
-      
-      <!-- Admin Tab -->
-      <div id="adminTabContent" class="tab-content">
-        <div class="admin-panel">
-          <div class="admin-section"><h3><i class="fas fa-users"></i> User Management</h3><div class="admin-table"><table id="usersTable"><thead><tr><th>User</th><th>Role</th><th>Products</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">Loading...</td></tr></tbody></table></div></div>
-          <div class="admin-section"><h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3><div class="platform-stats"><div class="platform-stat"><h4>Total Users</h4><h2 id="platformTotalUsers">0</h2></div><div class="platform-stat"><h4>Total Products</h4><h2 id="platformTotalProducts">0</h2></div><div class="platform-stat"><h4>Total Sales</h4><h2 id="platformTotalSales">0</h2></div><div class="platform-stat"><h4>Platform Revenue</h4><h2 id="platformRevenue">$0.00</h2></div></div></div>
-        </div>
+      <div class="dashboard-actions">
+        <button id="toggleDashboard" class="btn primary"><i class="fas fa-store"></i> Back to Products</button>
+        <button id="exportData" class="btn secondary"><i class="fas fa-file-export"></i> Export</button>
       </div>
     </div>
-  </div>
-</section>
-  </main>
+
+    <div id="adminControls" class="admin-controls" style="display: none;">
+      <div class="admin-search-bar">
+        <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." class="search-input" style="flex: 1;">
+        <select id="adminSearchCategory" class="select">
+          <option value="all">All Categories</option>
+          <option value="users">Users</option>
+          <option value="products">Products</option>
+          <option value="orders">Orders</option>
+        </select>
+        <button id="adminSearchBtn" class="btn primary"><i class="fas fa-search"></i> Search</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);"><i class="fas fa-box-open" style="color: var(--accent);"></i></div><div class="stat-content"><h3 id="totalProducts">0</h3><p>Total Products</p></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);"><i class="fas fa-shopping-cart" style="color: var(--success);"></i></div><div class="stat-content"><h3 id="totalSales">0</h3><p>Total Sales</p></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);"><i class="fas fa-money-bill-wave" style="color: var(--warning);"></i></div><div class="stat-content"><h3 id="totalRevenue">$0</h3><p>Total Revenue</p></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);"><i class="fas fa-star" style="color: var(--digital);"></i></div><div class="stat-content"><h3 id="avgRating">0.0</h3><p>Average Rating</p></div></div>
+    </div>
+
+    <div class="dashboard-tabs">
+      <div class="tabs-header">
+        <button class="tab-btn active" data-tab="products">My Products</button>
+        <button class="tab-btn" data-tab="sales">Sales History</button>
+        <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders <span id="paidBadge" class="badge" style="display:none;"></span></button>
+        <button class="tab-btn" data-tab="analytics">Analytics</button>
+        <button class="tab-btn" data-tab="refunds">Refund Requests</button>
+        <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
+      </div>
+      
+      <div class="tabs-content">
+        <div id="productsTab" class="tab-content active">
+          <div class="tab-header"><h3><i class="fas fa-box"></i> My Listed Products</h3><div class="tab-actions"><input type="text" id="searchMyProducts" placeholder="Search..." class="search-input"><select id="filterMyProducts" class="select"><option value="all">All Status</option><option value="active">Active</option><option value="sold">Sold</option></select></div></div>
+          <div id="myProductsList" class="products-table"><div class="empty-state"><i class="fas fa-box-open"></i><h4>No products yet</h4><p>Start by listing your first product</p></div></div>
+        </div>
+        
+        <div id="salesTab" class="tab-content">
+          <div class="tab-header"><h3><i class="fas fa-chart-bar"></i> Sales History</h3><div class="tab-actions"><select id="salesPeriod" class="select"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select><select id="salesStatus" class="select"><option value="all">All Status</option><option value="pending_seller_approval">Pending</option><option value="seller_accepted">Accepted</option><option value="paid">Paid</option><option value="completed">Completed</option></select></div></div>
+          <div id="salesList" class="sales-table"><div class="empty-state"><i class="fas fa-shopping-cart"></i><h4>No sales yet</h4></div></div>
+          <div class="sales-summary"><div class="summary-card"><h4>Total Sales Value</h4><h2 id="totalSalesValue">$0.00</h2></div><div class="summary-card"><h4>Your Earnings</h4><h2 id="yourEarnings">$0.00</h2></div><div class="summary-card"><h4>Platform Fee</h4><h2 id="platformFee">$0.00</h2></div></div>
+        </div>
+        
+        <div id="pendingOrdersTab" class="tab-content">
+          <div class="tab-header"><h3><i class="fas fa-clock"></i> Orders Awaiting Response</h3><div class="tab-actions"><button id="refreshPendingOrders" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
+          <div id="pendingOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending orders</h4></div></div>
+        </div>
+        
+        <div id="paidOrdersTab" class="tab-content">
+          <div class="tab-header"><h3><i class="fas fa-money-bill-wave"></i> Paid Orders - Ready for Delivery</h3><div class="tab-actions"><span style="color: var(--success); font-size: 13px;"><i class="fas fa-info-circle"></i> Payment confirmed - Ready to ship</span></div></div>
+          <div id="paidOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No paid orders</h4><p>Orders with confirmed payment appear here</p></div></div>
+        </div>
+        
+        <div id="analyticsTab" class="tab-content">
+          <div class="analytics-grid">
+            <div class="analytics-card"><h3><i class="fas fa-chart-line"></i> Sales Overview</h3><div class="chart-container"><canvas id="salesChart"></canvas></div></div>
+            <div class="analytics-card"><h3><i class="fas fa-chart-pie"></i> Product Categories</h3><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
+            <div class="analytics-card"><h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3><div class="stats-list"><div class="stat-item"><span>Best Selling Product</span><strong id="bestProduct">N/A</strong></div><div class="stat-item"><span>Conversion Rate</span><strong id="conversionRate">0%</strong></div></div></div>
+          </div>
+        </div>
+        
+        <div id="refundsTab" class="tab-content">
+          <div class="tab-header"><h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3><div class="tab-actions"><span style="color: var(--text-gray); font-size: 13px;"><i class="fas fa-info-circle"></i> Respond within 48 hours</span></div></div>
+          <div id="pendingRefundsList" class="refunds-grid"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4></div></div>
+        </div>
+        
+        <div id="adminTabContent" class="tab-content">
+          <div class="admin-panel">
+            <div class="admin-section"><h3><i class="fas fa-users"></i> User Management</h3><div class="admin-table"><table id="usersTable"><thead><tr><th>User</th><th>Role</th><th>Products</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">Loading...</td></tr></tbody></table></div></div>
+            <div class="admin-section"><h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3><div class="platform-stats"><div class="platform-stat"><h4>Total Users</h4><h2 id="platformTotalUsers">0</h2></div><div class="platform-stat"><h4>Total Products</h4><h2 id="platformTotalProducts">0</h2></div><div class="platform-stat"><h4>Total Sales</h4><h2 id="platformTotalSales">0</h2></div><div class="platform-stat"><h4>Platform Revenue</h4><h2 id="platformRevenue">$0.00</h2></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
 
   <!-- MODALS SECTION -->
   <!-- Login Modal -->

@@ -3871,14 +3871,72 @@ In the name of Allah, the Most Gracious, the Most Merciful
         </div>
       </div>
     </div>
+// In your products.html, replace the product cost section with:
 
-    <div class="form-group" style="margin-top: 20px;">
-      <label class="form-label">Product Cost (Your cost to fulfill) <span style="color: var(--text-muted);">(optional)</span></label>
-      <input type="number" id="p_productCost" class="form-input" step="0.01" min="0.01" placeholder="e.g. 3.00 (optional, defaults to $3.00)" />
-      <span class="form-help">How much it costs YOU to buy/fulfill this product (optional - defaults to $3.00)</span>
+<!-- Product Condition Section -->
+<div class="form-section">
+    <div class="form-section-header">
+        <i class="fas fa-clipboard-list"></i>
+        <h4>Product Condition & Specifications</h4>
     </div>
-  </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label">Product Condition <span class="required">*</span></label>
+            <select id="p_condition_type" class="form-select" required>
+                <option value="new">🌟 Brand New (Unopened/Sealed)</option>
+                <option value="like_new">✨ Like New (Opened but unused)</option>
+                <option value="excellent">⭐ Excellent (Very light use, no defects)</option>
+                <option value="good">👍 Good (Normal wear, fully functional)</option>
+                <option value="fair">👌 Fair (Visible wear, fully functional)</option>
+                <option value="acceptable">📦 Acceptable (Heavy wear, functional)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Manufacturing Date (if applicable)</label>
+            <input type="date" id="p_manufacturing_date" class="form-input" />
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Detailed Condition Description</label>
+        <textarea id="p_condition_description" class="form-textarea" rows="3" 
+                  placeholder="Describe any scratches, dents, wear, or issues. Be honest to avoid disputes."></textarea>
+        <span class="form-help">⚠️ Accurate descriptions reduce refund disputes by 70%</span>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label">Warranty Period (months)</label>
+            <input type="number" id="p_warranty_months" class="form-input" value="0" min="0" max="60" />
+            <span class="form-help">0 = No warranty, 12 = 1 year warranty</span>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Original Packaging</label>
+            <select id="p_original_packaging" class="form-select">
+                <option value="1">✅ Yes, original packaging included</option>
+                <option value="0">📦 No, generic/replacement packaging</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Accessories Included</label>
+        <input type="text" id="p_accessories" class="form-input" 
+               placeholder="e.g., Charger, manual, box, original cable, warranty card" />
+        <span class="form-help">List all included items to avoid returns</span>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Visible Defects (if any)</label>
+        <textarea id="p_defects" class="form-textarea" rows="2" 
+                  placeholder="List any scratches, dents, marks, or issues with photos"></textarea>
+    </div>
 </div>
+
+<!-- Remove the product cost section entirely -->
     <!-- In your existing products.html, find this section (around line 700-800) -->
 <!-- REPLACE the current "Payment Account Setup" section with this: -->
 

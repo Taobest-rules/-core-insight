@@ -547,6 +547,160 @@ function getOrderStatusUpdateTemplate(orderData) {
     </html>
   `;
 }
+
+async function createFlutterwaveSubaccount(userId, bankData) {
+    try {
+        const { bank_code, account_number, business_name, country = 'NG' } = bankData;
+        
+        console.log(`🔧 Creating Flutterwave subaccount for user ${userId}:`, { bank_code, account_number, business_name });
+        
+        const payload = {
+            account_bank: String(bank_code).padStart(3, '0'),
+            account_number: String(account_number),
+            business_name: business_name,
+            split_type: "percentage",
+            split_value: 0.9,
+            country: country,
+            business_mobile: bankData.business_phone || '',
+            business_email: bankData.business_email || ''
+        };
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/subaccounts',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        if (response.data.status === 'success') {
+            const subaccountId = response.data.data.subaccount_id;
+            
+            // Save to database
+            await db.query(
+                `UPDATE users 
+                 SET flutterwave_subaccount_id = ?,
+                     subaccount_created_at = NOW(),
+                     subaccount_status = 'active',
+                     bank_code = ?,
+                     account_number = ?,
+                     account_name = ?
+                 WHERE id = ?`,
+                [subaccountId, bank_code, account_number, business_name, userId]
+            );
+            
+            console.log(`✅ Flutterwave subaccount created for user ${userId}: ${subaccountId}`);
+            return { success: true, subaccount_id: subaccountId };
+        } else {
+            throw new Error(response.data.message || 'Subaccount creation failed');
+        }
+        
+    } catch (err) {
+        console.error(`❌ Flutterwave subaccount error for user ${userId}:`, err.response?.data || err.message);
+        return { success: false, error: err.response?.data?.message || err.message };
+    }
+}
+
+async function createPaystackSubaccount(userId, bankData) {
+    try {
+        const { bank_code, account_number, business_name } = bankData;
+        
+        console.log(`🔧 Creating Paystack subaccount for user ${userId}:`, { bank_code, account_number, business_name });
+        
+        const payload = {
+            business_name: business_name,
+            settlement_bank: String(bank_code),
+            account_number: String(account_number),
+            percentage_charge: 90,  // 90% to seller
+            primary_contact_email: bankData.business_email,
+            primary_contact_name: business_name,
+            metadata: {
+                user_id: userId,
+                platform_fee: 10
+            }
+        };
+        
+        const response = await axios.post(
+            'https://api.paystack.co/subaccount',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        if (response.data.status === true && response.data.data) {
+            const subaccountCode = response.data.data.subaccount_code;
+            
+            // Save to database
+            await db.query(
+                `UPDATE users 
+                 SET paystack_subaccount_code = ?,
+                     subaccount_created_at = NOW(),
+                     subaccount_status = 'active',
+                     bank_code = ?,
+                     account_number = ?,
+                     account_name = ?
+                 WHERE id = ?`,
+                [subaccountCode, bank_code, account_number, business_name, userId]
+            );
+            
+            console.log(`✅ Paystack subaccount created for user ${userId}: ${subaccountCode}`);
+            return { success: true, subaccount_code: subaccountCode };
+        } else {
+            throw new Error(response.data.message || 'Subaccount creation failed');
+        }
+        
+    } catch (err) {
+        console.error(`❌ Paystack subaccount error for user ${userId}:`, err.response?.data || err.message);
+        return { success: false, error: err.response?.data?.message || err.message };
+    }
+}
+// Auto-escalate refunds that are pending for more than 3 days
+setInterval(async () => {
+  const staleRefunds = await db.query(`
+    SELECT o.*, 
+           TIMESTAMPDIFF(HOUR, o.refund_requested_at, NOW()) as hours_pending
+    FROM physical_orders o
+    WHERE o.order_status = 'refund_requested'
+      AND o.refund_requested_at < DATE_SUB(NOW(), INTERVAL 3 DAY)
+      AND o.admin_review_requested_at IS NULL
+      AND o.refund_auto_escalated = FALSE
+  `);
+  
+  for (const refund of staleRefunds) {
+    console.log(`⚠️ Auto-escalating refund #${refund.id} after ${refund.hours_pending} hours`);
+    
+    await db.query(
+      `UPDATE physical_orders 
+       SET admin_review_requested_at = NOW(),
+           refund_auto_escalated = TRUE,
+           refund_notes = CONCAT(IFNULL(refund_notes, ''), ' [Auto-escalated: No resolution after 3 days]')
+       WHERE id = ?`,
+      [refund.id]
+    );
+    
+    // Notify admins
+    const admins = await db.query("SELECT email FROM users WHERE role = 'admin'");
+    for (const admin of admins) {
+      await sendEmail(admin.email, `⚠️ Auto-Escalated Refund #${refund.id} - Needs Review`, `
+        <h2>Refund Auto-Escalated to Admin</h2>
+        <p><strong>Order #${refund.id}</strong> has been pending for ${Math.floor(refund.hours_pending / 24)} days.</p>
+        <p><strong>Reason:</strong> ${refund.refund_reason}</p>
+        <p><strong>Customer:</strong> ${refund.buyer_name || 'Customer'}</p>
+        <p><strong>Seller:</strong> ${refund.seller_name || 'Seller'}</p>
+        <p><strong>Action Required:</strong> Review and make final decision within 48 hours.</p>
+      `);
+    }
+  }
+}, 3600000); // Check every hour
 // ============================================
 // CURRENCY CONVERSION ENDPOINT
 // ============================================
@@ -668,123 +822,71 @@ function startEscrowReleaseScheduler() {
     console.log('✅ Escrow release scheduler started (runs every hour)');
 }
 
-// Function to release expired escrow funds
 async function releaseExpiredEscrowFunds() {
-    try {
-        console.log(`🕐 Running escrow release check at ${new Date().toISOString()}`);
+  try {
+    console.log(`🕐 Running escrow release at ${new Date().toISOString()}`);
+    
+    // ✅ Find orders where 5 days have passed since delivery
+    const orders = await db.query(`
+      SELECT 
+        o.id,
+        o.seller_id,
+        o.total_amount,
+        o.seller_earnings,
+        o.platform_fee,
+        o.payment_held_until,
+        o.delivered_at,
+        u.email as seller_email,
+        u.username as seller_name
+      FROM physical_orders o
+      LEFT JOIN users u ON o.seller_id = u.id
+      WHERE o.payment_status = 'paid'
+        AND o.order_status = 'delivered'
+        AND o.payment_held_until IS NOT NULL
+        AND o.payment_held_until <= NOW()
+        AND o.funds_released_at IS NULL
+        AND o.order_status != 'refund_requested'
+        AND o.order_status != 'refunded'
+    `);
+    
+    for (const order of orders) {
+      try {
+        console.log(`  Releasing $${order.seller_earnings} for order #${order.id}`);
         
-        // Find orders where:
-        // 1. Payment is held in escrow (payment_status = 'paid')
-        // 2. Order is in delivered status (customer confirmed receipt)
-        // 3. 5 days have passed since delivery (payment_held_until <= NOW)
-        // 4. Funds not yet released
-        const orders = await db.query(`
-            SELECT 
-                o.id,
-                o.seller_id,
-                o.total_amount,
-                o.seller_earnings,
-                o.platform_fee,
-                o.payment_held_until,
-                o.delivered_at,
-                u.email as seller_email,
-                u.username as seller_name
-            FROM physical_orders o
-            LEFT JOIN users u ON o.seller_id = u.id
-            WHERE o.payment_status = 'paid'
-                AND o.order_status = 'delivered'
-                AND o.payment_held_until IS NOT NULL
-                AND o.payment_held_until <= NOW()
-                AND o.funds_released_at IS NULL
-        `);
+        // ✅ Release funds to seller
+        await db.query(`
+          UPDATE physical_orders 
+          SET order_status = 'completed',
+              funds_released_at = NOW()
+          WHERE id = ?
+        `, [order.id]);
         
-        if (!orders || orders.length === 0) {
-            console.log('  No orders ready for escrow release');
-            return;
+        // Send email to seller
+        if (order.seller_email) {
+          const emailHtml = `
+            <div style="font-family: Arial; padding: 20px;">
+              <h2 style="color: #10b981;">💰 Funds Released!</h2>
+              <p>Hello ${order.seller_name},</p>
+              <p>$${parseFloat(order.seller_earnings).toFixed(2)} has been released for Order #${order.id}.</p>
+              <p><strong>Breakdown:</strong></p>
+              <ul>
+                <li>Order Total: $${parseFloat(order.total_amount).toFixed(2)}</li>
+                <li>Platform Fee: $${parseFloat(order.platform_fee).toFixed(2)}</li>
+                <li>Your Earnings: $${parseFloat(order.seller_earnings).toFixed(2)}</li>
+              </ul>
+            </div>
+          `;
+          await sendEmail(order.seller_email, `Funds Released - Order #${order.id}`, emailHtml);
         }
         
-        console.log(`  Found ${orders.length} orders ready for release`);
-        
-        let released = 0;
-        let failed = 0;
-        
-        for (const order of orders) {
-            try {
-                console.log(`  Releasing funds for order #${order.id}...`);
-                
-                // Update order to completed and release funds
-                await db.query(`
-                    UPDATE physical_orders 
-                    SET order_status = 'completed',
-                        funds_released_at = NOW()
-                    WHERE id = ?
-                `, [order.id]);
-                
-                // Record in status history
-                try {
-                    await db.query(`
-                        INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-                        VALUES (?, 'escrow_released', 'Funds automatically released after 5-day escrow period', NULL, NOW())
-                    `, [order.id]);
-                } catch (historyErr) {
-                    // Silently fail if table doesn't exist
-                }
-                
-                // Send email notification to seller
-                if (order.seller_email) {
-                    const emailHtml = `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>Funds Released - Core Insight</title>
-                            <style>
-                                body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
-                                .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-                                .amount { font-size: 28px; color: #10b981; font-weight: bold; }
-                                .success-icon { font-size: 48px; text-align: center; margin-bottom: 20px; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="container">
-                                <div class="success-icon">💰</div>
-                                <h1 style="color: #10b981;">Funds Released!</h1>
-                                <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
-                                <p>The escrow period for <strong>Order #${order.id}</strong> has completed successfully.</p>
-                                <p class="amount">$${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
-                                <p>has been released to your account.</p>
-                                <p>Funds should appear in your bank account within 3-5 business days.</p>
-                                <hr style="border-color: #334155; margin: 20px 0;">
-                                <p style="font-size: 12px; color: #94a3b8;">
-                                    Order total: $${parseFloat(order.total_amount).toFixed(2)}<br>
-                                    Platform fee (10%): $${parseFloat(order.platform_fee || order.total_amount * 0.1).toFixed(2)}
-                                </p>
-                                <a href="https://coreinsightmarket.com/dashboard " 
-                                   style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
-                                    View Dashboard
-                                </a>
-                            </div>
-                        </body>
-                        </html>
-                    `;
-                    
-                    await sendEmail(order.seller_email, `Funds Released for Order #${order.id}`, emailHtml);
-                    console.log(`  ✅ Email sent to seller for order #${order.id}`);
-                }
-                
-                released++;
-                console.log(`  ✅ Released funds for order #${order.id}`);
-                
-            } catch (err) {
-                console.error(`  ❌ Failed to release order #${order.id}:`, err.message);
-                failed++;
-            }
-        }
-        
-        console.log(`📊 Escrow release summary: ${released} released, ${failed} failed`);
-        
-    } catch (err) {
-        console.error('❌ Escrow release error:', err);
+      } catch (err) {
+        console.error(`Failed to release order #${order.id}:`, err.message);
+      }
     }
+    
+  } catch (err) {
+    console.error('Escrow release error:', err);
+  }
 }
 
 // Also add a manual trigger endpoint for testing
@@ -4668,6 +4770,210 @@ const checkSellerVerification = async (req, res, next) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// Admin resolve dispute endpoint
+app.post("/api/admin/resolve-dispute/:orderId", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const orderId = req.params.orderId;
+    const { decision, admin_notes, refund_amount } = req.body;
+    
+    const order = await db.query(
+      `SELECT o.*, u_buyer.email as buyer_email, u_seller.email as seller_email
+       FROM physical_orders o
+       LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+       LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+    
+    if (!order || order.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const orderData = order[0];
+    
+    if (decision === 'customer_wins') {
+      // Full refund to customer, seller gets nothing
+      const refundAmount = refund_amount || orderData.total_amount;
+      await processPaymentRefund(orderData);
+      
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'refunded',
+             refund_processed_at = NOW(),
+             refund_approved_by = ?,
+             admin_decision = 'customer_wins',
+             admin_notes = ?,
+             refund_amount = ?,
+             admin_resolved_at = NOW()
+         WHERE id = ?`,
+        [req.session.user.id, admin_notes, refundAmount, orderId]
+      );
+      
+      await sendEmail(orderData.buyer_email, `Dispute Resolved in Your Favor - Order #${orderId}`, `
+        <h2>✅ Dispute Resolved - Refund Issued</h2>
+        <p>After reviewing your dispute, we have decided in your favor.</p>
+        <p>Refund Amount: $${refundAmount.toFixed(2)}</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+      
+      await sendEmail(orderData.seller_email, `Dispute Resolved - Order #${orderId}`, `
+        <h2>⚠️ Dispute Resolution</h2>
+        <p>The dispute for Order #${orderId} has been resolved in the customer's favor.</p>
+        <p>A refund of $${refundAmount.toFixed(2)} has been issued to the customer.</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+      
+    } else if (decision === 'seller_wins') {
+      // Release funds to seller, no refund
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'completed',
+             funds_released_at = NOW(),
+             admin_decision = 'seller_wins',
+             admin_notes = ?,
+             admin_resolved_at = NOW()
+         WHERE id = ?`,
+        [admin_notes, orderId]
+      );
+      
+      await sendEmail(orderData.seller_email, `Dispute Resolved in Your Favor - Order #${orderId}`, `
+        <h2>✅ Dispute Resolved - Funds Released</h2>
+        <p>After reviewing the dispute, we have decided in your favor.</p>
+        <p>$${orderData.seller_earnings} has been released to your account.</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+      
+      await sendEmail(orderData.buyer_email, `Dispute Resolution - Order #${orderId}`, `
+        <h2>⚠️ Dispute Resolution</h2>
+        <p>After reviewing your dispute, we have decided in the seller's favor.</p>
+        <p>No refund will be issued.</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+      
+    } else if (decision === 'split') {
+      // Split the loss between platform and seller
+      const splitAmount = refund_amount || (orderData.total_amount * 0.5);
+      
+      await processPaymentRefund({ ...orderData, total_amount: splitAmount });
+      
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'refunded',
+             refund_processed_at = NOW(),
+             refund_approved_by = ?,
+             admin_decision = 'split',
+             admin_notes = ?,
+             refund_amount = ?,
+             admin_resolved_at = NOW()
+         WHERE id = ?`,
+        [req.session.user.id, admin_notes, splitAmount, orderId]
+      );
+      
+      // Notify both parties
+      await sendEmail(orderData.buyer_email, `Dispute Resolution - Partial Refund - Order #${orderId}`, `
+        <h2>⚠️ Dispute Resolution - Partial Refund</h2>
+        <p>After reviewing the dispute, we have issued a partial refund.</p>
+        <p>Refund Amount: $${splitAmount.toFixed(2)}</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+      
+      await sendEmail(orderData.seller_email, `Dispute Resolution - Partial Refund - Order #${orderId}`, `
+        <h2>⚠️ Dispute Resolution - Partial Refund Issued</h2>
+        <p>A partial refund of $${splitAmount.toFixed(2)} has been issued to the customer.</p>
+        <p>You will receive the remaining balance.</p>
+        <p>Admin Notes: ${admin_notes}</p>
+      `);
+    }
+    
+    // Update dispute record
+    await db.query(
+      `UPDATE refund_disputes 
+       SET status = 'resolved', 
+           resolved_at = NOW(), 
+           final_decision = ?,
+           assigned_admin_id = ?
+       WHERE order_id = ?`,
+      [decision, req.session.user.id, orderId]
+    );
+    
+    res.json({
+      success: true,
+      message: `Dispute resolved: ${decision}`,
+      decision: decision
+    });
+    
+  } catch (err) {
+    console.error("Admin resolve error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Helper function for sellers to compare returned product
+app.get("/api/order/:orderId/inspection-guide", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    
+    const orderId = req.params.orderId;
+    
+    const product = await db.query(`
+      SELECT p.condition_type, p.condition_description, p.visible_defects, 
+             p.accessories_included, p.original_packaging,
+             o.product_name, o.id as order_id
+      FROM products p
+      JOIN physical_orders o ON p.id = o.product_id
+      WHERE o.id = ? AND o.seller_id = ?
+    `, [orderId, req.session.user.id]);
+    
+    if (!product || product.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    
+    const inspectionGuide = `
+      <div class="inspection-guide">
+        <h3>📋 Return Inspection Checklist</h3>
+        <p><strong>Product:</strong> ${product[0].product_name}</p>
+        <p><strong>Expected Condition:</strong> ${product[0].condition_type}</p>
+        <p><strong>Description Provided:</strong> ${product[0].condition_description || 'No description'}</p>
+        
+        <div class="checklist">
+          <h4>✅ Verify These Items:</h4>
+          <ul>
+            <li><input type="checkbox"> Product matches ${product[0].condition_type} condition standard</li>
+            ${product[0].visible_defects ? `<li><input type="checkbox"> Visible defects match: ${product[0].visible_defects}</li>` : ''}
+            ${product[0].accessories_included ? `<li><input type="checkbox"> Accessories included: ${product[0].accessories_included}</li>` : ''}
+            ${product[0].original_packaging ? '<li><input type="checkbox"> Original packaging included</li>' : ''}
+            <li><input type="checkbox"> No additional damage beyond described</li>
+            <li><input type="checkbox"> All parts and components present</li>
+          </ul>
+        </div>
+        
+        <div class="photo-required">
+          <h4>📸 Required Photos for Disputes:</h4>
+          <p>If rejecting return, upload photos showing:</p>
+          <ul>
+            <li>The damage or missing parts</li>
+            <li>Comparison with your listing photos</li>
+            <li>Packaging condition</li>
+          </ul>
+        </div>
+      </div>
+    `;
+    
+    res.json({
+      success: true,
+      inspection_guide: inspectionGuide,
+      condition_details: product[0]
+    });
+    
+  } catch (err) {
+    console.error("Inspection guide error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED
 // ============================================
@@ -10356,16 +10662,18 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
       
       console.log(`💰 Order #${orderId} earnings:`, feeBreakdown);
       
-      await db.query(
-        `UPDATE physical_orders 
-         SET order_status = 'seller_accepted',
-             seller_accepted_at = NOW(),
-             platform_fee = ?,
-             seller_earnings = ?,
-             fee_breakdown = ?
-         WHERE id = ?`,
-        [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
-      );
+     // In your respondToOrder function, when accepting:
+await db.query(
+    `UPDATE physical_orders 
+     SET order_status = 'seller_accepted',
+         seller_accepted_at = NOW(),
+         platform_fee = ?,
+         seller_earnings = ?,
+         fee_breakdown = ?,
+         payment_held_until = NULL  -- ✅ Escrow not started yet
+     WHERE id = ?`,
+    [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
+);
 
       await db.query(
         `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
@@ -11887,65 +12195,41 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
   }
 });
 
-// =================== DIGITAL PRODUCT DOWNLOAD - UPDATED FOR IMGBB ===================
-app.get("/api/download-digital/:orderId", async (req, res) => {
+// Enhanced download endpoint - proxies the file instead of redirecting
+app.get("/api/download-secure/:orderId", async (req, res) => {
   try {
     const orderId = req.params.orderId;
     const { token } = req.query;
     
-    if (!token) {
-      return res.status(401).json({ error: "Download token required" });
-    }
+    // Verify token and payment (same as before)
+    const order = await db.query(`
+      SELECT o.*, p.file_url, p.title
+      FROM digital_orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.id = ? AND o.download_url LIKE ? AND o.download_expires_at > NOW()
+    `, [orderId, `%token=${token}%`]);
     
-    // Verify order and token
-    const orders = await db.query(
-      `SELECT o.*, p.file_url, p.file_path, p.title
-       FROM digital_orders o
-       JOIN products p ON o.product_id = p.id
-       WHERE o.id = ? AND o.download_url LIKE ? AND o.download_expires_at > NOW()`,
-      [orderId, `%token=${token}%`]
-    );
-    
-    if (!orders || orders.length === 0) {
+    if (!order || order.length === 0) {
       return res.status(404).json({ error: "Download link invalid or expired" });
     }
     
-    const orderData = orders[0];
-    let fileUrl = orderData.file_url;
+    const fileUrl = order[0].file_url;
+    const filename = order[0].title.replace(/[^a-z0-9]/gi, '_') + '.pdf';
     
-    if (!fileUrl) {
-      return res.status(404).json({ error: "File URL not found" });
-    }
-    
-    // For ImgBB URLs - redirect to download
-    if (fileUrl.includes('imgbb.com') || fileUrl.includes('i.ibb.co')) {
-      console.log(`✅ Redirecting to ImgBB file for order #${orderId}: ${fileUrl}`);
-      return res.redirect(fileUrl);
-    }
-    
-    // For local files (fallback)
-    if (fileUrl.startsWith('/uploads/')) {
-      const localPath = path.join(__dirname, fileUrl);
-      if (fs.existsSync(localPath)) {
-        return res.download(localPath, `${orderData.title}.pdf`);
-      }
-    }
-    
-    // For generic HTTP URLs
-    if (fileUrl.startsWith('http')) {
-      return res.redirect(fileUrl);
-    }
-    
-    res.status(404).json({ 
-      error: "File not found. Please contact support.",
-      debug: {
-        file_url: fileUrl,
-        order_id: orderId
-      }
+    // PROXY THE FILE (hide the actual storage URL)
+    const response = await axios({
+      method: 'GET',
+      url: fileUrl,
+      responseType: 'stream'
     });
     
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', response.headers['content-type']);
+    
+    response.data.pipe(res);
+    
   } catch (err) {
-    console.error("❌ Download error:", err);
+    console.error('Download error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -12466,48 +12750,27 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
 // Confirm delivery (for buyers)
 app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
-    }
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
     
     const orderId = req.params.orderId;
     const { delivery_code } = req.body;
     
-    if (!delivery_code) {
-      return res.status(400).json({ error: "Delivery code is required" });
-    }
-    
-    // Get order with buyer info
     const orderResult = await db.query(
-      `SELECT o.*, u.email as buyer_email, u.username as buyer_name, p.title as product_name
-       FROM physical_orders o
-       LEFT JOIN users u ON o.buyer_id = u.id
-       LEFT JOIN products p ON o.product_id = p.id
-       WHERE o.id = ? AND o.seller_id = ?`,
+      `SELECT o.* FROM physical_orders o WHERE o.id = ? AND o.seller_id = ?`,
       [orderId, req.session.user.id]
     );
     
-    if (!orderResult || orderResult.length === 0) {
-      return res.status(404).json({ error: "Order not found or you don't have permission" });
-    }
-    
     const order = orderResult[0];
     
-    // Check if order is in shipped status
     if (order.order_status !== 'shipped') {
-      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
+      return res.status(400).json({ error: "Order must be shipped first" });
     }
     
-    if (!order.delivery_code) {
-      return res.status(400).json({ error: "No delivery code generated for this order yet" });
-    }
-    
-    // Verify the code matches
     if (order.delivery_code !== delivery_code) {
-      return res.status(400).json({ error: "Invalid delivery code. Please check with the customer and try again." });
+      return res.status(400).json({ error: "Invalid delivery code" });
     }
     
-    // Mark as delivered - START 5-DAY ESCROW COUNTDOWN
+    // ✅ START 5-DAY ESCROW COUNTDOWN FROM DELIVERY CONFIRMATION
     const escrowReleaseDate = new Date();
     escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
     
@@ -12515,64 +12778,22 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
       `UPDATE physical_orders 
        SET order_status = 'delivered',
            delivered_at = NOW(),
-           payment_held_until = ?
+           payment_held_until = ?,  -- 5-day countdown starts NOW
+           delivery_code_used = 1
        WHERE id = ?`,
       [escrowReleaseDate, orderId]
     );
     
-    // NEW - Replace with this
-await db.query(
-  `UPDATE physical_orders 
-   SET delivery_code_used = 1
-   WHERE id = ?`,
-  [orderId]
-);
-    
-    // Add to status history
-    await db.query(
-      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-       VALUES (?, 'delivered', 'Delivery confirmed with code. 5-day escrow started.', ?, NOW())`,
-      [orderId, req.session.user.id]
-    );
-    
-    // Send confirmation email to buyer
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Delivery Confirmed - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          .success { color: #10b981; font-size: 48px; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="success">✅</div>
-          <h1>Delivery Confirmed!</h1>
-          <p>Hello ${order.buyer_name},</p>
-          <p>Your order for <strong>${order.product_name}</strong> has been confirmed as delivered.</p>
-          <p>Funds will be released to the seller in 5 days (${escrowReleaseDate.toLocaleDateString()}) unless you request a refund.</p>
-          <p>If there are any issues with your order, you can request a refund within the next 5 days.</p>
-          <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">Track Your Order</a>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    await sendEmail(order.buyer_email, `Delivery Confirmed for Order #${orderId}`, emailHtml);
-    
     res.json({
       success: true,
-      message: "Delivery confirmed! 5-day escrow period has started.",
-      order_status: 'delivered',
+      message: "Delivery confirmed! 5-day escrow period started.",
       escrow_release_date: escrowReleaseDate,
-      days_until_release: 5
+      seller_earnings: order.seller_earnings,
+      platform_fee: order.platform_fee
     });
     
   } catch (err) {
-    console.error("❌ Confirm delivery error:", err);
+    console.error("Confirm delivery error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -13206,7 +13427,6 @@ app.post("/api/orders/:orderId/release-funds", async (req, res) => {
 // ============================================
 // VERIFY DELIVERY CODE AND START ESCROW COUNTDOWN
 // ============================================
-
 app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -13216,14 +13436,9 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     const orderId = req.params.orderId;
     const { delivery_code } = req.body;
     
-    if (!delivery_code) {
-      return res.status(400).json({ error: "Delivery code is required" });
-    }
-    
     // Verify buyer owns this order
     const orderResult = await db.query(
-      `SELECT o.*, u.email as seller_email, u.username as seller_name, 
-              p.title as product_name, p.id as product_id
+      `SELECT o.*, u.email as seller_email, u.username as seller_name, p.title as product_name
        FROM physical_orders o
        LEFT JOIN users u ON o.seller_id = u.id
        LEFT JOIN products p ON o.product_id = p.id
@@ -13237,192 +13452,45 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     
     const order = orderResult[0];
     
-    // Check if order is in shipped status (has delivery code)
     if (order.order_status !== 'shipped') {
-      return res.status(400).json({ 
-        error: `Cannot confirm delivery for order with status: ${order.order_status}` 
-      });
+      return res.status(400).json({ error: `Cannot confirm delivery for order with status: ${order.order_status}` });
     }
     
     if (!order.delivery_code) {
       return res.status(400).json({ error: "No delivery code generated for this order yet" });
     }
     
-    // Verify the code
     if (order.delivery_code !== delivery_code) {
-      return res.status(400).json({ error: "Invalid delivery code. Please check and try again." });
+      return res.status(400).json({ error: "Invalid delivery code" });
     }
     
-    // Calculate escrow release date: 5 days from NOW (delivery confirmation)
+    // ✅ START 5-DAY ESCROW COUNTDOWN FROM DELIVERY CONFIRMATION
     const escrowReleaseDate = new Date();
     escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
     
-    // Get current time for delivered_at
-    const deliveredAt = new Date();
-    
-    // Update order to delivered status and START the 5-day escrow countdown
     await db.query(
       `UPDATE physical_orders 
        SET order_status = 'delivered',
-           delivered_at = ?,
-           payment_held_until = ?,  -- ✅ 5-day countdown STARTS NOW
-           delivery_code_verified_at = ?,
-           delivery_code_verified_by = ?
+           delivered_at = NOW(),
+           payment_held_until = ?,  -- 5-day countdown starts NOW
+           delivery_code_used = 1
        WHERE id = ?`,
-      [deliveredAt, escrowReleaseDate, deliveredAt, req.session.user.id, orderId]
+      [escrowReleaseDate, orderId]
     );
     
-    // Mark delivery code as used
-    try {
-      await db.query(
-        `UPDATE delivery_codes 
-         SET status = 'used', 
-             used_at = NOW(), 
-             used_by = ?
-         WHERE order_id = ? AND code = ?`,
-        [req.session.user.id, orderId, delivery_code]
-      );
-    } catch (codeErr) {
-      console.log('Delivery codes table not available yet');
-    }
-    
     // Add to status history
-    try {
-      await db.query(
-        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-         VALUES (?, 'delivered', 'Buyer confirmed delivery with code. 5-day escrow countdown started.', ?, NOW())`,
-        [orderId, req.session.user.id]
-      );
-    } catch (historyErr) {
-      console.log('History table not available yet');
-    }
-    
-    // Send notification to seller
-    const sellerEmailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Order Delivered - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          .success { color: #10b981; }
-          .info { color: #f59e0b; }
-          .release-date { font-size: 20px; font-weight: bold; color: #10b981; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1 class="success">✅ Order Delivered!</h1>
-          <p>Hello ${escapeHtml(order.seller_name || 'Seller')},</p>
-          <p>Great news! Your order for <strong>${escapeHtml(order.product_name)}</strong> has been delivered and confirmed by the buyer.</p>
-          
-          <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin: 20px 0;">
-            <h3>Order #${orderId}</h3>
-            <p><strong>Product:</strong> ${escapeHtml(order.product_name)}</p>
-            <p><strong>Quantity:</strong> ${order.quantity}</p>
-            <p><strong>Total Amount:</strong> $${parseFloat(order.total_amount).toFixed(2)}</p>
-            <p><strong>Your Earnings (90%):</strong> $${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</p>
-            <p><strong>Platform Fee (10%):</strong> $${parseFloat(order.platform_fee || order.total_amount * 0.1).toFixed(2)}</p>
-          </div>
-          
-          <div class="info" style="background: #f59e0b20; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>⏰ ESCROW RELEASE INFORMATION</strong><br>
-            <p>Funds will be automatically released to your account on:</p>
-            <p class="release-date">${escrowReleaseDate.toLocaleDateString()} (5 days from now)</p>
-            <p>If the buyer does not raise a dispute within 5 days, the funds will be released automatically.</p>
-          </div>
-          
-          <p>No action is needed from you at this time. The funds will be transferred to your bank account after the escrow period.</p>
-          
-          <a href="https://coreinsightmarket.com/dashboard" 
-             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
-            View Dashboard
-          </a>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    await sendEmail(order.seller_email, `Order #${orderId} Delivered - Funds Held in Escrow`, sellerEmailHtml).catch(err => {
-      console.error('Seller delivery notification email failed:', err.message);
-    });
-    
-    // Send confirmation to buyer
-    const buyerEmailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Delivery Confirmed - Core Insight</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #0a192f; color: #e6f1ff; padding: 20px; }
-          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
-          .success { color: #10b981; }
-          .warning { color: #f59e0b; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1 class="success">✅ Delivery Confirmed!</h1>
-          <p>Hello ${escapeHtml(order.seller_name ? 'Valued Customer' : 'there')},</p>
-          <p>Thank you for confirming delivery of <strong>${escapeHtml(order.product_name)}</strong>.</p>
-          
-          <div class="warning" style="background: #f59e0b20; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>⚠️ IMPORTANT - YOUR RIGHTS</strong><br>
-            <p>You have <strong>5 days</strong> from today (until ${escrowReleaseDate.toLocaleDateString()}) to request a refund if:</p>
-            <ul style="margin: 10px 0 0 20px;">
-              <li>The product is damaged or defective</li>
-              <li>The product doesn't match the description</li>
-              <li>You didn't receive what you ordered</li>
-            </ul>
-            <p style="margin-top: 10px;">After 5 days, funds will be automatically released to the seller.</p>
-          </div>
-          
-          <div style="background: #0f172a; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>How to request a refund (if needed):</strong><br>
-            <p>1. Go to your Dashboard → My Orders<br>
-            2. Find this order and click "Request Refund"<br>
-            3. Provide the reason for your refund request</p>
-          </div>
-          
-          <p>Thank you for shopping with Core Insight!</p>
-          
-          <a href="https://coreinsightmarket.com/dashboard" 
-             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px;">
-            View My Orders
-          </a>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    await sendEmail(req.session.user.email, `Delivery Confirmed for Order #${orderId}`, buyerEmailHtml).catch(err => {
-      console.error('Buyer delivery confirmation email failed:', err.message);
-    });
-    
-    // Create a notification for the buyer
-    try {
-      await db.query(
-        `INSERT INTO buyer_notifications (buyer_id, order_id, notification_type, title, message, created_at)
-         VALUES (?, ?, 'delivery_confirmed', 'Delivery Confirmed', 
-                 CONCAT('You have confirmed delivery for Order #', ?, '. You have 5 days to request a refund if needed.'), NOW())`,
-        [req.session.user.id, orderId, orderId]
-      );
-    } catch (notifErr) {
-      console.log('Notification table note available yet');
-    }
+    await db.query(
+      `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+       VALUES (?, 'delivered', 'Buyer confirmed delivery. 5-day escrow countdown started.', ?, NOW())`,
+      [orderId, req.session.user.id]
+    );
     
     res.json({
       success: true,
-      message: "Delivery confirmed! Thank you for your purchase.",
+      message: "Delivery confirmed! 5-day escrow period started.",
       order_status: 'delivered',
       escrow_release_date: escrowReleaseDate,
-      days_until_release: 5,
-      refund_available_until: escrowReleaseDate,
-      next_steps: {
-        for_buyer: "You have 5 days to request a refund if there are any issues with the product.",
-        for_seller: "Funds will be automatically released to your account after 5 days if no dispute is raised."
-      }
+      refund_available_until: escrowReleaseDate
     });
     
   } catch (err) {
@@ -13430,6 +13498,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Get delivery code status (for seller to see if code was used)
 app.get("/api/orders/:orderId/delivery-code-status", async (req, res) => {
   try {
@@ -13520,125 +13589,46 @@ app.post("/api/verify-physical-payment-direct", async (req, res) => {
 // ============================================
 // VERIFY PHYSICAL PAYMENT - COMPLETE FIXED VERSION
 // ============================================
-
 app.get("/api/verify-physical-payment/:transaction_ref", async (req, res) => {
   try {
     const { transaction_ref } = req.params;
     
-    console.log(`🔍 Verifying payment for transaction: ${transaction_ref}`);
-
-    // Check if Paystack payment (starts with PS_)
-    let isPaystack = transaction_ref.startsWith('PS_');
-    let cleanRef = isPaystack ? transaction_ref.substring(3) : transaction_ref;
-    
-    let transaction = null;
-    let amount = 0;
-    let orderId = null;
-    let paymentProvider = null;
-    
-    // Verify with Paystack
-    if (isPaystack && process.env.PAYSTACK_SECRET_KEY) {
-      const response = await axios.get(
-        `https://api.paystack.co/transaction/verify/${cleanRef}`,
-        { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-      );
-      
-      if (response.data.status === true && response.data.data.status === "success") {
-        transaction = response.data.data;
-        amount = transaction.amount / 100;
-        paymentProvider = 'paystack';
-        orderId = transaction.metadata?.order_id;
-        console.log(`✅ Paystack payment verified: ₦${amount}`);
-      }
-    }
-    
-    // Fallback to Flutterwave
-    if (!transaction && process.env.FLW_SECRET_KEY) {
-      const response = await axios.get(
-        `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${transaction_ref}`,
-        { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
-      );
-      
-      if (response.data.status === "success" && response.data.data.status === "successful") {
-        transaction = response.data.data;
-        amount = transaction.amount;
-        paymentProvider = 'flutterwave';
-        orderId = transaction.meta?.order_id;
-        console.log(`✅ Flutterwave payment verified: $${amount}`);
-      }
-    }
-    
-    if (!transaction || !orderId) {
-      return res.status(400).json({ status: "failed", message: "Payment verification failed" });
-    }
-    
-    // Calculate fees
-    const platformFee = amount * 0.10;
-    const sellerAmount = amount - platformFee;
-    const currency = paymentProvider === 'paystack' ? 'NGN' : 'USD';
-    
-    // IMPORTANT: payment_held_until = NULL - escrow starts AFTER delivery confirmation
-    await db.query(
-      `UPDATE physical_orders 
-       SET payment_status = 'paid',
-           order_status = 'paid',
-           payment_collected_at = NOW(),
-           payment_held_until = NULL,
-           platform_fee = ?,
-           seller_earnings = ?,
-           amount_paid = ?,
-           amount_paid_currency = ?,
-           transaction_ref = ?,
-           payment_gateway = ?
-       WHERE id = ?`,
-      [platformFee, sellerAmount, amount, currency, transaction_ref, paymentProvider, orderId]
-    );
-    
-    // Send confirmation email
+    // Get the order with pre-calculated fees
     const orderResult = await db.query(
-      `SELECT o.*, u.email as buyer_email, u.username as buyer_name 
-       FROM physical_orders o 
-       JOIN users u ON o.buyer_id = u.id 
-       WHERE o.id = ?`,
-      [orderId]
+      `SELECT o.*, o.platform_fee, o.seller_earnings 
+       FROM physical_orders o
+       WHERE o.transaction_ref = ? OR o.id = ?`,
+      [transaction_ref, transaction_ref]
     );
     
-    if (orderResult && orderResult.length > 0) {
-      const order = orderResult[0];
-      const emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Payment Confirmed - Core Insight Market</title></head>
-        <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-          <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-            <h1 style="color:#10b981;">✅ Payment Confirmed!</h1>
-            <p>Hello ${order.buyer_name},</p>
-            <p>Your payment for <strong>Order #${orderId}</strong> has been confirmed.</p>
-            <p>Funds are held in escrow and will be released to the seller 5 days AFTER you confirm delivery.</p>
-            <a href="https://coreinsightmarket.com/order-tracking.html?orderId=${orderId}" 
-               style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">
-              Track Your Order
-            </a>
-          </div>
-        </body>
-        </html>
-      `;
-      await sendEmail(order.buyer_email, `Payment Confirmed for Order #${orderId}`, emailHtml);
-    }
+    const order = orderResult[0];
     
-    res.json({
-      status: "success",
-      message: "Payment verified! Funds held in escrow until delivery confirmation.",
-      orderId: orderId,
-      amount: amount,
-      platform_fee: platformFee,
-      seller_earnings: sellerAmount,
-      nextStep: "Funds will be released 5 days after buyer confirms delivery."
-    });
+    // Verify payment with gateway...
+    // (your existing verification code)
+    
+    if (paymentVerified) {
+      // ✅ Use the already calculated fees from when seller accepted
+      await db.query(
+        `UPDATE physical_orders 
+         SET payment_status = 'paid',
+             order_status = 'paid',
+             payment_collected_at = NOW(),
+             payment_held_until = NULL,  -- ⚠️ Not started yet
+             transaction_ref = ?
+         WHERE id = ?`,
+        [transaction_ref, order.id]
+      );
+      
+      res.json({
+        status: "success",
+        message: "Payment verified! Funds in escrow.",
+        platform_fee: order.platform_fee,
+        seller_earnings: order.seller_earnings
+      });
+    }
     
   } catch (err) {
-    console.error('❌ Payment verification error:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Payment verification error:', err);
   }
 });
 
@@ -14090,72 +14080,259 @@ app.get("/api/favorites", async (req, res) => {
   }
 });
 
-// 8. Request refund
 app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
 
     const orderId = req.params.orderId;
-    const { reason } = req.body;
+    const { reason, return_option, pickup_address } = req.body;
 
     if (!reason || reason.length < 10) {
       return res.status(400).json({ error: "Please provide a detailed reason for refund (min 10 characters)" });
     }
 
     const orderResult = await db.query(
-      `SELECT o.*, p.title as product_name 
+      `SELECT o.*, p.title as product_name, p.condition_type, p.condition_description,
+              u_seller.email as seller_email, u_seller.username as seller_name,
+              u_buyer.email as buyer_email, u_buyer.username as buyer_name
        FROM physical_orders o
        LEFT JOIN products p ON o.product_id = p.id
+       LEFT JOIN users u_seller ON o.seller_id = u_seller.id
+       LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
        WHERE o.id = ? AND o.buyer_id = ?`,
       [orderId, req.session.user.id]
     );
 
-    if (!orderResult || orderResult.length === 0) return res.status(404).json({ error: "Order not found" });
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
 
     const order = orderResult[0];
+    
+    // Check if product is delivered
+    const isDelivered = order.order_status === 'delivered';
+    const isShipped = order.order_status === 'shipped';
+    const isPaid = order.order_status === 'paid';
 
-    // Check if refund is within 5-day window
-    const paymentDate = new Date(order.payment_collected_at);
-    const now = new Date();
-    const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
-
-    if (daysSincePayment > 5) {
-      return res.status(400).json({ 
-        error: "Refund window has closed (5 days after payment). Please contact support for assistance." 
-      });
+    // SCENARIO 1: Before delivery - Automatic refund
+    if (!isDelivered && (isPaid || isShipped)) {
+      console.log(`🔄 Auto-refunding order #${orderId} - Product not delivered`);
+      
+      // Process automatic refund
+      const refundSuccess = await processPaymentRefund(order);
+      
+      if (refundSuccess) {
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'refunded',
+               refund_requested_at = NOW(),
+               refund_processed_at = NOW(),
+               refund_reason = ?,
+               refund_type = 'auto_before_delivery',
+               payment_held_until = NULL,
+               funds_released_at = NULL
+           WHERE id = ?`,
+          [reason, orderId]
+        );
+        
+        // Notify seller
+        await sendEmail(order.seller_email, `Order #${orderId} Auto-Refunded`, `
+          <h2>Order #${orderId} has been automatically refunded</h2>
+          <p>Reason: ${reason}</p>
+          <p>The customer was refunded because the product was not delivered.</p>
+          <p>No action needed from you.</p>
+        `);
+        
+        // Notify buyer
+        await sendEmail(order.buyer_email, `Refund Processed for Order #${orderId}`, `
+          <h2>✅ Refund Processed</h2>
+          <p>Your refund for order #${orderId} has been processed.</p>
+          <p>Amount: $${parseFloat(order.total_amount).toFixed(2)}</p>
+          <p>Please allow 5-10 business days for the refund to appear in your account.</p>
+        `);
+        
+        return res.json({
+          success: true,
+          message: "Refund processed automatically. Money returned to your account.",
+          refund_amount: order.total_amount
+        });
+      }
     }
-
-    if (order.order_status === 'refunded') {
-      return res.status(400).json({ error: "Order has already been refunded" });
+    
+    // SCENARIO 2: After delivery - Return options
+    else if (isDelivered) {
+      console.log(`📦 Processing return for delivered order #${orderId}`);
+      
+      if (return_option === 'dropoff') {
+        // Customer drops off product themselves - full refund
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'refund_requested',
+               refund_requested_at = NOW(),
+               refund_reason = ?,
+               refund_type = 'dropoff_return',
+               return_option = 'dropoff'
+           WHERE id = ?`,
+          [reason, orderId]
+        );
+        
+        // Generate return code for seller
+        const returnCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        await db.query(
+          `INSERT INTO refund_pickup_requests (order_id, pickup_code, pickup_address, status, created_at)
+           VALUES (?, ?, 'Customer dropoff - no pickup needed', 'pending', NOW())`,
+          [orderId, returnCode]
+        );
+        
+        await sendEmail(order.seller_email, `Return Request #${orderId} - Customer Dropoff`, `
+          <h2>📦 Return Request - Customer Will Drop Off</h2>
+          <p><strong>Order #${orderId}</strong></p>
+          <p><strong>Product:</strong> ${order.product_name}</p>
+          <p><strong>Reason:</strong> ${reason}</p>
+          <p><strong>Return Code:</strong> <span style="font-size: 24px; font-weight: bold;">${returnCode}</span></p>
+          <p><strong>Expected Product Condition (as listed):</strong></p>
+          <ul>
+            <li>Condition: ${order.condition_type}</li>
+            <li>Description: ${order.condition_description || 'N/A'}</li>
+          </ul>
+          <p><strong>Instructions:</strong></p>
+          <ol>
+            <li>Customer will drop off the product at your location</li>
+            <li>INSPECT the product against the listed condition</li>
+            <li>If product matches description, enter the return code in your dashboard</li>
+            <li>Customer will be automatically refunded</li>
+            <li>If product doesn't match description, reject the return</li>
+          </ol>
+          <p><strong>⚠️ Important:</strong> You have 7 days to inspect. After 7 days, auto-refund will process.</p>
+        `);
+        
+        return res.json({
+          success: true,
+          message: "Return request submitted. Please drop off the product at the seller's location. The seller will inspect and process your refund.",
+          return_code: returnCode,
+          instructions: "Drop off the product at the seller's address. Provide the return code when dropping off."
+        });
+        
+      } else if (return_option === 'pickup') {
+        // Seller picks up - seller gets 3% for transport
+        if (!pickup_address) {
+          return res.status(400).json({ error: "Pickup address is required for seller pickup option" });
+        }
+        
+        const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const transportFee = order.total_amount * 0.03;
+        const refundAmount = order.total_amount - transportFee;
+        
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'refund_requested',
+               refund_requested_at = NOW(),
+               refund_reason = ?,
+               refund_type = 'pickup_return',
+               return_option = 'pickup',
+               pickup_address = ?,
+               pickup_confirmation_code = ?
+           WHERE id = ?`,
+          [reason, pickup_address, pickupCode, orderId]
+        );
+        
+        await db.query(
+          `INSERT INTO refund_pickup_requests (order_id, pickup_code, pickup_address, status, created_at)
+           VALUES (?, ?, ?, 'pending', NOW())`,
+          [orderId, pickupCode, pickup_address]
+        );
+        
+        // Notify seller about pickup
+        await sendEmail(order.seller_email, `📦 Pickup Required for Order #${orderId}`, `
+          <h2>Pickup Required for Return</h2>
+          <p><strong>Order #${orderId}</strong></p>
+          <p><strong>Product:</strong> ${order.product_name}</p>
+          <p><strong>Customer Address for Pickup:</strong></p>
+          <p>${pickup_address}</p>
+          <p><strong>Return Code:</strong> <span style="font-size: 24px; font-weight: bold;">${pickupCode}</span></p>
+          <p><strong>Transport Compensation:</strong> $${transportFee.toFixed(2)} (3% of order value)</p>
+          <p><strong>Expected Product Condition (as listed):</strong></p>
+          <ul>
+            <li>Condition: ${order.condition_type}</li>
+            <li>Description: ${order.condition_description || 'N/A'}</li>
+          </ul>
+          <p><strong>Instructions:</strong></p>
+          <ol>
+            <li>Pick up the product from the customer's address</li>
+            <li>INSPECT the product against the listed condition</li>
+            <li>If product matches, enter the pickup code in your dashboard</li>
+            <li>Customer receives refund MINUS 3% transport fee</li>
+            <li>You receive the 3% transport fee</li>
+          </ol>
+          <p>⚠️ You have 7 days to complete pickup. After 7 days, auto-refund will process without inspection.</p>
+        `);
+        
+        // Notify customer
+        await sendEmail(order.buyer_email, `Return Request #${orderId} - Seller Pickup Scheduled`, `
+          <h2>📦 Seller Will Pick Up Your Return</h2>
+          <p><strong>Order #${orderId}</strong></p>
+          <p><strong>Pickup Address:</strong> ${pickup_address}</p>
+          <p><strong>Pickup Code:</strong> ${pickupCode}</p>
+          <p><strong>Refund Amount:</strong> $${refundAmount.toFixed(2)} (3% deducted for transport)</p>
+          <p><strong>Instructions:</strong></p>
+          <ol>
+            <li>Seller will contact you to schedule pickup</li>
+            <li>Have the product ready in original condition</li>
+            <li>Provide the pickup code to the seller when they arrive</li>
+            <li>After inspection, you'll receive your refund minus 3%</li>
+          </ol>
+        `);
+        
+        return res.json({
+          success: true,
+          message: `Return request submitted. Seller will pick up from your address. Refund will be $${refundAmount.toFixed(2)} after 3% transport fee.`,
+          pickup_code: pickupCode,
+          transport_fee: transportFee,
+          refund_amount: refundAmount
+        });
+      }
     }
-
-    await db.query(
-      `UPDATE physical_orders 
-       SET order_status = 'refund_requested',
-           refund_requested_at = NOW(),
-           refund_reason = ?
-       WHERE id = ?`,
-      [reason, orderId]
-    );
-
-    // Notify seller
-    await db.query(
-      `INSERT INTO seller_notifications (seller_id, order_id, notification_type, title, message, created_at)
-       VALUES (?, ?, 'refund_request', 'Refund Requested', 
-               CONCAT('Buyer requested refund for order #', ?, '. Reason: ', ?), NOW())`,
-      [order.seller_id, orderId, orderId, reason.substring(0, 100)]
-    );
-
-    res.json({
-      success: true,
-      message: "Refund request submitted. Seller will review and process within 48 hours."
-    });
-
+    
   } catch (err) {
     console.error("❌ Refund request error:", err);
-    res.status(500).json({ error: "Failed to submit refund request" });
+    res.status(500).json({ error: err.message });
   }
 });
+
+// Helper function to process payment refund
+async function processPaymentRefund(order) {
+  try {
+    if (order.payment_gateway === 'flutterwave') {
+      const response = await axios.post(
+        'https://api.flutterwave.com/v3/transactions/refund',
+        {
+          transaction_id: order.transaction_ref,
+          amount: order.total_amount,
+          full_refund: true
+        },
+        { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` } }
+      );
+      return response.data.status === 'success';
+    } else if (order.payment_gateway === 'paystack') {
+      const response = await axios.post(
+        'https://api.paystack.co/transaction/refund',
+        {
+          transaction: order.transaction_ref,
+          amount: Math.round(order.total_amount * 100)
+        },
+        { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+      );
+      return response.data.status === true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Refund processing error:', err);
+    return false;
+  }
+}
+
+
 // ============================================
 // DASHBOARD ORDER RESPONSE ENDPOINTS
 // ============================================
@@ -14308,18 +14485,18 @@ app.post("/api/dashboard/orders/:orderId/respond", async (req, res) => {
         };
       }
       
-      // Update order with accepted status and fee details
-      await db.query(`
-        UPDATE physical_orders 
-        SET order_status = 'seller_accepted',
-            seller_accepted_at = NOW(),
-            platform_fee = ?,
-            seller_earnings = ?,
-            fee_breakdown = ?,
-            response_message = ?
-        WHERE id = ?
-      `, [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), message || null, orderId]);
-      
+      // In your respondToOrder function, when accepting:
+await db.query(
+    `UPDATE physical_orders 
+     SET order_status = 'seller_accepted',
+         seller_accepted_at = NOW(),
+         platform_fee = ?,
+         seller_earnings = ?,
+         fee_breakdown = ?,
+         payment_held_until = NULL  -- ✅ Escrow not started yet
+     WHERE id = ?`,
+    [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
+);
       // Record acceptance
       await db.query(`
         INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
@@ -14796,7 +14973,129 @@ app.get("/api/orders/:orderId/escrow-status", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+app.post("/api/seller/confirm-return/:orderId", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    
+    const orderId = req.params.orderId;
+    const { return_code, inspection_result, damage_notes } = req.body;
+    
+    const orderResult = await db.query(
+      `SELECT o.*, p.condition_type, p.condition_description, p.visible_defects,
+              u_buyer.email as buyer_email, u_buyer.username as buyer_name
+       FROM physical_orders o
+       LEFT JOIN products p ON o.product_id = p.id
+       LEFT JOIN users u_buyer ON o.buyer_id = u_buyer.id
+       WHERE o.id = ? AND o.seller_id = ? AND o.order_status = 'refund_requested'`,
+      [orderId, req.session.user.id]
+    );
+    
+    const order = orderResult[0];
+    
+    // Verify return code
+    const pickupRequest = await db.query(
+      `SELECT * FROM refund_pickup_requests WHERE order_id = ? AND pickup_code = ?`,
+      [orderId, return_code]
+    );
+    
+    if (!pickupRequest || pickupRequest.length === 0) {
+      return res.status(400).json({ error: "Invalid return code" });
+    }
+    
+    if (inspection_result === 'accept') {
+      // Product matches description - process refund
+      let refundAmount = order.total_amount;
+      let sellerTransportFee = 0;
+      
+      if (order.return_option === 'pickup') {
+        sellerTransportFee = order.total_amount * 0.03;
+        refundAmount = order.total_amount - sellerTransportFee;
+      }
+      
+      // Process refund through payment gateway
+      const refundSuccess = await processPaymentRefund(order);
+      
+      if (refundSuccess) {
+        await db.query(
+          `UPDATE physical_orders 
+           SET order_status = 'refunded',
+               refund_processed_at = NOW(),
+               refund_approved_by = ?,
+               seller_transport_fee = ?,
+               refund_amount = ?,
+               inspection_passed = 1
+           WHERE id = ?`,
+          [req.session.user.id, sellerTransportFee, refundAmount, orderId]
+        );
+        
+        await db.query(
+          `UPDATE refund_pickup_requests 
+           SET status = 'completed', completed_at = NOW()
+           WHERE order_id = ?`,
+          [orderId]
+        );
+        
+        // Notify customer
+        await sendEmail(order.buyer_email, `Refund Processed for Order #${orderId}`, `
+          <h2>✅ Refund Processed After Inspection</h2>
+          <p>Your refund of $${refundAmount.toFixed(2)} has been processed.</p>
+          ${order.return_option === 'pickup' ? `<p>3% ($${sellerTransportFee.toFixed(2)}) was deducted for seller transport.</p>` : ''}
+          <p>Please allow 5-10 business days for the refund to appear.</p>
+        `);
+        
+        return res.json({
+          success: true,
+          message: `Refund processed. Customer received $${refundAmount.toFixed(2)}`,
+          refund_amount: refundAmount
+        });
+      }
+      
+    } else if (inspection_result === 'reject') {
+      // Product doesn't match description - dispute
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'refund_disputed',
+             admin_review_requested_at = NOW(),
+             refund_notes = ?
+         WHERE id = ?`,
+        [damage_notes || 'Product condition does not match listing', orderId]
+      );
+      
+      // Create dispute record
+      await db.query(
+        `INSERT INTO refund_disputes (order_id, customer_id, seller_id, dispute_reason, customer_evidence, seller_evidence, status, created_at)
+         VALUES (?, ?, ?, 'Product condition mismatch', NULL, ?, 'pending', NOW())`,
+        [orderId, order.buyer_id, req.session.user.id, damage_notes || 'Product damaged or not as described']
+      );
+      
+      // Notify admin
+      const admins = await db.query("SELECT email FROM users WHERE role = 'admin'");
+      for (const admin of admins) {
+        await sendEmail(admin.email, `⚠️ Refund Dispute Needs Review - Order #${orderId}`, `
+          <h2>Refund Dispute Requires Admin Review</h2>
+          <p><strong>Order #${orderId}</strong></p>
+          <p><strong>Seller:</strong> ${req.session.user.username}</p>
+          <p><strong>Customer:</strong> ${order.buyer_name}</p>
+          <p><strong>Product:</strong> ${order.product_name}</p>
+          <p><strong>Listed Condition:</strong> ${order.condition_type} - ${order.condition_description}</p>
+          <p><strong>Seller's Rejection Reason:</strong> ${damage_notes || 'Product does not match description'}</p>
+          <p><strong>Action Required:</strong> Please review this dispute within 3 days.</p>
+          <a href="https://coreinsightmarket.com/admin/disputes/${orderId}">Review Dispute</a>
+        `);
+      }
+      
+      return res.json({
+        success: true,
+        message: "Return rejected. Case has been escalated to admin for review.",
+        dispute_id: insertId
+      });
+    }
+    
+  } catch (err) {
+    console.error("Return confirmation error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ============================================
 // REVIEWS ENDPOINTS - FIXED
@@ -14924,17 +15223,11 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
 // ============================================
 // PRODUCT UPLOAD ENDPOINT - COMPLETE FIXED
 // ============================================
-
-
-
 app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
   try {
     console.log("📤 PRODUCT UPLOAD STARTED");
-    console.log("📋 Request body:", req.body);
-    console.log("📎 Files received:", req.files ? Object.keys(req.files) : "No files");
     
     if (!req.session.user) {
-      console.log("❌ No user session");
       return res.status(401).json({ error: "Please log in to upload products." });
     }
 
@@ -14948,63 +15241,86 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     console.log("📦 Product data:", { title, price, type, paymentProvider });
 
     if (!title || !price || !type || !paymentProvider) {
-      console.log("❌ Missing required fields");
       return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
     }
 
+    const userId = req.session.user.id;
     const listedPrice = parseFloat(price);
     
-    // Upload product images to ImgBB
+    // ========== CREATE SUBACCOUNT FIRST ==========
+    let subaccountResult = null;
+    
+    if (paymentProvider === 'flutterwave') {
+      subaccountResult = await createFlutterwaveSubaccount(userId, {
+        bank_code: bankCode,
+        account_number: accountNumber,
+        business_name: businessName,
+        business_email: businessEmail,
+        business_phone: businessPhone,
+        country: country || 'NG'
+      });
+      
+      if (!subaccountResult.success) {
+        console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
+        // Don't block product upload, just warn
+      }
+      
+    } else if (paymentProvider === 'paystack') {
+      subaccountResult = await createPaystackSubaccount(userId, {
+        bank_code: bankCode,
+        account_number: accountNumber,
+        business_name: businessName,
+        business_email: businessEmail,
+        business_phone: businessPhone
+      });
+      
+      if (!subaccountResult.success) {
+        console.warn(`⚠️ Paystack subaccount creation issue: ${subaccountResult.error}`);
+      }
+    }
+    
+    // ========== UPLOAD IMAGES AND FILE ==========
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
       console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
       for (const file of req.files['images[]']) {
         try {
-          console.log(`  Uploading: ${file.originalname} (${file.size} bytes)`);
           const url = await uploadToImgbb(file.path, file.originalname);
           imageUrls.push(url);
           console.log(`  ✅ Uploaded: ${url.substring(0, 50)}...`);
         } catch (imgError) {
           console.error(`  ❌ Image upload failed: ${imgError.message}`);
-          // Continue with other images
         }
       }
-      console.log(`✅ ${imageUrls.length} images uploaded to ImgBB`);
     }
 
-    // Upload digital product file to ImgBB
     let fileUrl = null;
     if (type === 'digital' && req.files?.file?.[0]) {
       const productFile = req.files.file[0];
-      console.log(`📁 Uploading digital file: ${productFile.originalname} (${productFile.size} bytes)`);
       try {
         fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
-        console.log(`✅ Digital file uploaded to ImgBB: ${fileUrl.substring(0, 50)}...`);
+        console.log(`✅ Digital file uploaded to ImgBB`);
       } catch (fileError) {
         console.error(`❌ Digital file upload failed: ${fileError.message}`);
-        // Don't fail the whole upload if just the file fails? Or do fail?
-        // We'll continue for now
       }
     }
 
-    // Handle affiliate link
     if (type === 'affiliate' && affiliate_link) {
       fileUrl = affiliate_link;
-      console.log(`🔗 Affiliate link set: ${affiliate_link.substring(0, 50)}...`);
     }
 
-    // Insert product into database
-    console.log("💾 Saving to database...");
+    // ========== INSERT PRODUCT ==========
     const result = await db.query(
       `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
         category, type, file_url, image_urls, affiliate_link, 
         seller_payment_provider, delivery_type, delivery_locations, 
+        delivery_countries, delivery_states, pickup_address, pickup_hours,
         payment_option, estimated_delivery_days, rating, review_count, 
         status, sales_count, favorite_count, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        req.session.user.id, 
+        userId, 
         title.trim(), 
         description || '', 
         listedPrice, 
@@ -15019,6 +15335,10 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
         paymentProvider,
         type === 'physical' ? (delivery_type || 'delivery') : null,
         type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+        type === 'physical' ? (req.body.delivery_countries || 'Worldwide') : null,
+        type === 'physical' ? (req.body.delivery_states || '') : null,
+        type === 'physical' ? (req.body.pickup_address || '') : null,
+        type === 'physical' ? (req.body.pickup_hours || '') : null,
         type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
         type === 'physical' ? (parseInt(delivery_days) || 7) : null,
         0.00, 0, 'active', 0, 0
@@ -15028,12 +15348,14 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     const productId = result.insertId;
     console.log(`✅ Product uploaded successfully! ID: ${productId}`);
     
+    // ========== RESPONSE ==========
     res.json({ 
       success: true,
       message: "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,
-      file_url: fileUrl ? 'stored' : 'none',
+      subaccount_created: subaccountResult?.success || false,
+      subaccount_id: subaccountResult?.subaccount_id || subaccountResult?.subaccount_code,
       images_uploaded: imageUrls.length,
       pricing: {
         customer_price: listedPrice,
@@ -15049,6 +15371,37 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       error: "Error uploading product: " + err.message,
       details: err.stack
     });
+  }
+});
+// Debug endpoint - Check subaccount creation status
+app.get("/api/debug/subaccount-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+    
+    const user = await db.query(
+      `SELECT id, username, 
+              flutterwave_subaccount_id, paystack_subaccount_code,
+              subaccount_created_at, subaccount_status,
+              bank_code, account_number
+       FROM users WHERE id = ?`,
+      [req.session.user.id]
+    );
+    
+    res.json({
+      success: true,
+      user_id: req.session.user.id,
+      subaccount: user[0] || null,
+      has_flutterwave: !!(user[0]?.flutterwave_subaccount_id),
+      has_paystack: !!(user[0]?.paystack_subaccount_code),
+      created_at: user[0]?.subaccount_created_at,
+      status: user[0]?.subaccount_status || 'not_created'
+    });
+    
+  } catch (err) {
+    console.error("Subaccount status error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

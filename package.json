@@ -16,6 +16,7 @@
     "@getbrevo/brevo": "^5.0.1",
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.16.0",
+    "b2-cloud-storage": "^1.1.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.4",
     "cheerio": "^1.2.0",

@@ -609,182 +609,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
     }
 }
 
-// Complete product upload endpoint - Flutterwave ONLY
-app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
-  try {
-    console.log("📤 PRODUCT UPLOAD STARTED");
-    
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please log in to upload products." });
-    }
 
-    const { 
-      title, description, price, category, type, affiliate_link,
-      delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
-      businessName, businessEmail, businessPhone, country, bankName, bankCode, 
-      accountNumber, accountName,
-      // Product condition fields
-      condition_type,
-      condition_description,
-      manufacturing_date,
-      warranty_months,
-      original_packaging,
-      accessories_included,
-      visible_defects,
-      // Delivery method fields
-      delivery_countries,
-      delivery_states,
-      pickup_address,
-      pickup_hours,
-      pickup_instructions
-    } = req.body;
-
-    console.log("📦 Product data:", { title, price, type });
-
-    if (!title || !price || !type) {
-      return res.status(400).json({ error: "Title, price, and product type are required." });
-    }
-
-    const userId = req.session.user.id;
-    const listedPrice = parseFloat(price);
-    
-    // ========== CREATE FLUTTERWAVE SUBACCOUNT ==========
-    let subaccountResult = null;
-    
-    subaccountResult = await createFlutterwaveSubaccount(userId, {
-      bank_code: bankCode,
-      account_number: accountNumber,
-      business_name: businessName,
-      business_email: businessEmail,
-      business_phone: businessPhone,
-      country: country || 'NG'
-    });
-    
-    if (!subaccountResult.success) {
-      console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
-      // Continue with product upload, but log the error
-    }
-    
-    // ========== UPLOAD IMAGES TO IMGBB ==========
-    let imageUrls = [];
-    if (req.files?.['images[]']?.length) {
-      console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
-      for (const file of req.files['images[]']) {
-        try {
-          const url = await uploadToImgbb(file.path, file.originalname);
-          imageUrls.push(url);
-          console.log(`  ✅ Uploaded: ${url.substring(0, 50)}...`);
-        } catch (imgError) {
-          console.error(`  ❌ Image upload failed: ${imgError.message}`);
-        }
-      }
-    }
-
-    // ========== UPLOAD DIGITAL FILE TO IMGBB ==========
-    let fileUrl = null;
-    if (type === 'digital' && req.files?.file?.[0]) {
-      const productFile = req.files.file[0];
-      try {
-        fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
-        console.log(`✅ Digital file uploaded to ImgBB`);
-      } catch (fileError) {
-        console.error(`❌ Digital file upload failed: ${fileError.message}`);
-      }
-    }
-
-    if (type === 'affiliate' && affiliate_link) {
-      fileUrl = affiliate_link;
-    }
-
-    // ========== PROCESS DELIVERY DATA ==========
-    let processedDeliveryCountries = delivery_countries || 'Worldwide';
-    if (delivery_countries && Array.isArray(delivery_countries)) {
-      processedDeliveryCountries = delivery_countries.join(', ');
-    }
-
-    // ========== INSERT PRODUCT ==========
-    console.log("💾 Saving to database...");
-    
-    const result = await db.query(
-      `INSERT INTO products (
-        user_id, title, description, price, original_price, platform_fee, product_cost,
-        category, type, file_url, image_urls, affiliate_link, 
-        seller_payment_provider, delivery_type, delivery_locations, 
-        delivery_countries, delivery_states, pickup_address, pickup_hours, pickup_instructions,
-        payment_option, estimated_delivery_days,
-        condition_type, condition_description, manufacturing_date,
-        warranty_months, original_packaging, accessories_included, visible_defects,
-        rating, review_count, status, sales_count, favorite_count, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        userId, 
-        title.trim(), 
-        description || '', 
-        listedPrice, 
-        listedPrice, 
-        type === 'digital' ? listedPrice * 0.10 : 0,
-        type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
-        category || '', 
-        type, 
-        fileUrl, 
-        imageUrls.length ? JSON.stringify(imageUrls) : null, 
-        affiliate_link || null, 
-        'flutterwave',  // Always Flutterwave
-        type === 'physical' ? (delivery_type || 'delivery') : null,
-        type === 'physical' ? (delivery_locations || 'Worldwide') : null,
-        type === 'physical' ? processedDeliveryCountries : null,
-        type === 'physical' ? (delivery_states || '') : null,
-        type === 'physical' ? (pickup_address || '') : null,
-        type === 'physical' ? (pickup_hours || '') : null,
-        type === 'physical' ? (pickup_instructions || '') : null,
-        type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
-        type === 'physical' ? (parseInt(delivery_days) || 7) : null,
-        condition_type || 'new',
-        condition_description || null,
-        manufacturing_date || null,
-        parseInt(warranty_months) || 0,
-        original_packaging === '1' || original_packaging === 'true' ? 1 : 0,
-        accessories_included || null,
-        visible_defects || null,
-        0.00, 0, 'active', 0, 0
-      ]
-    );
-
-    const productId = result.insertId;
-    console.log(`✅ Product uploaded successfully! ID: ${productId}`);
-    
-    // ========== RESPONSE ==========
-    res.json({ 
-      success: true,
-      message: "✅ Product uploaded successfully!", 
-      productId: productId,
-      type: type,
-      condition: condition_type || 'new',
-      subaccount_created: subaccountResult?.success || false,
-      subaccount_id: subaccountResult?.subaccount_id,
-      images_uploaded: imageUrls.length,
-      has_file: !!fileUrl,
-      pricing: {
-        customer_price: listedPrice,
-        platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
-        seller_earnings: type === 'digital' ? listedPrice * 0.90 : listedPrice
-      },
-      split: {
-        platform_percentage: 10,
-        seller_percentage: 90,
-        message: "90% of payment goes to seller, 10% platform fee"
-      }
-    });
-    
-  } catch (err) {
-    console.error('❌ Product upload error:', err);
-    console.error('❌ Error stack:', err.stack);
-    res.status(500).json({ 
-      error: "Error uploading product: " + err.message,
-      details: err.stack
-    });
-  }
-});
 
 async function createPaystackSubaccount(userId, bankData) {
     try {
@@ -5241,6 +5066,182 @@ app.get("/api/products/seller/:sellerId", async (req, res) => {
   } catch (err) {
     console.error("❌ Error loading seller products:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+// Complete product upload endpoint - Flutterwave ONLY
+app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
+  try {
+    console.log("📤 PRODUCT UPLOAD STARTED");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to upload products." });
+    }
+
+    const { 
+      title, description, price, category, type, affiliate_link,
+      delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
+      businessName, businessEmail, businessPhone, country, bankName, bankCode, 
+      accountNumber, accountName,
+      // Product condition fields
+      condition_type,
+      condition_description,
+      manufacturing_date,
+      warranty_months,
+      original_packaging,
+      accessories_included,
+      visible_defects,
+      // Delivery method fields
+      delivery_countries,
+      delivery_states,
+      pickup_address,
+      pickup_hours,
+      pickup_instructions
+    } = req.body;
+
+    console.log("📦 Product data:", { title, price, type });
+
+    if (!title || !price || !type) {
+      return res.status(400).json({ error: "Title, price, and product type are required." });
+    }
+
+    const userId = req.session.user.id;
+    const listedPrice = parseFloat(price);
+    
+    // ========== CREATE FLUTTERWAVE SUBACCOUNT ==========
+    let subaccountResult = null;
+    
+    subaccountResult = await createFlutterwaveSubaccount(userId, {
+      bank_code: bankCode,
+      account_number: accountNumber,
+      business_name: businessName,
+      business_email: businessEmail,
+      business_phone: businessPhone,
+      country: country || 'NG'
+    });
+    
+    if (!subaccountResult.success) {
+      console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
+      // Continue with product upload, but log the error
+    }
+    
+    // ========== UPLOAD IMAGES TO IMGBB ==========
+    let imageUrls = [];
+    if (req.files?.['images[]']?.length) {
+      console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
+      for (const file of req.files['images[]']) {
+        try {
+          const url = await uploadToImgbb(file.path, file.originalname);
+          imageUrls.push(url);
+          console.log(`  ✅ Uploaded: ${url.substring(0, 50)}...`);
+        } catch (imgError) {
+          console.error(`  ❌ Image upload failed: ${imgError.message}`);
+        }
+      }
+    }
+
+    // ========== UPLOAD DIGITAL FILE TO IMGBB ==========
+    let fileUrl = null;
+    if (type === 'digital' && req.files?.file?.[0]) {
+      const productFile = req.files.file[0];
+      try {
+        fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
+        console.log(`✅ Digital file uploaded to ImgBB`);
+      } catch (fileError) {
+        console.error(`❌ Digital file upload failed: ${fileError.message}`);
+      }
+    }
+
+    if (type === 'affiliate' && affiliate_link) {
+      fileUrl = affiliate_link;
+    }
+
+    // ========== PROCESS DELIVERY DATA ==========
+    let processedDeliveryCountries = delivery_countries || 'Worldwide';
+    if (delivery_countries && Array.isArray(delivery_countries)) {
+      processedDeliveryCountries = delivery_countries.join(', ');
+    }
+
+    // ========== INSERT PRODUCT ==========
+    console.log("💾 Saving to database...");
+    
+    const result = await db.query(
+      `INSERT INTO products (
+        user_id, title, description, price, original_price, platform_fee, product_cost,
+        category, type, file_url, image_urls, affiliate_link, 
+        seller_payment_provider, delivery_type, delivery_locations, 
+        delivery_countries, delivery_states, pickup_address, pickup_hours, pickup_instructions,
+        payment_option, estimated_delivery_days,
+        condition_type, condition_description, manufacturing_date,
+        warranty_months, original_packaging, accessories_included, visible_defects,
+        rating, review_count, status, sales_count, favorite_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        userId, 
+        title.trim(), 
+        description || '', 
+        listedPrice, 
+        listedPrice, 
+        type === 'digital' ? listedPrice * 0.10 : 0,
+        type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
+        category || '', 
+        type, 
+        fileUrl, 
+        imageUrls.length ? JSON.stringify(imageUrls) : null, 
+        affiliate_link || null, 
+        'flutterwave',  // Always Flutterwave
+        type === 'physical' ? (delivery_type || 'delivery') : null,
+        type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+        type === 'physical' ? processedDeliveryCountries : null,
+        type === 'physical' ? (delivery_states || '') : null,
+        type === 'physical' ? (pickup_address || '') : null,
+        type === 'physical' ? (pickup_hours || '') : null,
+        type === 'physical' ? (pickup_instructions || '') : null,
+        type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
+        type === 'physical' ? (parseInt(delivery_days) || 7) : null,
+        condition_type || 'new',
+        condition_description || null,
+        manufacturing_date || null,
+        parseInt(warranty_months) || 0,
+        original_packaging === '1' || original_packaging === 'true' ? 1 : 0,
+        accessories_included || null,
+        visible_defects || null,
+        0.00, 0, 'active', 0, 0
+      ]
+    );
+
+    const productId = result.insertId;
+    console.log(`✅ Product uploaded successfully! ID: ${productId}`);
+    
+    // ========== RESPONSE ==========
+    res.json({ 
+      success: true,
+      message: "✅ Product uploaded successfully!", 
+      productId: productId,
+      type: type,
+      condition: condition_type || 'new',
+      subaccount_created: subaccountResult?.success || false,
+      subaccount_id: subaccountResult?.subaccount_id,
+      images_uploaded: imageUrls.length,
+      has_file: !!fileUrl,
+      pricing: {
+        customer_price: listedPrice,
+        platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
+        seller_earnings: type === 'digital' ? listedPrice * 0.90 : listedPrice
+      },
+      split: {
+        platform_percentage: 10,
+        seller_percentage: 90,
+        message: "90% of payment goes to seller, 10% platform fee"
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ Product upload error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      error: "Error uploading product: " + err.message,
+      details: err.stack
+    });
   }
 });
 

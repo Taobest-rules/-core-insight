@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://checkout.flutterwave.com/v3.js"></script>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%); color: #e6f1ff; min-height: 100vh; }
@@ -49,25 +48,57 @@
     .summary-row:last-child { border-bottom: none; }
     .summary-row.total { margin-top: 12px; padding-top: 12px; border-top: 2px solid #FFD700; font-weight: 700; font-size: 18px; }
     
-    .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 24px 0; }
-    .method-btn {
-      background: #0f172a;
-      border: 2px solid #334155;
-      border-radius: 12px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
+    /* Flutterwave Only - Single Payment Method */
+    .flutterwave-section {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+      border: 2px solid rgba(59, 130, 246, 0.3);
       text-align: center;
     }
-    .method-btn:hover { border-color: #FFD700; transform: translateY(-2px); }
-    .method-btn.selected { border-color: #FFD700; background: rgba(255, 215, 0, 0.1); }
-    .method-btn i { font-size: 32px; margin-bottom: 8px; display: block; }
-    .method-btn span { display: block; font-weight: 500; }
+    .flutterwave-icon {
+      font-size: 48px;
+      color: #3b82f6;
+      margin-bottom: 16px;
+    }
+    .flutterwave-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-light);
+    }
+    .flutterwave-desc {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .payment-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .payment-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+    }
+    .payment-badge i {
+      color: #10b981;
+      font-size: 10px;
+    }
     
     .pay-btn {
       width: 100%;
-      background: linear-gradient(135deg, #FFD700, #D4AF37);
-      color: #0f172a;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
       border: none;
       padding: 16px;
       border-radius: 12px;
@@ -77,7 +108,7 @@
       transition: all 0.3s;
       margin-top: 20px;
     }
-    .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3); }
+    .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
     .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     
     .back-link { display: inline-block; margin-top: 20px; color: #94a3b8; text-decoration: none; }
@@ -87,8 +118,29 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-message { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px; margin-bottom: 20px; color: #ef4444; }
     
+    /* Split Info Box */
+    .split-info {
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .split-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .split-row.total {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: 600;
+      color: #10b981;
+    }
+    
     @media (max-width: 640px) {
-      .payment-methods { grid-template-columns: 1fr; }
       .payment-body { padding: 20px; }
     }
   </style>
@@ -127,22 +179,44 @@
             <div class="summary-row total"><span>Total Amount:</span><strong id="totalAmount" style="color: #10b981;">-</strong></div>
           </div>
           
-          <h3 style="margin-bottom: 16px;">Select Payment Method</h3>
-          <div class="payment-methods">
-            <div class="method-btn selected" data-method="flutterwave">
+          <!-- Flutterwave Only Section -->
+          <div class="flutterwave-section">
+            <div class="flutterwave-icon">
               <i class="fas fa-globe"></i>
-              <span>Flutterwave</span>
-              <small style="font-size: 11px; color: #94a3b8;">Cards, Bank Transfer, USSD</small>
             </div>
-            <div class="method-btn" data-method="paystack">
-              <i class="fas fa-map-marker-alt"></i>
-              <span>Paystack</span>
-              <small style="font-size: 11px; color: #94a3b8;">Cards, Bank Transfer, USSD</small>
+            <div class="flutterwave-title">Pay with Flutterwave</div>
+            <div class="flutterwave-desc">
+              Secure payment via Flutterwave - Accepts cards, bank transfers, and USSD
+            </div>
+            <div class="payment-badges">
+              <span class="payment-badge"><i class="fas fa-check-circle"></i> Credit/Debit Cards</span>
+              <span class="payment-badge"><i class="fas fa-check-circle"></i> Bank Transfer</span>
+              <span class="payment-badge"><i class="fas fa-check-circle"></i> USSD</span>
+              <span class="payment-badge"><i class="fas fa-check-circle"></i> Mobile Money</span>
+            </div>
+          </div>
+          
+          <!-- 90/10 Split Info -->
+          <div class="split-info">
+            <div style="text-align: center; margin-bottom: 12px;">
+              <i class="fas fa-chart-line"></i> <strong>Payment Split (90/10)</strong>
+            </div>
+            <div class="split-row">
+              <span><i class="fas fa-wallet"></i> Seller Receives:</span>
+              <strong id="sellerAmount" style="color: #10b981;">-</strong>
+            </div>
+            <div class="split-row">
+              <span><i class="fas fa-building"></i> Platform Fee:</span>
+              <strong id="platformFee" style="color: #f59e0b;">-</strong>
+            </div>
+            <div class="split-row total">
+              <span>Total Paid by You:</span>
+              <strong id="totalPaid">-</strong>
             </div>
           </div>
           
           <button id="payNowBtn" class="pay-btn">
-            <i class="fas fa-lock"></i> Pay Now
+            <i class="fas fa-lock"></i> Pay with Flutterwave
           </button>
           
           <div style="text-align: center; margin-top: 20px;">
@@ -154,24 +228,14 @@
   </div>
   
   <script>
-    let selectedMethod = 'flutterwave';
     let orderData = null;
     let currentUserId = null;
-    let paymentKeys = { flutterwave: null, paystack: null };
+    let flutterwavePublicKey = null;
     const orderId = new URLSearchParams(window.location.search).get('orderId');
     
     if (!orderId) {
       showError('No order ID provided');
     }
-    
-    // Payment method selection
-    document.querySelectorAll('.method-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('selected'));
-        this.classList.add('selected');
-        selectedMethod = this.getAttribute('data-method');
-      });
-    });
     
     async function checkAuth() {
       try {
@@ -189,28 +253,29 @@
       }
     }
     
-    async function loadPaymentKeys() {
+    async function loadFlutterwaveKey() {
       try {
         const response = await fetch('/api/payment-keys', { credentials: 'include' });
         const data = await response.json();
-        paymentKeys = data;
-        console.log('Payment keys loaded:', paymentKeys);
+        flutterwavePublicKey = data.flutterwave?.public_key;
+        console.log('Flutterwave key loaded:', flutterwavePublicKey ? 'Yes' : 'No');
+        return flutterwavePublicKey;
       } catch (error) {
-        console.error('Failed to load payment keys:', error);
+        console.error('Failed to load Flutterwave key:', error);
+        return null;
       }
     }
     
-    // Function to confirm payment on server
-    async function confirmPaymentOnServer(orderId, reference, method) {
+    async function confirmPaymentOnServer(orderId, reference) {
       try {
-        console.log(`Confirming payment for order #${orderId} via ${method}`);
+        console.log(`Confirming payment for order #${orderId} via Flutterwave`);
         const response = await fetch('/api/confirm-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             order_id: orderId, 
             reference: reference,
-            payment_method: method 
+            payment_method: 'flutterwave' 
           }),
           credentials: 'include'
         });
@@ -227,8 +292,8 @@
     function initFlutterwavePayment() {
       return new Promise((resolve, reject) => {
         try {
-          if (!paymentKeys.flutterwave?.public_key) {
-            reject(new Error('Flutterwave is not configured'));
+          if (!flutterwavePublicKey) {
+            reject(new Error('Flutterwave is not configured. Please contact support.'));
             return;
           }
           
@@ -237,12 +302,16 @@
           const name = orderData.buyer?.name || 'Customer';
           const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
           
+          // Calculate split amounts for display
+          const platformFee = amount * 0.10;
+          const sellerAmount = amount - platformFee;
+          
           FlutterwaveCheckout({
-            public_key: paymentKeys.flutterwave.public_key,
+            public_key: flutterwavePublicKey,
             tx_ref: tx_ref,
             amount: amount,
             currency: "USD",
-            payment_options: "card, banktransfer, ussd",
+            payment_options: "card, banktransfer, ussd, mobilemoney",
             customer: { 
               email: email, 
               name: name,
@@ -253,11 +322,15 @@
               description: `Order #${orderId} - ${orderData.product_name?.substring(0, 30)}`,
               logo: "https://coreinsightmarket.com/logo.png"
             },
+            meta: {
+              order_id: orderId,
+              platform_fee: platformFee,
+              seller_amount: sellerAmount
+            },
             callback: function(response) {
               console.log("Flutterwave callback response:", response);
-              // Verify transaction ID exists
               if (response && response.transaction_id) {
-                confirmPaymentOnServer(orderId, response.transaction_id, 'flutterwave')
+                confirmPaymentOnServer(orderId, response.transaction_id)
                   .then(() => {
                     window.location.href = `/order-tracking.html?orderId=${orderId}`;
                   })
@@ -274,74 +347,6 @@
               resolve({ closed: true });
             }
           });
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }
-    
-    // Paystack Payment Handler
-    function initPaystackPayment() {
-      return new Promise((resolve, reject) => {
-        try {
-          if (!paymentKeys.paystack?.public_key) {
-            reject(new Error('Paystack is not configured'));
-            return;
-          }
-          
-          const amount = parseFloat(orderData.total_amount);
-          const email = orderData.buyer?.email || '';
-          const name = orderData.buyer?.name || 'Customer';
-          const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-          
-          // Convert USD to NGN
-          let ngnAmount = amount * 1550;
-          fetch('https://api.exchangerate-api.com/v4/latest/USD')
-            .then(res => res.json())
-            .then(data => {
-              if (data.rates?.NGN) ngnAmount = amount * data.rates.NGN;
-            })
-            .catch(() => {})
-            .finally(() => {
-              if (!confirm(`Pay ₦${ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} NGN via Paystack?`)) {
-                reject(new Error('Payment cancelled by user'));
-                return;
-              }
-              
-              const handler = PaystackPop.setup({
-                key: paymentKeys.paystack.public_key,
-                email: email,
-                amount: Math.round(ngnAmount * 100),
-                currency: "NGN",
-                ref: tx_ref,
-                metadata: {
-                  custom_fields: [
-                    { display_name: "Order ID", variable_name: "order_id", value: orderId },
-                    { display_name: "Product", variable_name: "product", value: orderData.product_name }
-                  ]
-                },
-                callback: function(response) {
-                  console.log("Paystack callback response:", response);
-                  if (response && response.reference) {
-                    confirmPaymentOnServer(orderId, response.reference, 'paystack')
-                      .then(() => {
-                        window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                      })
-                      .catch(err => {
-                        console.error("Confirmation failed:", err);
-                        window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                      });
-                  } else {
-                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                  }
-                },
-                onClose: function() {
-                  console.log("Paystack modal closed");
-                  resolve({ closed: true });
-                }
-              });
-              handler.openIframe();
-            });
         } catch (err) {
           reject(err);
         }
@@ -393,12 +398,20 @@
           return;
         }
         
+        // Calculate split amounts
+        const totalAmount = parseFloat(orderData.total_amount);
+        const platformFee = totalAmount * 0.10;
+        const sellerAmount = totalAmount - platformFee;
+        
         // Update UI
         document.getElementById('orderId').textContent = `#${orderData.id}`;
         document.getElementById('productName').textContent = orderData.product_name || 'Product';
         document.getElementById('quantity').textContent = orderData.quantity;
         document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
-        document.getElementById('totalAmount').textContent = `$${orderData.total_amount.toFixed(2)}`;
+        document.getElementById('totalAmount').textContent = `$${totalAmount.toFixed(2)}`;
+        document.getElementById('sellerAmount').textContent = `$${sellerAmount.toFixed(2)} (90%)`;
+        document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)} (10%)`;
+        document.getElementById('totalPaid').textContent = `$${totalAmount.toFixed(2)}`;
         
         loadingState.style.display = 'none';
         paymentContent.style.display = 'block';
@@ -418,20 +431,16 @@
       
       const payBtn = document.getElementById('payNowBtn');
       payBtn.disabled = true;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing Flutterwave payment...';
       
       try {
-        if (selectedMethod === 'flutterwave') {
-          await initFlutterwavePayment();
-        } else if (selectedMethod === 'paystack') {
-          await initPaystackPayment();
-        }
+        await initFlutterwavePayment();
       } catch (error) {
         console.error('Payment error:', error);
         alert('Payment Error: ' + error.message);
       } finally {
         payBtn.disabled = false;
-        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay Now';
+        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay with Flutterwave';
       }
     });
     
@@ -444,7 +453,7 @@
     // Initialize
     document.addEventListener('DOMContentLoaded', async () => {
       if (await checkAuth()) {
-        await loadPaymentKeys();
+        await loadFlutterwaveKey();
         await loadOrderDetails();
       }
     });

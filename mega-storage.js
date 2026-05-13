@@ -128,7 +128,7 @@ const uploadFile = async (filePath, filename) => {
     if (isImageFile(filename)) {
         return await uploadToImgbb(filePath, filename);
     } else {
-        // Documents, archives, etc. go to Backblaze B2
+        // Documents, archives, videos, etc. go to Backblaze B2
         return await uploadToBackblaze(filePath, filename);
     }
 };
@@ -210,7 +210,7 @@ module.exports = {
     uploadMultipleProducts,
     uploadToImgbb,           // Direct ImgBB (images only)
     uploadToBackblaze,       // Direct Backblaze (files only)
-    uploadFile,              // Smart upload (auto-detects)
+    uploadFile,              // ✅ Smart upload (auto-detects) - ADDED
     uploadToImgbbUniversal,  // Alias for smart upload
     uploadFileToMega,        // Alias for smart upload
     uploadImageToImgbb,      // Alias for ImgBB

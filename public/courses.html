@@ -1333,13 +1333,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
     </div>
   </section>
 
-  <!-- Upload Prompt (shown when logged in) -->
-  <div id="uploadPrompt" class="upload-prompt container" style="display: none;">
-    <button onclick="document.getElementById('uploadSection').scrollIntoView({behavior: 'smooth'});" 
-            class="btn-primary">
-      <i class="fas fa-cloud-upload-alt"></i> Upload Your Course
-    </button>
-  </div>
+  
 
   <!-- Upload Section (shown to all logged-in users) -->
   <div id="uploadSection" class="container">
@@ -1633,8 +1627,7 @@ async function loadExchangeRates() {
       // Update all prices on the page
       updateAllPrices();
       
-      // Show live rate to user
-      showLiveRateIndicator();
+    
       
     } else {
       throw new Error('Invalid rate data structure');
@@ -1668,22 +1661,6 @@ async function loadExchangeRates() {
   }
 }
 
-// Add this helper function
-function showLiveRateIndicator() {
-  // Remove existing indicator
-  const existing = document.querySelector('.live-rate-indicator');
-  if (existing) existing.remove();
-  
-  // Add new indicator near currency selector
-  const currencySelect = document.getElementById('currencySelect');
-  if (currencySelect && exchangeRates && exchangeRates.USD) {
-    const indicator = document.createElement('span');
-    indicator.className = 'live-rate-indicator';
-    indicator.style.cssText = 'font-size: 11px; color: var(--accent-primary); margin-left: 10px;';
-    indicator.innerHTML = `<i class="fas fa-chart-line"></i> 1 USD = ${exchangeRates.NGN?.toFixed(2)} NGN`;
-    currencySelect.parentNode.insertBefore(indicator, currencySelect.nextSibling);
-  }
-}
 
 // Add this function to show live rate info
 function showLiveRateInfo() {

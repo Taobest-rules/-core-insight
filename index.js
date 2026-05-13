@@ -548,9 +548,14 @@ function getOrderStatusUpdateTemplate(orderData) {
   `;
 }
 
+// ============================================
+// COMPLETE PRODUCT UPLOAD - FLUTTERWAVE ONLY
+// ============================================
+
+// Helper function to create Flutterwave subaccount
 async function createFlutterwaveSubaccount(userId, bankData) {
     try {
-        const { bank_code, account_number, business_name, country = 'NG' } = bankData;
+        const { bank_code, account_number, business_name, country = 'NG', business_email, business_phone } = bankData;
         
         console.log(`🔧 Creating Flutterwave subaccount for user ${userId}:`, { bank_code, account_number, business_name });
         
@@ -561,8 +566,8 @@ async function createFlutterwaveSubaccount(userId, bankData) {
             split_type: "percentage",
             split_value: 0.9,
             country: country,
-            business_mobile: bankData.business_phone || '',
-            business_email: bankData.business_email || ''
+            business_email: business_email || '',
+            business_mobile: business_phone || ''
         };
         
         const response = await axios.post(
@@ -580,7 +585,6 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         if (response.data.status === 'success') {
             const subaccountId = response.data.data.subaccount_id;
             
-            // Save to database
             await db.query(
                 `UPDATE users 
                  SET flutterwave_subaccount_id = ?,
@@ -604,6 +608,183 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         return { success: false, error: err.response?.data?.message || err.message };
     }
 }
+
+// Complete product upload endpoint - Flutterwave ONLY
+app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
+  try {
+    console.log("📤 PRODUCT UPLOAD STARTED");
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please log in to upload products." });
+    }
+
+    const { 
+      title, description, price, category, type, affiliate_link,
+      delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
+      businessName, businessEmail, businessPhone, country, bankName, bankCode, 
+      accountNumber, accountName,
+      // Product condition fields
+      condition_type,
+      condition_description,
+      manufacturing_date,
+      warranty_months,
+      original_packaging,
+      accessories_included,
+      visible_defects,
+      // Delivery method fields
+      delivery_countries,
+      delivery_states,
+      pickup_address,
+      pickup_hours,
+      pickup_instructions
+    } = req.body;
+
+    console.log("📦 Product data:", { title, price, type });
+
+    if (!title || !price || !type) {
+      return res.status(400).json({ error: "Title, price, and product type are required." });
+    }
+
+    const userId = req.session.user.id;
+    const listedPrice = parseFloat(price);
+    
+    // ========== CREATE FLUTTERWAVE SUBACCOUNT ==========
+    let subaccountResult = null;
+    
+    subaccountResult = await createFlutterwaveSubaccount(userId, {
+      bank_code: bankCode,
+      account_number: accountNumber,
+      business_name: businessName,
+      business_email: businessEmail,
+      business_phone: businessPhone,
+      country: country || 'NG'
+    });
+    
+    if (!subaccountResult.success) {
+      console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
+      // Continue with product upload, but log the error
+    }
+    
+    // ========== UPLOAD IMAGES TO IMGBB ==========
+    let imageUrls = [];
+    if (req.files?.['images[]']?.length) {
+      console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
+      for (const file of req.files['images[]']) {
+        try {
+          const url = await uploadToImgbb(file.path, file.originalname);
+          imageUrls.push(url);
+          console.log(`  ✅ Uploaded: ${url.substring(0, 50)}...`);
+        } catch (imgError) {
+          console.error(`  ❌ Image upload failed: ${imgError.message}`);
+        }
+      }
+    }
+
+    // ========== UPLOAD DIGITAL FILE TO IMGBB ==========
+    let fileUrl = null;
+    if (type === 'digital' && req.files?.file?.[0]) {
+      const productFile = req.files.file[0];
+      try {
+        fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
+        console.log(`✅ Digital file uploaded to ImgBB`);
+      } catch (fileError) {
+        console.error(`❌ Digital file upload failed: ${fileError.message}`);
+      }
+    }
+
+    if (type === 'affiliate' && affiliate_link) {
+      fileUrl = affiliate_link;
+    }
+
+    // ========== PROCESS DELIVERY DATA ==========
+    let processedDeliveryCountries = delivery_countries || 'Worldwide';
+    if (delivery_countries && Array.isArray(delivery_countries)) {
+      processedDeliveryCountries = delivery_countries.join(', ');
+    }
+
+    // ========== INSERT PRODUCT ==========
+    console.log("💾 Saving to database...");
+    
+    const result = await db.query(
+      `INSERT INTO products (
+        user_id, title, description, price, original_price, platform_fee, product_cost,
+        category, type, file_url, image_urls, affiliate_link, 
+        seller_payment_provider, delivery_type, delivery_locations, 
+        delivery_countries, delivery_states, pickup_address, pickup_hours, pickup_instructions,
+        payment_option, estimated_delivery_days,
+        condition_type, condition_description, manufacturing_date,
+        warranty_months, original_packaging, accessories_included, visible_defects,
+        rating, review_count, status, sales_count, favorite_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        userId, 
+        title.trim(), 
+        description || '', 
+        listedPrice, 
+        listedPrice, 
+        type === 'digital' ? listedPrice * 0.10 : 0,
+        type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
+        category || '', 
+        type, 
+        fileUrl, 
+        imageUrls.length ? JSON.stringify(imageUrls) : null, 
+        affiliate_link || null, 
+        'flutterwave',  // Always Flutterwave
+        type === 'physical' ? (delivery_type || 'delivery') : null,
+        type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+        type === 'physical' ? processedDeliveryCountries : null,
+        type === 'physical' ? (delivery_states || '') : null,
+        type === 'physical' ? (pickup_address || '') : null,
+        type === 'physical' ? (pickup_hours || '') : null,
+        type === 'physical' ? (pickup_instructions || '') : null,
+        type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
+        type === 'physical' ? (parseInt(delivery_days) || 7) : null,
+        condition_type || 'new',
+        condition_description || null,
+        manufacturing_date || null,
+        parseInt(warranty_months) || 0,
+        original_packaging === '1' || original_packaging === 'true' ? 1 : 0,
+        accessories_included || null,
+        visible_defects || null,
+        0.00, 0, 'active', 0, 0
+      ]
+    );
+
+    const productId = result.insertId;
+    console.log(`✅ Product uploaded successfully! ID: ${productId}`);
+    
+    // ========== RESPONSE ==========
+    res.json({ 
+      success: true,
+      message: "✅ Product uploaded successfully!", 
+      productId: productId,
+      type: type,
+      condition: condition_type || 'new',
+      subaccount_created: subaccountResult?.success || false,
+      subaccount_id: subaccountResult?.subaccount_id,
+      images_uploaded: imageUrls.length,
+      has_file: !!fileUrl,
+      pricing: {
+        customer_price: listedPrice,
+        platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
+        seller_earnings: type === 'digital' ? listedPrice * 0.90 : listedPrice
+      },
+      split: {
+        platform_percentage: 10,
+        seller_percentage: 90,
+        message: "90% of payment goes to seller, 10% platform fee"
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ Product upload error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      error: "Error uploading product: " + err.message,
+      details: err.stack
+    });
+  }
+});
 
 async function createPaystackSubaccount(userId, bankData) {
     try {
@@ -11249,7 +11430,7 @@ app.get("/payment-callback", async (req, res) => {
     }
 });
 // ============================================
-// PHYSICAL ORDER PAYMENT - AUTO CURRENCY CONVERSION
+// PHYSICAL ORDER PAYMENT - FLUTTERWAVE ONLY
 // ============================================
 
 app.post("/api/create-physical-order-payment", async (req, res) => {
@@ -11261,11 +11442,12 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         }
         
         const { productId, quantity, deliveryAddress, deliveryPhone, city, state, country, notes } = req.body;
+        const qty = parseInt(quantity) || 1;
         
         // Get product with seller info
         const productResult = await db.query(`
             SELECT p.*, u.id as seller_id, u.email as seller_email, u.username as seller_name,
-                   u.flutterwave_subaccount_id, u.paystack_subaccount_code
+                   u.flutterwave_subaccount_id
             FROM products p
             JOIN users u ON p.user_id = u.id
             WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)
@@ -11276,180 +11458,170 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         }
         
         const product = productResult[0];
-        const usdAmount = parseFloat(product.price) * quantity;
+        const productPrice = parseFloat(product.price);
+        const totalAmount = productPrice * qty;
         
-        if (isNaN(usdAmount) || usdAmount <= 0) {
+        if (isNaN(totalAmount) || totalAmount <= 0) {
             return res.status(400).json({ error: "Invalid amount" });
         }
         
-        // Get exchange rate
-        const rates = await getExchangeRate();
-        const ngnAmount = usdAmount * rates.USD_TO_NGN;
+        // ✅ BULK ORDER FEE CALCULATION (as per your existing logic)
+        let platformFee = 0;
+        let sellerEarnings = 0;
+        let feeBreakdown = {};
         
-        // Calculate split amounts
-        const platformFeeUSD = usdAmount * 0.10;
-        const sellerEarningsUSD = usdAmount - platformFeeUSD;
-        const platformFeeNGN = ngnAmount * 0.10;
-        const sellerEarningsNGN = ngnAmount - platformFeeNGN;
-        
-        // Choose payment gateway
-        let usedGateway = null;
-        let paymentLink = null;
-        let transactionRef = `ORD_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
-        
-        // Try Paystack first for Nigerian customers (NGN)
-        if (process.env.PAYSTACK_SECRET_KEY) {
-            usedGateway = 'paystack';
-            const paystackRef = `PS_${transactionRef}`;
-            
-            const paystackPayload = {
-                amount: Math.round(ngnAmount * 100), // Convert to kobo
-                email: req.session.user.email,
-                reference: paystackRef,
-                callback_url: "https://coreinsightmarket.com/payment-callback.html",
-                metadata: {
-                    product_id: productId,
-                    seller_id: product.seller_id,
-                    quantity: quantity,
-                    type: 'physical_product',
-                    original_amount_usd: usdAmount,
-                    converted_amount_ngn: ngnAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeNGN,
-                    seller_earnings: sellerEarningsNGN,
-                    delivery_address: deliveryAddress,
-                    delivery_phone: deliveryPhone
-                }
+        if (qty <= 5) {
+            // Standard order: 10% of product price
+            platformFee = productPrice * 0.10;
+            sellerEarnings = totalAmount - platformFee;
+            feeBreakdown = {
+                type: "standard",
+                product_price: productPrice,
+                quantity: qty,
+                total_amount: totalAmount,
+                platform_fee: platformFee,
+                seller_earnings: sellerEarnings,
+                note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
             };
-            
-            // Add subaccount if available
-            if (product.paystack_subaccount_code) {
-                paystackPayload.subaccount = {
-                    subaccount_code: product.paystack_subaccount_code,
-                    transaction_charge: parseInt(platformFeeNGN * 100)
-                };
-            }
-            
-            const response = await axios.post(
-                'https://api.paystack.co/transaction/initialize',
-                paystackPayload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            
-            if (response.data.status === true && response.data.data?.authorization_url) {
-                paymentLink = response.data.data.authorization_url;
-                console.log(`✅ Paystack payment: ${ngnAmount.toFixed(2)} NGN (${usdAmount} USD @ ${rates.USD_TO_NGN})`);
-            }
-        }
-        
-        // Fallback to Flutterwave (USD)
-        if (!paymentLink && process.env.FLW_SECRET_KEY) {
-            usedGateway = 'flutterwave';
-            const flutterwaveRef = `FW_${transactionRef}`;
-            
-            const flutterwavePayload = {
-                tx_ref: flutterwaveRef,
-                amount: usdAmount,
-                currency: "USD",
-                redirect_url: "https://coreinsightmarket.com/payment-callback.html",
-                customer: {
-                    email: req.session.user.email,
-                    name: req.session.user.username || "Customer"
-                },
-                customizations: {
-                    title: "Core Insight Marketplace",
-                    description: `${product.title} x${quantity}`
-                },
-                meta: {
-                    product_id: productId,
-                    seller_id: product.seller_id,
-                    quantity: quantity,
-                    type: 'physical_product',
-                    amount_usd: usdAmount,
-                    exchange_rate: rates.USD_TO_NGN,
-                    platform_fee: platformFeeUSD,
-                    seller_earnings: sellerEarningsUSD,
-                    delivery_address: deliveryAddress,
-                    delivery_phone: deliveryPhone
-                }
+        } else {
+            // Bulk order: Base fee + 10% of total
+            const baseFee = productPrice * 0.10;
+            const bulkFee = totalAmount * 0.10;
+            platformFee = baseFee + bulkFee;
+            sellerEarnings = totalAmount - platformFee;
+            feeBreakdown = {
+                type: "bulk",
+                product_price: productPrice,
+                quantity: qty,
+                total_amount: totalAmount,
+                base_fee: baseFee,
+                bulk_fee: bulkFee,
+                platform_fee: platformFee,
+                seller_earnings: sellerEarnings,
+                note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
             };
-            
-            // Add subaccount if available
-            if (product.flutterwave_subaccount_id) {
-                flutterwavePayload.subaccounts = [{
-                    id: product.flutterwave_subaccount_id,
-                    transaction_split_ratio: 0.9
-                }];
-            }
-            
-            const response = await axios.post(
-                'https://api.flutterwave.com/v3/payments',
-                flutterwavePayload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            
-            if (response.data.status === 'success' && response.data.data?.link) {
-                paymentLink = response.data.data.link;
-                console.log(`✅ Flutterwave payment: ${usdAmount} USD`);
-            }
         }
         
-        if (!paymentLink) {
-            throw new Error("No payment gateway available");
-        }
+        console.log(`💰 Order fee calculation:`, feeBreakdown);
         
-        // Create order in database
+        // Create unique transaction reference
+        const transactionRef = `ORD_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
+        
+        // Create order in database FIRST (before payment)
         const orderResult = await db.query(
             `INSERT INTO physical_orders (
                 product_id, seller_id, buyer_id, product_name, quantity, 
-                price_usd, total_usd, total_ngn, exchange_rate,
+                price, total_amount,
                 customer_name, customer_email, shipping_address, delivery_phone,
                 city, state, country, notes,
-                platform_fee_usd, platform_fee_ngn, seller_earnings_usd, seller_earnings_ngn,
+                platform_fee, seller_earnings, fee_breakdown,
                 transaction_ref, payment_gateway, payment_status, order_status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending_seller_approval', NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'flutterwave', 'pending', 'pending_seller_approval', NOW())`,
             [
-                productId, product.seller_id, req.session.user.id, product.title, quantity,
-                usdAmount, usdAmount, ngnAmount, rates.USD_TO_NGN,
+                productId, product.seller_id, req.session.user.id, product.title, qty,
+                productPrice, totalAmount,
                 req.session.user.username, req.session.user.email,
                 deliveryAddress, deliveryPhone, city || null, state || null, country || null, notes || null,
-                platformFeeUSD, platformFeeNGN, sellerEarningsUSD, sellerEarningsNGN,
-                transactionRef, usedGateway
+                platformFee, sellerEarnings, JSON.stringify(feeBreakdown),
+                transactionRef
             ]
         );
         
         const orderId = orderResult.insertId;
+        console.log(`✅ Order #${orderId} created with calculated fees`);
         
-        res.json({
-            success: true,
-            paymentLink: paymentLink,
-            transactionRef: transactionRef,
-            orderId: orderId,
-            gateway: usedGateway,
-            amount_usd: usdAmount,
-            amount_local: usedGateway === 'paystack' ? ngnAmount : usdAmount,
-            currency: usedGateway === 'paystack' ? 'NGN' : 'USD',
-            exchange_rate: rates.USD_TO_NGN,
-            platform_fee: usedGateway === 'paystack' ? platformFeeNGN : platformFeeUSD,
-            seller_earnings: usedGateway === 'paystack' ? sellerEarningsNGN : sellerEarningsUSD,
-            message: `Payment of ${usedGateway === 'paystack' ? `₦${ngnAmount.toFixed(2)}` : `$${usdAmount.toFixed(2)}`} required`
-        });
+        // Create Flutterwave payment link (ONLY FLUTTERWAVE)
+        if (!process.env.FLW_SECRET_KEY) {
+            return res.status(500).json({ error: "Payment system not configured. Please contact support." });
+        }
+        
+        const flutterwaveRef = `FW_${transactionRef}`;
+        
+        const flutterwavePayload = {
+            tx_ref: flutterwaveRef,
+            amount: totalAmount,
+            currency: "USD",
+            redirect_url: "https://coreinsightmarket.com/payment-callback.html",
+            customer: {
+                email: req.session.user.email,
+                name: req.session.user.username || "Customer"
+            },
+            customizations: {
+                title: "Core Insight Marketplace",
+                description: `${product.title} x${qty}`
+            },
+            meta: {
+                product_id: productId,
+                seller_id: product.seller_id,
+                order_id: orderId,
+                quantity: qty,
+                type: 'physical_product',
+                amount_usd: totalAmount,
+                platform_fee: platformFee,
+                seller_earnings: sellerEarnings,
+                delivery_address: deliveryAddress,
+                delivery_phone: deliveryPhone,
+                fee_breakdown: JSON.stringify(feeBreakdown)
+            }
+        };
+        
+        // ✅ ADD SUBACCOUNT FOR 90/10 SPLIT
+        if (product.flutterwave_subaccount_id) {
+            flutterwavePayload.subaccounts = [{
+                id: product.flutterwave_subaccount_id,
+                transaction_split_ratio: 0.9  // 90% to seller, 10% to platform
+            }];
+            console.log(`✅ Flutterwave subaccount added: ${product.flutterwave_subaccount_id}`);
+        } else {
+            console.log(`⚠️ No Flutterwave subaccount found for seller ${product.seller_id}`);
+        }
+        
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/payments',
+            flutterwavePayload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+        
+        if (response.data.status === 'success' && response.data.data?.link) {
+            // Update order with payment link
+            await db.query(
+                `UPDATE physical_orders SET payment_link = ? WHERE id = ?`,
+                [response.data.data.link, orderId]
+            );
+            
+            res.json({
+                success: true,
+                paymentLink: response.data.data.link,
+                transactionRef: transactionRef,
+                orderId: orderId,
+                gateway: 'flutterwave',
+                amount_usd: totalAmount,
+                platform_fee: platformFee,
+                seller_earnings: sellerEarnings,
+                fee_breakdown: feeBreakdown,
+                split: {
+                    platform_percentage: qty <= 5 ? 10 : (platformFee / totalAmount * 100).toFixed(1),
+                    seller_percentage: qty <= 5 ? 90 : (sellerEarnings / totalAmount * 100).toFixed(1),
+                    message: qty <= 5 ? "Standard 90/10 split" : "Bulk order fee applied (Base fee + 10% of total)"
+                },
+                message: `Redirecting to Flutterwave payment...`
+            });
+        } else {
+            throw new Error(response.data.message || "Payment initialization failed");
+        }
         
     } catch (err) {
         console.error("❌ Payment creation error:", err);
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // ============================================
 // FLUTTERWAVE WEBHOOK (for auto-split confirmation)
@@ -11796,6 +11968,13 @@ app.post("/api/verify-account/paystack", async (req, res) => {
 // BUY DIGITAL PRODUCT - WITH SUBACCOUNT SPLIT
 // ============================================
 
+// ============================================
+// BUY DIGITAL PRODUCT - FLUTTERWAVE ONLY
+// ============================================
+// ============================================
+// BUY DIGITAL PRODUCT - FLUTTERWAVE ONLY (90/10 Split)
+// ============================================
+
 app.post("/api/buy-product", async (req, res) => {
     try {
         console.log("🛒 Buy digital product request received");
@@ -11804,7 +11983,7 @@ app.post("/api/buy-product", async (req, res) => {
             return res.status(401).json({ error: "Please login to purchase" });
         }
         
-        const { productId, preferredGateway } = req.body;
+        const { productId } = req.body;
         
         if (!productId) {
             return res.status(400).json({ error: "Product ID is required" });
@@ -11815,8 +11994,7 @@ app.post("/api/buy-product", async (req, res) => {
             `SELECT p.*, 
                     u.email as seller_email, 
                     u.username as seller_name,
-                    u.flutterwave_subaccount_id,
-                    u.paystack_subaccount_code
+                    u.flutterwave_subaccount_id
              FROM products p
              LEFT JOIN users u ON p.user_id = u.id
              WHERE p.id = ? AND (p.is_deleted = 0 OR p.is_deleted IS NULL)`,
@@ -11834,15 +12012,9 @@ app.post("/api/buy-product", async (req, res) => {
             return res.status(400).json({ error: "Invalid product price" });
         }
         
-        // Get exchange rate
-        const rates = await getExchangeRate();
-        const ngnAmount = usdAmount * rates.USD_TO_NGN;
-        
         // Calculate split (90/10)
         const platformFeeUSD = usdAmount * 0.10;
         const sellerEarningsUSD = usdAmount - platformFeeUSD;
-        const platformFeeNGN = ngnAmount * 0.10;
-        const sellerEarningsNGN = ngnAmount - platformFeeNGN;
         
         // Create unique transaction reference
         const timestamp = Date.now();
@@ -11855,173 +12027,109 @@ app.post("/api/buy-product", async (req, res) => {
             const orderResult = await db.query(
                 `INSERT INTO digital_orders (
                     product_id, buyer_id, seller_id, 
-                    amount, amount_usd, amount_ngn, exchange_rate,
-                    platform_fee_usd, platform_fee_ngn,
-                    seller_earnings_usd, seller_earnings_ngn,
+                    amount, amount_usd,
+                    platform_fee_usd,
+                    seller_earnings_usd,
                     transaction_ref, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
                 [
                     productId, req.session.user.id, product.user_id,
-                    usdAmount, usdAmount, ngnAmount, rates.USD_TO_NGN,
-                    platformFeeUSD, platformFeeNGN,
-                    sellerEarningsUSD, sellerEarningsNGN,
+                    usdAmount, usdAmount,
+                    platformFeeUSD,
+                    sellerEarningsUSD,
                     transactionRef
                 ]
             );
             
-            if (orderResult && orderResult.insertId) {
-                orderId = orderResult.insertId;
-            } else if (orderResult && orderResult[0] && orderResult[0].insertId) {
-                orderId = orderResult[0].insertId;
-            }
-            
+            orderId = orderResult.insertId || (orderResult[0] && orderResult[0].insertId);
             console.log(`✅ Digital order created with ID: ${orderId}`);
         } catch (dbErr) {
             console.error("❌ Database insert error:", dbErr.message);
             return res.status(500).json({ error: "Failed to create order: " + dbErr.message });
         }
         
-        // Create payment link
-        let paymentLink = null;
-        let usedGateway = null;
+        // Create Flutterwave payment link (ONLY FLUTTERWAVE)
+        if (!process.env.FLW_SECRET_KEY) {
+            return res.status(500).json({ error: "Payment system not configured. Please contact support." });
+        }
         
-        // Try Paystack first
-        if (process.env.PAYSTACK_SECRET_KEY && (!preferredGateway || preferredGateway === 'paystack')) {
-            usedGateway = 'paystack';
-            const paystackRef = `PS_${transactionRef}`;
-            const ngnAmountKobo = Math.round(ngnAmount * 100);
-            
-            const paystackPayload = {
-                amount: ngnAmountKobo,
+        const flutterwaveRef = `FW_${transactionRef}`;
+        
+        const flutterwavePayload = {
+            tx_ref: flutterwaveRef,
+            amount: usdAmount,
+            currency: "USD",
+            redirect_url: "https://coreinsightmarket.com/digital-payment-callback.html",
+            customer: {
                 email: req.session.user.email,
-                reference: paystackRef,
-                callback_url: "https://coreinsightmarket.com/digital-payment-callback.html",
-                metadata: {
-                    product_id: productId,
-                    order_id: orderId,
-                    type: 'digital_product',
-                    transaction_ref: transactionRef
-                }
-            };
-            
-            // ✅ ADD SUBACCOUNT FOR DIGITAL PRODUCTS (90/10 SPLIT)
-            if (product.paystack_subaccount_code) {
-                paystackPayload.subaccount = {
-                    subaccount_code: product.paystack_subaccount_code,
-                    transaction_charge: Math.round(platformFeeNGN * 100)  // 10% platform fee
-                };
-                console.log(`✅ Paystack subaccount added: ${product.paystack_subaccount_code}`);
-            } else {
-                console.log(`⚠️ No Paystack subaccount found for seller ${product.user_id}`);
-            }
-            
-            try {
-                const response = await axios.post(
-                    'https://api.paystack.co/transaction/initialize',
-                    paystackPayload,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 30000
-                    }
-                );
-                
-                if (response.data.status === true && response.data.data?.authorization_url) {
-                    paymentLink = response.data.data.authorization_url;
-                    console.log(`✅ Paystack payment link created (90/10 split)`);
-                }
-            } catch (paystackErr) {
-                console.error("Paystack error:", paystackErr.message);
-                usedGateway = null;
-            }
-        }
-        
-        // Fallback to Flutterwave
-        if (!paymentLink && process.env.FLW_SECRET_KEY) {
-            usedGateway = 'flutterwave';
-            const flutterwaveRef = `FW_${transactionRef}`;
-            
-            const flutterwavePayload = {
-                tx_ref: flutterwaveRef,
-                amount: usdAmount,
-                currency: "USD",
-                redirect_url: "https://coreinsightmarket.com/digital-payment-callback.html",
-                customer: {
-                    email: req.session.user.email,
-                    name: req.session.user.username || "Customer"
-                },
-                customizations: {
-                    title: "Core Insight",
-                    description: product.title.substring(0, 50)
-                },
-                meta: {
-                    product_id: productId,
-                    order_id: orderId,
-                    type: 'digital_product',
-                    transaction_ref: transactionRef
-                }
-            };
-            
-            // ✅ ADD SUBACCOUNT FOR DIGITAL PRODUCTS (90/10 SPLIT)
-            if (product.flutterwave_subaccount_id) {
-                flutterwavePayload.subaccounts = [{
-                    id: product.flutterwave_subaccount_id,
-                    transaction_split_ratio: 0.9  // 90% to seller, 10% to platform
-                }];
-                console.log(`✅ Flutterwave subaccount added: ${product.flutterwave_subaccount_id}`);
-            } else {
-                console.log(`⚠️ No Flutterwave subaccount found for seller ${product.user_id}`);
-            }
-            
-            try {
-                const response = await axios.post(
-                    'https://api.flutterwave.com/v3/payments',
-                    flutterwavePayload,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 30000
-                    }
-                );
-                
-                if (response.data.status === 'success' && response.data.data?.link) {
-                    paymentLink = response.data.data.link;
-                    console.log(`✅ Flutterwave payment link created (90/10 split)`);
-                }
-            } catch (flutterErr) {
-                console.error("Flutterwave error:", flutterErr.message);
-                usedGateway = null;
-            }
-        }
-        
-        if (!paymentLink) {
-            return res.status(500).json({ error: "Unable to create payment link. Please try again." });
-        }
-        
-        // Update order with payment link
-        await db.query(
-            `UPDATE digital_orders SET payment_gateway = ?, payment_link = ? WHERE id = ?`,
-            [usedGateway, paymentLink, orderId]
-        );
-        
-        res.json({
-            success: true,
-            paymentLink: paymentLink,
-            transactionRef: transactionRef,
-            orderId: orderId,
-            gateway: usedGateway,
-            amount_usd: usdAmount,
-            split: {
-                platform_fee: usdAmount * 0.10,
-                seller_earnings: usdAmount * 0.90,
-                message: "90% goes to seller, 10% platform fee"
+                name: req.session.user.username || "Customer"
             },
-            message: `Redirecting to ${usedGateway} payment... (90/10 split)`
-        });
+            customizations: {
+                title: "Core Insight",
+                description: product.title.substring(0, 50)
+            },
+            meta: {
+                product_id: productId,
+                order_id: orderId,
+                type: 'digital_product',
+                transaction_ref: transactionRef
+            }
+        };
+        
+        // ✅ ADD SUBACCOUNT FOR 90/10 SPLIT
+        if (product.flutterwave_subaccount_id) {
+            flutterwavePayload.subaccounts = [{
+                id: product.flutterwave_subaccount_id,
+                transaction_split_ratio: 0.9  // 90% to seller, 10% to platform
+            }];
+            console.log(`✅ Flutterwave subaccount added: ${product.flutterwave_subaccount_id}`);
+        } else {
+            console.log(`⚠️ No Flutterwave subaccount found for seller ${product.user_id}. Platform will collect 100% and pay out manually.`);
+        }
+        
+        try {
+            const response = await axios.post(
+                'https://api.flutterwave.com/v3/payments',
+                flutterwavePayload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+            
+            if (response.data.status === 'success' && response.data.data?.link) {
+                // Update order with payment link
+                await db.query(
+                    `UPDATE digital_orders SET payment_gateway = 'flutterwave', payment_link = ? WHERE id = ?`,
+                    [response.data.data.link, orderId]
+                );
+                
+                res.json({
+                    success: true,
+                    paymentLink: response.data.data.link,
+                    transactionRef: transactionRef,
+                    orderId: orderId,
+                    gateway: 'flutterwave',
+                    amount_usd: usdAmount,
+                    split: {
+                        platform_fee: usdAmount * 0.10,
+                        seller_earnings: usdAmount * 0.90,
+                        platform_percentage: 10,
+                        seller_percentage: 90,
+                        message: "90% goes to seller, 10% platform fee - Auto-split via Flutterwave subaccount"
+                    },
+                    message: `Redirecting to Flutterwave payment... (90/10 split)`
+                });
+            } else {
+                throw new Error(response.data.message || "Payment initialization failed");
+            }
+        } catch (flutterErr) {
+            console.error("Flutterwave error:", flutterErr.message);
+            return res.status(500).json({ error: "Payment gateway error. Please try again." });
+        }
         
     } catch (err) {
         console.error("❌ Buy product error:", err.message);
@@ -12030,8 +12138,6 @@ app.post("/api/buy-product", async (req, res) => {
         });
     }
 });
-
-
 // ============================================
 // VERIFY DIGITAL PRODUCT PAYMENT - FIXED
 // ============================================

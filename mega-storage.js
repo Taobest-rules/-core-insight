@@ -195,7 +195,7 @@ const uploadCourseFile = upload.single('file');
 const uploadProductFile = upload.single('file');
 const uploadMultipleProducts = upload.array('images[]', 10);
 
-// ============ EXPORTS ============
+// At the bottom of mega-storage.js
 module.exports = {
     upload,
     uploadCourse,
@@ -208,11 +208,11 @@ module.exports = {
     uploadCourseFile,
     uploadProductFile,
     uploadMultipleProducts,
-    uploadToImgbb,           // Direct ImgBB (images only)
-    uploadToBackblaze,       // Direct Backblaze (files only)
-    uploadFile,              // ✅ Smart upload (auto-detects) - ADDED
-    uploadToImgbbUniversal,  // Alias for smart upload
-    uploadFileToMega,        // Alias for smart upload
-    uploadImageToImgbb,      // Alias for ImgBB
+    uploadToImgbb,
+    uploadToBackblaze,
+    uploadFile,              // ✅ ADD THIS LINE
+    uploadToImgbbUniversal,
+    uploadFileToMega,
+    uploadImageToImgbb,
     uploadMultipleImagesToImgbb
 };

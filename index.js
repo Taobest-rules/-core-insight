@@ -2310,10 +2310,10 @@ function sendFile(res, filePath, title) {
   });
 }
 
-// Course Upload (File + Thumbnail)
+// Course Upload (File + Thumbnail) - USING SMART UPLOAD
 app.post("/api/courses", uploadCourse, async (req, res) => {
   try {
-    console.log('📚 Course upload started with ImgBB...');
+    console.log('📚 Course upload started with smart upload...');
     
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login to upload courses" });
@@ -2333,16 +2333,16 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       return res.status(400).json({ error: "Thumbnail image is required" });
     }
 
-    // Upload course file to ImgBB
+    // ✅ UPLOAD COURSE FILE - USE SMART UPLOAD (auto-detects file type)
     const courseFile = req.files.file[0];
-    const fileUrl = await uploadToImgbb(courseFile.path, courseFile.originalname);
+    const fileUrl = await uploadFile(courseFile.path, courseFile.originalname);  // ✅ SMART UPLOAD
     
-    // Upload thumbnail to ImgBB
+    // ✅ UPLOAD THUMBNAIL - Use ImgBB directly (it's an image)
     const thumbnailFile = req.files.thumbnail[0];
     const thumbnailUrl = await uploadToImgbb(thumbnailFile.path, thumbnailFile.originalname);
     
-    console.log(`✅ File uploaded to ImgBB: ${fileUrl}`);
-    console.log(`✅ Thumbnail uploaded to ImgBB: ${thumbnailUrl}`);
+    console.log(`✅ Course file uploaded to: ${fileUrl.substring(0, 60)}...`);
+    console.log(`✅ Thumbnail uploaded to: ${thumbnailUrl.substring(0, 60)}...`);
 
     // Store in database
     const result = await db.query(

@@ -822,19 +822,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
   border-color: var(--accent);
 }
 .delivery-badge {
-  position: absolute;
-  bottom: 12px;
-  right: 16px;
-  z-index: 2;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: none;
 }
     /* ================= PROFESSIONAL SELLER FORM ================= */
     .upload-section {
@@ -11482,64 +11470,66 @@ function renderProducts() {
         const pickupHours = p.pickup_hours || '';
         const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
 
-        // Build delivery/pickup info HTML
-        let deliveryInfoHtml = '';
+        // Build delivery/pickup info HTML - SHOW ALL OPTIONS
+let deliveryInfoHtml = '<div class="product-details">';
 
-        if (deliveryType === 'delivery' || deliveryType === 'both') {
-          deliveryInfoHtml += `
-            <div class="product-details">
-              <div class="detail-item">
-                <i class="fas fa-truck"></i>
-                <span><strong>Delivery:</strong> Home Delivery</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-globe"></i>
-                <span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span>
-              </div>
-              ${deliveryStates ? `
-              <div class="detail-item">
-                <i class="fas fa-map-pin"></i>
-                <span><strong>States/Provinces:</strong> ${escapeHtml(deliveryStates)}</span>
-              </div>
-              ` : ''}
-              <div class="detail-item">
-                <i class="fas fa-calendar-day"></i>
-                <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
-              </div>
-            </div>
-          `;
-        }
+// Always show Home Delivery option if available
+if (deliveryType === 'delivery' || deliveryType === 'both') {
+  deliveryInfoHtml += `
+    <div class="detail-item">
+      <i class="fas fa-truck" style="color: var(--accent);"></i>
+      <span><strong>🚚 Home Delivery:</strong> Available</span>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-globe"></i>
+      <span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span>
+    </div>
+    ${deliveryStates ? `
+    <div class="detail-item">
+      <i class="fas fa-map-pin"></i>
+      <span><strong>States:</strong> ${escapeHtml(deliveryStates)}</span>
+    </div>
+    ` : ''}
+    <div class="detail-item">
+      <i class="fas fa-calendar-day"></i>
+      <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+    </div>
+  `;
+}
 
-        if (deliveryType === 'pickup' || deliveryType === 'both') {
-          deliveryInfoHtml += `
-            <div class="product-details" style="border-left-color: var(--success);">
-              <div class="detail-item">
-                <i class="fas fa-store"></i>
-                <span><strong>Pickup:</strong> Store Pickup Available</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-location-dot"></i>
-                <span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span>
-              </div>
-              ${pickupHours ? `
-              <div class="detail-item">
-                <i class="fas fa-clock"></i>
-                <span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span>
-              </div>
-              ` : ''}
-            </div>
-          `;
-        }
+// Always show Store Pickup option if available
+if (deliveryType === 'pickup' || deliveryType === 'both') {
+  deliveryInfoHtml += `
+    <div class="detail-item" style="margin-top: 8px;">
+      <i class="fas fa-store" style="color: var(--success);"></i>
+      <span><strong>🏪 Store Pickup:</strong> Available</span>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-location-dot"></i>
+      <span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span>
+    </div>
+    ${pickupHours ? `
+    <div class="detail-item">
+      <i class="fas fa-clock"></i>
+      <span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span>
+    </div>
+    ` : ''}
+  `;
+}
 
-        // Badge for delivery type
-        let deliveryBadgeHtml = '';
-        if (deliveryType === 'delivery') {
-          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(59, 130, 246, 0.2); color: var(--accent);"><i class="fas fa-truck"></i> Home Delivery</div>`;
-        } else if (deliveryType === 'pickup') {
-          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success);"><i class="fas fa-store"></i> Store Pickup</div>`;
-        } else if (deliveryType === 'both') {
-          deliveryBadgeHtml = `<div class="delivery-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning);"><i class="fas fa-truck"></i> <i class="fas fa-store"></i> Delivery & Pickup</div>`;
-        }
+// If no delivery options (shouldn't happen), show a message
+if (deliveryInfoHtml === '<div class="product-details">') {
+  deliveryInfoHtml += `
+    <div class="detail-item">
+      <i class="fas fa-info-circle"></i>
+      <span>Contact seller for delivery options</span>
+    </div>
+  `;
+}
+
+deliveryInfoHtml += '</div>';
+        // Badge for delivery type - REMOVED (now shown in details section)
+let deliveryBadgeHtml = '';
 
         // Format prices with currency conversion
         const formattedPrice = fmtPrice(originalPriceUSD);
@@ -11548,7 +11538,7 @@ function renderProducts() {
             <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
                 <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
                 <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
-                ${deliveryBadgeHtml}
+                
                 <div class="card-media">
                     <img id="mainimg-${p.id}" 
                          src="${productImage}" 
@@ -12302,8 +12292,7 @@ async function releaseExpiredEscrowFunds() {
     window.editProduct = editProduct;
 
  // ========== UPLOAD PRODUCT FUNCTION WITH DEBUGGING ==========
-
- // ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========
+// ========== UPLOAD PRODUCT BUTTON HANDLER - FIXED ==========
 $('uploadProductBtn').addEventListener('click', async (e) => {
   e.preventDefault();
   console.log("🟢 Upload button CLICKED!");
@@ -12317,6 +12306,9 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     openModal(loginModal); 
     return; 
   }
+
+  // ✅✅✅ CREATE FormData FIRST (THIS IS THE FIX) ✅✅✅
+  const fd = new FormData();
 
   // Get form values
   const title = $('p_title')?.value.trim();
@@ -12336,23 +12328,53 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     affiliateLink = document.getElementById('p_affiliate')?.value.trim() || '';
     externalImage = $('p_external_image')?.value.trim() || '';
   }
-// Get delivery method values
-const deliveryType = document.getElementById('p_deliveryType').value;
-const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
-  Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
-const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
-const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
-const pickupHours = document.getElementById('p_pickupHours')?.value || '';
-const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
 
-// Append to FormData
-fd.append('delivery_type', deliveryType);
-fd.append('delivery_countries', deliveryCountries);
-fd.append('delivery_states', deliveryStates);
-fd.append('pickup_address', pickupAddress);
-fd.append('pickup_hours', pickupHours);
-fd.append('pickup_instructions', pickupInstructions);
+  // ✅ NOW USE fd.append() AFTER declaration
+  // Append basic info
+  fd.append('title', title);
+  fd.append('description', description || '');
+  fd.append('category', category || '');
+  fd.append('price', price);
+  fd.append('type', type);
+  fd.append('paymentProvider', paymentProvider);
+  
+  // Physical product fields
+  if (type === 'physical') {
+    fd.append('delivery_days', deliveryDays);
+    fd.append('product_cost', productCost);
+    fd.append('delivery_type', 'delivery');
+    fd.append('payment_option', $('p_paymentOption')?.value || 'pay_on_delivery');
+    fd.append('delivery_locations', deliveryLocations);
+    
+    // Get delivery method values (these were causing the error)
+    const deliveryType = document.getElementById('p_deliveryType')?.value || 'delivery';
+    const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
+      Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
+    const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
+    const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
+    const pickupHours = document.getElementById('p_pickupHours')?.value || '';
+    const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
 
+    fd.append('delivery_type', deliveryType);
+    fd.append('delivery_countries', deliveryCountries);
+    fd.append('delivery_states', deliveryStates);
+    fd.append('pickup_address', pickupAddress);
+    fd.append('pickup_hours', pickupHours);
+    fd.append('pickup_instructions', pickupInstructions);
+  }
+  
+  // Digital product file
+  if (type === 'digital') {
+    const fileInput = document.getElementById('p_file');
+    if (fileInput?.files.length > 0) fd.append('file', fileInput.files[0]);
+  }
+  
+  // Affiliate product
+  if (type === 'affiliate') {
+    fd.append('affiliate_link', affiliateLink);
+    if (externalImage) fd.append('external_image', externalImage);
+  }
+  
   // Business info
   const businessName = $('p_businessName')?.value.trim();
   const businessEmail = $('p_businessEmail')?.value.trim();
@@ -12363,34 +12385,6 @@ fd.append('pickup_instructions', pickupInstructions);
   const accountNumber = $('p_accountNumber')?.value.trim();
   const accountName = $('p_accountName')?.value.trim();
 
-  // Create FormData
-  const fd = new FormData();
-  fd.append('title', title);
-  fd.append('description', description || '');
-  fd.append('category', category || '');
-  fd.append('price', price);
-  fd.append('type', type);
-  fd.append('paymentProvider', paymentProvider);
-  
-  if (type === 'physical') {
-    fd.append('delivery_days', deliveryDays);
-    fd.append('product_cost', productCost);
-    fd.append('delivery_type', 'delivery');
-    fd.append('payment_option', $('p_paymentOption')?.value || 'pay_on_delivery');
-    fd.append('delivery_locations', deliveryLocations);
-  }
-  
-  if (type === 'digital') {
-    const fileInput = document.getElementById('p_file');
-    if (fileInput?.files.length > 0) fd.append('file', fileInput.files[0]);
-  }
-  
-  if (type === 'affiliate') {
-    fd.append('affiliate_link', affiliateLink);
-    if (externalImage) fd.append('external_image', externalImage);
-  }
-  
-  // Business info
   fd.append('businessName', businessName);
   fd.append('businessEmail', businessEmail);
   fd.append('businessPhone', businessPhone);
@@ -12469,6 +12463,7 @@ fd.append('pickup_instructions', pickupInstructions);
     uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`;
   }
 });
+
 // 👇 NEW FUNCTION: Refresh category dropdown after upload
 async function refreshCategoryDropdown() {
   try {

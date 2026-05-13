@@ -45,6 +45,12 @@ const isArchiveFile = (filename) => {
     return archiveExtensions.includes(ext);
 };
 
+const isVideoFile = (filename) => {
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv', '.m4v', '.mpg', '.mpeg'];
+    const ext = path.extname(filename).toLowerCase();
+    return videoExtensions.includes(ext);
+};
+
 // ============ IMGBB UPLOAD (IMAGES ONLY) ============
 const uploadToImgbb = async (filePath, filename) => {
     if (!isImageFile(filename)) {
@@ -67,6 +73,7 @@ const uploadToImgbb = async (filePath, filename) => {
     try { fs.unlinkSync(filePath); } catch(e) {}
     
     if (response.data?.data?.url) {
+        console.log(`✅ Image uploaded to ImgBB: ${response.data.data.url.substring(0, 60)}...`);
         return response.data.data.url;
     }
     throw new Error('ImgBB upload failed');
@@ -126,9 +133,12 @@ const uploadToBackblaze = async (filePath, filename) => {
 // ============ SMART UPLOAD - CHOOSES RIGHT SERVICE ============
 const uploadFile = async (filePath, filename) => {
     if (isImageFile(filename)) {
+        // Images go to ImgBB
+        console.log(`📸 Image detected - using ImgBB: ${filename}`);
         return await uploadToImgbb(filePath, filename);
     } else {
-        // Documents, archives, videos, etc. go to Backblaze B2
+        // Documents, videos, archives go to Backblaze B2
+        console.log(`📁 Non-image file detected - using Backblaze B2: ${filename}`);
         return await uploadToBackblaze(filePath, filename);
     }
 };
@@ -136,6 +146,7 @@ const uploadFile = async (filePath, filename) => {
 // Aliases for backward compatibility
 const uploadToImgbbUniversal = uploadFile;
 const uploadFileToMega = uploadFile;
+const uploadSmartFile = uploadFile;  // ✅ ALIAS FOR COURSE UPLOADS
 const uploadImageToImgbb = uploadToImgbb;
 const uploadMultipleImagesToImgbb = async (files) => {
     const urls = [];
@@ -195,11 +206,9 @@ const uploadCourseFile = upload.single('file');
 const uploadProductFile = upload.single('file');
 const uploadMultipleProducts = upload.array('images[]', 10);
 
-// Create alias for uploadFile
-const uploadSmartFile = uploadFile;
-
-// At the bottom of mega-storage.js
+// ============ EXPORTS ============
 module.exports = {
+    // Multer configurations
     upload,
     uploadCourse,
     uploadProduct,
@@ -211,9 +220,12 @@ module.exports = {
     uploadCourseFile,
     uploadProductFile,
     uploadMultipleProducts,
-    uploadToImgbb,
-    uploadToBackblaze,
-    uploadSmartFile,
+    
+    // Upload functions
+    uploadToImgbb,        // Images only - for thumbnails
+    uploadToBackblaze,    // Files only - for documents/videos
+    uploadFile,           // Smart upload - auto-detects file type
+    uploadSmartFile,      // Alias for uploadFile (for course uploads)
     uploadToImgbbUniversal,
     uploadFileToMega,
     uploadImageToImgbb,

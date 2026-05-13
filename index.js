@@ -35,7 +35,7 @@ const {
   uploadImageToImgbb,
   uploadMultipleImagesToImgbb,
   uploadFileToMega,
-  uploadFile: uploadSmartFile    // ← Rename to uploadSmartFile
+  uploadSmartFile    // ✅ This will work now
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");

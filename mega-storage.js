@@ -195,6 +195,9 @@ const uploadCourseFile = upload.single('file');
 const uploadProductFile = upload.single('file');
 const uploadMultipleProducts = upload.array('images[]', 10);
 
+// Create alias for uploadFile
+const uploadSmartFile = uploadFile;
+
 // At the bottom of mega-storage.js
 module.exports = {
     upload,
@@ -210,7 +213,7 @@ module.exports = {
     uploadMultipleProducts,
     uploadToImgbb,
     uploadToBackblaze,
-    uploadFile,              // ✅ ADD THIS LINE
+    uploadSmartFile,
     uploadToImgbbUniversal,
     uploadFileToMega,
     uploadImageToImgbb,

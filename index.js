@@ -35,7 +35,7 @@ const {
   uploadImageToImgbb,
   uploadMultipleImagesToImgbb,
   uploadFileToMega,
-  uploadFile           // ← Add this
+  uploadFile: uploadSmartFile    // ← Rename to uploadSmartFile
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");
@@ -2342,7 +2342,7 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
 
     // ✅ UPLOAD COURSE FILE - USE SMART UPLOAD (auto-detects file type)
     const courseFile = req.files.file[0];
-    const fileUrl = await uploadFile(courseFile.path, courseFile.originalname);  // ✅ SMART UPLOAD
+    const fileUrl = await uploadSmartFile(courseFile.path, courseFile.originalname);  // ✅ SMART UPLOAD
     
     // ✅ UPLOAD THUMBNAIL - Use ImgBB directly (it's an image)
     const thumbnailFile = req.files.thumbnail[0];

@@ -34,7 +34,8 @@ const {
   uploadToImgbb,
   uploadImageToImgbb,
   uploadMultipleImagesToImgbb,
-  uploadFileToMega
+  uploadFileToMega,
+  uploadFile           // ← Add this
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");

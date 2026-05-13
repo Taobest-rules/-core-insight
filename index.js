@@ -4743,31 +4743,64 @@ const checkSellerVerification = async (req, res, next) => {
         return res.status(401).json({ error: "Please login" });
     }
 
-    if (req.session.user.role !== 'freelancer') {
+    // Admins bypass verification check
+    if (req.session.user.role === 'admin') {
         return next();
     }
 
-    try {
-        const user = await db.query(
-            "SELECT verification_status FROM users WHERE id = ?",
-            [req.session.user.id]
-        );
+    // Clients can become sellers too (they need verification)
+    if (req.session.user.role === 'client') {
+        try {
+            const user = await db.query(
+                "SELECT verification_status, phone_verified FROM users WHERE id = ?",
+                [req.session.user.id]
+            );
 
-        const verificationStatus = user[0]?.verification_status;
+            const verificationStatus = user[0]?.verification_status;
+            const phoneVerified = user[0]?.phone_verified;
 
-        if (verificationStatus !== 'verified') {
-            return res.status(403).json({ 
-                error: "You must complete identity verification before offering services",
-                verification_required: true,
-                verification_status: verificationStatus || 'unverified',
-                redirect_url: '/verification.html'
-            });
+            // If not verified, return helpful error with redirect
+            if (verificationStatus !== 'verified') {
+                return res.status(403).json({ 
+                    error: "You must complete identity verification before listing products",
+                    verification_required: true,
+                    verification_status: verificationStatus || 'unverified',
+                    phone_verified: phoneVerified || false,
+                    redirect_url: '/verification.html'
+                });
+            }
+
+            next();
+        } catch (err) {
+            console.error("Verification check error:", err);
+            res.status(500).json({ error: err.message });
         }
+    } else if (req.session.user.role === 'freelancer') {
+        // Same check for freelancers
+        try {
+            const user = await db.query(
+                "SELECT verification_status FROM users WHERE id = ?",
+                [req.session.user.id]
+            );
 
+            const verificationStatus = user[0]?.verification_status;
+
+            if (verificationStatus !== 'verified') {
+                return res.status(403).json({ 
+                    error: "You must complete identity verification before offering services",
+                    verification_required: true,
+                    verification_status: verificationStatus || 'unverified',
+                    redirect_url: '/verification.html'
+                });
+            }
+
+            next();
+        } catch (err) {
+            console.error("Verification check error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    } else {
         next();
-    } catch (err) {
-        console.error("Verification check error:", err);
-        res.status(500).json({ error: err.message });
     }
 };
 

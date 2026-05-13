@@ -10657,33 +10657,60 @@ if (type === 'physical') {
 
     // ---------- Authentication ----------
   
-     async function loadUser(){
+async function loadUser() {
   try {
     const r = await fetch('/api/me');
     if (!r.ok) { 
       currentUser = null; 
       updateHeader(); 
       updateReviewFormVisibility();
-      checkAdminAndShowImportButton(); // Add this
+      checkAdminAndShowImportButton();
       return; 
     }
     const u = await r.json();
     currentUser = u || null;
     updateHeader();
     updateReviewFormVisibility();
-    checkAdminAndShowImportButton(); // Add this
+    checkAdminAndShowImportButton();
     
     // Load notifications if user is logged in
     if (currentUser) {
       await loadSellerNotifications();
       setInterval(loadSellerNotifications, 30000);
+      
+      // ✅ Check if user is a seller but NOT verified
+      await checkVerificationAndPrompt();
     }
-  } catch(err){
+  } catch(err) {
     console.error('loadUser', err);
     currentUser = null;
     updateHeader();
     updateReviewFormVisibility();
-    checkAdminAndShowImportButton(); // Add this
+    checkAdminAndShowImportButton();
+  }
+}
+
+// ✅ New function to check if seller needs verification
+async function checkVerificationAndPrompt() {
+  if (!currentUser) return;
+  
+  // Only check for potential sellers (role client or freelancer)
+  if (currentUser.role === 'client' || currentUser.role === 'freelancer') {
+    try {
+      const response = await fetch('/api/verification/status', {
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      // If not verified, show a subtle notification but don't force
+      if (data.status !== 'verified') {
+        // Optional: Show a non-intrusive notification
+        console.log('User not verified. Complete verification to start selling.');
+      }
+    } catch (err) {
+      console.error('Verification status check failed:', err);
+    }
   }
 }
  // Load user favorites AND favorite counts
@@ -11162,21 +11189,296 @@ window.submitReview = submitReview;
     });
 
     function escapeHtml(s){ if (!s) return ''; return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-
-    // ---------- Seller toggle ----------
-    const becomeBtn = $('becomeSeller');
-    becomeBtn.addEventListener('click', async ()=>{
-      if (!currentUser){
-        openModal(loginModal);
-        return;
-      }
-      sellerMode = !sellerMode;
-      becomeBtn.textContent = sellerMode ? 'Back to Buyer View' : 'Become a Seller';
-      $('sellerView').classList.toggle('active', sellerMode);
-      $('sellerView').setAttribute('aria-hidden', !sellerMode);
-      $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
-      if (!sellerMode) window.scrollTo({top:200,behavior:'smooth'});
+// ================= SELLER VERIFICATION CHECK =================
+async function checkVerificationStatus() {
+  try {
+    const response = await fetch('/api/verification/status', {
+      credentials: 'include'
     });
+    
+    if (!response.ok) {
+      return { isVerified: false, status: 'unknown' };
+    }
+    
+    const data = await response.json();
+    
+    return {
+      isVerified: data.status === 'verified',
+      status: data.status,
+      verification_type: data.verification_type,
+      phone_verified: data.phone_verified,
+      documents_uploaded: data.documents_uploaded
+    };
+  } catch (error) {
+    console.error('Verification check error:', error);
+    return { isVerified: false, status: 'error' };
+  }
+}
+
+// ================= OPEN VERIFICATION MODAL =================
+function openVerificationModal() {
+  // Reset modal state
+  const modal = document.getElementById('verificationModal');
+  const step1 = document.getElementById('verificationStep1');
+  const step2 = document.getElementById('verificationStep2');
+  const processing = document.getElementById('verificationProcessing');
+  
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+  if (processing) processing.style.display = 'none';
+  
+  // Reset form values
+  const phoneInput = document.getElementById('verifyPhone');
+  if (phoneInput) {
+    phoneInput.value = '';
+    phoneInput.disabled = false;
+  }
+  
+  const otpSection = document.getElementById('otpSection');
+  if (otpSection) otpSection.style.display = 'none';
+  
+  const phoneVerifiedStatus = document.getElementById('phoneVerifiedStatus');
+  if (phoneVerifiedStatus) phoneVerifiedStatus.innerHTML = '';
+  
+  // Reset verification type
+  const verificationType = document.getElementById('verificationType');
+  if (verificationType) verificationType.value = 'individual';
+  
+  // Hide business section
+  const businessSection = document.getElementById('businessSection');
+  if (businessSection) businessSection.style.display = 'none';
+  
+  // Clear file inputs
+  const governmentId = document.getElementById('verifyGovernmentId');
+  const selfie = document.getElementById('verifySelfie');
+  const addressProof = document.getElementById('verifyAddressProof');
+  
+  if (governmentId) governmentId.value = '';
+  if (selfie) selfie.value = '';
+  if (addressProof) addressProof.value = '';
+  
+  // Show modal
+  if (modal) modal.classList.add('open');
+}
+
+// ================= CLOSE VERIFICATION MODAL =================
+function closeVerificationModal() {
+  const modal = document.getElementById('verificationModal');
+  if (modal) modal.classList.remove('open');
+}
+
+// ================= TOGGLE VERIFICATION TYPE =================
+function toggleVerificationType() {
+  const type = document.getElementById('verificationType').value;
+  const businessSection = document.getElementById('businessSection');
+  if (businessSection) {
+    businessSection.style.display = type === 'business' ? 'block' : 'none';
+  }
+}
+
+// ================= SEND OTP =================
+async function sendOTP() {
+  const phone = document.getElementById('verifyPhone').value.trim();
+  
+  if (!phone) {
+    showToast('Error', 'Please enter your phone number', 'error');
+    return;
+  }
+  
+  // Basic phone validation (Nigerian format)
+  const phoneRegex = /^0[789][01]\d{8}$|^\+234[789][01]\d{8}$/;
+  if (!phoneRegex.test(phone) && !phone.match(/^\+\d{10,15}$/)) {
+    showToast('Error', 'Please enter a valid phone number (e.g., 08012345678 or +2348012345678)', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('sendOtpBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  
+  try {
+    const response = await fetch('/api/verification/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number: phone }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Code Sent', 'Check your email for verification code', 'success');
+      const otpSection = document.getElementById('otpSection');
+      if (otpSection) otpSection.style.display = 'block';
+    } else {
+      showToast('Error', data.error || 'Failed to send code', 'error');
+    }
+  } catch (err) {
+    showToast('Error', 'Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Code';
+  }
+}
+
+// ================= VERIFY OTP =================
+async function verifyOTP() {
+  const otp = document.getElementById('verifyOtp').value.trim();
+  
+  if (!otp || otp.length !== 6) {
+    showToast('Error', 'Please enter the 6-digit code', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/verification/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp_code: otp }),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const phoneVerifiedStatus = document.getElementById('phoneVerifiedStatus');
+      if (phoneVerifiedStatus) {
+        phoneVerifiedStatus.innerHTML = '<span style="color: var(--success);">✓ Phone verified!</span>';
+      }
+      
+      const otpSection = document.getElementById('otpSection');
+      if (otpSection) otpSection.style.display = 'none';
+      
+      const phoneInput = document.getElementById('verifyPhone');
+      if (phoneInput) phoneInput.disabled = true;
+      
+      // Move to document upload step
+      const step1 = document.getElementById('verificationStep1');
+      const step2 = document.getElementById('verificationStep2');
+      if (step1) step1.style.display = 'none';
+      if (step2) step2.style.display = 'block';
+      
+      showToast('Success', 'Phone verified! Please upload your documents', 'success');
+    } else {
+      showToast('Error', data.error || 'Invalid code', 'error');
+    }
+  } catch (err) {
+    showToast('Error', 'Network error. Please try again.', 'error');
+  }
+}
+
+// ================= SUBMIT VERIFICATION =================
+async function submitVerification() {
+  const formData = new FormData();
+  
+  // Required documents
+  const governmentId = document.getElementById('verifyGovernmentId').files[0];
+  const selfie = document.getElementById('verifySelfie').files[0];
+  const addressProof = document.getElementById('verifyAddressProof').files[0];
+  
+  // Validate documents
+  if (!governmentId) {
+    showToast('Error', 'Government ID is required', 'error');
+    return;
+  }
+  if (!selfie) {
+    showToast('Error', 'Selfie with ID is required', 'error');
+    return;
+  }
+  if (!addressProof) {
+    showToast('Error', 'Proof of address is required', 'error');
+    return;
+  }
+  
+  formData.append('government_id', governmentId);
+  formData.append('selfie_with_id', selfie);
+  formData.append('address_proof', addressProof);
+  
+  // Verification type
+  const verificationType = document.getElementById('verificationType').value;
+  formData.append('verification_type', verificationType);
+  
+  // Business fields if applicable
+  if (verificationType === 'business') {
+    const businessName = document.getElementById('verifyBusinessName')?.value;
+    const businessCert = document.getElementById('verifyBusinessCert')?.files[0];
+    const taxId = document.getElementById('verifyTaxId')?.value;
+    const taxDoc = document.getElementById('verifyTaxDoc')?.files[0];
+    
+    if (businessName) formData.append('business_name', businessName);
+    if (businessCert) formData.append('business_certificate', businessCert);
+    if (taxId) formData.append('tax_id', taxId);
+    if (taxDoc) formData.append('tax_id_document', taxDoc);
+  }
+  
+  // Show processing state
+  const step2 = document.getElementById('verificationStep2');
+  const processing = document.getElementById('verificationProcessing');
+  if (step2) step2.style.display = 'none';
+  if (processing) processing.style.display = 'block';
+  
+  try {
+    const response = await fetch('/api/verification/auto-verify', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Verification Complete!', 'You can now start selling', 'success');
+      closeVerificationModal();
+      
+      // Auto-switch to seller mode
+      sellerMode = true;
+      becomeBtn.textContent = 'Back to Buyer View';
+      $('sellerView').classList.add('active');
+      $('browseModeText').innerHTML = 'Seller';
+      
+      // Reload user to update verification status
+      await loadUser();
+      
+      // Scroll to seller form
+      $('sellerView').scrollIntoView({ behavior: 'smooth' });
+      
+    } else {
+      showToast('Error', data.error || 'Verification failed', 'error');
+      if (step2) step2.style.display = 'block';
+      if (processing) processing.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Verification error:', err);
+    showToast('Error', 'Network error. Please try again.', 'error');
+    if (step2) step2.style.display = 'block';
+    if (processing) processing.style.display = 'none';
+  }
+}
+    // ---------- Seller toggle WITH VERIFICATION CHECK ----------
+const becomeBtn = $('becomeSeller');
+becomeBtn.addEventListener('click', async ()=>{
+  if (!currentUser){
+    openModal(loginModal);
+    return;
+  }
+  
+  // ✅ CHECK IF USER IS ALREADY VERIFIED
+  const verificationStatus = await checkVerificationStatus();
+  
+  if (!verificationStatus.isVerified) {
+    // Show verification modal
+    openVerificationModal();
+    return;
+  }
+  
+  // Already verified - toggle seller mode normally
+  sellerMode = !sellerMode;
+  becomeBtn.textContent = sellerMode ? 'Back to Buyer View' : 'Become a Seller';
+  $('sellerView').classList.toggle('active', sellerMode);
+  $('sellerView').setAttribute('aria-hidden', !sellerMode);
+  $('browseModeText').innerHTML = sellerMode ? 'Seller' : 'Buyer';
+  if (!sellerMode) window.scrollTo({top:200,behavior:'smooth'});
+});
 
     $('cancelSeller').addEventListener('click', ()=>{ 
       sellerMode=false; 

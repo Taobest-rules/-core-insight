@@ -12720,7 +12720,28 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
     });
   }
 });
-
+app.get("/api/debug/digital-order/:orderId", async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    
+    const order = await db.query(
+      `SELECT o.*, p.title, p.file_url as product_file_url 
+       FROM digital_orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+    
+    res.json({
+      order: order[0],
+      file_url_from_product: order[0]?.product_file_url,
+      file_url_from_order: order[0]?.file_url,
+      download_url: order[0]?.download_url
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Enhanced download endpoint - proxies the file instead of redirecting
 app.get("/api/download-secure/:orderId", async (req, res) => {
   try {

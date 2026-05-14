@@ -12201,9 +12201,7 @@ app.post("/api/buy-product", async (req, res) => {
         let amountInNGN = null;
         
         if (userCountry === 'NG') {
-            // Nigerian users pay in NGN with local methods
             currency = "NGN";
-            // Get exchange rate to convert USD to NGN
             try {
                 const rates = await getExchangeRate();
                 exchangeRate = rates.USD_TO_NGN || 1500;
@@ -12216,7 +12214,6 @@ app.post("/api/buy-product", async (req, res) => {
             paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
             console.log(`💰 Nigerian user - Paying ${amount} NGN (Rate: ${exchangeRate})`);
         } else {
-            // International users pay in USD
             currency = "USD";
             amount = priceInUSD;
             paymentOptions = "card";
@@ -12227,16 +12224,15 @@ app.post("/api/buy-product", async (req, res) => {
         const platformFeeUSD = priceInUSD * 0.10;
         const sellerEarningsUSD = priceInUSD - platformFeeUSD;
         
-        // For NGN conversions
         const platformFeeNGN = platformFeeUSD * exchangeRate;
         const sellerEarningsNGN = sellerEarningsUSD * exchangeRate;
         
-        // Create unique transaction reference
+        // ✅ Create clean transaction reference (NO prefixes for Flutterwave)
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 10000);
-        const transactionRef = `DIGITAL_${timestamp}_${productId}_${randomNum}`;
+        const transactionRef = `DIGITAL_${timestamp}_${randomNum}`;
         
-        // ✅ INSERT with all columns matching your table structure
+        // Store order in database
         let orderId = null;
         try {
             const orderResult = await db.query(
@@ -12252,19 +12248,19 @@ app.post("/api/buy-product", async (req, res) => {
                     productId,
                     req.session.user.id,
                     product.user_id,
-                    amount,                          // amount (in user's currency)
-                    priceInUSD,                      // amount_usd
-                    amountInNGN,                     // amount_ngn (null for international)
-                    platformFeeUSD * (currency === 'NGN' ? exchangeRate : 1),  // platform_fee
-                    platformFeeUSD,                  // platform_fee_usd
-                    platformFeeNGN,                  // platform_fee_ngn
-                    sellerEarningsUSD * (currency === 'NGN' ? exchangeRate : 1), // seller_earnings
-                    sellerEarningsUSD,               // seller_earnings_usd
-                    sellerEarningsNGN,               // seller_earnings_ngn
-                    exchangeRate,                    // exchange_rate
-                    transactionRef,                  // transaction_ref
-                    currency,                        // currency
-                    priceInUSD                       // original_amount_usd
+                    amount,
+                    priceInUSD,
+                    amountInNGN,
+                    platformFeeNGN,
+                    platformFeeUSD,
+                    platformFeeNGN,
+                    sellerEarningsNGN,
+                    sellerEarningsUSD,
+                    sellerEarningsNGN,
+                    exchangeRate,
+                    transactionRef,
+                    currency,
+                    priceInUSD
                 ]
             );
             
@@ -12281,10 +12277,9 @@ app.post("/api/buy-product", async (req, res) => {
             return res.status(500).json({ error: "Payment system not configured. Please contact support." });
         }
         
-        const flutterwaveRef = `FW_${transactionRef}`;
-        
+        // ✅ Use CLEAN reference (NO prefix for Flutterwave)
         const flutterwavePayload = {
-            tx_ref: flutterwaveRef,
+            tx_ref: transactionRef,
             amount: amount,
             currency: currency,
             redirect_url: "https://coreinsightmarket.com/digital-payment-callback.html",
@@ -12334,14 +12329,13 @@ app.post("/api/buy-product", async (req, res) => {
             );
             
             if (response.data.status === 'success' && response.data.data?.link) {
-                // Update order with payment link and gateway
+                // Update order with payment link
                 await db.query(
                     `UPDATE digital_orders 
                      SET payment_gateway = 'flutterwave', 
-                         payment_link = ?,
-                         flutterwave_reference = ?
+                         payment_link = ?
                      WHERE id = ?`,
-                    [response.data.data.link, flutterwaveRef, orderId]
+                    [response.data.data.link, orderId]
                 );
                 
                 res.json({
@@ -12387,45 +12381,71 @@ app.get("/api/check-payment-status/:reference", async (req, res) => {
     
     console.log(`🔍 Checking payment status for reference: ${reference}`);
     
-    // Keep the PS_ prefix if present (Paystack needs it)
-    let paystackRef = reference;
+    // Remove FW_ prefix if present
+    if (reference && reference.startsWith('FW_')) {
+      reference = reference.substring(3);
+      console.log(`Cleaned reference: ${reference}`);
+    }
     
-    // Don't remove PS_ - Paystack needs the full reference
-    // paystackRef should be something like "PS_DIGITAL_1778109596883_55_2025"
+    // First check our database
+    const orderResult = await db.query(
+      `SELECT * FROM digital_orders WHERE transaction_ref = ?`,
+      [reference]
+    );
     
+    if (orderResult && orderResult.length > 0 && orderResult[0].status === 'completed') {
+      return res.json({
+        status: 'success',
+        message: 'Payment already verified',
+        order_id: orderResult[0].id
+      });
+    }
+    
+    // Then verify with Flutterwave using the CLEAN reference
+    // Flutterwave expects the original tx_ref without FW_ prefix
     const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(paystackRef)}`,
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${reference}`,
       {
-        headers: { 
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 15000
       }
     );
     
-    console.log('Paystack response:', response.data);
+    console.log('Flutterwave response:', response.data);
     
-    if (response.data.status === true) {
+    if (response.data.status === 'success' && response.data.data.status === 'successful') {
       const transaction = response.data.data;
       
+      // Update order
+      await db.query(
+        `UPDATE digital_orders 
+         SET status = 'completed', 
+             completed_at = NOW(),
+             flutterwave_reference = ?
+         WHERE transaction_ref = ?`,
+        [transaction.id, reference]
+      );
+      
       res.json({
-        status: transaction.status,
-        message: transaction.status === 'success' ? 'Payment confirmed' : transaction.gateway_response,
-        reference: reference,
-        amount: transaction.amount / 100,
-        paid_at: transaction.paid_at
+        status: 'success',
+        message: 'Payment verified successfully',
+        transaction: transaction
       });
     } else {
-      res.status(400).json({ 
-        status: 'error', 
-        message: response.data.message || 'Transaction not found' 
+      res.json({
+        status: 'pending',
+        message: response.data.message || 'Payment not completed yet'
       });
     }
+    
   } catch (err) {
     console.error('Check payment error:', err.response?.data || err.message);
-    res.status(500).json({ 
-      status: 'error', 
-      message: err.response?.data?.message || err.message 
+    res.json({
+      status: 'error',
+      message: err.response?.data?.message || err.message
     });
   }
 });

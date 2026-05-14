@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Purchase Complete - Core Insight</title>
+    <title>Payment Processing - Core Insight</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,7 +19,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 550px;
+            max-width: 500px;
             width: 100%;
             background: rgba(30, 41, 59, 0.95);
             backdrop-filter: blur(10px);
@@ -48,6 +48,7 @@
             font-size: 0.85rem;
             color: rgba(255, 215, 0, 0.9);
         }
+        h2 { color: #e6f1ff; margin-bottom: 24px; }
         .spinner {
             border: 4px solid #334155;
             border-top-color: #FFD700;
@@ -60,46 +61,46 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .success { color: #10b981; font-size: 48px; margin: 20px 0; }
         .error { color: #ef4444; font-size: 48px; margin: 20px 0; }
-        .warning { color: #f59e0b; font-size: 48px; margin: 20px 0; }
-        .btn, .download-btn {
+        .btn {
+            background: linear-gradient(135deg, #FFD700, #D4AF37);
+            color: #0f172a;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
             display: inline-block;
+            margin: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
+        .download-btn {
+            display: inline-block;
+            background: #10b981;
+            color: white;
             padding: 12px 28px;
             border-radius: 12px;
             text-decoration: none;
             font-weight: 600;
             margin: 10px;
-            transition: all 0.3s;
         }
-        .btn {
-            background: linear-gradient(135deg, #FFD700, #D4AF37);
-            color: #0f172a;
-        }
-        .download-btn {
-            background: #10b981;
-            color: white;
-            font-size: 1.1rem;
-            padding: 14px 32px;
-        }
-        .btn:hover, .download-btn:hover { transform: translateY(-2px); }
+        .download-btn:hover { background: #059669; transform: translateY(-2px); }
         .product-info {
             background: rgba(16, 185, 129, 0.1);
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             margin: 20px 0;
         }
-        .button-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
-        .refresh-btn {
+        .retry-btn {
             background: #3b82f6;
             color: white;
             padding: 10px 20px;
-            border-radius: 8px;
             border: none;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
             margin-top: 15px;
         }
-        .refresh-btn:hover { background: #2563eb; }
-        .countdown { font-size: 14px; color: #94a3b8; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -116,158 +117,88 @@
     </div>
 
     <script>
-        // ============================================
-        // FIXED: PROPER REFERENCE EXTRACTION
-        // ============================================
-        
+        // Get reference from URL - clean, no prefixes needed
         const urlParams = new URLSearchParams(window.location.search);
-        let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref');
+        let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref') || urlParams.get('transaction_id');
         
-        // IMPORTANT: Keep PS_ prefix for Paystack API calls
-        let paystackReference = reference;  // e.g., "PS_DIGITAL_xxx"
-        let databaseReference = reference;   // Will remove PS_ if present
-        
-        // Remove PS_ prefix ONLY for database lookup
-        if (reference && reference.startsWith('PS_')) {
-            databaseReference = reference.substring(3);  // "DIGITAL_xxx"
-            // paystackReference stays as "PS_DIGITAL_xxx"
-        }
-        
-        console.log('🔑 Paystack API Reference (with PS_):', paystackReference);
-        console.log('💾 Database Reference (without PS_):', databaseReference);
+        console.log('💰 Payment callback received. Reference:', reference);
         
         let retryCount = 0;
+        const maxRetries = 10;
         let checkInterval = null;
         
-        // ============================================
-        // VERIFY PAYMENT WITH PAYSTACK
-        // ============================================
-        
         async function verifyPayment() {
-            if (!paystackReference) {
-                showError('No payment reference found.');
+            if (!reference) {
+                showError('No payment reference found. Please contact support.');
                 return;
             }
             
             try {
-                console.log(`Verifying payment (attempt ${retryCount + 1}):`, paystackReference);
+                console.log(`🔍 Verifying payment (attempt ${retryCount + 1}/${maxRetries})...`);
                 
-                // Use the reference WITH PS_ prefix for Paystack API
-                const response = await fetch(`/api/check-payment-status/${encodeURIComponent(paystackReference)}`, {
-                    credentials: 'include'
+                const response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
                 });
-                const data = await response.json();
                 
-                console.log('Payment status response:', data);
+                const data = await response.json();
+                console.log('📦 Verification response:', data);
                 
                 if (data.status === 'success') {
-                    // Payment successful - now get the download link
-                    clearInterval(checkInterval);
+                    // Payment successful
+                    if (checkInterval) clearInterval(checkInterval);
                     
-                    // Pass the database reference (without PS_) to get the order
-                    const verifyResponse = await fetch(`/api/verify-digital-payment/${encodeURIComponent(databaseReference)}`, {
-                        credentials: 'include'
-                    });
-                    const verifyData = await verifyResponse.json();
-                    
-                    if (verifyData.status === 'success') {
-                        document.getElementById('paymentStatus').innerHTML = `
-                            <div class="bismillah">
-                                <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-                                <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-                            </div>
-                            <div class="success">✅</div>
-                            <h2 style="color: #10b981;">Purchase Successful!</h2>
-                            <div class="product-info">
-                                <h3>${escapeHtml(verifyData.product_title || 'Digital Product')}</h3>
-                                <p>Thank you for your purchase!</p>
-                            </div>
-                            <a href="${verifyData.download_url}" class="download-btn" target="_blank">
-                                <i class="fas fa-download"></i> Download Now
-                            </a>
-                            <div class="button-group">
-                                <a href="/products.html" class="btn">Continue Shopping</a>
-                                <a href="/my-purchases.html" class="btn">My Purchases</a>
-                            </div>
-                        `;
-                    } else {
-                        showError('Could not retrieve download link. Please contact support.');
-                    }
-                    
-                } else if (data.status === 'pending') {
-                    // Payment still pending (bank transfer takes time)
                     document.getElementById('paymentStatus').innerHTML = `
                         <div class="bismillah">
                             <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
                             <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
                         </div>
-                        <div class="warning">⏳</div>
-                        <h2 style="color: #f59e0b;">Payment Pending</h2>
-                        <div class="product-info" style="background: rgba(245, 158, 11, 0.1);">
-                            <p>Your payment is being processed.</p>
-                            <p><strong>Reference: ${databaseReference}</strong></p>
-                            <p>Bank transfers typically take 10-30 minutes to confirm.</p>
+                        <div class="success">✅</div>
+                        <h2 style="color: #10b981;">Payment Successful!</h2>
+                        <div class="product-info">
+                            <strong>${escapeHtml(data.product_title || 'Digital Product')}</strong><br>
+                            Thank you for your purchase!
                         </div>
-                        <p style="color: #94a3b8;">We will automatically check for updates.</p>
-                        <button class="refresh-btn" onclick="forceCheck()">
-                            <i class="fas fa-sync-alt"></i> Check Status Now
-                        </button>
-                        <div class="countdown" id="countdown">Checking again in 15 seconds...</div>
-                        <div class="button-group">
+                        <p style="margin: 15px 0;">Your download link is ready. It will expire in 7 days.</p>
+                        <div>
+                            <a href="${data.download_url}" class="download-btn" target="_blank">
+                                <i class="fas fa-download"></i> Download Now
+                            </a>
                             <a href="/products.html" class="btn">Continue Shopping</a>
-                            <a href="/contact.html" class="btn">Contact Support</a>
                         </div>
                     `;
+                    sessionStorage.removeItem('pendingDigitalOrder');
                     
-                    // Start countdown and retry
-                    startRetryTimer();
+                } else if (data.status === 'pending') {
+                    // Payment still processing - retry
+                    retryCount++;
+                    document.getElementById('message').innerHTML = `⏳ Payment is being processed... (${retryCount}/${maxRetries})<br>Please wait.`;
+                    
+                    if (retryCount >= maxRetries) {
+                        if (checkInterval) clearInterval(checkInterval);
+                        showError('Payment is taking longer than expected. Please check your email for confirmation or contact support.');
+                    }
                     
                 } else {
+                    // Failed
+                    if (checkInterval) clearInterval(checkInterval);
                     showError(data.message || 'Payment verification failed. Please contact support.');
                 }
                 
             } catch (error) {
                 console.error('Verification error:', error);
-                showError('Error verifying payment. Please contact support.');
+                retryCount++;
+                document.getElementById('message').innerHTML = `⚠️ Checking payment status... (${retryCount}/${maxRetries})`;
+                
+                if (retryCount >= maxRetries) {
+                    if (checkInterval) clearInterval(checkInterval);
+                    showError('Error verifying payment. Please contact support with your transaction reference.');
+                }
             }
         }
         
-        function startRetryTimer() {
-            let seconds = 15;
-            const countdownEl = document.getElementById('countdown');
-            
-            if (checkInterval) clearInterval(checkInterval);
-            
-            checkInterval = setInterval(async () => {
-                seconds--;
-                if (countdownEl) {
-                    countdownEl.innerHTML = `Checking again in ${seconds} seconds...`;
-                }
-                
-                if (seconds <= 0) {
-                    clearInterval(checkInterval);
-                    retryCount++;
-                    await verifyPayment();
-                }
-            }, 1000);
-        }
-        
-        async function forceCheck() {
-            if (checkInterval) clearInterval(checkInterval);
-            retryCount = 0;
-            document.getElementById('paymentStatus').innerHTML = `
-                <div class="bismillah">
-                    <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-                    <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-                </div>
-                <h2>Checking Payment Status...</h2>
-                <div class="spinner"></div>
-                <p style="color: #94a3b8;">Please wait...</p>
-            `;
-            await verifyPayment();
-        }
-        
-        function showError(msg) {
+        function showError(message) {
             document.getElementById('paymentStatus').innerHTML = `
                 <div class="bismillah">
                     <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
@@ -275,23 +206,36 @@
                 </div>
                 <div class="error">❌</div>
                 <h2 style="color: #ef4444;">Verification Failed</h2>
-                <p style="color: #94a3b8;">${escapeHtml(msg)}</p>
-                <p style="color: #94a3b8; font-size: 12px;">Reference: ${escapeHtml(databaseReference)}</p>
-                <div class="button-group">
+                <p style="color: #94a3b8;">${escapeHtml(message)}</p>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Transaction Reference: ${escapeHtml(reference)}</p>
+                <div style="margin-top: 20px;">
+                    <button onclick="retryVerification()" class="retry-btn">
+                        <i class="fas fa-sync-alt"></i> Try Again
+                    </button>
                     <a href="/products.html" class="btn">Browse Products</a>
-                    <button class="refresh-btn" onclick="forceCheck()">Try Again</button>
                 </div>
             `;
         }
         
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
+        function retryVerification() {
+            retryCount = 0;
+            location.reload();
         }
         
-        // Start verification
-        if (paystackReference) {
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Start verification with retry interval
+        if (reference) {
             verifyPayment();
+            checkInterval = setInterval(verifyPayment, 3000);
         } else {
             showError('No payment reference found in URL.');
         }

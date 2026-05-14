@@ -2497,7 +2497,8 @@ async function refreshCoursesAfterPurchase() {
 
    // ========================= FIXED PAYMENT FUNCTION =========================
 // ========================= FIXED FLUTTERWAVE PAYMENT =========================
-async function initiatePayment(courseId, price, title, isVideo = false) {
+
+ async function initiatePayment(courseId, price, title, isVideo = false) {
   try {
     console.log('🚀 Starting payment initiation for:', { courseId, price, title, isVideo });
     
@@ -2510,7 +2511,6 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
       return;
     }
 
-    // Display the price in user's selected currency
     const displayPrice = formatCurrency(parseFloat(price), userCurrency);
     const action = isVideo ? 'watch' : 'download';
     
@@ -2521,8 +2521,6 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     showLoading();
     
     try {
-      console.log('📤 Sending payment request to server...');
-      
       const response = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: {
@@ -2534,15 +2532,13 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
       });
 
       const data = await response.json();
-      console.log('📦 Server response:', data);
       
       hideLoading();
       
       if (response.ok && data.status === 'success' && data.paymentLink) {
-        console.log('✅ Redirecting to payment page');
+        // ✅ Redirect to Flutterwave - it will show ALL payment methods automatically
         window.location.href = data.paymentLink;
       } else {
-        console.error('❌ Payment initiation failed:', data);
         alert('Error: ' + (data.error || 'Failed to initiate payment. Please try again.'));
       }
     } catch (fetchError) {
@@ -2556,7 +2552,6 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     alert('Error initiating purchase: ' + error.message);
   }
 }
- 
     // ========================= CHECK ACCESS FUNCTION =========================
     async function checkAccess(courseId, isVideo = false) {
       try {

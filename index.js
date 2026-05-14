@@ -2433,7 +2433,6 @@ app.delete('/api/courses/:id', async (req, res) => {
   }
 });
 
-// =================== COURSE PAYMENT ENDPOINTS ===================
 app.post("/api/initiate-payment", async (req, res) => {
   console.log('💳 Payment initiation request received');
   
@@ -2474,7 +2473,7 @@ app.post("/api/initiate-payment", async (req, res) => {
     }
     
     // Get exchange rate
-    let usdRate = 1500; // Default fallback
+    let usdRate = 1500;
     try {
       const rates = await getExchangeRate();
       usdRate = rates.USD_TO_NGN || 1500;
@@ -2483,24 +2482,19 @@ app.post("/api/initiate-payment", async (req, res) => {
       console.error('Rate fetch error, using fallback:', rateErr.message);
     }
     
-    // Convert NGN to USD
     let amountInUSD = priceInNGN / usdRate;
-    
-    // Round to 2 decimal places and ensure it's a valid number
     amountInUSD = Math.round(amountInUSD * 100) / 100;
     
-    // Flutterwave minimum is usually 0.50 USD
     if (amountInUSD < 0.50) {
-      console.log(`⚠️ Amount $${amountInUSD} is below minimum. Using $0.50`);
       amountInUSD = 0.50;
     }
     
     const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
     
-    // Create payload - amount MUST be a number
+    // ✅ FLUTTERWAVE BUILT-IN - Shows all payment methods automatically
     const payload = {
       tx_ref: transaction_ref,
-      amount: amountInUSD,  // This is a NUMBER, not a string
+      amount: amountInUSD,
       currency: "USD",
       redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
@@ -2510,7 +2504,10 @@ app.post("/api/initiate-payment", async (req, res) => {
       customizations: {
         title: "Core Insight Course",
         description: course.title.substring(0, 50),
+        logo: "https://coreinsightmarket.com/logo.png" // Optional: Add your logo
       },
+      // ✅ Don't specify payment_options - Flutterwave shows ALL methods:
+      // Card, Bank Transfer, USSD, Mobile Money, QR Code, etc.
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
@@ -2537,7 +2534,7 @@ app.post("/api/initiate-payment", async (req, res) => {
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
       console.log('✅ Payment link created:', response.data.data.link);
       
-      // Store payment record in database
+      // Store payment record
       try {
         await db.query(
           `INSERT INTO payments (user_id, course_id, transaction_ref, amount, status, created_at)
@@ -2566,14 +2563,8 @@ app.post("/api/initiate-payment", async (req, res) => {
   } catch (err) {
     console.error('❌ Payment error:', err.message);
     
-    // Log more details for debugging
     if (err.response) {
       console.error('❌ Flutterwave error details:', JSON.stringify(err.response.data, null, 2));
-      console.error('❌ Status code:', err.response.status);
-    } else if (err.request) {
-      console.error('❌ No response received from Flutterwave');
-    } else {
-      console.error('❌ Request error:', err.message);
     }
     
     res.status(500).json({ 

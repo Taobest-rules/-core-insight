@@ -79,9 +79,13 @@ const uploadToImgbb = async (filePath, filename) => {
     throw new Error('ImgBB upload failed');
 };
 
-// ============ BACKBLAZE B2 UPLOAD (FILES) ============
+// ============ BACKBLAZE B2 UPLOAD (FILES) - S3 COMPATIBLE ============
 const uploadToBackblaze = async (filePath, filename) => {
     console.log(`📁 Uploading file to Backblaze B2: ${filename}`);
+    
+    if (!B2_KEY_ID || !B2_APPLICATION_KEY || !B2_BUCKET_ID) {
+        throw new Error('Backblaze B2 credentials are not configured');
+    }
     
     if (!isB2Authorized) {
         await new Promise((resolve, reject) => {
@@ -109,6 +113,7 @@ const uploadToBackblaze = async (filePath, filename) => {
             fileName: safeName,
             contentType: 'application/octet-stream',
         }, async (err, results) => {
+            // Clean up temp file
             try { fs.unlinkSync(filePath); } catch(e) {}
             
             if (err) {
@@ -116,24 +121,24 @@ const uploadToBackblaze = async (filePath, filename) => {
                 return reject(err);
             }
             
-            // ✅ CORRECT PUBLIC URL FORMAT
-            // Format: https://{endpoint}/file/{bucketName}/{fileName}
-            const endpoint = process.env.B2_BUCKET_ENDPOINT;
-            const bucketName = process.env.B2_BUCKET_NAME;
-            
-            // Remove https:// from endpoint if present (it shouldn't be)
-            const cleanEndpoint = endpoint.replace(/^https?:\/\//, '');
-            
-            const publicUrl = `https://${cleanEndpoint}/file/${bucketName}/${safeName}`;
+            // ✅ CORRECT URL FORMAT FOR S3-COMPATIBLE API
+            // Format: https://{bucket-name}.{endpoint}/{file-name}
+            // Example: https://core-insight.s3.us-east-005.backblazeb2.com/file.docx
+            const publicUrl = `https://${B2_BUCKET_NAME}.${B2_BUCKET_ENDPOINT}/${safeName}`;
             
             console.log(`✅ B2 Upload Success: ${publicUrl}`);
             
-            // Verify the URL works
+            // Verify the URL works (optional)
             try {
                 const testResponse = await axios.head(publicUrl, { timeout: 5000 });
-                console.log(`✅ URL verified: ${testResponse.status}`);
+                if (testResponse.status === 200) {
+                    console.log(`✅ URL verified and accessible`);
+                } else {
+                    console.warn(`⚠️ URL returned status: ${testResponse.status}`);
+                }
             } catch (verifyErr) {
-                console.warn(`⚠️ URL may not be accessible: ${verifyErr.message}`);
+                console.warn(`⚠️ URL verification warning: ${verifyErr.message}`);
+                // Still resolve - the file is uploaded, URL might need time to propagate
             }
             
             resolve(publicUrl);

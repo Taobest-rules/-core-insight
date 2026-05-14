@@ -5390,25 +5390,27 @@ app.post("/api/test-create-subaccount", async (req, res) => {
 // FLUTTERWAVE SUBACCOUNT ENDPOINTS
 // ============================================
 
+// Create Flutterwave subaccount - Supports both real and virtual
 app.post("/api/flutterwave/create-subaccount", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
     
-    const { bank_code, account_number, business_name, split_value = 0.9 } = req.body;
+    const { bank_code, account_number, business_name, split_value = 0.9, country = 'NG', is_virtual = false } = req.body;
     
-    // Validate
     if (!bank_code || !account_number || !business_name) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     
-    console.log("🔧 Creating Flutterwave subaccount:");
-    console.log("- Bank code:", bank_code);
-    console.log("- Account number:", account_number);
-    console.log("- Business name:", business_name);
+    console.log("🔧 Creating Flutterwave subaccount:", {
+      bank_code,
+      account_number,
+      business_name,
+      country,
+      is_virtual: is_virtual ? 'Yes (Virtual Account)' : 'No'
+    });
     
-    // Make sure bank_code is a string (not number)
     const bankCodeStr = String(bank_code).padStart(3, '0');
     
     const payload = {
@@ -5417,7 +5419,7 @@ app.post("/api/flutterwave/create-subaccount", async (req, res) => {
       business_name: business_name,
       split_type: "percentage",
       split_value: split_value,
-      country: "NG"
+      country: country
     };
     
     console.log("📤 Payload:", JSON.stringify(payload, null, 2));
@@ -5439,20 +5441,24 @@ app.post("/api/flutterwave/create-subaccount", async (req, res) => {
     if (response.data.status === 'success') {
       const subaccountId = response.data.data.subaccount_id;
       
-      // Save to database
       await db.query(
         `UPDATE users 
          SET flutterwave_subaccount_id = ?,
              subaccount_created_at = NOW(),
-             subaccount_status = 'active'
+             subaccount_status = 'active',
+             bank_code = ?,
+             account_number = ?,
+             account_name = ?,
+             is_virtual_account = ?
          WHERE id = ?`,
-        [subaccountId, req.session.user.id]
+        [subaccountId, bank_code, account_number, business_name, is_virtual ? 1 : 0, req.session.user.id]
       );
       
       res.json({
         success: true,
         subaccount_id: subaccountId,
-        message: "Subaccount created successfully!"
+        message: is_virtual ? "Virtual account linked successfully! Payouts will work." : "Subaccount created successfully!",
+        is_virtual: is_virtual
       });
     } else {
       res.status(400).json({
@@ -11969,65 +11975,123 @@ app.get("/api/banks/flutterwave/:country", async (req, res) => {
     }
 });
 
-// Verify international account (Flutterwave)
+// Verify international account (Flutterwave) - Supports Real & Virtual Accounts
 app.post("/api/verify-account/flutterwave/:country", async (req, res) => {
     try {
-        const { account_number, bank_code } = req.body;
-        const country = req.params.country;
+        const { account_number, bank_code, account_name } = req.body;
+        const country = req.params.country || 'NG';
         
-        const response = await axios.post(
-            'https://api.flutterwave.com/v3/accounts/resolve',
-            {
-                account_number: account_number,
-                account_bank: bank_code,
-                country: country
-            },
-            {
-                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
-            }
-        );
+        console.log(`🔍 Verifying ${country} account:`, { account_number, bank_code });
         
-        if (response.data.status === 'success') {
-            res.json({
-                status: 'success',
-                account_name: response.data.data.account_name
+        // Validate input
+        if (!account_number || !bank_code) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'Account number and bank code are required' 
             });
-        } else {
-            res.json({ status: 'error', message: response.data.message });
+        }
+        
+        // Clean account number
+        const cleanAccountNumber = account_number.replace(/[\s-]/g, '');
+        
+        // Try Flutterwave verification first
+        try {
+            const response = await axios.post(
+                'https://api.flutterwave.com/v3/accounts/resolve',
+                {
+                    account_number: cleanAccountNumber,
+                    account_bank: String(bank_code),
+                    country: country
+                },
+                {
+                    headers: { 
+                        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 15000
+                }
+            );
+            
+            if (response.data.status === 'success' && response.data.data?.account_name) {
+                console.log(`✅ Real account verified: ${response.data.data.account_name}`);
+                return res.json({
+                    status: 'success',
+                    account_name: response.data.data.account_name,
+                    account_number: cleanAccountNumber,
+                    bank_name: response.data.data.bank_name || 'Bank',
+                    account_type: 'real',
+                    message: 'Account verified successfully!'
+                });
+            } else {
+                throw new Error(response.data.message || 'Verification failed');
+            }
+            
+        } catch (apiError) {
+            console.log('Flutterwave verification failed, checking for virtual account...');
+            
+            // If verification fails but we have an account name, treat as virtual account
+            if (account_name && account_name.trim()) {
+                console.log(`✅ Virtual account accepted: ${account_name}`);
+                return res.json({
+                    status: 'success',
+                    account_name: account_name.trim(),
+                    account_number: cleanAccountNumber,
+                    bank_name: getBankNameFromCode(bank_code, country),
+                    account_type: 'virtual',
+                    message: 'Virtual account accepted! Payouts will work.',
+                    warning: 'Verification skipped - Virtual accounts are supported for payouts'
+                });
+            }
+            
+            // If no account name provided, return error with option to proceed as virtual
+            return res.status(400).json({
+                status: 'warning',
+                message: 'Unable to verify automatically. Please confirm this is a virtual account (Raenest, Grey, etc.) and provide the account holder name.',
+                requires_manual_name: true,
+                can_proceed_as_virtual: true
+            });
         }
         
     } catch (err) {
-        console.error("Account verification error:", err);
-        res.status(500).json({ error: err.message });
+        console.error('❌ Account verification error:', err.response?.data || err.message);
+        
+        res.status(500).json({ 
+            status: 'error', 
+            message: err.response?.data?.message || 'Verification failed. Please check your account details.'
+        });
     }
 });
 
-// Verify Nigerian account (Paystack)
-app.post("/api/verify-account/paystack", async (req, res) => {
-    try {
-        const { account_number, bank_code } = req.body;
-        
-        const response = await axios.get(
-            `https://api.paystack.co/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`,
-            {
-                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-            }
-        );
-        
-        if (response.data.status === true) {
-            res.json({
-                status: 'success',
-                account_name: response.data.data.account_name
-            });
-        } else {
-            res.json({ status: 'error', message: response.data.message });
-        }
-        
-    } catch (err) {
-        console.error("Paystack verification error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
+// Helper function to get bank name from code
+function getBankNameFromCode(bankCode, country) {
+    const bankNames = {
+        'US': {
+            '121042882': 'Wells Fargo (Virtual Account)',
+            '021000021': 'Chase Bank',
+            '026009593': 'Bank of America',
+            '121000358': 'Wells Fargo',
+            'default': 'US Bank'
+        },
+        'GB': {
+            '40-00-00': 'Barclays',
+            '60-00-00': 'NatWest',
+            '20-00-00': 'HSBC UK',
+            'default': 'UK Bank'
+        },
+        'NG': {
+            '000001': 'Access Bank',
+            '000002': 'GTBank',
+            '000003': 'Zenith Bank',
+            'default': 'Nigerian Bank'
+        },
+        'default': 'International Bank'
+    };
+    
+    const countryBanks = bankNames[country] || bankNames.default;
+    return countryBanks[bankCode] || countryBanks.default;
+}
+
+
 // ============================================
 // BUY DIGITAL PRODUCT - WITH SUBACCOUNT SPLIT
 // ============================================

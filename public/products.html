@@ -7156,187 +7156,35 @@ function updateBankCountry() {
 }
 
 
-
-// Setup account verification
+// Setup account verification for both real and virtual accounts
 function setupAccountVerification() {
     const accountNumberInput = document.getElementById('p_accountNumber');
-    if (!accountNumberInput) {
-        console.log('Account number input not found');
-        return;
-    }
+    if (!accountNumberInput) return;
     
-    // Remove any existing event listeners to prevent duplicates
+    // Remove existing listener
     const newInput = accountNumberInput.cloneNode(true);
     accountNumberInput.parentNode.replaceChild(newInput, accountNumberInput);
     
-    newInput.addEventListener('blur', async function() {
-        const accountNumber = this.value.trim();
-        const bankCode = document.getElementById('p_bankCode')?.value;
-        const gateway = selectedGateway;
-        const countrySelect = document.getElementById('bankCountry');
-        const country = countrySelect ? countrySelect.value : null;
+    // Add virtual account toggle section if not exists
+    addVirtualAccountToggle();
+    
+    let verificationTimeout = null;
+    
+    newInput.addEventListener('input', function() {
+        if (verificationTimeout) clearTimeout(verificationTimeout);
         
-        // Validate input
-        if (!accountNumber || accountNumber.length < 8) {
-            const messageEl = document.getElementById('p_accountNumber_error');
-            if (messageEl) {
-                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please enter a valid account number</span>';
-                messageEl.classList.add('show');
-                setTimeout(() => messageEl.classList.remove('show'), 3000);
-            }
-            return;
-        }
+        // Clear previous verification status
+        clearVerificationStatus();
         
-        if (!bankCode) {
-            const messageEl = document.getElementById('p_accountNumber_error');
-            if (messageEl) {
-                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please select a bank first</span>';
-                messageEl.classList.add('show');
-                setTimeout(() => messageEl.classList.remove('show'), 3000);
-            }
-            return;
-        }
-        
-        if (!gateway) {
-            const messageEl = document.getElementById('p_accountNumber_error');
-            if (messageEl) {
-                messageEl.innerHTML = '<span style="color: var(--warning);">⚠️ Please select a payment provider first</span>';
-                messageEl.classList.add('show');
-                setTimeout(() => messageEl.classList.remove('show'), 3000);
-            }
-            return;
-        }
-        
-        const messageEl = document.getElementById('p_accountNumber_error');
-        const accountNameField = document.getElementById('p_accountName');
-        
-        if (messageEl) {
-            messageEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying account...';
-            messageEl.classList.add('show');
-        }
-        
-        try {
-            let endpoint = '';
-            let requestBody = {};
-            
-            if (gateway === 'paystack') {
-                // Paystack verification (Nigerian banks only)
-                endpoint = '/api/verify-account/paystack';
-                requestBody = {
-                    account_number: accountNumber,
-                    bank_code: bankCode
-                };
-            } else if (gateway === 'flutterwave') {
-                // Flutterwave verification (supports multiple countries)
-                endpoint = `/api/verify-account/flutterwave/${country || 'NG'}`;
-                requestBody = {
-                    account_number: accountNumber,
-                    bank_code: bankCode,
-                    country: country || 'NG'
-                };
-            } else {
-                throw new Error('Unknown payment gateway');
-            }
-            
-            console.log(`🔍 Verifying account with ${gateway}...`);
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(requestBody),
-                credentials: 'include'
-            });
-            
-            // Check if response is OK and parse JSON
-            if (!response.ok) {
-                let errorMsg = `HTTP ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorMsg = errorData.error || errorMsg;
-                } catch (e) {
-                    // Use default error message
-                }
-                throw new Error(errorMsg);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Server returned an invalid response');
-            }
-            
-            const data = await response.json();
-            
-            if (data.status === 'success' && data.account_name) {
-                // Account verified successfully
-                if (accountNameField) {
-                    accountNameField.value = data.account_name;
-                    accountNameField.readOnly = true;
-                    accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    accountNameField.style.color = 'var(--success)';
-                }
-                
-                if (messageEl) {
-                    messageEl.innerHTML = '<span style="color: var(--success);">✓ Account verified! Account holder: ' + escapeHtml(data.account_name) + '</span>';
-                    setTimeout(() => messageEl.classList.remove('show'), 3000);
-                }
-                
-                console.log(`✅ Account verified: ${data.account_name}`);
-                
-                // Store verification status
-                newInput.setAttribute('data-verified', 'true');
-                if (accountNameField) {
-                    accountNameField.setAttribute('data-verified', 'true');
-                }
-                
-            } else {
-                // Verification failed
-                if (accountNameField) {
-                    accountNameField.value = '';
-                    accountNameField.readOnly = false;
-                    accountNameField.style.backgroundColor = '';
-                    accountNameField.style.color = '';
-                }
-                
-                if (messageEl) {
-                    messageEl.innerHTML = '<span style="color: var(--danger);">✗ Account verification failed. Please check your account number and bank.</span>';
-                }
-                
-                newInput.setAttribute('data-verified', 'false');
-                console.error('Verification failed:', data.message || 'Unknown error');
-            }
-            
-        } catch (err) {
-            console.error('Verification error:', err);
-            
-            const accountNameField = document.getElementById('p_accountName');
-            if (accountNameField) {
-                accountNameField.value = '';
-                accountNameField.readOnly = false;
-            }
-            
-            if (messageEl) {
-                let errorMessage = err.message;
-                if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-                    errorMessage = 'Network error. Please check your connection and try again.';
-                } else if (err.message.includes('500')) {
-                    errorMessage = 'Server error. Please try again later.';
-                }
-                messageEl.innerHTML = `<span style="color: var(--danger);">✗ ${escapeHtml(errorMessage)}</span>`;
-            }
-            
-            if (newInput) {
-                newInput.setAttribute('data-verified', 'false');
-            }
-        }
+        verificationTimeout = setTimeout(() => {
+            verifyAccountNumber(this);
+        }, 1000);
     });
     
-    // Also add input event to clear verification when account number changes
-    newInput.addEventListener('input', function() {
+    function clearVerificationStatus() {
         const accountNameField = document.getElementById('p_accountName');
         const messageEl = document.getElementById('p_accountNumber_error');
+        const accountTypeIndicator = document.getElementById('accountTypeIndicator');
         
         if (accountNameField && accountNameField.value) {
             accountNameField.value = '';
@@ -7345,16 +7193,241 @@ function setupAccountVerification() {
             accountNameField.style.color = '';
         }
         
-        if (messageEl && messageEl.classList.contains('show')) {
-            messageEl.classList.remove('show');
+        if (messageEl) messageEl.classList.remove('show');
+        if (accountTypeIndicator) accountTypeIndicator.style.display = 'none';
+        
+        if (newInput) newInput.setAttribute('data-verified', 'false');
+    }
+    
+    async function verifyAccountNumber(inputElement) {
+        const accountNumber = inputElement.value.trim();
+        const bankCode = document.getElementById('p_bankCode')?.value;
+        const bankCountry = document.getElementById('bankCountry')?.value;
+        const isVirtualChecked = document.getElementById('isVirtualAccount')?.checked || false;
+        const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+        
+        if (!accountNumber || accountNumber.length < 5) {
+            showVerificationMessage('Please enter a valid account number', 'warning');
+            return;
         }
         
-        this.setAttribute('data-verified', 'false');
-    });
+        if (!bankCode) {
+            showVerificationMessage('Please select a bank first', 'warning');
+            return;
+        }
+        
+        // For virtual accounts, require account name
+        if (isVirtualChecked && !manualAccountName) {
+            showVerificationMessage('Please enter the account holder name for your virtual account', 'warning');
+            return;
+        }
+        
+        const messageEl = document.getElementById('p_accountNumber_error');
+        const accountNameField = document.getElementById('p_accountName');
+        
+        showVerificationMessage('<i class="fas fa-spinner fa-spin"></i> Verifying account with Flutterwave...</i>', 'info');
+        
+        try {
+            const endpoint = `/api/verify-account/flutterwave/${bankCountry || 'US'}`;
+            
+            const requestBody = {
+                account_number: accountNumber,
+                bank_code: bankCode,
+                country: bankCountry || 'US'
+            };
+            
+            // If virtual account is checked, send account name
+            if (isVirtualChecked && manualAccountName) {
+                requestBody.account_name = manualAccountName;
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.account_name) {
+                // Successfully verified
+                if (accountNameField) {
+                    accountNameField.value = data.account_name;
+                    accountNameField.readOnly = true;
+                    accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    accountNameField.style.color = 'var(--success)';
+                }
+                
+                // Show account type indicator
+                showAccountTypeIndicator(data.account_type, data.account_name);
+                
+                const successMessage = data.account_type === 'virtual' 
+                    ? `✓ Virtual account accepted! Payouts will work. Account: ${escapeHtml(data.account_name)}`
+                    : `✓ Account verified! Account holder: ${escapeHtml(data.account_name)}`;
+                
+                showVerificationMessage(successMessage, 'success');
+                
+                inputElement.setAttribute('data-verified', 'true');
+                
+                // Update subaccount status
+                updateSubaccountStatus(true, data.account_name);
+                
+            } else if (data.status === 'warning' && data.requires_manual_name) {
+                // Auto-check the virtual account checkbox and prompt for name
+                const virtualCheckbox = document.getElementById('isVirtualAccount');
+                if (virtualCheckbox && !virtualCheckbox.checked) {
+                    virtualCheckbox.checked = true;
+                    document.getElementById('virtualAccountHelp').style.display = 'block';
+                    document.getElementById('manualNameField').style.display = 'block';
+                    document.getElementById('manualAccountName').focus();
+                    
+                    showVerificationMessage(data.message, 'warning');
+                } else {
+                    showVerificationMessage(data.message, 'warning');
+                }
+                
+            } else {
+                throw new Error(data.message || 'Verification failed');
+            }
+            
+        } catch (err) {
+            console.error('Verification error:', err);
+            
+            if (accountNameField) {
+                accountNameField.value = '';
+                accountNameField.readOnly = false;
+            }
+            
+            // Suggest trying as virtual account
+            const virtualCheckbox = document.getElementById('isVirtualAccount');
+            if (virtualCheckbox && !virtualCheckbox.checked) {
+                showVerificationMessage(
+                    'Verification failed. If this is a virtual account (Raenest, Grey, etc.), check the box below and enter your account holder name.', 
+                    'warning'
+                );
+            } else {
+                showVerificationMessage(err.message || 'Verification failed. Please check your account details.', 'error');
+            }
+            
+            inputElement.setAttribute('data-verified', 'false');
+        }
+    }
     
-    console.log('✅ Account verification setup complete');
+    function showVerificationMessage(message, type) {
+        const messageEl = document.getElementById('p_accountNumber_error');
+        if (!messageEl) return;
+        
+        const colors = {
+            success: 'var(--success)',
+            error: 'var(--danger)',
+            warning: 'var(--warning)',
+            info: 'var(--accent)'
+        };
+        
+        messageEl.innerHTML = `<span style="color: ${colors[type] || colors.info};">${message}</span>`;
+        messageEl.classList.add('show');
+        
+        if (type !== 'info') {
+            setTimeout(() => messageEl.classList.remove('show'), 5000);
+        }
+    }
+    
+    function showAccountTypeIndicator(accountType, accountName) {
+        let indicator = document.getElementById('accountTypeIndicator');
+        if (!indicator) {
+            const bankSection = document.getElementById('bankDetailsSection');
+            if (bankSection) {
+                bankSection.insertAdjacentHTML('beforeend', `
+                    <div id="accountTypeIndicator" style="margin-top: 12px; padding: 10px; border-radius: 8px; display: none;">
+                        <i class="fas fa-info-circle"></i> <span id="accountTypeText"></span>
+                    </div>
+                `);
+                indicator = document.getElementById('accountTypeIndicator');
+            }
+        }
+        
+        if (indicator) {
+            if (accountType === 'virtual') {
+                indicator.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                indicator.style.borderLeft = '3px solid var(--warning)';
+                document.getElementById('accountTypeText').innerHTML = `
+                    <strong>Virtual Account Detected</strong><br>
+                    <small>${escapeHtml(accountName)} - Payouts are supported. Your 90% will be sent to this account.</small>
+                `;
+            } else {
+                indicator.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                indicator.style.borderLeft = '3px solid var(--success)';
+                document.getElementById('accountTypeText').innerHTML = `
+                    <strong>Real Account Verified</strong><br>
+                    <small>${escapeHtml(accountName)} - Ready for payouts.</small>
+                `;
+            }
+            indicator.style.display = 'block';
+        }
+    }
+    
+    function updateSubaccountStatus(isVerified, accountName) {
+        const statusDiv = document.getElementById('subaccountStatus');
+        const statusText = document.getElementById('subaccountStatusText');
+        
+        if (statusDiv && statusText && isVerified) {
+            statusText.innerHTML = `✓ Account verified! Auto-split (90/10) will be active. Payouts to: ${escapeHtml(accountName)}`;
+            statusDiv.style.display = 'block';
+        }
+    }
 }
 
+function addVirtualAccountToggle() {
+    const bankDetailsSection = document.getElementById('bankDetailsSection');
+    if (!bankDetailsSection || document.getElementById('virtualAccountSection')) return;
+    
+    const virtualHtml = `
+        <div id="virtualAccountSection" style="margin-top: 20px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <label class="form-checkbox" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="isVirtualAccount" style="width: 18px; height: 18px;">
+                <span style="font-weight: 500;">
+                    <i class="fas fa-building"></i> This is a virtual account (Raenest, Grey, Payoneer, etc.)
+                </span>
+            </label>
+            <div id="virtualAccountHelp" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                <i class="fas fa-info-circle" style="color: var(--warning);"></i>
+                <strong style="color: var(--warning);">Virtual Account Support:</strong>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-gray);">
+                    Flutterwave supports payouts to virtual accounts from Raenest, Grey, Payoneer, Wise, and other providers.
+                    Please enter the account holder name as it appears on your virtual account statement.
+                </p>
+            </div>
+            <div id="manualNameField" style="display: none; margin-top: 16px;">
+                <label class="form-label">Account Holder Name <span class="required">*</span></label>
+                <input type="text" id="manualAccountName" class="form-input" placeholder="Enter the name on your virtual account">
+                <span class="form-help">This should match the name on your Raenest/Wise/Payoneer account</span>
+                <div id="manualNameError" class="form-error"></div>
+            </div>
+        </div>
+    `;
+    
+    bankDetailsSection.insertAdjacentHTML('beforeend', virtualHtml);
+    
+    const virtualCheckbox = document.getElementById('isVirtualAccount');
+    const virtualHelp = document.getElementById('virtualAccountHelp');
+    const manualNameField = document.getElementById('manualNameField');
+    
+    if (virtualCheckbox) {
+        virtualCheckbox.addEventListener('change', function() {
+            virtualHelp.style.display = this.checked ? 'block' : 'none';
+            manualNameField.style.display = this.checked ? 'block' : 'none';
+            
+            // Clear previous verification when toggling
+            const accountNumberInput = document.getElementById('p_accountNumber');
+            if (accountNumberInput && accountNumberInput.value) {
+                // Trigger re-verification
+                const event = new Event('input');
+                accountNumberInput.dispatchEvent(event);
+            }
+        });
+    }
+}
 // Helper function to escape HTML
 function escapeHtml(str) {
     if (!str) return '';
@@ -7365,7 +7438,8 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
-// Create subaccount when uploading product
+
+   // Create subaccount - Works for both real and virtual accounts
 async function createSubaccount() {
     if (!selectedGateway) {
         console.log('No gateway selected');
@@ -7378,16 +7452,19 @@ async function createSubaccount() {
     const businessEmail = document.getElementById('p_businessEmail').value;
     const businessPhone = document.getElementById('p_businessPhone').value;
     const country = document.getElementById('p_country').value;
+    const isVirtual = document.getElementById('isVirtualAccount')?.checked || false;
+    const manualAccountName = document.getElementById('manualAccountName')?.value;
     
-    if (!bankCode || !accountNumber || !businessName) {
+    // Use manual account name for virtual accounts, otherwise use business name
+    const accountName = (isVirtual && manualAccountName) ? manualAccountName : businessName;
+    
+    if (!bankCode || !accountNumber || !accountName) {
         console.log('Missing bank details');
         return null;
     }
     
     try {
-        const endpoint = selectedGateway === 'flutterwave' 
-            ? '/api/flutterwave/create-subaccount' 
-            : '/api/paystack/create-subaccount';
+        const endpoint = '/api/flutterwave/create-subaccount';
         
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -7395,23 +7472,25 @@ async function createSubaccount() {
             body: JSON.stringify({
                 bank_code: bankCode,
                 account_number: accountNumber,
-                business_name: businessName,
+                business_name: accountName,
                 business_email: businessEmail,
                 business_mobile: businessPhone,
-                country: country
+                country: country,
+                is_virtual: isVirtual  // Flag for virtual accounts
             })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            console.log('✅ Subaccount created:', data.subaccount_id || data.subaccount_code);
+            console.log('✅ Subaccount created:', data.subaccount_id);
             
-            // Show success message
             const statusDiv = document.getElementById('subaccountStatus');
             const statusText = document.getElementById('subaccountStatusText');
-            statusText.innerHTML = `✓ Auto-split active! 90% of payments will go to ${businessName} (${accountNumber})`;
-            statusDiv.style.display = 'block';
+            if (statusText) {
+                statusText.innerHTML = `✓ ${isVirtual ? 'Virtual account' : 'Bank account'} verified! Auto-split active! 90% of payments will go to ${accountName}`;
+            }
+            if (statusDiv) statusDiv.style.display = 'block';
             
             return data;
         } else {
@@ -7423,7 +7502,6 @@ async function createSubaccount() {
         return null;
     }
 }
-
 // Check if user already has subaccount
 async function checkExistingSubaccount() {
     if (!selectedGateway) return;

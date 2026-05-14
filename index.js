@@ -12371,6 +12371,82 @@ app.post("/api/buy-product", async (req, res) => {
         });
     }
 });
+// =================== DIGITAL PRODUCT DOWNLOAD ===================
+app.get('/api/download-digital/:orderId', async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    const { token } = req.query;
+    
+    console.log(`📥 Digital download request for order #${orderId}, token: ${token}`);
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Please login to download' });
+    }
+    
+    // Verify the order and download token
+    const orderResult = await db.query(
+      `SELECT o.*, p.title as product_title, p.file_url, p.user_id as seller_id
+       FROM digital_orders o
+       JOIN products p ON o.product_id = p.id
+       WHERE o.id = ? AND o.buyer_id = ? AND o.status = 'completed'`,
+      [orderId, req.session.user.id]
+    );
+    
+    if (!orderResult || orderResult.length === 0) {
+      return res.status(404).json({ error: 'Order not found or not completed' });
+    }
+    
+    const order = orderResult[0];
+    
+    // Check if download link is expired
+    if (order.download_expires_at && new Date(order.download_expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Download link has expired. Please contact support.' });
+    }
+    
+    // Check token if required
+    if (token && order.download_url && !order.download_url.includes(token)) {
+      return res.status(403).json({ error: 'Invalid download token' });
+    }
+    
+    const fileUrl = order.file_url;
+    
+    if (!fileUrl) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    console.log(`✅ Serving digital product: ${order.product_title}`);
+    
+    // For ImgBB URLs - redirect to the file
+    if (fileUrl.includes('imgbb.com') || fileUrl.includes('i.ibb.co')) {
+      return res.redirect(fileUrl);
+    }
+    
+    // For Backblaze B2 URLs
+    if (fileUrl.includes('backblazeb2.com') || fileUrl.includes('b2cloud')) {
+      return res.redirect(fileUrl);
+    }
+    
+    // For local files (fallback)
+    if (fileUrl.startsWith('/uploads/')) {
+      const localPath = path.join(__dirname, fileUrl);
+      if (fs.existsSync(localPath)) {
+        const filename = `${order.product_title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        return res.download(localPath, filename);
+      }
+    }
+    
+    // For any other URL, redirect
+    if (fileUrl.startsWith('http')) {
+      return res.redirect(fileUrl);
+    }
+    
+    res.status(404).json({ error: 'File not found' });
+    
+  } catch (error) {
+    console.error('❌ Digital download error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // ============================================
 // VERIFY DIGITAL PRODUCT PAYMENT - FIXED
 // ============================================
@@ -12464,7 +12540,7 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       });
     }
     
-    // ✅ Remove FW_ prefix if present
+    // ✅ Remove FW_ prefix if present (clean reference)
     if (reference.startsWith('FW_')) {
       reference = reference.substring(3);
       console.log(`Removed FW_ prefix, checking: ${reference}`);
@@ -12499,9 +12575,15 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       if (!downloadUrl) {
         const downloadToken = crypto.randomBytes(32).toString('hex');
         downloadUrl = `/api/download-digital/${order.id}?token=${downloadToken}`;
+        const downloadExpiry = new Date();
+        downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+        
         await db.query(
-          `UPDATE digital_orders SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?`,
-          [downloadUrl, order.id]
+          `UPDATE digital_orders 
+           SET download_url = ?, 
+               download_expires_at = ? 
+           WHERE id = ?`,
+          [downloadUrl, downloadExpiry, order.id]
         );
       }
       
@@ -12519,15 +12601,24 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       console.log(`✅ Order already has Flutterwave reference, marking as completed`);
       
       await db.query(
-        `UPDATE digital_orders SET status = 'completed', completed_at = NOW() WHERE id = ?`,
+        `UPDATE digital_orders 
+         SET status = 'completed', 
+             completed_at = NOW() 
+         WHERE id = ?`,
         [order.id]
       );
       
       const downloadToken = crypto.randomBytes(32).toString('hex');
       const downloadUrl = `/api/download-digital/${order.id}?token=${downloadToken}`;
+      const downloadExpiry = new Date();
+      downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+      
       await db.query(
-        `UPDATE digital_orders SET download_url = ?, download_expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?`,
-        [downloadUrl, order.id]
+        `UPDATE digital_orders 
+         SET download_url = ?, 
+             download_expires_at = ? 
+         WHERE id = ?`,
+        [downloadUrl, downloadExpiry, order.id]
       );
       
       return res.json({
@@ -12539,11 +12630,87 @@ app.get("/api/verify-digital-payment/:reference", async (req, res) => {
       });
     }
     
-    // If not, the payment hasn't been processed yet
-    return res.status(400).json({
-      status: "pending",
-      message: "Payment is being processed. Please check back in a few moments."
-    });
+    // ✅ VERIFY WITH FLUTTERWAVE API DIRECTLY
+    try {
+      console.log(`🔄 Verifying with Flutterwave API for reference: ${reference}`);
+      
+      const flutterwaveResponse = await axios.get(
+        `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 15000
+        }
+      );
+      
+      console.log('📥 Flutterwave response:', flutterwaveResponse.data);
+      
+      if (flutterwaveResponse.data.status === 'success' && 
+          flutterwaveResponse.data.data.status === 'successful') {
+        
+        const transaction = flutterwaveResponse.data.data;
+        console.log(`✅ Payment verified via Flutterwave API! Transaction ID: ${transaction.id}`);
+        
+        // Update order as completed
+        await db.query(
+          `UPDATE digital_orders 
+           SET status = 'completed', 
+               completed_at = NOW(),
+               flutterwave_reference = ?
+           WHERE id = ?`,
+          [transaction.id, order.id]
+        );
+        
+        // Generate download URL
+        const downloadToken = crypto.randomBytes(32).toString('hex');
+        const downloadUrl = `/api/download-digital/${order.id}?token=${downloadToken}`;
+        const downloadExpiry = new Date();
+        downloadExpiry.setDate(downloadExpiry.getDate() + 7);
+        
+        await db.query(
+          `UPDATE digital_orders 
+           SET download_url = ?, 
+               download_expires_at = ? 
+           WHERE id = ?`,
+          [downloadUrl, downloadExpiry, order.id]
+        );
+        
+        return res.json({
+          status: "success",
+          message: "Payment verified successfully",
+          product_title: order.product_title,
+          download_url: downloadUrl,
+          order_id: order.id
+        });
+        
+      } else {
+        // Payment not completed yet
+        console.log('⏳ Payment not yet completed on Flutterwave');
+        return res.status(400).json({
+          status: "pending",
+          message: "Payment is being processed. Please check back in a few moments."
+        });
+      }
+      
+    } catch (flutterErr) {
+      console.error('❌ Flutterwave verification error:', flutterErr.response?.data || flutterErr.message);
+      
+      // Check if order has payment_link - user might not have completed payment
+      if (order.payment_link) {
+        return res.status(400).json({
+          status: "pending",
+          message: "Payment not completed yet. Please complete the payment on Flutterwave.",
+          payment_link: order.payment_link
+        });
+      }
+      
+      return res.status(400).json({
+        status: "pending",
+        message: "Payment verification in progress. Please wait..."
+      });
+    }
     
   } catch (err) {
     console.error("❌ Digital payment verification error:", err);

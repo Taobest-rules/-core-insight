@@ -3957,7 +3957,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
           </div>
         </div>
 
-       <!-- Payment Account Setup - Flutterwave Only -->
+    <!-- Payment Account Setup - Flutterwave Only -->
 <div class="payment-provider-section">
     <div class="payment-provider-header">
         <i class="fas fa-globe"></i>
@@ -7016,8 +7016,375 @@ function selectPaymentGateway(gateway) {
         setupAccountVerification();
     }, 200);
 }
+// ============================================
+// COMPLETE ACCOUNT VERIFICATION WITH VIRTUAL ACCOUNT SUPPORT
+// ============================================
 
-// Load bank form - Flutterwave only
+// Main verification function
+async function verifyAccountNumber(inputElement) {
+    const accountNumber = inputElement.value.trim();
+    const bankCode = document.getElementById('p_bankCode')?.value;
+    const bankCountry = document.getElementById('bankCountry')?.value || 'US';
+    const isVirtualChecked = document.getElementById('isVirtualAccount')?.checked || false;
+    const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+    
+    const messageEl = document.getElementById('p_accountNumber_error');
+    const accountNameField = document.getElementById('p_accountName');
+    
+    // Validate inputs
+    if (!accountNumber || accountNumber.length < 5) {
+        showVerificationMessage('Please enter a valid account number', 'warning', messageEl);
+        return;
+    }
+    
+    if (!bankCode) {
+        showVerificationMessage('Please select a bank first', 'warning', messageEl);
+        return;
+    }
+    
+    // For virtual accounts, require account name
+    if (isVirtualChecked && !manualAccountName) {
+        showVerificationMessage('Please enter the account holder name for your virtual account', 'warning', messageEl);
+        return;
+    }
+    
+    // Show loading state
+    showVerificationMessage('<i class="fas fa-spinner fa-spin"></i> Verifying account with Flutterwave...</i>', 'info', messageEl);
+    
+    try {
+        const endpoint = `/api/verify-account/flutterwave/${bankCountry}`;
+        
+        const requestBody = {
+            account_number: accountNumber,
+            bank_code: bankCode,
+            country: bankCountry
+        };
+        
+        // If virtual account is checked, send account name
+        if (isVirtualChecked && manualAccountName) {
+            requestBody.account_name = manualAccountName;
+            requestBody.skip_verification = true;
+        }
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.account_name) {
+            // ========== SET ACCOUNT NAME FIELD ==========
+            if (accountNameField) {
+                accountNameField.value = data.account_name;
+                accountNameField.readOnly = true;
+                accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                accountNameField.style.color = 'var(--success)';
+            }
+            
+            // ========== FOR VIRTUAL ACCOUNTS, ALSO UPDATE MANUAL NAME FIELD ==========
+            if (data.account_type === 'virtual' || isVirtualChecked) {
+                const manualNameField = document.getElementById('manualAccountName');
+                if (manualNameField && !manualNameField.value) {
+                    manualNameField.value = data.account_name;
+                    console.log("✅ Updated manual name field:", data.account_name);
+                }
+            }
+            
+            // Show account type indicator
+            showAccountTypeIndicator(data.account_type || (isVirtualChecked ? 'virtual' : 'real'), data.account_name);
+            
+            // Show success message
+            const successMessage = (data.account_type === 'virtual' || isVirtualChecked)
+                ? `✓ Virtual account accepted! Payouts will work. Account: ${escapeHtml(data.account_name)}`
+                : `✓ Account verified! Account holder: ${escapeHtml(data.account_name)}`;
+            
+            showVerificationMessage(successMessage, 'success', messageEl);
+            
+            // Mark as verified
+            inputElement.setAttribute('data-verified', 'true');
+            if (accountNameField) accountNameField.setAttribute('data-verified', 'true');
+            
+            // Update subaccount status
+            updateSubaccountStatus(true, data.account_name);
+            
+            // Auto-check virtual checkbox if verification returned virtual type
+            if (data.account_type === 'virtual' && !isVirtualChecked) {
+                const virtualCheckbox = document.getElementById('isVirtualAccount');
+                if (virtualCheckbox) {
+                    virtualCheckbox.checked = true;
+                    document.getElementById('virtualAccountHelp').style.display = 'block';
+                    document.getElementById('manualNameField').style.display = 'block';
+                }
+            }
+            
+        } else if (data.status === 'warning' && data.requires_manual_name) {
+            // Auto-check the virtual account checkbox and prompt for name
+            const virtualCheckbox = document.getElementById('isVirtualAccount');
+            if (virtualCheckbox && !virtualCheckbox.checked) {
+                virtualCheckbox.checked = true;
+                document.getElementById('virtualAccountHelp').style.display = 'block';
+                document.getElementById('manualNameField').style.display = 'block';
+                document.getElementById('manualAccountName').focus();
+                showVerificationMessage(data.message, 'warning', messageEl);
+            } else {
+                showVerificationMessage(data.message, 'warning', messageEl);
+            }
+            
+        } else {
+            throw new Error(data.message || 'Verification failed');
+        }
+        
+    } catch (err) {
+        console.error('Verification error:', err);
+        
+        if (accountNameField) {
+            accountNameField.value = '';
+            accountNameField.readOnly = false;
+            accountNameField.style.backgroundColor = '';
+            accountNameField.style.color = '';
+        }
+        
+        // Suggest trying as virtual account
+        const virtualCheckbox = document.getElementById('isVirtualAccount');
+        if (virtualCheckbox && !virtualCheckbox.checked) {
+            showVerificationMessage(
+                'Verification failed. If this is a virtual account (Raenest, Grey, etc.), check the box below and enter your account holder name.', 
+                'warning', 
+                messageEl
+            );
+        } else {
+            showVerificationMessage(err.message || 'Verification failed. Please check your account details.', 'error', messageEl);
+        }
+        
+        inputElement.setAttribute('data-verified', 'false');
+    }
+}
+
+// Helper function to show verification messages
+function showVerificationMessage(message, type, messageEl) {
+    if (!messageEl) return;
+    
+    const colors = {
+        success: 'var(--success)',
+        error: 'var(--danger)',
+        warning: 'var(--warning)',
+        info: 'var(--accent)'
+    };
+    
+    messageEl.innerHTML = `<span style="color: ${colors[type] || colors.info};">${message}</span>`;
+    messageEl.classList.add('show');
+    
+    if (type !== 'info') {
+        setTimeout(() => messageEl.classList.remove('show'), 5000);
+    }
+}
+
+// Show account type indicator
+function showAccountTypeIndicator(accountType, accountName) {
+    let indicator = document.getElementById('accountTypeIndicator');
+    if (!indicator) {
+        const bankSection = document.getElementById('bankDetailsSection');
+        if (bankSection) {
+            bankSection.insertAdjacentHTML('beforeend', `
+                <div id="accountTypeIndicator" style="margin-top: 12px; padding: 10px; border-radius: 8px; display: none;">
+                    <i class="fas fa-info-circle"></i> <span id="accountTypeText"></span>
+                </div>
+            `);
+            indicator = document.getElementById('accountTypeIndicator');
+        }
+    }
+    
+    if (indicator) {
+        if (accountType === 'virtual') {
+            indicator.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+            indicator.style.borderLeft = '3px solid var(--warning)';
+            document.getElementById('accountTypeText').innerHTML = `
+                <strong>Virtual Account Detected</strong><br>
+                <small>${escapeHtml(accountName)} - Payouts are supported. Your 90% will be sent to this account.</small>
+            `;
+        } else {
+            indicator.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            indicator.style.borderLeft = '3px solid var(--success)';
+            document.getElementById('accountTypeText').innerHTML = `
+                <strong>Real Account Verified</strong><br>
+                <small>${escapeHtml(accountName)} - Ready for payouts.</small>
+            `;
+        }
+        indicator.style.display = 'block';
+    }
+}
+
+// Update subaccount status display
+function updateSubaccountStatus(isVerified, accountName) {
+    const statusDiv = document.getElementById('subaccountStatus');
+    const statusText = document.getElementById('subaccountStatusText');
+    
+    if (statusDiv && statusText && isVerified) {
+        statusText.innerHTML = `✓ Account verified! Auto-split (90/10) will be active. Payouts to: ${escapeHtml(accountName)}`;
+        statusDiv.style.display = 'block';
+    }
+}
+
+// ============================================
+// SYNC ACCOUNT NAME FIELDS
+// ============================================
+function syncAccountNameFields() {
+    const manualNameField = document.getElementById('manualAccountName');
+    const accountNameField = document.getElementById('p_accountName');
+    const isVirtualCheckbox = document.getElementById('isVirtualAccount');
+    
+    if (manualNameField && isVirtualCheckbox) {
+        // Remove existing listener to avoid duplicates
+        const newManualField = manualNameField.cloneNode(true);
+        manualNameField.parentNode.replaceChild(newManualField, manualNameField);
+        
+        newManualField.addEventListener('input', function() {
+            if (isVirtualCheckbox.checked && this.value) {
+                if (accountNameField) {
+                    accountNameField.value = this.value;
+                    accountNameField.readOnly = true;
+                    accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    accountNameField.style.color = 'var(--success)';
+                    console.log("✅ Synced manual name to account name field:", this.value);
+                }
+            }
+        });
+    }
+}
+
+// ============================================
+// COMPLETE VIRTUAL ACCOUNT TOGGLE FUNCTION
+// ============================================
+function addVirtualAccountToggle() {
+    const bankDetailsSection = document.getElementById('bankDetailsSection');
+    if (!bankDetailsSection || document.getElementById('virtualAccountSection')) return;
+    
+    const virtualHtml = `
+        <div id="virtualAccountSection" style="margin-top: 20px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <label class="form-checkbox" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="isVirtualAccount" style="width: 18px; height: 18px;">
+                <span style="font-weight: 500;">
+                    <i class="fas fa-building"></i> This is a virtual account (Raenest, Grey, Payoneer, Wise, etc.)
+                </span>
+            </label>
+            <div id="virtualAccountHelp" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                <i class="fas fa-info-circle" style="color: var(--warning);"></i>
+                <strong style="color: var(--warning);">Virtual Account Support:</strong>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-gray);">
+                    Flutterwave supports payouts to virtual accounts from Raenest, Grey, Payoneer, Wise, and other providers.
+                    Please enter the account holder name as it appears on your virtual account statement.
+                </p>
+            </div>
+            <div id="manualNameField" style="display: none; margin-top: 16px;">
+                <label class="form-label">Account Holder Name <span class="required">*</span></label>
+                <input type="text" id="manualAccountName" class="form-input" placeholder="Enter the name on your virtual account">
+                <span class="form-help">This should match the name on your Raenest/Wise/Payoneer account</span>
+                <div id="manualNameError" class="form-error"></div>
+            </div>
+        </div>
+    `;
+    
+    bankDetailsSection.insertAdjacentHTML('beforeend', virtualHtml);
+    
+    const virtualCheckbox = document.getElementById('isVirtualAccount');
+    const virtualHelp = document.getElementById('virtualAccountHelp');
+    const manualNameField = document.getElementById('manualNameField');
+    const accountNameField = document.getElementById('p_accountName');
+    const accountNumberInput = document.getElementById('p_accountNumber');
+    
+    if (virtualCheckbox) {
+        // Remove existing listener to avoid duplicates
+        const newCheckbox = virtualCheckbox.cloneNode(true);
+        virtualCheckbox.parentNode.replaceChild(newCheckbox, virtualCheckbox);
+        
+        newCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            if (virtualHelp) virtualHelp.style.display = isChecked ? 'block' : 'none';
+            if (manualNameField) manualNameField.style.display = isChecked ? 'block' : 'none';
+            
+            // Clear previous verification when toggling
+            if (accountNumberInput && accountNumberInput.value) {
+                // Clear account name field
+                if (accountNameField) {
+                    accountNameField.value = '';
+                    accountNameField.readOnly = false;
+                    accountNameField.style.backgroundColor = '';
+                    accountNameField.style.color = '';
+                }
+                // Trigger re-verification
+                const event = new Event('input');
+                accountNumberInput.dispatchEvent(event);
+            }
+        });
+    }
+    
+    // Call sync function after adding elements
+    syncAccountNameFields();
+}
+
+// ============================================
+// SETUP ACCOUNT VERIFICATION (MAIN FUNCTION)
+// ============================================
+function setupAccountVerification() {
+    const accountNumberInput = document.getElementById('p_accountNumber');
+    if (!accountNumberInput) {
+        console.log('Account number input not found');
+        return;
+    }
+    
+    // Remove any existing event listeners to prevent duplicates
+    const newInput = accountNumberInput.cloneNode(true);
+    accountNumberInput.parentNode.replaceChild(newInput, accountNumberInput);
+    
+    // Add virtual account toggle if not exists
+    addVirtualAccountToggle();
+    
+    let verificationTimeout = null;
+    
+    newInput.addEventListener('input', function() {
+        // Clear previous timeout
+        if (verificationTimeout) {
+            clearTimeout(verificationTimeout);
+        }
+        
+        // Clear verification status
+        const accountNameField = document.getElementById('p_accountName');
+        const messageEl = document.getElementById('p_accountNumber_error');
+        const accountTypeIndicator = document.getElementById('accountTypeIndicator');
+        
+        if (accountNameField && accountNameField.value) {
+            accountNameField.value = '';
+            accountNameField.readOnly = false;
+            accountNameField.style.backgroundColor = '';
+            accountNameField.style.color = '';
+        }
+        
+        if (messageEl) messageEl.classList.remove('show');
+        if (accountTypeIndicator) accountTypeIndicator.style.display = 'none';
+        
+        this.setAttribute('data-verified', 'false');
+        
+        // Wait 1 second after user stops typing before verifying
+        verificationTimeout = setTimeout(() => {
+            verifyAccountNumber(this);
+        }, 1000);
+    });
+    
+    console.log('✅ Account verification setup complete');
+}
+
+// ============================================
+// CALL THIS WHEN PAGE LOADS
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup account verification after bank form is loaded
+    setTimeout(() => {
+        setupAccountVerification();
+    }, 500);
+});
 function loadBankForm(gateway) {
     const detailsSection = document.getElementById('bankDetailsSection');
     
@@ -7067,7 +7434,7 @@ function loadBankForm(gateway) {
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Account Holder Name</label>
-                    <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified" readonly />
+                    <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
                 </div>
                 <div class="form-group">
                     <label class="form-label">Payout Currency</label>
@@ -7096,12 +7463,11 @@ function loadBankForm(gateway) {
     
     detailsSection.style.display = 'block';
     
-    // Setup account verification
+    // Setup account verification after form is loaded
     setTimeout(() => {
         setupAccountVerification();
     }, 100);
 }
-
 // Load banks for Flutterwave based on country
 async function loadFlutterwaveBanks() {
     const country = document.getElementById('bankCountry').value;
@@ -7156,278 +7522,8 @@ function updateBankCountry() {
 }
 
 
-// Setup account verification for both real and virtual accounts
-function setupAccountVerification() {
-    const accountNumberInput = document.getElementById('p_accountNumber');
-    if (!accountNumberInput) return;
-    
-    // Remove existing listener
-    const newInput = accountNumberInput.cloneNode(true);
-    accountNumberInput.parentNode.replaceChild(newInput, accountNumberInput);
-    
-    // Add virtual account toggle section if not exists
-    addVirtualAccountToggle();
-    
-    let verificationTimeout = null;
-    
-    newInput.addEventListener('input', function() {
-        if (verificationTimeout) clearTimeout(verificationTimeout);
-        
-        // Clear previous verification status
-        clearVerificationStatus();
-        
-        verificationTimeout = setTimeout(() => {
-            verifyAccountNumber(this);
-        }, 1000);
-    });
-    
-    function clearVerificationStatus() {
-        const accountNameField = document.getElementById('p_accountName');
-        const messageEl = document.getElementById('p_accountNumber_error');
-        const accountTypeIndicator = document.getElementById('accountTypeIndicator');
-        
-        if (accountNameField && accountNameField.value) {
-            accountNameField.value = '';
-            accountNameField.readOnly = false;
-            accountNameField.style.backgroundColor = '';
-            accountNameField.style.color = '';
-        }
-        
-        if (messageEl) messageEl.classList.remove('show');
-        if (accountTypeIndicator) accountTypeIndicator.style.display = 'none';
-        
-        if (newInput) newInput.setAttribute('data-verified', 'false');
-    }
-    
-    async function verifyAccountNumber(inputElement) {
-        const accountNumber = inputElement.value.trim();
-        const bankCode = document.getElementById('p_bankCode')?.value;
-        const bankCountry = document.getElementById('bankCountry')?.value;
-        const isVirtualChecked = document.getElementById('isVirtualAccount')?.checked || false;
-        const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
-        
-        if (!accountNumber || accountNumber.length < 5) {
-            showVerificationMessage('Please enter a valid account number', 'warning');
-            return;
-        }
-        
-        if (!bankCode) {
-            showVerificationMessage('Please select a bank first', 'warning');
-            return;
-        }
-        
-        // For virtual accounts, require account name
-        if (isVirtualChecked && !manualAccountName) {
-            showVerificationMessage('Please enter the account holder name for your virtual account', 'warning');
-            return;
-        }
-        
-        const messageEl = document.getElementById('p_accountNumber_error');
-        const accountNameField = document.getElementById('p_accountName');
-        
-        showVerificationMessage('<i class="fas fa-spinner fa-spin"></i> Verifying account with Flutterwave...</i>', 'info');
-        
-        try {
-            const endpoint = `/api/verify-account/flutterwave/${bankCountry || 'US'}`;
-            
-            const requestBody = {
-                account_number: accountNumber,
-                bank_code: bankCode,
-                country: bankCountry || 'US'
-            };
-            
-            // If virtual account is checked, send account name
-            if (isVirtualChecked && manualAccountName) {
-                requestBody.account_name = manualAccountName;
-            }
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-                credentials: 'include'
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success' && data.account_name) {
-                // Successfully verified
-                if (accountNameField) {
-                    accountNameField.value = data.account_name;
-                    accountNameField.readOnly = true;
-                    accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    accountNameField.style.color = 'var(--success)';
-                }
-                
-                // Show account type indicator
-                showAccountTypeIndicator(data.account_type, data.account_name);
-                
-                const successMessage = data.account_type === 'virtual' 
-                    ? `✓ Virtual account accepted! Payouts will work. Account: ${escapeHtml(data.account_name)}`
-                    : `✓ Account verified! Account holder: ${escapeHtml(data.account_name)}`;
-                
-                showVerificationMessage(successMessage, 'success');
-                
-                inputElement.setAttribute('data-verified', 'true');
-                
-                // Update subaccount status
-                updateSubaccountStatus(true, data.account_name);
-                
-            } else if (data.status === 'warning' && data.requires_manual_name) {
-                // Auto-check the virtual account checkbox and prompt for name
-                const virtualCheckbox = document.getElementById('isVirtualAccount');
-                if (virtualCheckbox && !virtualCheckbox.checked) {
-                    virtualCheckbox.checked = true;
-                    document.getElementById('virtualAccountHelp').style.display = 'block';
-                    document.getElementById('manualNameField').style.display = 'block';
-                    document.getElementById('manualAccountName').focus();
-                    
-                    showVerificationMessage(data.message, 'warning');
-                } else {
-                    showVerificationMessage(data.message, 'warning');
-                }
-                
-            } else {
-                throw new Error(data.message || 'Verification failed');
-            }
-            
-        } catch (err) {
-            console.error('Verification error:', err);
-            
-            if (accountNameField) {
-                accountNameField.value = '';
-                accountNameField.readOnly = false;
-            }
-            
-            // Suggest trying as virtual account
-            const virtualCheckbox = document.getElementById('isVirtualAccount');
-            if (virtualCheckbox && !virtualCheckbox.checked) {
-                showVerificationMessage(
-                    'Verification failed. If this is a virtual account (Raenest, Grey, etc.), check the box below and enter your account holder name.', 
-                    'warning'
-                );
-            } else {
-                showVerificationMessage(err.message || 'Verification failed. Please check your account details.', 'error');
-            }
-            
-            inputElement.setAttribute('data-verified', 'false');
-        }
-    }
-    
-    function showVerificationMessage(message, type) {
-        const messageEl = document.getElementById('p_accountNumber_error');
-        if (!messageEl) return;
-        
-        const colors = {
-            success: 'var(--success)',
-            error: 'var(--danger)',
-            warning: 'var(--warning)',
-            info: 'var(--accent)'
-        };
-        
-        messageEl.innerHTML = `<span style="color: ${colors[type] || colors.info};">${message}</span>`;
-        messageEl.classList.add('show');
-        
-        if (type !== 'info') {
-            setTimeout(() => messageEl.classList.remove('show'), 5000);
-        }
-    }
-    
-    function showAccountTypeIndicator(accountType, accountName) {
-        let indicator = document.getElementById('accountTypeIndicator');
-        if (!indicator) {
-            const bankSection = document.getElementById('bankDetailsSection');
-            if (bankSection) {
-                bankSection.insertAdjacentHTML('beforeend', `
-                    <div id="accountTypeIndicator" style="margin-top: 12px; padding: 10px; border-radius: 8px; display: none;">
-                        <i class="fas fa-info-circle"></i> <span id="accountTypeText"></span>
-                    </div>
-                `);
-                indicator = document.getElementById('accountTypeIndicator');
-            }
-        }
-        
-        if (indicator) {
-            if (accountType === 'virtual') {
-                indicator.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
-                indicator.style.borderLeft = '3px solid var(--warning)';
-                document.getElementById('accountTypeText').innerHTML = `
-                    <strong>Virtual Account Detected</strong><br>
-                    <small>${escapeHtml(accountName)} - Payouts are supported. Your 90% will be sent to this account.</small>
-                `;
-            } else {
-                indicator.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                indicator.style.borderLeft = '3px solid var(--success)';
-                document.getElementById('accountTypeText').innerHTML = `
-                    <strong>Real Account Verified</strong><br>
-                    <small>${escapeHtml(accountName)} - Ready for payouts.</small>
-                `;
-            }
-            indicator.style.display = 'block';
-        }
-    }
-    
-    function updateSubaccountStatus(isVerified, accountName) {
-        const statusDiv = document.getElementById('subaccountStatus');
-        const statusText = document.getElementById('subaccountStatusText');
-        
-        if (statusDiv && statusText && isVerified) {
-            statusText.innerHTML = `✓ Account verified! Auto-split (90/10) will be active. Payouts to: ${escapeHtml(accountName)}`;
-            statusDiv.style.display = 'block';
-        }
-    }
-}
 
-function addVirtualAccountToggle() {
-    const bankDetailsSection = document.getElementById('bankDetailsSection');
-    if (!bankDetailsSection || document.getElementById('virtualAccountSection')) return;
-    
-    const virtualHtml = `
-        <div id="virtualAccountSection" style="margin-top: 20px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
-            <label class="form-checkbox" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                <input type="checkbox" id="isVirtualAccount" style="width: 18px; height: 18px;">
-                <span style="font-weight: 500;">
-                    <i class="fas fa-building"></i> This is a virtual account (Raenest, Grey, Payoneer, etc.)
-                </span>
-            </label>
-            <div id="virtualAccountHelp" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
-                <i class="fas fa-info-circle" style="color: var(--warning);"></i>
-                <strong style="color: var(--warning);">Virtual Account Support:</strong>
-                <p style="margin-top: 8px; font-size: 13px; color: var(--text-gray);">
-                    Flutterwave supports payouts to virtual accounts from Raenest, Grey, Payoneer, Wise, and other providers.
-                    Please enter the account holder name as it appears on your virtual account statement.
-                </p>
-            </div>
-            <div id="manualNameField" style="display: none; margin-top: 16px;">
-                <label class="form-label">Account Holder Name <span class="required">*</span></label>
-                <input type="text" id="manualAccountName" class="form-input" placeholder="Enter the name on your virtual account">
-                <span class="form-help">This should match the name on your Raenest/Wise/Payoneer account</span>
-                <div id="manualNameError" class="form-error"></div>
-            </div>
-        </div>
-    `;
-    
-    bankDetailsSection.insertAdjacentHTML('beforeend', virtualHtml);
-    
-    const virtualCheckbox = document.getElementById('isVirtualAccount');
-    const virtualHelp = document.getElementById('virtualAccountHelp');
-    const manualNameField = document.getElementById('manualNameField');
-    
-    if (virtualCheckbox) {
-        virtualCheckbox.addEventListener('change', function() {
-            virtualHelp.style.display = this.checked ? 'block' : 'none';
-            manualNameField.style.display = this.checked ? 'block' : 'none';
-            
-            // Clear previous verification when toggling
-            const accountNumberInput = document.getElementById('p_accountNumber');
-            if (accountNumberInput && accountNumberInput.value) {
-                // Trigger re-verification
-                const event = new Event('input');
-                accountNumberInput.dispatchEvent(event);
-            }
-        });
-    }
-}
+
 // Helper function to escape HTML
 function escapeHtml(str) {
     if (!str) return '';
@@ -10492,7 +10588,7 @@ function formatCurrency(amount, targetCurrency) {
 
 
     // ================= FORM VALIDATION WITH DETAILED DEBUGGING =================
-function validateProductForm() {
+    function validateProductForm() {
   console.log("🔍 Starting form validation...");
   const errors = [];
   let hasErrors = false;
@@ -10503,7 +10599,7 @@ function validateProductForm() {
     el.textContent = '';
   });
   
-  // Get all form values for debugging
+  // Get all form values
   const title = document.getElementById('p_title')?.value;
   const price = document.getElementById('p_price')?.value;
   const type = document.getElementById('p_type')?.value;
@@ -10513,171 +10609,138 @@ function validateProductForm() {
   const description = document.getElementById('p_description')?.value;
   const images = document.getElementById('p_images')?.files;
   
-  console.log("📋 Form values for validation:", {
-    title: title ? `"${title}"` : 'EMPTY',
-    price: price ? price : 'EMPTY',
-    type: type ? type : 'EMPTY',
-    paymentProvider: paymentProvider ? paymentProvider : 'EMPTY',
-    categorySelect: categorySelect ? categorySelect : 'EMPTY',
-    categoryNew: categoryNew ? categoryNew : 'EMPTY',
-    description: description ? description.substring(0, 20) + '...' : 'EMPTY',
-    imagesCount: images ? images.length : 0
-  });
-
-  // Validate required fields
+  // Check if virtual account is checked
+  const isVirtualAccount = document.getElementById('isVirtualAccount')?.checked || false;
+  const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+  
+  console.log("Virtual account status:", isVirtualAccount, "Manual name:", manualAccountName);
+  
+  // Basic validations
   if (!title || !title.trim()) {
-    console.log("❌ Validation failed: Title is empty");
     errors.push({ id: 'p_title', errorId: 'p_title_error', message: 'Product name is required' });
     hasErrors = true;
   }
   
   if (!price || !price.trim() || parseFloat(price) <= 0) {
-    console.log("❌ Validation failed: Price is invalid");
     errors.push({ id: 'p_price', errorId: 'p_price_error', message: 'Valid price is required' });
     hasErrors = true;
   }
   
   if (!type) {
-    console.log("❌ Validation failed: Product type not selected");
     errors.push({ id: 'p_type', errorId: 'p_type_error', message: 'Product type is required' });
     hasErrors = true;
   }
   
   if (!paymentProvider) {
-    console.log("❌ Validation failed: Payment provider not selected");
     errors.push({ id: 'p_paymentProvider', errorId: 'p_paymentProvider_error', message: 'Payment provider is required' });
     hasErrors = true;
   }
   
-  // Update the validation for physical products - MAKE PRODUCT COST OPTIONAL
-if (type === 'physical') {
-  const productCost = document.getElementById('p_productCost')?.value;
-  // Don't validate product cost - make it optional
-  // Only use default value if not provided
-  if (!productCost || parseFloat(productCost) <= 0) {
-    // Set default value silently
-    const costInput = document.getElementById('p_productCost');
-    if (costInput) costInput.value = '3.00';
-    console.log("📦 Using default product cost: $3.00");
-    // Don't add to errors - it's optional now
-  }
-}
-  
-  // Validate category
+  // Category validation
   if (!categorySelect && !categoryNew) {
-    console.log("❌ Validation failed: No category selected or entered");
     errors.push({ id: 'p_category_select', errorId: 'p_category_error', message: 'Category is required' });
     hasErrors = true;
   }
   
-  // Validate description
+  // Description validation
   if (!description || !description.trim()) {
-    console.log("❌ Validation failed: Description is empty");
     errors.push({ id: 'p_description', errorId: 'p_description_error', message: 'Description is required' });
     hasErrors = true;
   }
   
-  // Validate affiliate link for affiliate products
+  // Affiliate link validation
   if (type === 'affiliate') {
     const affiliateLink = document.getElementById('p_affiliate')?.value;
-    console.log("🔍 Affiliate link validation:", affiliateLink ? `"${affiliateLink.substring(0, 30)}..."` : 'EMPTY');
-    
     if (!affiliateLink || !affiliateLink.trim()) {
-      console.log("❌ Validation failed: Affiliate link is empty");
       errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Affiliate link is required' });
       hasErrors = true;
     } else {
-      // Validate URL format
       try {
         new URL(affiliateLink);
-        console.log("✅ Affiliate link URL format is valid");
       } catch (e) {
-        console.log("❌ Validation failed: Invalid URL format");
         errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Please enter a valid URL (include https://)' });
         hasErrors = true;
       }
     }
   }
   
-  // Validate images
+  // Images validation
   if (type !== 'affiliate') {
     if (!images || images.length === 0) {
-      console.log("❌ Validation failed: No images uploaded");
       errors.push({ id: 'p_images', errorId: 'p_images_error', message: 'At least one image is required' });
-      hasErrors = true;
-    }
-  } else {
-    // For affiliate products, check if they have either uploaded images OR external image
-    const externalImage = document.getElementById('p_external_image')?.value;
-    if ((!images || images.length === 0) && !externalImage) {
-      console.log("❌ Validation failed: No images or external image for affiliate product");
-      errors.push({ id: 'p_images', errorId: 'p_images_error', message: 'Please upload images or provide an external image URL' });
       hasErrors = true;
     }
   }
   
-  // Validate digital file for digital products
+  // Digital file validation
   if (type === 'digital') {
     const file = document.getElementById('p_file')?.files;
     if (!file || file.length === 0) {
-      console.log("❌ Validation failed: No digital file uploaded");
       errors.push({ id: 'p_file', errorId: 'p_file_error', message: 'Digital file is required' });
       hasErrors = true;
     }
   }
-
-  // Validate business information (bank code is now optional)
+  
+  // ========== BUSINESS INFORMATION VALIDATION (FIXED FOR VIRTUAL ACCOUNTS) ==========
   const businessName = document.getElementById('p_businessName')?.value;
   const businessEmail = document.getElementById('p_businessEmail')?.value;
   const businessPhone = document.getElementById('p_businessPhone')?.value;
   const country = document.getElementById('p_country')?.value;
   const bankName = document.getElementById('p_bankName')?.value;
   const accountNumber = document.getElementById('p_accountNumber')?.value;
-  const accountName = document.getElementById('p_accountName')?.value;
-  // Bank code is now optional, so we don't validate it
-
+  
+  // Get account name based on account type
+  let accountName = document.getElementById('p_accountName')?.value;
+  
+  // For virtual accounts, use the manual account name if p_accountName is empty
+  if (isVirtualAccount && manualAccountName && (!accountName || accountName === '')) {
+    accountName = manualAccountName;
+    console.log("Using manual account name for validation:", accountName);
+  }
+  
+  console.log("Account validation - isVirtual:", isVirtualAccount, "accountName:", accountName, "manualName:", manualAccountName);
+  
   if (!businessName || !businessName.trim()) {
-    console.log("❌ Validation failed: Business name is empty");
     errors.push({ id: 'p_businessName', errorId: 'p_businessName_error', message: 'Business name is required' });
     hasErrors = true;
   }
   
   if (!businessEmail || !businessEmail.trim()) {
-    console.log("❌ Validation failed: Business email is empty");
     errors.push({ id: 'p_businessEmail', errorId: 'p_businessEmail_error', message: 'Business email is required' });
     hasErrors = true;
   }
   
   if (!businessPhone || !businessPhone.trim()) {
-    console.log("❌ Validation failed: Business phone is empty");
     errors.push({ id: 'p_businessPhone', errorId: 'p_businessPhone_error', message: 'Business phone is required' });
     hasErrors = true;
   }
   
   if (!country || !country.trim()) {
-    console.log("❌ Validation failed: Country is empty");
     errors.push({ id: 'p_country', errorId: 'p_country_error', message: 'Country is required' });
     hasErrors = true;
   }
   
   if (!bankName || !bankName.trim()) {
-    console.log("❌ Validation failed: Bank name is empty");
     errors.push({ id: 'p_bankName', errorId: 'p_bankName_error', message: 'Bank name is required' });
     hasErrors = true;
   }
   
   if (!accountNumber || !accountNumber.trim()) {
-    console.log("❌ Validation failed: Account number is empty");
     errors.push({ id: 'p_accountNumber', errorId: 'p_accountNumber_error', message: 'Account number is required' });
     hasErrors = true;
   }
   
+  // Account holder name validation - Allow manual name for virtual accounts
   if (!accountName || !accountName.trim()) {
-    console.log("❌ Validation failed: Account holder name is empty");
-    errors.push({ id: 'p_accountName', errorId: 'p_accountName_error', message: 'Account holder name is required' });
-    hasErrors = true;
+    if (isVirtualAccount && manualAccountName) {
+      // Already have manual name, just set it
+      console.log("Virtual account has manual name, skipping validation error");
+    } else {
+      errors.push({ id: 'p_accountName', errorId: 'p_accountName_error', message: 'Account holder name is required' });
+      hasErrors = true;
+    }
   }
-
+  
   // Display errors
   errors.forEach(error => {
     const errorEl = document.getElementById(error.errorId);
@@ -10690,7 +10753,6 @@ if (type === 'physical') {
 
   if (hasErrors) {
     console.log("❌ Validation errors:", errors.length);
-    // Scroll to first error
     const firstError = document.querySelector('.form-error.show');
     if (firstError) {
       firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -10701,7 +10763,7 @@ if (type === 'physical') {
   
   return !hasErrors;
 }
-       // ================= CATEGORY MANAGEMENT =================
+     // ================= CATEGORY MANAGEMENT =================
     function getSelectedCategory() {
       const selectCategory = document.getElementById('p_category_select').value.trim();
       const newCategory = document.getElementById('p_category_new').value.trim();
@@ -12749,11 +12811,27 @@ async function releaseExpiredEscrowFunds() {
     window.editProduct = editProduct;
 
  // ========== UPLOAD PRODUCT FUNCTION WITH DEBUGGING ==========
-// ========== UPLOAD PRODUCT BUTTON HANDLER - FIXED ==========
+// ========== UPLOAD PRODUCT BUTTON HANDLER - FIXED ==========$('uploadProductBtn').addEventListener('click', async (e) => {
+ // ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========
 $('uploadProductBtn').addEventListener('click', async (e) => {
   e.preventDefault();
   console.log("🟢 Upload button CLICKED!");
 
+  // ========== HANDLE VIRTUAL ACCOUNT NAME BEFORE VALIDATION ==========
+  const isVirtualAccount = document.getElementById('isVirtualAccount')?.checked || false;
+  const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+  const accountNameField = document.getElementById('p_accountName');
+  
+  // For virtual accounts, set the account name field to the manual name
+  if (isVirtualAccount && manualAccountName) {
+    if (accountNameField) {
+      accountNameField.value = manualAccountName;
+      accountNameField.readOnly = true;
+      console.log("✅ Set account name from manual field:", manualAccountName);
+    }
+  }
+
+  // ========== VALIDATE FORM ==========
   if (!validateProductForm()) {
     console.log("❌ Form validation failed");
     return;
@@ -12764,7 +12842,7 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     return; 
   }
 
-  // ✅✅✅ CREATE FormData FIRST (THIS IS THE FIX) ✅✅✅
+  // ========== CREATE FORM DATA ==========
   const fd = new FormData();
 
   // Get form values
@@ -12774,11 +12852,13 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
   const price = $('p_price')?.value || '0';
   const type = $('p_type')?.value;
   const paymentProvider = $('p_paymentProvider')?.value;
+  
+  // Physical product fields
   const deliveryDays = type === 'physical' ? $('p_deliveryDays')?.value || '7' : '';
   const productCost = type === 'physical' ? $('p_productCost')?.value || '3' : null;
   const deliveryLocations = type === 'physical' ? $('p_deliveryLocations')?.value.trim() || 'Worldwide' : '';
   
-  // Affiliate product
+  // Affiliate product fields
   let affiliateLink = '';
   let externalImage = '';
   if (type === 'affiliate') {
@@ -12786,8 +12866,41 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     externalImage = $('p_external_image')?.value.trim() || '';
   }
 
-  // ✅ NOW USE fd.append() AFTER declaration
-  // Append basic info
+  // Get delivery method values
+  const deliveryType = document.getElementById('p_deliveryType')?.value || 'delivery';
+  const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
+    Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
+  const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
+  const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
+  const pickupHours = document.getElementById('p_pickupHours')?.value || '';
+  const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
+
+  // Product condition fields
+  const conditionType = document.getElementById('p_condition_type')?.value || 'new';
+  const conditionDescription = document.getElementById('p_condition_description')?.value || '';
+  const manufacturingDate = document.getElementById('p_manufacturing_date')?.value || '';
+  const warrantyMonths = document.getElementById('p_warranty_months')?.value || '0';
+  const originalPackaging = document.getElementById('p_original_packaging')?.value || '1';
+  const accessoriesIncluded = document.getElementById('p_accessories')?.value || '';
+  const visibleDefects = document.getElementById('p_defects')?.value || '';
+
+  // Business info
+  const businessName = $('p_businessName')?.value.trim();
+  const businessEmail = $('p_businessEmail')?.value.trim();
+  const businessPhone = $('p_businessPhone')?.value.trim();
+  const country = $('p_country')?.value.trim();
+  const bankName = $('p_bankName')?.value.trim();
+  const bankCode = $('p_bankCode')?.value.trim();
+  const accountNumber = $('p_accountNumber')?.value.trim();
+  let accountName = $('p_accountName')?.value.trim();
+  
+  // Use manual account name for virtual accounts if accountName is empty
+  if (isVirtualAccount && manualAccountName && !accountName) {
+    accountName = manualAccountName;
+  }
+
+  // ========== APPEND ALL FIELDS TO FORM DATA ==========
+  // Basic info
   fd.append('title', title);
   fd.append('description', description || '');
   fd.append('category', category || '');
@@ -12799,20 +12912,9 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
   if (type === 'physical') {
     fd.append('delivery_days', deliveryDays);
     fd.append('product_cost', productCost);
-    fd.append('delivery_type', 'delivery');
-    fd.append('payment_option', $('p_paymentOption')?.value || 'pay_on_delivery');
-    fd.append('delivery_locations', deliveryLocations);
-    
-    // Get delivery method values (these were causing the error)
-    const deliveryType = document.getElementById('p_deliveryType')?.value || 'delivery';
-    const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
-      Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
-    const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
-    const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
-    const pickupHours = document.getElementById('p_pickupHours')?.value || '';
-    const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
-
     fd.append('delivery_type', deliveryType);
+    fd.append('payment_option', $('p_paymentOption')?.value || 'pay_before_delivery');
+    fd.append('delivery_locations', deliveryLocations);
     fd.append('delivery_countries', deliveryCountries);
     fd.append('delivery_states', deliveryStates);
     fd.append('pickup_address', pickupAddress);
@@ -12832,16 +12934,16 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     if (externalImage) fd.append('external_image', externalImage);
   }
   
+  // Product condition fields
+  fd.append('condition_type', conditionType);
+  fd.append('condition_description', conditionDescription);
+  fd.append('manufacturing_date', manufacturingDate);
+  fd.append('warranty_months', warrantyMonths);
+  fd.append('original_packaging', originalPackaging);
+  fd.append('accessories_included', accessoriesIncluded);
+  fd.append('visible_defects', visibleDefects);
+  
   // Business info
-  const businessName = $('p_businessName')?.value.trim();
-  const businessEmail = $('p_businessEmail')?.value.trim();
-  const businessPhone = $('p_businessPhone')?.value.trim();
-  const country = $('p_country')?.value.trim();
-  const bankName = $('p_bankName')?.value.trim();
-  const bankCode = $('p_bankCode')?.value.trim();
-  const accountNumber = $('p_accountNumber')?.value.trim();
-  const accountName = $('p_accountName')?.value.trim();
-
   fd.append('businessName', businessName);
   fd.append('businessEmail', businessEmail);
   fd.append('businessPhone', businessPhone);
@@ -12850,6 +12952,7 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
   fd.append('bankCode', bankCode || '');
   fd.append('accountNumber', accountNumber);
   fd.append('accountName', accountName);
+  fd.append('is_virtual_account', isVirtualAccount ? '1' : '0');
   
   // Images
   const imagesInput = document.getElementById('p_images');
@@ -12859,11 +12962,13 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     }
   }
 
+  // ========== SHOW UPLOADING STATE ==========
   const uploadMessage = $('uploadMessage');
   uploadMessage.innerHTML = '<div class="form-success"><i class="fas fa-spinner fa-spin"></i> Uploading product...</div>';
   uploadMessage.classList.add('show');
 
   try {
+    // ========== SUBMIT TO SERVER ==========
     const res = await fetch('/api/upload-product', { 
       method: 'POST', 
       body: fd,
@@ -12890,6 +12995,7 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
       return; 
     }
 
+    // ========== SUCCESS ==========
     uploadMessage.innerHTML = `<div class="form-success" style="color:var(--success)">✅ ${data.message}</div>`;
 
     // Reset form
@@ -12904,7 +13010,19 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     document.getElementById('digitalBlock')?.classList.remove('show');
     document.getElementById('physicalBlock')?.classList.remove('show');
     document.getElementById('affiliateBlock')?.classList.remove('show');
+    
+    // Reset virtual account checkbox
+    const virtualCheckbox = document.getElementById('isVirtualAccount');
+    if (virtualCheckbox) virtualCheckbox.checked = false;
+    const manualNameField = document.getElementById('manualAccountName');
+    if (manualNameField) {
+      manualNameField.value = '';
+      manualNameField.style.display = 'none';
+    }
+    const virtualHelp = document.getElementById('virtualAccountHelp');
+    if (virtualHelp) virtualHelp.style.display = 'none';
 
+    // Reload products and reset UI
     setTimeout(async () => {
       sellerMode = false;
       becomeBtn.textContent = 'Become a Seller';
@@ -12920,7 +13038,6 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
     uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`;
   }
 });
-
 // 👇 NEW FUNCTION: Refresh category dropdown after upload
 async function refreshCategoryDropdown() {
   try {

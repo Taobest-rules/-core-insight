@@ -2495,7 +2495,7 @@ async function refreshCoursesAfterPurchase() {
   showToast('✅ Purchase successful! Your new content is now available.', 'success');
 }
 
-   // ========================= FIXED PAYMENT FUNCTION =========================
+   
 // ========================= FIXED FLUTTERWAVE PAYMENT =========================
 async function initiatePayment(courseId, price, title, isVideo = false) {
   try {
@@ -2525,7 +2525,6 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     hideLoading();
     
     if (response.ok && data.status === 'success' && data.paymentLink) {
-      // ✅ Simple redirect - Flutterwave will show all payment methods
       window.location.href = data.paymentLink;
     } else {
       alert('Error: ' + (data.error || 'Failed to initiate payment.'));
@@ -2535,7 +2534,9 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     hideLoading();
     alert('Error: ' + error.message);
   }
-}  // ========================= CHECK ACCESS FUNCTION =========================
+}
+
+  // ========================= CHECK ACCESS FUNCTION =========================
     async function checkAccess(courseId, isVideo = false) {
       try {
         showLoading();

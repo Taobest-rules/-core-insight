@@ -2469,29 +2469,66 @@ app.post("/api/initiate-payment", async (req, res) => {
       return res.status(500).json({ error: "Payment system not configured." });
     }
     
-    // Get exchange rate
-    let usdRate = 1500;
+    // ✅ Get user's country from IP address
+    let userCountry = 'NG'; // Default to Nigeria
+    let currency = "NGN";
+    let amount = priceInNGN;
+    let paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
+    
     try {
-      const rates = await getExchangeRate();
-      usdRate = rates.USD_TO_NGN || 1500;
-    } catch (rateErr) {
-      console.error('Rate fetch error, using fallback:', rateErr.message);
+      // Get client IP address
+      const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      
+      // Use free IP geolocation API
+      const geoResponse = await axios.get(`http://ip-api.com/json/${userIp}`, { 
+        timeout: 3000 
+      });
+      
+      if (geoResponse.data && geoResponse.data.countryCode) {
+        userCountry = geoResponse.data.countryCode;
+        console.log(`🌍 User country detected: ${userCountry}`);
+      }
+    } catch (geoError) {
+      console.log('Could not detect country, defaulting to Nigeria');
     }
     
-    let amountInUSD = priceInNGN / usdRate;
-    amountInUSD = Math.round(amountInUSD * 100) / 100;
-    
-    if (amountInUSD < 0.50) {
-      amountInUSD = 0.50;
+    // ✅ Set currency based on user's country
+    if (userCountry === 'NG') {
+      // Nigerian users - pay in NGN with all local methods
+      currency = "NGN";
+      amount = priceInNGN;
+      paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
+      console.log(`💰 Nigerian user - Paying ${amount} NGN with local payment methods`);
+    } else {
+      // International users - pay in USD
+      currency = "USD";
+      paymentOptions = "card";
+      
+      // Convert NGN to USD
+      let usdRate = 1500;
+      try {
+        const rates = await getExchangeRate();
+        usdRate = rates.USD_TO_NGN || 1500;
+      } catch (rateErr) {
+        console.error('Rate fetch error, using fallback:', rateErr.message);
+      }
+      
+      let amountInUSD = priceInNGN / usdRate;
+      amount = Math.round(amountInUSD * 100) / 100;
+      
+      if (amount < 0.50) {
+        amount = 0.50;
+      }
+      console.log(`💰 International user (${userCountry}) - Paying ${amount} USD`);
     }
     
-    const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
+    const transaction_ref = `coreinsight_${Date.now()}_${courseId}`;
     
-    // ✅ CRITICAL: Explicitly enable ALL payment methods
+    // ✅ Build payload
     const payload = {
       tx_ref: transaction_ref,
-      amount: amountInUSD,
-      currency: "USD",
+      amount: amount,
+      currency: currency,
       redirect_url: "https://coreinsightmarket.com/payment-callback.html",
       customer: {
         email: req.session.user.email,
@@ -2501,14 +2538,12 @@ app.post("/api/initiate-payment", async (req, res) => {
         title: "Core Insight Course",
         description: course.title.substring(0, 50),
       },
-      // ✅ THIS IS KEY - Enable all payment methods
-      payment_options: "card, account, banktransfer, ussd, mobilemoney, qr, barter",
-      // ✅ Set country to Nigeria for local payment methods
-      country: "NG",
+      payment_options: paymentOptions,
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
-        price_ngn: priceInNGN
+        price_ngn: priceInNGN,
+        user_country: userCountry
       }
     };
     
@@ -2527,21 +2562,21 @@ app.post("/api/initiate-payment", async (req, res) => {
     );
     
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      console.log('✅ Payment link created');
+      console.log(`✅ Payment link created in ${currency}`);
       
       // Store payment record
       await db.query(
-        `INSERT INTO payments (user_id, course_id, transaction_ref, amount, status, created_at)
-         VALUES (?, ?, ?, ?, 'pending', NOW())`,
-        [req.session.user.id, courseId, transaction_ref, priceInNGN]
+        `INSERT INTO payments (user_id, course_id, transaction_ref, amount, currency, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
+        [req.session.user.id, courseId, transaction_ref, amount, currency]
       );
       
       res.json({
         status: "success",
         paymentLink: response.data.data.link,
         transactionRef: transaction_ref,
-        amount: amountInUSD,
-        currency: "USD"
+        amount: amount,
+        currency: currency
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);

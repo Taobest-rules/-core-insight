@@ -48,51 +48,30 @@
     .summary-row:last-child { border-bottom: none; }
     .summary-row.total { margin-top: 12px; padding-top: 12px; border-top: 2px solid #FFD700; font-weight: 700; font-size: 18px; }
     
-    /* Currency Display */
-    .currency-info {
-      background: rgba(16, 185, 129, 0.1);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 20px;
-      text-align: center;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    .currency-badge {
-      display: inline-block;
-      background: rgba(16, 185, 129, 0.2);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .currency-badge i {
-      margin-right: 6px;
-    }
-    
-    /* Flutterwave Section */
+    /* Flutterwave Only - Single Payment Method */
     .flutterwave-section {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
       border-radius: 16px;
-      padding: 24px;
+      padding: 28px;
       margin: 24px 0;
-      border: 2px solid rgba(59, 130, 246, 0.3);
+      border: 2px solid rgba(59, 130, 246, 0.4);
       text-align: center;
     }
     .flutterwave-icon {
-      font-size: 48px;
+      font-size: 56px;
       color: #3b82f6;
       margin-bottom: 16px;
     }
     .flutterwave-title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       color: var(--text-light);
     }
     .flutterwave-desc {
       color: #94a3b8;
       font-size: 14px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
     .payment-badges {
       display: flex;
@@ -102,7 +81,7 @@
       margin-top: 16px;
     }
     .payment-badge {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       padding: 6px 14px;
       font-size: 12px;
@@ -139,8 +118,9 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-message { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px; margin-bottom: 20px; color: #ef4444; }
     
+    /* Split Info Box */
     .split-info {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.08);
       border-radius: 12px;
       padding: 16px;
       margin-top: 20px;
@@ -162,6 +142,9 @@
     
     @media (max-width: 640px) {
       .payment-body { padding: 20px; }
+      .flutterwave-section { padding: 20px; }
+      .flutterwave-icon { font-size: 42px; }
+      .flutterwave-title { font-size: 18px; }
     }
   </style>
 </head>
@@ -181,8 +164,8 @@
       
       <div class="payment-body">
         <div id="loadingState" class="loading">
-          <div class="spinner"></div>
-          <p>Loading order details...</p>
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 12px;">Loading order details...</p>
         </div>
         
         <div id="errorState" style="display: none;">
@@ -191,13 +174,6 @@
         </div>
         
         <div id="paymentContent" style="display: none;">
-          <!-- Currency Info Display -->
-          <div class="currency-info" id="currencyInfo">
-            <span class="currency-badge" id="currencyBadge">
-              <i class="fas fa-spinner fa-spin"></i> Detecting your location...
-            </span>
-          </div>
-          
           <div class="order-summary">
             <div class="summary-row"><span>Order ID:</span><strong id="orderId">-</strong></div>
             <div class="summary-row"><span>Product:</span><strong id="productName">-</strong></div>
@@ -206,16 +182,16 @@
             <div class="summary-row total"><span>Total Amount:</span><strong id="totalAmount" style="color: #10b981;">-</strong></div>
           </div>
           
-          <!-- Flutterwave Section -->
+          <!-- Flutterwave Only Section -->
           <div class="flutterwave-section">
             <div class="flutterwave-icon">
               <i class="fas fa-globe"></i>
             </div>
-            <div class="flutterwave-title">Secure Payment</div>
-            <div class="flutterwave-desc" id="paymentMethodsDesc">
-              Multiple payment options available based on your location
+            <div class="flutterwave-title">Pay with Flutterwave</div>
+            <div class="flutterwave-desc">
+              Secure payment via Flutterwave - Accepts cards, bank transfers, and USSD
             </div>
-            <div class="payment-badges" id="paymentBadges">
+            <div class="payment-badges">
               <span class="payment-badge"><i class="fas fa-check-circle"></i> Credit/Debit Cards</span>
               <span class="payment-badge"><i class="fas fa-check-circle"></i> Bank Transfer</span>
               <span class="payment-badge"><i class="fas fa-check-circle"></i> USSD</span>
@@ -243,7 +219,7 @@
           </div>
           
           <button id="payNowBtn" class="pay-btn">
-            <i class="fas fa-lock"></i> Proceed to Payment
+            <i class="fas fa-lock"></i> Pay with Flutterwave
           </button>
           
           <div style="text-align: center; margin-top: 20px;">
@@ -257,10 +233,7 @@
   <script>
     let orderData = null;
     let currentUserId = null;
-    let userCountry = null;
-    let paymentCurrency = 'USD';
-    let convertedAmount = null;
-    let exchangeRate = 1500;
+    let flutterwavePublicKey = null;
     const orderId = new URLSearchParams(window.location.search).get('orderId');
     
     if (!orderId) {
@@ -283,45 +256,104 @@
       }
     }
     
-    // Detect user's country and currency
-    async function detectUserCurrency() {
+    async function loadFlutterwaveKey() {
       try {
-        console.log('🌍 Detecting user location for payment...');
-        
-        // Try to get country from IP
-        const ipResponse = await fetch('https://ipapi.co/json/', { timeout: 5000 });
-        if (ipResponse.ok) {
-          const ipData = await ipResponse.json();
-          userCountry = ipData.country_code;
-          console.log('📍 Country detected:', userCountry);
-        }
+        const response = await fetch('/api/payment-keys', { credentials: 'include' });
+        const data = await response.json();
+        flutterwavePublicKey = data.flutterwave?.public_key;
+        console.log('Flutterwave key loaded:', flutterwavePublicKey ? 'Yes' : 'No');
+        return flutterwavePublicKey;
       } catch (error) {
-        console.log('IP detection failed, defaulting to international');
-        userCountry = 'INTL';
+        console.error('Failed to load Flutterwave key:', error);
+        return null;
       }
-      
-      // Get exchange rates from our server
+    }
+    
+    async function confirmPaymentOnServer(orderId, reference) {
       try {
-        const rateResponse = await fetch('/api/currency-rates', { credentials: 'include' });
-        const rateData = await rateResponse.json();
-        if (rateData.success && rateData.rates && rateData.rates.NGN) {
-          exchangeRate = rateData.rates.NGN;
-          console.log('📊 Exchange rate loaded: 1 USD =', exchangeRate, 'NGN');
-        }
+        console.log(`Confirming payment for order #${orderId} via Flutterwave`);
+        const response = await fetch('/api/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            order_id: orderId, 
+            reference: reference,
+            payment_method: 'flutterwave' 
+          }),
+          credentials: 'include'
+        });
+        const data = await response.json();
+        console.log('Confirmation result:', data);
+        return data;
       } catch (error) {
-        console.log('Using fallback exchange rate:', exchangeRate);
+        console.error('Confirmation error:', error);
+        return { success: false };
       }
-      
-      // Determine payment currency based on country
-      if (userCountry === 'NG') {
-        paymentCurrency = 'NGN';
-        console.log('💰 Nigerian user - Payment in NGN');
-      } else {
-        paymentCurrency = 'USD';
-        console.log('💰 International user - Payment in USD');
-      }
-      
-      return { currency: paymentCurrency, country: userCountry };
+    }
+    
+    // Flutterwave Payment Handler
+    function initFlutterwavePayment() {
+      return new Promise((resolve, reject) => {
+        try {
+          if (!flutterwavePublicKey) {
+            reject(new Error('Flutterwave is not configured. Please contact support.'));
+            return;
+          }
+          
+          const amount = parseFloat(orderData.total_amount);
+          const email = orderData.buyer?.email || '';
+          const name = orderData.buyer?.name || 'Customer';
+          const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+          
+          // Calculate split amounts for display
+          const platformFee = amount * 0.10;
+          const sellerAmount = amount - platformFee;
+          
+          FlutterwaveCheckout({
+            public_key: flutterwavePublicKey,
+            tx_ref: tx_ref,
+            amount: amount,
+            currency: "USD",
+            payment_options: "card, banktransfer, ussd, mobilemoney",
+            customer: { 
+              email: email, 
+              name: name,
+              phone_number: orderData.delivery_phone || ''
+            },
+            customizations: { 
+              title: "Core Insight Marketplace", 
+              description: `Order #${orderId} - ${orderData.product_name?.substring(0, 30)}`,
+              logo: "https://coreinsightmarket.com/logo.png"
+            },
+            meta: {
+              order_id: orderId,
+              platform_fee: platformFee,
+              seller_amount: sellerAmount
+            },
+            callback: function(response) {
+              console.log("Flutterwave callback response:", response);
+              if (response && response.transaction_id) {
+                confirmPaymentOnServer(orderId, response.transaction_id)
+                  .then(() => {
+                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                  })
+                  .catch(err => {
+                    console.error("Confirmation failed:", err);
+                    window.location.href = `/order-tracking.html?orderId=${orderId}`;
+                  });
+              } else {
+                window.location.href = `/order-tracking.html?orderId=${orderId}`;
+              }
+            },
+            onclose: function() {
+              console.log("Flutterwave modal closed");
+              resolve({ closed: true });
+            }
+          });
+        } catch (err) {
+          reject(err);
+        }
+      });
     }
     
     async function loadOrderDetails() {
@@ -333,9 +365,6 @@
         loadingState.style.display = 'block';
         errorState.style.display = 'none';
         paymentContent.style.display = 'none';
-        
-        // Detect currency first
-        await detectUserCurrency();
         
         const response = await fetch(`/api/orders/${orderId}`, { credentials: 'include' });
         
@@ -372,53 +401,20 @@
           return;
         }
         
-        // Calculate amounts with currency conversion
-        const totalAmountUSD = parseFloat(orderData.total_amount);
-        let displayAmount = totalAmountUSD;
-        let displayCurrency = 'USD';
-        let convertedAmountForDisplay = totalAmountUSD;
+        // Calculate split amounts
+        const totalAmount = parseFloat(orderData.total_amount);
+        const platformFee = totalAmount * 0.10;
+        const sellerAmount = totalAmount - platformFee;
         
-        if (paymentCurrency === 'NGN') {
-          convertedAmountForDisplay = totalAmountUSD * exchangeRate;
-          displayAmount = Math.round(convertedAmountForDisplay);
-          displayCurrency = 'NGN';
-        } else {
-          displayAmount = totalAmountUSD;
-          displayCurrency = 'USD';
-        }
-        
-        const platformFee = totalAmountUSD * 0.10;
-        const sellerAmount = totalAmountUSD - platformFee;
-        
-        // Update UI with converted amounts
+        // Update UI
         document.getElementById('orderId').textContent = `#${orderData.id}`;
         document.getElementById('productName').textContent = orderData.product_name || 'Product';
         document.getElementById('quantity').textContent = orderData.quantity;
-        
-        const unitPriceUSD = parseFloat(orderData.price);
-        let displayUnitPrice = unitPriceUSD;
-        if (paymentCurrency === 'NGN') {
-          displayUnitPrice = unitPriceUSD * exchangeRate;
-        }
-        document.getElementById('unitPrice').textContent = formatCurrency(displayUnitPrice, displayCurrency);
-        document.getElementById('totalAmount').textContent = formatCurrency(displayAmount, displayCurrency);
-        
-        // Update seller/platform amounts (always in USD for backend, but display in user's currency)
-        let displaySellerAmount = sellerAmount;
-        let displayPlatformFee = platformFee;
-        if (paymentCurrency === 'NGN') {
-          displaySellerAmount = sellerAmount * exchangeRate;
-          displayPlatformFee = platformFee * exchangeRate;
-        }
-        document.getElementById('sellerAmount').textContent = `${formatCurrency(displaySellerAmount, displayCurrency)} (90%)`;
-        document.getElementById('platformFee').textContent = `${formatCurrency(displayPlatformFee, displayCurrency)} (10%)`;
-        document.getElementById('totalPaid').textContent = formatCurrency(displayAmount, displayCurrency);
-        
-        // Update currency info badge
-        updateCurrencyInfo(displayCurrency);
-        
-        // Update payment methods based on currency
-        updatePaymentMethods(displayCurrency);
+        document.getElementById('unitPrice').textContent = `$${orderData.price.toFixed(2)}`;
+        document.getElementById('totalAmount').textContent = `$${totalAmount.toFixed(2)}`;
+        document.getElementById('sellerAmount').textContent = `$${sellerAmount.toFixed(2)} (90%)`;
+        document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)} (10%)`;
+        document.getElementById('totalPaid').textContent = `$${totalAmount.toFixed(2)}`;
         
         loadingState.style.display = 'none';
         paymentContent.style.display = 'block';
@@ -426,166 +422,6 @@
       } catch (error) {
         console.error('Load order error:', error);
         showError(error.message || 'Failed to load order details');
-      }
-    }
-    
-    function formatCurrency(amount, currency) {
-      if (currency === 'NGN') {
-        return `₦${Math.round(amount).toLocaleString()}`;
-      } else {
-        return `$${amount.toFixed(2)}`;
-      }
-    }
-    
-    function updateCurrencyInfo(currency) {
-      const currencyInfo = document.getElementById('currencyInfo');
-      const currencyBadge = document.getElementById('currencyBadge');
-      
-      if (currency === 'NGN') {
-        currencyBadge.innerHTML = `
-          <i class="fas fa-map-marker-alt"></i> 
-          Paying in Nigerian Naira (₦)
-          <span style="margin-left: 8px; font-size: 11px; background: rgba(16,185,129,0.2); padding: 2px 8px; border-radius: 12px;">
-            Local Payment Methods Available
-          </span>
-        `;
-      } else {
-        currencyBadge.innerHTML = `
-          <i class="fas fa-globe"></i> 
-          Paying in US Dollars ($)
-          <span style="margin-left: 8px; font-size: 11px; background: rgba(59,130,246,0.2); padding: 2px 8px; border-radius: 12px;">
-            International Payment
-          </span>
-        `;
-      }
-    }
-    
-    function updatePaymentMethods(currency) {
-      const badgesContainer = document.getElementById('paymentBadges');
-      const descElement = document.getElementById('paymentMethodsDesc');
-      
-      if (currency === 'NGN') {
-        // Nigerian users get all local payment methods
-        badgesContainer.innerHTML = `
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 💳 Local Cards (Verve, Mastercard, Visa)</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 🏦 Bank Transfer</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 📱 USSD (*123# etc.)</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 💰 Mobile Money (MTN, Airtel, Glo)</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 📱 QR Code Payment</span>
-        `;
-        descElement.innerHTML = 'Multiple payment options available for Nigerian buyers - Pay in Naira!';
-      } else {
-        // International users get card payments
-        badgesContainer.innerHTML = `
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 💳 Credit/Debit Cards (Visa, Mastercard)</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 🌍 International Cards</span>
-          <span class="payment-badge"><i class="fas fa-check-circle"></i> 🔒 Secure Checkout</span>
-        `;
-        descElement.innerHTML = 'Pay securely with your international credit or debit card in USD.';
-      }
-    }
-    
-    async function createFlutterwavePayment() {
-      try {
-        const totalAmountUSD = parseFloat(orderData.total_amount);
-        let amount = totalAmountUSD;
-        let currency = 'USD';
-        
-        if (paymentCurrency === 'NGN') {
-          amount = Math.round(totalAmountUSD * exchangeRate);
-          currency = 'NGN';
-        }
-        
-        const email = orderData.buyer?.email || '';
-        const name = orderData.buyer?.name || 'Customer';
-        const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-        
-        // Set payment options based on currency
-        let paymentOptions = 'card';
-        if (currency === 'NGN') {
-          paymentOptions = 'card, account, banktransfer, ussd, mobilemoney, qr, barter';
-        }
-        
-        // Get Flutterwave public key
-        const keyResponse = await fetch('/api/payment-keys', { credentials: 'include' });
-        const keyData = await keyResponse.json();
-        const publicKey = keyData.flutterwave?.public_key;
-        
-        if (!publicKey) {
-          throw new Error('Flutterwave is not configured. Please contact support.');
-        }
-        
-        const platformFee = totalAmountUSD * 0.10;
-        const sellerAmount = totalAmountUSD - platformFee;
-        
-        FlutterwaveCheckout({
-          public_key: publicKey,
-          tx_ref: tx_ref,
-          amount: amount,
-          currency: currency,
-          payment_options: paymentOptions,
-          customer: { 
-            email: email, 
-            name: name,
-            phone_number: orderData.delivery_phone || ''
-          },
-          customizations: { 
-            title: "Core Insight Marketplace", 
-            description: `Order #${orderId} - ${orderData.product_name?.substring(0, 30)}`,
-            logo: "https://coreinsightmarket.com/logo.png"
-          },
-          meta: {
-            order_id: orderId,
-            platform_fee: platformFee,
-            seller_amount: sellerAmount,
-            currency_used: currency
-          },
-          callback: function(response) {
-            console.log("Flutterwave callback response:", response);
-            if (response && response.transaction_id) {
-              confirmPaymentOnServer(orderId, response.transaction_id, currency)
-                .then(() => {
-                  window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                })
-                .catch(err => {
-                  console.error("Confirmation failed:", err);
-                  window.location.href = `/order-tracking.html?orderId=${orderId}`;
-                });
-            } else {
-              window.location.href = `/order-tracking.html?orderId=${orderId}`;
-            }
-          },
-          onclose: function() {
-            console.log("Flutterwave modal closed");
-          }
-        });
-        
-      } catch (error) {
-        console.error('Flutterwave error:', error);
-        throw error;
-      }
-    }
-    
-    async function confirmPaymentOnServer(orderId, reference, currency) {
-      try {
-        console.log(`Confirming payment for order #${orderId} via Flutterwave (${currency})`);
-        const response = await fetch('/api/confirm-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            order_id: orderId, 
-            reference: reference,
-            payment_method: 'flutterwave',
-            currency: currency
-          }),
-          credentials: 'include'
-        });
-        const data = await response.json();
-        console.log('Confirmation result:', data);
-        return data;
-      } catch (error) {
-        console.error('Confirmation error:', error);
-        return { success: false };
       }
     }
     
@@ -597,17 +433,17 @@
       }
       
       const payBtn = document.getElementById('payNowBtn');
-      const originalText = payBtn.innerHTML;
       payBtn.disabled = true;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing payment...';
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing Flutterwave payment...';
       
       try {
-        await createFlutterwavePayment();
+        await initFlutterwavePayment();
       } catch (error) {
         console.error('Payment error:', error);
         alert('Payment Error: ' + error.message);
+      } finally {
         payBtn.disabled = false;
-        payBtn.innerHTML = originalText;
+        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay with Flutterwave';
       }
     });
     
@@ -620,6 +456,7 @@
     // Initialize
     document.addEventListener('DOMContentLoaded', async () => {
       if (await checkAuth()) {
+        await loadFlutterwaveKey();
         await loadOrderDetails();
       }
     });

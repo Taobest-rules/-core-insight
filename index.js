@@ -553,7 +553,8 @@ function getOrderStatusUpdateTemplate(orderData) {
 // COMPLETE PRODUCT UPLOAD - FLUTTERWAVE ONLY
 // ============================================
 
-// Helper function to create Flutterwave subaccount
+
+// Create Flutterwave subaccount - CORRECTED (90% to seller, 10% to platform)
 async function createFlutterwaveSubaccount(userId, bankData) {
     try {
         const { bank_code, account_number, business_name, country = 'NG', business_email, business_phone } = bankData;
@@ -565,7 +566,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
             account_number: String(account_number),
             business_name: business_name,
             split_type: "percentage",
-            split_value: 0.9,
+            split_value: 0.1,  // ✅ PLATFORM gets 10% (NOT 0.9!)
             country: country,
             business_email: business_email || '',
             business_mobile: business_phone || ''
@@ -599,6 +600,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
             );
             
             console.log(`✅ Flutterwave subaccount created for user ${userId}: ${subaccountId}`);
+            console.log(`   Split configuration: Platform gets 10%, Seller gets 90%`);
             return { success: true, subaccount_id: subaccountId };
         } else {
             throw new Error(response.data.message || 'Subaccount creation failed');
@@ -606,67 +608,6 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         
     } catch (err) {
         console.error(`❌ Flutterwave subaccount error for user ${userId}:`, err.response?.data || err.message);
-        return { success: false, error: err.response?.data?.message || err.message };
-    }
-}
-
-
-
-async function createPaystackSubaccount(userId, bankData) {
-    try {
-        const { bank_code, account_number, business_name } = bankData;
-        
-        console.log(`🔧 Creating Paystack subaccount for user ${userId}:`, { bank_code, account_number, business_name });
-        
-        const payload = {
-            business_name: business_name,
-            settlement_bank: String(bank_code),
-            account_number: String(account_number),
-            percentage_charge: 90,  // 90% to seller
-            primary_contact_email: bankData.business_email,
-            primary_contact_name: business_name,
-            metadata: {
-                user_id: userId,
-                platform_fee: 10
-            }
-        };
-        
-        const response = await axios.post(
-            'https://api.paystack.co/subaccount',
-            payload,
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 30000
-            }
-        );
-        
-        if (response.data.status === true && response.data.data) {
-            const subaccountCode = response.data.data.subaccount_code;
-            
-            // Save to database
-            await db.query(
-                `UPDATE users 
-                 SET paystack_subaccount_code = ?,
-                     subaccount_created_at = NOW(),
-                     subaccount_status = 'active',
-                     bank_code = ?,
-                     account_number = ?,
-                     account_name = ?
-                 WHERE id = ?`,
-                [subaccountCode, bank_code, account_number, business_name, userId]
-            );
-            
-            console.log(`✅ Paystack subaccount created for user ${userId}: ${subaccountCode}`);
-            return { success: true, subaccount_code: subaccountCode };
-        } else {
-            throw new Error(response.data.message || 'Subaccount creation failed');
-        }
-        
-    } catch (err) {
-        console.error(`❌ Paystack subaccount error for user ${userId}:`, err.response?.data || err.message);
         return { success: false, error: err.response?.data?.message || err.message };
     }
 }
@@ -10797,8 +10738,9 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const productPrice = parseFloat(product.original_price || product.price);
     const totalAmount = qty * productPrice;
     
-    const platformFee = productPrice * 0.10 * qty;
-    const sellerEarnings = totalAmount - platformFee;
+    // ✅ SIMPLE 10% PLATFORM FEE - NO BULK CALCULATION
+    const platformFee = totalAmount * 0.10;  // 10% of total amount
+    const sellerEarnings = totalAmount - platformFee;  // 90% to seller
     const estimatedDays = product.estimated_delivery_days || 7;
     
     // Insert order
@@ -10820,13 +10762,12 @@ app.post("/api/physical-orders/create", async (req, res) => {
     const orderId = result.insertId;
     console.log(`✅ Order #${orderId} created successfully`);
 
-      // ✅ ADD STATUS HISTORY
     await db.query(
       `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at) VALUES (?, 'order_placed', 'Order placed and awaiting seller approval', ?, NOW())`,
       [orderId, req.session.user.id]
     );
     
-    // Send confirmation email to buyer (async, don't wait)
+    // Send confirmation email to buyer
     const orderData = {
       email: req.session.user.email,
       name: req.session.user.username || 'Valued Customer',
@@ -10839,7 +10780,6 @@ app.post("/api/physical-orders/create", async (req, res) => {
       orderStatus: 'pending_seller_approval'
     };
     
-    // Send email in background
     sendOrderConfirmationEmail(orderData).catch(err => {
       console.error('Order confirmation email failed:', err.message);
     });
@@ -10904,60 +10844,33 @@ app.post("/api/physical-orders/:orderId/respond", async (req, res) => {
     }
 
     if (action === 'accept') {
-      const productPrice = parseFloat(order.price);
-      const qty = order.quantity;
       const totalAmount = parseFloat(order.total_amount);
       
-      let platformFee = 0;
-      let sellerEarnings = 0;
-      let feeBreakdown = {};
+      // ✅ SIMPLE 10% PLATFORM FEE - NO BULK CALCULATION
+      const platformFee = totalAmount * 0.10;  // 10% of total amount
+      const sellerEarnings = totalAmount - platformFee;  // 90% to seller
       
-      if (qty <= 5) {
-        // Standard: 10% of single product price
-        platformFee = productPrice * 0.10;
-        sellerEarnings = totalAmount - platformFee;
-        feeBreakdown = {
-          type: "standard",
-          product_price: productPrice,
-          quantity: qty,
-          total_amount: totalAmount,
-          platform_fee: platformFee,
-          seller_earnings: sellerEarnings,
-          note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
-        };
-      } else {
-        // Bulk: Base fee + 10% of total
-        const baseFee = productPrice * 0.10;
-        const bulkFee = totalAmount * 0.10;
-        platformFee = baseFee + bulkFee;
-        sellerEarnings = totalAmount - platformFee;
-        feeBreakdown = {
-          type: "bulk",
-          product_price: productPrice,
-          quantity: qty,
-          total_amount: totalAmount,
-          base_fee: baseFee,
-          bulk_fee: bulkFee,
-          platform_fee: platformFee,
-          seller_earnings: sellerEarnings,
-          note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
-        };
-      }
+      const feeBreakdown = {
+        type: "standard",
+        total_amount: totalAmount,
+        platform_fee: platformFee,
+        seller_earnings: sellerEarnings,
+        note: `Flat 10% platform fee: $${platformFee.toFixed(2)} (10% of $${totalAmount.toFixed(2)})`
+      };
       
       console.log(`💰 Order #${orderId} earnings:`, feeBreakdown);
       
-     // In your respondToOrder function, when accepting:
-await db.query(
-    `UPDATE physical_orders 
-     SET order_status = 'seller_accepted',
-         seller_accepted_at = NOW(),
-         platform_fee = ?,
-         seller_earnings = ?,
-         fee_breakdown = ?,
-         payment_held_until = NULL  -- ✅ Escrow not started yet
-     WHERE id = ?`,
-    [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
-);
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'seller_accepted',
+             seller_accepted_at = NOW(),
+             platform_fee = ?,
+             seller_earnings = ?,
+             fee_breakdown = ?,
+             payment_held_until = NULL
+         WHERE id = ?`,
+        [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
+      );
 
       await db.query(
         `INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
@@ -10971,12 +10884,13 @@ await db.query(
                  CONCAT('Seller has accepted your order for ', ?, '. Please complete payment to confirm your order.'), NOW())`,
         [order.buyer_id, orderId, order.product_name]
       );
-// Add history entry
-await db.query(
-  `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
-   VALUES (?, 'seller_accepted', 'Seller accepted the order', ?, NOW())`,
-  [orderId, req.session.user.id]
-);
+
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'seller_accepted', 'Seller accepted the order', ?, NOW())`,
+        [orderId, req.session.user.id]
+      );
+      
       // Send payment link email
       try {
         const paymentLink = `https://coreinsightmarket.com/pay-order.html?orderId=${orderId}`;
@@ -10992,15 +10906,15 @@ await db.query(
               <div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;">
                 <p><strong>Order #${orderId}</strong></p>
                 <p>${order.product_name} (x${order.quantity})</p>
-                <p><strong>Total: $${order.total_amount}</strong></p>
-                ${feeBreakdown.type === 'bulk' ? `<p style="font-size:12px;color:#f59e0b;">Bulk order discount applied!</p>` : ''}
+                <p><strong>Total: $${totalAmount.toFixed(2)}</strong></p>
+                <p style="font-size:12px;color:#f59e0b;">Platform fee: 10% ($${platformFee.toFixed(2)})</p>
               </div>
               <a href="${paymentLink}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:20px 0;">Pay Now</a>
             </div>
           </body>
           </html>
         `;
-        await sendVerificationEmail(order.buyer_email, `Payment Required for Order #${orderId}`, emailHtml);
+        await sendEmail(order.buyer_email, `Payment Required for Order #${orderId}`, emailHtml);
       } catch (emailError) {
         console.error('❌ Payment link email failed:', emailError.message);
       }
@@ -11572,47 +11486,22 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
             return res.status(400).json({ error: "Invalid amount" });
         }
         
-        // ✅ BULK ORDER FEE CALCULATION (as per your existing logic)
-        let platformFee = 0;
-        let sellerEarnings = 0;
-        let feeBreakdown = {};
+        // ✅ SIMPLE 10% PLATFORM FEE - NO BULK CALCULATION
+        const platformFee = totalAmount * 0.10;  // 10% of total amount
+        const sellerEarnings = totalAmount - platformFee;  // 90% to seller
         
-        if (qty <= 5) {
-            // Standard order: 10% of product price
-            platformFee = productPrice * 0.10;
-            sellerEarnings = totalAmount - platformFee;
-            feeBreakdown = {
-                type: "standard",
-                product_price: productPrice,
-                quantity: qty,
-                total_amount: totalAmount,
-                platform_fee: platformFee,
-                seller_earnings: sellerEarnings,
-                note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
-            };
-        } else {
-            // Bulk order: Base fee + 10% of total
-            const baseFee = productPrice * 0.10;
-            const bulkFee = totalAmount * 0.10;
-            platformFee = baseFee + bulkFee;
-            sellerEarnings = totalAmount - platformFee;
-            feeBreakdown = {
-                type: "bulk",
-                product_price: productPrice,
-                quantity: qty,
-                total_amount: totalAmount,
-                base_fee: baseFee,
-                bulk_fee: bulkFee,
-                platform_fee: platformFee,
-                seller_earnings: sellerEarnings,
-                note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
-            };
-        }
+        const feeBreakdown = {
+            type: "standard",
+            total_amount: totalAmount,
+            platform_fee: platformFee,
+            seller_earnings: sellerEarnings,
+            note: `Flat 10% platform fee: $${platformFee.toFixed(2)} (10% of $${totalAmount.toFixed(2)})`
+        };
         
         console.log(`💰 Order fee calculation:`, feeBreakdown);
         
         // Create unique transaction reference
-        const transactionRef = `ORD_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
+        const transactionRef = `ORDER_${Date.now()}_${productId}_${Math.floor(Math.random() * 10000)}`;
         
         // Create order in database FIRST (before payment)
         const orderResult = await db.query(
@@ -11635,9 +11524,9 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         );
         
         const orderId = orderResult.insertId;
-        console.log(`✅ Order #${orderId} created with calculated fees`);
+        console.log(`✅ Order #${orderId} created with ${platformFee.toFixed(2)} platform fee (10%)`);
         
-        // Create Flutterwave payment link (ONLY FLUTTERWAVE)
+        // Create Flutterwave payment link
         if (!process.env.FLW_SECRET_KEY) {
             return res.status(500).json({ error: "Payment system not configured. Please contact support." });
         }
@@ -11672,7 +11561,7 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
             }
         };
         
-        // ✅ ADD SUBACCOUNT FOR 90/10 SPLIT
+        // Add subaccount for 90/10 split
         if (product.flutterwave_subaccount_id) {
             flutterwavePayload.subaccounts = [{
                 id: product.flutterwave_subaccount_id,
@@ -11696,7 +11585,6 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         );
         
         if (response.data.status === 'success' && response.data.data?.link) {
-            // Update order with payment link
             await db.query(
                 `UPDATE physical_orders SET payment_link = ? WHERE id = ?`,
                 [response.data.data.link, orderId]
@@ -11713,9 +11601,9 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
                 seller_earnings: sellerEarnings,
                 fee_breakdown: feeBreakdown,
                 split: {
-                    platform_percentage: qty <= 5 ? 10 : (platformFee / totalAmount * 100).toFixed(1),
-                    seller_percentage: qty <= 5 ? 90 : (sellerEarnings / totalAmount * 100).toFixed(1),
-                    message: qty <= 5 ? "Standard 90/10 split" : "Bulk order fee applied (Base fee + 10% of total)"
+                    platform_percentage: 10,
+                    seller_percentage: 90,
+                    message: "Flat 10% platform fee on total amount"
                 },
                 message: `Redirecting to Flutterwave payment...`
             });
@@ -11728,7 +11616,6 @@ app.post("/api/create-physical-order-payment", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // ============================================
 // FLUTTERWAVE WEBHOOK (for auto-split confirmation)
@@ -14952,7 +14839,6 @@ app.get("/api/dashboard/orders", async (req, res) => {
   }
 });
 
-// Mark order as responded (accepted/rejected) - ENHANCED VERSION
 app.post("/api/dashboard/orders/:orderId/respond", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -14991,59 +14877,35 @@ app.post("/api/dashboard/orders/:orderId/respond", async (req, res) => {
     }
 
     if (action === 'accept') {
-      // Calculate fees based on quantity
-      const qty = order.quantity;
-      const productPrice = parseFloat(order.price);
       const totalAmount = parseFloat(order.total_amount);
       
-      let platformFee = 0;
-      let sellerEarnings = 0;
-      let feeBreakdown = {};
+      // ✅ SIMPLE 10% PLATFORM FEE - NO BULK CALCULATION
+      const platformFee = totalAmount * 0.10;
+      const sellerEarnings = totalAmount - platformFee;
       
-      if (qty <= 5) {
-        // Standard order: 10% of product price
-        platformFee = productPrice * 0.10;
-        sellerEarnings = totalAmount - platformFee;
-        feeBreakdown = {
-          type: "standard",
-          product_price: productPrice,
-          quantity: qty,
-          total_amount: totalAmount,
-          platform_fee: platformFee,
-          seller_earnings: sellerEarnings,
-          note: `Standard order: ${qty} units. Platform fee: $${platformFee.toFixed(2)} (10% of single product price)`
-        };
-      } else {
-        // Bulk order: Base fee + 10% of total
-        const baseFee = productPrice * 0.10;
-        const bulkFee = totalAmount * 0.10;
-        platformFee = baseFee + bulkFee;
-        sellerEarnings = totalAmount - platformFee;
-        feeBreakdown = {
-          type: "bulk",
-          product_price: productPrice,
-          quantity: qty,
-          total_amount: totalAmount,
-          base_fee: baseFee,
-          bulk_fee: bulkFee,
-          platform_fee: platformFee,
-          seller_earnings: sellerEarnings,
-          note: `BULK order: ${qty} units. Base fee: $${baseFee.toFixed(2)} + Bulk fee: $${bulkFee.toFixed(2)} = $${platformFee.toFixed(2)}`
-        };
-      }
+      const feeBreakdown = {
+        type: "standard",
+        total_amount: totalAmount,
+        platform_fee: platformFee,
+        seller_earnings: sellerEarnings,
+        note: `Flat 10% platform fee: $${platformFee.toFixed(2)} (10% of $${totalAmount.toFixed(2)})`
+      };
       
-      // In your respondToOrder function, when accepting:
-await db.query(
-    `UPDATE physical_orders 
-     SET order_status = 'seller_accepted',
-         seller_accepted_at = NOW(),
-         platform_fee = ?,
-         seller_earnings = ?,
-         fee_breakdown = ?,
-         payment_held_until = NULL  -- ✅ Escrow not started yet
-     WHERE id = ?`,
-    [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
-);
+      console.log(`💰 Order #${orderId} earnings:`, feeBreakdown);
+      
+      // Update order to accepted status
+      await db.query(
+        `UPDATE physical_orders 
+         SET order_status = 'seller_accepted',
+             seller_accepted_at = NOW(),
+             platform_fee = ?,
+             seller_earnings = ?,
+             fee_breakdown = ?,
+             payment_held_until = NULL
+         WHERE id = ?`,
+        [platformFee, sellerEarnings, JSON.stringify(feeBreakdown), orderId]
+      );
+      
       // Record acceptance
       await db.query(`
         INSERT INTO order_acceptances (order_id, seller_id, status, response_message, responded_at)
@@ -15059,7 +14921,14 @@ await db.query(
                 CONCAT('Your order for ', ?, ' has been accepted! Please complete payment to confirm. Total: $', ?), NOW())
       `, [order.buyer_id, orderId, order.product_name, totalAmount.toFixed(2)]);
       
-      // Send email notification
+      // Add status history
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'seller_accepted', 'Seller accepted the order', ?, NOW())`,
+        [orderId, req.session.user.id]
+      );
+      
+      // Send email notification to buyer
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -15073,7 +14942,7 @@ await db.query(
               <p><strong>Order #${orderId}</strong></p>
               <p>${order.product_name} (x${order.quantity})</p>
               <p><strong>Total: $${totalAmount.toFixed(2)}</strong></p>
-              ${feeBreakdown.type === 'bulk' ? `<p style="font-size:12px;color:#f59e0b;">Bulk order discount applied!</p>` : ''}
+              <p style="font-size:12px;color:#f59e0b;">Platform fee: 10% ($${platformFee.toFixed(2)})</p>
             </div>
             <a href="${paymentLink}" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin:20px 0;">Pay Now</a>
           </div>
@@ -15117,7 +14986,14 @@ await db.query(
                 CONCAT('The seller was unable to fulfill your order for ', ?, '. Reason: ', ?), NOW())
       `, [order.buyer_id, orderId, order.product_name, message || 'No reason provided']);
       
-      // Send email notification
+      // Add status history
+      await db.query(
+        `INSERT INTO order_status_history (order_id, status, notes, created_by, created_at)
+         VALUES (?, 'cancelled', 'Order rejected by seller', ?, NOW())`,
+        [orderId, req.session.user.id]
+      );
+      
+      // Send email notification to buyer
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -15133,6 +15009,7 @@ await db.query(
               <p><strong>Reason:</strong> ${escapeHtml(message || 'No reason provided')}</p>
             </div>
             <p>No payment has been taken. You can browse other products on our marketplace.</p>
+            <a href="https://coreinsightmarket.com/products.html" style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">Browse Products</a>
           </div>
         </body>
         </html>
@@ -15146,6 +15023,7 @@ await db.query(
         success: true,
         message: "Order rejected and cancelled. The buyer has been notified."
       });
+      
     } else {
       res.status(400).json({ error: "Invalid action. Must be 'accept' or 'reject'" });
     }

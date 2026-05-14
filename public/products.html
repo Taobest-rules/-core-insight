@@ -3925,6 +3925,27 @@ In the name of Allah, the Most Gracious, the Most Merciful
               </div>
             </div>
           </div>
+          
+          <!-- ✅ UPDATED: Physical Product Commission Card (Flat 10%) -->
+          <div class="commission-card" style="margin-top: 20px;">
+              <h5><i class="fas fa-percentage"></i> Physical Product Commission (Flat 10% Fee)</h5>
+              <div class="commission-structure">
+                  <div class="commission-item">
+                      <i class="fas fa-chart-line"></i>
+                      <span><strong>10%</strong> Platform Fee (flat rate on total)</span>
+                  </div>
+                  <div class="commission-item">
+                      <i class="fas fa-wallet"></i>
+                      <span><strong>90%</strong> You Keep (automatically split)</span>
+                  </div>
+              </div>
+              <div style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
+                  <p style="margin: 0; font-size: 12px; color: var(--success);">
+                      <i class="fas fa-info-circle"></i> <strong>Example:</strong> $100 physical product → Customer pays $100, you receive $90<br>
+                      <strong>Flat 10% fee applies to ALL orders</strong> - No bulk calculations or additional fees.
+                  </p>
+              </div>
+          </div>
         </div>
 
         <!-- Affiliate Product Section -->
@@ -4025,7 +4046,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
           </div>
         </div>
 
-    <!-- Payment Account Setup - Flutterwave Only -->
+        <!-- Payment Account Setup - Flutterwave Only -->
 <div class="payment-provider-section">
     <div class="payment-provider-header">
         <i class="fas fa-globe"></i>
@@ -4181,7 +4202,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
         <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
             <p style="margin: 0; font-size: 13px; color: var(--accent);">
                 <i class="fas fa-info-circle"></i> 
-                <strong>Note for Bulk Orders (6+ units):</strong> Additional fees apply. See pricing calculator above.
+                <strong>Flat 10% Fee:</strong> You keep 90% of every sale, regardless of quantity.
             </p>
         </div>
     </div>
@@ -9046,7 +9067,7 @@ async function loadPendingRefunds() {
 // Update order totals based on quantity
 let currentProductForOrder = null;
 
-// Update order totals - Customer only sees product total (no platform fees)
+// Update order totals - Simple 10% platform fee
 function updateOrderTotals() {
   const quantityInput = document.getElementById('orderQuantity');
   if (!quantityInput) return;
@@ -9059,12 +9080,17 @@ function updateOrderTotals() {
   
   const qty = Math.min(Math.max(quantity, 1), 100);
   
-  // Simple calculation - just price × quantity
+  // Simple calculation - just price × quantity (customer sees full price)
   const totalAmount = qty * productPrice;
   
-  // Update display
-  document.getElementById('productSubtotal').textContent = `$${totalAmount.toFixed(2)}`;
-  document.getElementById('totalAmount').textContent = `$${totalAmount.toFixed(2)}`;
+  // Update display - Customer only sees total (platform fee is hidden from customer)
+  const productSubtotal = document.getElementById('productSubtotal');
+  const totalAmountEl = document.getElementById('totalAmount');
+  const qtyDisplay = document.getElementById('qtyDisplay');
+  
+  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
+  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+  if (qtyDisplay) qtyDisplay.textContent = qty;
   
   // Store for order submission
   window.currentOrderTotal = totalAmount;
@@ -9245,30 +9271,8 @@ async function orderPhysicalProduct(productId) {
   }
 }
 
-// Update order totals
-function updateOrderTotals() {
-  const quantityInput = document.getElementById('orderQuantity');
-  if (!quantityInput) return;
-  
-  const quantity = parseInt(quantityInput.value) || 1;
-  if (!currentProductForOrder) return;
-  
-  const product = currentProductForOrder;
-  const productPrice = parseFloat(product.original_price || product.price || 0);
-  
-  const qty = Math.min(Math.max(quantity, 1), 100);
-  const totalAmount = qty * productPrice;
-  
-  // Update display
-  const productSubtotal = document.getElementById('productSubtotal');
-  const totalAmountEl = document.getElementById('totalAmount');
-  const qtyDisplay = document.getElementById('qtyDisplay');
-  
-  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
-  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
-  if (qtyDisplay) qtyDisplay.textContent = qty;
-}
 
+  
 // Single order submission handler
 async function submitOrderForm(e) {
   if (e) e.preventDefault();
@@ -9578,37 +9582,6 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initOrderForm);
 } else {
   initOrderForm();
-}
-// Update order totals - Customer only sees product total
-function updateOrderTotals() {
-  const quantityInput = document.getElementById('orderQuantity');
-  if (!quantityInput) return;
-  
-  const quantity = parseInt(quantityInput.value) || 1;
-  if (!currentProductForOrder) return;
-  
-  const product = currentProductForOrder;
-  const productPrice = parseFloat(product.original_price || product.price || 0);
-  
-  const qty = Math.min(Math.max(quantity, 1), 100);
-  
-  // Simple calculation - just price × quantity
-  const totalAmount = qty * productPrice;
-  
-  // Update display
-  const productSubtotal = document.getElementById('productSubtotal');
-  const totalAmountEl = document.getElementById('totalAmount');
-  
-  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
-  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
-  
-  // Also update the quantity display in the breakdown
-  const qtyDisplay = document.getElementById('qtyDisplay');
-  if (qtyDisplay) qtyDisplay.textContent = qty;
-  
-  // Store for order submission
-  window.currentOrderTotal = totalAmount;
-  window.currentOrderQuantity = qty;
 }
 
 // Address form submission - SINGLE handler
@@ -12705,36 +12678,30 @@ async function loadOrderDetails(orderId) {
   }
 }
 
- // Add this to your script section (near the end)
-// Add this to your script section
-// Price calculator for physical products
+ // ================= PRICE CALCULATOR FOR PHYSICAL PRODUCTS =================
 const priceCalc = document.getElementById('calcPrice');
 if (priceCalc) {
   function updateCalculator() {
     const price = parseFloat(priceCalc.value) || 0;
     
-    // Standard order - 3 units
-    const standardQty = 3;
-    const standardTotal = price * standardQty;
-    const standardPlatformFee = price * 0.10; // 10% of single product price
-    const standardEarnings = standardTotal - standardPlatformFee;
+    // Fixed 10% platform fee for ALL quantities (no bulk calculation)
+    const platformFee = price * 0.10;
+    const sellerEarnings = price - platformFee;
     
-    // Bulk order - 7 units
-    const bulkQty = 7;
-    const bulkTotal = price * bulkQty;
-    const baseFee = price * 0.10;
-    const bulkFee = bulkTotal * 0.10;
-    const bulkPlatformFee = baseFee + bulkFee;
-    const bulkEarnings = bulkTotal - bulkPlatformFee;
+    // Display for seller preview
+    document.getElementById('calcStandard').textContent = `$${sellerEarnings.toFixed(2)}`;
+    document.getElementById('calcBulk').textContent = `$${sellerEarnings.toFixed(2)}`;
     
-    document.getElementById('calcStandard').textContent = `$${standardEarnings.toFixed(2)}`;
-    document.getElementById('calcBulk').textContent = `$${bulkEarnings.toFixed(2)}`;
+    // Show that it's a flat 10% fee
+    const feeNote = document.getElementById('feeNote');
+    if (feeNote) {
+      feeNote.innerHTML = `<span style="color: var(--success);">✓ Flat 10% platform fee applies to all orders</span>`;
+    }
   }
   
   priceCalc.addEventListener('input', updateCalculator);
   updateCalculator();
 }
-
 // Add this to your page to auto-show business info section
 document.addEventListener('DOMContentLoaded', function() {
     // Show business info section (required for validation)

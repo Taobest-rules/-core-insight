@@ -2553,6 +2553,43 @@ app.post("/api/initiate-payment", async (req, res) => {
     res.status(500).json({ error: "Error initiating payment: " + err.message });
   }
 });
+app.get('/api/debug/course-file/:courseId', async (req, res) => {
+    try {
+        const courseId = req.params.courseId;
+        const course = await db.query('SELECT id, title, file_url FROM courses WHERE id = ?', [courseId]);
+        
+        if (!course || course.length === 0) {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+        
+        const fileUrl = course[0].file_url;
+        
+        // Test if the URL is accessible
+        let urlAccessible = false;
+        let urlError = null;
+        
+        if (fileUrl) {
+            try {
+                const testResponse = await axios.head(fileUrl, { timeout: 5000 });
+                urlAccessible = testResponse.status === 200;
+            } catch (err) {
+                urlError = err.message;
+            }
+        }
+        
+        res.json({
+            course_id: courseId,
+            title: course[0].title,
+            file_url: fileUrl,
+            url_accessibile: urlAccessible,
+            url_error: urlError,
+            expected_format: `https://${process.env.B2_BUCKET_ENDPOINT}/file/${process.env.B2_BUCKET_NAME}/[filename]`
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.get("/api/verify-payment/:transaction_id", async (req, res) => {
   try {

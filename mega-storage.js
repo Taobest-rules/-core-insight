@@ -83,7 +83,6 @@ const uploadToImgbb = async (filePath, filename) => {
 const uploadToBackblaze = async (filePath, filename) => {
     console.log(`📁 Uploading file to Backblaze B2: ${filename}`);
     
-    // Authorize on first upload
     if (!isB2Authorized) {
         await new Promise((resolve, reject) => {
             b2Client.authorize((err) => {
@@ -98,7 +97,6 @@ const uploadToBackblaze = async (filePath, filename) => {
         });
     }
     
-    // Generate unique filename to avoid collisions
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     const ext = path.extname(filename);
@@ -110,11 +108,7 @@ const uploadToBackblaze = async (filePath, filename) => {
             bucketId: B2_BUCKET_ID,
             fileName: safeName,
             contentType: 'application/octet-stream',
-            onUploadProgress: (update) => {
-                console.log(`📊 B2 upload progress: ${Math.round(update.percent * 100)}%`);
-            }
-        }, (err, results) => {
-            // Clean up temp file
+        }, async (err, results) => {
             try { fs.unlinkSync(filePath); } catch(e) {}
             
             if (err) {
@@ -122,14 +116,30 @@ const uploadToBackblaze = async (filePath, filename) => {
                 return reject(err);
             }
             
-            // Construct public URL
-            const publicUrl = `https://${B2_BUCKET_ENDPOINT}/file/${B2_BUCKET_NAME}/${safeName}`;
-            console.log(`✅ B2 Upload Success: ${publicUrl.substring(0, 80)}...`);
+            // ✅ CORRECT PUBLIC URL FORMAT
+            // Format: https://{endpoint}/file/{bucketName}/{fileName}
+            const endpoint = process.env.B2_BUCKET_ENDPOINT;
+            const bucketName = process.env.B2_BUCKET_NAME;
+            
+            // Remove https:// from endpoint if present (it shouldn't be)
+            const cleanEndpoint = endpoint.replace(/^https?:\/\//, '');
+            
+            const publicUrl = `https://${cleanEndpoint}/file/${bucketName}/${safeName}`;
+            
+            console.log(`✅ B2 Upload Success: ${publicUrl}`);
+            
+            // Verify the URL works
+            try {
+                const testResponse = await axios.head(publicUrl, { timeout: 5000 });
+                console.log(`✅ URL verified: ${testResponse.status}`);
+            } catch (verifyErr) {
+                console.warn(`⚠️ URL may not be accessible: ${verifyErr.message}`);
+            }
+            
             resolve(publicUrl);
         });
     });
 };
-
 // ============ SMART UPLOAD - CHOOSES RIGHT SERVICE ============
 const uploadFile = async (filePath, filename) => {
     if (isImageFile(filename)) {

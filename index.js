@@ -2693,44 +2693,54 @@ app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
   try {
     const { tx_ref } = req.params;
     
-    console.log('🔍 Verifying payment by reference:', tx_ref);
+    console.log('🔍 Verifying course payment by reference:', tx_ref);
     
+    // Check if already verified in database
     const paymentResult = await db.query(
       "SELECT * FROM payments WHERE transaction_ref = ?",
       [tx_ref]
     );
     
     let payment = null;
-    if (Array.isArray(paymentResult) && paymentResult.length > 0) {
+    if (paymentResult && paymentResult.length > 0) {
       payment = paymentResult[0];
     }
     
     if (payment && payment.status === 'completed') {
+      // Get course details
       const courseResult = await db.query(
-        "SELECT title FROM courses WHERE id = ?",
+        "SELECT title, id FROM courses WHERE id = ?",
         [payment.course_id]
       );
       
       let courseTitle = 'Your course';
-      if (Array.isArray(courseResult) && courseResult.length > 0) {
+      let isVideo = false;
+      if (courseResult && courseResult.length > 0) {
         courseTitle = courseResult[0].title;
+        // Check if video course
+        const fileUrl = courseResult[0].file_url || '';
+        isVideo = fileUrl.match(/\.(mp4|mov|avi|mkv|webm)$/i) ? true : false;
       }
       
       return res.json({
         status: "success",
         message: "Payment already verified",
+        type: "course",
         course_id: payment.course_id,
         course_title: courseTitle,
-        amount: payment.amount
+        amount: payment.amount,
+        is_video: isVideo
       });
     }
     
+    // Verify with Flutterwave
     const response = await axios.get(
       `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
       {
         headers: {
           Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-        }
+        },
+        timeout: 15000
       }
     );
     
@@ -2740,18 +2750,20 @@ app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
       const courseId = transaction.meta?.course_id;
       const userId = transaction.meta?.user_id;
       
-      console.log('✅ Payment verified by reference:', { tx_ref, amount, courseId, userId });
+      console.log('✅ Course payment verified:', { tx_ref, amount, courseId, userId });
       
+      // Update payment record
       await db.query(
-        `INSERT INTO payments 
-         (user_id, course_id, transaction_ref, transaction_id, amount, status, created_at)
-         VALUES (?, ?, ?, ?, ?, 'completed', NOW())
-         ON DUPLICATE KEY UPDATE 
-         status = 'completed', 
-         transaction_id = VALUES(transaction_id)`,
-        [userId, courseId, tx_ref, transaction.id, amount]
+        `UPDATE payments 
+         SET status = 'completed', 
+             transaction_id = ?,
+             flutterwave_response = ?,
+             completed_at = NOW()
+         WHERE transaction_ref = ?`,
+        [transaction.id, JSON.stringify(transaction), tx_ref]
       );
       
+      // Grant course access
       await db.query(
         `INSERT INTO user_courses (user_id, course_id, payment_status, purchased_at)
          VALUES (?, ?, 'completed', NOW())
@@ -2759,22 +2771,28 @@ app.get("/api/verify-by-reference/:tx_ref", async (req, res) => {
         [userId, courseId]
       );
       
+      // Get course details
       const courseResult = await db.query(
-        "SELECT title FROM courses WHERE id = ?",
+        "SELECT title, file_url FROM courses WHERE id = ?",
         [courseId]
       );
       
       let courseTitle = 'Your course';
-      if (Array.isArray(courseResult) && courseResult.length > 0) {
+      let isVideo = false;
+      if (courseResult && courseResult.length > 0) {
         courseTitle = courseResult[0].title;
+        const fileUrl = courseResult[0].file_url || '';
+        isVideo = fileUrl.match(/\.(mp4|mov|avi|mkv|webm)$/i) ? true : false;
       }
       
       res.json({
         status: "success",
         message: "Payment verified successfully",
+        type: "course",
         course_id: courseId,
         course_title: courseTitle,
-        amount: amount
+        amount: amount,
+        is_video: isVideo
       });
     } else {
       res.status(400).json({

@@ -61,9 +61,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .success { color: #10b981; }
         .error { color: #ef4444; }
-        .btn {
-            background: linear-gradient(135deg, #FFD700, #D4AF37);
-            color: #0f172a;
+        .btn, .download-btn, .watch-btn {
             padding: 12px 28px;
             border: none;
             border-radius: 12px;
@@ -74,20 +72,30 @@
             font-weight: 600;
             transition: all 0.3s;
         }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
+        .btn {
+            background: linear-gradient(135deg, #FFD700, #D4AF37);
+            color: #0f172a;
+        }
         .download-btn {
-            display: inline-block;
             background: #10b981;
             color: white;
-            padding: 12px 28px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 10px;
         }
-        .download-btn:hover { background: #059669; transform: translateY(-2px); }
+        .watch-btn {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+        .btn:hover, .download-btn:hover, .watch-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
         .product-info {
             background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .course-info {
+            background: rgba(59, 130, 246, 0.1);
             border-radius: 12px;
             padding: 15px;
             margin: 20px 0;
@@ -108,12 +116,14 @@
     </div>
 
     <script>
+        // Get payment reference from URL (supports multiple formats)
         const urlParams = new URLSearchParams(window.location.search);
         let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref') || urlParams.get('transaction_id');
+        let paymentType = urlParams.get('type') || 'auto'; // 'course', 'digital', or 'auto'
         
-        console.log('Payment callback received. Reference:', reference);
+        console.log('Payment callback received. Reference:', reference, 'Type:', paymentType);
         
-        // Clean the reference
+        // Clean the reference (remove Paystack prefix if present)
         if (reference && reference.startsWith('PS_')) {
             reference = reference.substring(3);
             console.log('Removed PS_ prefix. New reference:', reference);
@@ -128,37 +138,48 @@
             try {
                 console.log('Verifying payment with reference:', reference);
                 
-                const response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                });
+                // Try to detect payment type from reference
+                if (paymentType === 'auto') {
+                    if (reference.startsWith('coreinsight_')) {
+                        paymentType = 'course';
+                        console.log('Detected COURSE payment from reference');
+                    } else if (reference.startsWith('DIGITAL_')) {
+                        paymentType = 'digital';
+                        console.log('Detected DIGITAL product payment from reference');
+                    }
+                }
+                
+                let response;
+                
+                if (paymentType === 'course') {
+                    // Verify course payment
+                    console.log('Verifying COURSE payment...');
+                    response = await fetch(`/api/verify-by-reference/${encodeURIComponent(reference)}`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                } else {
+                    // Verify digital product payment
+                    console.log('Verifying DIGITAL product payment...');
+                    response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                }
                 
                 const data = await response.json();
                 console.log('Verification response:', data);
                 
                 if (data.status === 'success') {
-                    // Payment successful - show download button
-                    document.getElementById('paymentStatus').innerHTML = `
-                        <div class="bismillah">
-                            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-                            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-                        </div>
-                        <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
-                        <h2 style="color: #10b981;">Payment Successful!</h2>
-                        <div class="product-info">
-                            <strong>${escapeHtml(data.product_title || 'Digital Product')}</strong><br>
-                            Thank you for your purchase!
-                        </div>
-                        <p style="margin: 15px 0;">Your download link is ready. It will expire in 7 days.</p>
-                        <div>
-                            <a href="${data.download_url}" class="download-btn" target="_blank">
-                                <i class="fas fa-download"></i> Download Now
-                            </a>
-                            <a href="/products.html" class="btn">Continue Shopping</a>
-                        </div>
-                    `;
-                    sessionStorage.removeItem('pendingDigitalOrder');
+                    // Payment successful - show appropriate success message
+                    if (paymentType === 'course' || data.type === 'course') {
+                        showCourseSuccess(data);
+                    } else {
+                        showDigitalSuccess(data);
+                    }
+                    sessionStorage.removeItem('pendingOrder');
                 } else {
                     showError(data.message || 'Payment verification failed. Please contact support.');
                 }
@@ -167,6 +188,58 @@
                 console.error('Verification error:', error);
                 showError('Error verifying payment. Please contact support with your transaction reference.');
             }
+        }
+        
+        function showCourseSuccess(data) {
+            const isVideo = data.is_video || false;
+            const actionText = isVideo ? 'watch' : 'access';
+            
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="bismillah">
+                    <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                    <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                </div>
+                <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
+                <h2 style="color: #10b981;">Payment Successful!</h2>
+                <div class="course-info">
+                    <strong>${escapeHtml(data.course_title || 'Course')}</strong><br>
+                    You now have access to this course!
+                </div>
+                <p style="margin: 15px 0;">Click below to ${actionText} your course content.</p>
+                <div>
+                    <a href="/courses.html" class="btn">
+                        <i class="fas fa-graduation-cap"></i> Go to Courses
+                    </a>
+                    <a href="/api/download/${data.course_id}" class="download-btn">
+                        <i class="fas fa-download"></i> Download Now
+                    </a>
+                    ${isVideo ? `<a href="/watch.html?course=${data.course_id}" class="watch-btn">
+                        <i class="fas fa-play"></i> Watch Now
+                    </a>` : ''}
+                </div>
+            `;
+        }
+        
+        function showDigitalSuccess(data) {
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="bismillah">
+                    <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+                    <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+                </div>
+                <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
+                <h2 style="color: #10b981;">Payment Successful!</h2>
+                <div class="product-info">
+                    <strong>${escapeHtml(data.product_title || 'Digital Product')}</strong><br>
+                    Thank you for your purchase!
+                </div>
+                <p style="margin: 15px 0;">Your download link is ready. It will expire in 7 days.</p>
+                <div>
+                    <a href="${data.download_url}" class="download-btn" target="_blank">
+                        <i class="fas fa-download"></i> Download Now
+                    </a>
+                    <a href="/products.html" class="btn">Continue Shopping</a>
+                </div>
+            `;
         }
         
         function showError(message) {
@@ -180,6 +253,7 @@
                 <p style="color: #94a3b8;">${escapeHtml(message)}</p>
                 <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Transaction Reference: ${escapeHtml(reference)}</p>
                 <div style="margin-top: 20px;">
+                    <a href="/courses.html" class="btn">Browse Courses</a>
                     <a href="/products.html" class="btn">Browse Products</a>
                 </div>
             `;

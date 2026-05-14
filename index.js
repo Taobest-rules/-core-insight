@@ -2466,10 +2466,7 @@ app.post("/api/initiate-payment", async (req, res) => {
     }
 
     if (!process.env.FLW_SECRET_KEY) {
-      console.error('❌ FLW_SECRET_KEY is missing!');
-      return res.status(500).json({ 
-        error: "Payment system not configured. Please contact support."
-      });
+      return res.status(500).json({ error: "Payment system not configured." });
     }
     
     // Get exchange rate
@@ -2477,7 +2474,6 @@ app.post("/api/initiate-payment", async (req, res) => {
     try {
       const rates = await getExchangeRate();
       usdRate = rates.USD_TO_NGN || 1500;
-      console.log(`📊 Using exchange rate: 1 USD = ${usdRate} NGN`);
     } catch (rateErr) {
       console.error('Rate fetch error, using fallback:', rateErr.message);
     }
@@ -2491,7 +2487,7 @@ app.post("/api/initiate-payment", async (req, res) => {
     
     const transaction_ref = "coreinsight_" + Date.now() + "_" + courseId;
     
-    // ✅ FLUTTERWAVE BUILT-IN - Shows all payment methods automatically
+    // ✅ CRITICAL: Explicitly enable ALL payment methods
     const payload = {
       tx_ref: transaction_ref,
       amount: amountInUSD,
@@ -2504,10 +2500,11 @@ app.post("/api/initiate-payment", async (req, res) => {
       customizations: {
         title: "Core Insight Course",
         description: course.title.substring(0, 50),
-        logo: "https://coreinsightmarket.com/logo.png" // Optional: Add your logo
       },
-      // ✅ Don't specify payment_options - Flutterwave shows ALL methods:
-      // Card, Bank Transfer, USSD, Mobile Money, QR Code, etc.
+      // ✅ THIS IS KEY - Enable all payment methods
+      payment_options: "card, account, banktransfer, ussd, mobilemoney, qr, barter",
+      // ✅ Set country to Nigeria for local payment methods
+      country: "NG",
       meta: {
         course_id: courseId,
         user_id: req.session.user.id,
@@ -2515,7 +2512,7 @@ app.post("/api/initiate-payment", async (req, res) => {
       }
     };
     
-    console.log('📤 Sending to Flutterwave:', JSON.stringify(payload, null, 2));
+    console.log('📤 Payment payload:', JSON.stringify(payload, null, 2));
     
     const response = await axios.post(
       'https://api.flutterwave.com/v3/payments',
@@ -2529,22 +2526,15 @@ app.post("/api/initiate-payment", async (req, res) => {
       }
     );
     
-    console.log('📥 Flutterwave response status:', response.data.status);
-    
     if (response.data.status === "success" && response.data.data && response.data.data.link) {
-      console.log('✅ Payment link created:', response.data.data.link);
+      console.log('✅ Payment link created');
       
       // Store payment record
-      try {
-        await db.query(
-          `INSERT INTO payments (user_id, course_id, transaction_ref, amount, status, created_at)
-           VALUES (?, ?, ?, ?, 'pending', NOW())`,
-          [req.session.user.id, courseId, transaction_ref, priceInNGN]
-        );
-        console.log('✅ Payment record saved to database');
-      } catch (dbError) {
-        console.error('⚠️ Database error (non-critical):', dbError.message);
-      }
+      await db.query(
+        `INSERT INTO payments (user_id, course_id, transaction_ref, amount, status, created_at)
+         VALUES (?, ?, ?, ?, 'pending', NOW())`,
+        [req.session.user.id, courseId, transaction_ref, priceInNGN]
+      );
       
       res.json({
         status: "success",
@@ -2555,21 +2545,12 @@ app.post("/api/initiate-payment", async (req, res) => {
       });
     } else {
       console.error('❌ Flutterwave error:', response.data);
-      res.status(500).json({ 
-        error: response.data.message || "Payment initiation failed" 
-      });
+      res.status(500).json({ error: response.data.message || "Payment initiation failed" });
     }
     
   } catch (err) {
     console.error('❌ Payment error:', err.message);
-    
-    if (err.response) {
-      console.error('❌ Flutterwave error details:', JSON.stringify(err.response.data, null, 2));
-    }
-    
-    res.status(500).json({ 
-      error: "Error initiating payment: " + err.message
-    });
+    res.status(500).json({ error: "Error initiating payment: " + err.message });
   }
 });
 

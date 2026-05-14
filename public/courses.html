@@ -2499,8 +2499,6 @@ async function refreshCoursesAfterPurchase() {
 // ========================= FIXED FLUTTERWAVE PAYMENT =========================
 async function initiatePayment(courseId, price, title, isVideo = false) {
   try {
-    console.log('🚀 Starting payment initiation for:', { courseId, price, title, isVideo });
-    
     const userRes = await fetch('/api/me');
     const user = await userRes.json();
     
@@ -2511,129 +2509,33 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
     }
 
     const displayPrice = formatCurrency(parseFloat(price), userCurrency);
-    const action = isVideo ? 'watch' : 'download';
-    
-    const confirmPayment = confirm(`Purchase "${title}" for ${displayPrice} to ${action}?`);
+    const confirmPayment = confirm(`Purchase "${title}" for ${displayPrice}?`);
     
     if (!confirmPayment) return;
     
     showLoading();
     
-    try {
-      const response = await fetch('/api/initiate-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          courseId: courseId
-        })
-      });
+    const response = await fetch('/api/initiate-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: courseId })
+    });
 
-      const data = await response.json();
-      
-      hideLoading();
-      
-      if (response.ok && data.status === 'success' && data.paymentLink) {
-        // ✅ OPTION 1: Redirect (current method)
-        // window.location.href = data.paymentLink;
-        
-        // ✅ OPTION 2: Open Flutterwave inline modal (shows all payment methods)
-        openFlutterwaveModal({
-          public_key: data.public_key || 'FLWPUBK-xxxxxxxxxxxxxxxxxxxxx', // Your Flutterwave public key
-          tx_ref: data.transactionRef,
-          amount: data.amount,
-          currency: data.currency,
-          payment_options: "card, banktransfer, ussd, mobilemoney, qr", // All methods
-          customer: {
-            email: user.email,
-            name: user.username,
-          },
-          customizations: {
-            title: "Core Insight Course",
-            description: title,
-            logo: "https://coreinsightmarket.com/logo.png",
-          },
-          callback: function(response) {
-            console.log('Payment callback:', response);
-            if (response.status === 'successful') {
-              // Verify payment on your server
-              verifyPayment(data.transactionRef, courseId);
-            }
-          },
-          onclose: function() {
-            console.log('Payment modal closed');
-          }
-        });
-      } else {
-        alert('Error: ' + (data.error || 'Failed to initiate payment. Please try again.'));
-      }
-    } catch (fetchError) {
-      console.error('❌ Fetch error:', fetchError);
-      hideLoading();
-      alert('Network error: ' + fetchError.message);
+    const data = await response.json();
+    hideLoading();
+    
+    if (response.ok && data.status === 'success' && data.paymentLink) {
+      // ✅ Simple redirect - Flutterwave will show all payment methods
+      window.location.href = data.paymentLink;
+    } else {
+      alert('Error: ' + (data.error || 'Failed to initiate payment.'));
     }
   } catch (error) {
     console.error('❌ Purchase error:', error);
     hideLoading();
-    alert('Error initiating purchase: ' + error.message);
+    alert('Error: ' + error.message);
   }
-}
-
-// ✅ FUNCTION TO OPEN FLUTTERWAVE MODAL
-function openFlutterwaveModal(config) {
-  // Load Flutterwave script if not already loaded
-  if (!document.getElementById('flutterwave-script')) {
-    const script = document.createElement('script');
-    script.id = 'flutterwave-script';
-    script.src = 'https://checkout.flutterwave.com/v3.js';
-    script.onload = () => {
-      initializeFlutterwavePayment(config);
-    };
-    document.head.appendChild(script);
-  } else {
-    initializeFlutterwavePayment(config);
-  }
-}
-
-function initializeFlutterwavePayment(config) {
-  const paymentConfig = {
-    public_key: config.public_key,
-    tx_ref: config.tx_ref,
-    amount: config.amount,
-    currency: config.currency,
-    payment_options: config.payment_options,
-    customer: config.customer,
-    customizations: config.customizations,
-    callback: config.callback,
-    onclose: config.onclose
-  };
-  
-  const flutterwaveCheckout = new FlutterwavePay(paymentConfig);
-  flutterwaveCheckout.open();
-}
-
-// ✅ FUNCTION TO VERIFY PAYMENT AFTER SUCCESS
-async function verifyPayment(transactionRef, courseId) {
-  try {
-    showLoading();
-    const response = await fetch(`/api/verify-payment/${transactionRef}`);
-    const result = await response.json();
-    hideLoading();
-    
-    if (result.status === 'success') {
-      alert('Payment successful! You now have access to this course.');
-      location.reload();
-    } else {
-      alert('Payment verification failed. Please contact support.');
-    }
-  } catch (error) {
-    console.error('Verification error:', error);
-    hideLoading();
-    alert('Error verifying payment. Please contact support.');
-  }
-}
-  // ========================= CHECK ACCESS FUNCTION =========================
+}  // ========================= CHECK ACCESS FUNCTION =========================
     async function checkAccess(courseId, isVideo = false) {
       try {
         showLoading();

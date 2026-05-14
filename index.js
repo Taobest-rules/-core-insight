@@ -15794,6 +15794,14 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     const userId = req.session.user.id;
     const listedPrice = parseFloat(price);
     
+    // ✅ VALIDATE DIGITAL PRODUCT HAS FILE
+    if (type === 'digital') {
+      const hasFile = req.files?.file?.[0];
+      if (!hasFile) {
+        return res.status(400).json({ error: "Digital product requires a file. Please upload the file." });
+      }
+    }
+    
     // ========== CREATE SUBACCOUNT FIRST ==========
     let subaccountResult = null;
     
@@ -15809,7 +15817,6 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       
       if (!subaccountResult.success) {
         console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
-        // Don't block product upload, just warn
       }
       
     } else if (paymentProvider === 'paystack') {
@@ -15826,7 +15833,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       }
     }
     
-    // ========== UPLOAD IMAGES AND FILE ==========
+    // ========== UPLOAD IMAGES TO IMGBB ==========
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
       console.log(`📸 Uploading ${req.files['images[]'].length} images to ImgBB...`);
@@ -15841,14 +15848,17 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       }
     }
 
+    // ========== UPLOAD DIGITAL FILE USING SMART UPLOAD ==========
     let fileUrl = null;
-    if (type === 'digital' && req.files?.file?.[0]) {
+    if (type === 'digital') {
       const productFile = req.files.file[0];
       try {
-        fileUrl = await uploadToImgbb(productFile.path, productFile.originalname);
-        console.log(`✅ Digital file uploaded to ImgBB`);
+        // ✅ Use uploadFile (smart upload) - handles both images and documents
+        fileUrl = await uploadFile(productFile.path, productFile.originalname);
+        console.log(`✅ Digital file uploaded successfully to: ${fileUrl.substring(0, 80)}...`);
       } catch (fileError) {
         console.error(`❌ Digital file upload failed: ${fileError.message}`);
+        return res.status(500).json({ error: `File upload failed: ${fileError.message}` });
       }
     }
 
@@ -15876,7 +15886,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
         type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
         category || '', 
         type, 
-        fileUrl, 
+        fileUrl,  // ✅ This will now have the uploaded file URL
         imageUrls.length ? JSON.stringify(imageUrls) : null, 
         affiliate_link || null, 
         paymentProvider,
@@ -15894,6 +15904,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
 
     const productId = result.insertId;
     console.log(`✅ Product uploaded successfully! ID: ${productId}`);
+    console.log(`📁 File URL saved: ${fileUrl ? fileUrl.substring(0, 80) : 'No file'}`);
     
     // ========== RESPONSE ==========
     res.json({ 
@@ -15901,6 +15912,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       message: "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,
+      file_url: fileUrl,
       subaccount_created: subaccountResult?.success || false,
       subaccount_id: subaccountResult?.subaccount_id || subaccountResult?.subaccount_code,
       images_uploaded: imageUrls.length,

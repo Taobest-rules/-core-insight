@@ -824,6 +824,63 @@ In the name of Allah, the Most Gracious, the Most Merciful
 .delivery-badge {
   display: none;
 }
+
+/* Product Info Modal */
+.product-info-modal {
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.product-info-modal .info-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.product-info-modal .info-section h4 {
+  margin: 0 0 12px 0;
+  color: var(--accent);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-info-modal .info-row {
+  display: flex;
+  margin-bottom: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.product-info-modal .info-label {
+  width: 120px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.product-info-modal .info-value {
+  flex: 1;
+  color: var(--text-gray);
+}
+
+.product-info-modal .badge-condition {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.condition-new { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.condition-like_new { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.condition-excellent { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+.condition-good { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.condition-fair { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.condition-acceptable { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
     /* ================= PROFESSIONAL SELLER FORM ================= */
     .upload-section {
       background: var(--card-bg);
@@ -2247,6 +2304,17 @@ In the name of Allah, the Most Gracious, the Most Merciful
       margin: 0;
       font-size: 14px;
     }
+.small-btn.info {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.small-btn.info:hover {
+  background: rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
 /* Affiliate link preview */
 .affiliate-preview {
   margin-top: 10px;
@@ -11989,7 +12057,7 @@ function renderProducts() {
         const pickupHours = p.pickup_hours || '';
         const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
 
-        // Build delivery/pickup info HTML - SHOW ALL OPTIONS
+       // Build delivery/pickup info HTML - SHOW ALL OPTIONS
 let deliveryInfoHtml = '<div class="product-details">';
 
 // Always show Home Delivery option if available
@@ -12105,24 +12173,27 @@ let deliveryBadgeHtml = '';
                                 </div>
                             ` : '')}
                         </div>
-                        <div class="card-actions">
-                            ${ isAffiliate ? `
-                                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
-                                    <i class="fas fa-external-link-alt"></i> Visit
-                                </button>
-                            ` : isPhysical ? `
-                                <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
-                                    <i class="fas fa-shopping-cart"></i> Order Now
-                                </button>
-                            ` : `
-                                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
-                                    <i class="fas fa-shopping-cart"></i> Buy Now
-                                </button>
-                            `}
-                            <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                        </div>
+          <div class="card-actions">
+    ${ isAffiliate ? `
+        <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
+            <i class="fas fa-external-link-alt"></i> Visit
+        </button>
+    ` : isPhysical ? `
+        <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
+            <i class="fas fa-shopping-cart"></i> Order Now
+        </button>
+        <button class="small-btn info" onclick="event.stopPropagation(); showProductConditions(${p.id})" title="View product details, warranty, and condition">
+            <i class="fas fa-clipboard-list"></i> Details
+        </button>
+    ` : `
+        <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
+            <i class="fas fa-shopping-cart"></i> Buy Now
+        </button>
+    `}
+    <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
+        <i class="fas fa-eye"></i> View
+    </button>
+</div>
                     </div>
                     <div class="owner-controls">
                         <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
@@ -12790,6 +12861,166 @@ async function releaseExpiredEscrowFunds() {
     console.error('❌ Escrow release error:', err);
   }
 }
+
+// Show product conditions modal with warranty, condition, accessories, etc.
+function showProductConditions(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    // Format condition type for display
+    const conditionMap = {
+        'new': '🌟 Brand New (Unopened/Sealed)',
+        'like_new': '✨ Like New (Opened but unused)',
+        'excellent': '⭐ Excellent (Very light use, no defects)',
+        'good': '👍 Good (Normal wear, fully functional)',
+        'fair': '👌 Fair (Visible wear, fully functional)',
+        'acceptable': '📦 Acceptable (Heavy wear, functional)'
+    };
+    
+    const conditionDisplay = conditionMap[product.condition_type] || product.condition_type || 'Not specified';
+    
+    // Get condition class for styling
+    const conditionClass = `condition-${product.condition_type || 'good'}`;
+    
+    // Build warranty display
+    const warrantyMonths = parseInt(product.warranty_months) || 0;
+    const warrantyDisplay = warrantyMonths === 0 ? 'No warranty' : 
+                            warrantyMonths === 12 ? '1 year warranty' : 
+                            `${warrantyMonths} months warranty`;
+    
+    // Build manufacturing date display
+    const manufacturingDate = product.manufacturing_date ? 
+        new Date(product.manufacturing_date).toLocaleDateString() : 'Not specified';
+    
+    // Build original packaging display
+    const originalPackaging = parseInt(product.original_packaging) === 1 ? 
+        '✅ Yes, original packaging included' : '📦 No, generic/replacement packaging';
+    
+    // Build accessories display
+    const accessoriesDisplay = product.accessories_included && product.accessories_included.trim() ? 
+        product.accessories_included : 'None listed';
+    
+    // Build defects display
+    const defectsDisplay = product.visible_defects && product.visible_defects.trim() ? 
+        product.visible_defects : 'No visible defects reported';
+    
+    // Build condition description
+    const conditionDescription = product.condition_description && product.condition_description.trim() ? 
+        product.condition_description : 'No additional condition notes';
+    
+    const modalHtml = `
+        <div class="modal open" id="productInfoModal">
+            <div class="modal-card product-info-modal">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">
+                        <i class="fas fa-clipboard-list" style="color: var(--accent);"></i> 
+                        Product Details
+                    </h3>
+                    <span class="close-x" onclick="closeProductInfoModal()">&times;</span>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--text-light);">${escapeHtml(product.title)}</h4>
+                    <p style="margin: 0; color: var(--text-gray); font-size: 13px;">by ${escapeHtml(product.seller_name || 'Seller')}</p>
+                </div>
+                
+                <!-- Condition Section -->
+                <div class="info-section">
+                    <h4><i class="fas fa-clipboard-check"></i> Product Condition</h4>
+                    <div class="info-row">
+                        <div class="info-label">Condition:</div>
+                        <div class="info-value">
+                            <span class="badge-condition ${conditionClass}">${conditionDisplay}</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Description:</div>
+                        <div class="info-value">${escapeHtml(conditionDescription)}</div>
+                    </div>
+                </div>
+                
+                <!-- Warranty Section -->
+                <div class="info-section">
+                    <h4><i class="fas fa-shield-alt"></i> Warranty & Guarantee</h4>
+                    <div class="info-row">
+                        <div class="info-label">Warranty:</div>
+                        <div class="info-value">${warrantyDisplay}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Original Packaging:</div>
+                        <div class="info-value">${originalPackaging}</div>
+                    </div>
+                    ${product.manufacturing_date ? `
+                    <div class="info-row">
+                        <div class="info-label">Manufacturing Date:</div>
+                        <div class="info-value">${manufacturingDate}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <!-- Accessories Section -->
+                <div class="info-section">
+                    <h4><i class="fas fa-box-open"></i> Included Items</h4>
+                    <div class="info-row">
+                        <div class="info-label">Accessories:</div>
+                        <div class="info-value">${escapeHtml(accessoriesDisplay)}</div>
+                    </div>
+                </div>
+                
+                <!-- Defects Section -->
+                <div class="info-section">
+                    <h4><i class="fas fa-search"></i> Visible Defects</h4>
+                    <div class="info-row">
+                        <div class="info-label">Defects:</div>
+                        <div class="info-value">${escapeHtml(defectsDisplay)}</div>
+                    </div>
+                </div>
+                
+                <!-- Purchase Protection -->
+                <div class="info-section" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                    <h4><i class="fas fa-shield-alt" style="color: var(--success);"></i> Purchase Protection</h4>
+                    <div class="info-row">
+                        <div class="info-label">Escrow:</div>
+                        <div class="info-value">Funds held 5 days after delivery</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Dispute Window:</div>
+                        <div class="info-value">5 days after delivery confirmation</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Refund Policy:</div>
+                        <div class="info-value">Request refund within 5 days if item not as described</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button class="btn primary" onclick="closeProductInfoModal(); orderPhysicalProduct(${productId})" style="flex: 1;">
+                        <i class="fas fa-shopping-cart"></i> Order Now
+                    </button>
+                    <button class="btn secondary" onclick="closeProductInfoModal()" style="flex: 1;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('productInfoModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Close product info modal
+function closeProductInfoModal() {
+    const modal = document.getElementById('productInfoModal');
+    if (modal) modal.remove();
+}
+
+// Make functions globally available
+window.showProductConditions = showProductConditions;
+window.closeProductInfoModal = closeProductInfoModal;
     // ---------- Edit Product ----------
     async function editProduct(productId){
       const product = products.find(p => p.id === productId);

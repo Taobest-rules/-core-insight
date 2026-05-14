@@ -12663,6 +12663,37 @@ if (priceCalc) {
   priceCalc.addEventListener('input', updateCalculator);
   updateCalculator();
 }
+
+// Add this to your page to auto-show business info section
+document.addEventListener('DOMContentLoaded', function() {
+    // Show business info section (required for validation)
+    const businessInfo = document.getElementById('businessInfo');
+    if (businessInfo) {
+        businessInfo.classList.add('show');
+        businessInfo.style.display = 'block';
+    }
+    
+    // Set payment provider to Flutterwave
+    const paymentProvider = document.getElementById('p_paymentProvider');
+    if (paymentProvider) {
+        paymentProvider.value = 'flutterwave';
+    }
+    
+    // Select Flutterwave option
+    const flutterwaveOption = document.querySelector('.provider-option[data-provider="flutterwave"]');
+    if (flutterwaveOption) {
+        flutterwaveOption.classList.add('selected');
+    }
+    
+    // Make sure all required business fields are visible
+    const businessFields = ['p_businessName', 'p_businessEmail', 'p_businessPhone', 'p_country'];
+    businessFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && field.closest('.conditional-section')) {
+            field.closest('.conditional-section').classList.add('show');
+        }
+    });
+});
 // ================= SELLER REFUND MANAGEMENT =================
 
 // ============================================

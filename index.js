@@ -12143,6 +12143,7 @@ app.post("/api/buy-product", async (req, res) => {
         let userCountry = 'NG';
         let currency = "USD";
         let amount = priceInUSD;
+        let exchangeRate = 1.0;
         
         try {
             const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
@@ -12160,21 +12161,23 @@ app.post("/api/buy-product", async (req, res) => {
         
         // ✅ Set currency based on user's country
         let paymentOptions = "card";
+        let amountInNGN = null;
         
         if (userCountry === 'NG') {
             // Nigerian users pay in NGN with local methods
             currency = "NGN";
             // Get exchange rate to convert USD to NGN
-            let usdRate = 1500;
             try {
                 const rates = await getExchangeRate();
-                usdRate = rates.USD_TO_NGN || 1500;
+                exchangeRate = rates.USD_TO_NGN || 1500;
             } catch (rateErr) {
                 console.error('Rate fetch error, using fallback:', rateErr.message);
+                exchangeRate = 1500;
             }
-            amount = priceInUSD * usdRate;
+            amount = priceInUSD * exchangeRate;
+            amountInNGN = amount;
             paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
-            console.log(`💰 Nigerian user - Paying ${amount} NGN with local payment methods`);
+            console.log(`💰 Nigerian user - Paying ${amount} NGN (Rate: ${exchangeRate})`);
         } else {
             // International users pay in USD
             currency = "USD";
@@ -12183,37 +12186,54 @@ app.post("/api/buy-product", async (req, res) => {
             console.log(`💰 International user (${userCountry}) - Paying ${amount} USD`);
         }
         
-        // Calculate split (90/10)
+        // Calculate splits (90/10)
         const platformFeeUSD = priceInUSD * 0.10;
         const sellerEarningsUSD = priceInUSD - platformFeeUSD;
         
-        // Create unique transaction reference with indicator
+        // For NGN conversions
+        const platformFeeNGN = platformFeeUSD * exchangeRate;
+        const sellerEarningsNGN = sellerEarningsUSD * exchangeRate;
+        
+        // Create unique transaction reference
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 10000);
         const transactionRef = `DIGITAL_${timestamp}_${productId}_${randomNum}`;
         
-        // Store order in database
+        // ✅ INSERT with all columns matching your table structure
         let orderId = null;
         try {
             const orderResult = await db.query(
                 `INSERT INTO digital_orders (
-                    product_id, buyer_id, seller_id, 
-                    amount, amount_usd, currency,
-                    platform_fee_usd,
-                    seller_earnings_usd,
-                    transaction_ref, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                    product_id, buyer_id, seller_id,
+                    amount, amount_usd, amount_ngn,
+                    platform_fee, platform_fee_usd, platform_fee_ngn,
+                    seller_earnings, seller_earnings_usd, seller_earnings_ngn,
+                    exchange_rate, transaction_ref, currency,
+                    original_amount_usd, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
                 [
-                    productId, req.session.user.id, product.user_id,
-                    amount, priceInUSD, currency,
-                    platformFeeUSD,
-                    sellerEarningsUSD,
-                    transactionRef
+                    productId,
+                    req.session.user.id,
+                    product.user_id,
+                    amount,                          // amount (in user's currency)
+                    priceInUSD,                      // amount_usd
+                    amountInNGN,                     // amount_ngn (null for international)
+                    platformFeeUSD * (currency === 'NGN' ? exchangeRate : 1),  // platform_fee
+                    platformFeeUSD,                  // platform_fee_usd
+                    platformFeeNGN,                  // platform_fee_ngn
+                    sellerEarningsUSD * (currency === 'NGN' ? exchangeRate : 1), // seller_earnings
+                    sellerEarningsUSD,               // seller_earnings_usd
+                    sellerEarningsNGN,               // seller_earnings_ngn
+                    exchangeRate,                    // exchange_rate
+                    transactionRef,                  // transaction_ref
+                    currency,                        // currency
+                    priceInUSD                       // original_amount_usd
                 ]
             );
             
             orderId = orderResult.insertId || (orderResult[0] && orderResult[0].insertId);
             console.log(`✅ Digital order created with ID: ${orderId}`);
+            
         } catch (dbErr) {
             console.error("❌ Database insert error:", dbErr.message);
             return res.status(500).json({ error: "Failed to create order: " + dbErr.message });
@@ -12245,7 +12265,10 @@ app.post("/api/buy-product", async (req, res) => {
                 order_id: orderId,
                 type: 'digital_product',
                 transaction_ref: transactionRef,
-                user_country: userCountry
+                user_country: userCountry,
+                original_amount_usd: priceInUSD,
+                exchange_rate: exchangeRate,
+                amount_in_currency: amount
             }
         };
         
@@ -12274,9 +12297,14 @@ app.post("/api/buy-product", async (req, res) => {
             );
             
             if (response.data.status === 'success' && response.data.data?.link) {
+                // Update order with payment link and gateway
                 await db.query(
-                    `UPDATE digital_orders SET payment_gateway = 'flutterwave', payment_link = ? WHERE id = ?`,
-                    [response.data.data.link, orderId]
+                    `UPDATE digital_orders 
+                     SET payment_gateway = 'flutterwave', 
+                         payment_link = ?,
+                         flutterwave_reference = ?
+                     WHERE id = ?`,
+                    [response.data.data.link, flutterwaveRef, orderId]
                 );
                 
                 res.json({
@@ -12288,9 +12316,10 @@ app.post("/api/buy-product", async (req, res) => {
                     amount: amount,
                     currency: currency,
                     userCountry: userCountry,
+                    exchangeRate: exchangeRate,
                     split: {
-                        platform_fee: priceInUSD * 0.10,
-                        seller_earnings: priceInUSD * 0.90,
+                        platform_fee: currency === 'NGN' ? platformFeeNGN : platformFeeUSD,
+                        seller_earnings: currency === 'NGN' ? sellerEarningsNGN : sellerEarningsUSD,
                         platform_percentage: 10,
                         seller_percentage: 90
                     },

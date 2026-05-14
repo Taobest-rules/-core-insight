@@ -12102,7 +12102,6 @@ function getBankNameFromCode(bankCode, country) {
 // ============================================
 // BUY DIGITAL PRODUCT - FLUTTERWAVE ONLY (90/10 Split)
 // ============================================
-
 app.post("/api/buy-product", async (req, res) => {
     try {
         console.log("🛒 Buy digital product request received");
@@ -12134,17 +12133,61 @@ app.post("/api/buy-product", async (req, res) => {
         }
         
         const product = products[0];
-        const usdAmount = parseFloat(product.price);
+        const priceInUSD = parseFloat(product.price);
         
-        if (isNaN(usdAmount) || usdAmount <= 0) {
+        if (isNaN(priceInUSD) || priceInUSD <= 0) {
             return res.status(400).json({ error: "Invalid product price" });
         }
         
-        // Calculate split (90/10)
-        const platformFeeUSD = usdAmount * 0.10;
-        const sellerEarningsUSD = usdAmount - platformFeeUSD;
+        // ✅ Get user's country from IP address
+        let userCountry = 'NG';
+        let currency = "USD";
+        let amount = priceInUSD;
         
-        // Create unique transaction reference
+        try {
+            const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const geoResponse = await axios.get(`http://ip-api.com/json/${userIp}`, { 
+                timeout: 3000 
+            });
+            
+            if (geoResponse.data && geoResponse.data.countryCode) {
+                userCountry = geoResponse.data.countryCode;
+                console.log(`🌍 User country detected: ${userCountry}`);
+            }
+        } catch (geoError) {
+            console.log('Could not detect country, defaulting to international');
+        }
+        
+        // ✅ Set currency based on user's country
+        let paymentOptions = "card";
+        
+        if (userCountry === 'NG') {
+            // Nigerian users pay in NGN with local methods
+            currency = "NGN";
+            // Get exchange rate to convert USD to NGN
+            let usdRate = 1500;
+            try {
+                const rates = await getExchangeRate();
+                usdRate = rates.USD_TO_NGN || 1500;
+            } catch (rateErr) {
+                console.error('Rate fetch error, using fallback:', rateErr.message);
+            }
+            amount = priceInUSD * usdRate;
+            paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
+            console.log(`💰 Nigerian user - Paying ${amount} NGN with local payment methods`);
+        } else {
+            // International users pay in USD
+            currency = "USD";
+            amount = priceInUSD;
+            paymentOptions = "card";
+            console.log(`💰 International user (${userCountry}) - Paying ${amount} USD`);
+        }
+        
+        // Calculate split (90/10)
+        const platformFeeUSD = priceInUSD * 0.10;
+        const sellerEarningsUSD = priceInUSD - platformFeeUSD;
+        
+        // Create unique transaction reference with indicator
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 10000);
         const transactionRef = `DIGITAL_${timestamp}_${productId}_${randomNum}`;
@@ -12155,14 +12198,14 @@ app.post("/api/buy-product", async (req, res) => {
             const orderResult = await db.query(
                 `INSERT INTO digital_orders (
                     product_id, buyer_id, seller_id, 
-                    amount, amount_usd,
+                    amount, amount_usd, currency,
                     platform_fee_usd,
                     seller_earnings_usd,
                     transaction_ref, status, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
                 [
                     productId, req.session.user.id, product.user_id,
-                    usdAmount, usdAmount,
+                    amount, priceInUSD, currency,
                     platformFeeUSD,
                     sellerEarningsUSD,
                     transactionRef
@@ -12176,7 +12219,7 @@ app.post("/api/buy-product", async (req, res) => {
             return res.status(500).json({ error: "Failed to create order: " + dbErr.message });
         }
         
-        // Create Flutterwave payment link (ONLY FLUTTERWAVE)
+        // Create Flutterwave payment link
         if (!process.env.FLW_SECRET_KEY) {
             return res.status(500).json({ error: "Payment system not configured. Please contact support." });
         }
@@ -12185,8 +12228,8 @@ app.post("/api/buy-product", async (req, res) => {
         
         const flutterwavePayload = {
             tx_ref: flutterwaveRef,
-            amount: usdAmount,
-            currency: "USD",
+            amount: amount,
+            currency: currency,
             redirect_url: "https://coreinsightmarket.com/digital-payment-callback.html",
             customer: {
                 email: req.session.user.email,
@@ -12196,11 +12239,13 @@ app.post("/api/buy-product", async (req, res) => {
                 title: "Core Insight",
                 description: product.title.substring(0, 50)
             },
+            payment_options: paymentOptions,
             meta: {
                 product_id: productId,
                 order_id: orderId,
                 type: 'digital_product',
-                transaction_ref: transactionRef
+                transaction_ref: transactionRef,
+                user_country: userCountry
             }
         };
         
@@ -12208,11 +12253,11 @@ app.post("/api/buy-product", async (req, res) => {
         if (product.flutterwave_subaccount_id) {
             flutterwavePayload.subaccounts = [{
                 id: product.flutterwave_subaccount_id,
-                transaction_split_ratio: 0.9  // 90% to seller, 10% to platform
+                transaction_split_ratio: 0.9
             }];
             console.log(`✅ Flutterwave subaccount added: ${product.flutterwave_subaccount_id}`);
         } else {
-            console.log(`⚠️ No Flutterwave subaccount found for seller ${product.user_id}. Platform will collect 100% and pay out manually.`);
+            console.log(`⚠️ No Flutterwave subaccount found for seller ${product.user_id}`);
         }
         
         try {
@@ -12229,7 +12274,6 @@ app.post("/api/buy-product", async (req, res) => {
             );
             
             if (response.data.status === 'success' && response.data.data?.link) {
-                // Update order with payment link
                 await db.query(
                     `UPDATE digital_orders SET payment_gateway = 'flutterwave', payment_link = ? WHERE id = ?`,
                     [response.data.data.link, orderId]
@@ -12241,15 +12285,16 @@ app.post("/api/buy-product", async (req, res) => {
                     transactionRef: transactionRef,
                     orderId: orderId,
                     gateway: 'flutterwave',
-                    amount_usd: usdAmount,
+                    amount: amount,
+                    currency: currency,
+                    userCountry: userCountry,
                     split: {
-                        platform_fee: usdAmount * 0.10,
-                        seller_earnings: usdAmount * 0.90,
+                        platform_fee: priceInUSD * 0.10,
+                        seller_earnings: priceInUSD * 0.90,
                         platform_percentage: 10,
-                        seller_percentage: 90,
-                        message: "90% goes to seller, 10% platform fee - Auto-split via Flutterwave subaccount"
+                        seller_percentage: 90
                     },
-                    message: `Redirecting to Flutterwave payment... (90/10 split)`
+                    message: `Redirecting to ${currency} payment...`
                 });
             } else {
                 throw new Error(response.data.message || "Payment initialization failed");

@@ -12255,7 +12255,8 @@ function escapeHtml(s) {
 
     // ---------- Buy Digital Product ----------
 // Updated buyProduct function in your HTML
-async function buyProduct(productId) {
+
+   async function buyProduct(productId) {
     console.log("🛒 Buying product:", productId);
     
     if (!currentUser) {
@@ -12271,6 +12272,7 @@ async function buyProduct(productId) {
     });
     
     try {
+        // Get user's country from IP (will be detected on backend)
         const response = await fetch('/api/buy-product', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -12283,12 +12285,6 @@ async function buyProduct(productId) {
         if (response.ok && data.paymentLink) {
             // Redirect to payment page
             window.location.href = data.paymentLink;
-        } else if (data.isDemo) {
-            // Demo mode - simulate successful purchase
-            showToast('Demo Mode', 'In production, this would redirect to payment.', 'info');
-            setTimeout(() => {
-                window.location.href = `/payment-callback.html?demo=true&productId=${productId}`;
-            }, 1500);
         } else {
             showToast('Error', data.error || 'Failed to initiate purchase', 'danger');
             buttons.forEach(btn => {

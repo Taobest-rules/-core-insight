@@ -2059,6 +2059,18 @@ async function loadCourses() {
     
     document.getElementById('courseCount').textContent = `${courses.length} Courses`;
     
+    // Get exchange rate for USD conversion
+    let usdRate = 1500; // Default fallback
+    try {
+      const rateRes = await fetch('/api/currency-rates');
+      const rateData = await rateRes.json();
+      if (rateData.success && rateData.rates && rateData.rates.NGN) {
+        usdRate = rateData.rates.NGN;
+      }
+    } catch (rateError) {
+      console.error('Error fetching rate, using fallback:', rateError);
+    }
+    
     // Get flag status for courses
     let flaggedCourses = new Set();
     if (user) {
@@ -2120,6 +2132,14 @@ async function loadCourses() {
       const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
       const isPremium = course.price > 0 && !isFree;
       
+      // ✅ Calculate USD price for display
+      let usdPrice = 0;
+      if (isPremium && course.price > 0) {
+        usdPrice = course.price / usdRate;
+        usdPrice = Math.round(usdPrice * 100) / 100;
+        if (usdPrice < 0.50) usdPrice = 0.50;
+      }
+      
       // Check if user has access
       const hasAccess = isFree || purchasedCourses.has(Number(course.id));
       
@@ -2140,14 +2160,9 @@ async function loadCourses() {
         badgeText = isPremium ? 'PREMIUM VIDEO' : 'VIDEO TUTORIAL';
       }
       
-      // DEFINE isOwner HERE - inside the map function
       const isOwner = user && Number(course.user_id) === Number(user?.id);
       const isUploadedByAdmin = course.user_role === 'admin';
       
-      // Show flag button for ALL logged-in users EXCEPT:
-      // 1. When content is uploaded by admin (hide completely)
-      // 2. For the content owner (can't flag own content)
-      // 3. For admin users (admins don't flag, they moderate)
       const showFlagButton = user && 
                             !isUploadedByAdmin &&
                             !isOwner &&
@@ -2166,15 +2181,28 @@ async function loadCourses() {
         thumbnailSrc = `https://placehold.co/400x200/${color}/64ffda?text=${encodeURIComponent(cleanTitle)}&font=montserrat`;
       }
       
-      // Inside the course card generation, replace the price display with:
-let priceDisplay = '';
-if (hasAccess && isPremium) {
-  priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
-} else if (isFree) {
-  priceDisplay = '<span style="color: #64ffda;">FREE</span>';
-} else {
-  priceDisplay = formatCurrency(course.price, userCurrency);
-}
+      // Price display
+      let priceDisplay = '';
+      if (hasAccess && isPremium) {
+        priceDisplay = '<span style="color: #64ffda; font-size: 0.9rem;"><i class="fas fa-check-circle"></i> OWNED</span>';
+      } else if (isFree) {
+        priceDisplay = '<span style="color: #64ffda;">FREE</span>';
+      } else {
+        // ✅ Show both NGN and USD
+        priceDisplay = `<span style="color: #64ffda;">₦${course.price.toLocaleString()}</span>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;"> / $${usdPrice.toFixed(2)} USD</span>`;
+      }
+      
+      // ✅ Button text with USD amount
+      let buttonText = '';
+      if (hasAccess) {
+        buttonText = '<i class="fas fa-download"></i> Download Now';
+      } else if (isPremium) {
+        buttonText = `<i class="fas fa-shopping-cart"></i> Buy Now ($${usdPrice.toFixed(2)} USD)`;
+      } else {
+        buttonText = '<i class="fas fa-download"></i> Download Free';
+      }
+      
       // Escape all user-generated content for safety
       const safeTitle = escapeHtml(course.title);
       const safeDescription = escapeHtml(course.description || 'No description available');
@@ -2203,9 +2231,9 @@ if (hasAccess && isPremium) {
             <h3>${safeTitle}</h3>
             <p>${safeDescription}</p>
             <div class="card-meta">
-             <div class="price" data-original-price="${course.price}">
-  ${priceDisplay}
-</div>
+              <div class="price" data-original-price="${course.price}">
+                ${priceDisplay}
+              </div>
               ${safeAuthor ? `
                 <div class="author">
                   <i class="fas fa-user"></i>
@@ -2226,7 +2254,7 @@ if (hasAccess && isPremium) {
               ` : (isPremium ? `
                 <button onclick="initiatePayment(${course.id}, ${course.price}, '${safeTitle.replace(/'/g, "\\'")}', ${isVideo})" 
                         class="btn-primary">
-                  <i class="fas fa-shopping-cart"></i> Buy Now (${formatCurrency(course.price, userCurrency)})
+                  ${buttonText}
                 </button>
                 <button onclick="checkAccess(${course.id}, ${isVideo})" class="btn-secondary">
                   <i class="fas fa-lock"></i> Check Access
@@ -2282,6 +2310,30 @@ if (hasAccess && isPremium) {
     `;
     hideLoading();
   }
+}
+
+// Add this function to get live USD conversion
+async function getUSDPrice(ngnPrice) {
+  try {
+    const response = await fetch('/api/currency-rates');
+    const data = await response.json();
+    
+    if (data.success && data.rates && data.rates.NGN) {
+      const usdRate = data.rates.NGN;
+      let usdAmount = ngnPrice / usdRate;
+      usdAmount = Math.round(usdAmount * 100) / 100;
+      if (usdAmount < 0.50) usdAmount = 0.50;
+      return usdAmount;
+    }
+  } catch (error) {
+    console.error('Rate fetch error:', error);
+  }
+  
+  // Fallback conversion
+  let usdAmount = ngnPrice / 1500;
+  usdAmount = Math.round(usdAmount * 100) / 100;
+  if (usdAmount < 0.50) usdAmount = 0.50;
+  return usdAmount;
 }
 // =================== FLAGGING SYSTEM FUNCTIONS ===================
 
@@ -2497,8 +2549,11 @@ async function refreshCoursesAfterPurchase() {
 
    
 // ========================= FIXED FLUTTERWAVE PAYMENT =========================
-async function initiatePayment(courseId, price, title, isVideo = false) {
+
+  async function initiatePayment(courseId, priceInNGN, title, isVideo = false) {
   try {
+    console.log('🚀 Starting payment initiation for:', { courseId, priceInNGN, title, isVideo });
+    
     const userRes = await fetch('/api/me');
     const user = await userRes.json();
     
@@ -2508,31 +2563,83 @@ async function initiatePayment(courseId, price, title, isVideo = false) {
       return;
     }
 
-    const displayPrice = formatCurrency(parseFloat(price), userCurrency);
-    const confirmPayment = confirm(`Purchase "${title}" for ${displayPrice}?`);
+    // ✅ Get the current exchange rate to show accurate USD amount
+    let usdAmount = 0;
+    let displayCurrency = 'USD';
+    let displayAmount = 0;
+    
+    try {
+      // Fetch current exchange rate
+      const rateRes = await fetch('/api/currency-rates');
+      const rateData = await rateRes.json();
+      
+      if (rateData.success && rateData.rates) {
+        const usdRate = rateData.rates.NGN || 1500;
+        usdAmount = priceInNGN / usdRate;
+        usdAmount = Math.round(usdAmount * 100) / 100;
+        
+        // Ensure minimum amount
+        if (usdAmount < 0.50) {
+          usdAmount = 0.50;
+        }
+        
+        displayAmount = usdAmount;
+        displayCurrency = 'USD';
+        console.log(`💰 Converted: ${priceInNGN} NGN = $${usdAmount} USD`);
+      } else {
+        // Fallback
+        displayAmount = priceInNGN;
+        displayCurrency = 'NGN';
+      }
+    } catch (error) {
+      console.error('Error getting exchange rate:', error);
+      displayAmount = priceInNGN;
+      displayCurrency = 'NGN';
+    }
+    
+    const action = isVideo ? 'watch' : 'download';
+    const confirmMessage = `Purchase "${title}" for $${displayAmount.toFixed(2)} USD to ${action}?`;
+    
+    const confirmPayment = confirm(confirmMessage);
     
     if (!confirmPayment) return;
     
     showLoading();
     
-    const response = await fetch('/api/initiate-payment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId: courseId })
-    });
+    try {
+      console.log('📤 Sending payment request to server...');
+      
+      const response = await fetch('/api/initiate-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          courseId: courseId
+        })
+      });
 
-    const data = await response.json();
-    hideLoading();
-    
-    if (response.ok && data.status === 'success' && data.paymentLink) {
-      window.location.href = data.paymentLink;
-    } else {
-      alert('Error: ' + (data.error || 'Failed to initiate payment.'));
+      const data = await response.json();
+      console.log('📦 Server response:', data);
+      
+      hideLoading();
+      
+      if (response.ok && data.status === 'success' && data.paymentLink) {
+        // Redirect to Flutterwave payment page
+        window.location.href = data.paymentLink;
+      } else {
+        console.error('❌ Payment initiation failed:', data);
+        alert('Error: ' + (data.error || 'Failed to initiate payment. Please try again.'));
+      }
+    } catch (fetchError) {
+      console.error('❌ Fetch error:', fetchError);
+      hideLoading();
+      alert('Network error: ' + fetchError.message);
     }
   } catch (error) {
     console.error('❌ Purchase error:', error);
     hideLoading();
-    alert('Error: ' + error.message);
+    alert('Error initiating purchase: ' + error.message);
   }
 }
 

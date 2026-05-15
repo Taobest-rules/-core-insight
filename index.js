@@ -12271,6 +12271,22 @@ app.post("/api/buy-product", async (req, res) => {
         });
     }
 });
+app.get("/api/debug/product-file/:productId", async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const product = await db.query(
+      "SELECT id, title, type, file_url, created_at FROM products WHERE id = ?",
+      [productId]
+    );
+    res.json({
+      product: product[0],
+      has_file: !!product[0]?.file_url,
+      file_url: product[0]?.file_url
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // =================== DIGITAL PRODUCT DOWNLOAD ===================
 app.get('/api/download-digital/:orderId', async (req, res) => {
   try {

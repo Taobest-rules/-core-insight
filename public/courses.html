@@ -1848,56 +1848,57 @@ function updateAllPrices() {
     }
 
     // ========================= USER AUTHENTICATION - FIXED =========================
-    async function loadUser() {
-      try {
-        const res = await fetch('/api/me');
-        const user = await res.json();
-        const headerAuthButtons = document.getElementById('headerAuthButtons');
-        const uploadSection = document.getElementById('uploadSection');
-        const uploadPrompt = document.getElementById('uploadPrompt');
-        const bookTypeSection = document.getElementById('bookTypeSection');
-        const priceField = document.getElementById('priceField');
+ async function loadUser() {
+  try {
+    const res = await fetch('/api/me');
+    const user = await res.json();
+    const headerAuthButtons = document.getElementById('headerAuthButtons');
+    const uploadSection = document.getElementById('uploadSection');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const bookTypeSection = document.getElementById('bookTypeSection');
+    const priceField = document.getElementById('priceField');
 
-        if (user) {
-          // User is logged in
-          headerAuthButtons.innerHTML = `
-            <span style="color: var(--accent-gold); margin-right: 1rem; font-size: 0.9rem;">
-              Welcome, ${user.username || 'User'}
-              ${user.role === 'admin' ? '<span style="background: #64ffda; color: #0a192f; padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 11px;">ADMIN</span>' : ''}
-            </span>
-            <a href="#" class="btn btn-login" onclick="logout()">Logout</a>
-          `;
-          
-          // FIX: Show upload section for ALL logged-in users
-          uploadSection.style.display = 'block';
-          if (uploadPrompt) uploadPrompt.style.display = 'block';
-          
-          // Only show book type selector and price field for admin
-          if (user.role === 'admin') {
-            bookTypeSection.style.display = 'block';
-            setupBookTypeSelector();
-          } else {
-            bookTypeSection.style.display = 'none';
-            priceField.style.display = 'none';
-          }
-          
-          console.log('✅ User loaded:', user.username, 'Role:', user.role);
-          
-        } else {
-          // No user logged in
-          headerAuthButtons.innerHTML = `
-            <a href="login.html" class="btn btn-login">Login</a>
-            <a href="signup.html" class="btn btn-signup">Sign Up</a>
-          `;
-          uploadSection.style.display = 'none';
-          if (uploadPrompt) uploadPrompt.style.display = 'none';
-          console.log('👤 No user logged in');
-        }
-      } catch (error) {
-        console.error('❌ Error loading user:', error);
+    if (user) {
+      // User is logged in
+      headerAuthButtons.innerHTML = `
+        <span style="color: var(--accent-gold); margin-right: 1rem; font-size: 0.9rem;">
+          Welcome, ${user.username || 'User'}
+          ${user.role === 'admin' ? '<span style="background: #64ffda; color: #0a192f; padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 11px;">ADMIN</span>' : ''}
+        </span>
+        <a href="#" class="btn btn-login" onclick="logout()">Logout</a>
+      `;
+      
+      // FIX: Show upload section for ALL logged-in users
+      uploadSection.style.display = 'block';
+      if (uploadPrompt) uploadPrompt.style.display = 'block';
+      
+      // Only show book type selector and price field for admin
+      if (user.role === 'admin') {
+        bookTypeSection.style.display = 'block';
+        setupBookTypeSelector();
+        // ✅ ADD THIS - Show mass delete button for admin
+        checkAdminAndShowMassDelete();
+      } else {
+        bookTypeSection.style.display = 'none';
+        priceField.style.display = 'none';
       }
+      
+      console.log('✅ User loaded:', user.username, 'Role:', user.role);
+      
+    } else {
+      // No user logged in
+      headerAuthButtons.innerHTML = `
+        <a href="login.html" class="btn btn-login">Login</a>
+        <a href="signup.html" class="btn btn-signup">Sign Up</a>
+      `;
+      uploadSection.style.display = 'none';
+      if (uploadPrompt) uploadPrompt.style.display = 'none';
+      console.log('👤 No user logged in');
     }
-
+  } catch (error) {
+    console.error('❌ Error loading user:', error);
+  }
+}
     // Book type selector for admin only
     function setupBookTypeSelector() {
       const buttons = document.querySelectorAll('.book-type-btn');
@@ -2633,15 +2634,13 @@ document.head.appendChild(toastStyle);
 let massDeleteMode = false;
 let selectedCourses = new Set();
 
-// Check if user is admin and show mass delete button
 async function checkAdminAndShowMassDelete() {
   try {
     const res = await fetch('/api/me');
     const user = await res.json();
     
     if (user && user.role === 'admin') {
-      document.getElementById('toggleMassDeleteBtn').style.display = 'inline-flex';
-      document.getElementById('toggleMassDeleteBtn').style.display = 'inline-flex';
+      document.getElementById('toggleMassDeleteBtn').style.display = 'inline-flex'; // Remove duplicate line
     } else {
       document.getElementById('toggleMassDeleteBtn').style.display = 'none';
     }
@@ -2649,7 +2648,6 @@ async function checkAdminAndShowMassDelete() {
     console.error('Error checking admin status:', err);
   }
 }
-
 // Toggle mass delete mode
 function toggleMassDeleteMode() {
   massDeleteMode = !massDeleteMode;
@@ -3090,13 +3088,19 @@ document.addEventListener('keydown', function(event) {
     closeFlagModal();
   }
 });
-    // ========================= INITIALIZATION =========================
-    document.addEventListener('DOMContentLoaded', () => {
-      loadUser();
-      detectUserCurrency();
-      loadCourses();
-      setupImagePreview();
-    });
+   
+     // ========================= INITIALIZATION =========================
+document.addEventListener('DOMContentLoaded', () => {
+  loadUser();
+  detectUserCurrency();
+  loadCourses();
+  setupImagePreview();
+  
+  // ✅ ADD THIS - Check admin status and show mass delete button
+  setTimeout(() => {
+    checkAdminAndShowMassDelete();
+  }, 500);
+});
   </script>
 </body>
 </html>

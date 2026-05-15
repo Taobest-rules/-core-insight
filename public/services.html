@@ -9731,7 +9731,9 @@ async function loadFreelancerReviews() {
     }
 }
 
-  async function loadFreelancerDashboard() {
+async function loadFreelancerDashboard() {
+    console.log("Loading dashboard...");
+    
     const dashboardServices = document.getElementById('dashboardServices');
     const dashboardClients = document.getElementById('dashboardClients');
     const dashboardRecruitments = document.getElementById('dashboardRecruitments');
@@ -9745,45 +9747,30 @@ async function loadFreelancerReviews() {
     const avgRatingEl = document.getElementById('avgRating');
     const totalReviewsEl = document.getElementById('totalReviews');
     
-    if (!dashboardServices) {
-        console.log("Dashboard elements not found");
-        return;
-    }
-    
     try {
-        // Show loading state
-        dashboardServices.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        dashboardClients.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        dashboardRecruitments.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        dashboardRating.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        console.log("Fetching dashboard data...");
         const response = await fetch('/api/freelancer/dashboard', {
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
-            }
+            credentials: 'include'
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error('Failed to load dashboard');
         }
         
         const data = await response.json();
-        console.log("Dashboard data received:", data);
+        console.log("Dashboard data:", data);
         
-        // Update stat cards
-        dashboardServices.textContent = data.services?.total_services || 0;
-        dashboardClients.textContent = data.clients?.total_clients || 0;
-        dashboardRecruitments.textContent = data.recruitments?.total || 0;
+        // Update stats - these will show actual numbers
+        if (dashboardServices) dashboardServices.textContent = data.services?.total_services || 0;
+        if (dashboardClients) dashboardClients.textContent = data.clients?.total_clients || 0;
+        if (dashboardRecruitments) dashboardRecruitments.textContent = data.recruitments?.total || 0;
         
         const avgRating = data.profile?.avg_rating || 0;
-        dashboardRating.innerHTML = avgRating.toFixed(1);
+        if (dashboardRating) dashboardRating.innerHTML = avgRating.toFixed(1);
         
         // Update profile stats
         if (totalServicesEl) totalServicesEl.textContent = data.services?.total_services || 0;
         if (completedOrdersEl) completedOrdersEl.textContent = data.profile?.completed_orders || 0;
-        if (avgRatingEl) avgRatingEl.textContent = (data.profile?.avg_rating || 0).toFixed(1);
+        if (avgRatingEl) avgRatingEl.textContent = avgRating.toFixed(1);
         if (totalReviewsEl) totalReviewsEl.textContent = data.profile?.review_count || 0;
         
         // ========== RECENT CLIENTS ==========
@@ -9803,9 +9790,6 @@ async function loadFreelancerReviews() {
                                     <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
                                     Recruited: ${formatDate(client.recruited_at)}
                                 </div>
-                                <div style="font-size: 0.7rem; color: var(--accent-gold); margin-top: 2px;">
-                                    <i class="fas fa-briefcase"></i> ${escapeHtml(client.service_title || 'General Service')}
-                                </div>
                             </div>
                             <button onclick="checkAndStartConversation(null, ${client.id})" 
                                     style="padding: 6px 12px; background: rgba(59,130,246,0.2); border: 1px solid var(--accent-blue); border-radius: 6px; color: var(--accent-blue); cursor: pointer;">
@@ -9815,11 +9799,13 @@ async function loadFreelancerReviews() {
                     </div>
                 `).join('');
             } else {
+                // Show nice empty state
                 recentClientsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 30px; color: var(--text-gray);">
-                        <i class="fas fa-users" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
-                        <p>No clients yet</p>
-                        <p style="font-size: 0.8rem;">When clients recruit you, they'll appear here</p>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
+                        <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                        <h4 style="color: var(--text-light); margin-bottom: 8px;">No Clients Yet</h4>
+                        <p style="font-size: 0.85rem;">When clients recruit you, they'll appear here</p>
+                        <p style="font-size: 0.75rem; margin-top: 10px;">💡 Tip: Share your service links to get noticed</p>
                     </div>
                 `;
             }
@@ -9856,41 +9842,29 @@ async function loadFreelancerReviews() {
                 `).join('');
             } else {
                 topClientsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 30px; color: var(--text-gray);">
-                        <i class="fas fa-trophy" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
-                        <p>No top clients yet</p>
-                        <p style="font-size: 0.8rem;">Complete orders to see your best clients</p>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
+                        <i class="fas fa-trophy" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                        <h4 style="color: var(--text-light); margin-bottom: 8px;">No Top Clients Yet</h4>
+                        <p style="font-size: 0.85rem;">Complete orders to see your best clients here</p>
                     </div>
                 `;
             }
         }
         
-        console.log("Dashboard loaded successfully");
-        
     } catch (err) {
         console.error("Error loading dashboard:", err);
         
-        // Set default values on error
-        if (dashboardServices) dashboardServices.textContent = '0';
-        if (dashboardClients) dashboardClients.textContent = '0';
-        if (dashboardRecruitments) dashboardRecruitments.textContent = '0';
-        if (dashboardRating) dashboardRating.textContent = '0.0';
-        
+        // Show error state
         if (recentClientsContainer) {
             recentClientsContainer.innerHTML = `
-                <div style="text-align: center; padding: 30px; color: #ef4444;">
+                <div style="text-align: center; padding: 40px 20px; color: #ef4444;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                    <p>Failed to load dashboard data</p>
-                    <p style="font-size: 0.8rem;">${err.message}</p>
-                    <button onclick="loadFreelancerDashboard()" style="margin-top: 10px; padding: 8px 16px; background: var(--accent-blue); border: none; border-radius: 6px; color: white; cursor: pointer;">
+                    <p>Failed to load dashboard</p>
+                    <button onclick="loadFreelancerDashboard()" class="btn btn-primary" style="margin-top: 10px; padding: 8px 16px;">
                         <i class="fas fa-sync-alt"></i> Retry
                     </button>
                 </div>
             `;
-        }
-        
-        if (topClientsContainer) {
-            topClientsContainer.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--text-gray);">Unable to load data</div>';
         }
     }
 }
@@ -9900,28 +9874,13 @@ function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-// Helper function to format dates
-function formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 async function loadMyClients() {
     const container = document.getElementById('clientsList');

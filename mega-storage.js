@@ -142,19 +142,26 @@ const uploadToBackblaze = async (filePath, filename) => {
             }
             
             resolve(publicUrl);
-        });
+        }); 
     });
 };
 // ============ SMART UPLOAD - CHOOSES RIGHT SERVICE ============
 const uploadFile = async (filePath, filename) => {
+    console.log(`🔍 uploadFile called with: ${filename}, path: ${filePath}`);
+    
     if (isImageFile(filename)) {
-        // Images go to ImgBB
-        console.log(`📸 Image detected - using ImgBB: ${filename}`);
+        console.log(`📸 Image detected - using ImgBB`);
         return await uploadToImgbb(filePath, filename);
     } else {
-        // Documents, videos, archives go to Backblaze B2
-        console.log(`📁 Non-image file detected - using Backblaze B2: ${filename}`);
-        return await uploadToBackblaze(filePath, filename);
+        console.log(`📁 Non-image file detected - using Backblaze B2`);
+        try {
+            const result = await uploadToBackblaze(filePath, filename);
+            console.log(`✅ Backblaze upload successful: ${result.substring(0, 60)}`);
+            return result;
+        } catch (err) {
+            console.error(`❌ Backblaze upload failed:`, err.message);
+            throw err;
+        }
     }
 };
 

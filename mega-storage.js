@@ -228,7 +228,7 @@ const uploadCourseFile = upload.single('file');
 const uploadProductFile = upload.single('file');
 const uploadMultipleProducts = upload.array('images[]', 10);
 
-// ============ EXPORTS ============
+// mega-storage.js - EXPORT SECTION (at the bottom of the file)
 module.exports = {
     // Multer configurations
     upload,
@@ -246,10 +246,10 @@ module.exports = {
     // Upload functions
     uploadToImgbb,        // Images only - for thumbnails
     uploadToBackblaze,    // Files only - for documents/videos
-    uploadFile,           // Smart upload - auto-detects file type
-    uploadSmartFile,      // Alias for uploadFile (for course uploads)
+    uploadFile,           // ✅ Smart upload - auto-detects file type (MAIN FUNCTION)
+    uploadSmartFile,      // ✅ Alias for uploadFile (for course uploads)
     uploadToImgbbUniversal,
-    uploadFileToMega,
+    uploadFileToMega,     // ✅ Legacy name for compatibility
     uploadImageToImgbb,
     uploadMultipleImagesToImgbb
 };

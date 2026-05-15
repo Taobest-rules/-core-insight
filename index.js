@@ -32,10 +32,10 @@ const {
   uploadProductFile,
   uploadMultipleProducts,
   uploadToImgbb,
-  uploadImageToImgbb,
-  uploadMultipleImagesToImgbb,
-  uploadFileToMega,
-  uploadSmartFile    // ✅ This will work now
+  uploadToBackblaze,
+  uploadFile,           // ✅ ADD THIS - it's the smart upload function
+  uploadSmartFile,      // ✅ ADD THIS - alias for uploadFile
+  uploadFileToMega      // ✅ ADD THIS - legacy name
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");

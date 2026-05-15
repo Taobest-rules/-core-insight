@@ -15702,24 +15702,28 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
   }
 });
 
+// index.js - COMPLETE CORRECTED VERSION
 app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
   try {
     console.log("📤 PRODUCT UPLOAD STARTED");
-    console.log("📁 Files received:", req.files ? Object.keys(req.files) : 'No files');
     
+    // ========== AUTHENTICATION CHECK ==========
     if (!req.session.user) {
       return res.status(401).json({ error: "Please log in to upload products." });
     }
 
+    // ========== EXTRACT FORM DATA ==========
     const { 
       title, description, price, category, type, affiliate_link, paymentProvider,
       delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
       businessName, businessEmail, businessPhone, country, bankName, bankCode, 
-      accountNumber, accountName
+      accountNumber, accountName, delivery_countries, delivery_states,
+      pickup_address, pickup_hours, is_virtual_account
     } = req.body;
 
     console.log("📦 Product data:", { title, price, type, paymentProvider });
 
+    // ========== VALIDATION ==========
     if (!title || !price || !type || !paymentProvider) {
       return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
     }
@@ -15727,7 +15731,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     const userId = req.session.user.id;
     const listedPrice = parseFloat(price);
     
-    // ✅ CHECK IF DIGITAL PRODUCT HAS FILE
+    // ========== HANDLE DIGITAL PRODUCT FILE ==========
     let fileUrl = null;
     
     if (type === 'digital') {
@@ -15741,7 +15745,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       console.log(`📁 Processing digital file: ${productFile.originalname}, size: ${productFile.size} bytes`);
       
       try {
-        // ✅ UPLOAD THE FILE USING SMART UPLOAD
+        // ✅ UPLOAD THE FILE USING SMART UPLOAD (auto-detects ImgBB for images, B2 for others)
         fileUrl = await uploadFile(productFile.path, productFile.originalname);
         console.log(`✅ Digital file uploaded successfully to: ${fileUrl.substring(0, 80)}...`);
         
@@ -15755,30 +15759,44 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       }
     }
     
-    // ========== CREATE SUBACCOUNT ==========
+    // ========== HANDLE AFFILIATE PRODUCT LINK ==========
+    if (type === 'affiliate' && affiliate_link) {
+      fileUrl = affiliate_link;
+    }
+    
+    // ========== CREATE FLUTTERWAVE SUBACCOUNT (90/10 SPLIT) ==========
     let subaccountResult = null;
     
     if (paymentProvider === 'flutterwave') {
+      // Determine if this is a virtual account
+      const isVirtual = (is_virtual_account === '1' || is_virtual_account === 'true');
+      const accountNameToUse = isVirtual ? (businessName || accountName) : businessName;
+      
       subaccountResult = await createFlutterwaveSubaccount(userId, {
         bank_code: bankCode,
         account_number: accountNumber,
-        business_name: businessName,
+        business_name: accountNameToUse,
         business_email: businessEmail,
         business_phone: businessPhone,
-        country: country || 'NG'
+        country: country || 'NG',
+        is_virtual: isVirtual
       });
       
       if (!subaccountResult.success) {
         console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
+        // Continue anyway - product can still be listed
+      } else {
+        console.log(`✅ Subaccount created: ${subaccountResult.subaccount_id}`);
       }
     }
     
-    // ========== UPLOAD IMAGES ==========
+    // ========== UPLOAD PRODUCT IMAGES ==========
     let imageUrls = [];
     if (req.files?.['images[]']?.length) {
       console.log(`📸 Uploading ${req.files['images[]'].length} images...`);
       for (const file of req.files['images[]']) {
         try {
+          // Images always go to ImgBB for fast CDN delivery
           const url = await uploadToImgbb(file.path, file.originalname);
           imageUrls.push(url);
           console.log(`  ✅ Image uploaded: ${url.substring(0, 50)}...`);
@@ -15788,81 +15806,108 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       }
     }
 
-    if (type === 'affiliate' && affiliate_link) {
-      fileUrl = affiliate_link;
+    // If no images uploaded for non-affiliate products, return error
+    if (type !== 'affiliate' && imageUrls.length === 0) {
+      return res.status(400).json({ error: "At least one product image is required." });
     }
-
-    // ✅ VERIFY FILE URL BEFORE INSERTING
+    
+    // ========== VERIFY FILE URL FOR DIGITAL PRODUCTS ==========
     if (type === 'digital' && !fileUrl) {
       console.error("❌ No file URL available for digital product");
       return res.status(500).json({ error: "File upload failed. No URL returned." });
     }
+    
+    // ========== CALCULATE FEES ==========
+    const platformFee = type === 'digital' ? listedPrice * 0.10 : 0;
+    const sellerEarnings = type === 'digital' ? listedPrice * 0.90 : listedPrice;
+    
+    console.log(`💰 Fee calculation: Customer pays $${listedPrice}, Platform fee: $${platformFee}, Seller earns: $${sellerEarnings}`);
 
-    console.log(`💾 Saving product to database with file_url: ${fileUrl ? fileUrl.substring(0, 60) : 'NULL'}`);
-
-    // ========== INSERT PRODUCT ==========
+    // ========== INSERT PRODUCT INTO DATABASE ==========
     const result = await db.query(
       `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
         category, type, file_url, image_urls, affiliate_link, 
         seller_payment_provider, delivery_type, delivery_locations, 
         delivery_countries, delivery_states, pickup_address, pickup_hours,
-        payment_option, estimated_delivery_days, rating, review_count, 
-        status, sales_count, favorite_count, created_at
+        payment_option, estimated_delivery_days, is_virtual_account,
+        rating, review_count, status, sales_count, favorite_count, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         userId, 
-        title.trim(), 
-        description || '', 
+        title?.trim() || '', 
+        description?.trim() || '', 
         listedPrice, 
         listedPrice, 
-        type === 'digital' ? listedPrice * 0.10 : 0,
+        platformFee,
         type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
-        category || '', 
+        category?.trim() || 'Uncategorized', 
         type, 
-        fileUrl,  // ✅ This should now have the actual file URL
+        fileUrl,  // ✅ THE FILE URL IS NOW SAVED TO DATABASE
         imageUrls.length ? JSON.stringify(imageUrls) : null, 
         affiliate_link || null, 
         paymentProvider,
         type === 'physical' ? (delivery_type || 'delivery') : null,
         type === 'physical' ? (delivery_locations || 'Worldwide') : null,
-        type === 'physical' ? (req.body.delivery_countries || 'Worldwide') : null,
-        type === 'physical' ? (req.body.delivery_states || '') : null,
-        type === 'physical' ? (req.body.pickup_address || '') : null,
-        type === 'physical' ? (req.body.pickup_hours || '') : null,
+        type === 'physical' ? (delivery_countries || 'Worldwide') : null,
+        type === 'physical' ? (delivery_states || '') : null,
+        type === 'physical' ? (pickup_address || '') : null,
+        type === 'physical' ? (pickup_hours || '') : null,
         type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
         type === 'physical' ? (parseInt(delivery_days) || 7) : null,
-        0.00, 0, 'active', 0, 0
+        (is_virtual_account === '1' || is_virtual_account === 'true') ? 1 : 0,
+        0.00,  // rating
+        0,    // review_count
+        'active', 
+        0,    // sales_count 
+        0,    // favorite_count
       ]
     );
 
     const productId = result.insertId;
     console.log(`✅ Product uploaded successfully! ID: ${productId}`);
-    console.log(`📁 File URL saved in database: ${fileUrl ? 'YES' : 'NO'}`);
+    console.log(`📁 File URL saved to database: ${fileUrl ? 'YES' : 'NO'}`);
+    if (fileUrl) {
+      console.log(`🔗 File URL: ${fileUrl.substring(0, 100)}...`);
+    }
     
-    // ========== RESPONSE ==========
+    // ========== SEND SUCCESS RESPONSE ==========
     res.json({ 
       success: true,
-      message: "✅ Product uploaded successfully!", 
+      message: type === 'digital' 
+        ? "✅ Digital product uploaded successfully! Customers will receive download links after purchase."
+        : "✅ Product uploaded successfully!", 
       productId: productId,
       type: type,
-      file_url: fileUrl,  // Return the file URL so frontend can verify
+      file_url: fileUrl,
       subaccount_created: subaccountResult?.success || false,
       subaccount_id: subaccountResult?.subaccount_id || subaccountResult?.subaccount_code,
       images_uploaded: imageUrls.length,
       pricing: {
         customer_price: listedPrice,
-        platform_fee: type === 'digital' ? listedPrice * 0.10 : 0,
-        seller_earnings: type === 'digital' ? listedPrice * 0.90 : listedPrice
+        platform_fee: platformFee,
+        seller_earnings: sellerEarnings,
+        split_ratio: "90/10"
       }
     });
     
   } catch (err) {
     console.error('❌ Product upload error:', err);
     console.error('❌ Error stack:', err.stack);
+    
+    // Clean up any temporary files that might still exist
+    if (req.files) {
+      const allFiles = [];
+      if (req.files.file) allFiles.push(...req.files.file);
+      if (req.files['images[]']) allFiles.push(...req.files['images[]']);
+      for (const file of allFiles) {
+        try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch(e) {}
+      }
+    }
+    
     res.status(500).json({ 
       error: "Error uploading product: " + err.message,
-      details: err.stack
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });

@@ -11926,6 +11926,8 @@ function fmtPrice(amount) {
 }
 // =================== RENDER PRODUCTS WITH CURRENCY CONVERSION ===================
 
+// =================== RENDER PRODUCTS WITH CONDITIONAL DELIVERY INFO ===================
+
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
     if (!grid) return;
@@ -11957,10 +11959,10 @@ function renderProducts() {
         list = list.filter(p => (p.category || '') === catFilter);
     }
     
-    // Country filter for physical products
+    // Country filter for physical products ONLY
     if (countryFilter) {
         list = list.filter(p => {
-            if (p.type !== 'physical') return true;
+            if (p.type !== 'physical') return true; // Skip filtering for non-physical
             const locations = p.delivery_locations || 'Worldwide';
             const countriesList = locations.split(',').map(l => l.trim());
             return countriesList.includes(countryFilter) || locations.includes('Worldwide');
@@ -12018,78 +12020,73 @@ function renderProducts() {
         const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
         const isFavorite = userFavorites.has(p.id);
         const isPhysical = p.type === 'physical';
+        const isDigital = p.type === 'digital';
         const badgeClass = p.type === 'digital' ? 'badge-digital' : 
                           p.type === 'physical' ? 'badge-physical' : 
                           'badge-affiliate';
 
-        // Get delivery info for physical products
-        const deliveryType = p.delivery_type || 'delivery';
-        const deliveryCountries = p.delivery_countries || 'Worldwide';
-        const deliveryStates = p.delivery_states || '';
-        const pickupAddress = p.pickup_address || '';
-        const pickupHours = p.pickup_hours || '';
-        const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
-
-       // Build delivery/pickup info HTML - SHOW ALL OPTIONS
-let deliveryInfoHtml = '<div class="product-details">';
-
-// Always show Home Delivery option if available
-if (deliveryType === 'delivery' || deliveryType === 'both') {
-  deliveryInfoHtml += `
-    <div class="detail-item">
-      <i class="fas fa-truck" style="color: var(--accent);"></i>
-      <span><strong>🚚 Home Delivery:</strong> Available</span>
-    </div>
-    <div class="detail-item">
-      <i class="fas fa-globe"></i>
-      <span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span>
-    </div>
-    ${deliveryStates ? `
-    <div class="detail-item">
-      <i class="fas fa-map-pin"></i>
-      <span><strong>States:</strong> ${escapeHtml(deliveryStates)}</span>
-    </div>
-    ` : ''}
-    <div class="detail-item">
-      <i class="fas fa-calendar-day"></i>
-      <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
-    </div>
-  `;
-}
-
-// Always show Store Pickup option if available
-if (deliveryType === 'pickup' || deliveryType === 'both') {
-  deliveryInfoHtml += `
-    <div class="detail-item" style="margin-top: 8px;">
-      <i class="fas fa-store" style="color: var(--success);"></i>
-      <span><strong>🏪 Store Pickup:</strong> Available</span>
-    </div>
-    <div class="detail-item">
-      <i class="fas fa-location-dot"></i>
-      <span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span>
-    </div>
-    ${pickupHours ? `
-    <div class="detail-item">
-      <i class="fas fa-clock"></i>
-      <span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span>
-    </div>
-    ` : ''}
-  `;
-}
-
-// If no delivery options (shouldn't happen), show a message
-if (deliveryInfoHtml === '<div class="product-details">') {
-  deliveryInfoHtml += `
-    <div class="detail-item">
-      <i class="fas fa-info-circle"></i>
-      <span>Contact seller for delivery options</span>
-    </div>
-  `;
-}
-
-deliveryInfoHtml += '</div>';
-        // Badge for delivery type - REMOVED (now shown in details section)
-let deliveryBadgeHtml = '';
+        // ✅ CONDITIONAL DELIVERY INFO - ONLY FOR PHYSICAL PRODUCTS
+        let deliveryInfoHtml = '';
+        
+        if (isPhysical) {
+            // Only show delivery info for physical products
+            const deliveryType = p.delivery_type || 'delivery';
+            const deliveryCountries = p.delivery_countries || 'Worldwide';
+            const deliveryStates = p.delivery_states || '';
+            const pickupAddress = p.pickup_address || '';
+            const pickupHours = p.pickup_hours || '';
+            const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+            
+            deliveryInfoHtml = '<div class="product-details">';
+            
+            // Show Home Delivery option if available
+            if (deliveryType === 'delivery' || deliveryType === 'both') {
+                deliveryInfoHtml += `
+                    <div class="detail-item">
+                        <i class="fas fa-truck" style="color: var(--accent);"></i>
+                        <span><strong>🚚 Home Delivery:</strong> Available</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-globe"></i>
+                        <span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span>
+                    </div>
+                    ${deliveryStates ? `
+                    <div class="detail-item">
+                        <i class="fas fa-map-pin"></i>
+                        <span><strong>States:</strong> ${escapeHtml(deliveryStates)}</span>
+                    </div>
+                    ` : ''}
+                    <div class="detail-item">
+                        <i class="fas fa-calendar-day"></i>
+                        <span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+                    </div>
+                `;
+            }
+            
+            // Show Store Pickup option if available
+            if (deliveryType === 'pickup' || deliveryType === 'both') {
+                deliveryInfoHtml += `
+                    <div class="detail-item" style="margin-top: 8px;">
+                        <i class="fas fa-store" style="color: var(--success);"></i>
+                        <span><strong>🏪 Store Pickup:</strong> Available</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-location-dot"></i>
+                        <span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span>
+                    </div>
+                    ${pickupHours ? `
+                    <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span>
+                    </div>
+                    ` : ''}
+                `;
+            }
+            
+            deliveryInfoHtml += '</div>';
+        }
+        
+        // ✅ NO delivery info for digital or affiliate products - they stay empty
 
         // Format prices with currency conversion
         const formattedPrice = fmtPrice(originalPriceUSD);
@@ -12097,7 +12094,7 @@ let deliveryBadgeHtml = '';
         return `
             <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
                 <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
-                <div class="product-badge ${badgeClass}">${p.type || 'Product'}</div>
+                <div class="product-badge ${badgeClass}">${p.type === 'digital' ? '📱 Digital' : p.type === 'physical' ? '📦 Physical' : '🔗 Affiliate'}</div>
                 
                 <div class="card-media">
                     <img id="mainimg-${p.id}" 
@@ -12127,7 +12124,9 @@ let deliveryBadgeHtml = '';
                         <span>By ${seller}</span>
                     </div>
                     <div class="meta">${desc}</div>
+                    
                     ${deliveryInfoHtml}
+                    
                     <div class="rating">
                         <span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
                         <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
@@ -12136,37 +12135,41 @@ let deliveryBadgeHtml = '';
                     <div class="price-row">
                         <div>
                             <div class="price">${formattedPrice}</div>
-                            ${p.type === 'physical' ? `
+                            ${isPhysical ? `
                                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                                     Free shipping
                                 </div>
-                            ` : (p.type === 'digital' ? `
+                            ` : isDigital ? `
                                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                                     Instant delivery
                                 </div>
-                            ` : '')}
+                            ` : ''}
                         </div>
-          <div class="card-actions">
-    ${ isAffiliate ? `
-        <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
-            <i class="fas fa-external-link-alt"></i> Visit
-        </button>
-    ` : isPhysical ? `
-        <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
-            <i class="fas fa-shopping-cart"></i> Order Now
-        </button>
-        <button class="small-btn info" onclick="event.stopPropagation(); showProductConditions(${p.id})" title="View product details, warranty, and condition">
-            <i class="fas fa-clipboard-list"></i> Details
-        </button>
-    ` : `
-        <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
-            <i class="fas fa-shopping-cart"></i> Buy Now
-        </button>
-    `}
-    <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
-        <i class="fas fa-eye"></i> View
-    </button>
-</div>
+                        <div class="card-actions">
+                            ${isAffiliate ? `
+                                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
+                                    <i class="fas fa-external-link-alt"></i> Visit
+                                </button>
+                            ` : isPhysical ? `
+                                <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
+                                    <i class="fas fa-shopping-cart"></i> Order Now
+                                </button>
+                                <button class="small-btn info" onclick="event.stopPropagation(); showProductConditions(${p.id})" title="View product details, warranty, and condition">
+                                    <i class="fas fa-clipboard-list"></i> Details
+                                </button>
+                            ` : isDigital ? `
+                                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
+                                    <i class="fas fa-shopping-cart"></i> Buy Now
+                                </button>
+                            ` : `
+                                <button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})">
+                                    <i class="fas fa-shopping-cart"></i> Buy Now
+                                </button>
+                            `}
+                            <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
                     </div>
                     <div class="owner-controls">
                         <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
@@ -12188,7 +12191,6 @@ let deliveryBadgeHtml = '';
     // Update any currency displays that need special handling
     updateAllPrices();
 }
-
 // Helper function to escape HTML
 function escapeHtml(s) { 
     if (!s) return ''; 

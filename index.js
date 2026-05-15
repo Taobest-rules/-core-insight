@@ -5017,6 +5017,19 @@ app.get("/api/order/:orderId/inspection-guide", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.get("/api/debug/routes", (req, res) => {
+  const routes = [];
+  app._router.stack.forEach(middleware => {
+    if (middleware.route) {
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods)
+      });
+    }
+  });
+  res.json(routes.filter(r => r.path && r.path.includes('download')));
+});
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED
 // ============================================

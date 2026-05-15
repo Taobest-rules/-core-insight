@@ -6062,7 +6062,7 @@ app.post("/api/messages/send-with-image", uploadChatImage, async (req, res) => {
 });
 
 
-// Certificate Images Upload (Multiple)
+// Certificate Images Upload (Multiple) - FIXED
 app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, res) => {
   try {
     if (!req.session.user) {
@@ -6077,11 +6077,10 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
     for (const file of req.files) {
       const url = await uploadToImgbb(file.path, file.originalname);
       certificateUrls.push(url);
+      console.log(`✅ Uploaded certificate: ${url.substring(0, 60)}...`);
     }
-    
-    console.log(`✅ Uploaded ${certificateUrls.length} certificates to ImgBB`);
 
-    // Get current certificates
+    // Get current certificates from BOTH possible columns
     const currentProfile = await db.query(
       "SELECT certificate_images, certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
       [req.session.user.id]
@@ -6089,13 +6088,16 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
 
     let currentCertificates = [];
     if (currentProfile && currentProfile.length > 0) {
+      // Try certificate_images first
       if (currentProfile[0].certificate_images) {
         try {
           currentCertificates = JSON.parse(currentProfile[0].certificate_images);
         } catch (e) {
           currentCertificates = currentProfile[0].certificate_images ? [currentProfile[0].certificate_images] : [];
         }
-      } else if (currentProfile[0].certificate_image_urls) {
+      }
+      // If certificate_images is empty, try certificate_image_urls
+      else if (currentProfile[0].certificate_image_urls) {
         try {
           currentCertificates = JSON.parse(currentProfile[0].certificate_image_urls);
         } catch (e) {
@@ -6104,17 +6106,25 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
       }
     }
 
+    // Ensure we have an array
+    if (!Array.isArray(currentCertificates)) {
+      currentCertificates = [];
+    }
+
     // Limit to 5 certificates total
     const updatedCertificates = [...currentCertificates, ...certificateUrls].slice(0, 5);
     
-    // Update BOTH certificate columns
+    // Update BOTH certificate columns for compatibility
+    const certsJson = JSON.stringify(updatedCertificates);
     await db.query(`
       UPDATE freelancer_profiles 
       SET certificate_images = ?,
           certificate_image_urls = ?,
           updated_at = NOW() 
       WHERE user_id = ?
-    `, [JSON.stringify(updatedCertificates), JSON.stringify(updatedCertificates), req.session.user.id]);
+    `, [certsJson, certsJson, req.session.user.id]);
+
+    console.log(`✅ Updated certificates for user ${req.session.user.id}: ${updatedCertificates.length} total`);
 
     res.json({ 
       success: true,

@@ -9524,171 +9524,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==================== FIXED PROFILE SECTION ====================
 // ==================== COMPLETE PROFILE SECTION ====================
 
-// Show freelancer profile with real data
-async function showFreelancerProfile() {
-    if (!currentUser) {
-        showToast('Please login to view profile', 'warning');
-        openModal(document.getElementById('loginModal'));
-        return;
-    }
-    
-    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
-        showToast('Only freelancers have profiles', 'info');
-        return;
-    }
-    
-    const profileSection = document.getElementById('freelancerProfile');
-    if (!profileSection) return;
-    
-    // Hide other sections and show profile
-    hideAllPages();
-    profileSection.classList.remove('hidden');
-    
-    // Switch to profile view tab
-    switchProfileTab('profileViewTabContent');
-    
-    try {
-        showToast('Loading profile...', 'info');
-        
-        // Load profile data
-        const response = await fetch('/api/freelancer/profile', {
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to load profile');
-        }
-        
-        const profile = await response.json();
-        console.log('Profile data:', profile);
-        
-        // Update profile display
-        document.getElementById('profileUsername').textContent = profile.username || currentUser.username;
-        document.getElementById('profileHeadline').textContent = profile.headline || 'Professional Freelancer';
-        document.getElementById('profileDescription').textContent = profile.description || 'No description provided. Click Edit Profile to add your bio.';
-        document.getElementById('profileHourlyRate').textContent = profile.hourly_rate ? `$${profile.hourly_rate}/hr` : '$0/hr';
-        document.getElementById('profileLocation').textContent = profile.location || 'Not specified';
-        document.getElementById('profileExperienceLevel').textContent = profile.experience_level ? profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1) : 'Not specified';
-        document.getElementById('profileEmail').textContent = currentUser.email;
-        document.getElementById('profilePhone').textContent = profile.phone || 'Not provided';
-        
-        // Website link
-        const websiteElement = document.getElementById('profileWebsite');
-        if (profile.website) {
-            websiteElement.innerHTML = `<a href="${profile.website}" target="_blank" style="color: var(--accent-blue);">${profile.website}</a>`;
-        } else {
-            websiteElement.innerHTML = 'Not provided';
-        }
-        
-        document.getElementById('profileMemberSince').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : new Date().toLocaleDateString();
-        document.getElementById('profileCompletedOrders').textContent = profile.completed_orders || 0;
-        
-        // Set availability badge
-        const availabilitySpan = document.getElementById('profileAvailability');
-        if (profile.availability === 'available') {
-            availabilitySpan.innerHTML = '<span style="color: #10b981;"><i class="fas fa-circle"></i> Available Now</span>';
-        } else if (profile.availability === 'busy') {
-            availabilitySpan.innerHTML = '<span style="color: #f59e0b;"><i class="fas fa-clock"></i> Currently Busy</span>';
-        } else {
-            availabilitySpan.innerHTML = '<span style="color: #ef4444;"><i class="fas fa-ban"></i> Not Available</span>';
-        }
-        
-        // Set profile picture
-        const profilePicture = document.getElementById('profilePicture');
-        const profileInitials = document.getElementById('profileInitials');
-        
-        if (profile.profile_picture) {
-            profilePicture.src = profile.profile_picture;
-            profilePicture.style.display = 'block';
-            profileInitials.style.display = 'none';
-        } else {
-            profilePicture.style.display = 'none';
-            profileInitials.style.display = 'flex';
-            const initial = (currentUser.username || 'U').charAt(0).toUpperCase();
-            profileInitials.textContent = initial;
-        }
-        
-        // Load skills
-        const skillsContainer = document.getElementById('profileSkills');
-        if (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) {
-            skillsContainer.innerHTML = profile.skills.map(skill => `
-                <span class="skill-tag"><i class="fas fa-check-circle"></i> ${escapeHtml(skill)}</span>
-            `).join('');
-        } else {
-            skillsContainer.innerHTML = '<p style="color: var(--text-gray);">No skills added yet. Click Edit Profile to add your skills.</p>';
-        }
-        
-        // Load languages
-        const languagesContainer = document.getElementById('profileLanguages');
-        if (profile.languages && Array.isArray(profile.languages) && profile.languages.length > 0) {
-            languagesContainer.innerHTML = profile.languages.map(lang => `
-                <span class="skill-tag"><i class="fas fa-language"></i> ${escapeHtml(lang)}</span>
-            `).join('');
-        } else {
-            languagesContainer.innerHTML = '<p style="color: var(--text-gray);">No languages specified.</p>';
-        }
-        
-        // Load certificates
-        const certificatesContainer = document.getElementById('profileCertificates');
-        if (profile.certificate_images && Array.isArray(profile.certificate_images) && profile.certificate_images.length > 0) {
-            certificatesContainer.innerHTML = profile.certificate_images.map((cert, index) => `
-                <div class="certificate-item">
-                    <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="openCertificateViewer('${cert}', ${index})">
-                    <button class="remove-certificate" onclick="removeCertificate(${index})">&times;</button>
-                </div>
-            `).join('');
-        } else {
-            certificatesContainer.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
-        }
-        
-        // Fill edit form with current values
-        document.getElementById('editHeadline').value = profile.headline || '';
-        document.getElementById('editHourlyRate').value = profile.hourly_rate || '';
-        document.getElementById('editDescription').value = profile.description || '';
-        document.getElementById('editExperienceLevel').value = profile.experience_level || 'intermediate';
-        document.getElementById('editAvailability').value = profile.availability || 'available';
-        document.getElementById('editLocation').value = profile.location || '';
-        document.getElementById('editPhone').value = profile.phone || '';
-        document.getElementById('editWebsite').value = profile.website || '';
-        document.getElementById('editEducation').value = profile.education || '';
-        document.getElementById('editCertifications').value = profile.certifications || '';
-        
-        // Load skills for editing
-        const skillsList = document.getElementById('skillsList');
-        if (profile.skills && Array.isArray(profile.skills) && profile.skills.length > 0) {
-            skillsList.innerHTML = profile.skills.map(skill => `
-                <span class="skill-tag">
-                    ${escapeHtml(skill)}
-                    <span class="remove-skill" onclick="removeSkill('${escapeHtml(skill)}')">&times;</span>
-                </span>
-            `).join('');
-        } else {
-            skillsList.innerHTML = '';
-        }
-        
-        // Load languages for editing
-        const languagesList = document.getElementById('languagesList');
-        if (profile.languages && Array.isArray(profile.languages) && profile.languages.length > 0) {
-            languagesList.innerHTML = profile.languages.map(lang => `
-                <span class="skill-tag">
-                    ${escapeHtml(lang)}
-                    <span class="remove-skill" onclick="removeLanguage('${escapeHtml(lang)}')">&times;</span>
-                </span>
-            `).join('');
-        } else {
-            languagesList.innerHTML = '';
-        }
-        
-        // Load dashboard stats
-        await loadFreelancerDashboard();
-        
-        showToast('Profile loaded successfully', 'success');
-        
-    } catch (err) {
-        console.error('Error loading profile:', err);
-        showToast('Error loading profile: ' + err.message, 'error');
-    }
-}
+
 // Load reviews for freelancer dashboard - Add this function
 async function loadFreelancerReviews() {
     const container = document.getElementById('profileReviewsList');
@@ -10425,7 +10261,6 @@ function setupProfileTabHandlers() {
     }
 }
 
-// Complete showFreelancerProfile function
 async function showFreelancerProfile() {
     console.log("Showing freelancer profile");
     
@@ -10482,6 +10317,11 @@ async function showFreelancerProfile() {
         
         const profile = await response.json();
         console.log("Profile data received:", profile);
+        console.log("Certificate data:", {
+            certificate_images: profile.certificate_images,
+            certificate_image_urls: profile.certificate_image_urls,
+            type: typeof profile.certificate_images
+        });
         
         // Update profile display
         updateProfileDisplay(profile);
@@ -10497,7 +10337,7 @@ async function showFreelancerProfile() {
     }
 }
 
-function updateProfileDisplay(profile) {
+   function updateProfileDisplay(profile) {
     // Basic info
     const usernameEl = document.getElementById('profileUsername');
     if (usernameEl) usernameEl.textContent = profile.username || currentUser?.username || 'Freelancer';
@@ -10561,11 +10401,10 @@ function updateProfileDisplay(profile) {
         }
     }
     
-    // Profile picture - FIXED
+    // Profile picture
     const profilePicture = document.getElementById('profilePicture');
     const profileInitials = document.getElementById('profileInitials');
     
-    // Try both possible field names
     const pictureUrl = profile.profile_picture || profile.profile_picture_url;
     
     if (pictureUrl && pictureUrl !== 'null' && pictureUrl !== 'undefined' && pictureUrl !== '') {
@@ -10580,7 +10419,6 @@ function updateProfileDisplay(profile) {
             const initial = (currentUser?.username || 'U').charAt(0).toUpperCase();
             profileInitials.textContent = initial;
         }
-        console.log("No profile picture found");
     }
     
     // Skills
@@ -10609,16 +10447,40 @@ function updateProfileDisplay(profile) {
         }
     }
     
-    // Certificates
+    // ==================== CERTIFICATES - FIXED ====================
     const certificatesContainer = document.getElementById('profileCertificates');
     if (certificatesContainer) {
-        const certImages = profile.certificate_images || profile.certificate_image_urls;
-        if (certImages && Array.isArray(certImages) && certImages.length > 0) {
+        // Check both possible field names for certificates
+        let certImages = profile.certificate_images || profile.certificate_image_urls || profile.certificates;
+        
+        // Parse if it's a string (JSON string from database)
+        if (typeof certImages === 'string') {
+            try {
+                const parsed = JSON.parse(certImages);
+                certImages = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+            } catch (e) {
+                // If JSON parse fails, treat as single URL if not empty
+                certImages = certImages && certImages.length > 0 ? [certImages] : [];
+            }
+        }
+        
+        // Ensure it's an array
+        if (!Array.isArray(certImages)) {
+            certImages = [];
+        }
+        
+        // Filter out empty/invalid URLs
+        certImages = certImages.filter(url => url && url !== 'null' && url !== 'undefined' && url.trim() !== '');
+        
+        console.log("Certificates to display:", certImages.length);
+        
+        if (certImages.length > 0) {
             certificatesContainer.innerHTML = certImages.map((cert, index) => `
                 <div class="certificate-item">
                     <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" 
                          style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
-                         onclick="openCertificateViewer('${cert}', ${index})">
+                         onclick="openCertificateViewer('${cert}', ${index})"
+                         onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Certificate+Not+Found';">
                     <button class="remove-certificate" onclick="removeCertificate(${index})">&times;</button>
                 </div>
             `).join('');
@@ -10627,7 +10489,8 @@ function updateProfileDisplay(profile) {
         }
     }
     
-    // Fill edit form
+    // ==================== EDIT FORM FIELDS ====================
+    // Fill edit form with current values
     const editHeadline = document.getElementById('editHeadline');
     if (editHeadline) editHeadline.value = profile.headline || '';
     
@@ -10682,7 +10545,6 @@ function updateProfileDisplay(profile) {
         `).join('');
     }
 }
-
 function displayPlaceholderProfile() {
     const usernameEl = document.getElementById('profileUsername');
     if (usernameEl) usernameEl.textContent = currentUser?.username || 'Freelancer';
@@ -14324,99 +14186,13 @@ function setupCertificateUpload() {
     console.log("Certificate upload initialized successfully");
 }
 
-// Upload certificates function
-async function uploadCertificates(files) {
-    const maxFiles = 5;
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    
-    // Validate files
-    const validFiles = [];
-    for (const file of files) {
-        if (!allowedTypes.includes(file.type)) {
-            showToast(`${file.name} is not an image (use JPG, PNG, GIF, or WEBP)`, 'warning');
-            continue;
-        }
-        if (file.size > maxSize) {
-            showToast(`${file.name} exceeds 5MB limit`, 'warning');
-            continue;
-        }
-        validFiles.push(file);
-    }
-    
-    if (validFiles.length === 0) {
-        showToast('No valid files to upload', 'warning');
-        return;
-    }
-    
-    if (validFiles.length > maxFiles) {
-        showToast(`Maximum ${maxFiles} files allowed`, 'warning');
-        return;
-    }
-    
-    // Show progress
-    const progressDiv = document.getElementById('certificateProgress');
-    const progressBar = document.getElementById('certificateProgressBar');
-    const progressText = document.getElementById('certificateProgressText');
-    
-    if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '0%';
-    if (progressText) progressText.textContent = 'Preparing upload...';
-    
-    // Create form data
-    const formData = new FormData();
-    validFiles.forEach(file => {
-        formData.append('certificate_images', file);
-    });
-    
-    try {
-        // Update progress
-        if (progressBar) progressBar.style.width = '30%';
-        if (progressText) progressText.textContent = 'Uploading...';
-        
-        const response = await fetch('/api/freelancer/certificate-images', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            if (progressBar) progressBar.style.width = '100%';
-            if (progressText) progressText.textContent = 'Complete!';
-            showToast(`✅ Successfully uploaded ${validFiles.length} certificate(s)!`, 'success');
-            
-            // Refresh profile to show new certificates
-            setTimeout(() => {
-                if (typeof showFreelancerProfile === 'function') {
-                    showFreelancerProfile();
-                }
-            }, 1000);
-        } else {
-            showToast(result.error || 'Upload failed', 'error');
-            if (progressDiv) progressDiv.style.display = 'none';
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading certificates: ' + err.message, 'error');
-        if (progressDiv) progressDiv.style.display = 'none';
-    } finally {
-        // Hide progress after 3 seconds
-        setTimeout(() => {
-            if (progressDiv) progressDiv.style.display = 'none';
-            if (progressBar) progressBar.style.width = '0%';
-        }, 3000);
-    }
-}
-
-
-// Make sure uploadCertificates is defined and working
+// FIXED Certificate Upload Function
 async function uploadCertificates(files) {
     const maxFiles = 5;
     const maxSize = 5 * 1024 * 1024;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     
+    // Validate files
     const validFiles = [];
     for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
@@ -14436,56 +14212,104 @@ async function uploadCertificates(files) {
         return;
     }
     
-    const formData = new FormData();
-    validFiles.forEach(file => {
-        formData.append('certificate_images', file);
-    });
-    
+    // Show progress
     const progressDiv = document.getElementById('certificateProgress');
     const progressBar = document.getElementById('certificateProgressBar');
     const progressText = document.getElementById('certificateProgressText');
     
     if (progressDiv) progressDiv.style.display = 'block';
-    if (progressBar) progressBar.style.width = '50%';
-    if (progressText) progressText.textContent = 'Uploading...';
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.textContent = 'Preparing upload...';
     
+    // Upload each file
+    const uploadedUrls = [];
+    for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        if (progressBar) progressBar.style.width = `${((i + 1) / validFiles.length) * 50}%`;
+        if (progressText) progressText.textContent = `Uploading ${i + 1}/${validFiles.length}: ${file.name}`;
+        
+        const formData = new FormData();
+        formData.append('certificate_images', file);
+        
+        try {
+            const response = await fetch('/api/freelancer/certificate-images', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                uploadedUrls.push(...(result.certificate_images || []));
+            } else {
+                showToast(`Failed to upload ${file.name}: ${result.error || 'Unknown error'}`, 'error');
+            }
+        } catch (err) {
+            console.error(`Upload error for ${file.name}:`, err);
+            showToast(`Error uploading ${file.name}`, 'error');
+        }
+    }
+    
+    if (uploadedUrls.length > 0) {
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = 'Complete! Refreshing...';
+        showToast(`✅ ${uploadedUrls.length} certificate(s) uploaded!`, 'success');
+        
+        // FORCE PROFILE REFRESH
+        setTimeout(() => {
+            if (typeof showFreelancerProfile === 'function') {
+                showFreelancerProfile();
+            }
+            // Also reload the edit form certificates
+            loadCertificatesIntoEditForm();
+        }, 1500);
+    } else {
+        showToast('No certificates were uploaded', 'error');
+    }
+    
+    // Hide progress after 3 seconds
+    setTimeout(() => {
+        if (progressDiv) progressDiv.style.display = 'none';
+        if (progressBar) progressBar.style.width = '0%';
+    }, 3000);
+    
+    // Clear file input
+    const certificateInput = document.getElementById('certificateImagesInput');
+    if (certificateInput) certificateInput.value = '';
+}
+
+// Helper function to reload certificates in edit form
+async function loadCertificatesIntoEditForm() {
     try {
-        const response = await fetch('/api/freelancer/certificate-images', {
-            method: 'POST',
-            body: formData,
+        const response = await fetch('/api/freelancer/profile', {
             credentials: 'include'
         });
         
-        const result = await response.json();
+        if (!response.ok) return;
         
-        if (response.ok && result.success) {
-            if (progressBar) progressBar.style.width = '100%';
-            if (progressText) progressText.textContent = 'Complete!';
-            showToast(`✅ ${validFiles.length} certificate(s) uploaded!`, 'success');
-            
-            // Refresh the profile to show new certificates
-            setTimeout(() => {
-                if (typeof showFreelancerProfile === 'function') {
-                    showFreelancerProfile();
-                }
-            }, 1000);
-        } else {
-            showToast(result.error || 'Upload failed', 'error');
+        const profile = await response.json();
+        const certificatesContainer = document.getElementById('profileCertificates');
+        
+        if (certificatesContainer) {
+            const certImages = profile.certificate_images || profile.certificate_image_urls;
+            if (certImages && Array.isArray(certImages) && certImages.length > 0) {
+                certificatesContainer.innerHTML = certImages.map((cert, index) => `
+                    <div class="certificate-item">
+                        <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" 
+                             style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
+                             onclick="openCertificateViewer('${cert}', ${index})">
+                        <button class="remove-certificate" onclick="removeCertificate(${index})">&times;</button>
+                    </div>
+                `).join('');
+            } else {
+                certificatesContainer.innerHTML = '<p style="color: var(--text-gray);">No certificates uploaded yet.</p>';
+            }
         }
     } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error uploading certificates', 'error');
-    } finally {
-        setTimeout(() => {
-            if (progressDiv) progressDiv.style.display = 'none';
-            if (progressBar) progressBar.style.width = '0%';
-        }, 3000);
-        
-        const certificateInput = document.getElementById('certificateImagesInput');
-        if (certificateInput) certificateInput.value = '';
+        console.error("Error reloading certificates:", err);
     }
 }
-
 // Initialize certificate upload when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     setupCertificateUpload();
@@ -14554,11 +14378,13 @@ function initCertificateUpload() {
     
     console.log("Certificate upload initialized");
 }
-// ==================== DELETE CERTIFICATE ====================
+// Delete certificate function
 async function removeCertificate(index) {
     if (!confirm("Are you sure you want to remove this certificate?")) return;
     
     try {
+        showToast("Removing certificate...", "info");
+        
         const response = await fetch(`/api/freelancer/certificate-images/${index}`, {
             method: 'DELETE',
             credentials: 'include'
@@ -14568,6 +14394,7 @@ async function removeCertificate(index) {
         
         if (response.ok && result.success) {
             showToast('✅ Certificate removed successfully', 'success');
+            // Refresh the profile to update the display
             await showFreelancerProfile();
         } else {
             showToast(result.error || 'Failed to remove certificate', 'error');

@@ -21,21 +21,21 @@ const MySQLStore = require("express-mysql-session")(session);
 const Flutterwave = require('flutterwave-node-v3');
 const csv = require('csv-parser');
 const {
-  uploadCourse,
-  uploadProduct,
-  uploadProductImages,
-  uploadThumbnail,
-  uploadProfilePicture,
-  uploadChatImage,
-  uploadCertificate,
-  uploadCourseFile,
-  uploadProductFile,
-  uploadMultipleProducts,
-  uploadToImgbb,
-  uploadToBackblaze,
-  uploadFile,           // ✅ ADD THIS - it's the smart upload function
-  uploadSmartFile,      // ✅ ADD THIS - alias for uploadFile
-  uploadFileToMega      // ✅ ADD THIS - legacy name
+    uploadCourse,
+    uploadProduct,
+    uploadProductImages,
+    uploadThumbnail,
+    uploadProfilePicture,
+    uploadChatImage,
+    uploadCertificate,
+    uploadCourseFile,
+    uploadProductFile,
+    uploadMultipleProducts,
+    uploadToImgbb,
+    uploadToBackblaze,
+    uploadFile,           // This comes from mega-storage.js
+    uploadSmartFile,
+    uploadFileToMega
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");
@@ -5930,11 +5930,11 @@ const fileStorage = multer.diskStorage({
     }
 });
 
-const uploadFile = multer({ 
+// TO THIS:
+const chatFileUpload = multer({ 
     storage: fileStorage,
-    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
+    limits: { fileSize: 20 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        // Allow common file types
         const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.jpg', '.jpeg', '.png', '.gif'];
         const ext = path.extname(file.originalname).toLowerCase();
         if (allowedTypes.includes(ext)) {
@@ -5946,7 +5946,7 @@ const uploadFile = multer({
 });
 
 // Chat File Attachment Upload (Documents, PDFs, etc.)
-app.post("/api/messages/send-with-file", uploadFile.single('file'), async (req, res) => {
+app.post("/api/messages/send-with-file", chatFileUpload.single('file'), async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) {

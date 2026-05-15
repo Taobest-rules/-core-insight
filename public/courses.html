@@ -854,6 +854,11 @@ In the name of Allah, the Most Gracious, the Most Merciful
   background: #ff5252;
   transform: translateY(-2px);
 }
+/* Add to your existing CSS */
+#toggleMassDeleteBtn.active-mode {
+  background: #dc2626 !important;
+  color: white !important;
+}
     /* Loading States */
     .loading {
       opacity: 0.6;
@@ -1499,21 +1504,28 @@ In the name of Allah, the Most Gracious, the Most Merciful
       <div class="course-count" id="courseCount">Loading...</div>
     </div>
     
-    <div class="filter-buttons">
-      <button class="filter-btn active" data-filter="all">
-        <i class="fas fa-th"></i> All
-      </button>
-      <button class="filter-btn" data-filter="free">
-        <i class="fas fa-book"></i> Free Books
-      </button>
-      <button class="filter-btn" data-filter="premium">
-        <i class="fas fa-crown"></i> Premium
-      </button>
-      <button class="filter-btn" data-filter="video">
-        <i class="fas fa-video"></i> Video Tutorials
-      </button>
-    </div>
-    
+   <!-- Add this button after the filter buttons or near the course count -->
+<div class="filter-buttons" style="justify-content: space-between; align-items: center;">
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <button class="filter-btn active" data-filter="all">
+      <i class="fas fa-th"></i> All
+    </button>
+    <button class="filter-btn" data-filter="free">
+      <i class="fas fa-book"></i> Free Books
+    </button>
+    <button class="filter-btn" data-filter="premium">
+      <i class="fas fa-crown"></i> Premium
+    </button>
+    <button class="filter-btn" data-filter="video">
+      <i class="fas fa-video"></i> Video Tutorials
+    </button>
+  </div>
+  
+  <!-- ✅ ADD THIS MASS DELETE BUTTON (Admin only - will be shown via JS) -->
+  <button id="toggleMassDeleteBtn" class="filter-btn" style="background: #ef4444; color: white; display: none;">
+    <i class="fas fa-trash-alt"></i> Mass Delete
+  </button>
+</div>
     <div id="coursesGrid" class="grid">
       <!-- Courses will be dynamically loaded here -->
       <div class="card">

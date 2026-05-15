@@ -9880,7 +9880,58 @@ app.put("/api/freelancer/update-profile", async (req, res) => {
         res.status(500).json({ error: "Error updating profile: " + err.message });
     }
 });
-
+// Debug endpoint - Check what dashboard API actually returns
+app.get("/api/debug/dashboard-raw", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+    
+    try {
+        const userId = req.session.user.id;
+        
+        // Direct queries to see raw data
+        const clientProviders = await db.query(
+            "SELECT * FROM client_providers WHERE freelancer_id = ?",
+            [userId]
+        );
+        
+        const serviceCount = await db.query(
+            "SELECT COUNT(*) as count FROM services WHERE user_id = ? AND status = 'active'",
+            [userId]
+        );
+        
+        const profile = await db.query(
+            "SELECT * FROM freelancer_profiles WHERE user_id = ?",
+            [userId]
+        );
+        
+        // Now call the actual dashboard query
+        const dashboardResult = await db.query(`
+            SELECT 
+                (SELECT COUNT(*) FROM services WHERE user_id = ? AND status = 'active') as total_services,
+                (SELECT COUNT(DISTINCT client_id) FROM client_providers WHERE freelancer_id = ? AND status = 'active') as total_clients,
+                (SELECT COUNT(*) FROM client_providers WHERE freelancer_id = ?) as total_recruitments,
+                (SELECT avg_rating FROM freelancer_profiles WHERE user_id = ?) as avg_rating,
+                (SELECT review_count FROM freelancer_profiles WHERE user_id = ?) as review_count,
+                (SELECT completed_orders FROM freelancer_profiles WHERE user_id = ?) as completed_orders,
+                (SELECT total_earnings FROM freelancer_profiles WHERE user_id = ?) as total_earnings
+        `, [userId, userId, userId, userId, userId, userId, userId]);
+        
+        res.json({
+            user_id: userId,
+            client_providers_count: clientProviders.length,
+            client_providers: clientProviders,
+            service_count: serviceCount[0]?.count || 0,
+            profile: profile[0] || null,
+            dashboard_query_result: dashboardResult[0] || null,
+            raw_dashboard_data: dashboardResult
+        });
+        
+    } catch (err) {
+        console.error("Debug error:", err);
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
 // ============================================
 // FREELANCER DASHBOARD - FIXED
 // ============================================

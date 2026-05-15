@@ -4484,335 +4484,7 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ============================================
-// AUTO VERIFICATION SYSTEM - NO ADMIN REVIEW
-// ============================================
 
-
-// 1. Send OTP via Email (no Twilio needed)
-app.post("/api/verification/send-otp", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-
-        const { phone_number } = req.body;
-        
-        if (!phone_number) {
-            return res.status(400).json({ error: "Phone number is required" });
-        }
-
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
-
-        await db.query(
-            `INSERT INTO phone_verifications (user_id, phone_number, otp_code, expires_at, verified, created_at)
-             VALUES (?, ?, ?, ?, 0, NOW())
-             ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?, created_at = NOW()`,
-            [req.session.user.id, phone_number, otpCode, expiresAt, otpCode, expiresAt]
-        );
-
-        const emailHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head><title>Phone Verification - Core Insight Market</title></head>
-            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                    <h1 style="color:#FFD700;">📱 Phone Verification</h1>
-                    <p>Hello ${req.session.user.username},</p>
-                    <p>Your verification code is:</p>
-                    <div style="font-size: 48px; font-weight: bold; text-align: center; padding: 20px; background: #0f172a; border-radius: 12px; letter-spacing: 10px;">
-                        ${otpCode}
-                    </div>
-                    <p>This code expires in 10 minutes.</p>
-                </div>
-            </body>
-            </html>
-        `;
-        
-        await sendEmail(req.session.user.email, "Phone Verification Code - Core Insight Market", emailHtml);
-
-        res.json({
-            success: true,
-            message: "Verification code sent to your email. Valid for 10 minutes."
-        });
-
-    } catch (err) {
-        console.error("OTP send error:", err);
-        res.status(500).json({ error: "Failed to send OTP" });
-    }
-});
-
-// 2. Verify OTP
-app.post("/api/verification/verify-otp", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-
-        const { otp_code } = req.body;
-
-        if (!otp_code) {
-            return res.status(400).json({ error: "OTP code is required" });
-        }
-
-        const verification = await db.query(
-            `SELECT * FROM phone_verifications 
-             WHERE user_id = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0
-             ORDER BY created_at DESC LIMIT 1`,
-            [req.session.user.id, otp_code]
-        );
-
-        if (!verification || verification.length === 0) {
-            return res.status(400).json({ error: "Invalid or expired OTP code" });
-        }
-
-        await db.query(
-            `UPDATE phone_verifications SET verified = 1 WHERE id = ?`,
-            [verification[0].id]
-        );
-
-        await db.query(
-            `UPDATE users SET phone_verified = 1, phone_number = ? WHERE id = ?`,
-            [verification[0].phone_number, req.session.user.id]
-        );
-
-        res.json({
-            success: true,
-            message: "Phone number verified successfully!"
-        });
-
-    } catch (err) {
-        console.error("OTP verify error:", err);
-        res.status(500).json({ error: "Failed to verify OTP" });
-    }
-});
-
-// 3. AUTO VERIFY - Immediate verification after document upload
-app.post("/api/verification/auto-verify", 
-    uploadVerification.fields([
-        { name: 'government_id', maxCount: 1 },
-        { name: 'selfie_with_id', maxCount: 1 },
-        { name: 'address_proof', maxCount: 1 }
-    ]), 
-    async (req, res) => {
-        try {
-            if (!req.session.user) {
-                return res.status(401).json({ error: "Please login" });
-            }
-
-            const { verification_type, business_name } = req.body;
-
-            // Check if phone is verified first
-            const phoneCheck = await db.query(
-                "SELECT phone_verified FROM users WHERE id = ?",
-                [req.session.user.id]
-            );
-
-            if (!phoneCheck[0]?.phone_verified) {
-                return res.status(400).json({ error: "Please verify your phone number first" });
-            }
-
-            // Required documents
-            if (!req.files['government_id']) {
-                return res.status(400).json({ error: "Government ID is required" });
-            }
-
-            if (!req.files['selfie_with_id']) {
-                return res.status(400).json({ error: "Selfie with ID is required" });
-            }
-
-            if (!req.files['address_proof']) {
-                return res.status(400).json({ error: "Proof of address is required" });
-            }
-
-            let documentsUploaded = 0;
-
-            // Upload Government ID
-            if (req.files['government_id']) {
-                const file = req.files['government_id'][0];
-                const url = await uploadToImgbb(file.path, file.originalname);
-                await db.query(
-                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
-                     VALUES (?, 'government_id', ?, NOW(), 'approved')`,
-                    [req.session.user.id, url]
-                );
-                documentsUploaded++;
-            }
-
-            // Upload Selfie with ID
-            if (req.files['selfie_with_id']) {
-                const file = req.files['selfie_with_id'][0];
-                const url = await uploadToImgbb(file.path, file.originalname);
-                await db.query(
-                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
-                     VALUES (?, 'selfie_with_id', ?, NOW(), 'approved')`,
-                    [req.session.user.id, url]
-                );
-                documentsUploaded++;
-            }
-
-            // Upload Address Proof
-            if (req.files['address_proof']) {
-                const file = req.files['address_proof'][0];
-                const url = await uploadToImgbb(file.path, file.originalname);
-                await db.query(
-                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
-                     VALUES (?, 'address_proof', ?, NOW(), 'approved')`,
-                    [req.session.user.id, url]
-                );
-                documentsUploaded++;
-            }
-
-            // AUTO-VERIFY - Mark as verified immediately
-            await db.query(
-                `UPDATE users 
-                 SET verification_status = 'verified',
-                     verification_type = ?,
-                     verified_at = NOW(),
-                     business_name = ?
-                 WHERE id = ?`,
-                [verification_type || 'individual', business_name || null, req.session.user.id]
-            );
-
-            // Send welcome email
-            const welcomeHtml = `
-                <!DOCTYPE html>
-                <html>
-                <head><title>Welcome Seller - Core Insight Market</title></head>
-                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                        <h1 style="color:#10b981;">✅ Verification Complete!</h1>
-                        <p>Hello ${req.session.user.username},</p>
-                        <p>Congratulations! Your seller account has been automatically verified.</p>
-                        <p>You can now list products and start selling on Core Insight Market.</p>
-                        <a href="https://coreinsightmarket.com/products.html" 
-                           style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">
-                            Start Selling
-                        </a>
-                    </div>
-                </body>
-                </html>
-            `;
-            
-            await sendEmail(req.session.user.email, "Welcome to Core Insight Market - Seller", welcomeHtml);
-
-            res.json({
-                success: true,
-                message: "Verification complete! You can now start selling.",
-                documents_uploaded: documentsUploaded,
-                verified: true
-            });
-
-        } catch (err) {
-            console.error("Auto-verify error:", err);
-            res.status(500).json({ error: err.message });
-        }
-    }
-);
-
-// 4. Check verification status
-app.get("/api/verification/status", async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-
-        const user = await db.query(
-            `SELECT verification_status, verification_type, verified_at, phone_verified, phone_number
-             FROM users WHERE id = ?`,
-            [req.session.user.id]
-        );
-
-        const documents = await db.query(
-            `SELECT document_type, document_url, uploaded_at
-             FROM verification_documents WHERE user_id = ?`,
-            [req.session.user.id]
-        );
-
-        res.json({
-            success: true,
-            status: user[0]?.verification_status || 'unverified',
-            verification_type: user[0]?.verification_type,
-            verified_at: user[0]?.verified_at,
-            phone_verified: user[0]?.phone_verified === 1,
-            phone_number: user[0]?.phone_number,
-            documents_uploaded: documents.length
-        });
-
-    } catch (err) {
-        console.error("Status check error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 5. Middleware to check if seller is verified
-const checkSellerVerification = async (req, res, next) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Please login" });
-    }
-
-    // Admins bypass verification check
-    if (req.session.user.role === 'admin') {
-        return next();
-    }
-
-    // Clients can become sellers too (they need verification)
-    if (req.session.user.role === 'client') {
-        try {
-            const user = await db.query(
-                "SELECT verification_status, phone_verified FROM users WHERE id = ?",
-                [req.session.user.id]
-            );
-
-            const verificationStatus = user[0]?.verification_status;
-            const phoneVerified = user[0]?.phone_verified;
-
-            // If not verified, return helpful error with redirect
-            if (verificationStatus !== 'verified') {
-                return res.status(403).json({ 
-                    error: "You must complete identity verification before listing products",
-                    verification_required: true,
-                    verification_status: verificationStatus || 'unverified',
-                    phone_verified: phoneVerified || false,
-                    redirect_url: '/verification.html'
-                });
-            }
-
-            next();
-        } catch (err) {
-            console.error("Verification check error:", err);
-            res.status(500).json({ error: err.message });
-        }
-    } else if (req.session.user.role === 'freelancer') {
-        // Same check for freelancers
-        try {
-            const user = await db.query(
-                "SELECT verification_status FROM users WHERE id = ?",
-                [req.session.user.id]
-            );
-
-            const verificationStatus = user[0]?.verification_status;
-
-            if (verificationStatus !== 'verified') {
-                return res.status(403).json({ 
-                    error: "You must complete identity verification before offering services",
-                    verification_required: true,
-                    verification_status: verificationStatus || 'unverified',
-                    redirect_url: '/verification.html'
-                });
-            }
-
-            next();
-        } catch (err) {
-            console.error("Verification check error:", err);
-            res.status(500).json({ error: err.message });
-        }
-    } else {
-        next();
-    }
-};
 
 // Admin resolve dispute endpoint
 app.post("/api/admin/resolve-dispute/:orderId", async (req, res) => {
@@ -7388,11 +7060,9 @@ app.get("/api/services", async (req, res) => {
     try {
         const { category, search, sort, limit = 20, offset = 0 } = req.query;
 
-        // Parse limit and offset as integers
         const parsedLimit = parseInt(limit) || 20;
         const parsedOffset = parseInt(offset) || 0;
 
-        // Build the query WITHOUT parameters for LIMIT/OFFSET
         let sql = `
             SELECT 
                 s.*, 
@@ -7406,12 +7076,11 @@ app.get("/api/services", async (req, res) => {
             FROM services s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
-            WHERE s.status = 'active'
+            WHERE s.status = 'active'  -- Only show active services
         `;
 
         const params = [];
 
-        // Add filters (these use parameters safely)
         if (category) {
             sql += " AND s.category = ?";
             params.push(category);
@@ -7422,7 +7091,6 @@ app.get("/api/services", async (req, res) => {
             params.push(`%${search}%`, `%${search}%`);
         }
 
-        // Sorting
         switch(sort) {
             case 'price_low':
                 sql += " ORDER BY s.price ASC";
@@ -7438,17 +7106,10 @@ app.get("/api/services", async (req, res) => {
                 sql += " ORDER BY s.created_at DESC";
         }
 
-        // IMPORTANT FIX: Add LIMIT and OFFSET directly to SQL string (not as parameters)
-        // This avoids the ER_WRONG_ARGUMENTS error with your db.js
         sql += ` LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
 
-        console.log("Executing SQL:", sql);
-        console.log("With params:", params);
-
-        // Execute the query - params only contain category/search values, NOT limit/offset
         const services = await db.query(sql, params);
 
-        // Get total count for pagination
         let countSql = "SELECT COUNT(*) as total FROM services WHERE status = 'active'";
         const countParams = [];
 
@@ -7465,7 +7126,6 @@ app.get("/api/services", async (req, res) => {
         const countResult = await db.query(countSql, countParams);
         const total = countResult && countResult[0] ? countResult[0].total : 0;
 
-        // Check if current user has favorited each service
         let processedServices = services || [];
         
         if (req.session.user && processedServices.length > 0) {
@@ -7498,18 +7158,13 @@ app.get("/api/services", async (req, res) => {
 
     } catch (err) {
         console.error("Services fetch error:", err);
-        // Return empty array to prevent frontend crash
         res.status(200).json({
             services: [],
-            pagination: {
-                total: 0,
-                limit: 20,
-                offset: 0,
-                has_more: false
-            }
+            pagination: { total: 0, limit: 20, offset: 0, has_more: false }
         });
     }
 });
+
 
 // GET MY SERVICES (FREELANCER)
 app.get("/api/services/my-services", async (req, res) => {
@@ -7548,7 +7203,6 @@ app.get("/api/services/my-services", async (req, res) => {
             }
         }
 
-        // Parse JSON fields
         services = services.map(service => {
             if (service.tags && typeof service.tags === 'string') {
                 try {
@@ -7577,6 +7231,414 @@ app.get("/api/services/my-services", async (req, res) => {
         });
     }
 });
+
+
+
+
+
+// ==================== PHONE VERIFICATION (EMAIL OTP) ====================
+
+// 1. Send OTP via Email
+app.post("/api/verification/send-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { phone_number } = req.body;
+        
+        if (!phone_number) {
+            return res.status(400).json({ error: "Phone number is required" });
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+        await db.query(
+            `INSERT INTO phone_verifications (user_id, phone_number, otp_code, expires_at, verified, created_at)
+             VALUES (?, ?, ?, ?, 0, NOW())
+             ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?, created_at = NOW()`,
+            [req.session.user.id, phone_number, otpCode, expiresAt, otpCode, expiresAt]
+        );
+
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Phone Verification - Core Insight Market</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#FFD700;">📱 Phone Verification</h1>
+                    <p>Hello ${req.session.user.username},</p>
+                    <p>Your verification code is:</p>
+                    <div style="font-size: 48px; font-weight: bold; text-align: center; padding: 20px; background: #0f172a; border-radius: 12px; letter-spacing: 10px;">
+                        ${otpCode}
+                    </div>
+                    <p>This code expires in 10 minutes.</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(req.session.user.email, "Phone Verification Code", emailHtml);
+
+        res.json({
+            success: true,
+            message: "Verification code sent to your email. Valid for 10 minutes."
+        });
+
+    } catch (err) {
+        console.error("OTP send error:", err);
+        res.status(500).json({ error: "Failed to send OTP" });
+    }
+});
+
+// 2. Verify OTP
+app.post("/api/verification/verify-otp", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const { otp_code } = req.body;
+
+        if (!otp_code) {
+            return res.status(400).json({ error: "OTP code is required" });
+        }
+
+        const verification = await db.query(
+            `SELECT * FROM phone_verifications 
+             WHERE user_id = ? AND otp_code = ? AND expires_at > NOW() AND verified = 0
+             ORDER BY created_at DESC LIMIT 1`,
+            [req.session.user.id, otp_code]
+        );
+
+        if (!verification || verification.length === 0) {
+            return res.status(400).json({ error: "Invalid or expired OTP code" });
+        }
+
+        await db.query(
+            `UPDATE phone_verifications SET verified = 1 WHERE id = ?`,
+            [verification[0].id]
+        );
+
+        await db.query(
+            `UPDATE users SET phone_verified = 1, phone_number = ? WHERE id = ?`,
+            [verification[0].phone_number, req.session.user.id]
+        );
+
+        res.json({
+            success: true,
+            message: "Phone number verified successfully!"
+        });
+
+    } catch (err) {
+        console.error("OTP verify error:", err);
+        res.status(500).json({ error: "Failed to verify OTP" });
+    }
+});
+
+// ==================== IDENTITY VERIFICATION (2-HOUR AUTO VERIFY) ====================
+
+// 3. Submit verification (status: pending_review, auto-verify after 2 hours)
+app.post("/api/verification/submit", 
+    uploadVerification.fields([
+        { name: 'government_id', maxCount: 1 },
+        { name: 'selfie_with_id', maxCount: 1 },
+        { name: 'address_proof', maxCount: 1 }
+    ]), 
+    async (req, res) => {
+        try {
+            if (!req.session.user) {
+                return res.status(401).json({ error: "Please login" });
+            }
+
+            const { verification_type, business_name } = req.body;
+
+            // Check if phone is verified first
+            const phoneCheck = await db.query(
+                "SELECT phone_verified FROM users WHERE id = ?",
+                [req.session.user.id]
+            );
+
+            if (!phoneCheck[0]?.phone_verified) {
+                return res.status(400).json({ error: "Please verify your phone number first" });
+            }
+
+            // Validate required documents
+            if (!req.files['government_id']) {
+                return res.status(400).json({ error: "Government ID is required" });
+            }
+
+            if (!req.files['selfie_with_id']) {
+                return res.status(400).json({ error: "Selfie with ID is required" });
+            }
+
+            if (!req.files['address_proof']) {
+                return res.status(400).json({ error: "Proof of address is required" });
+            }
+
+            let documentsUploaded = 0;
+
+            // Upload Government ID
+            if (req.files['government_id']) {
+                const file = req.files['government_id'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'government_id', ?, NOW(), 'pending')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // Upload Selfie with ID
+            if (req.files['selfie_with_id']) {
+                const file = req.files['selfie_with_id'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'selfie_with_id', ?, NOW(), 'pending')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // Upload Address Proof
+            if (req.files['address_proof']) {
+                const file = req.files['address_proof'][0];
+                const url = await uploadToImgbb(file.path, file.originalname);
+                await db.query(
+                    `INSERT INTO verification_documents (user_id, document_type, document_url, uploaded_at, status)
+                     VALUES (?, 'address_proof', ?, NOW(), 'pending')`,
+                    [req.session.user.id, url]
+                );
+                documentsUploaded++;
+            }
+
+            // Update user to pending_review - verification will auto-approve after 2 hours
+            await db.query(
+                `UPDATE users 
+                 SET verification_status = 'pending_review',
+                     verification_type = ?,
+                     verification_submitted_at = NOW(),
+                     business_name = ?
+                 WHERE id = ?`,
+                [verification_type || 'individual', business_name || null, req.session.user.id]
+            );
+
+            // Send confirmation email
+            const confirmationHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head><title>Verification Submitted - Core Insight</title></head>
+                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                        <h1 style="color:#fbbf24;">⏳ Verification Under Review</h1>
+                        <p>Hello ${req.session.user.username},</p>
+                        <p>Your verification documents have been submitted successfully.</p>
+                        <p><strong>Status:</strong> Under Review</p>
+                        <p><strong>Estimated time:</strong> 2 hours</p>
+                        <p>You will receive an email once your account is verified.</p>
+                        <p>You can create draft services now. They will become active after verification.</p>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            await sendEmail(req.session.user.email, "Verification Submitted - Core Insight", confirmationHtml);
+
+            res.json({
+                success: true,
+                message: "Verification documents submitted! Your account will be verified within 2 hours.",
+                documents_uploaded: documentsUploaded,
+                status: 'pending_review',
+                auto_verify_hours: 2
+            });
+
+        } catch (err) {
+            console.error("Verification submission error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+);
+
+// 4. Check verification status
+app.get("/api/verification/status", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const user = await db.query(
+            `SELECT verification_status, verification_type, verified_at, verification_submitted_at, phone_verified, phone_number
+             FROM users WHERE id = ?`,
+            [req.session.user.id]
+        );
+
+        const documents = await db.query(
+            `SELECT document_type, document_url, uploaded_at, status
+             FROM verification_documents WHERE user_id = ?`,
+            [req.session.user.id]
+        );
+
+        // Calculate time remaining if pending
+        let hoursRemaining = null;
+        let minutesRemaining = null;
+        
+        if (user[0]?.verification_status === 'pending_review' && user[0]?.verification_submitted_at) {
+            const submittedAt = new Date(user[0].verification_submitted_at);
+            const autoVerifyTime = new Date(submittedAt.getTime() + (2 * 60 * 60 * 1000));
+            const now = new Date();
+            
+            if (now < autoVerifyTime) {
+                const diffMs = autoVerifyTime - now;
+                hoursRemaining = Math.floor(diffMs / (60 * 60 * 1000));
+                minutesRemaining = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+            }
+        }
+
+        res.json({
+            success: true,
+            status: user[0]?.verification_status || 'unverified',
+            verification_type: user[0]?.verification_type,
+            verified_at: user[0]?.verified_at,
+            submitted_at: user[0]?.verification_submitted_at,
+            phone_verified: user[0]?.phone_verified === 1,
+            phone_number: user[0]?.phone_number,
+            documents_uploaded: documents.length,
+            documents: documents,
+            hours_remaining: hoursRemaining,
+            minutes_remaining: minutesRemaining
+        });
+
+    } catch (err) {
+        console.error("Status check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5. Background job: Auto-verify pending applications after 2 hours
+async function processAutoVerifications() {
+    try {
+        console.log(`🕐 Running auto-verification check at ${new Date().toISOString()}`);
+        
+        // Find pending verifications submitted more than 2 hours ago
+        const pendingUsers = await db.query(`
+            SELECT id, username, email, verification_submitted_at
+            FROM users 
+            WHERE verification_status = 'pending_review'
+              AND verification_submitted_at IS NOT NULL
+              AND verification_submitted_at <= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+        `);
+        
+        for (const user of pendingUsers) {
+            console.log(`✅ Auto-verifying user ${user.id} (${user.username}) - submitted at ${user.verification_submitted_at}`);
+            
+            // Update user to verified
+            await db.query(
+                `UPDATE users 
+                 SET verification_status = 'verified',
+                     verified_at = NOW()
+                 WHERE id = ?`,
+                [user.id]
+            );
+            
+            // Update all pending documents to approved
+            await db.query(
+                `UPDATE verification_documents 
+                 SET status = 'approved'
+                 WHERE user_id = ? AND status = 'pending'`,
+                [user.id]
+            );
+            
+            // Send welcome email
+            const welcomeHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head><title>Verification Complete - Core Insight</title></head>
+                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                        <h1 style="color:#10b981;">✅ Verification Complete!</h1>
+                        <p>Hello ${user.username},</p>
+                        <p>Your seller account has been verified!</p>
+                        <p>Your services are now active and visible to customers.</p>
+                        <a href="https://coreinsightmarket.com/services.html" 
+                           style="background:#3b82f6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-top:20px;">
+                            View Your Services
+                        </a>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            await sendEmail(user.email, "Verification Complete - Core Insight", welcomeHtml);
+        }
+        
+        if (pendingUsers.length > 0) {
+            console.log(`✅ Auto-verified ${pendingUsers.length} users`);
+        }
+        
+    } catch (err) {
+        console.error("Auto-verification error:", err);
+    }
+}
+
+// Schedule auto-verification to run every 10 minutes
+setInterval(() => {
+    processAutoVerifications();
+}, 10 * 60 * 1000); // Run every 10 minutes
+
+// Also run on startup
+setTimeout(() => {
+    processAutoVerifications();
+}, 5000);
+
+// ==================== VERIFICATION MIDDLEWARE ====================
+
+// Middleware to check if seller is verified
+const checkSellerVerification = async (req, res, next) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+
+    if (req.session.user.role !== 'freelancer') {
+        return next();
+    }
+
+    try {
+        const user = await db.query(
+            "SELECT verification_status FROM users WHERE id = ?",
+            [req.session.user.id]
+        );
+
+        const verificationStatus = user[0]?.verification_status;
+
+        if (verificationStatus === 'unverified') {
+            return res.status(403).json({ 
+                error: "Please complete identity verification before offering services",
+                verification_required: true,
+                verification_status: 'unverified',
+                redirect_url: '/verification.html'
+            });
+        }
+        
+        if (verificationStatus === 'pending_review') {
+            return res.status(403).json({ 
+                error: "Your verification is pending review. You can create draft services, but they won't be visible until verification is complete (within 2 hours).",
+                verification_required: true,
+                verification_status: 'pending_review',
+                redirect_url: '/verification.html',
+                can_create_drafts: true  // Allow draft creation during pending
+            });
+        }
+
+        next();
+    } catch (err) {
+        console.error("Verification check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
 
 // GET SERVICE CATEGORIES
 app.get("/api/services/categories", async (req, res) => {
@@ -7701,60 +7763,61 @@ app.get("/api/services/:id", async (req, res) => {
     }
 });
 
-// CREATE SERVICE
-app.post("/api/services", checkSellerVerification, async (req, res) => {
+
+// Create service (with draft support for pending users)
+app.post("/api/services", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login to create a service" });
     }
 
-    // Only freelancers can create services
     if (req.session.user.role !== 'freelancer' && req.session.user.role !== 'admin') {
         return res.status(403).json({ error: "Only freelancers can create services" });
     }
 
     try {
+        // Check verification status
+        const userCheck = await db.query(
+            "SELECT verification_status FROM users WHERE id = ?",
+            [req.session.user.id]
+        );
+        
+        const verificationStatus = userCheck[0]?.verification_status;
+        
+        // If not verified, service will be created as draft
+        let serviceStatus = 'active';
+        let isDraft = false;
+        let responseMessage = "Service created successfully!";
+        
+        if (verificationStatus === 'unverified') {
+            return res.status(403).json({ 
+                error: "Please complete identity verification before creating services",
+                verification_required: true,
+                redirect_url: '/verification.html'
+            });
+        } else if (verificationStatus === 'pending_review') {
+            serviceStatus = 'draft';  // Draft until verification completes
+            isDraft = true;
+            responseMessage = "Service saved as draft. It will become active once your verification is complete (within 2 hours).";
+        }
+        
         const { 
-            title, 
-            description, 
-            category, 
-            hourly_rate, 
-            fixed_price,
-            delivery_time,
-            revisions,
-            tags,
-            requirements
+            title, description, category, hourly_rate, fixed_price,
+            delivery_time, revisions, tags, requirements
         } = req.body;
 
         if (!title || !description) {
             return res.status(400).json({ error: "Title and description are required" });
         }
 
-        if (title.length < 5) {
-            return res.status(400).json({ error: "Title must be at least 5 characters" });
-        }
+        const price = fixed_price ? parseFloat(fixed_price) : (hourly_rate ? parseFloat(hourly_rate) : 0);
 
-        if (description.length < 20) {
-            return res.status(400).json({ error: "Description must be at least 20 characters" });
-        }
-
-        // Determine price
-        const price = fixed_price ? parseFloat(fixed_price) :
-                     hourly_rate ? parseFloat(hourly_rate) : 0;
-
-        // Get freelancer profile picture
         const profileResult = await db.query(
             "SELECT profile_picture_url FROM freelancer_profiles WHERE user_id = ?",
             [req.session.user.id]
         );
 
-        let profilePictures = [];
-        if (Array.isArray(profileResult)) {
-            profilePictures = profileResult.length === 2 ? profileResult[0] : profileResult;
-        }
+        const profilePicture = profileResult.length > 0 ? profileResult[0].profile_picture_url : null;
 
-        const profilePicture = profilePictures.length > 0 ? profilePictures[0].profile_picture_url : null;
-
-        // Parse tags and requirements if they're strings
         let parsedTags = tags;
         if (tags && typeof tags === 'string') {
             try {
@@ -7773,12 +7836,11 @@ app.post("/api/services", checkSellerVerification, async (req, res) => {
             }
         }
 
-        // Insert service
         const result = await db.query(`
             INSERT INTO services 
             (user_id, title, description, price, category, provider_profile_picture, 
              delivery_time, revisions, tags, requirements, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `, [
             req.session.user.id,
             title,
@@ -7789,10 +7851,12 @@ app.post("/api/services", checkSellerVerification, async (req, res) => {
             delivery_time || 7,
             revisions || 2,
             parsedTags ? JSON.stringify(parsedTags) : null,
-            parsedRequirements ? JSON.stringify(parsedRequirements) : null
+            parsedRequirements ? JSON.stringify(parsedRequirements) : null,
+            serviceStatus
         ]);
 
         const serviceId = result.insertId || (result[0] && result[0].insertId);
+        
         if (!serviceId) throw new Error("Could not get service ID after creation");
 
         // If packages were provided, insert them
@@ -7826,9 +7890,11 @@ app.post("/api/services", checkSellerVerification, async (req, res) => {
 
         res.json({
             success: true,
-            message: "Service created successfully!",
+            message: responseMessage,
             serviceId: serviceId,
-            hasProfilePicture: !!profilePicture
+            is_draft: isDraft,
+            verification_status: verificationStatus,
+            will_activate_after: isDraft ? '2 hours' : null
         });
 
     } catch (err) {
@@ -7836,6 +7902,7 @@ app.post("/api/services", checkSellerVerification, async (req, res) => {
         res.status(500).json({ error: "Error creating service: " + err.message });
     }
 });
+
 
 // ==================== SERVICE FAVORITES ENDPOINT ====================
 app.post("/api/services/:serviceId/favorite", async (req, res) => {
@@ -9788,7 +9855,10 @@ app.put("/api/freelancer/update-profile", async (req, res) => {
 });
 
 
-// ==================== UPDATED FREELANCER DASHBOARD ====================
+// ============================================
+// FREELANCER DASHBOARD - REAL DATA
+// ============================================
+
 app.get("/api/freelancer/dashboard", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -9797,88 +9867,141 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
     try {
         const userId = req.session.user.id;
         
-        // Get service stats
+        // Get service stats (active services only)
         const serviceStats = await db.query(
             "SELECT COUNT(*) as total_services FROM services WHERE user_id = ? AND status = 'active'",
             [userId]
         );
         
-        // Get client stats (people who recruited this freelancer)
+        // Get total clients (unique clients who recruited this freelancer)
         const clientStats = await db.query(
-            "SELECT COUNT(DISTINCT client_id) as total_clients FROM client_providers WHERE freelancer_id = ? AND status = 'active'",
+            `SELECT COUNT(DISTINCT client_id) as total_clients 
+             FROM client_providers 
+             WHERE freelancer_id = ? AND status = 'active'`,
             [userId]
         );
         
-        // Get recruitment stats
+        // Get recruitment stats (total recruitments)
         const recruitmentStats = await db.query(
-            "SELECT COUNT(*) as total_recruitments, SUM(total_orders) as total_orders FROM client_providers WHERE freelancer_id = ?",
+            `SELECT COUNT(*) as total_recruitments, 
+                    SUM(total_orders) as total_orders,
+                    SUM(total_spent) as total_spent
+             FROM client_providers 
+             WHERE freelancer_id = ?`,
             [userId]
         );
         
-        // Get recent clients (who recruited recently)
+        // Get freelancer profile rating
+        const profileStats = await db.query(
+            "SELECT avg_rating, review_count, completed_orders, total_earnings FROM freelancer_profiles WHERE user_id = ?",
+            [userId]
+        );
+        
+        // ========== TOP CLIENTS (most orders) ==========
+        const topClients = await db.query(`
+            SELECT 
+                u.id,
+                u.username,
+                cp.total_orders,
+                cp.total_spent,
+                cp.recruited_at,
+                cp.last_contacted
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            WHERE cp.freelancer_id = ? 
+              AND cp.status = 'active'
+            ORDER BY cp.total_orders DESC, cp.total_spent DESC
+            LIMIT 5
+        `, [userId]);
+        
+        // ========== RECENT CLIENTS (most recent recruitment) ==========
         const recentClients = await db.query(`
             SELECT 
                 u.id,
                 u.username,
                 cp.recruited_at,
                 cp.total_orders,
-                s.title as service_title
+                cp.total_spent,
+                s.title as service_title,
+                s.id as service_id
             FROM client_providers cp
             JOIN users u ON cp.client_id = u.id
             LEFT JOIN services s ON cp.service_id = s.id
-            WHERE cp.freelancer_id = ?
+            WHERE cp.freelancer_id = ? 
+              AND cp.status = 'active'
             ORDER BY cp.recruited_at DESC
             LIMIT 5
         `, [userId]);
         
-        // Get top clients (most orders)
-        const topClients = await db.query(`
+        // ========== RECENT ORDERS (if any) ==========
+        const recentOrders = await db.query(`
             SELECT 
-                u.id,
-                u.username,
-                cp.total_orders,
-                cp.total_spent
-            FROM client_providers cp
-            JOIN users u ON cp.client_id = u.id
-            WHERE cp.freelancer_id = ?
-            ORDER BY cp.total_orders DESC, cp.total_spent DESC
+                so.id,
+                so.amount,
+                so.status,
+                so.created_at,
+                u.username as client_name,
+                s.title as service_title
+            FROM service_orders so
+            LEFT JOIN services s ON so.service_id = s.id
+            LEFT JOIN users u ON so.buyer_id = u.id
+            WHERE so.seller_id = ?
+            ORDER BY so.created_at DESC
             LIMIT 5
         `, [userId]);
         
-        // Get profile stats
-        const profile = await db.query(
-            "SELECT completed_orders, total_earnings, avg_rating, review_count FROM freelancer_profiles WHERE user_id = ?",
-            [userId]
-        );
-        
         res.json({
             services: {
-                total_services: serviceStats[0]?.total_services || 0
+                total_services: parseInt(serviceStats[0]?.total_services) || 0
             },
             clients: {
-                total_clients: clientStats[0]?.total_clients || 0,
-                recent: recentClients || [],
-                top: topClients || []
+                total_clients: parseInt(clientStats[0]?.total_clients) || 0,
+                recent: (recentClients || []).map(client => ({
+                    id: client.id,
+                    username: client.username,
+                    recruited_at: client.recruited_at,
+                    total_orders: parseInt(client.total_orders) || 0,
+                    total_spent: parseFloat(client.total_spent) || 0,
+                    service_title: client.service_title || 'General Service'
+                })),
+                top: (topClients || []).map(client => ({
+                    id: client.id,
+                    username: client.username,
+                    total_orders: parseInt(client.total_orders) || 0,
+                    total_spent: parseFloat(client.total_spent) || 0,
+                    recruited_at: client.recruited_at
+                }))
             },
             recruitments: {
-                total: recruitmentStats[0]?.total_recruitments || 0,
-                total_orders: recruitmentStats[0]?.total_orders || 0
+                total: parseInt(recruitmentStats[0]?.total_recruitments) || 0,
+                total_orders: parseInt(recruitmentStats[0]?.total_orders) || 0,
+                total_spent: parseFloat(recruitmentStats[0]?.total_spent) || 0
             },
             profile: {
-                completed_orders: profile[0]?.completed_orders || 0,
-                total_earnings: profile[0]?.total_earnings || 0,
-                avg_rating: profile[0]?.avg_rating || 0,
-                review_count: profile[0]?.review_count || 0
-            }
+                completed_orders: parseInt(profileStats[0]?.completed_orders) || 0,
+                total_earnings: parseFloat(profileStats[0]?.total_earnings) || 0,
+                avg_rating: parseFloat(profileStats[0]?.avg_rating) || 0,
+                review_count: parseInt(profileStats[0]?.review_count) || 0
+            },
+            recent_orders: (recentOrders || []).map(order => ({
+                id: order.id,
+                amount: parseFloat(order.amount) || 0,
+                status: order.status,
+                created_at: order.created_at,
+                client_name: order.client_name || 'Anonymous',
+                service_title: order.service_title || 'Service'
+            }))
         });
         
     } catch (err) {
         console.error("Error loading dashboard:", err);
-        res.json({
+        res.status(500).json({ 
+            error: err.message,
             services: { total_services: 0 },
             clients: { total_clients: 0, recent: [], top: [] },
-            recruitments: { total: 0, total_orders: 0 },
-            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0, review_count: 0 }
+            recruitments: { total: 0, total_orders: 0, total_spent: 0 },
+            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0, review_count: 0 },
+            recent_orders: []
         });
     }
 });

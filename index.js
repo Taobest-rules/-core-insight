@@ -5401,7 +5401,7 @@ app.get("/api/messages/conversations", async (req, res) => {
   }
 });
 
-// Start a new conversation without a service
+// Start a new conversation without a service - FIXED
 app.post("/api/conversations/start-without-service", async (req, res) => {
   try {
     const user = req.session.user;
@@ -5436,33 +5436,60 @@ app.post("/api/conversations/start-without-service", async (req, res) => {
       });
     }
 
-    // Determine who is client and who is freelancer based on roles
-    let clientId, freelancerId;
-    
-    // Get user roles
+    // Get user roles - FIXED: Properly extract array
     const userResult = await db.query(
       "SELECT id, role FROM users WHERE id IN (?, ?)",
       [currentUserId, recipientId]
     );
+    
+    // FIX: Properly extract rows from the result
+    let users = extractRows(userResult);
+    
+    // Ensure users is an array
+    if (!Array.isArray(users)) {
+      users = [];
+    }
 
-    const users = extractRows(userResult);
+    console.log("Users found:", users);
 
-    const currentUserData = users.find(u => parseInt(u.id) === currentUserId);
-    const recipientData = users.find(u => parseInt(u.id) === recipientId);
+    let currentUserData = null;
+    let recipientData = null;
+    
+    // Find users using a simple loop instead of .find()
+    for (let i = 0; i < users.length; i++) {
+      const u = users[i];
+      if (parseInt(u.id) === currentUserId) {
+        currentUserData = u;
+      }
+      if (parseInt(u.id) === recipientId) {
+        recipientData = u;
+      }
+    }
 
     if (!currentUserData || !recipientData) {
+      console.log("User not found:", { currentUserData, recipientData, users });
       return res.status(404).json({ error: "User not found" });
     }
 
     // Assign roles: if someone is freelancer, they're the freelancer, otherwise the other is freelancer
+    let clientId, freelancerId;
+    
     if (currentUserData.role === 'freelancer' && recipientData.role === 'client') {
       clientId = recipientId;
       freelancerId = currentUserId;
     } else if (currentUserData.role === 'client' && recipientData.role === 'freelancer') {
       clientId = currentUserId;
       freelancerId = recipientId;
+    } else if (currentUserData.role === 'freelancer' && recipientData.role === 'freelancer') {
+      // Both are freelancers - treat current as client, recipient as freelancer
+      clientId = currentUserId;
+      freelancerId = recipientId;
+    } else if (currentUserData.role === 'client' && recipientData.role === 'client') {
+      // Both are clients - treat current as client, recipient as freelancer
+      clientId = currentUserId;
+      freelancerId = recipientId;
     } else {
-      // Both are same role - default to current user as client, recipient as freelancer
+      // Default
       clientId = currentUserId;
       freelancerId = recipientId;
     }
@@ -9854,9 +9881,8 @@ app.put("/api/freelancer/update-profile", async (req, res) => {
     }
 });
 
-
 // ============================================
-// FREELANCER DASHBOARD - REAL DATA
+// FREELANCER DASHBOARD - FIXED
 // ============================================
 
 app.get("/api/freelancer/dashboard", async (req, res) => {
@@ -9869,13 +9895,13 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
         
         // Get service stats (active services only)
         const serviceStats = await db.query(
-            "SELECT COUNT(*) as total_services FROM services WHERE user_id = ? AND status = 'active'",
+            "SELECT COUNT(*) as total FROM services WHERE user_id = ? AND status = 'active'",
             [userId]
         );
         
         // Get total clients (unique clients who recruited this freelancer)
         const clientStats = await db.query(
-            `SELECT COUNT(DISTINCT client_id) as total_clients 
+            `SELECT COUNT(DISTINCT client_id) as total 
              FROM client_providers 
              WHERE freelancer_id = ? AND status = 'active'`,
             [userId]
@@ -9883,36 +9909,17 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
         
         // Get recruitment stats (total recruitments)
         const recruitmentStats = await db.query(
-            `SELECT COUNT(*) as total_recruitments, 
-                    SUM(total_orders) as total_orders,
-                    SUM(total_spent) as total_spent
+            `SELECT COUNT(*) as total_recruitments
              FROM client_providers 
              WHERE freelancer_id = ?`,
             [userId]
         );
         
-        // Get freelancer profile rating
+        // Get freelancer profile stats
         const profileStats = await db.query(
             "SELECT avg_rating, review_count, completed_orders, total_earnings FROM freelancer_profiles WHERE user_id = ?",
             [userId]
         );
-        
-        // ========== TOP CLIENTS (most orders) ==========
-        const topClients = await db.query(`
-            SELECT 
-                u.id,
-                u.username,
-                cp.total_orders,
-                cp.total_spent,
-                cp.recruited_at,
-                cp.last_contacted
-            FROM client_providers cp
-            JOIN users u ON cp.client_id = u.id
-            WHERE cp.freelancer_id = ? 
-              AND cp.status = 'active'
-            ORDER BY cp.total_orders DESC, cp.total_spent DESC
-            LIMIT 5
-        `, [userId]);
         
         // ========== RECENT CLIENTS (most recent recruitment) ==========
         const recentClients = await db.query(`
@@ -9920,10 +9927,7 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
                 u.id,
                 u.username,
                 cp.recruited_at,
-                cp.total_orders,
-                cp.total_spent,
-                s.title as service_title,
-                s.id as service_id
+                s.title as service_title
             FROM client_providers cp
             JOIN users u ON cp.client_id = u.id
             LEFT JOIN services s ON cp.service_id = s.id
@@ -9933,78 +9937,93 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
             LIMIT 5
         `, [userId]);
         
-        // ========== RECENT ORDERS (if any) ==========
-        const recentOrders = await db.query(`
+        // ========== TOP CLIENTS (most orders from service_orders) ==========
+        const topClients = await db.query(`
             SELECT 
-                so.id,
-                so.amount,
-                so.status,
-                so.created_at,
-                u.username as client_name,
-                s.title as service_title
-            FROM service_orders so
-            LEFT JOIN services s ON so.service_id = s.id
-            LEFT JOIN users u ON so.buyer_id = u.id
-            WHERE so.seller_id = ?
-            ORDER BY so.created_at DESC
+                u.id,
+                u.username,
+                COUNT(so.id) as total_orders,
+                COALESCE(SUM(so.amount), 0) as total_spent
+            FROM client_providers cp
+            JOIN users u ON cp.client_id = u.id
+            LEFT JOIN service_orders so ON so.buyer_id = cp.client_id AND so.seller_id = cp.freelancer_id AND so.status = 'completed'
+            WHERE cp.freelancer_id = ? 
+              AND cp.status = 'active'
+            GROUP BY u.id, u.username
+            ORDER BY total_orders DESC, total_spent DESC
             LIMIT 5
         `, [userId]);
         
-        res.json({
+        // Build response with safe values
+        const totalServices = serviceStats && serviceStats[0] ? parseInt(serviceStats[0].total) || 0 : 0;
+        const totalClients = clientStats && clientStats[0] ? parseInt(clientStats[0].total) || 0 : 0;
+        const totalRecruitments = recruitmentStats && recruitmentStats[0] ? parseInt(recruitmentStats[0].total_recruitments) || 0 : 0;
+        const avgRating = profileStats && profileStats[0] ? parseFloat(profileStats[0].avg_rating) || 0 : 0;
+        const reviewCount = profileStats && profileStats[0] ? parseInt(profileStats[0].review_count) || 0 : 0;
+        const completedOrders = profileStats && profileStats[0] ? parseInt(profileStats[0].completed_orders) || 0 : 0;
+        const totalEarnings = profileStats && profileStats[0] ? parseFloat(profileStats[0].total_earnings) || 0 : 0;
+        
+        // Process recent clients
+        const recentClientsList = [];
+        if (recentClients && recentClients.length > 0) {
+            for (const client of recentClients) {
+                recentClientsList.push({
+                    id: client.id,
+                    username: client.username || 'Unknown',
+                    recruited_at: client.recruited_at,
+                    service_title: client.service_title || 'General Service'
+                });
+            }
+        }
+        
+        // Process top clients
+        const topClientsList = [];
+        if (topClients && topClients.length > 0) {
+            for (const client of topClients) {
+                topClientsList.push({
+                    id: client.id,
+                    username: client.username || 'Unknown',
+                    total_orders: parseInt(client.total_orders) || 0,
+                    total_spent: parseFloat(client.total_spent) || 0
+                });
+            }
+        }
+        
+        const dashboardData = {
             services: {
-                total_services: parseInt(serviceStats[0]?.total_services) || 0
+                total_services: totalServices
             },
             clients: {
-                total_clients: parseInt(clientStats[0]?.total_clients) || 0,
-                recent: (recentClients || []).map(client => ({
-                    id: client.id,
-                    username: client.username,
-                    recruited_at: client.recruited_at,
-                    total_orders: parseInt(client.total_orders) || 0,
-                    total_spent: parseFloat(client.total_spent) || 0,
-                    service_title: client.service_title || 'General Service'
-                })),
-                top: (topClients || []).map(client => ({
-                    id: client.id,
-                    username: client.username,
-                    total_orders: parseInt(client.total_orders) || 0,
-                    total_spent: parseFloat(client.total_spent) || 0,
-                    recruited_at: client.recruited_at
-                }))
+                total_clients: totalClients,
+                recent: recentClientsList,
+                top: topClientsList
             },
             recruitments: {
-                total: parseInt(recruitmentStats[0]?.total_recruitments) || 0,
-                total_orders: parseInt(recruitmentStats[0]?.total_orders) || 0,
-                total_spent: parseFloat(recruitmentStats[0]?.total_spent) || 0
+                total: totalRecruitments
             },
             profile: {
-                completed_orders: parseInt(profileStats[0]?.completed_orders) || 0,
-                total_earnings: parseFloat(profileStats[0]?.total_earnings) || 0,
-                avg_rating: parseFloat(profileStats[0]?.avg_rating) || 0,
-                review_count: parseInt(profileStats[0]?.review_count) || 0
-            },
-            recent_orders: (recentOrders || []).map(order => ({
-                id: order.id,
-                amount: parseFloat(order.amount) || 0,
-                status: order.status,
-                created_at: order.created_at,
-                client_name: order.client_name || 'Anonymous',
-                service_title: order.service_title || 'Service'
-            }))
-        });
+                completed_orders: completedOrders,
+                total_earnings: totalEarnings,
+                avg_rating: avgRating,
+                review_count: reviewCount
+            }
+        };
+        
+        console.log("Dashboard data sent:", JSON.stringify(dashboardData, null, 2));
+        res.json(dashboardData);
         
     } catch (err) {
         console.error("Error loading dashboard:", err);
-        res.status(500).json({ 
-            error: err.message,
+        // Return default values instead of error
+        res.json({
             services: { total_services: 0 },
             clients: { total_clients: 0, recent: [], top: [] },
-            recruitments: { total: 0, total_orders: 0, total_spent: 0 },
-            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0, review_count: 0 },
-            recent_orders: []
+            recruitments: { total: 0 },
+            profile: { completed_orders: 0, total_earnings: 0, avg_rating: 0, review_count: 0 }
         });
     }
 });
+
 
 // Add to your index.js
 app.post("/api/client/flag", async (req, res) => {

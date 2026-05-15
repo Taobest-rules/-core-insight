@@ -7533,23 +7533,19 @@ async function openFreelancerProfile(userId) {
                     </div>
                 </div>
                 
-                <!-- Stats Row -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;">
+                <!-- Stats Row - REMOVED Earnings and Orders Completed -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
                     <div style="background: #1e293b; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
                         <div style="color: #fbbf24; font-size: 1.8rem; font-weight: bold;">${profile.service_count || 0}</div>
                         <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Services Offered</div>
-                    </div>
-                    <div style="background: #1e293b; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="color: #fbbf24; font-size: 1.8rem; font-weight: bold;">${profile.completed_orders || 0}</div>
-                        <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Orders Completed</div>
                     </div>
                     <div style="background: #1e293b; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
                         <div style="color: #fbbf24; font-size: 1.8rem; font-weight: bold;">${profile.hourly_rate ? `$${profile.hourly_rate}` : '$0'}</div>
                         <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Hourly Rate</div>
                     </div>
                     <div style="background: #1e293b; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="color: #fbbf24; font-size: 1.8rem; font-weight: bold;">${profile.total_earnings ? `$${profile.total_earnings}` : '$0'}</div>
-                        <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Total Earnings</div>
+                        <div style="color: #fbbf24; font-size: 1.8rem; font-weight: bold;">${profile.review_count || 0}</div>
+                        <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Total Reviews</div>
                     </div>
                 </div>
                 
@@ -7654,18 +7650,6 @@ async function openFreelancerProfile(userId) {
                                         <span style="color: #cbd5e1; word-break: break-all;">${escapeHtml(profile.email)}</span>
                                     </div>
                                 ` : ''}
-                                ${profile.phone ? `
-                                    <div style="display: flex; align-items: center; gap: 12px;">
-                                        <i class="fas fa-phone" style="width: 20px; color: #fbbf24;"></i>
-                                        <span style="color: #cbd5e1;">${escapeHtml(profile.phone)}</span>
-                                    </div>
-                                ` : ''}
-                                ${profile.website ? `
-                                    <div style="display: flex; align-items: center; gap: 12px;">
-                                        <i class="fas fa-globe" style="width: 20px; color: #fbbf24;"></i>
-                                        <a href="${profile.website}" target="_blank" style="color: #3b82f6; word-break: break-all;">${escapeHtml(profile.website)}</a>
-                                    </div>
-                                ` : ''}
                             </div>
                         </div>
                         
@@ -7675,14 +7659,6 @@ async function openFreelancerProfile(userId) {
                                 <i class="fas fa-calendar-alt" style="color: #3b82f6;"></i> Member Since
                             </h4>
                             <p style="color: #cbd5e1;">${profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p>
-                        </div>
-                        
-                        <!-- Response Time -->
-                        <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h4 style="color: #ffffff; margin-bottom: 15px; font-size: 1rem; display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-reply-all" style="color: #3b82f6;"></i> Response Time
-                            </h4>
-                            <p style="color: #cbd5e1;">${profile.response_time ? `${profile.response_time} hours` : 'Typically within 24 hours'}</p>
                         </div>
                     </div>
                 </div>
@@ -9754,7 +9730,8 @@ async function loadFreelancerReviews() {
         container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-gray);">Error loading reviews</div>';
     }
 }
-async function loadFreelancerDashboard() {
+
+  async function loadFreelancerDashboard() {
     const dashboardServices = document.getElementById('dashboardServices');
     const dashboardClients = document.getElementById('dashboardClients');
     const dashboardRecruitments = document.getElementById('dashboardRecruitments');
@@ -9762,7 +9739,16 @@ async function loadFreelancerDashboard() {
     const recentClientsContainer = document.getElementById('dashboardRecentClients');
     const topClientsContainer = document.getElementById('dashboardTopClients');
     
-    if (!dashboardServices) return;
+    // Also update profile stats
+    const totalServicesEl = document.getElementById('totalServices');
+    const completedOrdersEl = document.getElementById('completedOrders');
+    const avgRatingEl = document.getElementById('avgRating');
+    const totalReviewsEl = document.getElementById('totalReviews');
+    
+    if (!dashboardServices) {
+        console.log("Dashboard elements not found");
+        return;
+    }
     
     try {
         // Show loading state
@@ -9771,15 +9757,20 @@ async function loadFreelancerDashboard() {
         dashboardRecruitments.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         dashboardRating.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
+        console.log("Fetching dashboard data...");
         const response = await fetch('/api/freelancer/dashboard', {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
         
         if (!response.ok) {
-            throw new Error('Failed to load dashboard');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log("Dashboard data received:", data);
         
         // Update stat cards
         dashboardServices.textContent = data.services?.total_services || 0;
@@ -9789,35 +9780,38 @@ async function loadFreelancerDashboard() {
         const avgRating = data.profile?.avg_rating || 0;
         dashboardRating.innerHTML = avgRating.toFixed(1);
         
-        // ========== RECENT CLIENTS (most recent recruitment) ==========
+        // Update profile stats
+        if (totalServicesEl) totalServicesEl.textContent = data.services?.total_services || 0;
+        if (completedOrdersEl) completedOrdersEl.textContent = data.profile?.completed_orders || 0;
+        if (avgRatingEl) avgRatingEl.textContent = (data.profile?.avg_rating || 0).toFixed(1);
+        if (totalReviewsEl) totalReviewsEl.textContent = data.profile?.review_count || 0;
+        
+        // ========== RECENT CLIENTS ==========
         if (recentClientsContainer) {
             const recentClients = data.clients?.recent || [];
             
             if (recentClients.length > 0) {
                 recentClientsContainer.innerHTML = recentClients.map(client => `
-                    <div style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="color: var(--text-light); font-weight: 500; display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-user-circle" style="color: var(--accent-blue);"></i>
-                                ${escapeHtml(client.username)}
-                                <span style="font-size: 0.7rem; background: var(--accent-blue); color: white; padding: 2px 6px; border-radius: 10px;">
-                                    ${client.total_orders || 0} orders
-                                </span>
-                            </div>
-                            <div style="font-size: 0.75rem; color: var(--text-gray); margin-top: 4px;">
-                                <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
-                                Recruited: ${formatDate(client.recruited_at)}
-                            </div>
-                            ${client.service_title && client.service_title !== 'General Service' ? `
-                                <div style="font-size: 0.7rem; color: var(--accent-gold); margin-top: 2px;">
-                                    <i class="fas fa-briefcase"></i> ${escapeHtml(client.service_title)}
+                    <div style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="color: var(--text-light); font-weight: 500;">
+                                    <i class="fas fa-user-circle" style="color: var(--accent-blue); margin-right: 8px;"></i>
+                                    ${escapeHtml(client.username)}
                                 </div>
-                            ` : ''}
+                                <div style="font-size: 0.7rem; color: var(--text-gray); margin-top: 4px;">
+                                    <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
+                                    Recruited: ${formatDate(client.recruited_at)}
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--accent-gold); margin-top: 2px;">
+                                    <i class="fas fa-briefcase"></i> ${escapeHtml(client.service_title || 'General Service')}
+                                </div>
+                            </div>
+                            <button onclick="checkAndStartConversation(null, ${client.id})" 
+                                    style="padding: 6px 12px; background: rgba(59,130,246,0.2); border: 1px solid var(--accent-blue); border-radius: 6px; color: var(--accent-blue); cursor: pointer;">
+                                <i class="fas fa-comment"></i>
+                            </button>
                         </div>
-                        <button class="btn btn-sm" onclick="checkAndStartConversation(null, ${client.id})" 
-                                style="padding: 6px 12px; font-size: 0.75rem; background: rgba(59,130,246,0.2); border: 1px solid var(--accent-blue); border-radius: 6px;">
-                            <i class="fas fa-comment"></i>
-                        </button>
                     </div>
                 `).join('');
             } else {
@@ -9831,7 +9825,7 @@ async function loadFreelancerDashboard() {
             }
         }
         
-        // ========== TOP CLIENTS (most orders) ==========
+        // ========== TOP CLIENTS ==========
         if (topClientsContainer) {
             const topClients = data.clients?.top || [];
             
@@ -9846,9 +9840,6 @@ async function loadFreelancerDashboard() {
                                 <div>
                                     <div style="color: var(--text-light); font-weight: 500;">
                                         ${escapeHtml(client.username)}
-                                    </div>
-                                    <div style="font-size: 0.7rem; color: var(--text-gray);">
-                                        Since ${formatDate(client.recruited_at)}
                                     </div>
                                 </div>
                             </div>
@@ -9868,27 +9859,18 @@ async function loadFreelancerDashboard() {
                     <div style="text-align: center; padding: 30px; color: var(--text-gray);">
                         <i class="fas fa-trophy" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
                         <p>No top clients yet</p>
+                        <p style="font-size: 0.8rem;">Complete orders to see your best clients</p>
                     </div>
                 `;
             }
         }
         
-        // Update the stats in the profile view as well
-        const totalServicesEl = document.getElementById('totalServices');
-        if (totalServicesEl) totalServicesEl.textContent = data.services?.total_services || 0;
-        
-        const completedOrdersEl = document.getElementById('completedOrders');
-        if (completedOrdersEl) completedOrdersEl.textContent = data.profile?.completed_orders || 0;
-        
-        const avgRatingEl = document.getElementById('avgRating');
-        if (avgRatingEl) avgRatingEl.textContent = (data.profile?.avg_rating || 0).toFixed(1);
-        
-        const totalReviewsEl = document.getElementById('totalReviews');
-        if (totalReviewsEl) totalReviewsEl.textContent = data.profile?.review_count || 0;
+        console.log("Dashboard loaded successfully");
         
     } catch (err) {
         console.error("Error loading dashboard:", err);
         
+        // Set default values on error
         if (dashboardServices) dashboardServices.textContent = '0';
         if (dashboardClients) dashboardClients.textContent = '0';
         if (dashboardRecruitments) dashboardRecruitments.textContent = '0';
@@ -9899,7 +9881,8 @@ async function loadFreelancerDashboard() {
                 <div style="text-align: center; padding: 30px; color: #ef4444;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
                     <p>Failed to load dashboard data</p>
-                    <button class="btn btn-primary" onclick="loadFreelancerDashboard()" style="margin-top: 10px; padding: 8px 16px;">
+                    <p style="font-size: 0.8rem;">${err.message}</p>
+                    <button onclick="loadFreelancerDashboard()" style="margin-top: 10px; padding: 8px 16px; background: var(--accent-blue); border: none; border-radius: 6px; color: white; cursor: pointer;">
                         <i class="fas fa-sync-alt"></i> Retry
                     </button>
                 </div>
@@ -9912,6 +9895,20 @@ async function loadFreelancerDashboard() {
     }
 }
 
+// Helper function to format dates
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 // Helper function to format dates
 function formatDate(dateString) {
     if (!dateString) return 'N/A';

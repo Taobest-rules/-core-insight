@@ -686,7 +686,41 @@ In the name of Allah, the Most Gracious, the Most Merciful
       color: var(--primary-dark);
       border-color: transparent;
     }
-    
+    /* Course Checkbox for Mass Delete */
+.course-checkbox {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.course-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #ef4444;
+}
+
+.mass-delete-mode .course-checkbox {
+  display: flex;
+}
+
+.mass-delete-mode .card {
+  cursor: pointer;
+}
+
+.mass-delete-mode .card.selected {
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
     /* Messages */
     .message {
       padding: 1rem;
@@ -1430,6 +1464,33 @@ In the name of Allah, the Most Gracious, the Most Merciful
       <div id="uploadMessage"></div>
     </form>
   </div>
+  <!-- Admin Mass Delete Section - Add this near the filter buttons -->
+<div id="adminMassDeleteSection" style="display: none; margin: 20px 0; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <i class="fas fa-trash-alt" style="color: #ef4444; font-size: 24px;"></i>
+      <div>
+        <strong style="color: #ef4444;">Mass Delete Mode</strong>
+        <p style="margin: 0; font-size: 12px; color: var(--text-gray);">Select multiple courses to delete</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button id="selectAllCoursesBtn" class="btn-secondary" style="background: #3b82f6;">
+        <i class="fas fa-check-double"></i> Select All
+      </button>
+      <button id="deselectAllCoursesBtn" class="btn-secondary" style="background: #6b7280;">
+        <i class="fas fa-times"></i> Deselect All
+      </button>
+      <button id="confirmMassDeleteBtn" class="btn-primary" style="background: #ef4444;">
+        <i class="fas fa-trash-alt"></i> Delete Selected (<span id="selectedCount">0</span>)
+      </button>
+      <button id="cancelMassDeleteBtn" class="btn-secondary">
+        <i class="fas fa-times"></i> Exit
+      </button>
+    </div>
+  </div>
+  <div id="massDeleteMessage" style="margin-top: 10px; font-size: 12px; color: var(--warning);"></div>
+</div>
 
   <!-- Courses Section -->
   <section class="course-section container">
@@ -2103,6 +2164,9 @@ async function loadCourses() {
       }
     }
     
+    // Check if user is admin for mass delete
+    const isAdmin = user && user.role === 'admin';
+    
     if (courses.length === 0) {
       grid.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;">
@@ -2132,7 +2196,7 @@ async function loadCourses() {
       const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
       const isPremium = course.price > 0 && !isFree;
       
-      // ✅ Calculate USD price for display
+      // Calculate USD price for display
       let usdPrice = 0;
       if (isPremium && course.price > 0) {
         usdPrice = course.price / usdRate;
@@ -2188,12 +2252,11 @@ async function loadCourses() {
       } else if (isFree) {
         priceDisplay = '<span style="color: #64ffda;">FREE</span>';
       } else {
-        // ✅ Show both NGN and USD
         priceDisplay = `<span style="color: #64ffda;">₦${course.price.toLocaleString()}</span>
                         <span style="color: var(--text-muted); font-size: 0.8rem;"> / $${usdPrice.toFixed(2)} USD</span>`;
       }
       
-      // ✅ Button text with USD amount
+      // Button text with USD amount
       let buttonText = '';
       if (hasAccess) {
         buttonText = '<i class="fas fa-download"></i> Download Now';
@@ -2211,8 +2274,19 @@ async function loadCourses() {
       // Check if user has already flagged this course
       const hasFlagged = flaggedCourses.has(Number(course.id));
       
+      // ✅ ADD CHECKBOX FOR MASS DELETE (ADMIN ONLY)
+      const checkboxHtml = isAdmin && massDeleteMode ? `
+        <div class="course-checkbox">
+          <input type="checkbox" value="${course.id}" onchange="toggleCourseSelection(this, ${course.id})">
+        </div>
+      ` : '';
+      
+      // ✅ ADD SELECTED CLASS IF IN MASS DELETE MODE AND COURSE IS SELECTED
+      const selectedClass = massDeleteMode && selectedCourses.has(Number(course.id)) ? 'selected' : '';
+      
       return `
-        <div class="card" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+        <div class="card ${selectedClass}" data-type="${isFree ? 'free' : 'premium'}" data-is-video="${isVideo}" data-content-type="${escapeHtml(course.content_type || 'book')}" data-course-id="${course.id}" data-has-access="${hasAccess}">
+          ${checkboxHtml}
           <div class="card-header">
             <img src="${thumbnailSrc}" 
                  alt="${safeTitle}" 
@@ -2294,6 +2368,11 @@ async function loadCourses() {
     // Update prices based on currency
     setTimeout(updateAllPrices, 100);
     
+    // Update mass delete UI if active
+    if (massDeleteMode) {
+      addCheckboxesToCourses();
+    }
+    
     hideLoading();
     
   } catch (error) {
@@ -2311,7 +2390,6 @@ async function loadCourses() {
     hideLoading();
   }
 }
-
 // Add this function to get live USD conversion
 async function getUSDPrice(ngnPrice) {
   try {
@@ -2538,6 +2616,207 @@ toastStyle.textContent = `
   }
 `;
 document.head.appendChild(toastStyle);
+
+// ==================== MASS DELETE FOR COURSES (ADMIN ONLY) ====================
+let massDeleteMode = false;
+let selectedCourses = new Set();
+
+// Check if user is admin and show mass delete button
+async function checkAdminAndShowMassDelete() {
+  try {
+    const res = await fetch('/api/me');
+    const user = await res.json();
+    
+    if (user && user.role === 'admin') {
+      document.getElementById('toggleMassDeleteBtn').style.display = 'inline-flex';
+      document.getElementById('toggleMassDeleteBtn').style.display = 'inline-flex';
+    } else {
+      document.getElementById('toggleMassDeleteBtn').style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error checking admin status:', err);
+  }
+}
+
+// Toggle mass delete mode
+function toggleMassDeleteMode() {
+  massDeleteMode = !massDeleteMode;
+  const container = document.getElementById('coursesGrid');
+  const massDeleteSection = document.getElementById('adminMassDeleteSection');
+  
+  if (massDeleteMode) {
+    container.classList.add('mass-delete-mode');
+    massDeleteSection.style.display = 'block';
+    document.getElementById('toggleMassDeleteBtn').style.background = '#dc2626';
+    document.getElementById('toggleMassDeleteBtn').innerHTML = '<i class="fas fa-times"></i> Exit Mass Delete';
+    
+    // Add checkboxes to all course cards
+    addCheckboxesToCourses();
+  } else {
+    container.classList.remove('mass-delete-mode');
+    massDeleteSection.style.display = 'none';
+    document.getElementById('toggleMassDeleteBtn').style.background = '#ef4444';
+    document.getElementById('toggleMassDeleteBtn').innerHTML = '<i class="fas fa-trash-alt"></i> Mass Delete';
+    
+    // Clear selections
+    selectedCourses.clear();
+    updateSelectedCount();
+    
+    // Remove checkboxes
+    removeCheckboxesFromCourses();
+  }
+}
+
+// Add checkboxes to all course cards
+function addCheckboxesToCourses() {
+  const cards = document.querySelectorAll('#coursesGrid .card');
+  cards.forEach(card => {
+    // Check if checkbox already exists
+    if (!card.querySelector('.course-checkbox')) {
+      const courseId = card.getAttribute('data-course-id');
+      const checkboxDiv = document.createElement('div');
+      checkboxDiv.className = 'course-checkbox';
+      checkboxDiv.innerHTML = `<input type="checkbox" value="${courseId}" onchange="toggleCourseSelection(this, ${courseId})">`;
+      card.style.position = 'relative';
+      card.insertBefore(checkboxDiv, card.firstChild);
+    }
+  });
+}
+
+// Remove checkboxes from all course cards
+function removeCheckboxesFromCourses() {
+  const checkboxes = document.querySelectorAll('#coursesGrid .card .course-checkbox');
+  checkboxes.forEach(checkbox => checkbox.remove());
+}
+
+// Toggle course selection
+function toggleCourseSelection(checkbox, courseId) {
+  if (checkbox.checked) {
+    selectedCourses.add(courseId);
+    checkbox.closest('.card').classList.add('selected');
+  } else {
+    selectedCourses.delete(courseId);
+    checkbox.closest('.card').classList.remove('selected');
+  }
+  updateSelectedCount();
+}
+
+// Select all courses
+function selectAllCourses() {
+  const checkboxes = document.querySelectorAll('#coursesGrid .card .course-checkbox input');
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = true;
+    const courseId = parseInt(checkbox.value);
+    selectedCourses.add(courseId);
+    checkbox.closest('.card').classList.add('selected');
+  });
+  updateSelectedCount();
+  showToast(`${selectedCourses.size} courses selected`, 'info');
+}
+
+// Deselect all courses
+function deselectAllCourses() {
+  const checkboxes = document.querySelectorAll('#coursesGrid .card .course-checkbox input');
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = false;
+    checkbox.closest('.card').classList.remove('selected');
+  });
+  selectedCourses.clear();
+  updateSelectedCount();
+  showToast('All courses deselected', 'info');
+}
+
+// Update selected count display
+function updateSelectedCount() {
+  const countSpan = document.getElementById('selectedCount');
+  if (countSpan) {
+    countSpan.textContent = selectedCourses.size;
+  }
+}
+
+// Confirm and execute mass delete
+async function confirmMassDelete() {
+  if (selectedCourses.size === 0) {
+    showToast('No courses selected', 'warning');
+    return;
+  }
+  
+  const confirmMessage = `⚠️ WARNING: You are about to delete ${selectedCourses.size} course(s).\n\nThis action CANNOT be undone!\n\nType "DELETE" to confirm.`;
+  const userInput = prompt(confirmMessage);
+  
+  if (userInput !== 'DELETE') {
+    showToast('Mass delete cancelled', 'info');
+    return;
+  }
+  
+  const messageDiv = document.getElementById('massDeleteMessage');
+  messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting selected courses...';
+  messageDiv.style.color = '#f59e0b';
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const courseId of selectedCourses) {
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        successCount++;
+        // Remove card from DOM
+        const card = document.querySelector(`#coursesGrid .card[data-course-id="${courseId}"]`);
+        if (card) card.remove();
+      } else {
+        failCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to delete course ${courseId}:`, error);
+      failCount++;
+    }
+  }
+  
+  if (successCount > 0) {
+    messageDiv.innerHTML = `<i class="fas fa-check-circle"></i> Deleted ${successCount} course(s) successfully. ${failCount > 0 ? `${failCount} failed.` : ''}`;
+    messageDiv.style.color = '#10b981';
+    showToast(`Deleted ${successCount} courses successfully`, 'success');
+    
+    // Clear selections
+    selectedCourses.clear();
+    updateSelectedCount();
+    
+    // Reload courses to update counts
+    setTimeout(() => loadCourses(), 2000);
+  } else {
+    messageDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Failed to delete courses. Please try again.`;
+    messageDiv.style.color = '#ef4444';
+    showToast('Failed to delete courses', 'error');
+  }
+  
+  // Exit mass delete mode after 3 seconds
+  setTimeout(() => {
+    if (massDeleteMode) {
+      toggleMassDeleteMode();
+    }
+    messageDiv.innerHTML = '';
+  }, 3000);
+}
+
+// Add event listeners
+document.getElementById('toggleMassDeleteBtn')?.addEventListener('click', toggleMassDeleteMode);
+document.getElementById('selectAllCoursesBtn')?.addEventListener('click', selectAllCourses);
+document.getElementById('deselectAllCoursesBtn')?.addEventListener('click', deselectAllCourses);
+document.getElementById('confirmMassDeleteBtn')?.addEventListener('click', confirmMassDelete);
+document.getElementById('cancelMassDeleteBtn')?.addEventListener('click', toggleMassDeleteMode);
+
+// Call this after loading user
+async function loadUserWithMassDelete() {
+  await loadUser(); // Your existing loadUser function
+  await checkAdminAndShowMassDelete();
+}
+
+// Override or call after user loads
 // ========================= REFRESH COURSES AFTER PURCHASE =========================
 async function refreshCoursesAfterPurchase() {
   // Reload the courses to update the "Owned" status

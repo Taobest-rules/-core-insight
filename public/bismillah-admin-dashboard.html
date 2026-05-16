@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="your-csrf-token-here">
+  <title>Admin Dashboard | Core Insight</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --primary-dark: #0f172a;
+      --secondary-dark: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-gold: #f59e0b;
+      --text-light: #f8fafc;
+      --text-gray: #94a3b8;
+      --text-muted: #64748b;
+      --card-bg: #1e293b;
+      --card-bg-hover: #2d3748;
+      --border: #334155;
+      --border-light: #475569;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --digital: #8b5cf6;
+      --physical: #06b6d4;
+      --affiliate: #10b981;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--primary-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Bismillah Banner */
+    .bismillah {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      text-align: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--accent-gold);
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      color: var(--accent-gold);
+      font-weight: 500;
+    }
+
+    .bismillah i {
+      margin: 0 8px;
+      color: var(--accent);
+    }
+
+    /* Layout */
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--secondary-dark);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      transition: var(--transition);
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-header .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--digital));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-header h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .sidebar-nav {
+      padding: 20px 0;
+    }
+
+    .nav-item {
+      padding: 12px 20px;
+      margin: 4px 12px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .nav-item i {
+      width: 20px;
+      font-size: 1.1rem;
+    }
+
+    .nav-item:hover {
+      background: var(--card-bg-hover);
+      color: var(--text-light);
+    }
+
+    .nav-item.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 24px 32px;
+    }
+
+    /* Header */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-avatar {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    /* Search Bar */
+    .global-search {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-input-wrapper i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-gray);
+    }
+
+    .global-search input {
+      width: 100%;
+      padding: 14px 16px 14px 44px;
+      background: var(--primary-dark);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    .global-search input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .global-search select {
+      padding: 14px 20px;
+      background: var(--primary-dark);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-light);
+      cursor: pointer;
+    }
+
+    .global-search button {
+      padding: 14px 28px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .global-search button:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(59, 130, 246, 0.15);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    .stat-info h3 {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .stat-info p {
+      color: var(--text-gray);
+      font-size: 0.85rem;
+    }
+
+    /* Tabs */
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md);
+      color: var(--text-gray);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      background: var(--card-bg-hover);
+      color: var(--text-light);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Tables */
+    .table-container {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 16px;
+      text-align: left;
+      color: var(--text-light);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-gray);
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: var(--card-bg-hover);
+    }
+
+    /* Badges */
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-info { background: rgba(59, 130, 246, 0.2); color: var(--accent); }
+
+    /* Action Buttons */
+    .action-btn {
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      border: none;
+      background: transparent;
+      color: var(--text-gray);
+      cursor: pointer;
+      transition: var(--transition);
+      margin: 0 4px;
+    }
+
+    .action-btn:hover {
+      background: var(--card-bg-hover);
+    }
+
+    .action-btn.ban { color: var(--danger); }
+    .action-btn.view { color: var(--accent); }
+    .action-btn.delete { color: var(--danger); }
+
+    /* User Avatar Small */
+    .user-avatar-small {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid var(--border);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-content textarea {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary-dark);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-light);
+      margin: 16px 0;
+      min-height: 100px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-buttons button {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .confirm-btn {
+      background: var(--danger);
+      border: none;
+      color: white;
+    }
+
+    .cancel-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-gray);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 14px 24px;
+      background: var(--card-bg);
+      border-left: 4px solid var(--success);
+      border-radius: var(--radius-md);
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+      .mobile-menu-toggle {
+        display: block;
+      }
+    }
+
+    .mobile-menu-toggle {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-light);
+      padding: 10px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      margin-right: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Bismillah Banner -->
+  <div class="bismillah">
+    <i class="fas fa-star-of-life"></i>
+    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+    <i class="fas fa-star-of-life"></i><br>
+    <span style="font-size: 0.85rem;">In the name of Allah, the Most Gracious, the Most Merciful</span>
+  </div>
+
+  <div class="admin-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+        <h2>Admin Panel</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-tab="dashboard">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </div>
+        <div class="nav-item" data-tab="users">
+          <i class="fas fa-users"></i> Users
+        </div>
+        <div class="nav-item" data-tab="products">
+          <i class="fas fa-box"></i> Products
+        </div>
+        <div class="nav-item" data-tab="courses">
+          <i class="fas fa-graduation-cap"></i> Courses
+        </div>
+        <div class="nav-item" data-tab="services">
+          <i class="fas fa-briefcase"></i> Services
+        </div>
+        <div class="nav-item" data-tab="orders">
+          <i class="fas fa-shopping-cart"></i> Orders
+        </div>
+        <div class="nav-item" data-tab="disputes">
+          <i class="fas fa-gavel"></i> Disputes
+        </div>
+        <div class="nav-item" data-tab="flagged">
+          <i class="fas fa-flag"></i> Flagged Content
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <div class="admin-header">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Admin Dashboard</h1>
+        </div>
+        <div class="user-info">
+          <span id="adminName">Admin</span>
+          <div class="user-avatar" id="adminAvatar">A</div>
+          <button class="action-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Global Search -->
+      <div class="global-search">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search"></i>
+          <input type="text" id="globalSearch" placeholder="Search users, products, courses, services, orders...">
+        </div>
+        <select id="searchCategory">
+          <option value="all">All Categories</option>
+          <option value="users">Users</option>
+          <option value="products">Products</option>
+          <option value="courses">Courses</option>
+          <option value="services">Services</option>
+          <option value="orders">Orders</option>
+        </select>
+        <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-info">
+            <h3 id="totalUsers">0</h3>
+            <p>Total Users</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-box"></i></div>
+          <div class="stat-info">
+            <h3 id="totalProducts">0</h3>
+            <p>Products</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+          <div class="stat-info">
+            <h3 id="totalCourses">0</h3>
+            <p>Courses</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-briefcase"></i></div>
+          <div class="stat-info">
+            <h3 id="totalServices">0</h3>
+            <p>Services</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+          <div class="stat-info">
+            <h3 id="totalOrders">0</h3>
+            <p>Orders</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+          <div class="stat-info">
+            <h3 id="totalRevenue">$0</h3>
+            <p>Revenue</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="admin-tabs" id="adminTabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="users">Users</button>
+        <button class="tab-btn" data-tab="products">Products</button>
+        <button class="tab-btn" data-tab="courses">Courses</button>
+        <button class="tab-btn" data-tab="services">Services</button>
+        <button class="tab-btn" data-tab="orders">Orders</button>
+        <button class="tab-btn" data-tab="disputes">Disputes</button>
+        <button class="tab-btn" data-tab="flagged">Flagged</button>
+      </div>
+
+      <!-- Dashboard Tab Content -->
+      <div id="dashboardTab" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Metric</th><th>Value</th><th>Change</th></tr>
+            </thead>
+            <tbody id="dashboardMetrics">
+              <tr><td>Loading...</td><td>-</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users Tab Content -->
+      <div id="usersTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>User</th><th>Email</th><th>Role</th><th>Products</th><th>Courses</th><th>Orders</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="usersTableBody"><tr><td colspan="8">Loading users...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Products Tab Content -->
+      <div id="productsTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Type</th><th>Price</th><th>Seller</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="productsTableBody"><tr><td colspan="7">Loading products...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Courses Tab Content -->
+      <div id="coursesTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Author</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="coursesTableBody"><tr><td colspan="6">Loading courses...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Services Tab Content -->
+      <div id="servicesTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Provider</th><th>Price</th><th>Category</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="servicesTableBody"><tr><td colspan="7">Loading services...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders Tab Content -->
+      <div id="ordersTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Product/Service</th><th>Customer</th><th>Seller</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="ordersTableBody"><tr><td colspan="7">Loading orders...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Disputes Tab Content -->
+      <div id="disputesTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Type</th><th>Raised By</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="disputesTableBody"><tr><td colspan="6">Loading disputes...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Flagged Content Tab -->
+      <div id="flaggedTab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Type</th><th>Title</th><th>Owner</th><th>Flag Count</th><th>Reason</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="flaggedTableBody"><tr><td colspan="6">Loading flagged content...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <h3><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h3>
+      <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+        <button class="confirm-btn" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ban User Modal -->
+  <div id="banModal" class="modal">
+    <div class="modal-content">
+      <h3><i class="fas fa-ban"></i> Ban User</h3>
+      <p>Are you sure you want to ban this user? They will lose access to all features.</p>
+      <div class="modal-buttons">
+        <button class="cancel-btn" onclick="closeBanModal()">Cancel</button>
+        <button class="confirm-btn" id="confirmBanBtn">Ban User</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== ADMIN DASHBOARD SCRIPT ====================
+    let currentUser = null;
+    let pendingDeleteId = null;
+    let pendingDeleteType = null;
+    let pendingBanId = null;
+
+    // Check authentication
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me');
+        const user = await res.json();
+        
+        if (!user || user.role !== 'admin') {
+          window.location.href = '/login.html';
+          return;
+        }
+        
+        currentUser = user;
+        document.getElementById('adminName').textContent = user.username || 'Admin';
+        document.getElementById('adminAvatar').textContent = (user.username || 'A')[0].toUpperCase();
+        
+        loadDashboard();
+        loadAllData();
+      } catch (err) {
+        console.error('Auth error:', err);
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Load all dashboard data
+    async function loadDashboard() {
+      try {
+        const [users, products, courses, services, orders, revenue] = await Promise.all([
+          fetch('/api/admin/users').then(r => r.json()).catch(() => []),
+          fetch('/api/products').then(r => r.json()).catch(() => []),
+          fetch('/api/courses').then(r => r.json()).catch(() => []),
+          fetch('/api/services').then(r => r.json()).catch(() => ({ services: [] })),
+          fetch('/api/orders/seller/all').then(r => r.json()).catch(() => []),
+          fetch('/api/admin/platform-stats').then(r => r.json()).catch(() => ({ platform_revenue: 0 }))
+        ]);
+        
+        const servicesList = services.services || services || [];
+        const revenueAmount = revenue.platform_revenue || 0;
+        
+        document.getElementById('totalUsers').textContent = users.length || 0;
+        document.getElementById('totalProducts').textContent = products.length || 0;
+        document.getElementById('totalCourses').textContent = courses.length || 0;
+        document.getElementById('totalServices').textContent = servicesList.length || 0;
+        document.getElementById('totalOrders').textContent = orders.length || 0;
+        document.getElementById('totalRevenue').textContent = `$${revenueAmount.toFixed(2)}`;
+        
+        const metricsBody = document.getElementById('dashboardMetrics');
+        metricsBody.innerHTML = `
+          <tr><td>Active Users</td><td>${users.filter(u => u.account_locked !== 1).length}</td><td><span class="badge badge-success">Active</span></td></tr>
+          <tr><td>Banned Users</td><td>${users.filter(u => u.account_locked === 1).length}</td><td><span class="badge badge-danger">Banned</span></td></tr>
+          <tr><td>Total Products</td><td>${products.length}</td><td><span class="badge badge-info">Listed</span></td></tr>
+          <tr><td>Total Courses</td><td>${courses.length}</td><td><span class="badge badge-info">Available</span></td></tr>
+          <tr><td>Total Services</td><td>${servicesList.length}</td><td><span class="badge badge-info">Offered</span></td></tr>
+          <tr><td>Completed Orders</td><td>${orders.filter(o => o.order_status === 'completed').length}</td><td><span class="badge badge-success">Done</span></td></tr>
+          <tr><td>Pending Orders</td><td>${orders.filter(o => o.order_status === 'pending_seller_approval').length}</td><td><span class="badge badge-warning">Pending</span></td></tr>
+          <tr><td>Platform Revenue</td><td>$${revenueAmount.toFixed(2)}</td><td><span class="badge badge-success">Total</span></td></tr>
+        `;
+      } catch (err) {
+        console.error('Load dashboard error:', err);
+      }
+    }
+
+    async function loadAllData() {
+      await Promise.all([
+        loadUsers(),
+        loadProducts(),
+        loadCourses(),
+        loadServices(),
+        loadOrders(),
+        loadDisputes(),
+        loadFlaggedContent()
+      ]);
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        
+        const tbody = document.getElementById('usersTableBody');
+        if (!users || users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8">No users found</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = users.map(user => `
+          <tr>
+            <td><div class="user-avatar-small">${(user.username || 'U')[0].toUpperCase()}</div> ${escapeHtml(user.username || 'Unknown')}</td>
+            <td>${escapeHtml(user.email || '')}</td>
+            <td><span class="badge badge-info">${user.role || 'client'}</span></td>
+            <td>${user.product_count || 0}</td>
+            <td>${user.course_count || 0}</td>
+            <td>${user.order_count || 0}</td>
+            <td>${user.account_locked ? '<span class="badge badge-danger">Banned</span>' : '<span class="badge badge-success">Active</span>'}</td>
+            <td>
+              <button class="action-btn view" onclick="viewUser(${user.id})"><i class="fas fa-eye"></i></button>
+              ${!user.account_locked ? `<button class="action-btn ban" onclick="openBanModal(${user.id})"><i class="fas fa-ban"></i></button>` : ''}
+              <button class="action-btn delete" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load users error:', err);
+      }
+    }
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        let products = await res.json();
+        if (!Array.isArray(products)) products = [];
+        
+        const tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = products.slice(0, 100).map(product => `
+          <tr>
+            <td>${product.id}</td>
+            <td>${escapeHtml(product.title || 'Untitled')}</td>
+            <td><span class="badge badge-info">${product.type || 'digital'}</span></td>
+            <td>$${parseFloat(product.price || 0).toFixed(2)}</td>
+            <td>${escapeHtml(product.seller_name || 'Unknown')}</td>
+            <td>${product.is_deleted ? '<span class="badge badge-danger">Deleted</span>' : '<span class="badge badge-success">Active</span>'}</td>
+            <td>
+              <button class="action-btn view" onclick="viewProduct(${product.id})"><i class="fas fa-eye"></i></button>
+              <button class="action-btn delete" onclick="openDeleteModal('product', ${product.id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load products error:', err);
+      }
+    }
+
+    async function loadCourses() {
+      try {
+        const res = await fetch('/api/courses');
+        let courses = await res.json();
+        if (!Array.isArray(courses)) courses = [];
+        
+        const tbody = document.getElementById('coursesTableBody');
+        tbody.innerHTML = courses.slice(0, 100).map(course => `
+          <tr>
+            <td>${course.id}</td>
+            <td>${escapeHtml(course.title || 'Untitled')}</td>
+            <td>${escapeHtml(course.author_name || course.author || 'Unknown')}</td>
+            <td>${parseFloat(course.price || 0) === 0 ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}</td>
+            <td>${course.is_deleted ? '<span class="badge badge-danger">Deleted</span>' : '<span class="badge badge-success">Active</span>'}</td>
+            <td>
+              <button class="action-btn view" onclick="viewCourse(${course.id})"><i class="fas fa-eye"></i></button>
+              <button class="action-btn delete" onclick="openDeleteModal('course', ${course.id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load courses error:', err);
+      }
+    }
+
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/services');
+        const data = await res.json();
+        let services = data.services || data || [];
+        if (!Array.isArray(services)) services = [];
+        
+        const tbody = document.getElementById('servicesTableBody');
+        tbody.innerHTML = services.slice(0, 100).map(service => `
+          <tr>
+            <td>${service.id}</td>
+            <td>${escapeHtml(service.title || 'Untitled')}</td>
+            <td>${escapeHtml(service.username || 'Unknown')}</td>
+            <td>$${parseFloat(service.price || 0).toFixed(2)}</td>
+            <td>${escapeHtml(service.category || 'General')}</td>
+            <td>${service.status === 'active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>'}</td>
+            <td>
+              <button class="action-btn view" onclick="viewService(${service.id})"><i class="fas fa-eye"></i></button>
+              <button class="action-btn delete" onclick="openDeleteModal('service', ${service.id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load services error:', err);
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/orders/all');
+        let orders = await res.json();
+        if (!Array.isArray(orders)) orders = [];
+        
+        const tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = orders.slice(0, 100).map(order => `
+          <tr>
+            <td>#${order.id}</td>
+            <td>${escapeHtml(order.product_name || order.item_name || 'Item')}</td>
+            <td>${escapeHtml(order.customer_name || order.buyer_name || 'Unknown')}</td>
+            <td>${escapeHtml(order.seller_name || 'Unknown')}</td>
+            <td>$${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+            <td><span class="badge ${getStatusBadgeClass(order.order_status)}">${order.order_status || 'pending'}</span></td>
+            <td>
+              <button class="action-btn view" onclick="viewOrder(${order.id})"><i class="fas fa-eye"></i></button>
+             </td>
+           </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load orders error:', err);
+      }
+    }
+
+    async function loadDisputes() {
+      try {
+        const res = await fetch('/api/admin/disputes');
+        let disputes = await res.json();
+        if (!Array.isArray(disputes)) disputes = [];
+        
+        const tbody = document.getElementById('disputesTableBody');
+        tbody.innerHTML = disputes.slice(0, 50).map(dispute => `
+          <tr>
+            <td>#${dispute.order_id}</td>
+            <td>${escapeHtml(dispute.type || 'Refund')}</td>
+            <td>${escapeHtml(dispute.raised_by || 'Customer')}</td>
+            <td>${escapeHtml(dispute.reason || dispute.refund_reason || 'No reason provided')}</td>
+            <td><span class="badge badge-warning">${dispute.status || 'pending'}</span></td>
+            <td>
+              <button class="action-btn view" onclick="resolveDispute(${dispute.order_id})"><i class="fas fa-gavel"></i> Resolve</button>
+             </td>
+           </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load disputes error:', err);
+      }
+    }
+
+    async function loadFlaggedContent() {
+      try {
+        const [flaggedCourses, flaggedProducts, flaggedServices] = await Promise.all([
+          fetch('/api/admin/flagged-courses').then(r => r.json()).catch(() => []),
+          fetch('/api/admin/flagged-products').then(r => r.json()).catch(() => []),
+          fetch('/api/admin/flagged-services').then(r => r.json()).catch(() => [])
+        ]);
+        
+        const allFlagged = [
+          ...(flaggedCourses || []).map(f => ({ ...f, type: 'course' })),
+          ...(flaggedProducts || []).map(f => ({ ...f, type: 'product' })),
+          ...(flaggedServices || []).map(f => ({ ...f, type: 'service' }))
+        ];
+        
+        const tbody = document.getElementById('flaggedTableBody');
+        tbody.innerHTML = allFlagged.slice(0, 50).map(flag => `
+          <tr>
+            <td><span class="badge badge-warning">${flag.type}</span></td>
+            <td>${escapeHtml(flag.title || 'Untitled')}</td>
+            <td>${escapeHtml(flag.owner || 'Unknown')}</td>
+            <td><span class="badge badge-danger">${flag.flag_count || 1}</span></td>
+            <td>${escapeHtml((flag.reason || '').substring(0, 100))}...</td>
+            <td>
+              <button class="action-btn view" onclick="viewFlaggedItem('${flag.type}', ${flag.id})"><i class="fas fa-eye"></i></button>
+              <button class="action-btn delete" onclick="openDeleteModal('${flag.type}', ${flag.id})"><i class="fas fa-trash"></i></button>
+              <button class="action-btn" onclick="clearFlags('${flag.type}', ${flag.id})"><i class="fas fa-check"></i> Clear Flags</button>
+             </td>
+           </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Load flagged error:', err);
+      }
+    }
+
+    function getStatusBadgeClass(status) {
+      const map = {
+        'completed': 'badge-success',
+        'paid': 'badge-info',
+        'pending_seller_approval': 'badge-warning',
+        'cancelled': 'badge-danger',
+        'refunded': 'badge-info'
+      };
+      return map[status] || 'badge-warning';
+    }
+
+    // Search functionality
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const query = document.getElementById('globalSearch').value.toLowerCase();
+      const category = document.getElementById('searchCategory').value;
+      
+      if (!query) {
+        showToast('Please enter a search term', 'warning');
+        return;
+      }
+      
+      showToast(`Searching ${category} for "${query}"...`, 'info');
+      
+      if (category === 'all' || category === 'users') await searchUsers(query);
+      if (category === 'all' || category === 'products') await searchProducts(query);
+      if (category === 'all' || category === 'courses') await searchCourses(query);
+      if (category === 'all' || category === 'services') await searchServices(query);
+      if (category === 'all' || category === 'orders') await searchOrders(query);
+    });
+
+    async function searchUsers(query) {
+      const res = await fetch('/api/admin/users');
+      const users = await res.json();
+      const filtered = users.filter(u => 
+        (u.username || '').toLowerCase().includes(query) || 
+        (u.email || '').toLowerCase().includes(query)
+      );
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = filtered.map(user => `
+        <tr><td>${escapeHtml(user.username)}</td><td>${escapeHtml(user.email)}</td><td>${user.role}</td>
+        <td>${user.product_count || 0}</td><td>${user.course_count || 0}</td><td>${user.order_count || 0}</td>
+        <td>${user.account_locked ? 'Banned' : 'Active'}</td>
+        <td><button class="action-btn view" onclick="viewUser(${user.id})"><i class="fas fa-eye"></i></button></td>
+      </tr>`).join('');
+      if (filtered.length === 0) tbody.innerHTML = '<tr><td colspan="8">No users found</td></tr>';
+    }
+
+    async function searchProducts(query) {
+      const res = await fetch('/api/products');
+      let products = await res.json();
+      if (!Array.isArray(products)) products = [];
+      const filtered = products.filter(p => (p.title || '').toLowerCase().includes(query));
+      const tbody = document.getElementById('productsTableBody');
+      tbody.innerHTML = filtered.slice(0, 100).map(p => `
+        <tr><td>${p.id}</td><td>${escapeHtml(p.title)}</td><td>${p.type}</td>
+        <td>$${parseFloat(p.price || 0).toFixed(2)}</td><td>${escapeHtml(p.seller_name)}</td>
+        <td>${p.is_deleted ? 'Deleted' : 'Active'}</td>
+        <td><button class="action-btn delete" onclick="openDeleteModal('product', ${p.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('');
+    }
+
+    async function searchCourses(query) {
+      const res = await fetch('/api/courses');
+      let courses = await res.json();
+      if (!Array.isArray(courses)) courses = [];
+      const filtered = courses.filter(c => (c.title || '').toLowerCase().includes(query));
+      const tbody = document.getElementById('coursesTableBody');
+      tbody.innerHTML = filtered.slice(0, 100).map(c => `
+        <tr><td>${c.id}</td><td>${escapeHtml(c.title)}</td><td>${escapeHtml(c.author_name)}</td>
+        <td>${parseFloat(c.price || 0) === 0 ? 'Free' : `$${parseFloat(c.price).toFixed(2)}`}</td>
+        <td>${c.is_deleted ? 'Deleted' : 'Active'}</td>
+        <td><button class="action-btn delete" onclick="openDeleteModal('course', ${c.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('');
+    }
+
+    async function searchServices(query) {
+      const res = await fetch('/api/services');
+      const data = await res.json();
+      let services = data.services || data || [];
+      if (!Array.isArray(services)) services = [];
+      const filtered = services.filter(s => (s.title || '').toLowerCase().includes(query));
+      const tbody = document.getElementById('servicesTableBody');
+      tbody.innerHTML = filtered.slice(0, 100).map(s => `
+        <tr><td>${s.id}</td><td>${escapeHtml(s.title)}</td><td>${escapeHtml(s.username)}</td>
+        <td>$${parseFloat(s.price || 0).toFixed(2)}</td><td>${escapeHtml(s.category)}</td>
+        <td>${s.status === 'active' ? 'Active' : 'Inactive'}</td>
+        <td><button class="action-btn delete" onclick="openDeleteModal('service', ${s.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('');
+    }
+
+    async function searchOrders(query) {
+      const res = await fetch('/api/orders/all');
+      let orders = await res.json();
+      if (!Array.isArray(orders)) orders = [];
+      const filtered = orders.filter(o => 
+        (o.id && o.id.toString().includes(query)) ||
+        (o.product_name || '').toLowerCase().includes(query) ||
+        (o.customer_name || '').toLowerCase().includes(query)
+      );
+      const tbody = document.getElementById('ordersTableBody');
+      tbody.innerHTML = filtered.slice(0, 100).map(o => `
+        <tr><td>#${o.id}</td><td>${escapeHtml(o.product_name)}</td><td>${escapeHtml(o.customer_name)}</td>
+        <td>${escapeHtml(o.seller_name)}</td><td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
+        <td><span class="badge badge-warning">${o.order_status}</span></td>
+        <td><button class="action-btn view" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i></button></td>
+      </tr>`).join('');
+    }
+
+    // Delete functions
+    function openDeleteModal(type, id) {
+      pendingDeleteId = id;
+      pendingDeleteType = type;
+      document.getElementById('deleteModal').classList.add('open');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('open');
+      pendingDeleteId = null;
+      pendingDeleteType = null;
+    }
+
+    document.getElementById('confirmDeleteBtn').onclick = async () => {
+      if (!pendingDeleteId || !pendingDeleteType) return;
+      
+      try {
+        let endpoint = '';
+        if (pendingDeleteType === 'product') endpoint = `/api/products/${pendingDeleteId}`;
+        else if (pendingDeleteType === 'course') endpoint = `/api/courses/${pendingDeleteId}`;
+        else if (pendingDeleteType === 'service') endpoint = `/api/services/${pendingDeleteId}`;
+        else return;
+        
+        const res = await fetch(endpoint, { method: 'DELETE' });
+        if (res.ok) {
+          showToast(`${pendingDeleteType} deleted successfully`, 'success');
+          loadAllData();
+        } else {
+          showToast(`Failed to delete ${pendingDeleteType}`, 'error');
+        }
+      } catch (err) {
+        showToast('Error deleting item', 'error');
+      }
+      closeDeleteModal();
+    };
+
+    function openBanModal(userId) {
+      pendingBanId = userId;
+      document.getElementById('banModal').classList.add('open');
+    }
+
+    function closeBanModal() {
+      document.getElementById('banModal').classList.remove('open');
+      pendingBanId = null;
+    }
+
+    document.getElementById('confirmBanBtn').onclick = async () => {
+      if (!pendingBanId) return;
+      try {
+        const res = await fetch(`/api/admin/ban-user/${pendingBanId}`, { method: 'POST' });
+        if (res.ok) {
+          showToast('User banned successfully', 'success');
+          loadUsers();
+        } else {
+          showToast('Failed to ban user', 'error');
+        }
+      } catch (err) {
+        showToast('Error banning user', 'error');
+      }
+      closeBanModal();
+    };
+
+    // View functions
+    function viewUser(id) { showToast(`Viewing user ${id}`, 'info'); }
+    function viewProduct(id) { showToast(`Viewing product ${id}`, 'info'); }
+    function viewCourse(id) { showToast(`Viewing course ${id}`, 'info'); }
+    function viewService(id) { showToast(`Viewing service ${id}`, 'info'); }
+    function viewOrder(id) { showToast(`Viewing order ${id}`, 'info'); }
+    function resolveDispute(id) { showToast(`Resolving dispute for order ${id}`, 'info'); }
+    function viewFlaggedItem(type, id) { showToast(`Viewing flagged ${type} ${id}`, 'info'); }
+    function clearFlags(type, id) { showToast(`Cleared flags for ${type} ${id}`, 'success'); loadFlaggedContent(); }
+    async function deleteUser(id) { if (confirm('Delete user?')) { await fetch(`/api/admin/users/${id}`, { method: 'DELETE' }); loadUsers(); } }
+    async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login.html'; }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast`;
+      toast.style.borderLeftColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b';
+      toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Tab switching
+    document.querySelectorAll('.nav-item, .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.nav-item, .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+        if (tab === 'dashboard') document.getElementById('dashboardTab').style.display = 'block';
+        else if (tab === 'users') document.getElementById('usersTab').style.display = 'block';
+        else if (tab === 'products') document.getElementById('productsTab').style.display = 'block';
+        else if (tab === 'courses') document.getElementById('coursesTab').style.display = 'block';
+        else if (tab === 'services') document.getElementById('servicesTab').style.display = 'block';
+        else if (tab === 'orders') document.getElementById('ordersTab').style.display = 'block';
+        else if (tab === 'disputes') document.getElementById('disputesTab').style.display = 'block';
+        else if (tab === 'flagged') document.getElementById('flaggedTab').style.display = 'block';
+      });
+    });
+
+    document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>

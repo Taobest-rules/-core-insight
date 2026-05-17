@@ -1,24 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="your-csrf-token-here">
   <title>Admin Dashboard | Core Insight</title>
-  
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  
-  <!-- Chart.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --primary-dark: #0f172a;
       --secondary-dark: #1e293b;
@@ -34,50 +24,31 @@
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
       --transition: all 0.2s ease;
     }
-
-    body {
-      background: var(--primary-dark);
-      color: var(--text-light);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      line-height: 1.5;
-    }
-
+    body { background: var(--primary-dark); color: var(--text-light); font-family: 'Inter', sans-serif; line-height: 1.5; }
+    
     /* Bismillah Banner */
     .bismillah {
       background: linear-gradient(135deg, #1e293b, #0f172a);
       text-align: center;
       padding: 12px 20px;
-      border-bottom: 1px solid var(--accent-gold);
+      border-bottom: 2px solid var(--accent-gold);
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 15px;
       flex-wrap: wrap;
     }
-    .bismillah img {
-      height: 36px;
-      width: auto;
-      border-radius: 8px;
-    }
-    .bismillah i {
-      color: var(--accent-gold);
-    }
-    .bismillah span {
-      font-size: 0.85rem;
-      color: var(--accent-gold);
-    }
-
+    .bismillah img { height: 40px; width: auto; border-radius: 10px; }
+    .bismillah i { color: var(--accent-gold); font-size: 1.2rem; }
+    .bismillah span { font-size: 0.9rem; color: var(--accent-gold); }
+    
     /* Layout */
-    .admin-container {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    /* Sidebar */
+    .admin-container { display: flex; min-height: 100vh; }
     .sidebar {
       width: 280px;
       background: var(--secondary-dark);
@@ -85,7 +56,6 @@
       position: fixed;
       height: 100vh;
       overflow-y: auto;
-      transition: var(--transition);
       z-index: 100;
     }
     .sidebar-header {
@@ -105,19 +75,9 @@
       justify-content: center;
       overflow: hidden;
     }
-    .sidebar-header .logo-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .sidebar-header h2 {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--text-light);
-    }
-    .sidebar-nav {
-      padding: 20px 0;
-    }
+    .sidebar-header .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar-header h2 { font-size: 1.2rem; font-weight: 600; }
+    .sidebar-nav { padding: 20px 0; }
     .nav-item {
       padding: 12px 20px;
       margin: 4px 12px;
@@ -129,18 +89,9 @@
       cursor: pointer;
       transition: var(--transition);
     }
-    .nav-item i {
-      width: 20px;
-    }
-    .nav-item:hover {
-      background: var(--card-bg-hover);
-      color: var(--text-light);
-    }
-    .nav-item.active {
-      background: var(--accent);
-      color: white;
-    }
-
+    .nav-item i { width: 20px; }
+    .nav-item:hover, .nav-item.active { background: var(--accent); color: white; }
+    
     /* Main Content */
     .main-content {
       flex: 1;
@@ -155,16 +106,8 @@
       padding-bottom: 16px;
       border-bottom: 1px solid var(--border);
     }
-    .admin-header h1 {
-      font-size: 1.8rem;
-      font-weight: 600;
-      color: var(--text-light);
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+    .admin-header h1 { font-size: 1.8rem; font-weight: 600; }
+    .user-info { display: flex; align-items: center; gap: 16px; }
     .user-avatar {
       width: 44px;
       height: 44px;
@@ -175,8 +118,8 @@
       justify-content: center;
       font-weight: 600;
     }
-
-    /* Global Search */
+    
+    /* Search Bar */
     .global-search {
       background: var(--card-bg);
       border-radius: var(--radius-lg);
@@ -188,10 +131,7 @@
       flex-wrap: wrap;
       align-items: center;
     }
-    .search-input-wrapper {
-      flex: 1;
-      position: relative;
-    }
+    .search-input-wrapper { flex: 1; position: relative; }
     .search-input-wrapper i {
       position: absolute;
       left: 16px;
@@ -206,9 +146,8 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       color: var(--text-light);
-      font-size: 14px;
     }
-    .global-search select {
+    .global-search select, .global-search button {
       padding: 14px 20px;
       background: var(--primary-dark);
       border: 1px solid var(--border);
@@ -216,20 +155,10 @@
       color: var(--text-light);
       cursor: pointer;
     }
-    .global-search button {
-      padding: 14px 28px;
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius-md);
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .global-search button:hover {
-      background: var(--accent-hover);
-    }
-
-    /* Stats Grid */
+    .global-search button { background: var(--accent); color: white; border: none; font-weight: 600; }
+    .global-search button:hover { background: var(--accent-hover); }
+    
+    /* Stats Cards */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -256,16 +185,9 @@
       font-size: 1.5rem;
       color: var(--accent);
     }
-    .stat-info h3 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text-light);
-    }
-    .stat-info p {
-      color: var(--text-gray);
-      font-size: 0.85rem;
-    }
-
+    .stat-info h3 { font-size: 1.8rem; font-weight: 700; }
+    .stat-info p { color: var(--text-gray); font-size: 0.85rem; }
+    
     /* Tabs */
     .admin-tabs {
       display: flex;
@@ -290,11 +212,8 @@
       align-items: center;
       gap: 8px;
     }
-    .tab-btn:hover, .tab-btn.active {
-      background: var(--accent);
-      color: white;
-    }
-
+    .tab-btn:hover, .tab-btn.active { background: var(--accent); color: white; }
+    
     /* Tables */
     .table-container {
       background: var(--card-bg);
@@ -302,24 +221,17 @@
       border: 1px solid var(--border);
       overflow-x: auto;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    table { width: 100%; border-collapse: collapse; }
     th, td {
       padding: 16px;
       text-align: left;
       border-bottom: 1px solid var(--border);
       color: var(--text-gray);
     }
-    th {
-      color: var(--text-light);
-      font-weight: 600;
-      background: rgba(15, 23, 42, 0.5);
-    }
-    tr:hover {
-      background: var(--card-bg-hover);
-    }
+    th { color: var(--text-light); font-weight: 600; background: rgba(15, 23, 42, 0.5); }
+    tr:hover { background: var(--card-bg-hover); }
+    
+    /* Badges */
     .badge {
       padding: 4px 12px;
       border-radius: 20px;
@@ -332,6 +244,7 @@
     .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
     .badge-info { background: rgba(59, 130, 246, 0.2); color: var(--accent); }
     
+    /* Action Buttons */
     .action-btn {
       padding: 6px 12px;
       border-radius: var(--radius-md);
@@ -346,7 +259,20 @@
     .action-btn.view { color: var(--accent); }
     .action-btn.delete { color: var(--danger); }
     .action-btn.success { color: var(--success); }
-
+    .action-btn.warning { color: var(--warning); }
+    
+    .user-avatar-small {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    
     /* Modals */
     .modal {
       display: none;
@@ -363,7 +289,7 @@
       background: var(--card-bg);
       border-radius: var(--radius-lg);
       padding: 28px;
-      max-width: 500px;
+      max-width: 550px;
       width: 90%;
       border: 1px solid var(--border);
     }
@@ -383,11 +309,7 @@
       color: var(--text-light);
       margin: 16px 0;
     }
-    .modal-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-    }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
     .modal-buttons button {
       padding: 10px 20px;
       border-radius: var(--radius-md);
@@ -396,7 +318,7 @@
     }
     .confirm-btn { background: var(--danger); border: none; color: white; }
     .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--text-gray); }
-
+    
     /* Toast */
     .toast {
       position: fixed;
@@ -413,7 +335,6 @@
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
-    .hidden { display: none !important; }
     .tab-content { display: block; }
     
     @media (max-width: 992px) {
@@ -436,7 +357,7 @@
 </head>
 <body>
 
-<!-- Bismillah Banner -->
+<!-- Bismillah Banner with Core Insight Logo -->
 <div class="bismillah">
   <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo">
   <i class="fas fa-star-of-life"></i>
@@ -449,15 +370,15 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="logo-icon">
-        <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Logo">
-      </div>
+      <div class="logo-icon"><img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Logo"></div>
       <h2>Core Insight Admin</h2>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-item active" data-tab="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
       <div class="nav-item" data-tab="users"><i class="fas fa-users"></i> Users</div>
       <div class="nav-item" data-tab="products"><i class="fas fa-box"></i> Products</div>
+      <div class="nav-item" data-tab="courses"><i class="fas fa-graduation-cap"></i> Courses</div>
+      <div class="nav-item" data-tab="services"><i class="fas fa-briefcase"></i> Services</div>
       <div class="nav-item" data-tab="orders"><i class="fas fa-shopping-cart"></i> Orders</div>
       <div class="nav-item" data-tab="disputes"><i class="fas fa-gavel"></i> Refunds & Disputes</div>
       <div class="nav-item" data-tab="flagged"><i class="fas fa-flag"></i> Flagged Users</div>
@@ -472,44 +393,34 @@
         <button class="mobile-menu-toggle" id="mobileMenuToggle"><i class="fas fa-bars"></i></button>
         <h1>Admin Dashboard</h1>
       </div>
-      <div class="user-info">
-        <span id="adminName">Admin</span>
-        <div class="user-avatar" id="adminAvatar">A</div>
-        <button class="action-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
-      </div>
+      <div class="user-info"><span id="adminName">Admin</span><div class="user-avatar" id="adminAvatar">A</div><button class="action-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
     </div>
 
     <!-- Global Search -->
     <div class="global-search">
-      <div class="search-input-wrapper">
-        <i class="fas fa-search"></i>
-        <input type="text" id="globalSearch" placeholder="Search users, products, orders...">
-      </div>
-      <select id="searchCategory">
-        <option value="all">All Categories</option>
-        <option value="users">Users</option>
-        <option value="products">Products</option>
-        <option value="orders">Orders</option>
-      </select>
+      <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="globalSearch" placeholder="Search users, products, orders, tickets..."></div>
+      <select id="searchCategory"><option value="all">All Categories</option><option value="users">Users</option><option value="products">Products</option><option value="orders">Orders</option><option value="tickets">Support Tickets</option></select>
       <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
     </div>
 
-    <!-- Stats Grid -->
+    <!-- Stats Cards -->
     <div class="stats-grid" id="statsGrid">
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="totalUsers">0</h3><p>Total Users</p></div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-box"></i></div><div class="stat-info"><h3 id="totalProducts">0</h3><p>Products</p></div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-graduation-cap"></i></div><div class="stat-info"><h3 id="totalCourses">0</h3><p>Courses</p></div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-briefcase"></i></div><div class="stat-info"><h3 id="totalServices">0</h3><p>Services</p></div></div>
-      <div class="stat-card"><div class="stat-icon"><i class="fas fa-dollar-sign"></i></div><div class="stat-info"><h3 id="totalRevenue">$0</h3><p>Revenue</p></div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-dollar-sign"></i></div><div class="stat-info"><h3 id="totalRevenue">$0</h3><p>Platform Revenue</p></div></div>
     </div>
 
     <!-- Tabs -->
-    <div class="admin-tabs">
+    <div class="admin-tabs" id="adminTabs">
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
       <button class="tab-btn" data-tab="users">Users</button>
       <button class="tab-btn" data-tab="products">Products</button>
+      <button class="tab-btn" data-tab="courses">Courses</button>
+      <button class="tab-btn" data-tab="services">Services</button>
       <button class="tab-btn" data-tab="orders">Orders</button>
-      <button class="tab-btn" data-tab="disputes">Refunds & Disputes</button>
+      <button class="tab-btn" data-tab="disputes">Refunds/Disputes</button>
       <button class="tab-btn" data-tab="flagged">Flagged Users</button>
       <button class="tab-btn" data-tab="tickets">Support Tickets</button>
     </div>
@@ -517,184 +428,86 @@
     <!-- Dashboard Tab -->
     <div id="dashboardTab" class="tab-content">
       <div class="table-container">
-        <table>
-          <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-          <tbody id="dashboardMetrics"></tbody>
-        </table>
+        <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="dashboardMetrics"></tbody></table>
       </div>
     </div>
 
     <!-- Users Tab -->
-    <div id="usersTab" class="tab-content" style="display: none;">
+    <div id="usersTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="usersTableBody"><tr><td colspan="5">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
     <!-- Products Tab -->
-    <div id="productsTab" class="tab-content" style="display: none;">
+    <div id="productsTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>ID</th><th>Title</th><th>Seller</th><th>Actions</th></tr></thead>
-          <tbody id="productsTableBody"><tr><td colspan="4">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>ID</th><th>Title</th><th>Seller</th><th>Actions</th></tr></thead><tbody id="productsTableBody"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- Courses Tab -->
+    <div id="coursesTab" class="tab-content" style="display:none">
+      <div class="table-container">
+        <table><thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Price</th><th>Actions</th></tr></thead><tbody id="coursesTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- Services Tab -->
+    <div id="servicesTab" class="tab-content" style="display:none">
+      <div class="table-container">
+        <table><thead><tr><th>ID</th><th>Title</th><th>Provider</th><th>Price</th><th>Actions</th></tr></thead><tbody id="servicesTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
     <!-- Orders Tab -->
-    <div id="ordersTab" class="tab-content" style="display: none;">
+    <div id="ordersTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>Order ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="ordersTableBody"><tr><td colspan="5">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>Order ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ordersTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- Disputes/Refunds Tab -->
-    <div id="disputesTab" class="tab-content" style="display: none;">
+    <!-- Refunds/Disputes Tab -->
+    <div id="disputesTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>Order ID</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="disputesTableBody"><tr><td colspan="4">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>Order ID</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody id="disputesTableBody"><tr><td colspan="4">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- Flagged Users Tab -->
-    <div id="flaggedTab" class="tab-content" style="display: none;">
+    <!-- Flagged Users Tab (for ban/restore decisions) -->
+    <div id="flaggedTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>User</th><th>Flags</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="flaggedTableBody"><tr><td colspan="4">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>User</th><th>Flags Count</th><th>Current Status</th><th>Actions</th></tr></thead><tbody id="flaggedTableBody"><tr><td colspan="4">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
     <!-- Support Tickets Tab -->
-    <div id="ticketsTab" class="tab-content" style="display: none;">
+    <div id="ticketsTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table>
-          <thead><tr><th>From</th><th>Subject</th><th>Priority</th><th>Actions</th></tr></thead>
-          <tbody id="ticketsTableBody"><tr><td colspan="4">Loading...</td></tr></tbody>
-        </table>
+        <table><thead><tr><th>From</th><th>Subject / Message</th><th>Priority</th><th>Actions</th></tr></thead><tbody id="ticketsTableBody"><tr><td colspan="4">Loading...</td></tr></tbody></table>
       </div>
     </div>
   </main>
 </div>
 
 <!-- Modals -->
-<div id="deleteModal" class="modal">
-  <div class="modal-content">
-    <h3><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h3>
-    <p>Are you sure you want to delete this item? This cannot be undone.</p>
-    <div class="modal-buttons">
-      <button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
-      <button class="confirm-btn" id="confirmDeleteBtn">Delete</button>
-    </div>
-  </div>
-</div>
-
-<div id="banModal" class="modal">
-  <div class="modal-content">
-    <h3><i class="fas fa-ban"></i> Ban User</h3>
-    <p>Are you sure you want to ban this user? They will lose all access.</p>
-    <div class="modal-buttons">
-      <button class="cancel-btn" onclick="closeBanModal()">Cancel</button>
-      <button class="confirm-btn" id="confirmBanBtn">Ban User</button>
-    </div>
-  </div>
-</div>
-
-<div id="restoreModal" class="modal">
-  <div class="modal-content">
-    <h3><i class="fas fa-check-circle"></i> Restore User</h3>
-    <p>Restore this user account? They will regain full access.</p>
-    <div class="modal-buttons">
-      <button class="cancel-btn" onclick="closeRestoreModal()">Cancel</button>
-      <button class="confirm-btn" id="confirmRestoreBtn">Restore Account</button>
-    </div>
-  </div>
-</div>
-
-<div id="resolveDisputeModal" class="modal">
-  <div class="modal-content">
-    <h3><i class="fas fa-gavel"></i> Resolve Refund Request</h3>
-    <select id="disputeDecision">
-      <option value="refund">✅ Approve Full Refund</option>
-      <option value="partial">🔄 Partial Refund (50%)</option>
-      <option value="deny">❌ Deny Refund</option>
-    </select>
-    <textarea id="disputeNotes" placeholder="Admin notes (reason for decision)..."></textarea>
-    <div class="modal-buttons">
-      <button class="cancel-btn" onclick="closeResolveModal()">Cancel</button>
-      <button class="confirm-btn" id="confirmResolveBtn">Submit Decision</button>
-    </div>
-  </div>
-</div>
+<div id="deleteModal" class="modal"><div class="modal-content"><h3><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h3><p>Are you sure you want to delete this item? This action cannot be undone.</p><div class="modal-buttons"><button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button><button class="confirm-btn" id="confirmDeleteBtn">Delete</button></div></div></div>
+<div id="banModal" class="modal"><div class="modal-content"><h3><i class="fas fa-ban"></i> Ban User</h3><p>Are you sure you want to ban this user? They will lose all access.</p><div class="modal-buttons"><button class="cancel-btn" onclick="closeBanModal()">Cancel</button><button class="confirm-btn" id="confirmBanBtn">Ban User</button></div></div></div>
+<div id="restoreModal" class="modal"><div class="modal-content"><h3><i class="fas fa-check-circle"></i> Restore User</h3><p>Restore this user account? They will regain full access.</p><div class="modal-buttons"><button class="cancel-btn" onclick="closeRestoreModal()">Cancel</button><button class="confirm-btn" id="confirmRestoreBtn">Restore Account</button></div></div></div>
+<div id="resolveDisputeModal" class="modal"><div class="modal-content"><h3><i class="fas fa-gavel"></i> Resolve Refund Request</h3><p>Make a decision on this refund request:</p><select id="disputeDecision"><option value="refund">✅ Approve Full Refund</option><option value="partial">🔄 Partial Refund (50%)</option><option value="deny">❌ Deny Refund</option></select><textarea id="disputeNotes" placeholder="Admin notes (reason for decision)..."></textarea><div class="modal-buttons"><button class="cancel-btn" onclick="closeResolveModal()">Cancel</button><button class="confirm-btn" id="confirmResolveBtn">Submit Decision</button></div></div></div>
 
 <script>
-  // ==================== Admin Dashboard JavaScript ====================
+  // ==================== ADMIN DASHBOARD - COMPLETE VERSION ====================
   let currentUser = null;
   let pendingDelete = null;
   let pendingBan = null;
   let pendingRestore = null;
   let pendingDispute = null;
 
-  // Mock data for demo - replace with real API calls
-  const mockUsers = [
-    { id: 1, username: "john_doe", email: "john@example.com", role: "client", account_locked: false, flag_count: 0 },
-    { id: 2, username: "jane_smith", email: "jane@example.com", role: "freelancer", account_locked: false, flag_count: 2 },
-    { id: 3, username: "admin_user", email: "admin@coreinsight.com", role: "admin", account_locked: false, flag_count: 0 },
-    { id: 4, username: "bad_actor", email: "bad@example.com", role: "freelancer", account_locked: true, flag_count: 5 }
-  ];
-
-  const mockProducts = [
-    { id: 101, title: "Premium Web Template", seller_name: "john_doe" },
-    { id: 102, title: "E-book Bundle", seller_name: "jane_smith" }
-  ];
-
-  const mockOrders = [
-    { id: 1001, product_name: "Premium Web Template", total_amount: 49.99, order_status: "completed" },
-    { id: 1002, product_name: "E-book Bundle", total_amount: 29.99, order_status: "pending_seller_approval" }
-  ];
-
-  const mockDisputes = [
-    { order_id: 1001, reason: "Product not as described", status: "pending" }
-  ];
-
-  const mockTickets = [
-    { id: 1, name: "John Buyer", email: "buyer@example.com", subject: "Refund Issue", message: "I didn't receive my product", priority: "High" }
-  ];
-
-  // Helper Functions
-  function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.style.borderLeftColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-
-  // Authentication Check
+  // Authentication & Authorization (Admin only)
   async function checkAuth() {
     try {
       const res = await fetch('/api/me');
-      if (!res.ok) throw new Error('Not authenticated');
       const user = await res.json();
       if (!user || user.role !== 'admin') {
         window.location.href = '/login.html';
@@ -705,69 +518,61 @@
       document.getElementById('adminAvatar').textContent = (user.username || 'A')[0].toUpperCase();
       loadAllData();
     } catch (err) {
-      console.log('Using mock data - backend not available');
-      loadMockData();
+      console.error('Auth error:', err);
+      window.location.href = '/login.html';
     }
   }
 
-  function loadMockData() {
-    document.getElementById('totalUsers').innerText = mockUsers.length;
-    document.getElementById('totalProducts').innerText = mockProducts.length;
-    document.getElementById('totalCourses').innerText = "12";
-    document.getElementById('totalServices').innerText = "8";
-    document.getElementById('totalRevenue').innerText = "$1,234.56";
-    
-    renderUsers(mockUsers);
-    renderProducts(mockProducts);
-    renderOrders(mockOrders);
-    renderDisputes(mockDisputes);
-    renderFlaggedUsers(mockUsers.filter(u => u.flag_count > 0 || u.account_locked));
-    renderTickets(mockTickets);
-    
-    document.getElementById('dashboardMetrics').innerHTML = `
-      <tr><td>Active Users</td><td>${mockUsers.filter(u => !u.account_locked).length}</td></tr>
-      <tr><td>Banned Users</td><td>${mockUsers.filter(u => u.account_locked).length}</td></tr>
-      <tr><td>Total Orders</td><td>${mockOrders.length}</td></tr>
-      <tr><td>Pending Refunds</td><td>${mockDisputes.length}</td></tr>
-    `;
+  // Load all dashboard data
+  async function loadAllData() {
+    await Promise.all([
+      loadStats(),
+      loadUsers(),
+      loadProducts(),
+      loadCourses(),
+      loadServices(),
+      loadOrders(),
+      loadDisputes(),
+      loadFlaggedUsers(),
+      loadSupportTickets()
+    ]);
   }
 
-  async function loadAllData() {
+  // Load statistics
+  async function loadStats() {
     try {
-      const [users, products, orders, disputes, tickets] = await Promise.all([
+      const [users, products, courses, services, rev] = await Promise.all([
         fetch('/api/admin/users').then(r => r.json()).catch(() => []),
         fetch('/api/products').then(r => r.json()).catch(() => []),
-        fetch('/api/orders/all').then(r => r.json()).catch(() => []),
-        fetch('/api/admin/disputes').then(r => r.json()).catch(() => []),
-        fetch('/api/admin/support-tickets').then(r => r.json()).catch(() => [])
+        fetch('/api/courses').then(r => r.json()).catch(() => []),
+        fetch('/api/services').then(r => r.json()).catch(() => ({ services: [] })),
+        fetch('/api/admin/platform-stats').then(r => r.json()).catch(() => ({ platform_revenue: 0 }))
       ]);
-      
+      const servicesList = services.services || services || [];
       document.getElementById('totalUsers').innerText = users.length || 0;
       document.getElementById('totalProducts').innerText = products.length || 0;
-      document.getElementById('totalCourses').innerText = "0";
-      document.getElementById('totalServices').innerText = "0";
-      document.getElementById('totalRevenue').innerText = "$0";
+      document.getElementById('totalCourses').innerText = courses.length || 0;
+      document.getElementById('totalServices').innerText = servicesList.length || 0;
+      document.getElementById('totalRevenue').innerText = `$${(rev.platform_revenue || 0).toFixed(2)}`;
       
-      renderUsers(users);
-      renderProducts(products);
-      renderOrders(orders);
-      renderDisputes(disputes);
-      renderFlaggedUsers(users.filter(u => u.flag_count > 0 || u.account_locked));
-      renderTickets(tickets);
-    } catch (err) {
-      loadMockData();
-    }
+      document.getElementById('dashboardMetrics').innerHTML = `
+        <tr><td>Active Users</td><td>${users.filter(u => !u.account_locked).length}</td></tr>
+        <tr><td>Banned Users</td><td>${users.filter(u => u.account_locked).length}</td></tr>
+        <tr><td>Total Orders</td><td>${(await fetch('/api/orders/all').then(r=>r.json()).catch(()=>[])).length}</td></tr>
+        <tr><td>Pending Refunds</td><td id="pendingRefundsCount">0</td></tr>
+        <tr><td>Platform Revenue</td><td>$${(rev.platform_revenue || 0).toFixed(2)}</td></tr>
+      `;
+    } catch(e) { console.error('Stats error:', e); }
   }
 
-  function renderUsers(users) {
-    const tbody = document.getElementById('usersTableBody');
-    if (!users || users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5">No users found</td></tr>';
-      return;
-    }
-    tbody.innerHTML = users.map(u => `
+  // Load users list
+  async function loadUsers() {
+    const res = await fetch('/api/admin/users');
+    let users = await res.json();
+    if (!Array.isArray(users)) users = [];
+    document.getElementById('usersTableBody').innerHTML = users.map(u => `
       <tr>
-        <td><div class="user-avatar-small" style="display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; background: var(--accent); border-radius: 50%; margin-right: 8px;">${(u.username || 'U')[0]}</div> ${escapeHtml(u.username)}</td>
+        <td><div class="user-avatar-small">${(u.username || 'U')[0]}</div> ${escapeHtml(u.username)}</td>
         <td>${escapeHtml(u.email)}</td>
         <td><span class="badge badge-info">${u.role || 'client'}</span></td>
         <td>${u.account_locked ? '<span class="badge badge-danger">Banned</span>' : '<span class="badge badge-success">Active</span>'}</td>
@@ -780,129 +585,178 @@
     `).join('');
   }
 
-  function renderProducts(products) {
-    const tbody = document.getElementById('productsTableBody');
-    if (!products || products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">No products found</td></tr>';
-      return;
-    }
-    tbody.innerHTML = products.slice(0, 100).map(p => `
-      <tr>
-        <td>${p.id}</td>
-        <td>${escapeHtml(p.title || 'Untitled')}</td>
-        <td>${escapeHtml(p.seller_name || 'Unknown')}</td>
-        <td><button class="action-btn delete" onclick="openDeleteModal('product', ${p.id})"><i class="fas fa-trash"></i> Delete</button></td>
-      </tr>
+  // Load products
+  async function loadProducts() {
+    const res = await fetch('/api/products');
+    let products = await res.json();
+    if (!Array.isArray(products)) products = [];
+    document.getElementById('productsTableBody').innerHTML = products.slice(0, 100).map(p => `
+      <tr><td>${p.id}</td><td>${escapeHtml(p.title || 'Untitled')}</td><td>${escapeHtml(p.seller_name || 'Unknown')}</td>
+      <td><button class="action-btn delete" onclick="openDeleteModal('product', ${p.id})"><i class="fas fa-trash"></i> Delete</button></td></tr>
     `).join('');
   }
 
-  function renderOrders(orders) {
-    const tbody = document.getElementById('ordersTableBody');
-    if (!orders || orders.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5">No orders found</td></tr>';
-      return;
-    }
-    tbody.innerHTML = orders.slice(0, 100).map(o => `
-      <tr>
-        <td>#${o.id}</td>
-        <td>${escapeHtml(o.product_name || 'Item')}</td>
-        <td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
-        <td><span class="badge badge-warning">${o.order_status || 'pending'}</span></td>
-        <td><button class="action-btn view" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i> View</button></td>
-      </tr>
+  // Load courses
+  async function loadCourses() {
+    const res = await fetch('/api/courses');
+    let courses = await res.json();
+    if (!Array.isArray(courses)) courses = [];
+    document.getElementById('coursesTableBody').innerHTML = courses.slice(0, 100).map(c => `
+      <tr><td>${c.id}</td><td>${escapeHtml(c.title || 'Untitled')}</td><td>${escapeHtml(c.author_name || c.author || 'Unknown')}</td>
+      <td>${parseFloat(c.price || 0) === 0 ? 'Free' : `$${parseFloat(c.price).toFixed(2)}`}</td>
+      <td><button class="action-btn delete" onclick="openDeleteModal('course', ${c.id})"><i class="fas fa-trash"></i> Delete</button></td></tr>
     `).join('');
   }
 
-  function renderDisputes(disputes) {
-    const tbody = document.getElementById('disputesTableBody');
-    if (!disputes || disputes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">No pending disputes</td></tr>';
-      return;
-    }
-    tbody.innerHTML = disputes.map(d => `
-      <tr>
-        <td>#${d.order_id}</td>
-        <td>${escapeHtml(d.reason || d.refund_reason || 'Refund Request')}</td>
-        <td><span class="badge badge-warning">${d.status || 'pending'}</span></td>
-        <td><button class="action-btn view" onclick="openResolveModal(${d.order_id})"><i class="fas fa-gavel"></i> Resolve</button></td>
-      </tr>
+  // Load services
+  async function loadServices() {
+    const res = await fetch('/api/services');
+    const data = await res.json();
+    let services = data.services || data || [];
+    if (!Array.isArray(services)) services = [];
+    document.getElementById('servicesTableBody').innerHTML = services.slice(0, 100).map(s => `
+      <tr><td>${s.id}</td><td>${escapeHtml(s.title || 'Untitled')}</td><td>${escapeHtml(s.username || 'Unknown')}</td>
+      <td>$${parseFloat(s.price || 0).toFixed(2)}</td>
+      <td><button class="action-btn delete" onclick="openDeleteModal('service', ${s.id})"><i class="fas fa-trash"></i> Delete</button></td></tr>
     `).join('');
   }
 
-  function renderFlaggedUsers(users) {
-    const tbody = document.getElementById('flaggedTableBody');
-    if (!users || users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">No flagged users</td></tr>';
-      return;
-    }
-    tbody.innerHTML = users.map(u => `
+  // Load orders
+  async function loadOrders() {
+    const res = await fetch('/api/orders/all');
+    let orders = await res.json();
+    if (!Array.isArray(orders)) orders = [];
+    document.getElementById('ordersTableBody').innerHTML = orders.slice(0, 100).map(o => `
+      <tr><td>#${o.id}</td><td>${escapeHtml(o.product_name || 'Item')}</td><td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
+      <td><span class="badge badge-warning">${o.order_status || 'pending'}</span></td>
+      <td><button class="action-btn view" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i> View</button></td></tr>
+    `).join('');
+  }
+
+  // Load disputes/refund requests
+  async function loadDisputes() {
+    const res = await fetch('/api/admin/disputes');
+    let disputes = await res.json();
+    if (!Array.isArray(disputes)) disputes = [];
+    document.getElementById('disputesTableBody').innerHTML = disputes.map(d => `
+      <tr><td>#${d.order_id}</td><td>${escapeHtml(d.reason || d.refund_reason || 'Refund Request')}</td>
+      <td><span class="badge badge-warning">${d.status || 'pending'}</span></td>
+      <td><button class="action-btn view" onclick="openResolveModal(${d.order_id})"><i class="fas fa-gavel"></i> Resolve</button></td></tr>
+    `).join('');
+    document.getElementById('pendingRefundsCount') && (document.getElementById('pendingRefundsCount').innerText = disputes.length);
+  }
+
+  // Load flagged users (for admin to decide ban/restore)
+  async function loadFlaggedUsers() {
+    const res = await fetch('/api/admin/flagged-users');
+    let data = await res.json();
+    let users = data.users || [];
+    document.getElementById('flaggedTableBody').innerHTML = users.map(u => `
       <tr>
         <td>${escapeHtml(u.username)}</td>
         <td><span class="badge badge-danger">${u.flag_count || 0}</span></td>
-        <td>${u.account_locked ? '<span class="badge badge-danger">Banned</span>' : '<span class="badge badge-warning">Flagged</span>'}</td>
+        <td>${u.account_locked ? '<span class="badge badge-danger">Locked/Banned</span>' : '<span class="badge badge-warning">Flagged - Active</span>'}</td>
         <td>
-          <button class="action-btn success" onclick="clearUserFlags(${u.id})"><i class="fas fa-check"></i> Clear Flags</button>
-          ${!u.account_locked ? `<button class="action-btn ban" onclick="openBanModal(${u.id})"><i class="fas fa-ban"></i> Ban</button>` : `<button class="action-btn success" onclick="openRestoreModal(${u.id})"><i class="fas fa-check"></i> Restore</button>`}
+          <button class="action-btn success" onclick="clearUserFlags(${u.id})"><i class="fas fa-check"></i> Clear Flags & Restore</button>
+          ${!u.account_locked ? `<button class="action-btn ban" onclick="openBanModal(${u.id})"><i class="fas fa-ban"></i> Ban User</button>` : `<button class="action-btn success" onclick="openRestoreModal(${u.id})"><i class="fas fa-check"></i> Restore Account</button>`}
          </noscript>
       </tr>
     `).join('');
   }
 
-  function renderTickets(tickets) {
-    const tbody = document.getElementById('ticketsTableBody');
-    if (!tickets || tickets.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">No support tickets</td></tr>';
-      return;
-    }
-    tbody.innerHTML = tickets.map(t => `
+  // Load support tickets (from contact/complaint form)
+  async function loadSupportTickets() {
+    const res = await fetch('/api/admin/support-tickets');
+    let tickets = await res.json();
+    if (!Array.isArray(tickets)) tickets = [];
+    document.getElementById('ticketsTableBody').innerHTML = tickets.map(t => `
       <tr>
         <td><strong>${escapeHtml(t.name)}</strong><br><small>${escapeHtml(t.email)}</small></td>
         <td><strong>${escapeHtml(t.subject)}</strong><br><small>${escapeHtml((t.message || '').substring(0, 80))}...</small></td>
         <td><span class="badge ${t.priority === 'High' ? 'badge-danger' : t.priority === 'Medium' ? 'badge-warning' : 'badge-info'}">${t.priority || 'Medium'}</span></td>
-        <td><button class="action-btn view" onclick="viewTicket(${t.id})"><i class="fas fa-eye"></i> View</button><button class="action-btn success" onclick="resolveTicket(${t.id})"><i class="fas fa-check"></i> Resolve</button></td>
+        <td>
+          <button class="action-btn view" onclick="viewTicket(${t.id})"><i class="fas fa-eye"></i> View</button>
+          <button class="action-btn success" onclick="resolveTicket(${t.id})"><i class="fas fa-check"></i> Mark Resolved</button>
+         </noscript>
       </tr>
     `).join('');
   }
 
-  // Admin Actions
+  // ==================== Admin Action Functions ====================
+  
   function openDeleteModal(type, id) { pendingDelete = { type, id }; document.getElementById('deleteModal').classList.add('open'); }
   function closeDeleteModal() { pendingDelete = null; document.getElementById('deleteModal').classList.remove('open'); }
+  document.getElementById('confirmDeleteBtn').onclick = async () => { 
+    if(pendingDelete) await fetch(`/api/admin/delete/${pendingDelete.type}/${pendingDelete.id}`, { method: 'DELETE' });
+    closeDeleteModal(); loadAllData(); showToast('Deleted successfully', 'success'); 
+  };
+
   function openBanModal(id) { pendingBan = id; document.getElementById('banModal').classList.add('open'); }
   function closeBanModal() { pendingBan = null; document.getElementById('banModal').classList.remove('open'); }
+  document.getElementById('confirmBanBtn').onclick = async () => { 
+    if(pendingBan) await fetch(`/api/admin/ban-user/${pendingBan}`, { method: 'POST' });
+    closeBanModal(); loadUsers(); loadFlaggedUsers(); showToast('User banned', 'success'); 
+  };
+
   function openRestoreModal(id) { pendingRestore = id; document.getElementById('restoreModal').classList.add('open'); }
   function closeRestoreModal() { pendingRestore = null; document.getElementById('restoreModal').classList.remove('open'); }
+  document.getElementById('confirmRestoreBtn').onclick = async () => { 
+    if(pendingRestore) await fetch(`/api/admin/restore-user/${pendingRestore}`, { method: 'POST' });
+    closeRestoreModal(); loadUsers(); loadFlaggedUsers(); showToast('User restored', 'success'); 
+  };
+
   function openResolveModal(orderId) { pendingDispute = orderId; document.getElementById('resolveDisputeModal').classList.add('open'); }
   function closeResolveModal() { pendingDispute = null; document.getElementById('resolveDisputeModal').classList.remove('open'); }
-
-  document.getElementById('confirmDeleteBtn').onclick = async () => {
-    if (pendingDelete) {
-      showToast(`${pendingDelete.type} deleted successfully`, 'success');
-      closeDeleteModal();
-      loadAllData();
-    }
-  };
-  document.getElementById('confirmBanBtn').onclick = async () => {
-    if (pendingBan) { showToast('User banned', 'success'); closeBanModal(); loadAllData(); }
-  };
-  document.getElementById('confirmRestoreBtn').onclick = async () => {
-    if (pendingRestore) { showToast('User restored', 'success'); closeRestoreModal(); loadAllData(); }
-  };
   document.getElementById('confirmResolveBtn').onclick = async () => {
-    if (pendingDispute) {
-      const decision = document.getElementById('disputeDecision').value;
-      showToast(`Dispute resolved: ${decision}`, 'success');
-      closeResolveModal(); loadAllData();
+    if(pendingDispute) {
+      await fetch(`/api/admin/resolve-dispute/${pendingDispute}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          decision: document.getElementById('disputeDecision').value, 
+          notes: document.getElementById('disputeNotes').value 
+        })
+      });
     }
+    closeResolveModal(); loadDisputes(); showToast('Dispute resolved', 'success');
   };
 
-  async function clearUserFlags(userId) { showToast('Flags cleared, user restored', 'success'); loadAllData(); }
+  async function clearUserFlags(userId) { 
+    await fetch(`/api/admin/clear-flags/${userId}`, { method: 'POST' }); 
+    loadFlaggedUsers(); showToast('Flags cleared, user restored', 'success'); 
+  }
+  
   function viewUser(id) { showToast(`Viewing user ${id}`, 'info'); }
   function viewOrder(id) { showToast(`Viewing order ${id}`, 'info'); }
   function viewTicket(id) { showToast(`Viewing ticket ${id}`, 'info'); }
-  function resolveTicket(id) { showToast('Ticket marked as resolved', 'success'); loadAllData(); }
-  async function logout() { window.location.href = '/login.html'; }
+  async function resolveTicket(id) { 
+    await fetch(`/api/admin/resolve-ticket/${id}`, { method: 'POST' }); 
+    loadSupportTickets(); showToast('Ticket marked as resolved', 'success'); 
+  }
+  async function logout() { 
+    await fetch('/api/logout', { method: 'POST' }); 
+    window.location.href = '/login.html'; 
+  }
 
-  // Tab Switching
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.borderLeftColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function escapeHtml(str) { 
+    if (!str) return ''; 
+    return String(str).replace(/[&<>]/g, function(m) { 
+      if (m === '&') return '&amp;'; 
+      if (m === '<') return '&lt;'; 
+      if (m === '>') return '&gt;'; 
+      return m; 
+    }); 
+  }
+
+  // Tab switching
   document.querySelectorAll('.nav-item, .tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
@@ -912,6 +766,8 @@
       if (tab === 'dashboard') document.getElementById('dashboardTab').style.display = 'block';
       else if (tab === 'users') document.getElementById('usersTab').style.display = 'block';
       else if (tab === 'products') document.getElementById('productsTab').style.display = 'block';
+      else if (tab === 'courses') document.getElementById('coursesTab').style.display = 'block';
+      else if (tab === 'services') document.getElementById('servicesTab').style.display = 'block';
       else if (tab === 'orders') document.getElementById('ordersTab').style.display = 'block';
       else if (tab === 'disputes') document.getElementById('disputesTab').style.display = 'block';
       else if (tab === 'flagged') document.getElementById('flaggedTab').style.display = 'block';
@@ -919,13 +775,46 @@
     });
   });
 
+  // Mobile menu toggle
   document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('open');
   });
 
-  document.getElementById('searchBtn').addEventListener('click', () => {
-    const query = document.getElementById('globalSearch').value;
-    if (query) showToast(`Searching for "${query}"`, 'info');
+  // Global search functionality
+  document.getElementById('searchBtn').addEventListener('click', async () => {
+    const query = document.getElementById('globalSearch').value.toLowerCase();
+    const category = document.getElementById('searchCategory').value;
+    if (!query) { showToast('Enter search term', 'warning'); return; }
+    
+    if (category === 'all' || category === 'users') {
+      const res = await fetch('/api/admin/users');
+      let users = await res.json();
+      users = users.filter(u => (u.username || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query));
+      document.getElementById('usersTableBody').innerHTML = users.map(u => `<tr><td><div class="user-avatar-small">${(u.username || 'U')[0]}</div> ${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td><td>${u.role}</td><td>${u.account_locked ? 'Banned' : 'Active'}</td><td><button class="action-btn view" onclick="viewUser(${u.id})">View</button></td>`).join('');
+      document.getElementById('usersTab').style.display = 'block';
+    }
+    if (category === 'all' || category === 'products') {
+      const res = await fetch('/api/products');
+      let products = await res.json();
+      products = products.filter(p => (p.title || '').toLowerCase().includes(query));
+      document.getElementById('productsTableBody').innerHTML = products.map(p => `<tr><td>${p.id}</td><td>${escapeHtml(p.title)}</td><td>${escapeHtml(p.seller_name)}</td><td><button class="action-btn delete" onclick="openDeleteModal('product',${p.id})">Delete</button></td>`).join('');
+      document.getElementById('productsTab').style.display = 'block';
+    }
+    if (category === 'all' || category === 'orders') {
+      const res = await fetch('/api/orders/all');
+      let orders = await res.json();
+      orders = orders.filter(o => String(o.id).includes(query) || (o.product_name || '').toLowerCase().includes(query));
+      document.getElementById('ordersTableBody').innerHTML = orders.map(o => `<td><td>#${o.id}</td><td>${escapeHtml(o.product_name)}</td><td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td><td>${o.order_status}</td><td><button class="action-btn view" onclick="viewOrder(${o.id})">View</button></td>`).join('');
+      document.getElementById('ordersTab').style.display = 'block';
+    }
+    if (category === 'all' || category === 'tickets') {
+      const res = await fetch('/api/admin/support-tickets');
+      let tickets = await res.json();
+      tickets = tickets.filter(t => (t.name || '').toLowerCase().includes(query) || (t.subject || '').toLowerCase().includes(query));
+      document.getElementById('ticketsTableBody').innerHTML = tickets.map(t => `<tr><td><strong>${escapeHtml(t.name)}</strong><br><small>${escapeHtml(t.email)}</small></td><td><strong>${escapeHtml(t.subject)}</strong><br><small>${escapeHtml((t.message || '').substring(0, 80))}...</small></td><td>${t.priority || 'Medium'}</td><td><button class="action-btn view" onclick="viewTicket(${t.id})">View</button><button class="action-btn success" onclick="resolveTicket(${t.id})">Resolve</button></td>`).join('');
+      document.getElementById('ticketsTab').style.display = 'block';
+    }
+    showToast(`Found results for "${query}"`, 'info');
   });
 
   // Initialize

@@ -1436,7 +1436,154 @@ In the name of Allah, the Most Gracious, the Most Merciful
       color: var(--text-light);
       font-weight: 600;
     }
+/* ================= RESPONSIVE ORDER FORM BUTTONS ================= */
 
+/* Order Modal Buttons - Responsive */
+#addressForm .btn,
+#addressForm button {
+    width: auto;
+    padding: 12px 20px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* Make buttons full width on mobile */
+@media (max-width: 768px) {
+    #addressForm .btn,
+    #addressForm button {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 16px;
+        white-space: normal;
+        text-align: center;
+    }
+    
+    /* Button container on mobile */
+    #addressForm > div:last-of-type {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    /* Make both buttons full width */
+    #addressForm .btn.primary,
+    #addressForm .btn.secondary {
+        width: 100%;
+        flex: none !important;
+    }
+}
+
+/* Tablet view */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #addressForm .btn {
+        padding: 12px 18px;
+        font-size: 14px;
+    }
+    
+    #addressForm .btn.primary {
+        flex: 1.5;
+    }
+    
+    #addressForm .btn.secondary {
+        flex: 1;
+    }
+}
+
+/* Small mobile (up to 480px) */
+@media (max-width: 480px) {
+    #addressForm .btn {
+        padding: 15px 12px;
+        font-size: 15px;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    #addressForm > div:last-of-type {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Extra small mobile (up to 360px) */
+@media (max-width: 360px) {
+    #addressForm .btn {
+        padding: 12px 10px;
+        font-size: 14px;
+    }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    #addressForm .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    #addressForm > div:last-of-type {
+        flex-direction: row;
+        gap: 12px;
+    }
+    
+    #addressForm .btn.primary {
+        flex: 2;
+    }
+    
+    #addressForm .btn.secondary {
+        flex: 1;
+    }
+}
+/* Order Modal Responsive */
+#addressModal .modal-card {
+    max-width: 500px;
+    width: 90%;
+    margin: 20px;
+    padding: 24px;
+}
+
+@media (max-width: 768px) {
+    #addressModal .modal-card {
+        width: 95%;
+        max-width: none;
+        margin: 16px;
+        padding: 20px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    #addressModal .modal-card {
+        width: 98%;
+        padding: 16px;
+        margin: 10px;
+    }
+}
+
+/* Make form inputs responsive */
+@media (max-width: 768px) {
+    #addressForm .form-input,
+    #addressForm textarea,
+    #addressForm input[type="number"] {
+        font-size: 16px !important;
+        padding: 12px;
+    }
+    
+    /* Make the grid layout stack on mobile */
+    #addressForm > div[style*="display:grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* Product summary responsive */
+    #productSummary > div {
+        flex-direction: column !important;
+        text-align: center;
+    }
+    
+    #productThumbnail {
+        width: 80px !important;
+        height: 80px !important;
+        margin: 0 auto;
+    }
+}
     /* ================= END PROFESSIONAL SELLER FORM ================= */
 
     /* ================= REVIEWS SECTION ================= */
@@ -4604,7 +4751,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
       <!-- Quantity Selector -->
       <div style="margin-bottom: 16px;">
         <label style="display:block; margin-bottom:8px;">Quantity <span style="color:var(--danger);">*</span></label>
-        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" max="100" />
+        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" />
         <small class="form-help">Maximum 100 units per order</small>
       </div>
       
@@ -9067,34 +9214,59 @@ async function loadPendingRefunds() {
 // Update order totals based on quantity
 let currentProductForOrder = null;
 
-// Update order totals - Simple 10% platform fee
+// ================= ORDER TOTAL CALCULATION - FIXED =================
+
+// Add this to your products.html script section
 function updateOrderTotals() {
-  const quantityInput = document.getElementById('orderQuantity');
-  if (!quantityInput) return;
+  console.log("🔄 updateOrderTotals called");
   
-  const quantity = parseInt(quantityInput.value) || 1;
-  if (!currentProductForOrder) return;
+  const quantityInput = document.getElementById('orderQuantity');
+  if (!quantityInput) {
+    console.log("❌ quantityInput not found");
+    return;
+  }
+  
+  let quantity = parseInt(quantityInput.value);
+  console.log("Current quantity:", quantity);
+  
+  // Only validate minimum - NO maximum limit
+  if (isNaN(quantity) || quantity < 1) {
+    quantity = 1;
+    quantityInput.value = 1;
+  }
+  
+  if (!currentProductForOrder) {
+    console.log("❌ currentProductForOrder is null");
+    return;
+  }
   
   const product = currentProductForOrder;
   const productPrice = parseFloat(product.original_price || product.price || 0);
+  console.log("Product price:", productPrice);
   
-  const qty = Math.min(Math.max(quantity, 1), 100);
+  // Simple calculation: price × quantity
+  const totalAmount = quantity * productPrice;
+  console.log("Total amount:", totalAmount);
   
-  // Simple calculation - just price × quantity (customer sees full price)
-  const totalAmount = qty * productPrice;
-  
-  // Update display - Customer only sees total (platform fee is hidden from customer)
-  const productSubtotal = document.getElementById('productSubtotal');
+  // Update the display
   const totalAmountEl = document.getElementById('totalAmount');
+  const productSubtotal = document.getElementById('productSubtotal');
   const qtyDisplay = document.getElementById('qtyDisplay');
   
-  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
-  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
-  if (qtyDisplay) qtyDisplay.textContent = qty;
+  if (totalAmountEl) {
+    totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+    console.log("Updated totalAmount display:", totalAmountEl.textContent);
+  }
+  if (productSubtotal) {
+    productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
+  }
+  if (qtyDisplay) {
+    qtyDisplay.textContent = quantity;
+  }
   
   // Store for order submission
   window.currentOrderTotal = totalAmount;
-  window.currentOrderQuantity = qty;
+  window.currentOrderQuantity = quantity;
 }
 // Add this in your DOMContentLoaded event listener
 document.getElementById('refreshPendingOrders')?.addEventListener('click', () => {
@@ -9212,7 +9384,7 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
 
 let isSubmitting = false; // Prevent double submission
 
-// Open order modal with product details
+// In orderPhysicalProduct function - ensure quantity is set
 async function orderPhysicalProduct(productId) {
   console.log("🛒 Opening order modal for product:", productId);
   
@@ -9250,7 +9422,13 @@ async function orderPhysicalProduct(productId) {
     }
     
     // Reset form
-    document.getElementById('orderQuantity').value = '1';
+    const quantityInput = document.getElementById('orderQuantity');
+    if (quantityInput) {
+      quantityInput.value = '1';
+      // Remove max attribute if exists
+      quantityInput.removeAttribute('max');
+      quantityInput.max = null;
+    }
     document.getElementById('deliveryAddress').value = '';
     document.getElementById('city').value = '';
     document.getElementById('state').value = '';
@@ -9270,9 +9448,6 @@ async function orderPhysicalProduct(productId) {
     showToast('Error', 'Failed to prepare order. Please try again.', 'danger');
   }
 }
-
-
-  
 // Single order submission handler
 async function submitOrderForm(e) {
   if (e) e.preventDefault();
@@ -9477,105 +9652,16 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-// Make sure cancel button works
-function closeAddressModal() {
-  const modal = document.getElementById('addressModal');
-  if (modal) {
-    closeModal(modal);
-  }
-  currentProductForOrder = null;
-  isSubmitting = false;
-  
-  // Reset form
-  const form = document.getElementById('addressForm');
-  if (form) form.reset();
-}
 
-// Add these event listeners in your initOrderForm function
-function initOrderForm() {
-  const addressForm = document.getElementById('addressForm');
-  const closeBtn = document.getElementById('closeAddressModal');
-  const cancelBtn = document.getElementById('cancelAddress');
-  const quantityInput = document.getElementById('orderQuantity');
   
-  if (addressForm) {
-    const newForm = addressForm.cloneNode(true);
-    addressForm.parentNode.replaceChild(newForm, addressForm);
-    newForm.addEventListener('submit', submitOrderForm);
-  }
   
-  if (closeBtn) {
-    const newClose = closeBtn.cloneNode(true);
-    closeBtn.parentNode.replaceChild(newClose, closeBtn);
-    newClose.addEventListener('click', closeAddressModal);
-  }
-  
-  if (cancelBtn) {
-    const newCancel = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
-    newCancel.addEventListener('click', closeAddressModal);
-  }
-  
-  if (quantityInput) {
-    const newQuantity = quantityInput.cloneNode(true);
-    quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
-    newQuantity.addEventListener('input', function() {
-      let val = parseInt(this.value);
-      if (isNaN(val) || val < 1) this.value = 1;
-      if (val > 100) {
-        this.value = 100;
-        showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
-      }
-      updateOrderTotals();
-    });
-  }
-}
+
 
 // Call this when page loads
 document.addEventListener('DOMContentLoaded', function() {
   initOrderForm();
 });
 
-// Initialize order form (call ONCE)
-function initOrderForm() {
-  const addressForm = document.getElementById('addressForm');
-  const closeBtn = document.getElementById('closeAddressModal');
-  const cancelBtn = document.getElementById('cancelAddress');
-  const quantityInput = document.getElementById('orderQuantity');
-  
-  // Remove any existing listeners by replacing with clones
-  if (addressForm) {
-    const newForm = addressForm.cloneNode(true);
-    addressForm.parentNode.replaceChild(newForm, addressForm);
-    newForm.addEventListener('submit', submitOrderForm);
-  }
-  
-  if (closeBtn) {
-    const newClose = closeBtn.cloneNode(true);
-    closeBtn.parentNode.replaceChild(newClose, closeBtn);
-    newClose.addEventListener('click', closeAddressModal);
-  }
-  
-  if (cancelBtn) {
-    const newCancel = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
-    newCancel.addEventListener('click', closeAddressModal);
-  }
-  
-  if (quantityInput) {
-    const newQuantity = quantityInput.cloneNode(true);
-    quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
-    newQuantity.addEventListener('input', function() {
-      let val = parseInt(this.value);
-      if (isNaN(val) || val < 1) this.value = 1;
-      if (val > 100) {
-        this.value = 100;
-        showToast('Maximum Quantity', 'Maximum 100 units per order', 'warning');
-      }
-      updateOrderTotals();
-    });
-  }
-}
 
 // Call this once when page loads
 if (document.readyState === 'loading') {
@@ -9700,11 +9786,7 @@ async function submitOrderForm(e) {
   }
 }
 
-// Close modal handlers
-function closeAddressModal() {
-  closeModal(document.getElementById('addressModal'));
-  currentProductForOrder = null;
-}
+
 
 // Quantity input validation
 function validateOrderQuantity() {
@@ -12963,13 +13045,13 @@ function showProductConditions(productId) {
                 </div>
                 
                 <div style="display: flex; gap: 12px; margin-top: 20px;">
-                    <button class="btn primary" onclick="closeProductInfoModal(); orderPhysicalProduct(${productId})" style="flex: 1;">
-                        <i class="fas fa-shopping-cart"></i> Order Now
-                    </button>
-                    <button class="btn secondary" onclick="closeProductInfoModal()" style="flex: 1;">
-                        Close
-                    </button>
-                </div>
+    <button type="submit" class="btn primary" style="flex: 2;">
+        <i class="fas fa-paper-plane"></i> Place Order
+    </button>
+    <button type="button" id="cancelAddress" class="btn secondary" style="flex: 1;">
+        Cancel
+    </button>
+</div>
             </div>
         </div>
     `;

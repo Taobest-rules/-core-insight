@@ -4752,7 +4752,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
       <div style="margin-bottom: 16px;">
         <label style="display:block; margin-bottom:8px;">Quantity <span style="color:var(--danger);">*</span></label>
         <input type="number" id="orderQuantity" class="form-input" value="1" min="1" />
-        <small class="form-help">Maximum 100 units per order</small>
+        <small class="form-help"> Desired units</small>
       </div>
       
       <!-- Simple Payment Breakdown - Customer Only Sees Total -->
@@ -9222,49 +9222,40 @@ function updateOrderTotals() {
   
   const quantityInput = document.getElementById('orderQuantity');
   if (!quantityInput) {
-    console.log("❌ quantityInput not found");
+    console.log("quantityInput not found");
     return;
   }
   
   let quantity = parseInt(quantityInput.value);
-  console.log("Current quantity:", quantity);
+  console.log("Quantity:", quantity);
   
-  // Only validate minimum - NO maximum limit
+  // Only validate minimum
   if (isNaN(quantity) || quantity < 1) {
     quantity = 1;
     quantityInput.value = 1;
   }
   
   if (!currentProductForOrder) {
-    console.log("❌ currentProductForOrder is null");
+    console.log("No product selected");
     return;
   }
   
   const product = currentProductForOrder;
   const productPrice = parseFloat(product.original_price || product.price || 0);
-  console.log("Product price:", productPrice);
-  
-  // Simple calculation: price × quantity
   const totalAmount = quantity * productPrice;
-  console.log("Total amount:", totalAmount);
   
-  // Update the display
+  console.log(`Total: ${quantity} × ${productPrice} = ${totalAmount}`);
+  
+  // Update displays
   const totalAmountEl = document.getElementById('totalAmount');
   const productSubtotal = document.getElementById('productSubtotal');
   const qtyDisplay = document.getElementById('qtyDisplay');
   
-  if (totalAmountEl) {
-    totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
-    console.log("Updated totalAmount display:", totalAmountEl.textContent);
-  }
-  if (productSubtotal) {
-    productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
-  }
-  if (qtyDisplay) {
-    qtyDisplay.textContent = quantity;
-  }
+  if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+  if (productSubtotal) productSubtotal.textContent = `$${totalAmount.toFixed(2)}`;
+  if (qtyDisplay) qtyDisplay.textContent = quantity;
   
-  // Store for order submission
+  // Store for submission
   window.currentOrderTotal = totalAmount;
   window.currentOrderQuantity = quantity;
 }
@@ -9384,10 +9375,7 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
 
 let isSubmitting = false; // Prevent double submission
 
-// In orderPhysicalProduct function - ensure quantity is set
 async function orderPhysicalProduct(productId) {
-  console.log("🛒 Opening order modal for product:", productId);
-  
   if (!currentUser) {
     openModal(document.getElementById('loginModal'));
     return;
@@ -9401,43 +9389,35 @@ async function orderPhysicalProduct(productId) {
     }
     
     currentProductForOrder = product;
-    console.log("✅ Product selected:", product.title);
     
-    // Update modal with product info
+    // Update modal display
     const productThumbnail = document.getElementById('productThumbnail');
     const productNameEl = document.getElementById('productName');
     const productPriceEl = document.getElementById('productPrice');
+    const quantityInput = document.getElementById('orderQuantity');
     
     if (productThumbnail) {
-      const mainImage = product._imageList && product._imageList.length > 0 
-        ? product._imageList[0] 
-        : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
-      productThumbnail.src = mainImage;
+      productThumbnail.src = product._imageList?.[0] || 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
     }
-    
     if (productNameEl) productNameEl.textContent = product.title || 'Product';
     if (productPriceEl) {
       const price = product.original_price || product.price;
       productPriceEl.textContent = `$${parseFloat(price).toFixed(2)} each`;
     }
-    
-    // Reset form
-    const quantityInput = document.getElementById('orderQuantity');
     if (quantityInput) {
       quantityInput.value = '1';
-      // Remove max attribute if exists
-      quantityInput.removeAttribute('max');
-      quantityInput.max = null;
+      quantityInput.removeAttribute('max'); // Remove max limit
     }
+    
+    // Reset form
     document.getElementById('deliveryAddress').value = '';
     document.getElementById('city').value = '';
     document.getElementById('state').value = '';
     document.getElementById('country').value = '';
     document.getElementById('deliveryPhone').value = '';
     document.getElementById('addressFormMessage').innerHTML = '';
-    isSubmitting = false;
     
-    // Update total display
+    // Calculate total
     updateOrderTotals();
     
     // Show modal
@@ -9445,7 +9425,7 @@ async function orderPhysicalProduct(productId) {
     
   } catch(error) {
     console.error('Order failed:', error);
-    showToast('Error', 'Failed to prepare order. Please try again.', 'danger');
+    showToast('Error', 'Failed to prepare order', 'danger');
   }
 }
 // Single order submission handler
@@ -9997,7 +9977,40 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
   }
 });
 
-
+// Add this to your DOMContentLoaded event
+document.addEventListener('DOMContentLoaded', function() {
+  // Direct button handlers
+  const closeBtn = document.getElementById('closeAddressModal');
+  const cancelBtn = document.getElementById('cancelAddress');
+  
+  if (closeBtn) {
+    closeBtn.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const modal = document.getElementById('addressModal');
+      if (modal) closeModal(modal);
+      currentProductForOrder = null;
+      currentOrderProduct = null;
+    };
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const modal = document.getElementById('addressModal');
+      if (modal) closeModal(modal);
+      currentProductForOrder = null;
+      currentOrderProduct = null;
+      
+      // Reset form
+      const form = document.getElementById('addressForm');
+      if (form) form.reset();
+      const qtyInput = document.getElementById('orderQuantity');
+      if (qtyInput) qtyInput.value = '1';
+    };
+  }
+});
  // Close address modal handlers
 document.getElementById('closeAddressModal')?.addEventListener('click', () => {
   closeModal(document.getElementById('addressModal'));

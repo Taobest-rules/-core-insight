@@ -1356,15 +1356,44 @@ In the name of Allah, the Most Gracious, the Most Merciful
         <input type="text" id="searchInput" placeholder="Search for courses, topics, or instructors...">
       </div>
       <div class="search-actions">
-        <select id="currencySelect">
-          <option value="NGN">NGN - Nigerian Naira</option>
-          <option value="USD">USD - US Dollar</option>
-          <option value="EUR">EUR - Euro</option>
-          <option value="GBP">GBP - British Pound</option>
-          <option value="KES">KES - Kenyan Shilling</option>
-          <option value="GHS">GHS - Ghanaian Cedi</option>
-          <option value="ZAR">ZAR - South African Rand</option>
-        </select>
+     <select id="currencySelect">
+  <option value="USD">USD - US Dollar</option>
+  <option value="EUR">EUR - Euro</option>
+  <option value="GBP">GBP - British Pound</option>
+  <option value="CAD">CAD - Canadian Dollar</option>
+  <option value="NGN">NGN - Nigerian Naira</option>
+  <option value="KES">KES - Kenyan Shilling</option>
+  <option value="GHS">GHS - Ghanaian Cedi</option>
+  <option value="ZAR">ZAR - South African Rand</option>
+  <option value="AUD">AUD - Australian Dollar</option>
+  <option value="JPY">JPY - Japanese Yen</option>
+  <option value="CNY">CNY - Chinese Yuan</option>
+  <option value="INR">INR - Indian Rupee</option>
+  <option value="BRL">BRL - Brazilian Real</option>
+  <option value="MXN">MXN - Mexican Peso</option>
+  <option value="AED">AED - UAE Dirham</option>
+  <option value="SAR">SAR - Saudi Riyal</option>
+  <option value="CHF">CHF - Swiss Franc</option>
+  <option value="SEK">SEK - Swedish Krona</option>
+  <option value="NOK">NOK - Norwegian Krone</option>
+  <option value="DKK">DKK - Danish Krone</option>
+  <option value="PLN">PLN - Polish Zloty</option>
+  <option value="TRY">TRY - Turkish Lira</option>
+  <option value="RUB">RUB - Russian Ruble</option>
+  <option value="KRW">KRW - South Korean Won</option>
+  <option value="SGD">SGD - Singapore Dollar</option>
+  <option value="HKD">HKD - Hong Kong Dollar</option>
+  <option value="NZD">NZD - New Zealand Dollar</option>
+  <option value="ZMW">ZMW - Zambian Kwacha</option>
+  <option value="TZS">TZS - Tanzanian Shilling</option>
+  <option value="UGX">UGX - Ugandan Shilling</option>
+  <option value="RWF">RWF - Rwandan Franc</option>
+  <option value="XOF">XOF - West African CFA Franc</option>
+  <option value="XAF">XAF - Central African CFA Franc</option>
+  <option value="ETB">ETB - Ethiopian Birr</option>
+  <option value="MAD">MAD - Moroccan Dirham</option>
+  <option value="EGP">EGP - Egyptian Pound</option>
+</select>
         <button id="searchBtn">
           <i class="fas fa-search"></i> Search Courses
         </button>
@@ -1627,28 +1656,27 @@ In the name of Allah, the Most Gracious, the Most Merciful
     let userCurrency = 'NGN';
     let exchangeRates = {};
 
-    async function detectUserCurrency() {
-      try {
-        const response = await fetch('https://ipapi.co/currency/', {
-          timeout: 5000
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const currency = await response.text();
-        if (currency && currency.length === 3) {
-          userCurrency = currency;
-          console.log("🌍 Detected currency:", userCurrency);
-        }
-      } catch (error) {
-        console.log('Using default currency:', userCurrency);
-        userCurrency = 'NGN';
-      }
-      await loadExchangeRates();
+   async function detectUserCurrency() {
+  try {
+    const response = await fetch('https://ipapi.co/currency/', {
+      timeout: 5000
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-
+    
+    const currency = await response.text();
+    if (currency && currency.length === 3) {
+      userCurrency = currency;
+      console.log("🌍 Detected currency:", userCurrency);
+    }
+  } catch (error) {
+    console.log('Using default currency: USD');
+    userCurrency = 'USD';  // Changed from 'NGN' to 'USD'
+  }
+  await loadExchangeRates();
+}
 async function loadExchangeRates() {
   try {
     console.log("🌍 Fetching live exchange rates...");
@@ -1670,72 +1698,52 @@ async function loadExchangeRates() {
     const data = await response.json();
     
     if (data && data.rates) {
-      // Store all exchange rates (USD is base = 1)
       exchangeRates = {
         USD: 1,
         NGN: data.rates.NGN || 1500,
         EUR: data.rates.EUR || 0.92,
         GBP: data.rates.GBP || 0.79,
-        KES: data.rates.KES || 130,
-        GHS: data.rates.GHS || 15,
-        ZAR: data.rates.ZAR || 19,
         CAD: data.rates.CAD || 1.37,
         AUD: data.rates.AUD || 1.50,
         JPY: data.rates.JPY || 150,
         CNY: data.rates.CNY || 7.2,
         INR: data.rates.INR || 83,
         BRL: data.rates.BRL || 5.1,
-        MXN: data.rates.MXN || 17
+        MXN: data.rates.MXN || 17,
+        AED: data.rates.AED || 3.67,
+        SAR: data.rates.SAR || 3.75,
+        CHF: data.rates.CHF || 0.91,
+        SEK: data.rates.SEK || 10.5,
+        NOK: data.rates.NOK || 10.8,
+        DKK: data.rates.DKK || 6.9,
+        PLN: data.rates.PLN || 4.0,
+        TRY: data.rates.TRY || 32,
+        RUB: data.rates.RUB || 92,
+        KRW: data.rates.KRW || 1350,
+        SGD: data.rates.SGD || 1.35,
+        HKD: data.rates.HKD || 7.82,
+        NZD: data.rates.NZD || 1.65,
+        ZMW: data.rates.ZMW || 25,
+        TZS: data.rates.TZS || 2600,
+        UGX: data.rates.UGX || 3800,
+        RWF: data.rates.RWF || 1300,
+        XOF: data.rates.XOF || 610,
+        XAF: data.rates.XAF || 610,
+        ETB: data.rates.ETB || 56,
+        MAD: data.rates.MAD || 10,
+        EGP: data.rates.EGP || 48,
+        KES: data.rates.KES || 130,
+        GHS: data.rates.GHS || 15,
+        ZAR: data.rates.ZAR || 19
       };
       
       console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
-      console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
-      
-      // Update currency selector
-      const currencySelect = document.getElementById('currencySelect');
-      if (currencySelect && !currencySelect.value) {
-        currencySelect.value = userCurrency;
-      }
-      
-      // Update all prices on the page
-      updateAllPrices();
-      
-    
-      
-    } else {
-      throw new Error('Invalid rate data structure');
     }
-    
   } catch (error) {
     console.error('❌ Error loading exchange rates:', error);
-    
-    // Use fallback rates for all currencies
-    exchangeRates = {
-      USD: 1,
-      NGN: 1500,
-      EUR: 0.92,
-      GBP: 0.79,
-      KES: 130,
-      GHS: 15,
-      ZAR: 19,
-      CAD: 1.37,
-      AUD: 1.50,
-      JPY: 150,
-      CNY: 7.2
-    };
-    
-    console.log('⚠️ Using fallback exchange rates');
-    
-    // Show warning to user
-    showToast('Using approximate exchange rates. Real-time rates unavailable.', 'warning');
-    
-    // Retry after 30 seconds
-    setTimeout(() => loadExchangeRates(), 30000);
   }
 }
-
-
-// Add this function to show live rate info
+//s function to show live rate info
 function showLiveRateInfo() {
   // Remove existing rate display if any
   const existingRateDisplay = document.querySelector('.live-rate-info');

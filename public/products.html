@@ -11078,7 +11078,6 @@ function validateOrderQuantity() {
   updateOrderTotals();
 }
 
-// Initialize order form event listeners (call this once)
 function initOrderForm() {
     const addressForm = document.getElementById('addressForm');
     const closeAddressModalBtn = document.getElementById('closeAddressModal');
@@ -11107,28 +11106,28 @@ function initOrderForm() {
     if (orderQuantity) {
         const newQuantity = orderQuantity.cloneNode(true);
         orderQuantity.parentNode.replaceChild(newQuantity, orderQuantity);
-        newQuantity.removeAttribute('max'); // Remove max attribute
+        newQuantity.removeAttribute('max');
+        
+        // Use updateOrderTotals instead of updateOrderTotals
         newQuantity.addEventListener('input', function() {
             let val = parseInt(this.value);
             if (isNaN(val) || val < 1) {
                 this.value = 1;
             }
-            updateOrderTotals();
+            updateOrderTotals();  // ← This function now exists
         });
+        
         newQuantity.addEventListener('change', function() {
             let val = parseInt(this.value);
             if (isNaN(val) || val < 1) {
                 this.value = 1;
             }
-            updateOrderTotals();
+            updateOrderTotals();  // ← This function now exists
         });
     }
 }
-
-
 // Make functions globally available
 window.orderPhysicalProduct = orderPhysicalProduct;
-window.updateOrderTotals = updateOrderTotals;
 window.submitOrderForm = submitOrderForm;
 window.closeAddressModal = closeAddressModal;
 
@@ -11344,7 +11343,129 @@ document.getElementById('cancelAddress')?.addEventListener('click', () => {
 });
 
 
-
+// ============================================
+// LOAD PRODUCTS - FIXED
+// ============================================
+async function loadProducts() {
+    try {
+        console.log("🔄 Loading products from server...");
+        showSkeletonLoader();
+        
+        const response = await fetch('/api/products', {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        console.log(`📡 API Response status: ${response.status}`);
+        
+        if (!response.ok) {
+            console.error(`❌ API Error: ${response.status}`);
+            products = [];
+            renderProducts();
+            return;
+        }
+        
+        const data = await response.json();
+        console.log(`📦 Received ${data.length} products from server`);
+        
+        // IMPORTANT: Assign to global products array
+        products = data || [];
+        
+        // Also load favorite counts if user is logged in
+        if (currentUser) {
+            await loadUserFavorites();
+        }
+        
+        // Process each product to ensure proper format
+        const processedProducts = [];
+        for (const p of products) {
+            // Ensure price is a number
+            p.price = Number(p.price) || 0;
+            p.original_price = Number(p.original_price) || p.price;
+            p.favorite_count = Number(p.favorite_count) || 0;
+            p.review_count = Number(p.review_count) || 0;
+            p.rating = Number(p.rating) || 0;
+            
+            // Handle images - CRITICAL FIX
+            if (p.images && Array.isArray(p.images) && p.images.length > 0) {
+                p._imageList = p.images;
+            } 
+            else if (p.image_urls) {
+                try {
+                    if (typeof p.image_urls === 'string') {
+                        if (p.image_urls.startsWith('[')) {
+                            p._imageList = JSON.parse(p.image_urls);
+                        } else if (p.image_urls.startsWith('http')) {
+                            p._imageList = [p.image_urls];
+                        } else {
+                            p._imageList = [p.image_urls];
+                        }
+                    } else if (Array.isArray(p.image_urls)) {
+                        p._imageList = p.image_urls;
+                    } else {
+                        p._imageList = [];
+                    }
+                } catch (e) {
+                    console.error(`Error parsing images for product ${p.id}:`, e.message);
+                    p._imageList = [];
+                }
+            } 
+            else if (p.image_url && typeof p.image_url === 'string') {
+                p._imageList = [p.image_url];
+            }
+            else {
+                p._imageList = [];
+            }
+            
+            // Ensure we have at least one image (placeholder)
+            if (!p._imageList || p._imageList.length === 0) {
+                p._imageList = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+            }
+            
+            // Set seller name
+            p.seller_name = p.seller_name || p.username || p.seller || 'Seller';
+            
+            // Set product type
+            p.type = p.type || p.product_type || (p.affiliate_link ? 'affiliate' : 'physical');
+            
+            // Add category to set for dropdown
+            if (p.category) categoriesSet.add(p.category);
+            
+            // Override with actual count from favoriteCounts if available
+            if (favoriteCounts && favoriteCounts[p.id] !== undefined) {
+                p.favorite_count = favoriteCounts[p.id];
+            }
+            
+            processedProducts.push(p);
+        }
+        
+        products = processedProducts;
+        console.log(`✅ Processed ${products.length} products`);
+        
+        populateCategoryFilter();
+        renderProducts();
+        
+    } catch (err) {
+        console.error('❌ loadProducts error:', err);
+        products = [];
+        renderProducts();
+        
+        // Show error message to user
+        const grid = document.getElementById('productsGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="error-message" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--danger);"></i>
+                    <h3>Failed to load products</h3>
+                    <p>${err.message || 'Please refresh the page or try again later.'}</p>
+                    <button onclick="loadProducts()" class="btn primary" style="margin-top: 20px;">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
    async function loadAllProductsTable() {
       const tbody = document.querySelector('#allProductsTable tbody');
       
@@ -13156,81 +13277,71 @@ function createAffiliateBlock() {
 }
 
 // ---------- Fetch & render products ----------
-
-  async function loadProducts() {
-  try {
-    showSkeletonLoader();
-    const response = await fetch('/api/products');
+// ============================================
+// UPDATE HEADER - FIXED (Proper event binding)
+// ============================================
+function updateHeader() {
+    const hb = $('headerAuthButtons');
+    if (!hb) return;
     
-    if (!response.ok) { 
-      products = []; 
-      renderProducts(); 
-      return; 
-    }
-    
-    const data = await response.json();
-    products = data || [];
-    
-    // Also load favorite counts if user is logged in
-    if (currentUser) {
-      await loadUserFavorites();
-    }
-    
-    products = products.map(p => {
-      p.price = Number(p.price || 0);
-      
-      // Handle images - IMPORTANT: This now uses the processed images from backend
-      // But we still need to ensure _imageList is set
-      if (p.images && Array.isArray(p.images)) {
-        p._imageList = p.images;
-      } else if (p.image_urls) {
-        // Fallback in case backend didn't process it
-        try {
-          if (typeof p.image_urls === 'string') {
-            p._imageList = JSON.parse(p.image_urls);
-          } else {
-            p._imageList = p.image_urls;
-          }
-        } catch (e) {
-          p._imageList = [p.image_urls];
+    if (currentUser && currentUser.id) {
+        hb.innerHTML = `
+            <span style="color:var(--text-gray);margin-right:.5rem">Welcome, ${escapeHtml(currentUser.username || currentUser.email || 'User')}</span>
+            <button id="logoutBtn" class="auth-btn">Logout</button>
+        `;
+        
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            // Remove existing listener to avoid duplicates
+            const newLogoutBtn = logoutBtn.cloneNode(true);
+            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+            newLogoutBtn.addEventListener('click', async () => {
+                await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+                currentUser = null;
+                userFavorites = new Set();
+                updateHeader();
+                updateReviewFormVisibility();
+                loadProducts();
+                showToast('Logged out successfully', 'success');
+            });
         }
-      } else {
-        p._imageList = [];
-      }
-      
-      // Ensure we have at least one image
-      if (!p._imageList || p._imageList.length === 0) {
-        p._imageList = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
-      }
-      
-      p.rating = Number(p.rating || 0);
-      p.seller_name = p.seller_name || p.username || p.seller || 'Seller';
-      p.type = p.type || p.product_type || (p._imageList.length && p.price > 0 ? 'digital' : 'physical');
-      
-      // Add category to set for dropdown
-      if (p.category) categoriesSet.add(p.category);
-      
-      // Use favorite_count from database
-      p.favorite_count = Number(p.favorite_count || p.favorites || 0);
-      
-      // Override with actual count from favoriteCounts if available
-      if (favoriteCounts && favoriteCounts[p.id] !== undefined) {
-        p.favorite_count = favoriteCounts[p.id];
-      }
-      
-      p.review_count = Number(p.review_count || p.reviews || 0);
-      
-      return p;
-    });
+    } else {
+        hb.innerHTML = `
+            <button id="loginOpen" class="auth-btn">Login</button>
+            <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>
+        `;
+        
+        // Re-bind login button after DOM update
+        setTimeout(() => {
+            const loginBtn = document.getElementById('loginOpen');
+            if (loginBtn) {
+                const newLoginBtn = loginBtn.cloneNode(true);
+                loginBtn.parentNode.replaceChild(newLoginBtn, loginBtn);
+                newLoginBtn.addEventListener('click', () => openModal(loginModal));
+            }
+            // signupOpen is an anchor tag, no binding needed
+        }, 0);
+    }
     
-    populateCategoryFilter();
-    renderProducts();
-  } catch (err) {
-    console.error('loadProducts error:', err);
-    products = [];
-    renderProducts();
-  }
-}    function populateCategoryFilter(){
+    // Show/hide seller view depending on sellerMode and login
+    const sellerView = $('sellerView');
+    if (sellerView) {
+        if (sellerMode && currentUser) {
+            sellerView.classList.add('active');
+        } else {
+            sellerView.classList.remove('active');
+        }
+        sellerView.setAttribute('aria-hidden', !(sellerMode && currentUser));
+    }
+    
+    const browseModeText = $('browseModeText');
+    if (browseModeText) {
+        browseModeText.innerHTML = sellerMode ? 'Seller' : 'Buyer';
+    }
+    
+    checkAdminAndShowImportButton();
+}
+   function populateCategoryFilter(){
       const sel = $('filterCategory');
       const existing = new Set(Array.from(sel.options).map(o=>o.value));
       categoriesSet.forEach(cat=>{
@@ -13245,13 +13356,62 @@ function fmtPrice(amount) {
     const converted = convertPrice(parseFloat(amount));
     return formatPrice(converted);
 }
-// =================== RENDER PRODUCTS WITH CURRENCY CONVERSION ===================
-
-// =================== RENDER PRODUCTS WITH CONDITIONAL DELIVERY INFO ===================
-
 // ============================================
-// RENDER PRODUCTS - WITH ENHANCED DETAILS BUTTON
+// UPDATE ORDER TOTALS - FIXED
 // ============================================
+function updateOrderTotals() {
+    console.log("🔄 updateOrderTotals called");
+    
+    const quantityInput = document.getElementById('orderQuantity');
+    if (!quantityInput) {
+        console.log("❌ quantityInput not found");
+        return;
+    }
+    
+    let quantity = parseInt(quantityInput.value);
+    console.log("📦 Current quantity:", quantity);
+    
+    if (isNaN(quantity) || quantity < 1) {
+        quantity = 1;
+        quantityInput.value = 1;
+    }
+    
+    if (!currentProductForOrder) {
+        console.log("❌ No product selected");
+        return;
+    }
+    
+    const productPrice = parseFloat(currentProductForOrder.original_price || currentProductForOrder.price || 0);
+    const totalAmount = quantity * productPrice;
+    
+    console.log(`💰 Calculation: ${quantity} × $${productPrice} = $${totalAmount.toFixed(2)}`);
+    
+    // Update displays
+    const subtotalEl = document.getElementById('productSubtotal');
+    const totalEl = document.getElementById('totalAmount');
+    const qtyDisplay = document.getElementById('qtyDisplay');
+    const platformFeeEl = document.getElementById('platformFeeAmount');
+    const sellerEarningsEl = document.getElementById('sellerEarningsAmount');
+    
+    if (subtotalEl) subtotalEl.textContent = fmtPrice(totalAmount);
+    if (totalEl) totalEl.innerHTML = `<strong style="font-size: 24px;">${fmtPrice(totalAmount)}</strong>`;
+    if (qtyDisplay) qtyDisplay.textContent = quantity;
+    
+    // Update platform fee display (10%)
+    if (platformFeeEl) {
+        const platformFee = totalAmount * 0.10;
+        platformFeeEl.textContent = fmtPrice(platformFee);
+    }
+    
+    // Update seller earnings display (90%)
+    if (sellerEarningsEl) {
+        const sellerEarnings = totalAmount * 0.90;
+        sellerEarningsEl.textContent = fmtPrice(sellerEarnings);
+    }
+    
+    window.currentOrderTotal = totalAmount;
+    window.currentOrderQuantity = quantity;
+}
 // ============================================
 // RENDER PRODUCTS - WITH ENHANCED DETAILS BUTTON & SHARE BUTTON
 // ============================================
@@ -14332,10 +14492,13 @@ async function loadOrderDetails(orderId) {
   }
 }
 
- // ================= PRICE CALCULATOR FOR PHYSICAL PRODUCTS =================
-const priceCalc = document.getElementById('calcPrice');
-if (priceCalc) {
-  function updateCalculator() {
+ // ============================================
+// UPDATE CALCULATOR - FIXED
+// ============================================
+function updateCalculator() {
+    const priceCalc = document.getElementById('calcPrice');
+    if (!priceCalc) return;
+    
     const price = parseFloat(priceCalc.value) || 0;
     
     // Fixed 10% platform fee for ALL quantities (no bulk calculation)
@@ -14343,19 +14506,18 @@ if (priceCalc) {
     const sellerEarnings = price - platformFee;
     
     // Display for seller preview
-    document.getElementById('calcStandard').textContent = `$${sellerEarnings.toFixed(2)}`;
-    document.getElementById('calcBulk').textContent = `$${sellerEarnings.toFixed(2)}`;
-    
-    // Show that it's a flat 10% fee
+    const calcStandard = document.getElementById('calcStandard');
+    const calcBulk = document.getElementById('calcBulk');
     const feeNote = document.getElementById('feeNote');
+    
+    if (calcStandard) calcStandard.textContent = fmtPrice(sellerEarnings);
+    if (calcBulk) calcBulk.textContent = fmtPrice(sellerEarnings);
     if (feeNote) {
-      feeNote.innerHTML = `<span style="color: var(--success);">✓ Flat 10% platform fee applies to all orders</span>`;
+        feeNote.innerHTML = `<span style="color: var(--success);">✓ Flat 10% platform fee applies to all orders</span>`;
     }
-  }
-  
-  priceCalc.addEventListener('input', updateCalculator);
-  updateCalculator();
 }
+
+
 // Add this to your page to auto-show business info section
 document.addEventListener('DOMContentLoaded', function() {
     // Show business info section (required for validation)
@@ -14688,7 +14850,13 @@ window.closeProductInfoModal = closeProductInfoModal;
       $('sellerView').scrollIntoView({ behavior: 'smooth' });
     }
     window.editProduct = editProduct;
-
+// Add these at the end of your script section
+window.updateOrderTotals = updateOrderTotals;
+window.updateCalculator = updateCalculator;
+window.fmtPrice = fmtPrice;
+window.formatPrice = formatPrice;
+window.convertPrice = convertPrice;
+window.escapeHtml = escapeHtml;
  // ========== UPLOAD PRODUCT FUNCTION WITH DEBUGGING ==========
 // ========== UPLOAD PRODUCT BUTTON HANDLER - FIXED ==========$('uploadProductBtn').addEventListener('click', async (e) => {
  // ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========

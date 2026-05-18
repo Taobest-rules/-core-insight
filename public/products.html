@@ -5965,6 +5965,7 @@ function renderProducts() {
         const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
         const isFavorite = userFavorites.has(p.id);
         const isPhysical = p.type === 'physical';
+        const isDigital = p.type === 'digital';
         const badgeClass = p.type === 'digital' ? 'badge-digital' : p.type === 'physical' ? 'badge-physical' : 'badge-affiliate';
         const productOwner = isOwner(p.user_id);
         let deliveryInfoHtml = '';
@@ -6890,6 +6891,7 @@ async function loadSellerNotifications() {
     try {
         if (!currentUser) return;
         const response = await fetch('/api/seller/notifications', { credentials: 'include' });
+         if (!response.ok) return; // Add this line to handle 404 gracefully
         const data = await response.json();
         const notificationCount = document.getElementById('notificationCount');
         if (notificationCount && data.unreadCount > 0) {

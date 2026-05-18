@@ -3123,281 +3123,71 @@ app.get("/api/products/share-stats", async (req, res) => {
     }
 });
 
-// =================== FIX COURSE PATHS ===================
-app.get("/api/admin/fix-course-paths", async (req, res) => {
-  try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    
-    const uploadDir = path.join(__dirname, 'uploads', 'courses');
-    
-    if (!fs.existsSync(uploadDir)) {
-      return res.status(404).json({ 
-        error: "Upload directory not found",
-        path: uploadDir
-      });
-    }
-    
-    const existingFiles = fs.readdirSync(uploadDir);
-    console.log('📂 Existing files:', existingFiles);
-    
-    const courses = await db.query('SELECT id, title, file_path FROM courses');
-    
-    const results = {
-      fixed: [],
-      not_found: [],
-      skipped: []
-    };
-    
-    for (const course of courses) {
-      const dbPath = course.file_path;
-      const dbFilename = dbPath ? path.basename(dbPath) : null;
-      
-      if (!dbFilename) {
-        results.skipped.push({ id: course.id, title: course.title, reason: "No filename in DB" });
-        continue;
-      }
-      
-      if (existingFiles.includes(dbFilename)) {
-        const correctPath = `/uploads/courses/${dbFilename}`;
-        if (dbPath !== correctPath) {
-          await db.query(
-            'UPDATE courses SET file_path = ? WHERE id = ?',
-            [correctPath, course.id]
-          );
-          results.fixed.push({
-            id: course.id,
-            title: course.title,
-            old_path: dbPath,
-            new_path: correctPath
-          });
-        }
-      } else {
-        const matchingFile = existingFiles.find(f => 
-          f.includes(dbFilename.replace(/^\d+-\d+-/, '')) || 
-          dbFilename.includes(f.replace(/^\d+-\d+-/, ''))
-        );
-        
-        if (matchingFile) {
-          const correctPath = `/uploads/courses/${matchingFile}`;
-          await db.query(
-            'UPDATE courses SET file_path = ? WHERE id = ?',
-            [correctPath, course.id]
-          );
-          results.fixed.push({
-            id: course.id,
-            title: course.title,
-            old_path: dbPath,
-            new_path: correctPath,
-            matched_file: matchingFile
-          });
-        } else {
-          results.not_found.push({
-            id: course.id,
-            title: course.title,
-            db_filename: dbFilename,
-            available_files: existingFiles.slice(0, 10)
-          });
-        }
-      }
-    }
-    
-    res.json({
-      success: true,
-      upload_dir: uploadDir,
-      files_in_directory: existingFiles.length,
-      results: results
-    });
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/admin/fix-course-paths", async (req, res) => {
-  try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    
-    const results = {
-      fixed: [],
-      not_found: [],
-      errors: []
-    };
-    
-    const courses = await db.query('SELECT id, title, file_path FROM courses');
-    
-    const uploadDir = path.join(__dirname, 'uploads', 'courses');
-    
-    if (!fs.existsSync(uploadDir)) {
-      return res.status(404).json({ error: "Upload directory not found", uploadDir });
-    }
-    
-    const existingFiles = fs.readdirSync(uploadDir);
-    console.log('📂 Existing files:', existingFiles);
-    
-    for (const course of courses) {
-      try {
-        const dbFilename = course.file_path ? path.basename(course.file_path) : null;
-        
-        if (!dbFilename) {
-          results.not_found.push({ id: course.id, title: course.title, reason: "No filename in DB" });
-          continue;
+app.post("/api/seller/notifications/:id/read", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
         }
         
-        let foundFile = null;
+        const notificationId = req.params.id;
+        const sellerId = req.session.user.id;
         
-        if (existingFiles.includes(dbFilename)) {
-          foundFile = dbFilename;
-        } else {
-          for (const file of existingFiles) {
-            const originalName = dbFilename.replace(/^\d+-\d+-/, '');
-            if (file.includes(originalName) || originalName.includes(file.replace(/^\d+-\d+-/, ''))) {
-              foundFile = file;
-              break;
-            }
-          }
-        }
-        
-        if (foundFile) {
-          const newPath = `/uploads/courses/${foundFile}`;
-          await db.query(
-            'UPDATE courses SET file_path = ? WHERE id = ?',
-            [newPath, course.id]
-          );
-          
-          results.fixed.push({
-            id: course.id,
-            title: course.title,
-            old_path: course.file_path,
-            new_path: newPath
-          });
-        } else {
-          results.not_found.push({
-            id: course.id,
-            title: course.title,
-            db_filename: dbFilename,
-            available_files: existingFiles.slice(0, 10)
-          });
-        }
-      } catch (err) {
-        results.errors.push({ id: course.id, error: err.message });
-      }
-    }
-    
-    res.json({
-      success: true,
-      message: `Fixed ${results.fixed.length} courses, ${results.not_found.length} not found`,
-      results
-    });
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get("/api/admin/fix-all-paths", async (req, res) => {
-  try {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    
-    const uploadDir = path.join(__dirname, 'uploads', 'courses');
-    
-    if (!fs.existsSync(uploadDir)) {
-      return res.status(404).json({ 
-        error: "Upload directory not found",
-        path: uploadDir
-      });
-    }
-    
-    const existingFiles = fs.readdirSync(uploadDir);
-    console.log('📂 Existing files:', existingFiles);
-    
-    const courses = await db.query('SELECT id, title, file_path FROM courses');
-    
-    const results = {
-      fixed: [],
-      need_reupload: [],
-      deleted: []
-    };
-    
-    for (const course of courses) {
-      const dbPath = course.file_path;
-      
-      if (!dbPath) {
-        results.need_reupload.push({ id: course.id, title: course.title, reason: "No file path" });
-        continue;
-      }
-      
-      const dbFilename = path.basename(dbPath);
-      
-      if (existingFiles.includes(dbFilename)) {
-        const correctPath = `/uploads/courses/${dbFilename}`;
-        if (dbPath !== correctPath) {
-          await db.query(
-            'UPDATE courses SET file_path = ? WHERE id = ?',
-            [correctPath, course.id]
-          );
-          results.fixed.push({
-            id: course.id,
-            title: course.title,
-            old_path: dbPath,
-            new_path: correctPath,
-            match_type: 'exact'
-          });
-        }
-        continue;
-      }
-      
-      let foundFile = null;
-      const searchTitle = course.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      
-      for (const file of existingFiles) {
-        const fileLower = file.toLowerCase();
-        if (fileLower.includes(searchTitle) || searchTitle.includes(fileLower.replace(/^\d+-\d+-/, ''))) {
-          foundFile = file;
-          break;
-        }
-      }
-      
-      if (foundFile) {
-        const correctPath = `/uploads/courses/${foundFile}`;
         await db.query(
-          'UPDATE courses SET file_path = ? WHERE id = ?',
-          [correctPath, course.id]
+            "UPDATE seller_notifications SET is_read = 1 WHERE id = ? AND seller_id = ?",
+            [notificationId, sellerId]
         );
-        results.fixed.push({
-          id: course.id,
-          title: course.title,
-          old_path: dbPath,
-          new_path: correctPath,
-          match_type: 'title_match',
-          matched_file: foundFile
-        });
-      } else {
-        results.need_reupload.push({
-          id: course.id,
-          title: course.title,
-          db_filename: dbFilename,
-          reason: "No matching file found"
-        });
-      }
+        
+        res.json({ success: true });
+        
+    } catch (err) {
+        console.error("Error marking notification read:", err);
+        res.status(500).json({ error: err.message });
     }
-    
-    res.json({
-      success: true,
-      upload_dir: uploadDir,
-      files_in_directory: existingFiles,
-      results: results
-    });
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
+
+
+app.get("/api/seller/notifications", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const sellerId = req.session.user.id;
+        
+        // Get unread count
+        const unreadResult = await db.query(
+            "SELECT COUNT(*) as count FROM seller_notifications WHERE seller_id = ? AND is_read = 0",
+            [sellerId]
+        );
+        
+        // Get recent notifications (last 50)
+        const notifications = await db.query(
+            `SELECT id, notification_type, title, message, is_read, created_at 
+             FROM seller_notifications 
+             WHERE seller_id = ? 
+             ORDER BY created_at DESC 
+             LIMIT 50`,
+            [sellerId]
+        );
+        
+        res.json({
+            success: true,
+            unreadCount: unreadResult[0]?.count || 0,
+            notifications: notifications || []
+        });
+        
+    } catch (err) {
+        console.error("Error fetching seller notifications:", err);
+        // Return empty data instead of error to prevent frontend crashes
+        res.json({ 
+            success: false, 
+            unreadCount: 0, 
+            notifications: [],
+            error: err.message 
+        });
+    }
+});
+
 
 app.get("/api/admin/check-integrity", async (req, res) => {
   try {

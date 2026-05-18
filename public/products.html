@@ -5521,14 +5521,85 @@ function escapeHtml(s) {
     });
 }
 
+
+
+// Convert price from USD to target currency
+function convertPrice(priceInUSD) {
+    if (!priceInUSD || priceInUSD <= 0) return 0;
+    
+    if (userCurrency === 'USD') {
+        return priceInUSD;
+    }
+    
+    // Get the exchange rate for the target currency
+    const rate = exchangeRates[userCurrency];
+    
+    if (!rate || rate <= 0) {
+        console.warn(`No exchange rate for ${userCurrency}, using USD`);
+        return priceInUSD;
+    }
+    
+    // Convert USD to target currency
+    // Example: $10 USD × 1500 = 15,000 NGN
+    const convertedAmount = priceInUSD * rate;
+    
+    console.log(`💰 Conversion: $${priceInUSD} USD → ${convertedAmount.toFixed(2)} ${userCurrency} (rate: ${rate})`);
+    
+    return convertedAmount;
+}
+
+// Format price with proper currency symbol and decimals
 function formatPrice(amount) {
     if (!amount && amount !== 0) return `${currencySymbols[userCurrency] || '$'}0.00`;
-    const symbol = currencySymbols[userCurrency] || '$';
-    return `${symbol}${Number(amount).toFixed(2)}`;
+    
+    try {
+        let formattedAmount = amount;
+        
+        // amount is already converted to target currency from convertPrice()
+        // Just format it with the correct symbol
+        
+        const symbol = currencySymbols[userCurrency] || '$';
+        
+        // Handle different symbol positions
+        if (userCurrency === 'EUR') {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: userCurrency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(formattedAmount);
+        } else if (userCurrency === 'GBP') {
+            return new Intl.NumberFormat('en-GB', {
+                style: 'currency',
+                currency: userCurrency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(formattedAmount);
+        } else if (userCurrency === 'NGN') {
+            // Special formatting for Naira
+            return `${symbol} ${formattedAmount.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        } else {
+            return `${symbol}${formattedAmount.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+        
+    } catch (error) {
+        console.error('Format error:', error);
+        const symbol = currencySymbols[userCurrency] || '$';
+        return `${symbol}${amount.toFixed(2)}`;
+    }
 }
 
 function fmtPrice(amount) {
-    return formatPrice(Number(amount || 0));
+    if (!amount && amount !== 0) return formatPrice(0);
+    // Convert from USD to user's currency first
+    const converted = convertPrice(parseFloat(amount));
+    return formatPrice(converted);
 }
 
 function getCSRFToken() {
@@ -5620,24 +5691,62 @@ function getStatusClass(status) {
 // ============================================
 // CURRENCY CONVERSION SYSTEM
 // ============================================
-async function loadExchangeRates() {
+
+  async function loadExchangeRates() {
     try {
+        console.log("🌍 Fetching live exchange rates...");
+        
         const response = await fetch('/api/currency-rates', {
-            credentials: 'include', headers: { 'Accept': 'application/json' }
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (data.success && data.rates) {
-            exchangeRates = { USD: 1, ...data.rates };
-            console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
-            updateAllPrices();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        if (data.success && data.rates) {
+            // Update exchange rates - THESE ARE USD TO TARGET CURRENCY
+            // Example: 1 USD = 1500 NGN
+            exchangeRates = {
+                USD: 1,
+                NGN: data.rates.NGN || 1500,
+                EUR: data.rates.EUR || 0.92,
+                GBP: data.rates.GBP || 0.79,
+                KES: data.rates.KES || 130,
+                GHS: data.rates.GHS || 15,
+                ZAR: data.rates.ZAR || 19,
+                CAD: data.rates.CAD || 1.37,
+                AUD: data.rates.AUD || 1.50,
+                JPY: data.rates.JPY || 150,
+                CNY: data.rates.CNY || 7.2,
+                INR: data.rates.INR || 83,
+                BRL: data.rates.BRL || 5.1,
+                MXN: data.rates.MXN || 17,
+                AED: data.rates.AED || 3.67,
+                SAR: data.rates.SAR || 3.75
+            };
+            
+            console.log(`✅ Live rates loaded: 1 USD = ${exchangeRates.NGN} NGN`);
+            console.log(`✅ EUR rate: ${exchangeRates.EUR}, GBP rate: ${exchangeRates.GBP}`);
+            
+            // Update all prices on the page
+            updateAllPrices();
+            
+        } else {
+            throw new Error('Invalid rate data structure');
+        }
+        
     } catch (error) {
         console.error('❌ Error loading exchange rates:', error);
-        showToast('Using approximate exchange rates', 'warning');
+        console.log('⚠️ Using fallback exchange rates');
+        
+        // Still update prices with fallback rates
+        updateAllPrices();
     }
 }
-
 async function detectUserCurrency() {
     try {
         const savedCurrency = localStorage.getItem('ci_currency');
@@ -5654,11 +5763,7 @@ async function detectUserCurrency() {
     } catch (error) { console.log('Using default currency:', userCurrency); }
 }
 
-function convertPrice(priceInUSD) {
-    if (!priceInUSD || priceInUSD <= 0 || userCurrency === 'USD') return priceInUSD;
-    const rate = exchangeRates[userCurrency];
-    return rate ? priceInUSD * rate : priceInUSD;
-}
+
 
 function updateAllPrices() {
     const priceElements = document.querySelectorAll('.price');
@@ -5792,21 +5897,38 @@ function updateReviewFormVisibility() {
 // ============================================
 // FAVORITES FUNCTIONS
 // ============================================
+// ✅ FIXED VERSION:
 async function loadUserFavorites() {
     try {
-        const response = await fetch('/api/favorites', { credentials: 'include', headers: { 'Accept': 'application/json' } });
+        const response = await fetch('/api/favorites', {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            userFavorites = new Set(); favoriteCounts = {}; return;
+            userFavorites = new Set();
+            favoriteCounts = {};
+            return;
         }
-        if (!response.ok) { userFavorites = new Set(); favoriteCounts = {}; return; }
+        
+        if (!response.ok) {
+            userFavorites = new Set();
+            favoriteCounts = {};
+            return;
+        }
+        
         const data = await response.json();
         userFavorites = new Set(data.favorites || []);
         favoriteCounts = data.favoriteCounts || {};
         updateFavoriteCountsOnCards();
-    } catch(err) { console.error('loadUserFavorites error:', err); userFavorites = new Set(); favoriteCounts = {}; }
+        
+    } catch(err) {
+        console.error('loadUserFavorites error:', err);
+        userFavorites = new Set();
+        favoriteCounts = {};
+    }
 }
-
 function updateFavoriteCountsOnCards() {
     document.querySelectorAll('.product-card').forEach(card => {
         const productId = card.getAttribute('data-id');
@@ -6098,35 +6220,63 @@ function initializeProductOwnership() {
 // ============================================
 // REVIEWS FUNCTIONS
 // ============================================
+// Select product for reviews (called when clicking "View" button)
 function selectProductForReviews(productId) {
     currentProductId = productId;
     loadProductReviews(productId);
-    document.getElementById('productReviewsSection').scrollIntoView({ behavior: 'smooth' });
+    // Scroll to reviews section
+    const reviewsSection = document.getElementById('productReviewsSection');
+    if (reviewsSection) {
+        reviewsSection.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
-async function loadProductReviews(productId) {
+// Make it globally available
+window.selectProductForReviews = selectProductForReviews;
+
+
+    async function loadProductReviews(productId) {
     try {
-        const response = await fetch(`/api/reviews/${productId}`, { credentials: 'include' });
-        if (!response.ok) throw new Error('Failed to load reviews');
+        console.log('Loading reviews for product:', productId);
+        
+        const response = await fetch(`/api/reviews/${productId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load reviews');
+        }
+        
         const data = await response.json();
         const reviews = data.reviews || [];
         let averageRating = parseFloat(data.averageRating) || 0;
         const reviewCount = data.count || 0;
+        
+        // Update average rating display
         const averageRatingEl = document.getElementById('averageRating');
         if (averageRatingEl) {
             const fullStars = Math.floor(averageRating);
             const halfStar = averageRating % 1 >= 0.5;
             let starsHtml = '';
             for (let i = 1; i <= 5; i++) {
-                if (i <= fullStars) starsHtml += '<i class="fas fa-star" style="color: var(--warning);"></i>';
-                else if (i === fullStars + 1 && halfStar) starsHtml += '<i class="fas fa-star-half-alt" style="color: var(--warning);"></i>';
-                else starsHtml += '<i class="far fa-star" style="color: var(--text-gray);"></i>';
+                if (i <= fullStars) {
+                    starsHtml += '<i class="fas fa-star" style="color: var(--warning);"></i>';
+                } else if (i === fullStars + 1 && halfStar) {
+                    starsHtml += '<i class="fas fa-star-half-alt" style="color: var(--warning);"></i>';
+                } else {
+                    starsHtml += '<i class="far fa-star" style="color: var(--text-gray);"></i>';
+                }
             }
-            averageRatingEl.innerHTML = `<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <div style="font-size: 28px; font-weight: 700; color: var(--text-light);">${averageRating.toFixed(1)}</div>
-                <div>${starsHtml}</div><div style="color: var(--text-gray);">(${reviewCount} ${reviewCount === 1 ? 'review' : 'reviews'})</div>
-            </div>`;
+            averageRatingEl.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="font-size: 28px; font-weight: 700; color: var(--text-light);">${averageRating.toFixed(1)}</div>
+                    <div>${starsHtml}</div>
+                    <div style="color: var(--text-gray);">(${reviewCount} ${reviewCount === 1 ? 'review' : 'reviews'})</div>
+                </div>
+            `;
         }
+        
+        // Display reviews list
         const reviewsListEl = document.getElementById('reviewsList');
         if (reviewsListEl) {
             if (reviews.length === 0) {
@@ -6135,16 +6285,37 @@ async function loadProductReviews(productId) {
                 let reviewsHtml = '';
                 for (const review of reviews) {
                     const stars = '⭐'.repeat(Math.floor(review.rating));
-                    reviewsHtml += `<div class="review-item"><strong>${escapeHtml(review.username || 'Anonymous')}</strong>
-                        <div class="rating-stars">${stars}</div><p>${escapeHtml(review.comment)}</p>
-                        <small>${new Date(review.created_at).toLocaleDateString()}</small></div>`;
+                    reviewsHtml += `
+                        <div class="review-item">
+                            <strong>${escapeHtml(review.username || 'Anonymous')}</strong>
+                            <div class="rating-stars">${stars}</div>
+                            <p>${escapeHtml(review.comment)}</p>
+                            <small>${new Date(review.created_at).toLocaleDateString()}</small>
+                        </div>
+                    `;
                 }
                 reviewsListEl.innerHTML = reviewsHtml;
             }
         }
-    } catch (error) { console.error('Error loading reviews:', error); }
+        
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        const reviewsListEl = document.getElementById('reviewsList');
+        if (reviewsListEl) {
+            reviewsListEl.innerHTML = '<p style="color: var(--danger);">Error loading reviews. Please try again.</p>';
+        }
+    }
 }
-
+function updateReviewFormVisibility() {
+    const form = document.getElementById("reviewFormWrapper");
+    if (!form) return;
+    
+    if (currentUser) {
+        form.classList.remove("hidden");
+    } else {
+        form.classList.add("hidden");
+    }
+}
 async function submitReview() {
     const rating = document.getElementById("reviewRating").value;
     const comment = document.getElementById("reviewComment").value.trim();
@@ -6341,102 +6512,88 @@ window.openAffiliate = openAffiliate;
 // ============================================
 // PRODUCT DETAILS MODAL
 // ============================================
-function showProductFullDetails(productId) {
+
+ function showProductFullDetails(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
-    const conditionMap = {
-        'new': '🌟 Brand New (Unopened/Sealed)', 'like_new': '✨ Like New (Opened but unused)',
-        'excellent': '⭐ Excellent (Very light use, no defects)', 'good': '👍 Good (Normal wear, fully functional)',
-        'fair': '👌 Fair (Visible wear, fully functional)', 'acceptable': '📦 Acceptable (Heavy wear, functional)'
-    };
-    const conditionDisplay = conditionMap[product.condition_type] || product.condition_type || 'Not specified';
-    const conditionClass = `condition-${product.condition_type || 'good'}`;
-    const warrantyMonths = parseInt(product.warranty_months) || 0;
-    const warrantyDisplay = warrantyMonths === 0 ? 'No warranty' : warrantyMonths === 12 ? '1 year warranty' : `${warrantyMonths} months warranty`;
-    const manufacturingDate = product.manufacturing_date ? new Date(product.manufacturing_date).toLocaleDateString() : 'Not specified';
-    const originalPackaging = parseInt(product.original_packaging) === 1 ? '✅ Yes, original packaging included' : '📦 No, generic/replacement packaging';
-    const accessoriesDisplay = product.accessories_included && product.accessories_included.trim() ? product.accessories_included : 'None listed';
-    const defectsDisplay = product.visible_defects && product.visible_defects.trim() ? product.visible_defects : 'No visible defects reported';
-    const conditionDescription = product.condition_description && product.condition_description.trim() ? product.condition_description : 'No additional condition notes';
-    const deliveryType = product.delivery_type || 'delivery';
-    const deliveryCountries = product.delivery_countries || 'Worldwide';
-    const deliveryStates = product.delivery_states || '';
-    const estimatedDays = product.estimated_delivery_days || product.delivery_days || 7;
-    const pickupAddress = product.pickup_address || '';
-    const pickupHours = product.pickup_hours || '';
-    const pickupInstructions = product.pickup_instructions || '';
+    
+    // Get all images
     const allImages = product._imageList && Array.isArray(product._imageList) ? product._imageList : 
-                     (product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []);
+                      (product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []);
+    
     let imagesGalleryHtml = '';
     if (allImages.length > 0) {
-        imagesGalleryHtml = `<div class="detail-images-gallery">
-            <div class="gallery-main"><img id="galleryMainImg" src="${allImages[0]}" alt="${escapeHtml(product.title)}" onclick="openImageModal('${allImages[0]}')"></div>
-            <div class="gallery-thumbs">${allImages.map((img, idx) => `<img src="${img}" alt="Image ${idx + 1}" onclick="document.getElementById('galleryMainImg').src='${img}'; document.getElementById('galleryMainImg').onclick=function(){openImageModal('${img}')}">`).join('')}</div>
-        </div>`;
+        imagesGalleryHtml = `
+            <div class="detail-images-gallery">
+                <div class="gallery-main">
+                    <img id="galleryMainImg" src="${allImages[0]}" alt="${escapeHtml(product.title)}" onclick="openImageModal('${allImages[0]}')">
+                </div>
+                <div class="gallery-thumbs">
+                    ${allImages.slice(1, 5).map((img, idx) => `
+                        <img src="${img}" alt="Image ${idx + 2}" onclick="document.getElementById('galleryMainImg').src='${img}'; document.getElementById('galleryMainImg').onclick=function(){openImageModal('${img}')}">
+                    `).join('')}
+                </div>
+            </div>
+        `;
     }
-    const modalHtml = `<div class="modal open" id="productFullDetailsModal">
-        <div class="modal-card product-full-details-modal">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-                <h3 style="margin: 0;"><i class="fas fa-box-open" style="color: var(--accent);"></i> ${escapeHtml(product.title)}</h3>
-                <span class="close-x" onclick="closeProductFullDetailsModal()">&times;</span>
-            </div>
-            <div class="details-scrollable">
-                ${imagesGalleryHtml}
-                <div class="info-section"><h4><i class="fas fa-user-circle"></i> Seller Information</h4>
-                    <div class="info-row"><div class="info-label">Seller:</div><div class="info-value">${escapeHtml(product.seller_name || 'Seller')}</div></div>
-                    <div class="info-row"><div class="info-label">Product Type:</div><div class="info-value"><span class="product-badge ${product.type === 'digital' ? 'badge-digital' : product.type === 'physical' ? 'badge-physical' : 'badge-affiliate'}">${product.type || 'Physical'}</span></div></div>
-                    <div class="info-row"><div class="info-label">Category:</div><div class="info-value">${escapeHtml(product.category || 'Uncategorized')}</div></div>
+    
+    const modalHtml = `
+        <div class="modal open" id="productFullDetailsModal">
+            <div class="modal-card product-full-details-modal">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+                    <h3 style="margin: 0;"><i class="fas fa-box-open" style="color: var(--accent);"></i> ${escapeHtml(product.title)}</h3>
+                    <span class="close-x" onclick="closeProductFullDetailsModal()">&times;</span>
                 </div>
-                <div class="info-section"><h4><i class="fas fa-align-left"></i> Description</h4><div class="info-value" style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(product.description || 'No description provided')}</div></div>
-                <div class="info-section"><h4><i class="fas fa-tag"></i> Pricing</h4>
-                    <div class="info-row"><div class="info-label">Price:</div><div class="info-value" style="font-size: 24px; color: var(--success); font-weight: bold;">${fmtPrice(product.price)}</div></div>
-                    <div class="info-row"><div class="info-label">Platform Fee (10%):</div><div class="info-value">${fmtPrice(product.price * 0.10)}</div></div>
-                    <div class="info-row"><div class="info-label">Seller Earns:</div><div class="info-value">${fmtPrice(product.price * 0.90)}</div></div>
+                <div class="details-scrollable">
+                    ${imagesGalleryHtml}
+                    <div class="info-section">
+                        <h4><i class="fas fa-align-left"></i> Description</h4>
+                        <div class="info-value" style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(product.description || 'No description provided')}</div>
+                    </div>
+                    <div class="info-section">
+                        <h4><i class="fas fa-tag"></i> Pricing</h4>
+                        <div class="info-row">
+                            <div class="info-label">Price:</div>
+                            <div class="info-value" style="font-size: 24px; color: var(--success); font-weight: bold;">${fmtPrice(product.price)}</div>
+                        </div>
+                    </div>
                 </div>
-                ${product.type === 'physical' ? `<div class="info-section"><h4><i class="fas fa-clipboard-check"></i> Product Condition</h4>
-                    <div class="info-row"><div class="info-label">Condition:</div><div class="info-value"><span class="badge-condition ${conditionClass}" style="display: inline-block; padding: 4px 12px; border-radius: 20px; background: var(--primary-dark);">${conditionDisplay}</span></div></div>
-                    <div class="info-row"><div class="info-label">Condition Notes:</div><div class="info-value">${escapeHtml(conditionDescription)}</div></div>
-                    <div class="info-row"><div class="info-label">Visible Defects:</div><div class="info-value" style="color: var(--warning);">${escapeHtml(defectsDisplay)}</div></div>
+                <div class="details-actions" style="display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                    <button class="btn primary" onclick="closeProductFullDetailsModal(); orderPhysicalProduct(${product.id})" style="flex: 2;"><i class="fas fa-shopping-cart"></i> Place Order</button>
+                    <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;"><i class="fas fa-times"></i> Close</button>
                 </div>
-                <div class="info-section"><h4><i class="fas fa-shield-alt"></i> Warranty & Packaging</h4>
-                    <div class="info-row"><div class="info-label">Warranty:</div><div class="info-value">${warrantyDisplay}</div></div>
-                    <div class="info-row"><div class="info-label">Original Packaging:</div><div class="info-value">${originalPackaging}</div></div>
-                    ${product.manufacturing_date ? `<div class="info-row"><div class="info-label">Manufacturing Date:</div><div class="info-value">${manufacturingDate}</div></div>` : ''}
-                    <div class="info-row"><div class="info-label">Accessories Included:</div><div class="info-value">${escapeHtml(accessoriesDisplay)}</div></div>
-                </div>
-                <div class="info-section"><h4><i class="fas fa-truck"></i> Delivery & Pickup Options</h4>
-                    ${deliveryType === 'delivery' || deliveryType === 'both' ? `<div class="info-row"><div class="info-label">Home Delivery:</div><div class="info-value">✅ Available</div></div>
-                    <div class="info-row"><div class="info-label">Ships to:</div><div class="info-value">${escapeHtml(deliveryCountries)}</div></div>
-                    ${deliveryStates ? `<div class="info-row"><div class="info-label">States/Provinces:</div><div class="info-value">${escapeHtml(deliveryStates)}</div></div>` : ''}
-                    <div class="info-row"><div class="info-label">Est. Delivery:</div><div class="info-value">${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</div></div>` : ''}
-                    ${deliveryType === 'pickup' || deliveryType === 'both' ? `<div class="info-row" style="margin-top: 12px;"><div class="info-label">Store Pickup:</div><div class="info-value">✅ Available</div></div>
-                    <div class="info-row"><div class="info-label">Pickup Location:</div><div class="info-value">${escapeHtml(pickupAddress)}</div></div>
-                    ${pickupHours ? `<div class="info-row"><div class="info-label">Pickup Hours:</div><div class="info-value">${escapeHtml(pickupHours)}</div></div>` : ''}
-                    ${pickupInstructions ? `<div class="info-row"><div class="info-label">Pickup Instructions:</div><div class="info-value">${escapeHtml(pickupInstructions)}</div></div>` : ''}` : ''}
-                </div>` : product.type === 'digital' ? `<div class="info-section"><h4><i class="fas fa-download"></i> Digital Product Info</h4>
-                    <div class="info-row"><div class="info-label">Delivery:</div><div class="info-value">Instant download after payment</div></div>
-                    <div class="info-row"><div class="info-label">Format:</div><div class="info-value">Digital file (PDF/ZIP/MP3/MP4)</div></div>
-                    <div class="info-row"><div class="info-label">Access:</div><div class="info-value">Download link sent to email</div></div>
-                </div>` : ''}
-                <div class="info-section"><h4><i class="fas fa-star"></i> Customer Reviews</h4>
-                    <div class="info-row"><div class="info-label">Rating:</div><div class="info-value"><span class="rating-stars">${'⭐'.repeat(Math.floor(product.rating || 0))}</span> <span> (${product.review_count || 0} reviews)</span></div></div>
-                </div>
-            </div>
-            <div class="details-actions" style="display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                ${product.type === 'physical' ? `<button class="btn primary" onclick="closeProductFullDetailsModal(); orderPhysicalProduct(${product.id})" style="flex: 2;"><i class="fas fa-shopping-cart"></i> Place Order</button>
-                <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;"><i class="fas fa-times"></i> Close</button>` : 
-                  product.type === 'digital' ? `<button class="btn primary" onclick="closeProductFullDetailsModal(); buyProduct(${product.id})" style="flex: 2;"><i class="fas fa-shopping-cart"></i> Buy Now</button>
-                <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;"><i class="fas fa-times"></i> Close</button>` : 
-                  `<button class="btn primary" onclick="closeProductFullDetailsModal(); openAffiliate('${escapeHtml(product.affiliate_link || '')}')" style="flex: 2;"><i class="fas fa-external-link-alt"></i> Visit Affiliate Link</button>
-                <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;"><i class="fas fa-times"></i> Close</button>`}
             </div>
         </div>
-    </div>`;
+    `;
+    
     const existingModal = document.getElementById('productFullDetailsModal');
     if (existingModal) existingModal.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
-window.showProductFullDetails = showProductFullDetails;
+
+function closeProductFullDetailsModal() {
+    const modal = document.getElementById('productFullDetailsModal');
+    if (modal) modal.remove();
+}
+
+function openImageModal(imageUrl) {
+    const modalHtml = `
+        <div class="modal open" id="imageModal" onclick="closeImageModal()">
+            <div class="image-modal-content" style="max-width: 90vw; max-height: 90vh; display: flex; align-items: center; justify-content: center;">
+                <img src="${imageUrl}" style="max-width: 100%; max-height: 90vh; border-radius: 8px;">
+                <button class="close-image" onclick="event.stopPropagation(); closeImageModal()" style="position: absolute; top: 20px; right: 30px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 30px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;">&times;</button>
+            </div>
+        </div>
+    `;
+    const existingModal = document.getElementById('imageModal');
+    if (existingModal) existingModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    if (modal) modal.remove();
+}window.showProductFullDetails = showProductFullDetails;
 
 function closeProductFullDetailsModal() {
     const modal = document.getElementById('productFullDetailsModal');
@@ -7782,6 +7939,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (affiliateBlock) affiliateBlock.classList.remove('show');
     toggleDeliveryMethod();
 });
+document.getElementById('searchInput')?.addEventListener('input', debounce(renderProducts, 250));
+document.getElementById('filterType')?.addEventListener('change', renderProducts);
+document.getElementById('filterCategory')?.addEventListener('change', renderProducts);
+document.getElementById('sortSelect')?.addEventListener('change', renderProducts);
+document.getElementById('refreshBtn')?.addEventListener('click', () => loadProducts());
 </script>
 </body>
 </html>

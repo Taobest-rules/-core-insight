@@ -1795,14 +1795,54 @@ app.post("/api/forgot-password", async (req, res) => {
 
     const responseMessage = "If that email address exists in our system, we've sent a password reset link to it.";
 
-    if (result.affectedRows > 0 && transporter) {
-      const resetLink = `https://core-insight-7.onrender.com/reset-password.html?token=${token}`;
-      await transporter.sendMail({
-        from: `"Core Insight" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Reset your Core Insight password",
-        html: `<div><h2>Reset Password</h2><a href="${resetLink}">Click here to reset your password</a><p>This link expires in 1 hour.</p></div>`
-      });
+    if (result.affectedRows > 0) {
+      const resetLink = `https://coreinsightmarket.com/reset-password.html?token=${token}`;
+      
+      // Create HTML email
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Reset Your Password</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; }
+            .header { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 30px; text-align: center; }
+            .header h1 { margin: 0; color: white; }
+            .content { padding: 30px; }
+            .button { display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+            .footer { background: #0f172a; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+            .warning { background: #f59e0b20; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Reset Your Password</h1>
+            </div>
+            <div class="content">
+              <p>We received a request to reset your password for your Core Insight account.</p>
+              <div style="text-align: center;">
+                <a href="${resetLink}" class="button">Reset Password</a>
+              </div>
+              <div class="warning">
+                <strong>⚠️ This link expires in 1 hour.</strong><br>
+                If you didn't request this, you can safely ignore this email.
+              </div>
+              <p>Or copy and paste this link:<br>
+              <small style="color: #94a3b8; word-break: break-all;">${resetLink}</small></p>
+            </div>
+            <div class="footer">
+              <p>Core Insight Marketplace<br>Need help? Contact support@coreinsightmarket.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Use Brevo email function
+      await sendEmail(email, "Reset Your Core Insight Password", emailHtml);
     }
 
     res.json({ success: true, message: responseMessage });
@@ -1814,28 +1854,90 @@ app.post("/api/forgot-password", async (req, res) => {
 
 app.post("/api/reset-password", async (req, res) => {
   const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ success: false, error: "Token and password are required" });
+  
+  console.log("🔐 Reset password attempt - Token received:", token ? token.substring(0, 20) + "..." : "NO TOKEN");
+  
+  if (!token || !password) {
+    return res.status(400).json({ success: false, error: "Token and password are required" });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ success: false, error: "Password must be at least 8 characters" });
+  }
 
   try {
+    // Check if token exists and is not expired
     const users = await db.query(
-      "SELECT * FROM users WHERE reset_token = ? AND reset_expires > NOW()",
+      "SELECT id, email, username FROM users WHERE reset_token = ? AND reset_expires > NOW()",
       [token]
     );
+    
+    console.log("📊 Query result:", users ? (users.length + " users found") : "No results");
 
     if (!users || users.length === 0) {
+      // Check if token exists but expired
+      const expiredToken = await db.query(
+        "SELECT id FROM users WHERE reset_token = ? AND reset_expires <= NOW()",
+        [token]
+      );
+      
+      if (expiredToken && expiredToken.length > 0) {
+        return res.status(400).json({ success: false, error: "Reset link has expired. Please request a new one." });
+      }
+      
       return res.status(400).json({ success: false, error: "Invalid or expired reset token" });
     }
 
+    const user = users[0];
+    console.log(`✅ Valid token found for user: ${user.email}`);
+
+    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Update password and clear reset token
     await db.query(
-      "UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE reset_token = ?",
-      [hashedPassword, token]
+      "UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?",
+      [hashedPassword, user.id]
     );
 
-    res.json({ success: true, message: "Password reset successfully!" });
+    console.log(`✅ Password reset successful for user: ${user.email}`);
+
+    // Send confirmation email
+    const confirmationHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Password Changed - Core Insight</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a192f; color: #e6f1ff; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 30px; }
+          .header { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 20px; margin-bottom: 20px; }
+          h1 { color: #10b981; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Password Changed Successfully</h1>
+          </div>
+          <p>Hello ${user.username},</p>
+          <p>Your password has been successfully changed.</p>
+          <p>If you did not make this change, please contact support immediately.</p>
+          <p style="margin-top: 20px;">- Core Insight Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    await sendEmail(user.email, "Your Password Has Been Changed", confirmationHtml).catch(err => {
+      console.error("Confirmation email failed:", err.message);
+    });
+
+    res.json({ success: true, message: "Password reset successfully! Redirecting to login..." });
+    
   } catch (err) {
-    console.error("Reset password error:", err);
-    res.status(500).json({ success: false, error: "Error resetting password" });
+    console.error("❌ Reset password error:", err);
+    res.status(500).json({ success: false, error: "Error resetting password. Please try again." });
   }
 });
 

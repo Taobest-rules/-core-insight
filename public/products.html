@@ -1941,7 +1941,460 @@ In the name of Allah, the Most Gracious, the Most Merciful
     .btn-retry:hover {
       opacity: 0.9;
     }
+/* Notification Dropdown Styles */
+.notifications-dropdown {
+    position: fixed;
+    width: 380px;
+    max-width: calc(100vw - 20px);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    z-index: 10000;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+}
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.dropdown-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.mark-all-read {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.mark-all-read:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.dropdown-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.notification-item:hover {
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.notification-item.unread {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.notification-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.notification-icon i {
+    color: var(--accent);
+    font-size: 16px;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: var(--text-gray);
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.notification-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    top: 18px;
+    right: 16px;
+}
+
+.empty-notifications {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-gray);
+}
+
+.empty-notifications i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.dropdown-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.dropdown-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Pulse animation for notification badge */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+/* Product Full Details Modal */
+.product-full-details-modal {
+    max-width: 800px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.details-scrollable {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+.info-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.info-section h4 {
+    margin: 0 0 12px 0;
+    color: var(--accent);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    width: 140px;
+    font-weight: 600;
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.info-value {
+    flex: 1;
+    color: var(--text-gray);
+    word-break: break-word;
+}
+
+/* Image Gallery */
+.detail-images-gallery {
+    margin-bottom: 20px;
+}
+
+.gallery-main {
+    width: 100%;
+    height: 300px;
+    background: var(--secondary-dark);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.gallery-main img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.gallery-thumbs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.gallery-thumbs img {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.gallery-thumbs img:hover {
+    border-color: var(--accent);
+}
+
+/* Condition Badges */
+.condition-new { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.condition-like_new { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.condition-excellent { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+.condition-good { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+.condition-fair { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.condition-acceptable { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .product-full-details-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .info-row {
+        flex-direction: column;
+    }
+    
+    .info-label {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .gallery-main {
+        height: 200px;
+    }
+    
+    .gallery-thumbs img {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* Share Button Styles */
+.share-btn {
+    position: absolute;
+    top: 16px;
+    right: 60px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: var(--transition);
+    z-index: 2;
+    gap: 4px;
+}
+
+.share-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.share-count {
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    margin-left: 2px;
+}
+
+/* Share Stats Table in Dashboard */
+.share-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--primary-dark);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.share-stats-table th,
+.share-stats-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.share-stats-table th {
+    background: var(--card-bg);
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.share-stats-table tr:hover {
+    background: var(--card-bg-hover);
+}
+
+.share-stats-table .expired {
+    color: var(--danger);
+}
+
+/* Share Modal */
+#shareModal .modal-card {
+    max-width: 500px;
+}
+
+.share-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.share-options .btn {
+    flex: 1;
+    min-width: 100px;
+}
+
+/* Share Stats Table */
+.share-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.share-stats-table th,
+.share-stats-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.share-stats-table th {
+    background: var(--card-bg);
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.share-stats-table tr:hover {
+    background: var(--card-bg-hover);
+}
+
+.share-stats-table .expired {
+    color: var(--danger);
+}
+
+/* Share Button Styles */
+.share-btn {
+    position: absolute;
+    top: 16px;
+    right: 60px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-gray);
+    transition: var(--transition);
+    z-index: 2;
+    gap: 4px;
+}
+
+.share-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.share-count {
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    margin-left: 2px;
+}
+
+/* Action button for share */
+.action-btn.share {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent);
+}
+
+.action-btn.share:hover {
+    background: rgba(59, 130, 246, 0.3);
+    color: var(--accent);
+}
     /* ================= DASHBOARD STYLES ================= */
     .dashboard-section {
       background: var(--card-bg);
@@ -4572,92 +5025,285 @@ In the name of Allah, the Most Gracious, the Most Merciful
   </div>
 
   <!-- DASHBOARD SECTION -->
-  <section id="dashboardSection" class="dashboard-section" style="display: none;">
+<section id="dashboardSection" class="dashboard-section" style="display: none;">
     <div class="dashboard-header">
-      <div class="dashboard-title">
-        <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
-        <span id="dashboardRoleBadge" class="role-badge">Seller</span>
-      </div>
-      <div class="dashboard-actions">
-        <button id="toggleDashboard" class="btn primary"><i class="fas fa-store"></i> Back to Products</button>
-        <button id="exportData" class="btn secondary"><i class="fas fa-file-export"></i> Export</button>
-      </div>
+        <div class="dashboard-title">
+            <h2><i class="fas fa-chart-line"></i> Seller Dashboard</h2>
+            <span id="dashboardRoleBadge" class="role-badge">Seller</span>
+        </div>
+        <div class="dashboard-actions">
+            <button id="toggleDashboard" class="btn primary"><i class="fas fa-store"></i> Back to Products</button>
+            <button id="exportData" class="btn secondary"><i class="fas fa-file-export"></i> Export</button>
+        </div>
     </div>
 
+    <!-- Admin Controls -->
     <div id="adminControls" class="admin-controls" style="display: none;">
-      <div class="admin-search-bar">
-        <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." class="search-input" style="flex: 1;">
-        <select id="adminSearchCategory" class="select">
-          <option value="all">All Categories</option>
-          <option value="users">Users</option>
-          <option value="products">Products</option>
-          <option value="orders">Orders</option>
-        </select>
-        <button id="adminSearchBtn" class="btn primary"><i class="fas fa-search"></i> Search</button>
-      </div>
+        <div class="admin-search-bar">
+            <input type="text" id="adminGlobalSearch" placeholder="Search users, products, orders..." class="search-input" style="flex: 1;">
+            <select id="adminSearchCategory" class="select">
+                <option value="all">All Categories</option>
+                <option value="users">Users</option>
+                <option value="products">Products</option>
+                <option value="orders">Orders</option>
+            </select>
+            <button id="adminSearchBtn" class="btn primary"><i class="fas fa-search"></i> Search</button>
+        </div>
     </div>
 
+    <!-- Stats Grid -->
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);"><i class="fas fa-box-open" style="color: var(--accent);"></i></div><div class="stat-content"><h3 id="totalProducts">0</h3><p>Total Products</p></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);"><i class="fas fa-shopping-cart" style="color: var(--success);"></i></div><div class="stat-content"><h3 id="totalSales">0</h3><p>Total Sales</p></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);"><i class="fas fa-money-bill-wave" style="color: var(--warning);"></i></div><div class="stat-content"><h3 id="totalRevenue">$0</h3><p>Total Revenue</p></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);"><i class="fas fa-star" style="color: var(--digital);"></i></div><div class="stat-content"><h3 id="avgRating">0.0</h3><p>Average Rating</p></div></div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);">
+                <i class="fas fa-box-open" style="color: var(--accent);"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="totalProducts">0</h3>
+                <p>Total Products</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">
+                <i class="fas fa-shopping-cart" style="color: var(--success);"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="totalSales">0</h3>
+                <p>Total Sales</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">
+                <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="totalRevenue">$0</h3>
+                <p>Total Revenue</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">
+                <i class="fas fa-share-alt" style="color: var(--digital);"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="totalShares">0</h3>
+                <p>Total Shares</p>
+            </div>
+        </div>
     </div>
 
+    <!-- Dashboard Tabs -->
     <div class="dashboard-tabs">
-      <div class="tabs-header">
-        <button class="tab-btn active" data-tab="products">My Products</button>
-        <button class="tab-btn" data-tab="sales">Sales History</button>
-        <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders <span id="paidBadge" class="badge" style="display:none;"></span></button>
-        <button class="tab-btn" data-tab="analytics">Analytics</button>
-        <button class="tab-btn" data-tab="refunds">Refund Requests</button>
-        <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
-      </div>
-      
-      <div class="tabs-content">
-        <div id="productsTab" class="tab-content active">
-          <div class="tab-header"><h3><i class="fas fa-box"></i> My Listed Products</h3><div class="tab-actions"><input type="text" id="searchMyProducts" placeholder="Search..." class="search-input"><select id="filterMyProducts" class="select"><option value="all">All Status</option><option value="active">Active</option><option value="sold">Sold</option></select></div></div>
-          <div id="myProductsList" class="products-table"><div class="empty-state"><i class="fas fa-box-open"></i><h4>No products yet</h4><p>Start by listing your first product</p></div></div>
+        <div class="tabs-header">
+            <button class="tab-btn active" data-tab="products">My Products</button>
+            <button class="tab-btn" data-tab="sales">Sales History</button>
+            <button class="tab-btn" data-tab="paid-orders">💰 Paid Orders</button>
+            <button class="tab-btn" data-tab="analytics">Analytics</button>
+            <button class="tab-btn" data-tab="refunds">Refund Requests</button>
+            <button class="tab-btn" data-tab="shares">📊 Share Stats</button>
+            <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
         </div>
         
-        <div id="salesTab" class="tab-content">
-          <div class="tab-header"><h3><i class="fas fa-chart-bar"></i> Sales History</h3><div class="tab-actions"><select id="salesPeriod" class="select"><option value="all">All Time</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select><select id="salesStatus" class="select"><option value="all">All Status</option><option value="pending_seller_approval">Pending</option><option value="seller_accepted">Accepted</option><option value="paid">Paid</option><option value="completed">Completed</option></select></div></div>
-          <div id="salesList" class="sales-table"><div class="empty-state"><i class="fas fa-shopping-cart"></i><h4>No sales yet</h4></div></div>
-          <div class="sales-summary"><div class="summary-card"><h4>Total Sales Value</h4><h2 id="totalSalesValue">$0.00</h2></div><div class="summary-card"><h4>Your Earnings</h4><h2 id="yourEarnings">$0.00</h2></div><div class="summary-card"><h4>Platform Fee</h4><h2 id="platformFee">$0.00</h2></div></div>
+        <div class="tabs-content">
+            <!-- Products Tab -->
+            <div id="productsTab" class="tab-content active">
+                <div class="tab-header">
+                    <h3><i class="fas fa-box"></i> My Listed Products</h3>
+                    <div class="tab-actions">
+                        <input type="text" id="searchMyProducts" placeholder="Search..." class="search-input">
+                        <select id="filterMyProducts" class="select">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="sold">Sold</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="myProductsList" class="products-table">
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h4>No products yet</h4>
+                        <p>Start by listing your first product</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sales History Tab -->
+            <div id="salesTab" class="tab-content">
+                <div class="tab-header">
+                    <h3><i class="fas fa-chart-bar"></i> Sales History</h3>
+                    <div class="tab-actions">
+                        <select id="salesPeriod" class="select">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                        <select id="salesStatus" class="select">
+                            <option value="all">All Status</option>
+                            <option value="pending_seller_approval">Pending</option>
+                            <option value="seller_accepted">Accepted</option>
+                            <option value="paid">Paid</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="salesList" class="sales-table">
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h4>No sales yet</h4>
+                    </div>
+                </div>
+                <div class="sales-summary">
+                    <div class="summary-card">
+                        <h4>Total Sales Value</h4>
+                        <h2 id="totalSalesValue">$0.00</h2>
+                    </div>
+                    <div class="summary-card">
+                        <h4>Your Earnings</h4>
+                        <h2 id="yourEarnings">$0.00</h2>
+                    </div>
+                    <div class="summary-card">
+                        <h4>Platform Fee</h4>
+                        <h2 id="platformFee">$0.00</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Paid Orders Tab -->
+            <div id="paidOrdersTab" class="tab-content">
+                <div class="tab-header">
+                    <h3><i class="fas fa-money-bill-wave"></i> Paid Orders - Ready for Delivery</h3>
+                    <div class="tab-actions">
+                        <span style="color: var(--success); font-size: 13px;">
+                            <i class="fas fa-info-circle"></i> Payment confirmed - Ready to ship
+                        </span>
+                    </div>
+                </div>
+                <div id="paidOrdersList" class="orders-table">
+                    <div class="empty-state">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <h4>No paid orders</h4>
+                        <p>Orders with confirmed payment appear here</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analytics Tab -->
+            <div id="analyticsTab" class="tab-content">
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-chart-line"></i> Sales Overview</h3>
+                        <div class="chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-chart-pie"></i> Product Categories</h3>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3>
+                        <div class="stats-list">
+                            <div class="stat-item">
+                                <span>Best Selling Product</span>
+                                <strong id="bestProduct">N/A</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span>Conversion Rate</span>
+                                <strong id="conversionRate">0%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Refund Requests Tab -->
+            <div id="refundsTab" class="tab-content">
+                <div class="tab-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3>
+                    <div class="tab-actions">
+                        <span style="color: var(--text-gray); font-size: 13px;">
+                            <i class="fas fa-info-circle"></i> Respond within 48 hours
+                        </span>
+                    </div>
+                </div>
+                <div id="pendingRefundsList" class="refunds-grid">
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h4>No pending refund requests</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Share Statistics Tab -->
+            <div id="sharesTab" class="tab-content">
+                <div class="tab-header">
+                    <h3><i class="fas fa-share-alt"></i> Share Statistics</h3>
+                    <div class="tab-actions">
+                        <span style="color: var(--text-gray); font-size: 13px;">
+                            <i class="fas fa-info-circle"></i> Track how many times your products have been shared
+                        </span>
+                    </div>
+                </div>
+                <div id="shareStatsContainer" class="share-stats-container">
+                    <div class="empty-state">
+                        <i class="fas fa-share-alt"></i>
+                        <h4>No share links generated yet</h4>
+                        <p>Click the share button on your products to create share links</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin Panel Tab -->
+            <div id="adminTabContent" class="tab-content">
+                <div class="admin-panel">
+                    <div class="admin-section">
+                        <h3><i class="fas fa-users"></i> User Management</h3>
+                        <div class="admin-table">
+                            <table id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Products</th>
+                                        <th>Sales</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="6">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="admin-section">
+                        <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
+                        <div class="platform-stats">
+                            <div class="platform-stat">
+                                <h4>Total Users</h4>
+                                <h2 id="platformTotalUsers">0</h2>
+                            </div>
+                            <div class="platform-stat">
+                                <h4>Total Products</h4>
+                                <h2 id="platformTotalProducts">0</h2>
+                            </div>
+                            <div class="platform-stat">
+                                <h4>Total Sales</h4>
+                                <h2 id="platformTotalSales">0</h2>
+                            </div>
+                            <div class="platform-stat">
+                                <h4>Platform Revenue</h4>
+                                <h2 id="platformRevenue">$0.00</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <div id="pendingOrdersTab" class="tab-content">
-          <div class="tab-header"><h3><i class="fas fa-clock"></i> Orders Awaiting Response</h3><div class="tab-actions"><button id="refreshPendingOrders" class="btn secondary"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
-          <div id="pendingOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending orders</h4></div></div>
-        </div>
-        
-        <div id="paidOrdersTab" class="tab-content">
-          <div class="tab-header"><h3><i class="fas fa-money-bill-wave"></i> Paid Orders - Ready for Delivery</h3><div class="tab-actions"><span style="color: var(--success); font-size: 13px;"><i class="fas fa-info-circle"></i> Payment confirmed - Ready to ship</span></div></div>
-          <div id="paidOrdersList" class="orders-table"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No paid orders</h4><p>Orders with confirmed payment appear here</p></div></div>
-        </div>
-        
-        <div id="analyticsTab" class="tab-content">
-          <div class="analytics-grid">
-            <div class="analytics-card"><h3><i class="fas fa-chart-line"></i> Sales Overview</h3><div class="chart-container"><canvas id="salesChart"></canvas></div></div>
-            <div class="analytics-card"><h3><i class="fas fa-chart-pie"></i> Product Categories</h3><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
-            <div class="analytics-card"><h3><i class="fas fa-chart-bar"></i> Monthly Performance</h3><div class="stats-list"><div class="stat-item"><span>Best Selling Product</span><strong id="bestProduct">N/A</strong></div><div class="stat-item"><span>Conversion Rate</span><strong id="conversionRate">0%</strong></div></div></div>
-          </div>
-        </div>
-        
-        <div id="refundsTab" class="tab-content">
-          <div class="tab-header"><h3><i class="fas fa-exchange-alt"></i> Refund Requests</h3><div class="tab-actions"><span style="color: var(--text-gray); font-size: 13px;"><i class="fas fa-info-circle"></i> Respond within 48 hours</span></div></div>
-          <div id="pendingRefundsList" class="refunds-grid"><div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4></div></div>
-        </div>
-        
-        <div id="adminTabContent" class="tab-content">
-          <div class="admin-panel">
-            <div class="admin-section"><h3><i class="fas fa-users"></i> User Management</h3><div class="admin-table"><table id="usersTable"><thead><tr><th>User</th><th>Role</th><th>Products</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">Loading...</td></tr></tbody></table></div></div>
-            <div class="admin-section"><h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3><div class="platform-stats"><div class="platform-stat"><h4>Total Users</h4><h2 id="platformTotalUsers">0</h2></div><div class="platform-stat"><h4>Total Products</h4><h2 id="platformTotalProducts">0</h2></div><div class="platform-stat"><h4>Total Sales</h4><h2 id="platformTotalSales">0</h2></div><div class="platform-stat"><h4>Platform Revenue</h4><h2 id="platformRevenue">$0.00</h2></div></div></div>
-          </div>
-        </div>
-      </div>
     </div>
-  </section>
+</section>
 </main>
 
   <!-- MODALS SECTION -->
@@ -4728,96 +5374,101 @@ In the name of Allah, the Most Gracious, the Most Merciful
     </div>
   </div>
 
-<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - CLEAN VERSION -->
+<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - WITH PRICE CALCULATION -->
 <div id="addressModal" class="modal" aria-hidden="true">
-  <div class="modal-card" style="max-width: 500px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h3 style="margin:0"><i class="fas fa-truck"></i> Delivery Information</h3>
-      <span id="closeAddressModal" class="close-x">&times;</span>
+    <div class="modal-card" style="max-width: 550px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0"><i class="fas fa-truck"></i> Order & Delivery</h3>
+            <span id="closeAddressModal" class="close-x" onclick="closeAddressModal()">&times;</span>
+        </div>
+        
+        <form id="addressForm">
+            <!-- Product Summary -->
+            <div id="productSummary" style="background: rgba(59, 130, 246, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <img id="productThumbnail" src="" alt="" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover;">
+                    <div style="flex: 1;">
+                        <h4 id="productName" style="margin: 0 0 4px 0; color: var(--text-light); font-size: 16px;">Product Name</h4>
+                        <p id="productPrice" style="margin: 0; color: var(--accent); font-weight: 600;">$0.00</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quantity Selector -->
+            <div style="margin-bottom: 16px;">
+                <label style="display:block; margin-bottom:8px; font-weight: 500;">Quantity <span style="color:var(--danger);">*</span></label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=Math.max(1, parseInt(inp.value)-1); updateOrderTotalDisplay();" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer;">−</button>
+                    <input type="number" id="orderQuantity" class="form-input" value="1" min="1" style="width: 80px; text-align: center;">
+                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=parseInt(inp.value)+1; updateOrderTotalDisplay();" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer;">+</button>
+                </div>
+                <small class="form-help">Enter desired quantity</small>
+            </div>
+            
+            <!-- Payment Breakdown - Customer Sees Total -->
+            <div id="paymentBreakdown" style="background: var(--primary-dark); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="color: var(--text-gray);">Subtotal (<span id="qtyDisplay">1</span> × price):</span>
+                    <span id="productSubtotal" style="color: var(--text-light);">$0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--text-muted);">
+                    <span>Platform fee (10%):</span>
+                    <span id="platformFeeAmount">$0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; margin-top: 8px; border-top: 1px solid var(--border);">
+                    <strong style="color: var(--text-light); font-size: 16px;">Total to Pay:</strong>
+                    <strong id="totalAmount" style="color: var(--success); font-size: 24px;">$0.00</strong>
+                </div>
+                <div style="margin-top: 12px; font-size: 11px; text-align: center; color: var(--text-muted);">
+                    <i class="fas fa-shield-alt"></i> Payment collected after seller confirms availability
+                </div>
+            </div>
+            
+            <!-- Delivery Address -->
+            <div style="margin-bottom: 16px">
+                <label>Delivery Address <span style="color:var(--danger);">*</span></label>
+                <textarea id="deliveryAddress" class="form-input" placeholder="Full street address, apartment number, landmark, etc." rows="3" required></textarea>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+                <div>
+                    <label>City</label>
+                    <input type="text" id="city" class="form-input" placeholder="City">
+                </div>
+                <div>
+                    <label>State/Province</label>
+                    <input type="text" id="state" class="form-input" placeholder="State/Province">
+                </div>
+            </div>
+            
+            <div style="margin-bottom:16px">
+                <label>Country</label>
+                <input type="text" id="country" class="form-input" placeholder="Country">
+            </div>
+            
+            <div style="margin-bottom:24px">
+                <label>Phone or Email <span style="color:var(--danger);">*</span></label>
+                <input type="text" id="deliveryPhone" class="form-input" placeholder="Phone number or email for delivery updates" required>
+                <small class="form-help">We'll use this to contact you about delivery</small>
+            </div>
+            
+            <div id="addressFormMessage" class="form-message"></div>
+            
+            <div style="display:flex; gap:12px">
+                <button type="submit" class="btn primary" style="flex:2">
+                    <i class="fas fa-paper-plane"></i> Place Order
+                </button>
+                <button type="button" onclick="closeAddressModal()" class="btn secondary" style="flex:1">
+                    Cancel
+                </button>
+            </div>
+            
+            <div style="margin-top: 16px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 12px;">
+                <i class="fas fa-info-circle"></i> <strong>How it works:</strong> 
+                <span>1. Place order → 2. Seller confirms → 3. You pay → 4. Product delivered</span>
+            </div>
+        </form>
     </div>
-    
-    <form id="addressForm">
-      <!-- Product Summary -->
-      <div id="productSummary" style="background: rgba(59, 130, 246, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <img id="productThumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
-          <div>
-            <h4 id="productName" style="margin: 0 0 4px 0; color: var(--text-light);">Product Name</h4>
-            <p id="productPrice" style="margin: 0; color: var(--accent); font-weight: 600;">$0.00</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Quantity Selector -->
-      <div style="margin-bottom: 16px;">
-        <label style="display:block; margin-bottom:8px;">Quantity <span style="color:var(--danger);">*</span></label>
-        <input type="number" id="orderQuantity" class="form-input" value="1" min="1" />
-        <small class="form-help"> Desired units</small>
-      </div>
-      
-      <!-- Simple Payment Breakdown - Customer Only Sees Total -->
-      <div id="paymentBreakdown" style="background: var(--primary-dark); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="color: var(--text-gray);">Subtotal (<span id="qtyDisplay">1</span> × price):</span>
-          <span id="productSubtotal" style="color: var(--text-light);">$0.00</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border);">
-          <strong style="color: var(--text-light);">Total to Pay:</strong>
-          <strong id="totalAmount" style="color: var(--success); font-size: 20px;">$0.00</strong>
-        </div>
-        <div style="margin-top: 12px; font-size: 11px; text-align: center; color: var(--text-muted);">
-          <i class="fas fa-shield-alt"></i> Payment collected after seller confirms availability
-        </div>
-      </div>
-      
-      <!-- Delivery Address -->
-      <div style="margin-bottom: 16px">
-        <label>Delivery Address <span style="color:var(--danger);">*</span></label>
-        <textarea id="deliveryAddress" class="form-input" placeholder="Full street address, apartment number, etc." rows="3" required></textarea>
-      </div>
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
-        <div>
-          <label>City</label>
-          <input type="text" id="city" class="form-input" placeholder="City" />
-        </div>
-        <div>
-          <label>State/Province</label>
-          <input type="text" id="state" class="form-input" placeholder="State/Province" />
-        </div>
-      </div>
-      
-      <div style="margin-bottom:16px">
-        <label>Country</label>
-        <input type="text" id="country" class="form-input" placeholder="Country" />
-      </div>
-      
-      <div style="margin-bottom:24px">
-        <label>Phone or Email <span style="color:var(--danger);">*</span></label>
-        <input type="text" id="deliveryPhone" class="form-input" placeholder="Phone number or email for delivery updates" required />
-        <small class="form-help">We'll use this to contact you about delivery</small>
-      </div>
-      
-      <div id="addressFormMessage" class="form-message"></div>
-      
-      <div style="display:flex; gap:12px">
-        <button type="submit" class="btn primary" style="flex:2">
-          <i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)
-        </button>
-        <button type="button" id="cancelAddress" class="btn secondary" style="flex:1">
-          Cancel
-        </button>
-      </div>
-      
-      <div style="margin-top: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 12px;">
-        <i class="fas fa-info-circle"></i> How it works: 
-        <strong>1. Place order</strong> → 
-        <strong>2. Seller confirms</strong> → 
-        <strong>3. You pay</strong> → 
-        <strong>4. Product delivered</strong>
-      </div>
-    </form>
-  </div>
 </div>
   
   <!-- SCRIPTS SECTION -->
@@ -5517,42 +6168,9 @@ document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => {
   });
 });
 
-    // Dashboard functions
-    function openDashboard() {
-      if (!currentUser) {
-        openModal(document.getElementById('loginModal'));
-        return;
-      }
-      
-      // Hide other sections
-      document.getElementById('buyerView').style.display = 'none';
-      document.getElementById('sellerView').style.display = 'none';
-      
-      // Show dashboard
-      document.getElementById('dashboardSection').style.display = 'block';
-      
-      // Load dashboard data
-      loadMainDashboardData();
-    }
+  
 
-    function toggleDashboardView() {
-      const dashboardSection = document.getElementById('dashboardSection');
-      const buyerView = document.getElementById('buyerView');
-      
-      if (dashboardSection.style.display === 'none' || dashboardSection.style.display === '') {
-        if (!currentUser) {
-          openModal(document.getElementById('loginModal'));
-          return;
-        }
-        dashboardSection.style.display = 'block';
-        buyerView.style.display = 'none';
-        document.getElementById('sellerView').style.display = 'none';
-        loadMainDashboardData();
-      } else {
-        dashboardSection.style.display = 'none';
-        buyerView.style.display = 'block';
-      }
-    }
+
 
     async function loadMainDashboardData() {
       if (!currentUser) {
@@ -5646,59 +6264,777 @@ async function refreshOrderStatus(orderId) {
   }
 }
 // Add this to your script section - Complete Buyer Order Tracking with Ratings
-// ================= COMPLETE FIXED DASHBOARD FUNCTIONS =================
 
-// Load dashboard stats from real data
+// ============================================
+// DASHBOARD FUNCTIONS - COMPLETE
+// ============================================
+
+// Load dashboard stats
 async function loadDashboardStats() {
-  try {
+    try {
+        if (!currentUser) return;
+        
+        // Get seller's products count
+        const productsRes = await fetch(`/api/products/seller/${currentUser.id}`, {
+            credentials: 'include'
+        });
+        let totalProducts = 0;
+        let totalShares = 0;
+        
+        if (productsRes.ok) {
+            const products = await productsRes.json();
+            totalProducts = products.length;
+            totalShares = products.reduce((sum, p) => sum + (p.share_count || 0), 0);
+        }
+        
+        // Get seller's orders
+        const ordersRes = await fetch(`/api/orders/seller/${currentUser.id}`, {
+            credentials: 'include'
+        });
+        let totalSales = 0;
+        let totalRevenue = 0;
+        
+        if (ordersRes.ok) {
+            const orders = await ordersRes.json();
+            totalSales = orders.length;
+            totalRevenue = orders.reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
+        }
+        
+        // Update stats display
+        document.getElementById('totalProducts').textContent = totalProducts;
+        document.getElementById('totalSales').textContent = totalSales;
+        document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+        document.getElementById('totalShares').textContent = totalShares;
+        
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+    }
+}
+
+// Load my products in dashboard
+async function loadMyProducts() {
+    const container = document.getElementById('myProductsList');
+    if (!container) return;
+    
+    try {
+        if (!currentUser) return;
+        
+        const searchTerm = document.getElementById('searchMyProducts')?.value.toLowerCase() || '';
+        const statusFilter = document.getElementById('filterMyProducts')?.value || 'all';
+        
+        const response = await fetch(`/api/products/seller/${currentUser.id}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h4>No products yet</h4>
+                        <p>Start by listing your first product</p>
+                    </div>
+                `;
+                return;
+            }
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        let products = await response.json();
+        
+        // Apply filters
+        if (searchTerm) {
+            products = products.filter(p => 
+                p.title.toLowerCase().includes(searchTerm) || 
+                (p.category && p.category.toLowerCase().includes(searchTerm))
+            );
+        }
+        
+        if (statusFilter !== 'all') {
+            products = products.filter(p => p.status === statusFilter);
+        }
+        
+        if (!products || products.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <h4>No products found</h4>
+                    <p>${searchTerm ? 'Try a different search term' : 'Start by listing your first product'}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div style="overflow-x: auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--card-bg);">
+                            <th style="padding: 12px; text-align: left;">Product</th>
+                            <th style="padding: 12px; text-align: left;">Type</th>
+                            <th style="padding: 12px; text-align: left;">Price</th>
+                            <th style="padding: 12px; text-align: left;">Shares</th>
+                            <th style="padding: 12px; text-align: left;">Status</th>
+                            <th style="padding: 12px; text-align: left;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        products.forEach(product => {
+            const productImage = getProductImage(product.images, 0);
+            const status = getProductStatus(product);
+            const statusClass = getStatusClass(status);
+            const statusDisplay = formatStatusDisplay(status);
+            
+            html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--secondary-dark); overflow: hidden;">
+                                ${productImage ? 
+                                    `<img src="${productImage}" alt="${product.title}" 
+                                          style="width: 100%; height: 100%; object-fit: cover;"
+                                          loading="lazy">` :
+                                    `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                                        <i class="fas fa-box"></i>
+                                    </div>`
+                                }
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-light); display: block; font-size: 13px;">${escapeHtml(product.title || 'Untitled')}</strong>
+                                <small style="color: var(--text-gray); font-size: 11px;">${escapeHtml(product.category || 'Uncategorized')}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <span class="product-badge badge-${product.type || 'physical'}">${product.type || 'Physical'}</span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <strong style="color: var(--accent);">${fmtPrice(parseFloat(product.price || 0))}</strong>
+                    </td>
+                    <td style="padding: 12px;">
+                        <span style="color: var(--text-light);">
+                            <i class="fas fa-share-alt"></i> ${product.share_count || 0}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <span class="product-status ${statusClass}">${statusDisplay}</span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="action-btn view" onclick="viewProduct(${product.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn edit" onclick="editProduct(${product.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn share" onclick="shareProduct(${product.id}, '${escapeHtml(product.title).replace(/'/g, "\\'")}')">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteProduct(${product.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading my products:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading products</h4>
+                <p>Please refresh and try again</p>
+            </div>
+        `;
+    }
+}
+
+// Load share statistics
+async function loadShareStats() {
     if (!currentUser) return;
     
-    // Get seller's products count
-    const productsRes = await fetch(`/api/products/seller/${currentUser.id}`, {
-      credentials: 'include'
-    });
-    let totalProducts = 0;
-    if (productsRes.ok) {
-      const products = await productsRes.json();
-      totalProducts = products.length;
+    const container = document.getElementById('shareStatsContainer');
+    if (!container) return;
+    
+    try {
+        const response = await fetch('/api/products/share-stats', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.stats && data.stats.length > 0) {
+            let html = `
+                <div style="overflow-x: auto;">
+                    <table class="share-stats-table" style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--card-bg);">
+                                <th style="padding: 12px; text-align: left;">Product</th>
+                                <th style="padding: 12px; text-align: left;">Share Count</th>
+                                <th style="padding: 12px; text-align: left;">Click Count</th>
+                                <th style="padding: 12px; text-align: left;">Link Expires</th>
+                                <th style="padding: 12px; text-align: left;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const stat of data.stats) {
+                const expiresDate = stat.expires_at ? new Date(stat.expires_at).toLocaleDateString() : 'Never';
+                const isExpired = stat.expires_at && new Date(stat.expires_at) < new Date();
+                
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;">
+                            <strong style="color: var(--text-light);">${escapeHtml(stat.title)}</strong>
+                        </td>
+                        <td style="padding: 12px;">
+                            <span style="color: var(--accent); font-weight: 600;">${stat.share_count || 0}</span>
+                        </td>
+                        <td style="padding: 12px;">
+                            <span style="color: var(--success);">${stat.click_count || 0}</span>
+                        </td>
+                        <td style="padding: 12px;" class="${isExpired ? 'expired' : ''}">
+                            ${expiresDate} ${isExpired ? '<span style="color: var(--danger);">(Expired)</span>' : ''}
+                        </td>
+                        <td style="padding: 12px;">
+                            <button class="action-btn" onclick="regenerateShareLink(${stat.id})">
+                                <i class="fas fa-sync-alt"></i> Regenerate
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-share-alt"></i>
+                    <h4>No share links generated yet</h4>
+                    <p>Click the share button on your products to create share links</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error loading share stats:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading share statistics</h4>
+                <p>Please refresh and try again</p>
+            </div>
+        `;
     }
-    
-    // Get seller's orders
-    const ordersRes = await fetch(`/api/orders/seller/${currentUser.id}`, {
-      credentials: 'include'
-    });
-    let orders = [];
-    let totalSales = 0;
-    let totalRevenue = 0;
-    
-    if (ordersRes.ok) {
-      orders = await ordersRes.json();
-      totalSales = orders.length;
-      totalRevenue = orders.reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
-    }
-    
-    // Update stats display
-    document.getElementById('totalProducts').textContent = totalProducts;
-    document.getElementById('totalSales').textContent = totalSales;
-    document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
-    document.getElementById('avgRating').textContent = '4.5'; // Placeholder, can be calculated from reviews
-    
-    // Update badge count for pending orders
-    const pendingOrders = orders.filter(o => o.order_status === 'pending_seller_approval');
-    const pendingBadge = document.getElementById('pendingOrdersBadge');
-    if (pendingBadge) {
-      if (pendingOrders.length > 0) {
-        pendingBadge.textContent = pendingOrders.length;
-        pendingBadge.style.display = 'inline-block';
-      } else {
-        pendingBadge.style.display = 'none';
-      }
-    }
-    
-  } catch (error) {
-    console.error('Error loading dashboard stats:', error);
-  }
 }
+
+// Load sales history
+async function loadSalesHistory() {
+    const container = document.getElementById('salesList');
+    if (!container) return;
+    
+    try {
+        const response = await fetch(`/api/orders/seller/${currentUser?.id}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading sales</h4></div>';
+            return;
+        }
+        
+        let sales = await response.json();
+        
+        // Apply status filter
+        const statusFilter = document.getElementById('salesStatus')?.value || 'all';
+        if (statusFilter !== 'all') {
+            sales = sales.filter(sale => sale.order_status === statusFilter);
+        }
+        
+        // Apply period filter
+        const periodFilter = document.getElementById('salesPeriod')?.value || 'all';
+        if (periodFilter !== 'all') {
+            const now = new Date();
+            sales = sales.filter(sale => {
+                const saleDate = new Date(sale.created_at);
+                if (periodFilter === 'today') {
+                    return saleDate.toDateString() === now.toDateString();
+                } else if (periodFilter === 'week') {
+                    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+                    return saleDate >= weekAgo;
+                } else if (periodFilter === 'month') {
+                    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+                    return saleDate >= monthAgo;
+                }
+                return true;
+            });
+        }
+        
+        if (sales.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h4>No sales yet</h4>
+                    <p>Your sales will appear here</p>
+                </div>
+            `;
+            document.getElementById('totalSalesValue').textContent = '$0.00';
+            document.getElementById('yourEarnings').textContent = '$0.00';
+            document.getElementById('platformFee').textContent = '$0.00';
+            return;
+        }
+        
+        let html = `
+            <div style="overflow-x: auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--card-bg);">
+                            <th style="padding: 12px; text-align: left;">Order ID</th>
+                            <th style="padding: 12px; text-align: left;">Product</th>
+                            <th style="padding: 12px; text-align: left;">Qty</th>
+                            <th style="padding: 12px; text-align: left;">Total</th>
+                            <th style="padding: 12px; text-align: left;">Your Earnings</th>
+                            <th style="padding: 12px; text-align: left;">Status</th>
+                            <th style="padding: 12px; text-align: left;">Date</th>
+                            <th style="padding: 12px; text-align: left;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        let totalSalesValue = 0;
+        let totalPlatformFees = 0;
+        
+        for (const sale of sales) {
+            const totalAmount = parseFloat(sale.total_amount) || 0;
+            const platformFee = parseFloat(sale.platform_fee) || (totalAmount * 0.1);
+            const sellerEarnings = totalAmount - platformFee;
+            
+            totalSalesValue += totalAmount;
+            totalPlatformFees += platformFee;
+            
+            let statusClass = '';
+            let statusText = '';
+            
+            switch(sale.order_status) {
+                case 'pending_seller_approval':
+                    statusClass = 'status-pending';
+                    statusText = '⏳ Pending Approval';
+                    break;
+                case 'seller_accepted':
+                    statusClass = 'status-warning';
+                    statusText = '✅ Accepted - Awaiting Payment';
+                    break;
+                case 'paid':
+                    statusClass = 'status-info';
+                    statusText = '💰 Paid (Escrow)';
+                    break;
+                case 'completed':
+                    statusClass = 'status-success';
+                    statusText = '✓ Completed';
+                    break;
+                case 'refunded':
+                    statusClass = 'status-success';
+                    statusText = '✅ Refunded';
+                    break;
+                case 'cancelled':
+                    statusClass = 'status-danger';
+                    statusText = '✗ Cancelled';
+                    break;
+                default:
+                    statusClass = 'status-pending';
+                    statusText = sale.order_status?.replace(/_/g, ' ') || 'Pending';
+            }
+            
+            html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px;"><strong style="color: var(--accent);">#${sale.id}</strong></td>
+                    <td style="padding: 12px;"><strong>${escapeHtml(sale.product_name || 'Product')}</strong></td>
+                    <td style="padding: 12px;">${sale.quantity || 1}</td>
+                    <td style="padding: 12px;"><strong style="color: var(--success);">${fmtPrice(totalAmount)}</strong></td>
+                    <td style="padding: 12px;"><strong style="color: var(--success);">${fmtPrice(sellerEarnings)}</strong></td>
+                    <td style="padding: 12px;"><span class="product-status ${statusClass}">${statusText}</span></td>
+                    <td style="padding: 12px; font-size: 12px;">${new Date(sale.created_at).toLocaleDateString()}</td>
+                    <td style="padding: 12px;">
+                        <button class="action-btn view" onclick="viewOrderDetails(${sale.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                 </tr>
+            `;
+        }
+        
+        html += `</tbody>}</div>`;
+        container.innerHTML = html;
+        
+        document.getElementById('totalSalesValue').textContent = fmtPrice(totalSalesValue);
+        document.getElementById('yourEarnings').textContent = fmtPrice(totalSalesValue - totalPlatformFees);
+        document.getElementById('platformFee').textContent = fmtPrice(totalPlatformFees);
+        
+    } catch (error) {
+        console.error('Error loading sales:', error);
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading sales</h4></div>';
+    }
+}
+
+// Load paid orders
+async function loadPaidOrders() {
+    const container = document.getElementById('paidOrdersList');
+    if (!container) return;
+    
+    try {
+        const response = await fetch('/api/seller/paid-orders', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load paid orders');
+        }
+        
+        const data = await response.json();
+        const paidOrders = data.orders || [];
+        
+        if (paidOrders.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h4>No paid orders</h4>
+                    <p>When customers pay for orders, they'll appear here ready for shipment</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+        
+        for (const order of paidOrders) {
+            html += `
+                <div class="order-card" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;">
+                    <div style="padding: 16px; background: rgba(16, 185, 129, 0.1); border-bottom: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h4 style="margin: 0; color: var(--success);">💰 Order #${order.id}</h4>
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-gray);">
+                                    Paid: ${order.payment_collected_at ? new Date(order.payment_collected_at).toLocaleString() : 'Date not available'}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="product-status status-info"><i class="fas fa-check-circle"></i> Payment Confirmed</span>
+                                <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 700; color: var(--success);">
+                                    ${fmtPrice(order.total_amount || 0)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 16px;">
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <div style="flex: 2;">
+                                <h5 style="margin: 0 0 8px 0;">${escapeHtml(order.product_name || 'Product')}</h5>
+                                <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${order.quantity || 1}</p>
+                                <p style="margin: 0 0 4px 0;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || 'Customer')}</p>
+                                <p style="margin: 0 0 4px 0;"><strong>Phone:</strong> ${escapeHtml(order.delivery_phone || 'N/A')}</p>
+                            </div>
+                            <div style="flex: 3;">
+                                <p style="margin: 0 0 4px 0;"><strong><i class="fas fa-map-marker-alt"></i> Shipping Address:</strong></p>
+                                <p style="margin: 0 0 4px 0; font-size: 13px; color: var(--text-gray);">
+                                    ${escapeHtml(order.shipping_address || 'No address provided')}<br>
+                                    ${order.city ? escapeHtml(order.city) : ''}${order.state ? `, ${escapeHtml(order.state)}` : ''}${order.country ? `, ${escapeHtml(order.country)}` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+                            <button class="btn primary" onclick="generateDeliveryCode(${order.id})" style="background: var(--accent);">
+                                <i class="fas fa-truck"></i> Generate Delivery Code
+                            </button>
+                            <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading paid orders:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading paid orders</h4>
+                <p>Please refresh and try again</p>
+            </div>
+        `;
+    }
+}
+
+
+// Load charts
+let salesChartInstance = null;
+let categoryChartInstance = null;
+
+function loadCharts() {
+    if (salesChartInstance) salesChartInstance.destroy();
+    if (categoryChartInstance) categoryChartInstance.destroy();
+    
+    const salesCtx = document.getElementById('salesChart');
+    if (salesCtx) {
+        salesChartInstance = new Chart(salesCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Sales',
+                    data: [12, 19, 3, 5, 2, 3],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#e6f1ff' } }
+                },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    }
+    
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        categoryChartInstance = new Chart(categoryCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Digital', 'Physical', 'Affiliate'],
+                datasets: [{
+                    data: [40, 35, 25],
+                    backgroundColor: ['#8b5cf6', '#06b6d4', '#10b981']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#e6f1ff', padding: 20 }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Dashboard tab switching
+function initDashboardTabs() {
+    const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+    
+    tabButtons.forEach(btn => {
+        btn.removeEventListener('click', handleDashboardTabClick);
+        btn.addEventListener('click', handleDashboardTabClick);
+    });
+}
+
+function handleDashboardTabClick(e) {
+    const tabId = this.getAttribute('data-tab');
+    if (!tabId) return;
+    
+    document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(btn => 
+        btn.classList.remove('active'));
+    this.classList.add('active');
+    
+    document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => 
+        content.classList.remove('active'));
+    
+    let contentId = tabId + 'Tab';
+    if (tabId === 'paid-orders') contentId = 'paidOrdersTab';
+    if (tabId === 'shares') contentId = 'sharesTab';
+    if (tabId === 'admin') contentId = 'adminTabContent';
+    
+    const selectedContent = document.getElementById(contentId);
+    if (selectedContent) selectedContent.classList.add('active');
+    
+    // Load tab data
+    switch(tabId) {
+        case 'products':
+            loadMyProducts();
+            break;
+        case 'sales':
+            loadSalesHistory();
+            break;
+        case 'paid-orders':
+            loadPaidOrders();
+            break;
+        case 'analytics':
+            loadCharts();
+            break;
+        case 'refunds':
+            loadPendingRefunds();
+            break;
+        case 'shares':
+            loadShareStats();
+            break;
+        case 'admin':
+            if (currentUser && currentUser.role === 'admin') {
+                loadAdminData();
+            }
+            break;
+    }
+}
+
+// Open dashboard
+function openDashboard() {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    document.getElementById('buyerView').style.display = 'none';
+    document.getElementById('sellerView').style.display = 'none';
+    document.getElementById('dashboardSection').style.display = 'block';
+    
+    loadDashboardStats();
+    loadMyProducts();
+    initDashboardTabs();
+    checkAndShowAdminFeatures();
+}
+
+// Toggle dashboard view
+function toggleDashboardView() {
+    const dashboardSection = document.getElementById('dashboardSection');
+    const buyerView = document.getElementById('buyerView');
+    
+    if (dashboardSection.style.display === 'none' || dashboardSection.style.display === '') {
+        if (!currentUser) {
+            openModal(document.getElementById('loginModal'));
+            return;
+        }
+        dashboardSection.style.display = 'block';
+        buyerView.style.display = 'none';
+        document.getElementById('sellerView').style.display = 'none';
+        loadDashboardStats();
+        loadMyProducts();
+    } else {
+        dashboardSection.style.display = 'none';
+        buyerView.style.display = 'block';
+    }
+}
+
+// Check and show admin features
+function checkAndShowAdminFeatures() {
+    if (currentUser && currentUser.role === 'admin') {
+        const adminTab = document.getElementById('adminTabBtn');
+        const adminControls = document.getElementById('adminControls');
+        if (adminTab) adminTab.style.display = 'block';
+        if (adminControls) adminControls.style.display = 'block';
+        loadAdminData();
+    }
+}
+
+// Load admin data
+async function loadAdminData() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
+    try {
+        const usersResponse = await fetch('/api/admin/users', { credentials: 'include' });
+        if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            updateUsersTable(users);
+        }
+        
+        const statsResponse = await fetch('/api/admin/platform-stats', { credentials: 'include' });
+        if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            updatePlatformStats(stats);
+        }
+    } catch (error) {
+        console.error('Error loading admin data:', error);
+    }
+}
+
+// Update users table
+function updateUsersTable(users) {
+    const tbody = document.querySelector('#usersTable tbody');
+    if (!tbody) return;
+    
+    if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No users found</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    users.forEach(user => {
+        html += `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="user-avatar-small">${(user.username || user.email || 'U')[0].toUpperCase()}</div>
+                        <div>
+                            <div style="color: var(--text-light); font-weight: 500;">${escapeHtml(user.username || user.email || 'User')}</div>
+                            <small style="color: var(--text-gray);">${escapeHtml(user.email || '')}</small>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="product-status ${user.role || 'client'}">${user.role || 'client'}</span></td>
+                <td>${user.product_count || 0}</td>
+                <td>${user.sales_count || 0}</td>
+                <td><span class="product-status ${user.verified ? 'active' : 'pending'}">${user.verified ? 'Verified' : 'Pending'}</span></td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="action-btn view" onclick="viewUser(${user.id})"><i class="fas fa-eye"></i></button>
+                        <button class="action-btn suspend" onclick="toggleUserStatus(${user.id})"><i class="fas fa-ban"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// Update platform stats
+function updatePlatformStats(stats) {
+    document.getElementById('platformTotalUsers').textContent = stats.total_users || 0;
+    document.getElementById('platformTotalProducts').textContent = stats.total_products || 0;
+    document.getElementById('platformTotalSales').textContent = stats.total_sales || 0;
+    document.getElementById('platformRevenue').textContent = `$${(stats.platform_revenue || 0).toFixed(2)}`;
+}
+
+// Make dashboard functions globally available
+window.openDashboard = openDashboard;
+window.toggleDashboardView = toggleDashboardView;
+window.loadMyProducts = loadMyProducts;
+window.loadSalesHistory = loadSalesHistory;
+window.loadPaidOrders = loadPaidOrders;
+window.loadPendingRefunds = loadPendingRefunds;
+window.loadShareStats = loadShareStats;
+window.loadCharts = loadCharts;
+window.processRefund = processRefund;
+window.regenerateShareLink = regenerateShareLink;
+
 async function loadPendingOrders() {
   const container = document.getElementById('pendingOrdersList');
   if (!container) {
@@ -6172,195 +7508,6 @@ async function loadSalesHistory() {
     container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading sales</h4></div>';
   }
 }
-// Add this function to your script section (around line where other dashboard functions are)
-function checkAndShowAdminFeatures() {
-  console.log("🔍 Checking admin features...");
-  console.log("Current user:", currentUser);
-  
-  if (currentUser && currentUser.role === 'admin') {
-    console.log("✅ Admin detected! Showing admin features...");
-    
-    // Show admin tab in dashboard
-    const adminTab = document.getElementById('adminTab');
-    if (adminTab) {
-      adminTab.style.display = 'block';
-      console.log("Admin tab shown");
-    } else {
-      console.log("Admin tab element not found");
-    }
-    
-    // Show admin controls
-    const adminControls = document.getElementById('adminControls');
-    if (adminControls) {
-      adminControls.style.display = 'block';
-      console.log("Admin controls shown");
-    }
-    
-    // Add admin tab if it doesn't exist
-    const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
-    if (tabsHeader && !document.getElementById('adminTab')) {
-      const adminTabBtn = document.createElement('button');
-      adminTabBtn.className = 'tab-btn';
-      adminTabBtn.id = 'adminTab';
-      adminTabBtn.setAttribute('data-tab', 'admin');
-      adminTabBtn.innerHTML = '<i class="fas fa-crown"></i> Admin Panel';
-      tabsHeader.appendChild(adminTabBtn);
-      console.log("Admin tab button created");
-    }
-    
-    // Also add the admin tab content if missing
-    const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
-    if (tabsContent && !document.getElementById('adminTabContent')) {
-      const adminContent = document.createElement('div');
-      adminContent.id = 'adminTabContent';
-      adminContent.className = 'tab-content';
-      adminContent.innerHTML = `
-        <div class="admin-panel">
-          <div class="admin-section">
-            <h3><i class="fas fa-users"></i> User Management</h3>
-            <div class="admin-table">
-              <table id="usersTable">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Products</th>
-                    <th>Sales</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="admin-section">
-            <h3><i class="fas fa-chart-pie"></i> Platform Analytics</h3>
-            <div class="platform-stats">
-              <div class="platform-stat">
-                <h4>Total Users</h4>
-                <h2 id="platformTotalUsers">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Products</h4>
-                <h2 id="platformTotalProducts">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Total Sales</h4>
-                <h2 id="platformTotalSales">0</h2>
-              </div>
-              <div class="platform-stat">
-                <h4>Platform Revenue</h4>
-                <h2 id="platformRevenue">$0.00</h2>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      tabsContent.appendChild(adminContent);
-      console.log("Admin tab content created");
-    }
-    
-    // Load admin data
-    loadAdminData();
-    
-  } else {
-    console.log("Not admin or not logged in. Role:", currentUser?.role);
-    // Hide admin elements if not admin
-    const adminTab = document.getElementById('adminTab');
-    if (adminTab) adminTab.style.display = 'none';
-    const adminControls = document.getElementById('adminControls');
-    if (adminControls) adminControls.style.display = 'none';
-  }
-}
-
-// Function to load admin data
-async function loadAdminData() {
-  if (!currentUser || currentUser.role !== 'admin') return;
-  
-  try {
-    // Load users
-    const usersResponse = await fetch('/api/admin/users', {
-      credentials: 'include'
-    });
-    
-    if (usersResponse.ok) {
-      const users = await usersResponse.json();
-      updateUsersTable(users);
-    }
-    
-    // Load platform stats
-    const statsResponse = await fetch('/api/admin/platform-stats', {
-      credentials: 'include'
-    });
-    
-    if (statsResponse.ok) {
-      const stats = await statsResponse.json();
-      updatePlatformStats(stats);
-    }
-    
-  } catch (error) {
-    console.error('Error loading admin data:', error);
-  }
-}
-
-// Update users table
-function updateUsersTable(users) {
-  const tbody = document.querySelector('#usersTable tbody');
-  if (!tbody) return;
-  
-  if (!users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No users found</td></tr>';
-    return;
-  }
-  
-  let html = '';
-  users.forEach(user => {
-    html += `
-      <tr>
-        <td>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div class="user-avatar-small">${(user.username || user.email || 'U')[0].toUpperCase()}</div>
-            <div>
-              <div style="color: var(--text-light); font-weight: 500;">${escapeHtml(user.username || user.email || 'User')}</div>
-              <small style="color: var(--text-gray);">${escapeHtml(user.email || '')}</small>
-            </div>
-          </div>
-        </td>
-        <td><span class="product-status ${user.role || 'client'}">${user.role || 'client'}</span></td>
-        <td>${user.product_count || 0}</td>
-        <td>${user.sales_count || 0}</td>
-        <td><span class="product-status ${user.verified ? 'active' : 'pending'}">${user.verified ? 'Verified' : 'Pending'}</span></td>
-        <td>
-          <div style="display: flex; gap: 8px;">
-            <button class="action-btn view" onclick="viewUser(${user.id})"><i class="fas fa-eye"></i></button>
-            <button class="action-btn suspend" onclick="toggleUserStatus(${user.id})"><i class="fas fa-ban"></i></button>
-          </div>
-        </td>
-      </tr>
-    `;
-  });
-  
-  tbody.innerHTML = html;
-}
-
-// Update platform stats
-function updatePlatformStats(stats) {
-  const totalUsers = document.getElementById('platformTotalUsers');
-  const totalProducts = document.getElementById('platformTotalProducts');
-  const totalSales = document.getElementById('platformTotalSales');
-  const platformRevenue = document.getElementById('platformRevenue');
-  
-  if (totalUsers) totalUsers.textContent = stats.total_users || 0;
-  if (totalProducts) totalProducts.textContent = stats.total_products || 0;
-  if (totalSales) totalSales.textContent = stats.total_sales || 0;
-  if (platformRevenue) platformRevenue.textContent = `$${(stats.platform_revenue || 0).toFixed(2)}`;
-}
-
-
-
 // Also add to the dashboard opening function
 const originalOpenDashboard = window.openDashboard;
 window.openDashboard = function() {
@@ -6669,15 +7816,6 @@ function addBuyerOrdersTab() {
   document.getElementById('refreshOrdersBtn')?.addEventListener('click', () => loadBuyerOrders());
 }
 
-// Update tab click handler
-function initDashboardTabs() {
-  const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
-  
-  tabButtons.forEach(btn => {
-    btn.removeEventListener('click', handleTabClick);
-    btn.addEventListener('click', handleTabClick);
-  });
-}
 
 function handleTabClick(e) {
   const tabId = this.getAttribute('data-tab');
@@ -7881,78 +9019,76 @@ if (originalUploadHandler) {
 }
 // ================= UPDATED DASHBOARD FUNCTIONS =================
 
-// Load pending refunds for seller dashboard
+
+// Load pending refunds
 async function loadPendingRefunds() {
-  try {
-    const response = await fetch('/api/refunds/pending', {
-      credentials: 'include'
-    });
+    const container = document.getElementById('pendingRefundsList');
+    if (!container) return;
     
-    const data = await response.json();
-    
-    const refundsList = document.getElementById('pendingRefundsList');
-    if (!refundsList) return;
-    
-    if (!data.refunds || data.refunds.length === 0) {
-      refundsList.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-check-circle"></i>
-          <h4>No pending refund requests</h4>
-          <p>All good!</p>
-        </div>
-      `;
-      return;
-    }
-    
-    let html = '<div class="refunds-grid" style="display: flex; flex-direction: column; gap: 16px;">';
-    data.refunds.forEach(refund => {
-      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
-      
-      html += `
-        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
-            <div style="flex: 1;">
-              <h4 style="margin: 0 0 8px 0; color: var(--text-light);">Order #${refund.id}</h4>
-              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(refund.product_name)}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${parseFloat(refund.total_amount).toFixed(2)}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${escapeHtml(refund.buyer_name)} (${escapeHtml(refund.buyer_email)})</p>
-              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider || 'Flutterwave'}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
-              <div style="margin-top: 12px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
-                <strong style="color: var(--danger);">Refund Reason:</strong>
-                <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">${escapeHtml(refund.refund_reason)}</p>
-              </div>
+    try {
+        const response = await fetch('/api/refunds/pending', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.refunds || data.refunds.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h4>No pending refund requests</h4>
+                    <p>All good!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+        
+        for (const refund of data.refunds) {
+            const daysPending = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
+            
+            html += `
+                <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: var(--text-light);">Order #${refund.id}</h4>
+                            <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${escapeHtml(refund.product_name)}</p>
+                            <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
+                            <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> ${fmtPrice(refund.total_amount)}</p>
+                            <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${escapeHtml(refund.buyer_name)} (${escapeHtml(refund.buyer_email)})</p>
+                            <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysPending} days ago)</p>
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                                <strong style="color: var(--danger);">Refund Reason:</strong>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-gray);">${escapeHtml(refund.refund_reason)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
+                            <i class="fas fa-check"></i> Approve Refund
+                        </button>
+                        <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
+                            <i class="fas fa-times"></i> Deny Refund
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading refunds:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading refunds</h4>
+                <p>Please refresh and try again</p>
             </div>
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 20px;">
-            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
-              <i class="fas fa-check"></i> Approve Refund
-            </button>
-            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
-              <i class="fas fa-times"></i> Deny Refund
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    html += '</div>';
-    
-    refundsList.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading refunds:', error);
-    const refundsList = document.getElementById('pendingRefundsList');
-    if (refundsList) {
-      refundsList.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-exclamation-triangle"></i>
-          <h4>Error loading refunds</h4>
-          <p>Please refresh and try again</p>
-        </div>
-      `;
+        `;
     }
-  }
 }
 
 // Process refund (for sellers)
@@ -8987,50 +10123,6 @@ async function loadMyProducts() {
       break;
   }
 }
-// Update dashboard tabs to include refunds
-function initDashboardTabs() {
-  const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
-  const refundsTabExists = Array.from(tabButtons).some(btn => btn.getAttribute('data-tab') === 'refunds');
-  
-  // If refunds tab doesn't exist, add it
-  if (!refundsTabExists && currentUser && (currentUser.role === 'admin' || currentUser.role === 'seller')) {
-    const tabsHeader = document.querySelector('.dashboard-tabs .tabs-header');
-    if (tabsHeader) {
-      const refundsTabBtn = document.createElement('button');
-      refundsTabBtn.className = 'tab-btn';
-      refundsTabBtn.setAttribute('data-tab', 'refunds');
-      refundsTabBtn.innerHTML = '<i class="fas fa-exchange-alt"></i> Refund Requests';
-      tabsHeader.appendChild(refundsTabBtn);
-      
-      // Add refunds tab content if not exists
-      const tabsContent = document.querySelector('.dashboard-tabs .tabs-content');
-      if (tabsContent && !document.getElementById('refundsTab')) {
-        const refundsTab = document.createElement('div');
-        refundsTab.id = 'refundsTab';
-        refundsTab.className = 'tab-content';
-        refundsTab.innerHTML = `
-          <div class="tab-header">
-            <h3><i class="fas fa-exchange-alt"></i> Pending Refund Requests</h3>
-            <div class="tab-actions">
-              <span style="color: var(--text-gray); font-size: 13px;">
-                <i class="fas fa-info-circle"></i> Refund requests must be processed within 48 hours
-              </span>
-            </div>
-          </div>
-          <div id="pendingRefundsList" class="refunds-grid">
-            <div class="empty-state">
-              <i class="fas fa-check-circle"></i>
-              <h4>No pending refund requests</h4>
-              <p>All good!</p>
-            </div>
-          </div>
-        `;
-        tabsContent.appendChild(refundsTab);
-      }
-    }
-  }
-}
-
 
 // Make functions globally available
 window.processRefund = processRefund;
@@ -9074,67 +10166,7 @@ async function processRefund(orderId, action) {
   }
 }
 
-// Load pending refunds (for seller dashboard)
-async function loadPendingRefunds() {
-  try {
-    const response = await fetch('/api/refunds/pending', {
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    const refundsList = document.getElementById('pendingRefundsList');
-    if (!refundsList) return;
-    
-    if (!data.refunds || data.refunds.length === 0) {
-      refundsList.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><h4>No pending refund requests</h4><p>All good!</p></div>';
-      return;
-    }
-    
-    let html = '<div class="refunds-grid">';
-    data.refunds.forEach(refund => {
-      const daysSinceRequest = Math.floor((new Date() - new Date(refund.refund_requested_at)) / (1000 * 60 * 60 * 24));
-      
-      html += `
-        <div class="refund-card" style="background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div>
-              <h4 style="margin: 0 0 8px 0;">Order #${refund.id}</h4>
-              <p style="margin: 0 0 4px 0;"><strong>Product:</strong> ${refund.product_name}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Quantity:</strong> ${refund.quantity}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Amount:</strong> $${refund.total_amount}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Buyer:</strong> ${refund.buyer_name} (${refund.buyer_email})</p>
-              <p style="margin: 0 0 4px 0;"><strong>Payment Provider:</strong> ${refund.payment_provider || 'Flutterwave'}</p>
-              <p style="margin: 0 0 4px 0;"><strong>Requested:</strong> ${new Date(refund.refund_requested_at).toLocaleDateString()} (${daysSinceRequest} days ago)</p>
-              <div style="margin-top: 12px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
-                <strong>Reason:</strong>
-                <p style="margin: 4px 0 0 0; font-size: 13px;">${refund.refund_reason}</p>
-              </div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 16px;">
-            <button class="btn primary" onclick="processRefund(${refund.id}, 'approve')" style="flex: 1; background: var(--success);">
-              <i class="fas fa-check"></i> Approve Refund
-            </button>
-            <button class="btn danger" onclick="processRefund(${refund.id}, 'deny')" style="flex: 1; background: var(--danger);">
-              <i class="fas fa-times"></i> Deny Refund
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    html += '</div>';
-    
-    refundsList.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Error loading refunds:', error);
-    const refundsList = document.getElementById('pendingRefundsList');
-    if (refundsList) {
-      refundsList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading refunds</h4><p>Please refresh and try again</p></div>';
-    }
-  }
-}
+
 
     async function loadUsersTable() {
       const tbody = document.querySelector('#usersTable tbody');
@@ -9211,54 +10243,14 @@ async function loadPendingRefunds() {
         `;
       }
     }
-// Update order totals based on quantity
-let currentProductForOrder = null;
+
 
 // ================= ORDER TOTAL CALCULATION - FIXED =================
 
 // Add this to your products.html script section
 // ================= ORDER TOTAL CALCULATION - FIXED =================
 
-function updateOrderTotals() {
-    console.log("🔄 updateOrderTotals called");
-    
-    const quantityInput = document.getElementById('orderQuantity');
-    if (!quantityInput) {
-        console.log("❌ quantityInput not found");
-        return;
-    }
-    
-    let quantity = parseInt(quantityInput.value);
-    console.log("📦 Current quantity:", quantity);
-    
-    // Only validate minimum - NO maximum limit
-    if (isNaN(quantity) || quantity < 1) {
-        quantity = 1;
-        quantityInput.value = 1;
-    }
-    
-    if (!currentProductForOrder) {
-        console.log("❌ No product selected");
-        return;
-    }
-    
-    const productPrice = parseFloat(currentProductForOrder.original_price || currentProductForOrder.price || 0);
-    const totalAmount = quantity * productPrice;
-    
-    console.log(`💰 Calculation: ${quantity} × $${productPrice} = $${totalAmount.toFixed(2)}`);
-    
-    // Update displays
-    const subtotalEl = document.getElementById('productSubtotal');
-    const totalEl = document.getElementById('totalAmount');
-    const qtyDisplay = document.getElementById('qtyDisplay');
-    
-    if (subtotalEl) subtotalEl.textContent = `$${totalAmount.toFixed(2)}`;
-    if (totalEl) totalEl.textContent = `$${totalAmount.toFixed(2)}`;
-    if (qtyDisplay) qtyDisplay.textContent = quantity;
-    
-    window.currentOrderTotal = totalAmount;
-    window.currentOrderQuantity = quantity;
-}
+
 // Add this in your DOMContentLoaded event listener
 document.getElementById('refreshPendingOrders')?.addEventListener('click', () => {
   loadPendingOrders();
@@ -9364,7 +10356,291 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
   }
 });
  // Open order modal with product details
+// ============================================
+// PRODUCT SHARE FUNCTIONALITY
+// ============================================
 
+// Share product - generate share link and show modal
+async function shareProduct(productId, productTitle) {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    // Check if user owns this product
+    const product = products.find(p => p.id === productId);
+    if (!product || (product.user_id !== currentUser.id && currentUser.role !== 'admin')) {
+        showToast('Error', 'You can only share your own products', 'danger');
+        return;
+    }
+    
+    // Show loading
+    showToast('Generating share link...', 'info');
+    
+    try {
+        const response = await fetch(`/api/products/${productId}/share-token`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showShareModal(data.shareUrl, productTitle, data.expiresAt);
+            
+            // Update share count on product card
+            const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+            if (productCard) {
+                const shareCountSpan = productCard.querySelector('.share-count');
+                if (shareCountSpan) {
+                    const currentCount = parseInt(shareCountSpan.textContent) || 0;
+                    shareCountSpan.textContent = currentCount + 1;
+                }
+            }
+        } else {
+            showToast('Error', data.error || 'Failed to generate share link', 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Share error:', error);
+        showToast('Error', 'Failed to generate share link', 'danger');
+    }
+}
+
+// Show share modal with options
+function showShareModal(shareUrl, productTitle, expiresAt) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('shareModal');
+    if (existingModal) existingModal.remove();
+    
+    const expirationDate = new Date(expiresAt).toLocaleDateString();
+    
+    const modalHtml = `
+        <div class="modal open" id="shareModal">
+            <div class="modal-card" style="max-width: 500px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">
+                        <i class="fas fa-share-alt" style="color: var(--accent);"></i> 
+                        Share Product: ${escapeHtml(productTitle)}
+                    </h3>
+                    <span class="close-x" onclick="closeShareModal()">&times;</span>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <p>Share this link with anyone. They can view your product without logging in.</p>
+                    <div style="background: var(--primary-dark); border-radius: 8px; padding: 12px; margin: 15px 0; word-break: break-all; border: 1px solid var(--border);">
+                        <code id="shareLink" style="color: var(--accent); font-size: 14px;">${shareUrl}</code>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="btn primary" onclick="copyShareLink()" style="flex: 1;">
+                            <i class="fas fa-copy"></i> Copy Link
+                        </button>
+                        <button class="btn secondary" onclick="shareViaWhatsApp()" style="flex: 1;">
+                            <i class="fab fa-whatsapp"></i> WhatsApp
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn secondary" onclick="shareViaFacebook()" style="flex: 1;">
+                            <i class="fab fa-facebook"></i> Facebook
+                        </button>
+                        <button class="btn secondary" onclick="shareViaTwitter()" style="flex: 1;">
+                            <i class="fab fa-twitter"></i> Twitter
+                        </button>
+                        <button class="btn secondary" onclick="shareViaEmail()" style="flex: 1;">
+                            <i class="fas fa-envelope"></i> Email
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; margin-top: 15px;">
+                    <p style="margin: 0; font-size: 12px; color: var(--text-gray);">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Link expires:</strong> ${expirationDate}<br>
+                        Share count will be tracked automatically.
+                    </p>
+                </div>
+                
+                <div class="footer" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+                    <button class="btn secondary" onclick="closeShareModal()" style="width: 100%;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Close share modal
+function closeShareModal() {
+    const modal = document.getElementById('shareModal');
+    if (modal) modal.remove();
+}
+
+// Copy share link to clipboard
+async function copyShareLink() {
+    const linkElement = document.getElementById('shareLink');
+    const linkText = linkElement.textContent;
+    
+    try {
+        await navigator.clipboard.writeText(linkText);
+        showToast('Copied!', 'Share link copied to clipboard', 'success');
+    } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = linkText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Copied!', 'Share link copied to clipboard', 'success');
+    }
+}
+
+// Share via WhatsApp
+function shareViaWhatsApp() {
+    const linkElement = document.getElementById('shareLink');
+    const shareUrl = encodeURIComponent(linkElement.textContent);
+    const message = encodeURIComponent("Check out this product on Core Insight Marketplace!");
+    window.open(`https://wa.me/?text=${message}%20${shareUrl}`, '_blank');
+}
+
+// Share via Facebook
+function shareViaFacebook() {
+    const linkElement = document.getElementById('shareLink');
+    const shareUrl = encodeURIComponent(linkElement.textContent);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank', 'width=600,height=400');
+}
+
+// Share via Twitter
+function shareViaTwitter() {
+    const linkElement = document.getElementById('shareLink');
+    const shareUrl = encodeURIComponent(linkElement.textContent);
+    const text = encodeURIComponent("Check out this product on Core Insight Marketplace!");
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${shareUrl}`, '_blank', 'width=600,height=400');
+}
+
+// Share via Email
+function shareViaEmail() {
+    const linkElement = document.getElementById('shareLink');
+    const shareUrl = linkElement.textContent;
+    const subject = encodeURIComponent("Check out this product on Core Insight!");
+    const body = encodeURIComponent(`I found this great product on Core Insight Marketplace:\n\n${shareUrl}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+// Get share statistics (for seller dashboard)
+async function loadShareStats() {
+    if (!currentUser) return;
+    
+    try {
+        const response = await fetch('/api/products/share-stats', {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.stats) {
+            updateShareStatsInDashboard(data.stats);
+        }
+        
+    } catch (error) {
+        console.error('Error loading share stats:', error);
+    }
+}
+
+// Update share stats in dashboard
+function updateShareStatsInDashboard(stats) {
+    const shareStatsContainer = document.getElementById('shareStatsContainer');
+    if (!shareStatsContainer) return;
+    
+    if (stats.length === 0) {
+        shareStatsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-share-alt"></i>
+                <h4>No share links generated yet</h4>
+                <p>Click the share button on your products to create share links</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <table class="share-stats-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Share Count</th>
+                    <th>Click Count</th>
+                    <th>Link Expires</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    stats.forEach(stat => {
+        const expiresDate = stat.expires_at ? new Date(stat.expires_at).toLocaleDateString() : 'Never';
+        const isExpired = stat.expires_at && new Date(stat.expires_at) < new Date();
+        
+        html += `
+            <tr>
+                <td><strong>${escapeHtml(stat.title)}</strong></td>
+                <td>${stat.share_count || 0}</td>
+                <td>${stat.click_count || 0}</td>
+                <td class="${isExpired ? 'expired' : ''}">${expiresDate} ${isExpired ? '(Expired)' : ''}</td>
+                <td>
+                    <button class="action-btn" onclick="regenerateShareLink(${stat.id})">
+                        <i class="fas fa-sync-alt"></i> Regenerate
+                    </button>
+                </td>
+            </table>
+        `;
+    });
+    
+    html += `</tbody></table>`;
+    shareStatsContainer.innerHTML = html;
+}
+
+// Regenerate share link
+async function regenerateShareLink(productId) {
+    if (!confirm('Generate a new share link? The old link will stop working.')) return;
+    
+    try {
+        const response = await fetch(`/api/products/${productId}/share-token`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Success', 'New share link generated!', 'success');
+            showShareModal(data.shareUrl, data.productTitle, data.expiresAt);
+            loadShareStats(); // Refresh stats
+        } else {
+            showToast('Error', data.error || 'Failed to generate new link', 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Error regenerating share link:', error);
+        showToast('Error', 'Failed to regenerate share link', 'danger');
+    }
+}
+
+// Make share functions globally available
+window.shareProduct = shareProduct;
+window.closeShareModal = closeShareModal;
+window.copyShareLink = copyShareLink;
+window.shareViaWhatsApp = shareViaWhatsApp;
+window.shareViaFacebook = shareViaFacebook;
+window.shareViaTwitter = shareViaTwitter;
+window.shareViaEmail = shareViaEmail;
+window.regenerateShareLink = regenerateShareLink;
   // ================= ORDER FORM FUNCTIONS - FIXED =================
 
 
@@ -9374,183 +10650,311 @@ document.getElementById('addressForm')?.addEventListener('submit', async (e) => 
 
 
 let isSubmitting = false; // Prevent double submission
+// ============================================
+// ORDER PHYSICAL PRODUCT - WITH REAL-TIME PRICE CALCULATION
+// ============================================
 
+let currentProductForOrder = null;
+let currentOrderTotal = 0;
+let currentOrderQuantity = 1;
+
+// Open order modal with product details and price calculation
 async function orderPhysicalProduct(productId) {
-  console.log("🛒 Opening order modal for product:", productId);
-  
-  if (!currentUser) {
-    openModal(document.getElementById('loginModal'));
-    return;
-  }
-  
-  try {
-    const product = products.find(p => p.id === productId);
-    if (!product) {
-      showToast('Error', 'Product not found', 'danger');
-      return;
+    console.log("🛒 Opening order modal for product:", productId);
+    
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
     }
     
-    currentProductForOrder = product;
+    try {
+        const product = products.find(p => p.id === productId);
+        if (!product) {
+            showToast('Error', 'Product not found', 'danger');
+            return;
+        }
+        
+        currentProductForOrder = product;
+        
+        // Calculate initial total
+        const productPrice = parseFloat(product.original_price || product.price || 0);
+        const initialTotal = productPrice;
+        currentOrderTotal = initialTotal;
+        currentOrderQuantity = 1;
+        
+        // Update modal with product info
+        const productThumbnail = document.getElementById('productThumbnail');
+        const productNameEl = document.getElementById('productName');
+        const productPriceEl = document.getElementById('productPrice');
+        const quantityInput = document.getElementById('orderQuantity');
+        
+        // Get product image
+        const imageList = product._imageList || 
+                         (product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []);
+        const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
+        
+        if (productThumbnail) productThumbnail.src = productImage;
+        if (productNameEl) productNameEl.textContent = product.title || 'Product';
+        if (productPriceEl) {
+            productPriceEl.innerHTML = `${fmtPrice(productPrice)} <span style="font-size: 12px; color: var(--text-muted);">each</span>`;
+        }
+        
+        // Reset and setup quantity input
+        if (quantityInput) {
+            quantityInput.value = '1';
+            quantityInput.max = null;
+            quantityInput.removeAttribute('max');
+            
+            // Remove existing listeners and add new one
+            const newQuantity = quantityInput.cloneNode(true);
+            quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
+            
+            newQuantity.addEventListener('input', function() {
+                let val = parseInt(this.value);
+                if (isNaN(val) || val < 1) {
+                    val = 1;
+                    this.value = 1;
+                }
+                updateOrderTotalDisplay();
+            });
+            
+            newQuantity.addEventListener('change', function() {
+                let val = parseInt(this.value);
+                if (isNaN(val) || val < 1) {
+                    val = 1;
+                    this.value = 1;
+                }
+                updateOrderTotalDisplay();
+            });
+        }
+        
+        // Reset form fields
+        const fields = ['deliveryAddress', 'city', 'state', 'country', 'deliveryPhone'];
+        fields.forEach(field => {
+            const el = document.getElementById(field);
+            if (el) el.value = '';
+        });
+        
+        const msgEl = document.getElementById('addressFormMessage');
+        if (msgEl) msgEl.innerHTML = '';
+        
+        // Update total display
+        updateOrderTotalDisplay();
+        
+        // Show modal
+        openModal(document.getElementById('addressModal'));
+        
+        // Also update the form submit handler
+        const addressForm = document.getElementById('addressForm');
+        if (addressForm) {
+            // Remove existing handler and add fresh one
+            const newForm = addressForm.cloneNode(true);
+            addressForm.parentNode.replaceChild(newForm, addressForm);
+            newForm.addEventListener('submit', submitOrderForm);
+        }
+        
+    } catch(error) {
+        console.error('Order failed:', error);
+        showToast('Error', 'Failed to prepare order', 'danger');
+    }
+}
+
+// Update order total display in real-time
+function updateOrderTotalDisplay() {
+    if (!currentProductForOrder) {
+        console.log("No product selected for order");
+        return;
+    }
     
-    // Update modal with product info
-    const productThumbnail = document.getElementById('productThumbnail');
-    const productNameEl = document.getElementById('productName');
-    const productPriceEl = document.getElementById('productPrice');
     const quantityInput = document.getElementById('orderQuantity');
-    
-    if (productThumbnail) {
-      productThumbnail.src = product._imageList?.[0] || 'https://placehold.co/400x250/1e293b/3b82f6/png?text=Product';
-    }
-    if (productNameEl) productNameEl.textContent = product.title || 'Product';
-    if (productPriceEl) {
-      productPriceEl.textContent = `$${parseFloat(product.original_price || product.price || 0).toFixed(2)} each`;
+    if (!quantityInput) {
+        console.log("Quantity input not found");
+        return;
     }
     
-    // Reset and setup quantity input
-    if (quantityInput) {
-      quantityInput.value = '1';
-      quantityInput.max = null;
-      quantityInput.removeAttribute('max');
+    let quantity = parseInt(quantityInput.value);
+    if (isNaN(quantity) || quantity < 1) {
+        quantity = 1;
+        quantityInput.value = 1;
     }
     
-    // Reset form fields
-    const fields = ['deliveryAddress', 'city', 'state', 'country', 'deliveryPhone'];
-    fields.forEach(field => {
-      const el = document.getElementById(field);
-      if (el) el.value = '';
-    });
-    const msgEl = document.getElementById('addressFormMessage');
-    if (msgEl) msgEl.innerHTML = '';
+    const productPrice = parseFloat(currentProductForOrder.original_price || currentProductForOrder.price || 0);
+    const totalAmount = quantity * productPrice;
     
-    isSubmitting = false;
+    currentOrderTotal = totalAmount;
+    currentOrderQuantity = quantity;
     
-    // Calculate and show total
-    updateOrderTotals();
+    // Update displays
+    const subtotalEl = document.getElementById('productSubtotal');
+    const totalEl = document.getElementById('totalAmount');
+    const qtyDisplay = document.getElementById('qtyDisplay');
+    const pricePerUnitEl = document.getElementById('pricePerUnit');
     
-    // Show modal
-    openModal(document.getElementById('addressModal'));
+    if (subtotalEl) subtotalEl.textContent = fmtPrice(totalAmount);
+    if (totalEl) totalEl.innerHTML = `<strong style="font-size: 24px;">${fmtPrice(totalAmount)}</strong>`;
+    if (qtyDisplay) qtyDisplay.textContent = quantity;
+    if (pricePerUnitEl) pricePerUnitEl.textContent = fmtPrice(productPrice);
     
-  } catch(error) {
-    console.error('Order failed:', error);
-    showToast('Error', 'Failed to prepare order', 'danger');
-  }
+    // Also update the platform fee display
+    const platformFeeEl = document.getElementById('platformFeeAmount');
+    if (platformFeeEl) {
+        const platformFee = totalAmount * 0.10;
+        platformFeeEl.textContent = fmtPrice(platformFee);
+    }
+    
+    // Update seller earnings display
+    const sellerEarningsEl = document.getElementById('sellerEarningsAmount');
+    if (sellerEarningsEl) {
+        const sellerEarnings = totalAmount * 0.90;
+        sellerEarningsEl.textContent = fmtPrice(sellerEarnings);
+    }
+    
+    console.log(`💰 Order total updated: ${quantity} × ${fmtPrice(productPrice)} = ${fmtPrice(totalAmount)}`);
 }
-// Single order submission handler
+
+// Submit order form
 async function submitOrderForm(e) {
-  if (e) e.preventDefault();
-  
-  // Prevent double submission
-  if (isSubmitting) {
-    console.log("⏳ Already submitting, please wait...");
-    return;
-  }
-  
-  console.log("📝 Submitting order form...");
-  
-  if (!currentProductForOrder) {
-    console.error("❌ No product selected!");
+    if (e) e.preventDefault();
+    
+    console.log("📝 Submitting order form...");
+    
+    if (!currentProductForOrder) {
+        console.error("❌ No product selected!");
+        const messageEl = document.getElementById('addressFormMessage');
+        if (messageEl) {
+            messageEl.innerHTML = '<div style="color: var(--danger);">Please select a product first. Close this window and try again.</div>';
+        }
+        return;
+    }
+    
     const messageEl = document.getElementById('addressFormMessage');
-    if (messageEl) {
-      messageEl.innerHTML = '<div style="color: var(--danger);">Error: No product selected. Please close and try again.</div>';
-    }
-    return;
-  }
-  
-  const messageEl = document.getElementById('addressFormMessage');
-  const submitBtn = document.querySelector('#addressForm button[type="submit"]');
-  
-  // Get form values
-  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
-  const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
-  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
-  
-  // Validate
-  if (!deliveryAddress) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
-    return;
-  }
-  
-  if (!deliveryPhone) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
-    return;
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-  
-  if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
-    return;
-  }
-  
-  // Set submitting flag
-  isSubmitting = true;
-  
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
-  }
-  
-  if (messageEl) {
-    messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
-  }
-  
-  try {
-    const orderData = {
-      productId: currentProductForOrder.id,
-      quantity: quantity,
-      deliveryAddress: deliveryAddress,
-      city: document.getElementById('city').value.trim(),
-      state: document.getElementById('state').value.trim(),
-      country: document.getElementById('country').value.trim(),
-      deliveryPhone: deliveryPhone,
-      notes: ''
-    };
+    const submitBtn = document.querySelector('#addressForm button[type="submit"]');
     
-    console.log('📤 Creating order...', orderData);
+    // Get form values
+    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+    const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+    const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+    const totalAmount = currentOrderTotal;
     
-    const response = await fetch('/api/physical-orders/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('📥 Response:', data);
-    
-    if (response.ok) {
-      closeModal(document.getElementById('addressModal'));
-      
-      showToast(
-        '✅ Order Created!', 
-        `Order #${data.orderId} has been sent to the seller for approval.`,
-        'success'
-      );
-      
-      // Reset
-      document.getElementById('addressForm').reset();
-      currentProductForOrder = null;
-      
-    } else {
-      if (messageEl) {
-        messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
-      }
+    // Validate required fields
+    if (!deliveryAddress) {
+        if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
+        return;
     }
     
-  } catch(error) {
-    console.error('❌ Order creation failed:', error);
-    if (messageEl) {
-      messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+    if (!deliveryPhone) {
+        if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
+        return;
     }
-  } finally {
-    isSubmitting = false;
+    
+    // Validate phone/email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+    
+    if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
+        if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
+        return;
+    }
+    
+    // Disable submit button and show loading
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
     }
-  }
+    
+    if (messageEl) {
+        messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
+    }
+    
+    try {
+        const orderData = {
+            productId: currentProductForOrder.id,
+            quantity: quantity,
+            deliveryAddress: deliveryAddress,
+            city: document.getElementById('city').value.trim(),
+            state: document.getElementById('state').value.trim(),
+            country: document.getElementById('country').value.trim(),
+            deliveryPhone: deliveryPhone,
+            notes: ''
+        };
+        
+        console.log('📤 Creating order...', orderData);
+        console.log(`💰 Total amount to pay: ${fmtPrice(totalAmount)}`);
+        
+        const response = await fetch('/api/physical-orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        console.log('📥 Response:', data);
+        
+        if (response.ok) {
+            // Close modal
+            closeModal(document.getElementById('addressModal'));
+            
+            // Show success message with amount
+            showToast(
+                '✅ Order Created!', 
+                `Order #${data.orderId} has been sent to the seller for approval. Total: ${fmtPrice(data.totalAmount)}`,
+                'success'
+            );
+            
+            // Reset form and product
+            document.getElementById('addressForm').reset();
+            currentProductForOrder = null;
+            currentOrderTotal = 0;
+            currentOrderQuantity = 1;
+            
+        } else {
+            if (messageEl) {
+                messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
+            }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order';
+            }
+        }
+        
+    } catch(error) {
+        console.error('❌ Order creation failed:', error);
+        if (messageEl) {
+            messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order';
+        }
+    }
 }
+
+// Close address modal
+function closeAddressModal() {
+    const modal = document.getElementById('addressModal');
+    if (modal) closeModal(modal);
+    currentProductForOrder = null;
+    currentOrderTotal = 0;
+    currentOrderQuantity = 1;
+    
+    // Reset form
+    const form = document.getElementById('addressForm');
+    if (form) form.reset();
+    const qtyInput = document.getElementById('orderQuantity');
+    if (qtyInput) qtyInput.value = '1';
+}
+
+// Make functions globally available
+window.orderPhysicalProduct = orderPhysicalProduct;
+window.updateOrderTotalDisplay = updateOrderTotalDisplay;
+window.submitOrderForm = submitOrderForm;
+window.closeAddressModal = closeAddressModal;
+window.showProductFullDetails = showProductFullDetails;
+window.closeProductFullDetailsModal = closeProductFullDetailsModal;
+window.openImageModal = openImageModal;
+window.closeImageModal = closeImageModal;
+
 
 // ================= PENDING ORDERS MANAGEMENT =================
 
@@ -9657,121 +11061,6 @@ if (document.readyState === 'loading') {
   initOrderForm();
 }
 
-// Address form submission - SINGLE handler
-async function submitOrderForm(e) {
-  if (e) e.preventDefault();
-  
-  console.log("📝 Submitting order form...");
-  console.log("currentProductForOrder:", currentProductForOrder);
-  
-  // Check if product is selected
-  if (!currentProductForOrder) {
-    console.error("❌ No product selected!");
-    const messageEl = document.getElementById('addressFormMessage');
-    if (messageEl) {
-      messageEl.innerHTML = '<div style="color: var(--danger);">Please select a product first. Close this window and try again.</div>';
-    }
-    return;
-  }
-  
-  const messageEl = document.getElementById('addressFormMessage');
-  const submitBtn = document.querySelector('#addressForm button[type="submit"]');
-  
-  // Get form values
-  const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
-  const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
-  const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
-  
-  // Validate required fields
-  if (!deliveryAddress) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a delivery address</div>';
-    return;
-  }
-  
-  if (!deliveryPhone) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a phone number or email address</div>';
-    return;
-  }
-  
-  // Validate phone/email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-  
-  if (!emailRegex.test(deliveryPhone) && !phoneRegex.test(deliveryPhone)) {
-    if (messageEl) messageEl.innerHTML = '<div style="color: var(--danger);">Please enter a valid phone number or email address</div>';
-    return;
-  }
-  
-  // Disable submit button and show loading
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Order...';
-  }
-  
-  if (messageEl) {
-    messageEl.innerHTML = '<div style="color: var(--accent);"><i class="fas fa-spinner fa-spin"></i> Creating your order...</div>';
-  }
-  
-  try {
-    const orderData = {
-      productId: currentProductForOrder.id,
-      quantity: quantity,
-      deliveryAddress: deliveryAddress,
-      city: document.getElementById('city').value.trim(),
-      state: document.getElementById('state').value.trim(),
-      country: document.getElementById('country').value.trim(),
-      deliveryPhone: deliveryPhone,
-      notes: ''
-    };
-    
-    console.log('📤 Creating order...', orderData);
-    
-    const response = await fetch('/api/physical-orders/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('📥 Response:', data);
-    
-    if (response.ok) {
-      // Close modal
-      closeModal(document.getElementById('addressModal'));
-      
-      // Show success message
-      showToast(
-        '✅ Order Created!', 
-        `Order #${data.orderId} has been sent to the seller for approval. You will be notified when the seller responds.`,
-        'success'
-      );
-      
-      // Reset form and product
-      document.getElementById('addressForm').reset();
-      currentProductForOrder = null;
-      
-    } else {
-      if (messageEl) {
-        messageEl.innerHTML = `<div style="color: var(--danger);">${data.error || 'Failed to create order'}</div>`;
-      }
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
-      }
-    }
-    
-  } catch(error) {
-    console.error('❌ Order creation failed:', error);
-    if (messageEl) {
-      messageEl.innerHTML = '<div style="color: var(--danger);">Network error. Please try again.</div>';
-    }
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Place Order (No Payment Yet)';
-    }
-  }
-}
 
 
 
@@ -10137,77 +11426,8 @@ document.getElementById('cancelAddress')?.addEventListener('click', () => {
       }
     }
 
-   // Store chart instances
-let salesChartInstance = null;
-let categoryChartInstance = null;
 
-function loadCharts() {
-  // Destroy existing charts if they exist
-  if (salesChartInstance) {
-    salesChartInstance.destroy();
-  }
-  if (categoryChartInstance) {
-    categoryChartInstance.destroy();
-  }
-  
-  // Sales Chart
-  const salesCtx = document.getElementById('salesChart');
-  if (salesCtx) {
-    salesChartInstance = new Chart(salesCtx.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-          label: 'Sales',
-          data: [12, 19, 3, 5, 2, 3],
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.4,
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: '#e6f1ff' }
-          }
-        },
-        scales: {
-          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-          y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
-        }
-      }
-    });
-  }
-  
-  // Category Chart
-  const categoryCtx = document.getElementById('categoryChart');
-  if (categoryCtx) {
-    categoryChartInstance = new Chart(categoryCtx.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Digital', 'Physical', 'Affiliate'],
-        datasets: [{
-          data: [40, 35, 25],
-          backgroundColor: ['#8b5cf6', '#06b6d4', '#10b981']
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#e6f1ff', padding: 20 }
-          }
-        }
-      }
-    });
-  }
-}
-    // Helper functions
+ // Helper functions
     function formatDate(dateString) {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
@@ -12029,6 +13249,12 @@ function fmtPrice(amount) {
 
 // =================== RENDER PRODUCTS WITH CONDITIONAL DELIVERY INFO ===================
 
+// ============================================
+// RENDER PRODUCTS - WITH ENHANCED DETAILS BUTTON
+// ============================================
+// ============================================
+// RENDER PRODUCTS - WITH ENHANCED DETAILS BUTTON & SHARE BUTTON
+// ============================================
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
     if (!grid) return;
@@ -12041,7 +13267,7 @@ function renderProducts() {
 
     let list = products.slice();
 
-    // Search filter
+    // Apply filters
     if (q) {
         list = list.filter(p => 
             (p.title || '').toLowerCase().includes(q) || 
@@ -12049,21 +13275,15 @@ function renderProducts() {
             (p.category || '').toLowerCase().includes(q)
         );
     }
-    
-    // Type filter
     if (typeFilter) {
         list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
     }
-    
-    // Category filter
     if (catFilter) {
         list = list.filter(p => (p.category || '') === catFilter);
     }
-    
-    // Country filter for physical products ONLY
     if (countryFilter) {
         list = list.filter(p => {
-            if (p.type !== 'physical') return true; // Skip filtering for non-physical
+            if (p.type !== 'physical') return true;
             const locations = p.delivery_locations || 'Worldwide';
             const countriesList = locations.split(',').map(l => l.trim());
             return countriesList.includes(countryFilter) || locations.includes('Worldwide');
@@ -12091,32 +13311,25 @@ function renderProducts() {
     const noProducts = document.getElementById('noProducts');
     if (noProducts) noProducts.style.display = 'none';
 
+    // Check if current user is owner
+    const isOwner = (productUserId) => {
+        return currentUser && (currentUser.id === productUserId || currentUser.role === 'admin');
+    };
+
     // Generate product cards
     grid.innerHTML = list.map(p => {
-        // Get images
         const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 
             ? p._imageList 
             : (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
         
         const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
         
-        // Thumbnails for additional images
-        const thumbHtml = (() => {
-            if (!imageList || imageList.length <= 1) return '';
-            return imageList.slice(1, 4).map((thumbPath, idx) => {
-                return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
-                              onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
-                              loading="lazy"
-                              onerror="this.onerror=null; this.style.display='none';">`;
-            }).join('');
-        })();
-        
         const seller = escapeHtml(p.seller_name || p.username || 'Seller');
         const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
         const desc = escapeHtml((p.description || '').slice(0, 120));
         
-        // Get original price in USD
         const originalPriceUSD = p.original_price || p.price || 0;
+        const formattedPrice = fmtPrice(originalPriceUSD);
         
         const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
         const isFavorite = userFavorites.has(p.id);
@@ -12125,12 +13338,12 @@ function renderProducts() {
         const badgeClass = p.type === 'digital' ? 'badge-digital' : 
                           p.type === 'physical' ? 'badge-physical' : 
                           'badge-affiliate';
+        const productOwner = isOwner(p.user_id);
 
-        // ✅ CONDITIONAL DELIVERY INFO - ONLY FOR PHYSICAL PRODUCTS
+        // Build delivery info HTML for physical products
         let deliveryInfoHtml = '';
         
         if (isPhysical) {
-            // Only show delivery info for physical products
             const deliveryType = p.delivery_type || 'delivery';
             const deliveryCountries = p.delivery_countries || 'Worldwide';
             const deliveryStates = p.delivery_states || '';
@@ -12140,7 +13353,6 @@ function renderProducts() {
             
             deliveryInfoHtml = '<div class="product-details">';
             
-            // Show Home Delivery option if available
             if (deliveryType === 'delivery' || deliveryType === 'both') {
                 deliveryInfoHtml += `
                     <div class="detail-item">
@@ -12164,7 +13376,6 @@ function renderProducts() {
                 `;
             }
             
-            // Show Store Pickup option if available
             if (deliveryType === 'pickup' || deliveryType === 'both') {
                 deliveryInfoHtml += `
                     <div class="detail-item" style="margin-top: 8px;">
@@ -12186,15 +13397,24 @@ function renderProducts() {
             
             deliveryInfoHtml += '</div>';
         }
-        
-        // ✅ NO delivery info for digital or affiliate products - they stay empty
 
-        // Format prices with currency conversion
-        const formattedPrice = fmtPrice(originalPriceUSD);
+        // Build thumbnails HTML
+        let thumbHtml = '';
+        if (imageList.length > 1) {
+            thumbHtml = `
+                <div class="thumbs">
+                    ${imageList.slice(1, 4).map((thumbPath, idx) => {
+                        return `<img src="${thumbPath}" alt="thumb${idx + 1}" 
+                                  onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" 
+                                  loading="lazy"
+                                  onerror="this.onerror=null; this.style.display='none';">`;
+                    }).join('')}
+                </div>
+            `;
+        }
 
         return `
-            <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}" onclick="selectProductForReviews(${p.id})">
-                <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
+            <div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}">
                 <div class="product-badge ${badgeClass}">${p.type === 'digital' ? '📱 Digital' : p.type === 'physical' ? '📦 Physical' : '🔗 Affiliate'}</div>
                 
                 <div class="card-media">
@@ -12204,9 +13424,16 @@ function renderProducts() {
                          loading="lazy"
                          onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
                     
-                    ${imageList.length > 1 ? `<div class="thumbs">${thumbHtml}</div>` : ''}
+                    ${thumbHtml}
                     
-                    <!-- Favorite button with visible count -->
+                    <!-- Share Button (only for product owner) -->
+                    ${productOwner ? `
+                        <button class="share-btn" onclick="event.stopPropagation(); shareProduct(${p.id}, '${title.replace(/'/g, "\\'")}')" title="Share this product">
+                            <i class="fas fa-share-alt"></i>
+                            ${p.share_count > 0 ? `<span class="share-count">${p.share_count}</span>` : ''}
+                        </button>
+                    ` : ''}
+                    
                     <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
                         <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
                             <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
@@ -12218,6 +13445,7 @@ function renderProducts() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
+                
                 <div class="card-body">
                     <h3>${title}</h3>
                     <div class="seller-info">
@@ -12233,29 +13461,23 @@ function renderProducts() {
                         <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
                         <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
                     </div>
+                    
                     <div class="price-row">
                         <div>
-                            <div class="price">${formattedPrice}</div>
-                            ${isPhysical ? `
-                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                                    Free shipping
-                                </div>
-                            ` : isDigital ? `
-                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                                    Instant delivery
-                                </div>
-                            ` : ''}
+                            <div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
+                            ${isPhysical ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Free shipping</div>` : 
+                              isDigital ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Instant delivery</div>` : ''}
                         </div>
                         <div class="card-actions">
                             ${isAffiliate ? `
-                                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || p.external_link || '')}')">
+                                <button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || '')}')">
                                     <i class="fas fa-external-link-alt"></i> Visit
                                 </button>
                             ` : isPhysical ? `
                                 <button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})" title="Order with delivery">
                                     <i class="fas fa-shopping-cart"></i> Order Now
                                 </button>
-                                <button class="small-btn info" onclick="event.stopPropagation(); showProductConditions(${p.id})" title="View product details, warranty, and condition">
+                                <button class="small-btn info" onclick="event.stopPropagation(); showProductFullDetails(${p.id})" title="View product details, warranty, condition, and full specifications">
                                     <i class="fas fa-clipboard-list"></i> Details
                                 </button>
                             ` : isDigital ? `
@@ -12272,6 +13494,7 @@ function renderProducts() {
                             </button>
                         </div>
                     </div>
+                    
                     <div class="owner-controls">
                         <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})">
                             <i class="fas fa-edit"></i> Edit
@@ -12285,11 +13508,8 @@ function renderProducts() {
         `;
     }).join('');
 
-    // Initialize product ownership after rendering
     initializeProductOwnership();
     startProductCarousels();
-    
-    // Update any currency displays that need special handling
     updateAllPrices();
 }
 // Helper function to escape HTML
@@ -12398,7 +13618,338 @@ function escapeHtml(s) {
       }
     }
 
-   
+   // ============================================
+// SHOW PRODUCT FULL DETAILS MODAL
+// Displays ALL information from seller form
+// ============================================
+function showProductFullDetails(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    // Format condition type for display
+    const conditionMap = {
+        'new': '🌟 Brand New (Unopened/Sealed)',
+        'like_new': '✨ Like New (Opened but unused)',
+        'excellent': '⭐ Excellent (Very light use, no defects)',
+        'good': '👍 Good (Normal wear, fully functional)',
+        'fair': '👌 Fair (Visible wear, fully functional)',
+        'acceptable': '📦 Acceptable (Heavy wear, functional)'
+    };
+    
+    const conditionDisplay = conditionMap[product.condition_type] || product.condition_type || 'Not specified';
+    const conditionClass = `condition-${product.condition_type || 'good'}`;
+    
+    // Warranty display
+    const warrantyMonths = parseInt(product.warranty_months) || 0;
+    const warrantyDisplay = warrantyMonths === 0 ? 'No warranty' : 
+                            warrantyMonths === 12 ? '1 year warranty' : 
+                            `${warrantyMonths} months warranty`;
+    
+    // Manufacturing date
+    const manufacturingDate = product.manufacturing_date ? 
+        new Date(product.manufacturing_date).toLocaleDateString() : 'Not specified';
+    
+    // Original packaging
+    const originalPackaging = parseInt(product.original_packaging) === 1 ? 
+        '✅ Yes, original packaging included' : '📦 No, generic/replacement packaging';
+    
+    // Accessories
+    const accessoriesDisplay = product.accessories_included && product.accessories_included.trim() ? 
+        product.accessories_included : 'None listed';
+    
+    // Defects
+    const defectsDisplay = product.visible_defects && product.visible_defects.trim() ? 
+        product.visible_defects : 'No visible defects reported';
+    
+    // Condition description
+    const conditionDescription = product.condition_description && product.condition_description.trim() ? 
+        product.condition_description : 'No additional condition notes';
+    
+    // Delivery/Pickup details
+    const deliveryType = product.delivery_type || 'delivery';
+    const deliveryCountries = product.delivery_countries || 'Worldwide';
+    const deliveryStates = product.delivery_states || '';
+    const estimatedDays = product.estimated_delivery_days || product.delivery_days || 7;
+    const pickupAddress = product.pickup_address || '';
+    const pickupHours = product.pickup_hours || '';
+    const pickupInstructions = product.pickup_instructions || '';
+    
+    // Get all images
+    const allImages = product._imageList && Array.isArray(product._imageList) ? product._imageList : 
+                      (product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []);
+    
+    // Build images gallery HTML
+    let imagesGalleryHtml = '';
+    if (allImages.length > 0) {
+        imagesGalleryHtml = `
+            <div class="detail-images-gallery">
+                <div class="gallery-main">
+                    <img id="galleryMainImg" src="${allImages[0]}" alt="${escapeHtml(product.title)}" onclick="openImageModal('${allImages[0]}')">
+                </div>
+                <div class="gallery-thumbs">
+                    ${allImages.map((img, idx) => `
+                        <img src="${img}" alt="Image ${idx + 1}" onclick="document.getElementById('galleryMainImg').src='${img}'; document.getElementById('galleryMainImg').onclick=function(){openImageModal('${img}')}">
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    const modalHtml = `
+        <div class="modal open" id="productFullDetailsModal">
+            <div class="modal-card product-full-details-modal">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+                    <h3 style="margin: 0;">
+                        <i class="fas fa-box-open" style="color: var(--accent);"></i> 
+                        ${escapeHtml(product.title)}
+                    </h3>
+                    <span class="close-x" onclick="closeProductFullDetailsModal()">&times;</span>
+                </div>
+                
+                <div class="details-scrollable">
+                    ${imagesGalleryHtml}
+                    
+                    <!-- Seller Info -->
+                    <div class="info-section">
+                        <h4><i class="fas fa-user-circle"></i> Seller Information</h4>
+                        <div class="info-row">
+                            <div class="info-label">Seller:</div>
+                            <div class="info-value">${escapeHtml(product.seller_name || 'Seller')}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Product Type:</div>
+                            <div class="info-value"><span class="product-badge ${product.type === 'digital' ? 'badge-digital' : product.type === 'physical' ? 'badge-physical' : 'badge-affiliate'}">${product.type || 'Physical'}</span></div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Category:</div>
+                            <div class="info-value">${escapeHtml(product.category || 'Uncategorized')}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Product Description -->
+                    <div class="info-section">
+                        <h4><i class="fas fa-align-left"></i> Description</h4>
+                        <div class="info-value" style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(product.description || 'No description provided')}</div>
+                    </div>
+                    
+                    <!-- Pricing -->
+                    <div class="info-section">
+                        <h4><i class="fas fa-tag"></i> Pricing</h4>
+                        <div class="info-row">
+                            <div class="info-label">Price:</div>
+                            <div class="info-value" style="font-size: 24px; color: var(--success); font-weight: bold;">${fmtPrice(product.price)}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Platform Fee (10%):</div>
+                            <div class="info-value">${fmtPrice(product.price * 0.10)}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Seller Earns:</div>
+                            <div class="info-value">${fmtPrice(product.price * 0.90)}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Condition Section (Physical Products) -->
+                    ${product.type === 'physical' ? `
+                        <div class="info-section">
+                            <h4><i class="fas fa-clipboard-check"></i> Product Condition</h4>
+                            <div class="info-row">
+                                <div class="info-label">Condition:</div>
+                                <div class="info-value">
+                                    <span class="badge-condition ${conditionClass}" style="display: inline-block; padding: 4px 12px; border-radius: 20px; background: var(--primary-dark);">${conditionDisplay}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Condition Notes:</div>
+                                <div class="info-value">${escapeHtml(conditionDescription)}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Visible Defects:</div>
+                                <div class="info-value" style="color: var(--warning);">${escapeHtml(defectsDisplay)}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Warranty & Packaging -->
+                        <div class="info-section">
+                            <h4><i class="fas fa-shield-alt"></i> Warranty & Packaging</h4>
+                            <div class="info-row">
+                                <div class="info-label">Warranty:</div>
+                                <div class="info-value">${warrantyDisplay}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Original Packaging:</div>
+                                <div class="info-value">${originalPackaging}</div>
+                            </div>
+                            ${product.manufacturing_date ? `
+                            <div class="info-row">
+                                <div class="info-label">Manufacturing Date:</div>
+                                <div class="info-value">${manufacturingDate}</div>
+                            </div>
+                            ` : ''}
+                            <div class="info-row">
+                                <div class="info-label">Accessories Included:</div>
+                                <div class="info-value">${escapeHtml(accessoriesDisplay)}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Delivery/Pickup Details -->
+                        <div class="info-section">
+                            <h4><i class="fas fa-truck"></i> Delivery & Pickup Options</h4>
+                            ${deliveryType === 'delivery' || deliveryType === 'both' ? `
+                                <div class="info-row">
+                                    <div class="info-label">Home Delivery:</div>
+                                    <div class="info-value">✅ Available</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Ships to:</div>
+                                    <div class="info-value">${escapeHtml(deliveryCountries)}</div>
+                                </div>
+                                ${deliveryStates ? `
+                                <div class="info-row">
+                                    <div class="info-label">States/Provinces:</div>
+                                    <div class="info-value">${escapeHtml(deliveryStates)}</div>
+                                </div>
+                                ` : ''}
+                                <div class="info-row">
+                                    <div class="info-label">Est. Delivery:</div>
+                                    <div class="info-value">${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${deliveryType === 'pickup' || deliveryType === 'both' ? `
+                                <div class="info-row" style="margin-top: 12px;">
+                                    <div class="info-label">Store Pickup:</div>
+                                    <div class="info-value">✅ Available</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Pickup Location:</div>
+                                    <div class="info-value">${escapeHtml(pickupAddress)}</div>
+                                </div>
+                                ${pickupHours ? `
+                                <div class="info-row">
+                                    <div class="info-label">Pickup Hours:</div>
+                                    <div class="info-value">${escapeHtml(pickupHours)}</div>
+                                </div>
+                                ` : ''}
+                                ${pickupInstructions ? `
+                                <div class="info-row">
+                                    <div class="info-label">Pickup Instructions:</div>
+                                    <div class="info-value">${escapeHtml(pickupInstructions)}</div>
+                                </div>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Purchase Protection -->
+                        <div class="info-section" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                            <h4><i class="fas fa-shield-alt" style="color: var(--success);"></i> Purchase Protection</h4>
+                            <div class="info-row">
+                                <div class="info-label">Escrow:</div>
+                                <div class="info-value">Funds held 5 days after delivery confirmation</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Refund Window:</div>
+                                <div class="info-value">5 days after delivery confirmation</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Return Options:</div>
+                                <div class="info-value">Home pickup (3% fee) or Dropoff (free)</div>
+                            </div>
+                        </div>
+                    ` : product.type === 'digital' ? `
+                        <div class="info-section">
+                            <h4><i class="fas fa-download"></i> Digital Product Info</h4>
+                            <div class="info-row">
+                                <div class="info-label">Delivery:</div>
+                                <div class="info-value">Instant download after payment</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Format:</div>
+                                <div class="info-value">Digital file (PDF/ZIP/MP3/MP4)</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Access:</div>
+                                <div class="info-value">Download link sent to email</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Reviews Summary -->
+                    <div class="info-section">
+                        <h4><i class="fas fa-star"></i> Customer Reviews</h4>
+                        <div class="info-row">
+                            <div class="info-label">Rating:</div>
+                            <div class="info-value">
+                                <span class="rating-stars">${'⭐'.repeat(Math.floor(product.rating || 0))}</span>
+                                <span> (${product.review_count || 0} reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="details-actions" style="display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                    ${product.type === 'physical' ? `
+                        <button class="btn primary" onclick="closeProductFullDetailsModal(); orderPhysicalProduct(${product.id})" style="flex: 2;">
+                            <i class="fas fa-shopping-cart"></i> Place Order
+                        </button>
+                        <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    ` : product.type === 'digital' ? `
+                        <button class="btn primary" onclick="closeProductFullDetailsModal(); buyProduct(${product.id})" style="flex: 2;">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                        <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    ` : `
+                        <button class="btn primary" onclick="closeProductFullDetailsModal(); openAffiliate('${escapeHtml(product.affiliate_link || '')}')" style="flex: 2;">
+                            <i class="fas fa-external-link-alt"></i> Visit Affiliate Link
+                        </button>
+                        <button class="btn secondary" onclick="closeProductFullDetailsModal()" style="flex: 1;">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('productFullDetailsModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Close product details modal
+function closeProductFullDetailsModal() {
+    const modal = document.getElementById('productFullDetailsModal');
+    if (modal) modal.remove();
+}
+
+// Open image in fullscreen modal
+function openImageModal(imageUrl) {
+    const modalHtml = `
+        <div class="modal open" id="imageModal" onclick="closeImageModal()">
+            <div class="image-modal-content" style="max-width: 90vw; max-height: 90vh; display: flex; align-items: center; justify-content: center;">
+                <img src="${imageUrl}" style="max-width: 100%; max-height: 90vh; border-radius: 8px;">
+                <button class="close-image" onclick="event.stopPropagation(); closeImageModal()" style="position: absolute; top: 20px; right: 30px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 30px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;">&times;</button>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('imageModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    if (modal) modal.remove();
+}
 
     // ---------- Buy Digital Product ----------
 // Updated buyProduct function in your HTML

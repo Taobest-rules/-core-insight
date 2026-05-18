@@ -1,0 +1,507 @@
+<span style="color: gold;">
+بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>
+In the name of Allah, the Most Gracious, the Most Merciful
+</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Product - Core Insight Marketplace</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #0f172a;
+            --secondary-dark: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-light: #f8fafc;
+            --text-gray: #94a3b8;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-dark);
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Product Detail */
+        .product-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        
+        .product-gallery {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .main-image {
+            width: 100%;
+            height: 400px;
+            background: var(--secondary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .main-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .thumbnail-list {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            overflow-x: auto;
+        }
+        
+        .thumbnail-list img {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .thumbnail-list img:hover,
+        .thumbnail-list img.active {
+            border-color: var(--accent);
+        }
+        
+        .product-info {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 25px;
+        }
+        
+        .product-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .seller-info {
+            color: var(--text-gray);
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .price {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        
+        .description {
+            color: var(--text-gray);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .details-section {
+            margin-bottom: 20px;
+        }
+        
+        .details-section h4 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .details-label {
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+        
+        .details-value {
+            color: var(--text-light);
+        }
+        
+        .condition-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .condition-new { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .condition-like_new { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .condition-excellent { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+        .condition-good { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .condition-fair { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary-dark);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--card-bg);
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning);
+            color: var(--warning);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 60px;
+            color: var(--danger);
+        }
+        
+        @media (max-width: 768px) {
+            .product-detail {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .product-title {
+                font-size: 22px;
+            }
+            
+            .price {
+                font-size: 24px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .main-image {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-store"></i>
+                <span>Core Insight Marketplace</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin" style="font-size: 48px;"></i>
+                <p>Loading product...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Get share token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareToken = urlParams.get('token');
+        
+        if (!shareToken) {
+            document.getElementById('content').innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
+                    <h2>Invalid Share Link</h2>
+                    <p>No product specified. Please check the link and try again.</p>
+                    <a href="/products.html" class="btn btn-primary" style="display: inline-block; margin-top: 20px;">Browse Products</a>
+                </div>
+            `;
+        } else {
+            loadSharedProduct(shareToken);
+        }
+        
+        async function loadSharedProduct(token) {
+            try {
+                const response = await fetch(`/api/products/by-share-token/${token}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Product not found');
+                }
+                
+                const product = data.product;
+                const shareStats = data.shareStats;
+                
+                displayProduct(product, shareStats);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px;"></i>
+                        <h2>Product Not Found</h2>
+                        <p>${error.message || 'This product may have been removed or the share link has expired.'}</p>
+                        <a href="/products.html" class="btn btn-primary" style="display: inline-block; margin-top: 20px;">Browse Products</a>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayProduct(product, shareStats) {
+            // Parse images
+            let images = product.images || [];
+            if (typeof images === 'string') {
+                try {
+                    images = JSON.parse(images);
+                } catch(e) {
+                    images = [images];
+                }
+            }
+            
+            const mainImage = images.length > 0 ? images[0] : 'https://placehold.co/600x400/1e293b/3b82f6/png?text=No+Image';
+            
+            // Condition badge class
+            const conditionClass = `condition-${product.condition_type || 'good'}`;
+            const conditionMap = {
+                'new': 'Brand New',
+                'like_new': 'Like New',
+                'excellent': 'Excellent',
+                'good': 'Good',
+                'fair': 'Fair',
+                'acceptable': 'Acceptable'
+            };
+            const conditionText = conditionMap[product.condition_type] || 'Not specified';
+            
+            // Format price
+            const price = parseFloat(product.price || 0);
+            const formattedPrice = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(price);
+            
+            // Build thumbnail HTML
+            let thumbnailsHtml = '';
+            if (images.length > 1) {
+                thumbnailsHtml = `
+                    <div class="thumbnail-list">
+                        ${images.map((img, idx) => `
+                            <img src="${img}" alt="Thumbnail ${idx + 1}" onclick="changeMainImage(this, '${img}')" ${idx === 0 ? 'class="active"' : ''}>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Build warranty display
+            const warrantyMonths = parseInt(product.warranty_months) || 0;
+            const warrantyDisplay = warrantyMonths === 0 ? 'No warranty' : 
+                                    warrantyMonths === 12 ? '1 year warranty' : 
+                                    `${warrantyMonths} months warranty`;
+            
+            // Build delivery info
+            const deliveryCountries = product.delivery_countries || 'Worldwide';
+            const estimatedDays = product.estimated_delivery_days || 7;
+            const pickupAddress = product.pickup_address || '';
+            
+            const html = `
+                <div class="product-detail">
+                    <div class="product-gallery">
+                        <div class="main-image">
+                            <img id="mainImage" src="${mainImage}" alt="${escapeHtml(product.title)}">
+                        </div>
+                        ${thumbnailsHtml}
+                    </div>
+                    
+                    <div class="product-info">
+                        <h1 class="product-title">${escapeHtml(product.title)}</h1>
+                        <div class="seller-info">
+                            <i class="fas fa-user"></i> Sold by: ${escapeHtml(product.seller_name || 'Core Insight Seller')}
+                        </div>
+                        
+                        <div class="price">${formattedPrice}</div>
+                        
+                        <div class="description">
+                            ${escapeHtml(product.description || 'No description provided')}
+                        </div>
+                        
+                        <div class="details-section">
+                            <h4><i class="fas fa-clipboard-list"></i> Product Details</h4>
+                            <div class="details-grid">
+                                <span class="details-label">Category:</span>
+                                <span class="details-value">${escapeHtml(product.category || 'Uncategorized')}</span>
+                                <span class="details-label">Type:</span>
+                                <span class="details-value">${product.type === 'physical' ? '📦 Physical Product' : product.type === 'digital' ? '📱 Digital Product' : '🔗 Affiliate Product'}</span>
+                                ${product.type === 'physical' ? `
+                                    <span class="details-label">Condition:</span>
+                                    <span class="details-value"><span class="condition-badge ${conditionClass}">${conditionText}</span></span>
+                                    <span class="details-label">Warranty:</span>
+                                    <span class="details-value">${warrantyDisplay}</span>
+                                    <span class="details-label">Ships to:</span>
+                                    <span class="details-value">${escapeHtml(deliveryCountries)}</span>
+                                    <span class="details-label">Est. Delivery:</span>
+                                    <span class="details-value">${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span>
+                                    ${pickupAddress ? `
+                                        <span class="details-label">Pickup Available:</span>
+                                        <span class="details-value">✅ Yes at: ${escapeHtml(pickupAddress)}</span>
+                                    ` : ''}
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        ${shareStats ? `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-chart-line"></i> Shared by seller • ${shareStats.clicks || 0} views
+                            </div>
+                        ` : ''}
+                        
+                        <div class="action-buttons">
+                            <a href="/products.html" class="btn btn-secondary">
+                                <i class="fas fa-store"></i> Browse More Products
+                            </a>
+                            ${product.type === 'physical' ? `
+                                <a href="/products.html" class="btn btn-primary">
+                                    <i class="fas fa-shopping-cart"></i> Order Now
+                                </a>
+                            ` : product.type === 'digital' ? `
+                                <a href="/products.html" class="btn btn-primary">
+                                    <i class="fas fa-shopping-cart"></i> Buy Now
+                                </a>
+                            ` : `
+                                <a href="${escapeHtml(product.affiliate_link || '#')}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">
+                                    <i class="fas fa-external-link-alt"></i> Visit Store
+                                </a>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = html;
+        }
+        
+        function changeMainImage(element, imageUrl) {
+            // Update main image
+            document.getElementById('mainImage').src = imageUrl;
+            
+            // Update active state on thumbnails
+            document.querySelectorAll('.thumbnail-list img').forEach(img => {
+                img.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+</body>
+</html>

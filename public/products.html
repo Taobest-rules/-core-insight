@@ -14978,6 +14978,80 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadProductReviews(currentProductId);
     }
 });
+// ============================================
+// FORCE PRODUCTS TO LOAD - FIX
+// ============================================
+// Override the loadProducts function to ensure it works
+const originalLoadProducts = loadProducts;
+window.loadProducts = async function() {
+    console.log("🔄 loadProducts called - forcing render");
+    try {
+        const response = await fetch('/api/products', {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ Fetched ${data.length} products`);
+            products = data;
+            
+            // Process images
+            products = products.map(p => {
+                if (p.images && Array.isArray(p.images)) {
+                    p._imageList = p.images;
+                } else if (p.image_urls) {
+                    try {
+                        if (typeof p.image_urls === 'string') {
+                            p._imageList = p.image_urls.startsWith('[') ? JSON.parse(p.image_urls) : [p.image_urls];
+                        } else if (Array.isArray(p.image_urls)) {
+                            p._imageList = p.image_urls;
+                        } else {
+                            p._imageList = [];
+                        }
+                    } catch(e) {
+                        p._imageList = [];
+                    }
+                } else {
+                    p._imageList = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+                }
+                
+                if (!p._imageList || p._imageList.length === 0) {
+                    p._imageList = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Product'];
+                }
+                
+                p.price = Number(p.price) || 0;
+                p.original_price = Number(p.original_price) || p.price;
+                p.seller_name = p.seller_name || p.username || 'Seller';
+                p.type = p.type || 'physical';
+                
+                if (p.category) categoriesSet.add(p.category);
+                
+                return p;
+            });
+            
+            // Force render
+            if (typeof renderProducts === 'function') {
+                renderProducts();
+            } else {
+                console.error("renderProducts is not defined!");
+            }
+        }
+    } catch(err) {
+        console.error("Force load error:", err);
+    }
+};
+
+// Force load products immediately
+setTimeout(() => {
+    if (products.length === 0) {
+        console.log("⚠️ Products array is empty, forcing load...");
+        loadProducts();
+    } else {
+        console.log(`✅ Products already loaded: ${products.length}`);
+        renderProducts();
+    }
+}, 1000);
   </script>
 </body>
 </html>

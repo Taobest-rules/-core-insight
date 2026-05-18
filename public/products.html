@@ -11108,13 +11108,15 @@ function initOrderForm() {
         orderQuantity.parentNode.replaceChild(newQuantity, orderQuantity);
         newQuantity.removeAttribute('max');
         
-        // Use updateOrderTotals instead of updateOrderTotals
+        // ✅ FIXED: Use updateOrderTotalDisplay instead of updateOrderTotals
         newQuantity.addEventListener('input', function() {
             let val = parseInt(this.value);
             if (isNaN(val) || val < 1) {
                 this.value = 1;
             }
-            updateOrderTotals();  // ← This function now exists
+            if (typeof updateOrderTotalDisplay === 'function') {
+                updateOrderTotalDisplay();
+            }
         });
         
         newQuantity.addEventListener('change', function() {
@@ -11122,7 +11124,9 @@ function initOrderForm() {
             if (isNaN(val) || val < 1) {
                 this.value = 1;
             }
-            updateOrderTotals();  // ← This function now exists
+            if (typeof updateOrderTotalDisplay === 'function') {
+                updateOrderTotalDisplay();
+            }
         });
     }
 }
@@ -11131,56 +11135,7 @@ window.orderPhysicalProduct = orderPhysicalProduct;
 window.submitOrderForm = submitOrderForm;
 window.closeAddressModal = closeAddressModal;
 
-// Update address form submission
-document.getElementById('addressForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  if (!currentOrderProduct) {
-    alert('No product selected');
-    return;
-  }
-  
-  const messageEl = document.getElementById('addressFormMessage');
-  messageEl.textContent = 'Creating your order...';
-  
-  const orderData = {
-    productId: currentOrderProduct.id,
-    quantity: parseInt(document.getElementById('orderQuantity').value) || 1,
-    deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
-    city: document.getElementById('city').value.trim(),
-    state: document.getElementById('state').value.trim(),
-    country: document.getElementById('country').value.trim(),
-    deliveryPhone: document.getElementById('deliveryPhone').value.trim()
-  };
-  
-  try {
-    const response = await fetch('/api/physical-orders/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      closeModal(document.getElementById('addressModal'));
-      showToast(
-        'Order Submitted!', 
-        'Your order has been sent to the seller for approval. You will be notified when the seller responds.',
-        'success'
-      );
-      document.getElementById('addressForm').reset();
-      currentOrderProduct = null;
-    } else {
-      messageEl.textContent = data.error || 'Failed to create order';
-      messageEl.style.color = 'var(--danger)';
-    }
-  } catch(error) {
-    messageEl.textContent = 'Network error. Please try again.';
-    messageEl.style.color = 'var(--danger)';
-  }
-});
+
 // Address form submission - Create order WITHOUT payment first
 document.getElementById('addressForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();

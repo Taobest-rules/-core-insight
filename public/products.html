@@ -7326,13 +7326,38 @@ function updatePlatformStats(stats) {
 }
 
 function openDashboard() {
-    if (!currentUser) { openModal(document.getElementById('loginModal')); return; }
-    document.getElementById('buyerView').style.display = 'none';
-    document.getElementById('sellerView').style.display = 'none';
-    document.getElementById('dashboardSection').style.display = 'block';
+    if (!currentUser) { 
+        openModal(document.getElementById('loginModal')); 
+        return; 
+    }
+    
+    // Hide other views
+    const buyerView = document.getElementById('buyerView');
+    const sellerView = document.getElementById('sellerView');
+    const dashboardSection = document.getElementById('dashboardSection');
+    
+    if (buyerView) buyerView.style.display = 'none';
+    if (sellerView) sellerView.style.display = 'none';
+    if (dashboardSection) dashboardSection.style.display = 'block';
+    
+    // Load dashboard data
     loadDashboardStats();
     loadMyProducts();
-    if (currentUser && currentUser.role === 'admin') checkAndShowAdminFeatures();
+    
+    // Initialize tabs
+    initDashboardTabs();
+    
+    // Show admin features if applicable
+    if (currentUser && currentUser.role === 'admin') {
+        const adminTab = document.getElementById('adminTabBtn');
+        const adminControls = document.getElementById('adminControls');
+        if (adminTab) adminTab.style.display = 'block';
+        if (adminControls) adminControls.style.display = 'block';
+        loadAdminData();
+    }
+    
+    // Load share stats
+    loadShareStats();
 }
 window.openDashboard = openDashboard;
 // Quantity control functions
@@ -7364,15 +7389,148 @@ function decrementQuantity() {
 async function loadSellerNotifications() {
     try {
         if (!currentUser) return;
-        const response = await fetch('/api/seller/notifications', { credentials: 'include' });
-         if (!response.ok) return; // Add this line to handle 404 gracefully
+        
+        const response = await fetch('/api/seller/notifications', { 
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            console.log('Notifications endpoint not available yet');
+            return;
+        }
+        
         const data = await response.json();
         const notificationCount = document.getElementById('notificationCount');
+        
         if (notificationCount && data.unreadCount > 0) {
             notificationCount.textContent = data.unreadCount;
             notificationCount.style.display = 'flex';
-        } else if (notificationCount) { notificationCount.style.display = 'none'; }
-    } catch (error) { console.log('Notifications not available'); }
+        } else if (notificationCount) {
+            notificationCount.style.display = 'none';
+        }
+        
+        // Store notifications for dropdown
+        window.cachedNotifications = data.notifications || [];
+        
+    } catch (error) { 
+        console.log('Notifications not available:', error.message);
+    }
+}
+
+// Show notification dropdown when bell is clicked
+function showNotificationDropdown() {
+    // Remove existing dropdown
+    const existingDropdown = document.querySelector('.notifications-dropdown');
+    if (existingDropdown) existingDropdown.remove();
+    
+    if (!currentUser) {
+        showToast('Please login to view notifications', 'info');
+        return;
+    }
+    
+    const notifications = window.cachedNotifications || [];
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    
+    const dropdownHtml = `
+        <div class="notifications-dropdown" style="position: fixed; top: 70px; right: 20px; width: 380px; max-width: calc(100vw - 40px); background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 10001; overflow: hidden;">
+            <div class="dropdown-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); background: rgba(59, 130, 246, 0.05);">
+                <h4 style="margin: 0; font-size: 16px;"><i class="fas fa-bell"></i> Notifications</h4>
+                <button class="mark-all-read" onclick="markAllNotificationsRead()" style="background: transparent; border: none; color: var(--accent); font-size: 12px; cursor: pointer;">Mark all read</button>
+            </div>
+            <div class="dropdown-list" style="max-height: 400px; overflow-y: auto;">
+                ${notifications.length === 0 ? `
+                    <div class="empty-notifications" style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
+                        <i class="fas fa-bell-slash" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p>No notifications yet</p>
+                    </div>
+                ` : `
+                    ${notifications.map(notif => `
+                        <div class="notification-item ${!notif.is_read ? 'unread' : ''}" onclick="markNotificationRead(${notif.id})" style="display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border-light); cursor: pointer; transition: var(--transition); ${!notif.is_read ? 'background: rgba(59, 130, 246, 0.08);' : ''}">
+                            <div class="notification-icon" style="flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.15);">
+                                <i class="fas ${notif.notification_type === 'new_order' ? 'fa-shopping-cart' : notif.notification_type === 'payment_received' ? 'fa-money-bill-wave' : 'fa-bell'}" style="color: var(--accent);"></i>
+                            </div>
+                            <div class="notification-content" style="flex: 1;">
+                                <div class="notification-title" style="font-weight: 600; font-size: 14px; color: var(--text-light);">${escapeHtml(notif.title)}</div>
+                                <div class="notification-message" style="font-size: 13px; color: var(--text-gray); line-height: 1.4;">${escapeHtml(notif.message)}</div>
+                                <div class="notification-time" style="font-size: 11px; color: var(--text-muted);">${formatNotificationTime(notif.created_at)}</div>
+                            </div>
+                            ${!notif.is_read ? '<div class="notification-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px;"></div>' : ''}
+                        </div>
+                    `).join('')}
+                `}
+            </div>
+            <div class="dropdown-footer" style="padding: 12px 16px; border-top: 1px solid var(--border); text-align: center;">
+                <a href="#" onclick="openDashboard(); closeNotificationDropdown();" style="color: var(--accent); text-decoration: none; font-size: 13px;">View all in Dashboard</a>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', dropdownHtml);
+    
+    // Close dropdown when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!e.target.closest('.notifications-dropdown') && !e.target.closest('#notificationBtn')) {
+                const dropdown = document.querySelector('.notifications-dropdown');
+                if (dropdown) dropdown.remove();
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }, 100);
+}
+
+function closeNotificationDropdown() {
+    const dropdown = document.querySelector('.notifications-dropdown');
+    if (dropdown) dropdown.remove();
+}
+
+function formatNotificationTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+}
+
+async function markNotificationRead(notificationId) {
+    try {
+        const response = await fetch(`/api/seller/notifications/${notificationId}/read`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            // Refresh notifications
+            await loadSellerNotifications();
+            showNotificationDropdown();
+        }
+    } catch (error) {
+        console.error('Error marking notification read:', error);
+    }
+}
+
+async function markAllNotificationsRead() {
+    try {
+        const response = await fetch('/api/seller/notifications/mark-all-read', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            await loadSellerNotifications();
+            showNotificationDropdown();
+        }
+    } catch (error) {
+        console.error('Error marking all notifications read:', error);
+    }
 }
 
 // ============================================
@@ -8059,7 +8217,92 @@ function initMobileNav() {
     updateNavigation();
     window.addEventListener('resize', updateNavigation);
 }
+// ============================================
+// DASHBOARD TABS INITIALIZATION - FIXED
+// ============================================
 
+function initDashboardTabs() {
+    const tabButtons = document.querySelectorAll('.dashboard-tabs .tab-btn');
+    
+    if (!tabButtons || tabButtons.length === 0) {
+        console.log('No tab buttons found');
+        return;
+    }
+    
+    // Remove existing listeners to prevent duplicates
+    tabButtons.forEach(btn => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabId = this.getAttribute('data-tab');
+            if (!tabId) return;
+            
+            console.log('Tab clicked:', tabId);
+            
+            // Update active tab button
+            document.querySelectorAll('.dashboard-tabs .tab-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Hide all tab contents
+            document.querySelectorAll('.dashboard-tabs .tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            let contentId = tabId;
+            if (tabId === 'paid-orders') contentId = 'paidOrdersTab';
+            if (tabId === 'shares') contentId = 'sharesTab';
+            if (tabId === 'admin') contentId = 'adminTabContent';
+            if (tabId === 'buyer-orders') contentId = 'buyerOrdersTab';
+            
+            const selectedContent = document.getElementById(contentId + 'Tab');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            } else {
+                // Try without 'Tab' suffix
+                const altContent = document.getElementById(contentId);
+                if (altContent) altContent.classList.add('active');
+            }
+            
+            // Load tab data
+            loadTabData(tabId);
+        });
+    });
+    
+    console.log('✅ Dashboard tabs initialized');
+}
+
+function loadTabData(tabId) {
+    switch(tabId) {
+        case 'products':
+            if (typeof loadMyProducts === 'function') loadMyProducts();
+            break;
+        case 'sales':
+            if (typeof loadSalesHistory === 'function') loadSalesHistory();
+            break;
+        case 'paid-orders':
+            if (typeof loadPaidOrders === 'function') loadPaidOrders();
+            break;
+        case 'analytics':
+            if (typeof loadCharts === 'function') loadCharts();
+            break;
+        case 'refunds':
+            if (typeof loadPendingRefunds === 'function') loadPendingRefunds();
+            break;
+        case 'shares':
+            if (typeof loadShareStats === 'function') loadShareStats();
+            break;
+        case 'admin':
+            if (currentUser && currentUser.role === 'admin') {
+                if (typeof loadAdminData === 'function') loadAdminData();
+            }
+            break;
+    }
+}
 // ============================================
 // INITIALIZE EVERYTHING ON PAGE LOAD
 // ============================================
@@ -8255,6 +8498,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const affiliateBlock = document.getElementById('affiliateBlock');
     if (affiliateBlock) affiliateBlock.classList.remove('show');
     toggleDeliveryMethod();
+    // Notification bell click handler
+const notificationBtn = document.getElementById('notificationBtn');
+if (notificationBtn) {
+    notificationBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showNotificationDropdown();
+    });
+}
 });
 document.getElementById('searchInput')?.addEventListener('input', debounce(renderProducts, 250));
 document.getElementById('filterType')?.addEventListener('change', renderProducts);

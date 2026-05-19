@@ -5422,16 +5422,16 @@ In the name of Allah, the Most Gracious, the Most Merciful
                 </div>
             </div>
             
-            <!-- Quantity Selector -->
-            <div style="margin-bottom: 16px;">
-                <label style="display:block; margin-bottom:8px; font-weight: 500;">Quantity <span style="color:var(--danger);">*</span></label>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=Math.max(1, parseInt(inp.value)-1); updateOrderTotalDisplay();" style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 20px;">−</button>
-                    <input type="number" id="orderQuantity" class="form-input" value="1" min="1" step="1" style="width: 80px; text-align: center; font-size: 18px;">
-                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=parseInt(inp.value)+1; updateOrderTotalDisplay();" style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 20px;">+</button>
-                </div>
-                <small class="form-help">Type a number or use +/- buttons</small>
-            </div>
+            <!-- Quantity Selector - Read Only, Only +/- Buttons -->
+<div style="margin-bottom: 16px;">
+    <label style="display:block; margin-bottom:8px; font-weight: 500;">Quantity <span style="color:var(--danger);">*</span></label>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <button type="button" onclick="decrementQuantity()" style="width: 44px; height: 44px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 24px; font-weight: bold;">−</button>
+        <input type="text" id="orderQuantity" class="form-input" value="1" readonly style="width: 80px; text-align: center; font-size: 20px; font-weight: bold; background: var(--card-bg); cursor: default;">
+        <button type="button" onclick="incrementQuantity()" style="width: 44px; height: 44px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 24px; font-weight: bold;">+</button>
+    </div>
+    <small class="form-help">Use + and - buttons to adjust quantity</small>
+</div>
             
             <!-- Payment Breakdown -->
             <div id="paymentBreakdown" style="background: var(--primary-dark); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
@@ -6493,34 +6493,6 @@ async function orderPhysicalProduct(productId) {
     const newQuantity = quantityInput.cloneNode(true);
     quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
     
-    // Add both input and change events for typing
-    newQuantity.addEventListener('input', function() { 
-        let val = parseInt(this.value); 
-        if (isNaN(val) || val < 1) { 
-            val = 1; 
-            this.value = 1; 
-        }
-        updateOrderTotalDisplay(); 
-    });
-    
-    newQuantity.addEventListener('change', function() { 
-        let val = parseInt(this.value); 
-        if (isNaN(val) || val < 1) { 
-            val = 1; 
-            this.value = 1; 
-        }
-        updateOrderTotalDisplay(); 
-    });
-    
-    // Also add keyup event for real-time updates while typing
-    newQuantity.addEventListener('keyup', function() { 
-        let val = parseInt(this.value); 
-        if (isNaN(val) || val < 1) { 
-            val = 1; 
-            this.value = 1; 
-        }
-        updateOrderTotalDisplay(); 
-    });
 }
         const fields = ['deliveryAddress', 'city', 'state', 'country', 'deliveryPhone'];
         fields.forEach(field => { const el = document.getElementById(field); if (el) el.value = ''; });
@@ -7363,6 +7335,28 @@ function openDashboard() {
     if (currentUser && currentUser.role === 'admin') checkAndShowAdminFeatures();
 }
 window.openDashboard = openDashboard;
+// Quantity control functions
+function incrementQuantity() {
+    const input = document.getElementById('orderQuantity');
+    if (input) {
+        let val = parseInt(input.value) || 1;
+        val = val + 1;
+        input.value = val;
+        updateOrderTotalDisplay();
+    }
+}
+
+function decrementQuantity() {
+    const input = document.getElementById('orderQuantity');
+    if (input) {
+        let val = parseInt(input.value) || 1;
+        if (val > 1) {
+            val = val - 1;
+            input.value = val;
+            updateOrderTotalDisplay();
+        }
+    }
+}
 
 // ============================================
 // SELLER NOTIFICATIONS

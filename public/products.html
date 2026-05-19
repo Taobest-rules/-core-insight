@@ -4189,6 +4189,34 @@ In the name of Allah, the Most Gracious, the Most Merciful
 .commission-item strong {
   color: var(--success);
 }
+/* Scrollable Modal Styles */
+#addressModal .modal-card {
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#addressForm {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+/* Custom scrollbar */
+#addressForm::-webkit-scrollbar {
+    width: 6px;
+}
+
+#addressForm::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+#addressForm::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
   </style>
 </head>
 <body>
@@ -5374,15 +5402,15 @@ In the name of Allah, the Most Gracious, the Most Merciful
     </div>
   </div>
 
-<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - WITH PRICE CALCULATION -->
+<!-- ADDRESS MODAL FOR PHYSICAL ORDERS - SCROLLABLE -->
 <div id="addressModal" class="modal" aria-hidden="true">
-    <div class="modal-card" style="max-width: 550px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div class="modal-card" style="max-width: 550px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-shrink: 0;">
             <h3 style="margin:0"><i class="fas fa-truck"></i> Order & Delivery</h3>
             <span id="closeAddressModal" class="close-x" onclick="closeAddressModal()">&times;</span>
         </div>
         
-        <form id="addressForm">
+        <form id="addressForm" style="overflow-y: auto; flex: 1; padding-right: 5px;">
             <!-- Product Summary -->
             <div id="productSummary" style="background: rgba(59, 130, 246, 0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                 <div style="display: flex; gap: 12px; align-items: center;">
@@ -5398,14 +5426,14 @@ In the name of Allah, the Most Gracious, the Most Merciful
             <div style="margin-bottom: 16px;">
                 <label style="display:block; margin-bottom:8px; font-weight: 500;">Quantity <span style="color:var(--danger);">*</span></label>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=Math.max(1, parseInt(inp.value)-1); updateOrderTotalDisplay();" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer;">−</button>
-                    <input type="number" id="orderQuantity" class="form-input" value="1" min="1" style="width: 80px; text-align: center;">
-                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=parseInt(inp.value)+1; updateOrderTotalDisplay();" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer;">+</button>
+                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=Math.max(1, parseInt(inp.value)-1); updateOrderTotalDisplay();" style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 20px;">−</button>
+                    <input type="number" id="orderQuantity" class="form-input" value="1" min="1" step="1" style="width: 80px; text-align: center; font-size: 18px;">
+                    <button type="button" onclick="const inp=document.getElementById('orderQuantity'); inp.value=parseInt(inp.value)+1; updateOrderTotalDisplay();" style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 20px;">+</button>
                 </div>
-                <small class="form-help">Enter desired quantity</small>
+                <small class="form-help">Type a number or use +/- buttons</small>
             </div>
             
-            <!-- Payment Breakdown - Customer Sees Total -->
+            <!-- Payment Breakdown -->
             <div id="paymentBreakdown" style="background: var(--primary-dark); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="color: var(--text-gray);">Subtotal (<span id="qtyDisplay">1</span> × price):</span>
@@ -5454,7 +5482,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
             
             <div id="addressFormMessage" class="form-message"></div>
             
-            <div style="display:flex; gap:12px">
+            <div style="display:flex; gap:12px; margin-top: 10px; flex-shrink: 0;">
                 <button type="submit" class="btn primary" style="flex:2">
                     <i class="fas fa-paper-plane"></i> Place Order
                 </button>
@@ -5463,7 +5491,7 @@ In the name of Allah, the Most Gracious, the Most Merciful
                 </button>
             </div>
             
-            <div style="margin-top: 16px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 12px;">
+            <div style="margin-top: 16px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 12px; flex-shrink: 0;">
                 <i class="fas fa-info-circle"></i> <strong>How it works:</strong> 
                 <span>1. Place order → 2. Seller confirms → 3. You pay → 4. Product delivered</span>
             </div>
@@ -6460,13 +6488,40 @@ async function orderPhysicalProduct(productId) {
         if (productThumbnail) productThumbnail.src = productImage;
         if (productNameEl) productNameEl.textContent = product.title || 'Product';
         if (productPriceEl) productPriceEl.innerHTML = `${fmtPrice(productPrice)} <span style="font-size: 12px; color: var(--text-muted);">each</span>`;
-        if (quantityInput) {
-            quantityInput.value = '1';
-            const newQuantity = quantityInput.cloneNode(true);
-            quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
-            newQuantity.addEventListener('input', function() { let val = parseInt(this.value); if (isNaN(val) || val < 1) { val = 1; this.value = 1; } updateOrderTotalDisplay(); });
-            newQuantity.addEventListener('change', function() { let val = parseInt(this.value); if (isNaN(val) || val < 1) { val = 1; this.value = 1; } updateOrderTotalDisplay(); });
+       if (quantityInput) {
+    quantityInput.value = '1';
+    const newQuantity = quantityInput.cloneNode(true);
+    quantityInput.parentNode.replaceChild(newQuantity, quantityInput);
+    
+    // Add both input and change events for typing
+    newQuantity.addEventListener('input', function() { 
+        let val = parseInt(this.value); 
+        if (isNaN(val) || val < 1) { 
+            val = 1; 
+            this.value = 1; 
         }
+        updateOrderTotalDisplay(); 
+    });
+    
+    newQuantity.addEventListener('change', function() { 
+        let val = parseInt(this.value); 
+        if (isNaN(val) || val < 1) { 
+            val = 1; 
+            this.value = 1; 
+        }
+        updateOrderTotalDisplay(); 
+    });
+    
+    // Also add keyup event for real-time updates while typing
+    newQuantity.addEventListener('keyup', function() { 
+        let val = parseInt(this.value); 
+        if (isNaN(val) || val < 1) { 
+            val = 1; 
+            this.value = 1; 
+        }
+        updateOrderTotalDisplay(); 
+    });
+}
         const fields = ['deliveryAddress', 'city', 'state', 'country', 'deliveryPhone'];
         fields.forEach(field => { const el = document.getElementById(field); if (el) el.value = ''; });
         const msgEl = document.getElementById('addressFormMessage');

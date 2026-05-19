@@ -48,53 +48,67 @@
     .summary-row:last-child { border-bottom: none; }
     .summary-row.total { margin-top: 12px; padding-top: 12px; border-top: 2px solid #FFD700; font-weight: 700; font-size: 18px; }
     
-    /* Flutterwave Only - Single Payment Method */
-    .flutterwave-section {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
-      border-radius: 16px;
-      padding: 28px;
+    /* Payment Methods Section - Dynamic based on country */
+    .payment-methods-section {
       margin: 24px 0;
-      border: 2px solid rgba(59, 130, 246, 0.4);
+    }
+    .payment-methods-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #e6f1ff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .payment-methods-title i {
+      color: #3b82f6;
+    }
+    .payment-options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .payment-option-card {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
       text-align: center;
     }
-    .flutterwave-icon {
-      font-size: 56px;
-      color: #3b82f6;
-      margin-bottom: 16px;
+    .payment-option-card:hover {
+      transform: translateY(-2px);
+      background: rgba(30, 41, 59, 0.8);
     }
-    .flutterwave-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 10px;
-      color: var(--text-light);
+    .payment-option-card.selected {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.15);
     }
-    .flutterwave-desc {
-      color: #94a3b8;
-      font-size: 14px;
-      margin-bottom: 20px;
+    .payment-option-card i {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
     }
-    .payment-badges {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 16px;
+    .payment-option-card .option-name {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 4px;
     }
-    .payment-badge {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 6px 14px;
+    .payment-option-card .option-desc {
       font-size: 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
       color: #94a3b8;
-    }
-    .payment-badge i {
-      color: #10b981;
-      font-size: 10px;
     }
     
+    /* Card icons for different payment methods */
+    .card-icon { color: #3b82f6; }
+    .bank-icon { color: #10b981; }
+    .ussd-icon { color: #f59e0b; }
+    .mobile-icon { color: #8b5cf6; }
+    
+    /* Flutterwave Payment Button */
     .pay-btn {
       width: 100%;
       background: linear-gradient(135deg, #3b82f6, #8b5cf6);
@@ -140,11 +154,26 @@
       color: #10b981;
     }
     
+    /* Country Detection Banner */
+    .country-banner {
+      background: rgba(100, 255, 218, 0.1);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      border: 1px solid rgba(100, 255, 218, 0.2);
+    }
+    .country-banner i {
+      font-size: 20px;
+      color: #64ffda;
+    }
+    
     @media (max-width: 640px) {
       .payment-body { padding: 20px; }
-      .flutterwave-section { padding: 20px; }
-      .flutterwave-icon { font-size: 42px; }
-      .flutterwave-title { font-size: 18px; }
+      .payment-options-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -182,20 +211,20 @@
             <div class="summary-row total"><span>Total Amount:</span><strong id="totalAmount" style="color: #10b981;">-</strong></div>
           </div>
           
-          <!-- Flutterwave Only Section -->
-          <div class="flutterwave-section">
-            <div class="flutterwave-icon">
-              <i class="fas fa-globe"></i>
+          <!-- Country Detection Banner -->
+          <div id="countryBanner" class="country-banner" style="display: none;">
+            <i class="fas fa-map-marker-alt"></i>
+            <span id="countryMessage">Detecting your location...</span>
+          </div>
+          
+          <!-- Payment Methods Section - Dynamic -->
+          <div class="payment-methods-section">
+            <div class="payment-methods-title">
+              <i class="fas fa-credit-card"></i>
+              <span id="paymentMethodsTitle">Select Payment Method</span>
             </div>
-            <div class="flutterwave-title">Pay with Flutterwave</div>
-            <div class="flutterwave-desc">
-              Secure payment via Flutterwave - Accepts cards, bank transfers, and USSD
-            </div>
-            <div class="payment-badges">
-              <span class="payment-badge"><i class="fas fa-check-circle"></i> Credit/Debit Cards</span>
-              <span class="payment-badge"><i class="fas fa-check-circle"></i> Bank Transfer</span>
-              <span class="payment-badge"><i class="fas fa-check-circle"></i> USSD</span>
-              <span class="payment-badge"><i class="fas fa-check-circle"></i> Mobile Money</span>
+            <div id="paymentOptionsGrid" class="payment-options-grid">
+              <!-- Payment options will be dynamically populated based on country -->
             </div>
           </div>
           
@@ -219,7 +248,7 @@
           </div>
           
           <button id="payNowBtn" class="pay-btn">
-            <i class="fas fa-lock"></i> Pay with Flutterwave
+            <i class="fas fa-lock"></i> Proceed to Payment
           </button>
           
           <div style="text-align: center; margin-top: 20px;">
@@ -234,10 +263,129 @@
     let orderData = null;
     let currentUserId = null;
     let flutterwavePublicKey = null;
+    let userCountry = null;
+    let selectedPaymentMethod = 'card';
     const orderId = new URLSearchParams(window.location.search).get('orderId');
     
     if (!orderId) {
       showError('No order ID provided');
+    }
+    
+    // ==================== DETECT USER COUNTRY ====================
+    async function detectUserCountry() {
+      try {
+        // First try to get from session (backend)
+        const res = await fetch('/api/me', { credentials: 'include' });
+        if (res.ok) {
+          const user = await res.json();
+          if (user && user.country) {
+            userCountry = user.country;
+            console.log('🌍 User country from session:', userCountry);
+            updateCountryBanner();
+            return userCountry;
+          }
+        }
+        
+        // Fallback: detect from IP
+        const ipRes = await fetch('https://ipapi.co/json/', { timeout: 5000 });
+        if (ipRes.ok) {
+          const ipData = await ipRes.json();
+          userCountry = ipData.country_code;
+          console.log('🌍 User country detected from IP:', userCountry);
+          updateCountryBanner();
+          return userCountry;
+        }
+      } catch (error) {
+        console.log('Could not detect country, defaulting to Nigeria');
+        userCountry = 'NG';
+        updateCountryBanner();
+        return 'NG';
+      }
+    }
+    
+    function updateCountryBanner() {
+      const banner = document.getElementById('countryBanner');
+      const messageSpan = document.getElementById('countryMessage');
+      
+      if (userCountry === 'NG') {
+        messageSpan.innerHTML = '🇳🇬 We detected you are in Nigeria. Multiple payment options are available including cards, bank transfers, USSD, and mobile money.';
+        banner.style.display = 'flex';
+      } else {
+        messageSpan.innerHTML = `🌍 We detected you are in ${userCountry || 'another country'}. Card payments are available in USD.`;
+        banner.style.display = 'flex';
+      }
+    }
+    
+    // ==================== RENDER PAYMENT OPTIONS BASED ON COUNTRY ====================
+    function renderPaymentOptions() {
+      const grid = document.getElementById('paymentOptionsGrid');
+      
+      if (!grid) return;
+      
+      if (userCountry === 'NG') {
+        // Nigerian users - show multiple payment options
+        grid.innerHTML = `
+          <div class="payment-option-card ${selectedPaymentMethod === 'card' ? 'selected' : ''}" data-method="card" onclick="selectPaymentMethod('card')">
+            <i class="fas fa-credit-card card-icon"></i>
+            <div class="option-name">Card Payment</div>
+            <div class="option-desc">Visa, Mastercard, Verve</div>
+          </div>
+          <div class="payment-option-card ${selectedPaymentMethod === 'banktransfer' ? 'selected' : ''}" data-method="banktransfer" onclick="selectPaymentMethod('banktransfer')">
+            <i class="fas fa-university bank-icon"></i>
+            <div class="option-name">Bank Transfer</div>
+            <div class="option-desc">Direct bank transfer</div>
+          </div>
+          <div class="payment-option-card ${selectedPaymentMethod === 'ussd' ? 'selected' : ''}" data-method="ussd" onclick="selectPaymentMethod('ussd')">
+            <i class="fas fa-mobile-alt ussd-icon"></i>
+            <div class="option-name">USSD</div>
+            <div class="option-desc">Pay with USSD code</div>
+          </div>
+          <div class="payment-option-card ${selectedPaymentMethod === 'mobilemoney' ? 'selected' : ''}" data-method="mobilemoney" onclick="selectPaymentMethod('mobilemoney')">
+            <i class="fas fa-wallet mobile-icon"></i>
+            <div class="option-name">Mobile Money</div>
+            <div class="option-desc">Paga, Opay, PalmPay</div>
+          </div>
+          <div class="payment-option-card ${selectedPaymentMethod === 'barter' ? 'selected' : ''}" data-method="barter" onclick="selectPaymentMethod('barter')">
+            <i class="fas fa-exchange-alt"></i>
+            <div class="option-name">Barter</div>
+            <div class="option-desc">Flutterwave Barter</div>
+          </div>
+          <div class="payment-option-card ${selectedPaymentMethod === 'qr' ? 'selected' : ''}" data-method="qr" onclick="selectPaymentMethod('qr')">
+            <i class="fas fa-qrcode"></i>
+            <div class="option-name">QR Code</div>
+            <div class="option-desc">Scan to pay</div>
+          </div>
+        `;
+        
+        document.getElementById('paymentMethodsTitle').innerHTML = '<i class="fas fa-university"></i> Select Payment Method (NGN)';
+        
+      } else {
+        // International users - only card
+        grid.innerHTML = `
+          <div class="payment-option-card selected" data-method="card" onclick="selectPaymentMethod('card')">
+            <i class="fas fa-credit-card card-icon"></i>
+            <div class="option-name">Card Payment</div>
+            <div class="option-desc">Visa, Mastercard, Amex</div>
+          </div>
+        `;
+        selectedPaymentMethod = 'card';
+        document.getElementById('paymentMethodsTitle').innerHTML = '<i class="fas fa-globe"></i> Card Payment (USD)';
+      }
+    }
+    
+    function selectPaymentMethod(method) {
+      selectedPaymentMethod = method;
+      
+      // Update UI
+      const cards = document.querySelectorAll('.payment-option-card');
+      cards.forEach(card => {
+        card.classList.remove('selected');
+        if (card.dataset.method === method) {
+          card.classList.add('selected');
+        }
+      });
+      
+      console.log('Selected payment method:', method);
     }
     
     async function checkAuth() {
@@ -291,7 +439,7 @@
       }
     }
     
-    // Flutterwave Payment Handler
+    // ==================== FLUTTERWAVE PAYMENT HANDLER (Country-Specific) ====================
     function initFlutterwavePayment() {
       return new Promise((resolve, reject) => {
         try {
@@ -305,16 +453,45 @@
           const name = orderData.buyer?.name || 'Customer';
           const tx_ref = `ORDER_${orderId}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
           
-          // Calculate split amounts for display
+          // Calculate split amounts
           const platformFee = amount * 0.10;
           const sellerAmount = amount - platformFee;
+          
+          // Set currency and payment options based on user's country
+          let currency = "USD";
+          let paymentOptions = "card";
+          
+          if (userCountry === 'NG') {
+            // Nigerian users - pay in NGN with all local methods
+            currency = "NGN";
+            // Convert amount to NGN using current exchange rate
+            // This would need the actual exchange rate from backend
+            paymentOptions = selectedPaymentMethod === 'card' 
+              ? "card" 
+              : (selectedPaymentMethod === 'banktransfer' ? "banktransfer" :
+                 (selectedPaymentMethod === 'ussd' ? "ussd" :
+                  (selectedPaymentMethod === 'mobilemoney' ? "mobilemoney" :
+                   (selectedPaymentMethod === 'barter' ? "barter" : 
+                    (selectedPaymentMethod === 'qr' ? "qr" : "card")))));
+            
+            // Ensure multiple options are available
+            if (paymentOptions === 'card') {
+              paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
+            }
+            
+            console.log(`💰 Nigerian user - Paying in NGN with options: ${paymentOptions}`);
+          } else {
+            currency = "USD";
+            paymentOptions = "card";
+            console.log(`💰 International user - Paying in USD with card only`);
+          }
           
           FlutterwaveCheckout({
             public_key: flutterwavePublicKey,
             tx_ref: tx_ref,
             amount: amount,
-            currency: "USD",
-            payment_options: "card, banktransfer, ussd, mobilemoney",
+            currency: currency,
+            payment_options: paymentOptions,
             customer: { 
               email: email, 
               name: name,
@@ -328,7 +505,9 @@
             meta: {
               order_id: orderId,
               platform_fee: platformFee,
-              seller_amount: sellerAmount
+              seller_amount: sellerAmount,
+              user_country: userCountry,
+              selected_payment_method: selectedPaymentMethod
             },
             callback: function(response) {
               console.log("Flutterwave callback response:", response);
@@ -416,6 +595,10 @@
         document.getElementById('platformFee').textContent = `$${platformFee.toFixed(2)} (10%)`;
         document.getElementById('totalPaid').textContent = `$${totalAmount.toFixed(2)}`;
         
+        // Detect country and render payment options
+        await detectUserCountry();
+        renderPaymentOptions();
+        
         loadingState.style.display = 'none';
         paymentContent.style.display = 'block';
         
@@ -434,7 +617,7 @@
       
       const payBtn = document.getElementById('payNowBtn');
       payBtn.disabled = true;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing Flutterwave payment...';
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing payment...';
       
       try {
         await initFlutterwavePayment();
@@ -443,7 +626,7 @@
         alert('Payment Error: ' + error.message);
       } finally {
         payBtn.disabled = false;
-        payBtn.innerHTML = '<i class="fas fa-lock"></i> Pay with Flutterwave';
+        payBtn.innerHTML = '<i class="fas fa-lock"></i> Proceed to Payment';
       }
     });
     

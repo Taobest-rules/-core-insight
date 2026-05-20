@@ -15910,7 +15910,7 @@ app.get("/api/reviews/user/:productId", async (req, res) => {
   }
 });
 
-// index.js - COMPLETE CORRECTED VERSION
+// index.js - COMPLETE CORRECTED VERSION WITH AFFILIATE FIX
 app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (req, res) => {
   try {
     console.log("📤 PRODUCT UPLOAD STARTED");
@@ -15931,9 +15931,14 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
 
     console.log("📦 Product data:", { title, price, type, paymentProvider });
 
-    // ========== VALIDATION ==========
-    if (!title || !price || !type || !paymentProvider) {
-      return res.status(400).json({ error: "Title, price, type, and payment provider are required." });
+    // ========== VALIDATION - FIXED FOR AFFILIATE ==========
+    if (!title || !price || !type) {
+      return res.status(400).json({ error: "Title, price, and type are required." });
+    }
+    
+    // Only validate paymentProvider for non-affiliate products
+    if (type !== 'affiliate' && !paymentProvider) {
+      return res.status(400).json({ error: "Payment provider is required for physical/digital products." });
     }
 
     const userId = req.session.user.id;
@@ -15953,11 +15958,9 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       console.log(`📁 Processing digital file: ${productFile.originalname}, size: ${productFile.size} bytes`);
       
       try {
-        // ✅ UPLOAD THE FILE USING SMART UPLOAD (auto-detects ImgBB for images, B2 for others)
         fileUrl = await uploadFile(productFile.path, productFile.originalname);
         console.log(`✅ Digital file uploaded successfully to: ${fileUrl.substring(0, 80)}...`);
         
-        // Verify file URL is valid
         if (!fileUrl || fileUrl === '') {
           throw new Error('Upload returned empty URL');
         }
@@ -15970,13 +15973,14 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     // ========== HANDLE AFFILIATE PRODUCT LINK ==========
     if (type === 'affiliate' && affiliate_link) {
       fileUrl = affiliate_link;
+      console.log(`🔗 Affiliate product detected. Link: ${affiliate_link.substring(0, 50)}...`);
     }
     
-    // ========== CREATE FLUTTERWAVE SUBACCOUNT (90/10 SPLIT) ==========
+    // ========== CREATE FLUTTERWAVE SUBACCOUNT (ONLY FOR NON-AFFILIATE) ==========
     let subaccountResult = null;
     
-    if (paymentProvider === 'flutterwave') {
-      // Determine if this is a virtual account
+    // Only create subaccount for physical/digital products with Flutterwave
+    if (type !== 'affiliate' && paymentProvider === 'flutterwave') {
       const isVirtual = (is_virtual_account === '1' || is_virtual_account === 'true');
       const accountNameToUse = isVirtual ? (businessName || accountName) : businessName;
       
@@ -15996,6 +16000,8 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       } else {
         console.log(`✅ Subaccount created: ${subaccountResult.subaccount_id}`);
       }
+    } else if (type === 'affiliate') {
+      console.log("🔗 Affiliate product - skipping subaccount creation");
     }
     
     // ========== UPLOAD PRODUCT IMAGES ==========
@@ -16004,7 +16010,6 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       console.log(`📸 Uploading ${req.files['images[]'].length} images...`);
       for (const file of req.files['images[]']) {
         try {
-          // Images always go to ImgBB for fast CDN delivery
           const url = await uploadToImgbb(file.path, file.originalname);
           imageUrls.push(url);
           console.log(`  ✅ Image uploaded: ${url.substring(0, 50)}...`);
@@ -16019,6 +16024,12 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       return res.status(400).json({ error: "At least one product image is required." });
     }
     
+    // For affiliate products, allow no images if external image URL provided
+    if (type === 'affiliate' && imageUrls.length === 0 && !req.body.external_image) {
+      // Use a placeholder image
+      imageUrls = ['https://placehold.co/400x250/1e293b/3b82f6/png?text=Affiliate+Product'];
+    }
+    
     // ========== VERIFY FILE URL FOR DIGITAL PRODUCTS ==========
     if (type === 'digital' && !fileUrl) {
       console.error("❌ No file URL available for digital product");
@@ -16026,52 +16037,52 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     }
     
     // ========== CALCULATE FEES ==========
-    const platformFee = type === 'digital' ? listedPrice * 0.10 : 0;
-    const sellerEarnings = type === 'digital' ? listedPrice * 0.90 : listedPrice;
+    const platformFee = (type === 'digital' || type === 'physical') ? listedPrice * 0.10 : 0;
+    const sellerEarnings = (type === 'digital' || type === 'physical') ? listedPrice * 0.90 : listedPrice;
     
     console.log(`💰 Fee calculation: Customer pays $${listedPrice}, Platform fee: $${platformFee}, Seller earns: $${sellerEarnings}`);
 
     // ========== INSERT PRODUCT INTO DATABASE ==========
-   // WITH is_virtual_account column (after adding it to database)
-const result = await db.query(
-  `INSERT INTO products (
-    user_id, title, description, price, original_price, platform_fee, product_cost,
-    category, type, file_url, image_urls, affiliate_link, 
-    seller_payment_provider, delivery_type, delivery_locations, 
-    delivery_countries, delivery_states, pickup_address, pickup_hours,
-    payment_option, estimated_delivery_days, is_virtual_account,
-    rating, review_count, status, sales_count, favorite_count, created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-  [
-    userId, 
-    title?.trim() || '', 
-    description?.trim() || '', 
-    listedPrice, 
-    listedPrice, 
-    type === 'digital' ? listedPrice * 0.10 : (type === 'physical' ? listedPrice * 0.10 : 0),
-    type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
-    category?.trim() || 'Uncategorized', 
-    type, 
-    fileUrl,
-    imageUrls.length ? JSON.stringify(imageUrls) : null, 
-    affiliate_link || null, 
-    paymentProvider,
-    type === 'physical' ? (delivery_type || 'delivery') : null,
-    type === 'physical' ? (delivery_locations || 'Worldwide') : null,
-    type === 'physical' ? (delivery_countries || 'Worldwide') : null,
-    type === 'physical' ? (delivery_states || '') : null,
-    type === 'physical' ? (pickup_address || '') : null,
-    type === 'physical' ? (pickup_hours || '') : null,
-    type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
-    type === 'physical' ? (parseInt(delivery_days) || 7) : null,
-    (is_virtual_account === '1' || is_virtual_account === 'true') ? 1 : 0,  // ← Now included
-    0.00,  // rating
-    0,    // review_count
-    'active', 
-    0,    // sales_count 
-    0,    // favorite_count
-  ]
-);
+    const result = await db.query(
+      `INSERT INTO products (
+        user_id, title, description, price, original_price, platform_fee, product_cost,
+        category, type, file_url, image_urls, affiliate_link, 
+        seller_payment_provider, delivery_type, delivery_locations, 
+        delivery_countries, delivery_states, pickup_address, pickup_hours,
+        payment_option, estimated_delivery_days, is_virtual_account,
+        rating, review_count, status, sales_count, favorite_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        userId, 
+        title?.trim() || '', 
+        description?.trim() || '', 
+        listedPrice, 
+        listedPrice, 
+        (type === 'digital' || type === 'physical') ? listedPrice * 0.10 : 0,
+        type === 'physical' ? (parseFloat(product_cost) || 3.00) : null,
+        category?.trim() || 'Uncategorized', 
+        type, 
+        fileUrl,
+        imageUrls.length ? JSON.stringify(imageUrls) : null, 
+        affiliate_link || null, 
+        paymentProvider || 'affiliate',  // Default to 'affiliate' for affiliate products
+        type === 'physical' ? (delivery_type || 'delivery') : null,
+        type === 'physical' ? (delivery_locations || 'Worldwide') : null,
+        type === 'physical' ? (delivery_countries || 'Worldwide') : null,
+        type === 'physical' ? (delivery_states || '') : null,
+        type === 'physical' ? (pickup_address || '') : null,
+        type === 'physical' ? (pickup_hours || '') : null,
+        type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
+        type === 'physical' ? (parseInt(delivery_days) || 7) : null,
+        (is_virtual_account === '1' || is_virtual_account === 'true') ? 1 : 0,
+        0.00,  // rating
+        0,    // review_count
+        'active', 
+        0,    // sales_count 
+        0,    // favorite_count
+      ]
+    );
+    
     const productId = result.insertId;
     console.log(`✅ Product uploaded successfully! ID: ${productId}`);
     console.log(`📁 File URL saved to database: ${fileUrl ? 'YES' : 'NO'}`);
@@ -16084,7 +16095,9 @@ const result = await db.query(
       success: true,
       message: type === 'digital' 
         ? "✅ Digital product uploaded successfully! Customers will receive download links after purchase."
-        : "✅ Product uploaded successfully!", 
+        : type === 'affiliate'
+        ? "✅ Affiliate product uploaded successfully! Customers will be redirected to your affiliate link."
+        : "✅ Physical product uploaded successfully!",
       productId: productId,
       type: type,
       file_url: fileUrl,

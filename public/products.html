@@ -5715,7 +5715,329 @@ function formatStatusDisplay(status) {
 function getStatusClass(status) {
     return `status-${status}`;
 }
+// ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========
+$('uploadProductBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    console.log("🟢 Upload button CLICKED!");
+    
+    const productType = document.getElementById('p_type')?.value;
+    
+    // ========== HANDLE VIRTUAL ACCOUNT NAME BEFORE VALIDATION ==========
+    const isVirtualAccount = document.getElementById('isVirtualAccount')?.checked || false;
+    const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+    const accountNameField = document.getElementById('p_accountName');
+    
+    // For virtual accounts, set the account name field to the manual name
+    if (isVirtualAccount && manualAccountName) {
+        if (accountNameField) {
+            accountNameField.value = manualAccountName;
+            accountNameField.readOnly = true;
+            console.log("✅ Set account name from manual field:", manualAccountName);
+        }
+    }
+    
+    // ========== FOR AFFILIATE PRODUCTS - SKIP SUBACCOUNT CREATION ==========
+    if (productType === 'affiliate') {
+        console.log("🔗 Affiliate product detected - skipping payment/subaccount setup");
+        // No subaccount needed for affiliate products
+        // Continue directly to validation and upload
+    } else {
+        // ========== FOR PHYSICAL/DIGITAL PRODUCTS - CREATE SUBACCOUNT FIRST ==========
+        console.log("💰 Physical/Digital product - checking subaccount...");
+        
+        // Check if bank details are filled
+        const bankCode = document.getElementById('p_bankCode')?.value;
+        const accountNumber = document.getElementById('p_accountNumber')?.value;
+        const businessName = document.getElementById('p_businessName')?.value;
+        
+        if (!bankCode || !accountNumber || !businessName) {
+            showToast('Please fill in all bank account details first', 'warning');
+            // Scroll to bank details section
+            document.getElementById('bankDetailsSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        // Create subaccount for payout split (90/10)
+        const subaccountResult = await createSubaccount();
+        
+        if (!subaccountResult) {
+            showToast('Please verify your bank account details first', 'warning');
+            return;
+        }
+        
+        console.log("✅ Subaccount created/verified successfully");
+    }
+    
+    // ========== VALIDATE FORM ==========
+    if (!validateProductForm()) {
+        console.log("❌ Form validation failed");
+        return;
+    }
 
+    if (!currentUser) { 
+        openModal(loginModal); 
+        return; 
+    }
+
+    // ========== CREATE FORM DATA ==========
+    const fd = new FormData();
+
+    // Get form values
+    const title = $('p_title')?.value.trim();
+    const description = $('p_description')?.value.trim();
+    const category = getSelectedCategory();
+    const price = $('p_price')?.value || '0';
+    const type = $('p_type')?.value;
+    const paymentProvider = $('p_paymentProvider')?.value;
+    
+    // Physical product fields
+    const deliveryDays = type === 'physical' ? $('p_deliveryDays')?.value || '7' : '';
+    const productCost = type === 'physical' ? $('p_productCost')?.value || '3' : null;
+    const deliveryLocations = type === 'physical' ? $('p_deliveryLocations')?.value.trim() || 'Worldwide' : '';
+    
+    // Affiliate product fields
+    let affiliateLink = '';
+    let externalImage = '';
+    if (type === 'affiliate') {
+        affiliateLink = document.getElementById('p_affiliate')?.value.trim() || '';
+        externalImage = $('p_external_image')?.value.trim() || '';
+    }
+
+    // Get delivery method values
+    const deliveryType = document.getElementById('p_deliveryType')?.value || 'delivery';
+    const deliveryCountries = document.getElementById('p_deliveryCountries')?.selectedOptions ? 
+        Array.from(document.getElementById('p_deliveryCountries').selectedOptions).map(opt => opt.value).join(', ') : 'Worldwide';
+    const deliveryStates = document.getElementById('p_deliveryStates')?.value || '';
+    const pickupAddress = document.getElementById('p_pickupAddress')?.value || '';
+    const pickupHours = document.getElementById('p_pickupHours')?.value || '';
+    const pickupInstructions = document.getElementById('p_pickupInstructions')?.value || '';
+
+    // Product condition fields
+    const conditionType = document.getElementById('p_condition_type')?.value || 'new';
+    const conditionDescription = document.getElementById('p_condition_description')?.value || '';
+    const manufacturingDate = document.getElementById('p_manufacturing_date')?.value || '';
+    const warrantyMonths = document.getElementById('p_warranty_months')?.value || '0';
+    const originalPackaging = document.getElementById('p_original_packaging')?.value || '1';
+    const accessoriesIncluded = document.getElementById('p_accessories')?.value || '';
+    const visibleDefects = document.getElementById('p_defects')?.value || '';
+
+    // Business info (only for non-affiliate products)
+    let businessName = '', businessEmail = '', businessPhone = '', country = '';
+    let bankName = '', bankCode = '', accountNumber = '', accountNameValue = '';
+    
+    if (type !== 'affiliate') {
+        businessName = $('p_businessName')?.value.trim() || '';
+        businessEmail = $('p_businessEmail')?.value.trim() || '';
+        businessPhone = $('p_businessPhone')?.value.trim() || '';
+        country = $('p_country')?.value.trim() || '';
+        bankName = $('p_bankName')?.value.trim() || '';
+        bankCode = $('p_bankCode')?.value.trim() || '';
+        accountNumber = $('p_accountNumber')?.value.trim() || '';
+        accountNameValue = $('p_accountName')?.value.trim() || '';
+        
+        // Use manual account name for virtual accounts if accountName is empty
+        if (isVirtualAccount && manualAccountName && !accountNameValue) {
+            accountNameValue = manualAccountName;
+        }
+    }
+
+    // ========== APPEND ALL FIELDS TO FORM DATA ==========
+    // Basic info
+    fd.append('title', title);
+    fd.append('description', description || '');
+    fd.append('category', category || '');
+    fd.append('price', price);
+    fd.append('type', type);
+    if (type !== 'affiliate') {
+        fd.append('paymentProvider', paymentProvider);
+    }
+    
+    // Physical product fields
+    if (type === 'physical') {
+        fd.append('delivery_days', deliveryDays);
+        fd.append('product_cost', productCost);
+        fd.append('delivery_type', deliveryType);
+        fd.append('payment_option', $('p_paymentOption')?.value || 'pay_before_delivery');
+        fd.append('delivery_locations', deliveryLocations);
+        fd.append('delivery_countries', deliveryCountries);
+        fd.append('delivery_states', deliveryStates);
+        fd.append('pickup_address', pickupAddress);
+        fd.append('pickup_hours', pickupHours);
+        fd.append('pickup_instructions', pickupInstructions);
+    }
+    
+    // Digital product file
+    if (type === 'digital') {
+        const fileInput = document.getElementById('p_file');
+        if (fileInput?.files.length > 0) fd.append('file', fileInput.files[0]);
+    }
+    
+    // Affiliate product
+    if (type === 'affiliate') {
+        fd.append('affiliate_link', affiliateLink);
+        if (externalImage) fd.append('external_image', externalImage);
+    }
+    
+    // Product condition fields (all product types)
+    fd.append('condition_type', conditionType);
+    fd.append('condition_description', conditionDescription);
+    fd.append('manufacturing_date', manufacturingDate);
+    fd.append('warranty_months', warrantyMonths);
+    fd.append('original_packaging', originalPackaging);
+    fd.append('accessories_included', accessoriesIncluded);
+    fd.append('visible_defects', visibleDefects);
+    
+    // Business info (only for non-affiliate)
+    if (type !== 'affiliate') {
+        fd.append('businessName', businessName);
+        fd.append('businessEmail', businessEmail);
+        fd.append('businessPhone', businessPhone);
+        fd.append('country', country);
+        fd.append('bankName', bankName);
+        fd.append('bankCode', bankCode || '');
+        fd.append('accountNumber', accountNumber);
+        fd.append('accountName', accountNameValue);
+        fd.append('is_virtual_account', isVirtualAccount ? '1' : '0');
+    } else {
+        // For affiliate, send empty placeholders
+        fd.append('businessName', businessName || 'Affiliate Seller');
+        fd.append('businessEmail', currentUser?.email || '');
+        fd.append('businessPhone', '');
+        fd.append('country', '');
+        fd.append('bankName', '');
+        fd.append('bankCode', '');
+        fd.append('accountNumber', '');
+        fd.append('accountName', '');
+        fd.append('is_virtual_account', '0');
+    }
+    
+    // Images
+    const imagesInput = document.getElementById('p_images');
+    if (imagesInput?.files.length > 0) {
+        for (let i = 0; i < imagesInput.files.length; i++) {
+            fd.append('images[]', imagesInput.files[i]);
+        }
+    }
+
+    // ========== SHOW UPLOADING STATE ==========
+    const uploadMessage = $('uploadMessage');
+    uploadMessage.innerHTML = '<div class="form-success"><i class="fas fa-spinner fa-spin"></i> Uploading product...</div>';
+    uploadMessage.classList.add('show');
+
+    try {
+        // ========== SUBMIT TO SERVER ==========
+        const res = await fetch('/api/upload-product', { 
+            method: 'POST', 
+            body: fd,
+            credentials: 'include'
+        });
+        
+        const text = await res.text();
+        console.log("📨 Response length:", text.length);
+        
+        if (!text || text.trim() === '') {
+            throw new Error('Server returned empty response');
+        }
+        
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error("Failed to parse:", text.substring(0, 200));
+            throw new Error('Invalid server response');
+        }
+
+        if (!res.ok) { 
+            uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ ${escapeHtml(data.error || 'Upload failed')}</div>`; 
+            return; 
+        }
+
+        // ========== SUCCESS ==========
+        uploadMessage.innerHTML = `<div class="form-success" style="color:var(--success)">✅ ${data.message}</div>`;
+
+        // Reset form
+        document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => {
+            if (el.type !== 'button' && el.id !== 'uploadProductBtn') el.value = '';
+        });
+        
+        const fileInput = document.getElementById('p_file');
+        if (fileInput) fileInput.value = '';
+        
+        const imagesInputReset = document.getElementById('p_images');
+        if (imagesInputReset) imagesInputReset.value = '';
+        
+        document.querySelectorAll('.provider-option').forEach(opt => opt.classList.remove('selected'));
+        const paymentProviderInput = document.getElementById('p_paymentProvider');
+        if (paymentProviderInput) paymentProviderInput.value = '';
+        
+        const businessInfoDiv = document.getElementById('businessInfo');
+        if (businessInfoDiv) businessInfoDiv.classList.remove('show');
+        
+        const digitalBlockDiv = document.getElementById('digitalBlock');
+        if (digitalBlockDiv) digitalBlockDiv.classList.remove('show');
+        
+        const physicalBlockDiv = document.getElementById('physicalBlock');
+        if (physicalBlockDiv) physicalBlockDiv.classList.remove('show');
+        
+        const affiliateBlockDiv = document.getElementById('affiliateBlock');
+        if (affiliateBlockDiv) affiliateBlockDiv.classList.remove('show');
+        
+        // Reset virtual account checkbox
+        const virtualCheckbox = document.getElementById('isVirtualAccount');
+        if (virtualCheckbox) virtualCheckbox.checked = false;
+        
+        const manualNameField = document.getElementById('manualAccountName');
+        if (manualNameField) {
+            manualNameField.value = '';
+            manualNameField.style.display = 'none';
+        }
+        
+        const virtualHelp = document.getElementById('virtualAccountHelp');
+        if (virtualHelp) virtualHelp.style.display = 'none';
+
+        // Reset payment section visibility based on product type
+        const paymentSection = document.getElementById('paymentProviderSection');
+        const bankDetailsSection = document.getElementById('bankDetailsSection');
+        
+        // For affiliate, keep payment sections hidden; for others, show them
+        if (type === 'affiliate') {
+            if (paymentSection) paymentSection.style.display = 'none';
+            if (bankDetailsSection) bankDetailsSection.style.display = 'none';
+        } else {
+            if (paymentSection) paymentSection.style.display = 'block';
+            if (bankDetailsSection) bankDetailsSection.style.display = 'block';
+        }
+
+        // Reload products and reset UI
+        setTimeout(async () => {
+            sellerMode = false;
+            const becomeBtn = document.getElementById('becomeSeller');
+            const sellerView = document.getElementById('sellerView');
+            if (becomeBtn) becomeBtn.textContent = 'Become a Seller';
+            if (sellerView) sellerView.classList.remove('active');
+            uploadMessage.classList.remove('show');
+            await loadProducts();
+            
+            // Refresh category dropdown
+            const categorySelect = document.getElementById('p_category_select');
+            if (categorySelect) {
+                while (categorySelect.options.length > 1) categorySelect.remove(1);
+                Array.from(categoriesSet).sort().forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categorySelect.appendChild(option);
+                });
+            }
+            
+            showToast('Product uploaded successfully!', 'success');
+        }, 3000);
+
+    } catch(err) {
+        console.error('❌ Upload error:', err);
+        uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`;
+    }
+});
 // ============================================
 // CURRENCY CONVERSION SYSTEM
 // ============================================
@@ -8323,24 +8645,66 @@ window.submitVerification = submitVerification;
 // ============================================
 function createAffiliateBlock() {
     if (document.getElementById('affiliateBlock')) return;
+    
     const digitalBlock = document.getElementById('digitalBlock');
-    const affiliateHtml = `<div id="affiliateBlock" class="conditional-section">
-        <div class="form-section"><div class="form-section-header"><i class="fas fa-link"></i><h4>Affiliate Product Details</h4></div>
-        <div class="form-group"><label class="form-label">Affiliate URL <span class="required">*</span></label>
-        <input type="url" id="p_affiliate" class="form-input" placeholder="https://affiliate.example.com/product/123" required />
-        <div id="p_affiliate_error" class="form-error"></div><span class="form-help">Paste the complete affiliate link from AliExpress or other platforms</span></div>
-        <div class="form-group"><label class="form-label">External Product Image URL (Optional)</label>
-        <input type="url" id="p_external_image" class="form-input" placeholder="https://example.com/image.jpg" />
-        <span class="form-help">If no image uploaded, we'll try to fetch from this URL</span></div>
-        <div class="commission-card" style="margin-top: 20px;"><h5><i class="fas fa-percentage"></i> Affiliate Commission</h5>
-        <div class="commission-structure"><div class="commission-item"><i class="fas fa-chart-line"></i><span><strong>10%</strong> Platform Fee</span></div>
-        <div class="commission-item"><i class="fas fa-wallet"></i><span><strong>90%</strong> You Keep</span></div>
-        <div class="commission-item"><i class="fas fa-external-link-alt"></i><span><strong>External</strong> Affiliate Link</span></div></div></div></div></div>`;
+    const affiliateHtml = `
+        <div id="affiliateBlock" class="conditional-section">
+            <div class="form-section">
+                <div class="form-section-header">
+                    <i class="fas fa-link"></i>
+                    <h4>Affiliate Product Details</h4>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Affiliate URL <span class="required">*</span></label>
+                    <input type="url" id="p_affiliate" class="form-input" 
+                           placeholder="https://affiliate.example.com/product/123" 
+                           required />
+                    <div id="p_affiliate_error" class="form-error"></div>
+                    <span class="form-help">Paste the complete affiliate link from AliExpress, Amazon, or other platforms</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">External Product Image URL (Optional)</label>
+                    <input type="url" id="p_external_image" class="form-input" 
+                           placeholder="https://example.com/image.jpg" />
+                    <span class="form-help">If no image uploaded, we'll try to fetch from this URL</span>
+                </div>
+                <div class="commission-card" style="margin-top: 20px;">
+                    <h5><i class="fas fa-percentage"></i> Affiliate Commission</h5>
+                    <div class="commission-structure">
+                        <div class="commission-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span><strong>10%</strong> Platform Fee</span>
+                        </div>
+                        <div class="commission-item">
+                            <i class="fas fa-wallet"></i>
+                            <span><strong>90%</strong> You Keep</span>
+                        </div>
+                        <div class="commission-item">
+                            <i class="fas fa-external-link-alt"></i>
+                            <span><strong>External</strong> Affiliate Link - No payment processing needed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
     const formContainer = document.querySelector('.form-container');
-    if (digitalBlock) digitalBlock.insertAdjacentHTML('afterend', affiliateHtml);
-    else if (formContainer) formContainer.insertAdjacentHTML('beforeend', affiliateHtml);
+    if (digitalBlock) {
+        digitalBlock.insertAdjacentHTML('afterend', affiliateHtml);
+    } else if (formContainer) {
+        formContainer.insertAdjacentHTML('beforeend', affiliateHtml);
+    }
+    
+    // ✅ HIDE PAYMENT SECTION WHEN AFFILIATE BLOCK IS CREATED
+    const paymentSection = document.getElementById('paymentProviderSection');
+    const bankDetailsSection = document.getElementById('bankDetailsSection');
+    const businessInfoDiv = document.getElementById('businessInfo');
+    
+    if (paymentSection) paymentSection.style.display = 'none';
+    if (bankDetailsSection) bankDetailsSection.style.display = 'none';
+    if (businessInfoDiv) businessInfoDiv.classList.remove('show');
 }
-
 function initializeCategories() {
     const categorySelect = document.getElementById('p_category_select');
     const existingCategories = Array.from(categorySelect.options).map(opt => opt.value);
@@ -8357,17 +8721,63 @@ function initializeCategories() {
 // ============================================
 // PRODUCT UPLOAD - COMPLETE
 // ============================================
+// Update the product type change event listener
 document.getElementById('p_type')?.addEventListener('change', (ev) => {
     const v = ev.target.value;
     const digitalBlock = document.getElementById('digitalBlock');
     const physicalBlock = document.getElementById('physicalBlock');
     let affiliateBlock = document.getElementById('affiliateBlock');
+    const paymentSection = document.getElementById('paymentProviderSection');
+    const bankDetailsSection = document.getElementById('bankDetailsSection');
+    const businessInfoDiv = document.getElementById('businessInfo');
+    
+    // Hide all conditional sections first
     if (digitalBlock) digitalBlock.classList.remove('show');
     if (physicalBlock) physicalBlock.classList.remove('show');
     if (affiliateBlock) affiliateBlock.classList.remove('show');
-    if (v === 'digital') { if (digitalBlock) digitalBlock.classList.add('show'); }
-    else if (v === 'physical') { if (physicalBlock) physicalBlock.classList.add('show'); const paymentOption = document.getElementById('p_paymentOption'); if (paymentOption) paymentOption.value = 'pay_on_delivery'; }
-    else if (v === 'affiliate') { if (!affiliateBlock) createAffiliateBlock(); else affiliateBlock.classList.add('show'); }
+    
+    // Show relevant section based on product type
+    if (v === 'digital') {
+        if (digitalBlock) digitalBlock.classList.add('show');
+        // Digital products need payment
+        if (paymentSection) paymentSection.style.display = 'block';
+        if (bankDetailsSection) bankDetailsSection.style.display = 'block';
+        if (businessInfoDiv) businessInfoDiv.classList.add('show');
+    } 
+    else if (v === 'physical') {
+        if (physicalBlock) physicalBlock.classList.add('show');
+        // Physical products need payment
+        if (paymentSection) paymentSection.style.display = 'block';
+        if (bankDetailsSection) bankDetailsSection.style.display = 'block';
+        if (businessInfoDiv) businessInfoDiv.classList.add('show');
+        // Set default payment option
+        const paymentOption = document.getElementById('p_paymentOption');
+        if (paymentOption) paymentOption.value = 'pay_on_delivery';
+    } 
+    else if (v === 'affiliate') {
+        // Create affiliate block if it doesn't exist
+        if (!affiliateBlock) {
+            createAffiliateBlock();
+        } else {
+            affiliateBlock.classList.add('show');
+        }
+        
+        // ✅ HIDE PAYMENT OPTIONS FOR AFFILIATE PRODUCTS
+        if (paymentSection) paymentSection.style.display = 'none';
+        if (bankDetailsSection) bankDetailsSection.style.display = 'none';
+        if (businessInfoDiv) businessInfoDiv.classList.remove('show');
+        
+        // Clear payment provider selection since not needed
+        const paymentProvider = document.getElementById('p_paymentProvider');
+        if (paymentProvider) paymentProvider.value = '';
+        
+        // Remove selected class from provider options
+        document.querySelectorAll('.provider-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        
+        console.log('🔗 Affiliate product selected - payment options hidden');
+    }
 });
 
 function getSelectedCategory() {
@@ -8391,9 +8801,17 @@ function toggleDeliveryMethod() {
 // FORM VALIDATION
 // ============================================
 function validateProductForm() {
+    console.log("🔍 Starting form validation...");
     const errors = [];
     let hasErrors = false;
-    document.querySelectorAll('.form-error').forEach(el => { el.classList.remove('show'); el.textContent = ''; });
+    
+    // Reset errors
+    document.querySelectorAll('.form-error').forEach(el => {
+        el.classList.remove('show');
+        el.textContent = '';
+    });
+    
+    // Get all form values
     const title = document.getElementById('p_title')?.value;
     const price = document.getElementById('p_price')?.value;
     const type = document.getElementById('p_type')?.value;
@@ -8402,46 +8820,156 @@ function validateProductForm() {
     const categoryNew = document.getElementById('p_category_new')?.value;
     const description = document.getElementById('p_description')?.value;
     const images = document.getElementById('p_images')?.files;
-    const isVirtualAccount = document.getElementById('isVirtualAccount')?.checked || false;
-    const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
-    if (!title || !title.trim()) { errors.push({ id: 'p_title', errorId: 'p_title_error', message: 'Product name is required' }); hasErrors = true; }
-    if (!price || !price.trim() || parseFloat(price) <= 0) { errors.push({ id: 'p_price', errorId: 'p_price_error', message: 'Valid price is required' }); hasErrors = true; }
-    if (!type) { errors.push({ id: 'p_type', errorId: 'p_type_error', message: 'Product type is required' }); hasErrors = true; }
-    if (!paymentProvider) { errors.push({ id: 'p_paymentProvider', errorId: 'p_paymentProvider_error', message: 'Payment provider is required' }); hasErrors = true; }
-    if (!categorySelect && !categoryNew) { errors.push({ id: 'p_category_select', errorId: 'p_category_error', message: 'Category is required' }); hasErrors = true; }
-    if (!description || !description.trim()) { errors.push({ id: 'p_description', errorId: 'p_description_error', message: 'Description is required' }); hasErrors = true; }
+    
+    // Basic validations
+    if (!title || !title.trim()) {
+        errors.push({ id: 'p_title', errorId: 'p_title_error', message: 'Product name is required' });
+        hasErrors = true;
+    }
+    
+    if (!price || !price.trim() || parseFloat(price) <= 0) {
+        errors.push({ id: 'p_price', errorId: 'p_price_error', message: 'Valid price is required' });
+        hasErrors = true;
+    }
+    
+    if (!type) {
+        errors.push({ id: 'p_type', errorId: 'p_type_error', message: 'Product type is required' });
+        hasErrors = true;
+    }
+    
+    // ✅ ONLY validate payment provider for non-affiliate products
+    if (type !== 'affiliate') {
+        if (!paymentProvider) {
+            errors.push({ id: 'p_paymentProvider', errorId: 'p_paymentProvider_error', message: 'Payment provider is required' });
+            hasErrors = true;
+        }
+    }
+    
+    // Category validation
+    if (!categorySelect && !categoryNew) {
+        errors.push({ id: 'p_category_select', errorId: 'p_category_error', message: 'Category is required' });
+        hasErrors = true;
+    }
+    
+    // Description validation
+    if (!description || !description.trim()) {
+        errors.push({ id: 'p_description', errorId: 'p_description_error', message: 'Description is required' });
+        hasErrors = true;
+    }
+    
+    // Affiliate link validation
     if (type === 'affiliate') {
         const affiliateLink = document.getElementById('p_affiliate')?.value;
-        if (!affiliateLink || !affiliateLink.trim()) { errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Affiliate link is required' }); hasErrors = true; }
-        else { try { new URL(affiliateLink); } catch(e) { errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Please enter a valid URL (include https://)' }); hasErrors = true; } }
+        if (!affiliateLink || !affiliateLink.trim()) {
+            errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Affiliate link is required' });
+            hasErrors = true;
+        } else {
+            try {
+                new URL(affiliateLink);
+            } catch (e) {
+                errors.push({ id: 'p_affiliate', errorId: 'p_affiliate_error', message: 'Please enter a valid URL (include https://)' });
+                hasErrors = true;
+            }
+        }
     }
+    
+    // Images validation (affiliate products can skip images if external image provided)
     if (type !== 'affiliate') {
-        if (!images || images.length === 0) { errors.push({ id: 'p_images', errorId: 'p_images_error', message: 'At least one image is required' }); hasErrors = true; }
+        if (!images || images.length === 0) {
+            errors.push({ id: 'p_images', errorId: 'p_images_error', message: 'At least one image is required' });
+            hasErrors = true;
+        }
+    } else {
+        // For affiliate, check if either image uploaded OR external image URL provided
+        const externalImage = document.getElementById('p_external_image')?.value;
+        if ((!images || images.length === 0) && !externalImage) {
+            errors.push({ id: 'p_images', errorId: 'p_images_error', message: 'At least one image or external image URL is required' });
+            hasErrors = true;
+        }
     }
+    
+    // Digital file validation
     if (type === 'digital') {
         const file = document.getElementById('p_file')?.files;
-        if (!file || file.length === 0) { errors.push({ id: 'p_file', errorId: 'p_file_error', message: 'Digital file is required' }); hasErrors = true; }
+        if (!file || file.length === 0) {
+            errors.push({ id: 'p_file', errorId: 'p_file_error', message: 'Digital file is required' });
+            hasErrors = true;
+        }
     }
-    const businessName = document.getElementById('p_businessName')?.value;
-    const businessEmail = document.getElementById('p_businessEmail')?.value;
-    const businessPhone = document.getElementById('p_businessPhone')?.value;
-    const country = document.getElementById('p_country')?.value;
-    const bankName = document.getElementById('p_bankName')?.value;
-    const accountNumber = document.getElementById('p_accountNumber')?.value;
-    let accountName = document.getElementById('p_accountName')?.value;
-    if (isVirtualAccount && manualAccountName && (!accountName || accountName === '')) accountName = manualAccountName;
-    if (!businessName || !businessName.trim()) { errors.push({ id: 'p_businessName', errorId: 'p_businessName_error', message: 'Business name is required' }); hasErrors = true; }
-    if (!businessEmail || !businessEmail.trim()) { errors.push({ id: 'p_businessEmail', errorId: 'p_businessEmail_error', message: 'Business email is required' }); hasErrors = true; }
-    if (!businessPhone || !businessPhone.trim()) { errors.push({ id: 'p_businessPhone', errorId: 'p_businessPhone_error', message: 'Business phone is required' }); hasErrors = true; }
-    if (!country || !country.trim()) { errors.push({ id: 'p_country', errorId: 'p_country_error', message: 'Country is required' }); hasErrors = true; }
-    if (!bankName || !bankName.trim()) { errors.push({ id: 'p_bankName', errorId: 'p_bankName_error', message: 'Bank name is required' }); hasErrors = true; }
-    if (!accountNumber || !accountNumber.trim()) { errors.push({ id: 'p_accountNumber', errorId: 'p_accountNumber_error', message: 'Account number is required' }); hasErrors = true; }
-    if (!accountName || !accountName.trim()) { if (!(isVirtualAccount && manualAccountName)) { errors.push({ id: 'p_accountName', errorId: 'p_accountName_error', message: 'Account holder name is required' }); hasErrors = true; } }
-    errors.forEach(error => { const errorEl = document.getElementById(error.errorId); if (errorEl) { errorEl.textContent = error.message; errorEl.classList.add('show'); } });
-    if (hasErrors) { const firstError = document.querySelector('.form-error.show'); if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    
+    // ✅ ONLY validate business/bank info for non-affiliate products
+    if (type !== 'affiliate') {
+        const businessName = document.getElementById('p_businessName')?.value;
+        const businessEmail = document.getElementById('p_businessEmail')?.value;
+        const businessPhone = document.getElementById('p_businessPhone')?.value;
+        const country = document.getElementById('p_country')?.value;
+        const bankName = document.getElementById('p_bankName')?.value;
+        const accountNumber = document.getElementById('p_accountNumber')?.value;
+        
+        const isVirtualAccount = document.getElementById('isVirtualAccount')?.checked || false;
+        const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+        let accountName = document.getElementById('p_accountName')?.value;
+        
+        if (isVirtualAccount && manualAccountName && (!accountName || accountName === '')) {
+            accountName = manualAccountName;
+        }
+        
+        if (!businessName || !businessName.trim()) {
+            errors.push({ id: 'p_businessName', errorId: 'p_businessName_error', message: 'Business name is required' });
+            hasErrors = true;
+        }
+        
+        if (!businessEmail || !businessEmail.trim()) {
+            errors.push({ id: 'p_businessEmail', errorId: 'p_businessEmail_error', message: 'Business email is required' });
+            hasErrors = true;
+        }
+        
+        if (!businessPhone || !businessPhone.trim()) {
+            errors.push({ id: 'p_businessPhone', errorId: 'p_businessPhone_error', message: 'Business phone is required' });
+            hasErrors = true;
+        }
+        
+        if (!country || !country.trim()) {
+            errors.push({ id: 'p_country', errorId: 'p_country_error', message: 'Country is required' });
+            hasErrors = true;
+        }
+        
+        if (!bankName || !bankName.trim()) {
+            errors.push({ id: 'p_bankName', errorId: 'p_bankName_error', message: 'Bank name is required' });
+            hasErrors = true;
+        }
+        
+        if (!accountNumber || !accountNumber.trim()) {
+            errors.push({ id: 'p_accountNumber', errorId: 'p_accountNumber_error', message: 'Account number is required' });
+            hasErrors = true;
+        }
+        
+        if (!accountName || !accountName.trim()) {
+            if (!(isVirtualAccount && manualAccountName)) {
+                errors.push({ id: 'p_accountName', errorId: 'p_accountName_error', message: 'Account holder name is required' });
+                hasErrors = true;
+            }
+        }
+    }
+    
+    // Display errors
+    errors.forEach(error => {
+        const errorEl = document.getElementById(error.errorId);
+        if (errorEl) { 
+            errorEl.textContent = error.message;
+            errorEl.classList.add('show');
+        }
+    });
+    
+    if (hasErrors) {
+        const firstError = document.querySelector('.form-error.show');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    
     return !hasErrors;
 }
-
 // ============================================
 // UPLOAD PRODUCT BUTTON HANDLER
 // ============================================

@@ -5519,7 +5519,12 @@ let currentProductForOrder = null;
 let currentOrderTotal = 0;
 let currentOrderQuantity = 1;
 let phoneVerified = false;
-
+// ============================================
+// DOM HELPER FUNCTION - FIX MISSING $ FUNCTION
+// ============================================
+function $(id) {
+    return document.getElementById(id);
+}
 // Currency variables
 let userCurrency = 'USD';
 let exchangeRates = {
@@ -8498,6 +8503,114 @@ function selectPaymentGateway(gateway) {
     setTimeout(() => {
         setupAccountVerification();
     }, 200);
+}
+
+// Create subaccount - Works for both real and virtual accounts
+async function createSubaccount() {
+    if (!selectedGateway) {
+        console.log('No gateway selected');
+        return null;
+    }
+    
+    const bankCode = document.getElementById('p_bankCode').value;
+    const accountNumber = document.getElementById('p_accountNumber').value;
+    const businessName = document.getElementById('p_businessName').value;
+    const businessEmail = document.getElementById('p_businessEmail').value;
+    const businessPhone = document.getElementById('p_businessPhone').value;
+    const country = document.getElementById('p_country').value;
+    const isVirtual = document.getElementById('isVirtualAccount')?.checked || false;
+    const manualAccountName = document.getElementById('manualAccountName')?.value;
+    
+    // Use manual account name for virtual accounts, otherwise use business name
+    const accountName = (isVirtual && manualAccountName) ? manualAccountName : businessName;
+    
+    if (!bankCode || !accountNumber || !accountName) {
+        console.log('Missing bank details');
+        return null;
+    }
+    
+    try {
+        const endpoint = '/api/flutterwave/create-subaccount';
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                bank_code: bankCode,
+                account_number: accountNumber,
+                business_name: accountName,
+                business_email: businessEmail,
+                business_mobile: businessPhone,
+                country: country,
+                is_virtual: isVirtual  // Flag for virtual accounts
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Subaccount created:', data.subaccount_id);
+            
+            const statusDiv = document.getElementById('subaccountStatus');
+            const statusText = document.getElementById('subaccountStatusText');
+            if (statusText) {
+                statusText.innerHTML = `✓ ${isVirtual ? 'Virtual account' : 'Bank account'} verified! Auto-split active! 90% of payments will go to ${accountName}`;
+            }
+            if (statusDiv) statusDiv.style.display = 'block';
+            
+            return data;
+        } else {
+            console.error('Subaccount creation failed:', data.error);
+            return null;
+        }
+    } catch (err) {
+        console.error('Subaccount error:', err);
+        return null;
+    }
+}
+function setupAccountVerification() {
+    const accountNumberInput = document.getElementById('p_accountNumber');
+    if (!accountNumberInput) {
+        console.log('Account number input not found');
+        return;
+    }
+    
+    // Remove any existing event listeners to prevent duplicates
+    const newInput = accountNumberInput.cloneNode(true);
+    accountNumberInput.parentNode.replaceChild(newInput, accountNumberInput);
+    
+    let verificationTimeout = null;
+    
+    newInput.addEventListener('input', function() {
+        // Clear previous timeout
+        if (verificationTimeout) {
+            clearTimeout(verificationTimeout);
+        }
+        
+        // Clear verification status
+        const accountNameField = document.getElementById('p_accountName');
+        const messageEl = document.getElementById('p_accountNumber_error');
+        const accountTypeIndicator = document.getElementById('accountTypeIndicator');
+        
+        if (accountNameField && accountNameField.value) {
+            accountNameField.value = '';
+            accountNameField.readOnly = false;
+            accountNameField.style.backgroundColor = '';
+            accountNameField.style.color = '';
+        }
+        
+        if (messageEl) messageEl.classList.remove('show');
+        if (accountTypeIndicator) accountTypeIndicator.style.display = 'none';
+        
+        this.setAttribute('data-verified', 'false');
+        
+        // Wait 1.5 seconds after user stops typing before verifying
+        verificationTimeout = setTimeout(() => {
+            verifyAccountNumber(this);
+        }, 1500);
+    });
+    
+    console.log('✅ Account verification setup complete');
 }
 // ============================================
 // SELLER VERIFICATION FUNCTIONS

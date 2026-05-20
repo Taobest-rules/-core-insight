@@ -6074,6 +6074,176 @@ async function loadProducts() {
         }
     }
 }
+
+function renderProducts() {
+    const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+    const q = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+    const typeFilter = document.getElementById('filterType')?.value || '';
+    const catFilter = document.getElementById('filterCategory')?.value || '';
+    const countryFilter = document.getElementById('filterCountry')?.value || '';
+    const sort = document.getElementById('sortSelect')?.value || 'newest';
+    let list = products.slice();
+    if (q) list = list.filter(p => (p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
+    if (typeFilter) list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
+    if (catFilter) list = list.filter(p => (p.category || '') === catFilter);
+    if (countryFilter) {
+        list = list.filter(p => {
+            if (p.type !== 'physical') return true;
+            const locations = p.delivery_locations || 'Worldwide';
+            const countriesList = locations.split(',').map(l => l.trim());
+            return countriesList.includes(countryFilter) || locations.includes('Worldwide');
+        });
+    }
+    if (sort === 'affordable') list.sort((a, b) => a.price - b.price);
+    else if (sort === 'rated') list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    else if (sort === 'favorites') list.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
+    else list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const noProducts = document.getElementById('noProducts');
+    if (noProducts) noProducts.style.display = list.length ? 'none' : 'block';
+    if (!list.length) { grid.innerHTML = ''; return; }
+    const isOwner = (productUserId) => currentUser && (currentUser.id === productUserId || currentUser.role === 'admin');
+    grid.innerHTML = list.map(p => {
+        const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 ? p._imageList : 
+                         (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
+        const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
+        const seller = escapeHtml(p.seller_name || p.username || 'Seller');
+        const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
+        const desc = escapeHtml((p.description || '').slice(0, 120));
+        const originalPriceUSD = p.original_price || p.price || 0;
+        const formattedPrice = fmtPrice(originalPriceUSD);
+        const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
+        const isFavorite = userFavorites.has(p.id);
+        const isPhysical = p.type === 'physical';
+        const isDigital = p.type === 'digital';
+        const badgeClass = p.type === 'digital' ? 'badge-digital' : p.type === 'physical' ? 'badge-physical' : 'badge-affiliate';
+        const productOwner = isOwner(p.user_id);
+        let deliveryInfoHtml = '';
+        if (isPhysical) {
+            const deliveryType = p.delivery_type || 'delivery';
+            const deliveryCountries = p.delivery_countries || 'Worldwide';
+            const deliveryStates = p.delivery_states || '';
+            const pickupAddress = p.pickup_address || '';
+            const pickupHours = p.pickup_hours || '';
+            const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
+            deliveryInfoHtml = '<div class="product-details">';
+            if (deliveryType === 'delivery' || deliveryType === 'both') {
+                deliveryInfoHtml += `<div class="detail-item"><i class="fas fa-truck"></i><span><strong>🚚 Home Delivery:</strong> Available</span></div>
+                    <div class="detail-item"><i class="fas fa-globe"></i><span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span></div>
+                    ${deliveryStates ? `<div class="detail-item"><i class="fas fa-map-pin"></i><span><strong>States:</strong> ${escapeHtml(deliveryStates)}</span></div>` : ''}
+                    <div class="detail-item"><i class="fas fa-calendar-day"></i><span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span></div>`;
+            }
+            if (deliveryType === 'pickup' || deliveryType === 'both') {
+                deliveryInfoHtml += `<div class="detail-item" style="margin-top: 8px;"><i class="fas fa-store"></i><span><strong>🏪 Store Pickup:</strong> Available</span></div>
+                    <div class="detail-item"><i class="fas fa-location-dot"></i><span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span></div>
+                    ${pickupHours ? `<div class="detail-item"><i class="fas fa-clock"></i><span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span></div>` : ''}`;
+            }
+            deliveryInfoHtml += '</div>';
+        }
+        let thumbHtml = '';
+        if (imageList.length > 1) {
+            thumbHtml = `<div class="thumbs">${imageList.slice(1, 4).map((thumbPath, idx) => `<img src="${thumbPath}" alt="thumb${idx + 1}" onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" loading="lazy" onerror="this.onerror=null; this.style.display='none';">`).join('')}</div>`;
+        }
+        return `<div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}">
+            <div class="product-badge ${badgeClass}">${p.type === 'digital' ? '📱 Digital' : p.type === 'physical' ? '📦 Physical' : '🔗 Affiliate'}</div>
+            <div class="card-media">
+                <img id="mainimg-${p.id}" src="${productImage}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
+                ${thumbHtml}
+                ${productOwner ? `<button class="share-btn" onclick="event.stopPropagation(); shareProduct(${p.id}, '${title.replace(/'/g, "\\'")}')" title="Share this product"><i class="fas fa-share-alt"></i>${p.share_count > 0 ? `<span class="share-count">${p.share_count}</span>` : ''}</button>` : ''}
+                <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
+                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
+                        <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
+                    </button>
+                    <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
+                </div>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="card-body">
+                <h3>${title}</h3>
+                <div class="seller-info"><i class="fas fa-user"></i><span>By ${seller}</span></div>
+                <div class="meta">${desc}</div>
+                ${deliveryInfoHtml}
+                <div class="rating"><span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
+                    <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
+                    <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
+                </div>
+                <div class="price-row">
+                    <div><div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
+                    ${isPhysical ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Free shipping</div>` : isDigital ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Instant delivery</div>` : ''}</div>
+                    <div class="card-actions">
+                        ${isAffiliate ? `<button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || '')}')"><i class="fas fa-external-link-alt"></i> Visit</button>` : 
+                          isPhysical ? `<button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})"><i class="fas fa-shopping-cart"></i> Order Now</button>
+                                        <button class="small-btn info" onclick="event.stopPropagation(); showProductFullDetails(${p.id})"><i class="fas fa-clipboard-list"></i> Details</button>` : 
+                          `<button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})"><i class="fas fa-shopping-cart"></i> Buy Now</button>`}
+                        <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+                <div class="owner-controls">
+                    <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    startProductCarousels();
+    updateAllPrices();
+}
+
+function startProductCarousels() {
+    const productImageIntervals = new Map();
+    document.querySelectorAll('.product-card').forEach(card => {
+        const id = card.getAttribute('data-id');
+        if (!id) return;
+        const prod = products.find(p => String(p.id) === String(id));
+        if (!prod || !Array.isArray(prod._imageList) || prod._imageList.length <= 1) return;
+        const mainImg = document.getElementById(`mainimg-${id}`);
+        if (!mainImg) return;
+        let idx = 0;
+        const iv = setInterval(() => {
+            idx = (idx + 1) % prod._imageList.length;
+            const imgEl = document.getElementById(`mainimg-${id}`);
+            if (imgEl) imgEl.src = prod._imageList[idx];
+        }, 2500);
+        productImageIntervals.set(id, iv);
+        card.querySelector('.card-media')?.addEventListener('mouseenter', () => {
+            const ivId = productImageIntervals.get(id);
+            if (ivId) { clearInterval(ivId); productImageIntervals.delete(id); }
+        });
+        card.querySelector('.card-media')?.addEventListener('mouseleave', () => {
+            if (productImageIntervals.has(id)) return;
+            let idx2 = prod._imageList.indexOf((document.getElementById(`mainimg-${id}`)?.src) || '');
+            if (idx2 < 0) idx2 = 0;
+            const iv2 = setInterval(() => {
+                idx2 = (idx2 + 1) % prod._imageList.length;
+                const el = document.getElementById(`mainimg-${id}`);
+                if (el) el.src = prod._imageList[idx2];
+            }, 2500);
+            productImageIntervals.set(id, iv2);
+        });
+    });
+}
+
+window.switchMainImage = function(productId, thumbIndex) {
+    const prod = products.find(p => p.id == productId);
+    if (!prod || !prod._imageList || !prod._imageList[thumbIndex]) return;
+    const main = document.getElementById('mainimg-' + productId);
+    if (main) main.src = prod._imageList[thumbIndex];
+};
+
+function initializeProductOwnership() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productId = card.getAttribute('data-id');
+        const productUserId = card.getAttribute('data-user-id');
+        const isOwner = currentUser && (currentUser.id == productUserId || currentUser.role === 'admin');
+        if (isOwner) {
+            card.classList.add('is-owner');
+            const deleteBtn = card.querySelector('.delete-btn');
+            if (deleteBtn) deleteBtn.style.display = 'flex';
+            const ownerControls = card.querySelector('.owner-controls');
+            if (ownerControls) ownerControls.style.display = 'flex';
+        }
+    });
+}
 // ========== UPLOAD PRODUCT BUTTON HANDLER - COMPLETE ==========
 $('uploadProductBtn').addEventListener('click', async (e) => {
     e.preventDefault();
@@ -6397,177 +6567,6 @@ $('uploadProductBtn').addEventListener('click', async (e) => {
         uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`;
     }
 });
-
-function renderProducts() {
-    const grid = document.getElementById('productsGrid');
-    if (!grid) return;
-    const q = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
-    const typeFilter = document.getElementById('filterType')?.value || '';
-    const catFilter = document.getElementById('filterCategory')?.value || '';
-    const countryFilter = document.getElementById('filterCountry')?.value || '';
-    const sort = document.getElementById('sortSelect')?.value || 'newest';
-    let list = products.slice();
-    if (q) list = list.filter(p => (p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
-    if (typeFilter) list = list.filter(p => (p.type || '').toLowerCase() === typeFilter);
-    if (catFilter) list = list.filter(p => (p.category || '') === catFilter);
-    if (countryFilter) {
-        list = list.filter(p => {
-            if (p.type !== 'physical') return true;
-            const locations = p.delivery_locations || 'Worldwide';
-            const countriesList = locations.split(',').map(l => l.trim());
-            return countriesList.includes(countryFilter) || locations.includes('Worldwide');
-        });
-    }
-    if (sort === 'affordable') list.sort((a, b) => a.price - b.price);
-    else if (sort === 'rated') list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    else if (sort === 'favorites') list.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
-    else list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    const noProducts = document.getElementById('noProducts');
-    if (noProducts) noProducts.style.display = list.length ? 'none' : 'block';
-    if (!list.length) { grid.innerHTML = ''; return; }
-    const isOwner = (productUserId) => currentUser && (currentUser.id === productUserId || currentUser.role === 'admin');
-    grid.innerHTML = list.map(p => {
-        const imageList = p._imageList && Array.isArray(p._imageList) && p._imageList.length > 0 ? p._imageList : 
-                         (p.images && Array.isArray(p.images) && p.images.length > 0 ? p.images : []);
-        const productImage = imageList.length > 0 ? imageList[0] : 'https://placehold.co/400x250/1e293b/3b82f6/png?text=No+Image';
-        const seller = escapeHtml(p.seller_name || p.username || 'Seller');
-        const title = escapeHtml(p.title || p.productName || p.name || 'Untitled');
-        const desc = escapeHtml((p.description || '').slice(0, 120));
-        const originalPriceUSD = p.original_price || p.price || 0;
-        const formattedPrice = fmtPrice(originalPriceUSD);
-        const isAffiliate = (p.type === 'affiliate' || p.type === 'affiliate_link' || p.affiliate_link);
-        const isFavorite = userFavorites.has(p.id);
-        const isPhysical = p.type === 'physical';
-        const isDigital = p.type === 'digital';
-        const badgeClass = p.type === 'digital' ? 'badge-digital' : p.type === 'physical' ? 'badge-physical' : 'badge-affiliate';
-        const productOwner = isOwner(p.user_id);
-        let deliveryInfoHtml = '';
-        if (isPhysical) {
-            const deliveryType = p.delivery_type || 'delivery';
-            const deliveryCountries = p.delivery_countries || 'Worldwide';
-            const deliveryStates = p.delivery_states || '';
-            const pickupAddress = p.pickup_address || '';
-            const pickupHours = p.pickup_hours || '';
-            const estimatedDays = p.estimated_delivery_days || p.delivery_days || 7;
-            deliveryInfoHtml = '<div class="product-details">';
-            if (deliveryType === 'delivery' || deliveryType === 'both') {
-                deliveryInfoHtml += `<div class="detail-item"><i class="fas fa-truck"></i><span><strong>🚚 Home Delivery:</strong> Available</span></div>
-                    <div class="detail-item"><i class="fas fa-globe"></i><span><strong>Ships to:</strong> ${escapeHtml(deliveryCountries)}</span></div>
-                    ${deliveryStates ? `<div class="detail-item"><i class="fas fa-map-pin"></i><span><strong>States:</strong> ${escapeHtml(deliveryStates)}</span></div>` : ''}
-                    <div class="detail-item"><i class="fas fa-calendar-day"></i><span><strong>Est. Delivery:</strong> ${estimatedDays} ${estimatedDays === 1 ? 'day' : 'days'}</span></div>`;
-            }
-            if (deliveryType === 'pickup' || deliveryType === 'both') {
-                deliveryInfoHtml += `<div class="detail-item" style="margin-top: 8px;"><i class="fas fa-store"></i><span><strong>🏪 Store Pickup:</strong> Available</span></div>
-                    <div class="detail-item"><i class="fas fa-location-dot"></i><span><strong>Pickup Location:</strong> ${escapeHtml(pickupAddress)}</span></div>
-                    ${pickupHours ? `<div class="detail-item"><i class="fas fa-clock"></i><span><strong>Pickup Hours:</strong> ${escapeHtml(pickupHours)}</span></div>` : ''}`;
-            }
-            deliveryInfoHtml += '</div>';
-        }
-        let thumbHtml = '';
-        if (imageList.length > 1) {
-            thumbHtml = `<div class="thumbs">${imageList.slice(1, 4).map((thumbPath, idx) => `<img src="${thumbPath}" alt="thumb${idx + 1}" onclick="event.stopPropagation(); switchMainImage(${p.id}, ${idx + 1})" loading="lazy" onerror="this.onerror=null; this.style.display='none';">`).join('')}</div>`;
-        }
-        return `<div class="product-card" data-id="${p.id}" data-user-id="${p.user_id}">
-            <div class="product-badge ${badgeClass}">${p.type === 'digital' ? '📱 Digital' : p.type === 'physical' ? '📦 Physical' : '🔗 Affiliate'}</div>
-            <div class="card-media">
-                <img id="mainimg-${p.id}" src="${productImage}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x250/1e293b/3b82f6/png?text=Image+Not+Found';">
-                ${thumbHtml}
-                ${productOwner ? `<button class="share-btn" onclick="event.stopPropagation(); shareProduct(${p.id}, '${title.replace(/'/g, "\\'")}')" title="Share this product"><i class="fas fa-share-alt"></i>${p.share_count > 0 ? `<span class="share-count">${p.share_count}</span>` : ''}</button>` : ''}
-                <div style="position: absolute; bottom: 12px; right: 16px; display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.8); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); z-index: 2;">
-                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})" style="position: static; width: auto; height: auto; background: transparent; border: none; padding: 0; margin-right: 4px;">
-                        <i class="fas fa-heart" style="font-size: 14px; ${isFavorite ? 'color: var(--danger);' : ''}"></i>
-                    </button>
-                    <span class="favorite-count" data-product-id="${p.id}" style="color: var(--text-light); font-size: 12px; font-weight: 600;">${p.favorite_count || 0}</span>
-                </div>
-                <button class="delete-btn" onclick="event.stopPropagation(); deleteProduct(${p.id})" title="Delete Product"><i class="fas fa-trash"></i></button>
-            </div>
-            <div class="card-body">
-                <h3>${title}</h3>
-                <div class="seller-info"><i class="fas fa-user"></i><span>By ${seller}</span></div>
-                <div class="meta">${desc}</div>
-                ${deliveryInfoHtml}
-                <div class="rating"><span class="rating-stars">${'⭐'.repeat(Math.floor(p.rating || 0))}</span>
-                    <span class="rating-count">(${p.review_count || 0} ${p.review_count === 1 ? 'review' : 'reviews'})</span>
-                    <span style="color:var(--text-gray);margin-left:8px">• ${p.favorite_count || 0} ${p.favorite_count === 1 ? 'favorite' : 'favorites'}</span>
-                </div>
-                <div class="price-row">
-                    <div><div class="price" data-original-price="${originalPriceUSD}" data-usd-price="${originalPriceUSD}">${formattedPrice}</div>
-                    ${isPhysical ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Free shipping</div>` : isDigital ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Instant delivery</div>` : ''}</div>
-                    <div class="card-actions">
-                        ${isAffiliate ? `<button class="small-btn primary" onclick="event.stopPropagation(); openAffiliate('${escapeHtml(p.affiliate_link || '')}')"><i class="fas fa-external-link-alt"></i> Visit</button>` : 
-                          isPhysical ? `<button class="small-btn success" onclick="event.stopPropagation(); orderPhysicalProduct(${p.id})"><i class="fas fa-shopping-cart"></i> Order Now</button>
-                                        <button class="small-btn info" onclick="event.stopPropagation(); showProductFullDetails(${p.id})"><i class="fas fa-clipboard-list"></i> Details</button>` : 
-                          `<button class="small-btn primary" onclick="event.stopPropagation(); buyProduct(${p.id})"><i class="fas fa-shopping-cart"></i> Buy Now</button>`}
-                        <button class="small-btn" onclick="event.stopPropagation(); selectProductForReviews(${p.id})"><i class="fas fa-eye"></i> View</button>
-                    </div>
-                </div>
-                <div class="owner-controls">
-                    <button class="small-btn" onclick="event.stopPropagation(); editProduct(${p.id})"><i class="fas fa-edit"></i> Edit</button>
-                    <button class="small-btn danger" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash"></i> Delete</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-    startProductCarousels();
-    updateAllPrices();
-}
-
-function startProductCarousels() {
-    const productImageIntervals = new Map();
-    document.querySelectorAll('.product-card').forEach(card => {
-        const id = card.getAttribute('data-id');
-        if (!id) return;
-        const prod = products.find(p => String(p.id) === String(id));
-        if (!prod || !Array.isArray(prod._imageList) || prod._imageList.length <= 1) return;
-        const mainImg = document.getElementById(`mainimg-${id}`);
-        if (!mainImg) return;
-        let idx = 0;
-        const iv = setInterval(() => {
-            idx = (idx + 1) % prod._imageList.length;
-            const imgEl = document.getElementById(`mainimg-${id}`);
-            if (imgEl) imgEl.src = prod._imageList[idx];
-        }, 2500);
-        productImageIntervals.set(id, iv);
-        card.querySelector('.card-media')?.addEventListener('mouseenter', () => {
-            const ivId = productImageIntervals.get(id);
-            if (ivId) { clearInterval(ivId); productImageIntervals.delete(id); }
-        });
-        card.querySelector('.card-media')?.addEventListener('mouseleave', () => {
-            if (productImageIntervals.has(id)) return;
-            let idx2 = prod._imageList.indexOf((document.getElementById(`mainimg-${id}`)?.src) || '');
-            if (idx2 < 0) idx2 = 0;
-            const iv2 = setInterval(() => {
-                idx2 = (idx2 + 1) % prod._imageList.length;
-                const el = document.getElementById(`mainimg-${id}`);
-                if (el) el.src = prod._imageList[idx2];
-            }, 2500);
-            productImageIntervals.set(id, iv2);
-        });
-    });
-}
-
-window.switchMainImage = function(productId, thumbIndex) {
-    const prod = products.find(p => p.id == productId);
-    if (!prod || !prod._imageList || !prod._imageList[thumbIndex]) return;
-    const main = document.getElementById('mainimg-' + productId);
-    if (main) main.src = prod._imageList[thumbIndex];
-};
-
-function initializeProductOwnership() {
-    document.querySelectorAll('.product-card').forEach(card => {
-        const productId = card.getAttribute('data-id');
-        const productUserId = card.getAttribute('data-user-id');
-        const isOwner = currentUser && (currentUser.id == productUserId || currentUser.role === 'admin');
-        if (isOwner) {
-            card.classList.add('is-owner');
-            const deleteBtn = card.querySelector('.delete-btn');
-            if (deleteBtn) deleteBtn.style.display = 'flex';
-            const ownerControls = card.querySelector('.owner-controls');
-            if (ownerControls) ownerControls.style.display = 'flex';
-        }
-    });
-}
-
 // ============================================
 // REVIEWS FUNCTIONS
 // ============================================

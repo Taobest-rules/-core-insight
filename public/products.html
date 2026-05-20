@@ -7764,7 +7764,419 @@ function editProduct(productId) {
     if (sellerView) sellerView.scrollIntoView({ behavior: 'smooth' });
 }
 window.editProduct = editProduct;
+function loadBankForm(gateway) {
+    const detailsSection = document.getElementById('bankDetailsSection');
+    if (!detailsSection) return;
+    
+    // Flutterwave: International + African banks
+    detailsSection.innerHTML = `
+        <div class="form-section-header" style="margin-bottom: 16px;">
+            <i class="fas fa-globe"></i>
+            <h4>International Bank Account Details</h4>
+        </div>
+        <div id="flutterwaveBankForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Select Bank Country <span class="required">*</span></label>
+                    <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+                        <option value="">Select country</option>
+                        <option value="NG">🇳🇬 Nigeria</option>
+                        <option value="KE">🇰🇪 Kenya</option>
+                        <option value="GH">🇬🇭 Ghana</option>
+                        <option value="ZA">🇿🇦 South Africa</option>
+                        <option value="UG">🇺🇬 Uganda</option>
+                        <option value="TZ">🇹🇿 Tanzania</option>
+                        <option value="RW">🇷🇼 Rwanda</option>
+                        <option value="US">🇺🇸 United States</option>
+                        <option value="GB">🇬🇧 United Kingdom</option>
+                        <option value="CA">🇨🇦 Canada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bank Name <span class="required">*</span></label>
+                    <select id="p_bankName" class="form-select" required>
+                        <option value="">Select bank country first</option>
+                    </select>
+                    <div id="p_bankName_error" class="form-error"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Bank Code</label>
+                    <input type="text" id="p_bankCode" class="form-input" readonly />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account Number <span class="required">*</span></label>
+                    <input type="text" id="p_accountNumber" class="form-input" placeholder="Your account number" required />
+                    <div id="p_accountNumber_error" class="form-error"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Account Holder Name</label>
+                    <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payout Currency</label>
+                    <select id="payoutCurrency" class="form-select">
+                        <option value="USD">🇺🇸 USD - US Dollar</option>
+                        <option value="NGN">🇳🇬 NGN - Nigerian Naira</option>
+                        <option value="GBP">🇬🇧 GBP - British Pound</option>
+                        <option value="EUR">🇪🇺 EUR - Euro</option>
+                        <option value="KES">🇰🇪 KES - Kenyan Shilling</option>
+                        <option value="GHS">🇬🇭 GHS - Ghanaian Cedi</option>
+                        <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="subaccountStatus" style="display: none; margin-top: 16px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+            <p id="subaccountStatusText" style="margin: 0; color: var(--success); font-size: 13px;">
+                <i class="fas fa-check-circle"></i> Auto-split active! 90% of payments will go to your account.
+            </p>
+        </div>
+    `;
+    
+    detailsSection.style.display = 'block';
+    
+    // Setup account verification after form is loaded
+    setTimeout(() => {
+        setupAccountVerification();
+    }, 100);
+}
+async function loadFlutterwaveBanks() {
+    const country = document.getElementById('bankCountry')?.value;
+    if (!country) return;
+    
+    try {
+        console.log(`🌍 Loading banks for country: ${country}`);
+        
+        const response = await fetch(`/api/banks/flutterwave/${country}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const banks = await response.json();
+        
+        const bankSelect = document.getElementById('p_bankName');
+        const bankCodeInput = document.getElementById('p_bankCode');
+        
+        if (bankSelect) {
+            bankSelect.innerHTML = '<option value="">Select your bank</option>';
+            
+            if (banks && banks.length > 0) {
+                banks.forEach(bank => {
+                    const option = document.createElement('option');
+                    option.value = bank.code;
+                    option.textContent = bank.name;
+                    bankSelect.appendChild(option);
+                });
+                
+                bankSelect.onchange = function() {
+                    if (bankCodeInput) {
+                        bankCodeInput.value = this.value;
+                    }
+                    // Clear previous verification
+                    const accountNumberInput = document.getElementById('p_accountNumber');
+                    if (accountNumberInput && accountNumberInput.value) {
+                        const event = new Event('input');
+                        accountNumberInput.dispatchEvent(event);
+                    }
+                };
+            } else {
+                bankSelect.innerHTML = '<option value="">No banks available for this country</option>';
+            }
+        }
+        
+    } catch (err) {
+        console.error('Error loading Flutterwave banks:', err);
+        const bankSelect = document.getElementById('p_bankName');
+        if (bankSelect) {
+            bankSelect.innerHTML = '<option value="">Error loading banks. Please refresh.</option>';
+        }
+        showToast('Error', 'Failed to load banks. Please try again.', 'danger');
+    }
+}
+async function verifyAccountNumber(inputElement) {
+    const accountNumber = inputElement.value.trim();
+    const bankCode = document.getElementById('p_bankCode')?.value;
+    const bankCountry = document.getElementById('bankCountry')?.value || 'NG';
+    const isVirtualChecked = document.getElementById('isVirtualAccount')?.checked || false;
+    const manualAccountName = document.getElementById('manualAccountName')?.value.trim();
+    
+    const messageEl = document.getElementById('p_accountNumber_error');
+    const accountNameField = document.getElementById('p_accountName');
+    
+    // Validate inputs
+    if (!accountNumber || accountNumber.length < 5) {
+        showVerificationMessage('Please enter a valid account number', 'warning', messageEl);
+        return;
+    }
+    
+    if (!bankCode) {
+        showVerificationMessage('Please select a bank first', 'warning', messageEl);
+        return;
+    }
+    
+    // For virtual accounts, require account name
+    if (isVirtualChecked && !manualAccountName) {
+        showVerificationMessage('Please enter the account holder name for your virtual account', 'warning', messageEl);
+        return;
+    }
+    
+    // Show loading state
+    showVerificationMessage('<i class="fas fa-spinner fa-spin"></i> Verifying account with Flutterwave...</i>', 'info', messageEl);
+    
+    try {
+        const endpoint = `/api/verify-account/flutterwave/${bankCountry}`;
+        
+        const requestBody = {
+            account_number: accountNumber,
+            bank_code: bankCode,
+            country: bankCountry
+        };
+        
+        // If virtual account is checked, send account name
+        if (isVirtualChecked && manualAccountName) {
+            requestBody.account_name = manualAccountName;
+            requestBody.skip_verification = true;
+        }
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.account_name) {
+            // Set account name field
+            if (accountNameField) {
+                accountNameField.value = data.account_name;
+                accountNameField.readOnly = true;
+                accountNameField.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                accountNameField.style.color = 'var(--success)';
+            }
+            
+            // For virtual accounts, also update manual name field
+            if (data.account_type === 'virtual' || isVirtualChecked) {
+                const manualNameField = document.getElementById('manualAccountName');
+                if (manualNameField && !manualNameField.value) {
+                    manualNameField.value = data.account_name;
+                }
+            }
+            
+            // Show account type indicator
+            showAccountTypeIndicator(data.account_type || (isVirtualChecked ? 'virtual' : 'real'), data.account_name);
+            
+            // Show success message
+            const successMessage = (data.account_type === 'virtual' || isVirtualChecked)
+                ? `✓ Virtual account accepted! Payouts will work. Account: ${escapeHtml(data.account_name)}`
+                : `✓ Account verified! Account holder: ${escapeHtml(data.account_name)}`;
+            
+            showVerificationMessage(successMessage, 'success', messageEl);
+            
+            // Mark as verified
+            inputElement.setAttribute('data-verified', 'true');
+            if (accountNameField) accountNameField.setAttribute('data-verified', 'true');
+            
+            // Update subaccount status
+            updateSubaccountStatus(true, data.account_name);
+            
+        } else if (data.status === 'warning' && data.requires_manual_name) {
+            // Auto-check the virtual account checkbox and prompt for name
+            const virtualCheckbox = document.getElementById('isVirtualAccount');
+            if (virtualCheckbox && !virtualCheckbox.checked) {
+                virtualCheckbox.checked = true;
+                const virtualHelp = document.getElementById('virtualAccountHelp');
+                const manualNameField = document.getElementById('manualNameField');
+                if (virtualHelp) virtualHelp.style.display = 'block';
+                if (manualNameField) manualNameField.style.display = 'block';
+                document.getElementById('manualAccountName')?.focus();
+                showVerificationMessage(data.message, 'warning', messageEl);
+            } else {
+                showVerificationMessage(data.message, 'warning', messageEl);
+            }
+            
+        } else {
+            throw new Error(data.message || 'Verification failed');
+        }
+        
+    } catch (err) {
+        console.error('Verification error:', err);
+        
+        if (accountNameField) {
+            accountNameField.value = '';
+            accountNameField.readOnly = false;
+            accountNameField.style.backgroundColor = '';
+            accountNameField.style.color = '';
+        }
+        
+        // Suggest trying as virtual account
+        const virtualCheckbox = document.getElementById('isVirtualAccount');
+        if (virtualCheckbox && !virtualCheckbox.checked) {
+            showVerificationMessage(
+                'Verification failed. If this is a virtual account (Raenest, Grey, etc.), check the box below and enter your account holder name.', 
+                'warning', 
+                messageEl
+            );
+        } else {
+            showVerificationMessage(err.message || 'Verification failed. Please check your account details.', 'error', messageEl);
+        }
+        
+        inputElement.setAttribute('data-verified', 'false');
+    }
+}
+function showVerificationMessage(message, type, messageEl) {
+    if (!messageEl) return;
+    
+    const colors = {
+        success: 'var(--success)',
+        error: 'var(--danger)',
+        warning: 'var(--warning)',
+        info: 'var(--accent)'
+    };
+    
+    messageEl.innerHTML = `<span style="color: ${colors[type] || colors.info};">${message}</span>`;
+    messageEl.classList.add('show');
+    
+    if (type !== 'info') {
+        setTimeout(() => messageEl.classList.remove('show'), 5000);
+    }
+}
 
+function showAccountTypeIndicator(accountType, accountName) {
+    let indicator = document.getElementById('accountTypeIndicator');
+    if (!indicator) {
+        const bankSection = document.getElementById('bankDetailsSection');
+        if (bankSection) {
+            bankSection.insertAdjacentHTML('beforeend', `
+                <div id="accountTypeIndicator" style="margin-top: 12px; padding: 10px; border-radius: 8px; display: none;">
+                    <i class="fas fa-info-circle"></i> <span id="accountTypeText"></span>
+                </div>
+            `);
+            indicator = document.getElementById('accountTypeIndicator');
+        }
+    }
+    
+    if (indicator) {
+        if (accountType === 'virtual') {
+            indicator.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+            indicator.style.borderLeft = '3px solid var(--warning)';
+            document.getElementById('accountTypeText').innerHTML = `
+                <strong>Virtual Account Detected</strong><br>
+                <small>${escapeHtml(accountName)} - Payouts are supported. Your 90% will be sent to this account.</small>
+            `;
+        } else {
+            indicator.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            indicator.style.borderLeft = '3px solid var(--success)';
+            document.getElementById('accountTypeText').innerHTML = `
+                <strong>Real Account Verified</strong><br>
+                <small>${escapeHtml(accountName)} - Ready for payouts.</small>
+            `;
+        }
+        indicator.style.display = 'block';
+    }
+}
+
+function updateSubaccountStatus(isVerified, accountName) {
+    const statusDiv = document.getElementById('subaccountStatus');
+    const statusText = document.getElementById('subaccountStatusText');
+    
+    if (statusDiv && statusText && isVerified) {
+        statusText.innerHTML = `✓ Account verified! Auto-split (90/10) will be active. Payouts to: ${escapeHtml(accountName)}`;
+        statusDiv.style.display = 'block';
+    }
+}
+function addVirtualAccountToggle() {
+    const bankDetailsSection = document.getElementById('bankDetailsSection');
+    if (!bankDetailsSection || document.getElementById('virtualAccountSection')) return;
+    
+    const virtualHtml = `
+        <div id="virtualAccountSection" style="margin-top: 20px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <label class="form-checkbox" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="isVirtualAccount" style="width: 18px; height: 18px;">
+                <span style="font-weight: 500;">
+                    <i class="fas fa-building"></i> This is a virtual account (Raenest, Grey, Payoneer, Wise, etc.)
+                </span>
+            </label>
+            <div id="virtualAccountHelp" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                <i class="fas fa-info-circle" style="color: var(--warning);"></i>
+                <strong style="color: var(--warning);">Virtual Account Support:</strong>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-gray);">
+                    Flutterwave supports payouts to virtual accounts from Raenest, Grey, Payoneer, Wise, and other providers.
+                    Please enter the account holder name as it appears on your virtual account statement.
+                </p>
+            </div>
+            <div id="manualNameField" style="display: none; margin-top: 16px;">
+                <label class="form-label">Account Holder Name <span class="required">*</span></label>
+                <input type="text" id="manualAccountName" class="form-input" placeholder="Enter the name on your virtual account">
+                <span class="form-help">This should match the name on your Raenest/Wise/Payoneer account</span>
+                <div id="manualNameError" class="form-error"></div>
+            </div>
+        </div>
+    `;
+    
+    bankDetailsSection.insertAdjacentHTML('beforeend', virtualHtml);
+    
+    const virtualCheckbox = document.getElementById('isVirtualAccount');
+    const virtualHelp = document.getElementById('virtualAccountHelp');
+    const manualNameField = document.getElementById('manualNameField');
+    const accountNameField = document.getElementById('p_accountName');
+    const accountNumberInput = document.getElementById('p_accountNumber');
+    
+    if (virtualCheckbox) {
+        virtualCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            if (virtualHelp) virtualHelp.style.display = isChecked ? 'block' : 'none';
+            if (manualNameField) manualNameField.style.display = isChecked ? 'block' : 'none';
+            
+            // Clear previous verification when toggling
+            if (accountNumberInput && accountNumberInput.value) {
+                if (accountNameField) {
+                    accountNameField.value = '';
+                    accountNameField.readOnly = false;
+                    accountNameField.style.backgroundColor = '';
+                    accountNameField.style.color = '';
+                }
+                // Trigger re-verification
+                const event = new Event('input');
+                accountNumberInput.dispatchEvent(event);
+            }
+        });
+    }
+}
+function selectPaymentGateway(gateway) {
+    if (gateway !== 'flutterwave') {
+        gateway = 'flutterwave';
+    }
+    
+    selectedGateway = gateway;
+    document.getElementById('p_paymentProvider').value = gateway;
+    
+    // Update UI - only Flutterwave option
+    document.querySelectorAll('.provider-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.querySelector(`.provider-option[data-provider="${gateway}"]`)?.classList.add('selected');
+    
+    // Show country selection
+    const countrySection = document.getElementById('countrySection');
+    if (countrySection) countrySection.style.display = 'block';
+    
+    // Load bank form
+    loadBankForm(gateway);
+    
+    // Setup verification after form loads
+    setTimeout(() => {
+        setupAccountVerification();
+    }, 200);
+}
 // ============================================
 // SELLER VERIFICATION FUNCTIONS
 // ============================================
@@ -8506,6 +8918,14 @@ if (notificationBtn) {
         showNotificationDropdown();
     });
 }
+
+if (paymentProviderInput) {
+    paymentProviderInput.value = 'flutterwave';
+    selectPaymentGateway('flutterwave');
+}
+
+// Add virtual account toggle
+addVirtualAccountToggle();
 });
 document.getElementById('searchInput')?.addEventListener('input', debounce(renderProducts, 250));
 document.getElementById('filterType')?.addEventListener('change', renderProducts);

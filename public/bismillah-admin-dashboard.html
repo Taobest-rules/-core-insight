@@ -31,7 +31,7 @@
     }
     body { background: var(--primary-dark); color: var(--text-light); font-family: 'Inter', sans-serif; line-height: 1.5; }
     
-    /* Bismillah Banner */
+    /* Bismillah Banner - AT THE VERY TOP */
     .bismillah {
       background: linear-gradient(135deg, #1e293b, #0f172a);
       text-align: center;
@@ -42,6 +42,8 @@
       justify-content: center;
       gap: 15px;
       flex-wrap: wrap;
+      position: relative;
+      z-index: 200;
     }
     .bismillah img { height: 40px; width: auto; border-radius: 10px; }
     .bismillah i { color: var(--accent-gold); font-size: 1.2rem; }
@@ -357,7 +359,7 @@
 </head>
 <body>
 
-<!-- Bismillah Banner with Core Insight Logo -->
+<!-- Bismillah Banner - AT THE VERY TOP, NOTHING ABOVE IT -->
 <div class="bismillah">
   <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo">
   <i class="fas fa-star-of-life"></i>
@@ -410,6 +412,8 @@
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-graduation-cap"></i></div><div class="stat-info"><h3 id="totalCourses">0</h3><p>Courses</p></div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-briefcase"></i></div><div class="stat-info"><h3 id="totalServices">0</h3><p>Services</p></div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-dollar-sign"></i></div><div class="stat-info"><h3 id="totalRevenue">$0</h3><p>Platform Revenue</p></div></div>
+      <!-- FIXED: Total Orders card - shows actual count -->
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-shopping-cart"></i></div><div class="stat-info"><h3 id="totalOrders">0</h3><p>Total Orders</p></div></div>
     </div>
 
     <!-- Tabs -->
@@ -456,7 +460,7 @@
     <!-- Services Tab -->
     <div id="servicesTab" class="tab-content" style="display:none">
       <div class="table-container">
-        <table><thead><tr><th>ID</th><th>Title</th><th>Provider</th><th>Price</th><th>Actions</th></tr></thead><tbody id="servicesTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+        <tr><thead><tr><th>ID</th><th>Title</th><th>Provider</th><th>Price</th><th>Actions</th></tr></thead><tbody id="servicesTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
@@ -474,7 +478,7 @@
       </div>
     </div>
 
-    <!-- Flagged Users Tab (for ban/restore decisions) -->
+    <!-- Flagged Users Tab -->
     <div id="flaggedTab" class="tab-content" style="display:none">
       <div class="table-container">
         <table><thead><tr><th>User</th><th>Flags Count</th><th>Current Status</th><th>Actions</th></tr></thead><tbody id="flaggedTableBody"><tr><td colspan="4">Loading...</td></tr></tbody></table>
@@ -538,27 +542,32 @@
     ]);
   }
 
-  // Load statistics
+  // Load statistics - FIXED: Total Orders now correctly displays count
   async function loadStats() {
     try {
-      const [users, products, courses, services, rev] = await Promise.all([
+      const [users, products, courses, services, rev, orders] = await Promise.all([
         fetch('/api/admin/users').then(r => r.json()).catch(() => []),
         fetch('/api/products').then(r => r.json()).catch(() => []),
         fetch('/api/courses').then(r => r.json()).catch(() => []),
         fetch('/api/services').then(r => r.json()).catch(() => ({ services: [] })),
-        fetch('/api/admin/platform-stats').then(r => r.json()).catch(() => ({ platform_revenue: 0 }))
+        fetch('/api/admin/platform-stats').then(r => r.json()).catch(() => ({ platform_revenue: 0 })),
+        fetch('/api/orders/all').then(r => r.json()).catch(() => [])
       ]);
       const servicesList = services.services || services || [];
+      const ordersList = Array.isArray(orders) ? orders : [];
+      const totalOrdersCount = ordersList.length;
+      
       document.getElementById('totalUsers').innerText = users.length || 0;
       document.getElementById('totalProducts').innerText = products.length || 0;
       document.getElementById('totalCourses').innerText = courses.length || 0;
       document.getElementById('totalServices').innerText = servicesList.length || 0;
       document.getElementById('totalRevenue').innerText = `$${(rev.platform_revenue || 0).toFixed(2)}`;
+      document.getElementById('totalOrders').innerText = totalOrdersCount;
       
       document.getElementById('dashboardMetrics').innerHTML = `
         <tr><td>Active Users</td><td>${users.filter(u => !u.account_locked).length}</td></tr>
         <tr><td>Banned Users</td><td>${users.filter(u => u.account_locked).length}</td></tr>
-        <tr><td>Total Orders</td><td>${(await fetch('/api/orders/all').then(r=>r.json()).catch(()=>[])).length}</td></tr>
+        <tr><td>Total Orders</td><td>${totalOrdersCount}</td></tr>
         <tr><td>Pending Refunds</td><td id="pendingRefundsCount">0</td></tr>
         <tr><td>Platform Revenue</td><td>$${(rev.platform_revenue || 0).toFixed(2)}</td></tr>
       `;
@@ -580,7 +589,7 @@
           <button class="action-btn view" onclick="viewUser(${u.id})"><i class="fas fa-eye"></i></button>
           ${!u.account_locked ? `<button class="action-btn ban" onclick="openBanModal(${u.id})"><i class="fas fa-ban"></i> Ban</button>` : `<button class="action-btn success" onclick="openRestoreModal(${u.id})"><i class="fas fa-check"></i> Restore</button>`}
           <button class="action-btn delete" onclick="openDeleteModal('user', ${u.id})"><i class="fas fa-trash"></i></button>
-        </td>
+         </noscript>
       </tr>
     `).join('');
   }
@@ -627,7 +636,7 @@
     let orders = await res.json();
     if (!Array.isArray(orders)) orders = [];
     document.getElementById('ordersTableBody').innerHTML = orders.slice(0, 100).map(o => `
-      <tr><td>#${o.id}</td><td>${escapeHtml(o.product_name || 'Item')}</td><td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
+      <td><td>#${o.id}</td><td>${escapeHtml(o.product_name || 'Item')}</td><td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
       <td><span class="badge badge-warning">${o.order_status || 'pending'}</span></td>
       <td><button class="action-btn view" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i> View</button></td></tr>
     `).join('');
@@ -643,10 +652,11 @@
       <td><span class="badge badge-warning">${d.status || 'pending'}</span></td>
       <td><button class="action-btn view" onclick="openResolveModal(${d.order_id})"><i class="fas fa-gavel"></i> Resolve</button></td></tr>
     `).join('');
-    document.getElementById('pendingRefundsCount') && (document.getElementById('pendingRefundsCount').innerText = disputes.length);
+    const pendingRefundsSpan = document.getElementById('pendingRefundsCount');
+    if (pendingRefundsSpan) pendingRefundsSpan.innerText = disputes.length;
   }
 
-  // Load flagged users (for admin to decide ban/restore)
+  // Load flagged users
   async function loadFlaggedUsers() {
     const res = await fetch('/api/admin/flagged-users');
     let data = await res.json();
@@ -664,7 +674,7 @@
     `).join('');
   }
 
-  // Load support tickets (from contact/complaint form)
+  // Load support tickets
   async function loadSupportTickets() {
     const res = await fetch('/api/admin/support-tickets');
     let tickets = await res.json();
@@ -811,7 +821,7 @@
       const res = await fetch('/api/admin/support-tickets');
       let tickets = await res.json();
       tickets = tickets.filter(t => (t.name || '').toLowerCase().includes(query) || (t.subject || '').toLowerCase().includes(query));
-      document.getElementById('ticketsTableBody').innerHTML = tickets.map(t => `<tr><td><strong>${escapeHtml(t.name)}</strong><br><small>${escapeHtml(t.email)}</small></td><td><strong>${escapeHtml(t.subject)}</strong><br><small>${escapeHtml((t.message || '').substring(0, 80))}...</small></td><td>${t.priority || 'Medium'}</td><td><button class="action-btn view" onclick="viewTicket(${t.id})">View</button><button class="action-btn success" onclick="resolveTicket(${t.id})">Resolve</button></td>`).join('');
+      document.getElementById('ticketsTableBody').innerHTML = tickets.map(t => `<td><td><strong>${escapeHtml(t.name)}</strong><br><small>${escapeHtml(t.email)}</small></td><td><strong>${escapeHtml(t.subject)}</strong><br><small>${escapeHtml((t.message || '').substring(0, 80))}...</small></td><td>${t.priority || 'Medium'}</td><td><button class="action-btn view" onclick="viewTicket(${t.id})">View</button><button class="action-btn success" onclick="resolveTicket(${t.id})">Resolve</button></td>`).join('');
       document.getElementById('ticketsTab').style.display = 'block';
     }
     showToast(`Found results for "${query}"`, 'info');

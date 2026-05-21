@@ -9175,20 +9175,20 @@ function loadBankForm(gateway) {
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Select Bank Country <span class="required">*</span></label>
-                <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
-                    <option value="">Select country</option>
-                    <option value="US">🇺🇸 United States</option>
-                    <option value="CA">🇨🇦 Canada</option>
-                    <option value="GB">🇬🇧 United Kingdom</option>
-                    <option value="NG">🇳🇬 Nigeria</option>
-                    <option value="GH">🇬🇭 Ghana</option>
-                    <option value="KE">🇰🇪 Kenya</option>
-                    <option value="UG">🇺🇬 Uganda</option>
-                    <option value="TZ">🇹🇿 Tanzania</option>
-                    <option value="ZA">🇿🇦 South Africa</option>
-                    <option value="RW">🇷🇼 Rwanda</option>
-                    <option value="OTHER">🌐 Other Country (Manual Entry)</option>
-                </select>
+<select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+    <option value="">Select country</option>
+    <option value="US">🇺🇸 United States</option>
+    <option value="CA">🇨🇦 Canada</option>
+    <option value="GB">🇬🇧 United Kingdom</option>
+    <option value="NG">🇳🇬 Nigeria</option>
+    <option value="GH">🇬🇭 Ghana</option>
+    <option value="KE">🇰🇪 Kenya</option>
+    <option value="UG">🇺🇬 Uganda</option>
+    <option value="TZ">🇹🇿 Tanzania</option>
+    <option value="ZA">🇿🇦 South Africa</option>
+    <option value="RW">🇷🇼 Rwanda</option>
+    <option value="OTHER">🌐 Other Country (Manual Entry)</option>
+</select>
             </div>
             <div class="form-group">
                 <label class="form-label">Bank Name <span class="required">*</span></label>
@@ -9355,7 +9355,8 @@ function updateBankFieldsByCountry() {
     }
 }
 
-async function loadFlutterwaveBanks() {
+
+   async function loadFlutterwaveBanks() {
     const country = document.getElementById('bankCountry')?.value;
     if (!country) {
         console.log('No country selected');
@@ -9368,37 +9369,17 @@ async function loadFlutterwaveBanks() {
     
     if (!bankSelect) return;
     
-    // Check if this is "OTHER" country (manual entry)
-    if (country === 'OTHER') {
-        // Manual entry mode
-        bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
-        bankSelect.disabled = false;
-        
-        // Create manual input field
-        let manualInput = document.getElementById('manualBankCodeInput');
-        if (!manualInput) {
-            manualInput = document.createElement('input');
-            manualInput.type = 'text';
-            manualInput.placeholder = 'Enter your bank code (e.g., 044, 000001, SWIFT code)';
-            manualInput.className = 'form-input';
-            manualInput.style.marginTop = '8px';
-            manualInput.id = 'manualBankCodeInput';
-            bankSelect.parentNode.appendChild(manualInput);
-            
-            manualInput.addEventListener('input', function() {
-                if (bankCodeInput) bankCodeInput.value = this.value;
-            });
-        }
-        
-        showToast(`Please enter your bank code manually`, 'info');
-        return;
-    }
-    
-    // Auto-bank listing for supported countries
+    // Show loading state
     bankSelect.innerHTML = '<option value="">Loading banks...</option>';
     bankSelect.disabled = true;
     
+    // Remove any existing manual input
+    const existingManual = document.getElementById('manualBankCodeInput');
+    if (existingManual) existingManual.remove();
+    
     try {
+        console.log(`🌍 Fetching banks for country: ${country}`);
+        
         const response = await fetch(`/api/banks/flutterwave/${country}`, {
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
@@ -9410,6 +9391,7 @@ async function loadFlutterwaveBanks() {
             const banks = await response.json();
             
             if (banks && banks.length > 0) {
+                // Success - populate bank dropdown
                 bankSelect.innerHTML = '<option value="">Select your bank</option>';
                 
                 banks.forEach(bank => {
@@ -9433,14 +9415,47 @@ async function loadFlutterwaveBanks() {
             }
         }
         
-        // Fallback to manual entry
+        // No banks found - manual entry mode
+        console.log(`📝 No banks for ${country}, using manual entry`);
         bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
-        provideManualBankEntry(bankSelect, bankCodeInput, country);
+        
+        // Create manual input field
+        const manualInput = document.createElement('input');
+        manualInput.type = 'text';
+        manualInput.placeholder = 'Enter your bank code (e.g., 044, 000001)';
+        manualInput.className = 'form-input';
+        manualInput.style.marginTop = '8px';
+        manualInput.id = 'manualBankCodeInput';
+        bankSelect.parentNode.appendChild(manualInput);
+        
+        manualInput.addEventListener('input', function() {
+            if (bankCodeInput) bankCodeInput.value = this.value;
+        });
+        
+        showToast(`Please enter your bank code manually for ${country}`, 'info');
         
     } catch (err) {
         console.error('Error loading banks:', err);
         bankSelect.disabled = false;
-        provideManualBankEntry(bankSelect, bankCodeInput, country);
+        bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
+        
+        // Create manual input field on error too
+        const manualInput = document.createElement('input');
+        manualInput.type = 'text';
+        manualInput.placeholder = 'Enter your bank code manually';
+        manualInput.className = 'form-input';
+        manualInput.style.marginTop = '8px';
+        manualInput.id = 'manualBankCodeInput';
+        
+        const existing = document.getElementById('manualBankCodeInput');
+        if (!existing) {
+            bankSelect.parentNode.appendChild(manualInput);
+            manualInput.addEventListener('input', function() {
+                if (bankCodeInput) bankCodeInput.value = this.value;
+            });
+        }
+        
+        showToast(`Manual bank code entry for ${country}`, 'warning');
     }
 }
 function provideManualBankEntry(bankSelect, bankCodeInput, country) {

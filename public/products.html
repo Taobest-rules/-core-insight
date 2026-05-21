@@ -9232,22 +9232,19 @@ function loadBankForm(gateway) {
     const detailsSection = document.getElementById('bankDetailsSection');
     if (!detailsSection) return;
     
-    // Get the existing bank country select if it exists to preserve selection
     const existingBankCountry = document.getElementById('bankCountry');
     const savedCountry = existingBankCountry ? existingBankCountry.value : '';
     
-    // Flutterwave: FULL 50+ COUNTRIES (PRESERVE THE EXISTING HTML STRUCTURE)
     detailsSection.innerHTML = `
         <div class="form-section-header" style="margin-bottom: 16px;">
             <i class="fas fa-globe"></i>
             <h4>International Bank Account Details</h4>
         </div>
         
-        <!-- Bank Country Selection - FULL 50+ COUNTRIES -->
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Select Bank Country <span class="required">*</span></label>
-                <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+                <select id="bankCountry" class="form-select" onchange="updateBankFieldsByCountry()">
                     <option value="">Select country</option>
                     <!-- North America -->
                     <option value="US">🇺🇸 United States</option>
@@ -9273,34 +9270,13 @@ function loadBankForm(gateway) {
                     <option value="GR">🇬🇷 Greece</option>
                     <option value="HU">🇭🇺 Hungary</option>
                     <option value="RO">🇷🇴 Romania</option>
-                    <!-- West Africa -->
+                    <!-- Africa -->
                     <option value="NG">🇳🇬 Nigeria</option>
                     <option value="GH">🇬🇭 Ghana</option>
-                    <option value="SN">🇸🇳 Senegal</option>
-                    <option value="CI">🇨🇮 Côte d'Ivoire</option>
-                    <option value="SL">🇸🇱 Sierra Leone</option>
-                    <option value="GM">🇬🇲 Gambia</option>
-                    <option value="LR">🇱🇷 Liberia</option>
-                    <option value="ML">🇲🇱 Mali</option>
-                    <option value="BF">🇧🇫 Burkina Faso</option>
-                    <option value="BJ">🇧🇯 Benin</option>
-                    <option value="TG">🇹🇬 Togo</option>
-                    <option value="NE">🇳🇪 Niger</option>
-                    <option value="GN">🇬🇳 Guinea</option>
-                    <option value="GW">🇬🇼 Guinea-Bissau</option>
-                    <option value="CV">🇨🇻 Cape Verde</option>
-                    <!-- East Africa -->
                     <option value="KE">🇰🇪 Kenya</option>
                     <option value="UG">🇺🇬 Uganda</option>
                     <option value="TZ">🇹🇿 Tanzania</option>
                     <option value="RW">🇷🇼 Rwanda</option>
-                    <option value="ET">🇪🇹 Ethiopia</option>
-                    <option value="BI">🇧🇮 Burundi</option>
-                    <option value="SS">🇸🇸 South Sudan</option>
-                    <option value="DJ">🇩🇯 Djibouti</option>
-                    <option value="ER">🇪🇷 Eritrea</option>
-                    <option value="SO">🇸🇴 Somalia</option>
-                    <!-- Southern Africa -->
                     <option value="ZA">🇿🇦 South Africa</option>
                     <option value="ZM">🇿🇲 Zambia</option>
                     <option value="ZW">🇿🇼 Zimbabwe</option>
@@ -9309,37 +9285,17 @@ function loadBankForm(gateway) {
                     <option value="AO">🇦🇴 Angola</option>
                     <option value="BW">🇧🇼 Botswana</option>
                     <option value="NA">🇳🇦 Namibia</option>
-                    <option value="SZ">🇸🇿 Eswatini</option>
-                    <option value="LS">🇱🇸 Lesotho</option>
-                    <option value="MG">🇲🇬 Madagascar</option>
-                    <option value="MU">🇲🇺 Mauritius</option>
-                    <option value="KM">🇰🇲 Comoros</option>
-                    <option value="SC">🇸🇨 Seychelles</option>
-                    <!-- Central Africa -->
-                    <option value="CM">🇨🇲 Cameroon</option>
-                    <option value="CD">🇨🇩 DR Congo</option>
-                    <option value="CG">🇨🇬 Republic of Congo</option>
-                    <option value="GA">🇬🇦 Gabon</option>
-                    <option value="CF">🇨🇫 Central African Republic</option>
-                    <option value="TD">🇹🇩 Chad</option>
-                    <option value="GQ">🇬🇶 Equatorial Guinea</option>
-                    <!-- North Africa -->
                     <option value="EG">🇪🇬 Egypt</option>
                     <option value="MA">🇲🇦 Morocco</option>
                     <option value="TN">🇹🇳 Tunisia</option>
-                    <option value="DZ">🇩🇿 Algeria</option>
-                    <option value="LY">🇱🇾 Libya</option>
-                    <option value="SD">🇸🇩 Sudan</option>
-                    <option value="MR">🇲🇷 Mauritania</option>
-                    <!-- Asia & Middle East -->
+                    <option value="CM">🇨🇲 Cameroon</option>
+                    <option value="SN">🇸🇳 Senegal</option>
+                    <option value="CI">🇨🇮 Côte d'Ivoire</option>
+                    <!-- Asia -->
                     <option value="AE">🇦🇪 United Arab Emirates</option>
                     <option value="SA">🇸🇦 Saudi Arabia</option>
                     <option value="QA">🇶🇦 Qatar</option>
                     <option value="KW">🇰🇼 Kuwait</option>
-                    <option value="BH">🇧🇭 Bahrain</option>
-                    <option value="OM">🇴🇲 Oman</option>
-                    <option value="JO">🇯🇴 Jordan</option>
-                    <option value="LB">🇱🇧 Lebanon</option>
                     <option value="IN">🇮🇳 India</option>
                     <option value="PK">🇵🇰 Pakistan</option>
                     <!-- Oceania -->
@@ -9355,6 +9311,9 @@ function loadBankForm(gateway) {
                 <div id="p_bankName_error" class="form-error"></div>
             </div>
         </div>
+        
+        <!-- Dynamic fields for SWIFT, Routing, Branch codes -->
+        <div id="bankAdditionalFields" style="display: none;"></div>
         
         <div class="form-row">
             <div class="form-group">
@@ -9380,12 +9339,6 @@ function loadBankForm(gateway) {
                     <option value="CAD">🇨🇦 CAD - Canadian Dollar</option>
                     <option value="GBP">🇬🇧 GBP - British Pound</option>
                     <option value="EUR">🇪🇺 EUR - Euro</option>
-                    <option value="CHF">🇨🇭 CHF - Swiss Franc</option>
-                    <option value="SEK">🇸🇪 SEK - Swedish Krona</option>
-                    <option value="NOK">🇳🇴 NOK - Norwegian Krone</option>
-                    <option value="DKK">🇩🇰 DKK - Danish Krone</option>
-                    <option value="PLN">🇵🇱 PLN - Polish Zloty</option>
-                    <option value="CZK">🇨🇿 CZK - Czech Koruna</option>
                     <option value="NGN">🇳🇬 NGN - Nigerian Naira</option>
                     <option value="GHS">🇬🇭 GHS - Ghanaian Cedi</option>
                     <option value="KES">🇰🇪 KES - Kenyan Shilling</option>
@@ -9393,22 +9346,11 @@ function loadBankForm(gateway) {
                     <option value="TZS">🇹🇿 TZS - Tanzanian Shilling</option>
                     <option value="RWF">🇷🇼 RWF - Rwandan Franc</option>
                     <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
-                    <option value="ZMW">🇿🇲 ZMW - Zambian Kwacha</option>
-                    <option value="MZN">🇲🇿 MZN - Mozambican Metical</option>
-                    <option value="EGP">🇪🇬 EGP - Egyptian Pound</option>
-                    <option value="MAD">🇲🇦 MAD - Moroccan Dirham</option>
-                    <option value="TND">🇹🇳 TND - Tunisian Dinar</option>
                     <option value="AED">🇦🇪 AED - UAE Dirham</option>
                     <option value="SAR">🇸🇦 SAR - Saudi Riyal</option>
-                    <option value="QAR">🇶🇦 QAR - Qatari Riyal</option>
-                    <option value="KWD">🇰🇼 KWD - Kuwaiti Dinar</option>
-                    <option value="BHD">🇧🇭 BHD - Bahraini Dinar</option>
                     <option value="INR">🇮🇳 INR - Indian Rupee</option>
-                    <option value="PKR">🇵🇰 PKR - Pakistani Rupee</option>
                     <option value="AUD">🇦🇺 AUD - Australian Dollar</option>
                     <option value="NZD">🇳🇿 NZD - New Zealand Dollar</option>
-                    <option value="XOF">🌍 XOF - West African CFA</option>
-                    <option value="XAF">🌍 XAF - Central African CFA</option>
                 </select>
             </div>
         </div>
@@ -9422,24 +9364,109 @@ function loadBankForm(gateway) {
     
     detailsSection.style.display = 'block';
     
-    // Restore previously selected country if any
     if (savedCountry) {
         const bankCountrySelect = document.getElementById('bankCountry');
         if (bankCountrySelect) {
             bankCountrySelect.value = savedCountry;
-            // Trigger bank loading for the restored country
             setTimeout(() => {
+                updateBankFieldsByCountry();
                 loadFlutterwaveBanks();
             }, 100);
         }
     }
     
-    // Setup account verification after form is loaded
     setTimeout(() => {
         setupAccountVerification();
     }, 100);
 }
-
+function updateBankFieldsByCountry() {
+    const country = document.getElementById('bankCountry')?.value;
+    const additionalFieldsDiv = document.getElementById('bankAdditionalFields');
+    
+    if (!additionalFieldsDiv) return;
+    
+    let fieldsHtml = '';
+    
+    if (country === 'US') {
+        fieldsHtml = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Routing Number (ABA/ACH) <span class="required">*</span></label>
+                    <input type="text" id="routingNumber" class="form-input" placeholder="e.g., 021000021" required />
+                    <span class="form-help">9-digit routing number for US bank accounts</span>
+                    <div id="routingNumber_error" class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">SWIFT/BIC Code <span class="required">*</span></label>
+                    <input type="text" id="swiftCode" class="form-input" placeholder="e.g., CHASUS33" required />
+                    <span class="form-help">Required for international wire transfers</span>
+                    <div id="swiftCode_error" class="form-error"></div>
+                </div>
+            </div>
+        `;
+    } else if (country === 'CA') {
+        fieldsHtml = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Institution Number <span class="required">*</span></label>
+                    <input type="text" id="institutionNumber" class="form-input" placeholder="e.g., 001" required />
+                    <div id="institutionNumber_error" class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Transit Number <span class="required">*</span></label>
+                    <input type="text" id="transitNumber" class="form-input" placeholder="e.g., 12345" required />
+                    <div id="transitNumber_error" class="form-error"></div>
+                </div>
+            </div>
+        `;
+    } else if (['GB', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR', 'HU', 'RO'].includes(country)) {
+        fieldsHtml = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">SWIFT/BIC Code <span class="required">*</span></label>
+                    <input type="text" id="swiftCode" class="form-input" placeholder="e.g., NWSBGB2L" required />
+                    <span class="form-help">8-11 character SWIFT code for international transfers</span>
+                    <div id="swiftCode_error" class="form-error"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">IBAN (Optional)</label>
+                    <input type="text" id="iban" class="form-input" placeholder="e.g., GB29NWBK60161331926819" />
+                    <span class="form-help">International Bank Account Number (recommended)</span>
+                </div>
+            </div>
+        `;
+    } else if (['GH', 'TZ', 'UG', 'RW'].includes(country)) {
+        fieldsHtml = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Branch Code <span class="required">*</span></label>
+                    <input type="text" id="branchCode" class="form-input" placeholder="e.g., 001" required />
+                    <span class="form-help">Bank branch code for local transfers</span>
+                    <div id="branchCode_error" class="form-error"></div>
+                </div>
+            </div>
+        `;
+    } else if (country === 'AU') {
+        fieldsHtml = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">BSB Number <span class="required">*</span></label>
+                    <input type="text" id="bsbNumber" class="form-input" placeholder="e.g., 012-345" required />
+                    <span class="form-help">6-digit BSB code for Australian bank accounts</span>
+                    <div id="bsbNumber_error" class="form-error"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (fieldsHtml) {
+        additionalFieldsDiv.style.display = 'block';
+        additionalFieldsDiv.innerHTML = fieldsHtml;
+    } else {
+        additionalFieldsDiv.style.display = 'none';
+        additionalFieldsDiv.innerHTML = '';
+    }
+}
 async function loadFlutterwaveBanks() {
     const country = document.getElementById('bankCountry')?.value;
     if (!country) {
@@ -9997,7 +10024,8 @@ function selectPaymentGateway(gateway) {
 }
 
 // Create subaccount - Works for both real and virtual accounts
-async function createSubaccount() {
+
+  async function createSubaccount() {
     if (!selectedGateway) {
         console.log('No gateway selected');
         return null;
@@ -10009,10 +10037,19 @@ async function createSubaccount() {
     const businessEmail = document.getElementById('p_businessEmail').value;
     const businessPhone = document.getElementById('p_businessPhone').value;
     const country = document.getElementById('p_country').value;
+    const bankCountry = document.getElementById('bankCountry')?.value;
     const isVirtual = document.getElementById('isVirtualAccount')?.checked || false;
     const manualAccountName = document.getElementById('manualAccountName')?.value;
     
-    // Use manual account name for virtual accounts, otherwise use business name
+    // Collect country-specific fields
+    const routingNumber = document.getElementById('routingNumber')?.value;
+    const swiftCode = document.getElementById('swiftCode')?.value;
+    const iban = document.getElementById('iban')?.value;
+    const branchCode = document.getElementById('branchCode')?.value;
+    const institutionNumber = document.getElementById('institutionNumber')?.value;
+    const transitNumber = document.getElementById('transitNumber')?.value;
+    const bsbNumber = document.getElementById('bsbNumber')?.value;
+    
     const accountName = (isVirtual && manualAccountName) ? manualAccountName : businessName;
     
     if (!bankCode || !accountNumber || !accountName) {
@@ -10020,35 +10057,67 @@ async function createSubaccount() {
         return null;
     }
     
+    // Validate country-specific required fields
+    if (bankCountry === 'US' && (!routingNumber || !swiftCode)) {
+        showToast('Routing number and SWIFT code are required for US bank accounts', 'warning');
+        return null;
+    }
+    if (bankCountry === 'CA' && (!institutionNumber || !transitNumber)) {
+        showToast('Institution number and transit number are required for Canadian bank accounts', 'warning');
+        return null;
+    }
+    if (['GB', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR'].includes(bankCountry) && !swiftCode) {
+        showToast('SWIFT code is required for European bank accounts', 'warning');
+        return null;
+    }
+    if (['GH', 'TZ', 'UG', 'RW'].includes(bankCountry) && !branchCode) {
+        showToast('Branch code is required for bank accounts in this country', 'warning');
+        return null;
+    }
+    if (bankCountry === 'AU' && !bsbNumber) {
+        showToast('BSB number is required for Australian bank accounts', 'warning');
+        return null;
+    }
+    
     try {
         const endpoint = '/api/flutterwave/create-subaccount';
+        
+        const payload = {
+            bank_code: bankCode,
+            account_number: accountNumber,
+            business_name: accountName,
+            business_email: businessEmail,
+            business_mobile: businessPhone,
+            country: bankCountry || country || 'NG',
+            is_virtual: isVirtual
+        };
+        
+        // Add country-specific fields to payload
+        if (routingNumber) payload.routing_number = routingNumber;
+        if (swiftCode) payload.swift_code = swiftCode;
+        if (iban) payload.iban = iban;
+        if (branchCode) payload.branch_code = branchCode;
+        if (institutionNumber) payload.institution_number = institutionNumber;
+        if (transitNumber) payload.transit_number = transitNumber;
+        if (bsbNumber) payload.bsb_number = bsbNumber;
         
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                bank_code: bankCode,
-                account_number: accountNumber,
-                business_name: accountName,
-                business_email: businessEmail,
-                business_mobile: businessPhone,
-                country: country,
-                is_virtual: isVirtual  // Flag for virtual accounts
-            })
+            body: JSON.stringify(payload),
+            credentials: 'include'
         });
         
         const data = await response.json();
         
         if (data.success) {
             console.log('✅ Subaccount created:', data.subaccount_id);
-            
             const statusDiv = document.getElementById('subaccountStatus');
             const statusText = document.getElementById('subaccountStatusText');
             if (statusText) {
                 statusText.innerHTML = `✓ ${isVirtual ? 'Virtual account' : 'Bank account'} verified! Auto-split active! 90% of payments will go to ${accountName}`;
             }
             if (statusDiv) statusDiv.style.display = 'block';
-            
             return data;
         } else {
             console.error('Subaccount creation failed:', data.error);

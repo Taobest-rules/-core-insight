@@ -554,23 +554,99 @@ function getOrderStatusUpdateTemplate(orderData) {
 // ============================================
 
 
-// Create Flutterwave subaccount - CORRECTED (90% to seller, 10% to platform)
+// Create Flutterwave subaccount - UPDATED with international fields
 async function createFlutterwaveSubaccount(userId, bankData) {
     try {
-        const { bank_code, account_number, business_name, country = 'NG', business_email, business_phone } = bankData;
+        const { 
+            bank_code, 
+            account_number, 
+            business_name, 
+            country = 'NG', 
+            business_email, 
+            business_phone,
+            is_virtual = false,
+            // NEW FIELDS FOR INTERNATIONAL PAYOUTS
+            routing_number,
+            swift_code,
+            iban,
+            branch_code,
+            institution_number,
+            transit_number,
+            bsb_number
+        } = bankData;
         
-        console.log(`🔧 Creating Flutterwave subaccount for user ${userId}:`, { bank_code, account_number, business_name });
+        console.log(`🔧 Creating Flutterwave subaccount for user ${userId}:`, { 
+            bank_code, 
+            account_number, 
+            business_name, 
+            country,
+            has_routing: !!routing_number,
+            has_swift: !!swift_code,
+            has_branch: !!branch_code
+        });
         
-        const payload = {
+        // Build the payload based on country requirements
+        let payload = {
             account_bank: String(bank_code).padStart(3, '0'),
             account_number: String(account_number),
             business_name: business_name,
             split_type: "percentage",
-            split_value: 0.1,  // ✅ PLATFORM gets 10% (NOT 0.9!)
+            split_value: 0.1,  // Platform gets 10%
             country: country,
             business_email: business_email || '',
             business_mobile: business_phone || ''
         };
+        
+        // Add country-specific fields
+        if (country === 'US') {
+            if (routing_number) {
+                payload.routing_number = routing_number;
+            }
+            if (swift_code) {
+                payload.swift_code = swift_code;
+            }
+        }
+        
+        if (country === 'CA') {
+            if (institution_number) {
+                payload.institution_number = institution_number;
+            }
+            if (transit_number) {
+                payload.transit_number = transit_number;
+            }
+        }
+        
+        // European countries (SEPA)
+        const europeanCountries = ['GB', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR', 'HU', 'RO'];
+        if (europeanCountries.includes(country)) {
+            if (swift_code) {
+                payload.swift_code = swift_code;
+            }
+            if (iban) {
+                payload.iban = iban;
+            }
+        }
+        
+        // African countries requiring branch code
+        const branchCodeCountries = ['GH', 'TZ', 'UG', 'RW'];
+        if (branchCodeCountries.includes(country) && branch_code) {
+            payload.branch_code = branch_code;
+        }
+        
+        // Australia
+        if (country === 'AU' && bsb_number) {
+            payload.bsb_number = bsb_number;
+        }
+        
+        // For virtual accounts, add metadata
+        if (is_virtual) {
+            payload.meta = {
+                is_virtual_account: true,
+                provider: 'virtual_bank_provider'
+            };
+        }
+        
+        console.log("📤 Subaccount payload:", JSON.stringify(payload, null, 2));
         
         const response = await axios.post(
             'https://api.flutterwave.com/v3/subaccounts',
@@ -587,6 +663,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         if (response.data.status === 'success') {
             const subaccountId = response.data.data.subaccount_id;
             
+            // Store all additional fields in database
             await db.query(
                 `UPDATE users 
                  SET flutterwave_subaccount_id = ?,
@@ -594,13 +671,37 @@ async function createFlutterwaveSubaccount(userId, bankData) {
                      subaccount_status = 'active',
                      bank_code = ?,
                      account_number = ?,
-                     account_name = ?
+                     account_name = ?,
+                     is_virtual_account = ?,
+                     routing_number = ?,
+                     swift_code = ?,
+                     iban = ?,
+                     branch_code = ?,
+                     institution_number = ?,
+                     transit_number = ?,
+                     bsb_number = ?
                  WHERE id = ?`,
-                [subaccountId, bank_code, account_number, business_name, userId]
+                [
+                    subaccountId, 
+                    bank_code, 
+                    account_number, 
+                    business_name, 
+                    is_virtual ? 1 : 0,
+                    routing_number || null,
+                    swift_code || null,
+                    iban || null,
+                    branch_code || null,
+                    institution_number || null,
+                    transit_number || null,
+                    bsb_number || null,
+                    userId
+                ]
             );
             
             console.log(`✅ Flutterwave subaccount created for user ${userId}: ${subaccountId}`);
             console.log(`   Split configuration: Platform gets 10%, Seller gets 90%`);
+            console.log(`   Country: ${country}, Has SWIFT: ${!!swift_code}, Has Routing: ${!!routing_number}`);
+            
             return { success: true, subaccount_id: subaccountId };
         } else {
             throw new Error(response.data.message || 'Subaccount creation failed');
@@ -5037,91 +5138,78 @@ app.post("/api/test-create-subaccount", async (req, res) => {
 // FLUTTERWAVE SUBACCOUNT ENDPOINTS
 // ============================================
 
-// Create Flutterwave subaccount - Supports both real and virtual
 app.post("/api/flutterwave/create-subaccount", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Please login" });
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const { 
+            bank_code, 
+            account_number, 
+            business_name, 
+            business_email, 
+            business_mobile, 
+            country, 
+            is_virtual,
+            // New fields
+            routing_number,
+            swift_code,
+            iban,
+            branch_code,
+            institution_number,
+            transit_number,
+            bsb_number
+        } = req.body;
+        
+        if (!bank_code || !account_number || !business_name) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+        
+        console.log("🔧 Creating Flutterwave subaccount:", {
+            bank_code,
+            account_number,
+            business_name,
+            country,
+            is_virtual: is_virtual ? 'Yes' : 'No',
+            has_routing: !!routing_number,
+            has_swift: !!swift_code
+        });
+        
+        const result = await createFlutterwaveSubaccount(req.session.user.id, {
+            bank_code,
+            account_number,
+            business_name,
+            business_email,
+            business_phone: business_mobile,
+            country: country || 'NG',
+            is_virtual: is_virtual || false,
+            routing_number,
+            swift_code,
+            iban,
+            branch_code,
+            institution_number,
+            transit_number,
+            bsb_number
+        });
+        
+        if (result.success) {
+            res.json({
+                success: true,
+                subaccount_id: result.subaccount_id,
+                message: is_virtual ? "Virtual account linked successfully!" : "Subaccount created successfully!"
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+        
+    } catch (err) {
+        console.error("❌ Subaccount error:", err);
+        res.status(500).json({ error: err.message });
     }
-    
-    const { bank_code, account_number, business_name, split_value = 0.9, country = 'NG', is_virtual = false } = req.body;
-    
-    if (!bank_code || !account_number || !business_name) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    
-    console.log("🔧 Creating Flutterwave subaccount:", {
-      bank_code,
-      account_number,
-      business_name,
-      country,
-      is_virtual: is_virtual ? 'Yes (Virtual Account)' : 'No'
-    });
-    
-    const bankCodeStr = String(bank_code).padStart(3, '0');
-    
-    const payload = {
-      account_bank: bankCodeStr,
-      account_number: account_number,
-      business_name: business_name,
-      split_type: "percentage",
-      split_value: split_value,
-      country: country
-    };
-    
-    console.log("📤 Payload:", JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(
-      'https://api.flutterwave.com/v3/subaccounts',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000
-      }
-    );
-    
-    console.log("📥 Flutterwave Response:", JSON.stringify(response.data, null, 2));
-    
-    if (response.data.status === 'success') {
-      const subaccountId = response.data.data.subaccount_id;
-      
-      await db.query(
-        `UPDATE users 
-         SET flutterwave_subaccount_id = ?,
-             subaccount_created_at = NOW(),
-             subaccount_status = 'active',
-             bank_code = ?,
-             account_number = ?,
-             account_name = ?,
-             is_virtual_account = ?
-         WHERE id = ?`,
-        [subaccountId, bank_code, account_number, business_name, is_virtual ? 1 : 0, req.session.user.id]
-      );
-      
-      res.json({
-        success: true,
-        subaccount_id: subaccountId,
-        message: is_virtual ? "Virtual account linked successfully! Payouts will work." : "Subaccount created successfully!",
-        is_virtual: is_virtual
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: response.data.message,
-        details: response.data
-      });
-    }
-    
-  } catch (err) {
-    console.error("❌ Subaccount error:", err.response?.data || err.message);
-    res.status(500).json({ 
-      error: err.response?.data?.message || err.message,
-      full_response: err.response?.data
-    });
-  }
 });
 // Get seller's Flutterwave subaccount status
 app.get("/api/flutterwave/subaccount-status", async (req, res) => {
@@ -11629,52 +11717,205 @@ app.get("/api/debug/flutterwave", async (req, res) => {
 app.get("/api/banks/flutterwave/:country", async (req, res) => {
     try {
         const country = req.params.country;
+        console.log(`🌍 Fetching banks for country: ${country}`);
         
-        // Map country codes to Flutterwave's required format
+        // Map country codes to Flutterwave's required format - EXPANDED FOR ALL COUNTRIES
         const countryMap = {
-            'NG': 'NG',
-            'KE': 'KE', 
-            'GH': 'GH',
-            'ZA': 'ZA',
-            'UG': 'UG',
-            'TZ': 'TZ',
-            'RW': 'RW',
-            'US': 'US',
-            'GB': 'GB',
-            'CA': 'CA'
+            // North America
+            'US': 'US', 'CA': 'CA',
+            // Europe
+            'GB': 'GB', 'FR': 'FR', 'DE': 'DE', 'ES': 'ES', 'IT': 'IT',
+            'NL': 'NL', 'BE': 'BE', 'PT': 'PT', 'CH': 'CH', 'SE': 'SE',
+            'NO': 'NO', 'DK': 'DK', 'FI': 'FI', 'IE': 'IE', 'AT': 'AT',
+            'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR', 'HU': 'HU', 'RO': 'RO',
+            // West Africa
+            'NG': 'NG', 'GH': 'GH', 'SN': 'SN', 'CI': 'CI', 'SL': 'SL',
+            'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF', 'BJ': 'BJ',
+            'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW', 'CV': 'CV',
+            // East Africa
+            'KE': 'KE', 'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ET': 'ET',
+            'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ', 'ER': 'ER', 'SO': 'SO',
+            // Southern Africa
+            'ZA': 'ZA', 'ZM': 'ZM', 'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ',
+            'AO': 'AO', 'BW': 'BW', 'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS',
+            'MG': 'MG', 'MU': 'MU', 'KM': 'KM', 'SC': 'SC',
+            // Central Africa
+            'CM': 'CM', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA', 'CF': 'CF',
+            'TD': 'TD', 'GQ': 'GQ',
+            // North Africa
+            'EG': 'EG', 'MA': 'MA', 'TN': 'TN', 'DZ': 'DZ', 'LY': 'LY',
+            'SD': 'SD', 'MR': 'MR',
+            // Asia & Middle East
+            'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW', 'BH': 'BH',
+            'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN', 'PK': 'PK',
+            // Oceania
+            'AU': 'AU', 'NZ': 'NZ'
         };
         
         const countryCode = countryMap[country] || country;
         
+        // List of countries where Flutterwave actually returns banks
+        const countriesWithBanks = ['NG', 'GH', 'KE', 'UG', 'TZ', 'ZA', 'RW', 'US', 'GB', 'CA', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR'];
+        
+        if (!countriesWithBanks.includes(countryCode)) {
+            console.log(`⚠️ No bank list available for ${country}, returning fallback banks`);
+            const fallback = getFallbackBanksForCountry(country);
+            return res.json(fallback);
+        }
+        
         const response = await axios.get(
             `https://api.flutterwave.com/v3/banks/${countryCode}`,
             {
-                headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }
+                headers: { 
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
             }
         );
         
-        res.json(response.data.data);
+        if (response.data.status === 'success' && response.data.data) {
+            console.log(`✅ Found ${response.data.data.length} banks for ${country}`);
+            res.json(response.data.data);
+        } else {
+            console.log(`⚠️ No banks found for ${country}`);
+            const fallback = getFallbackBanksForCountry(country);
+            res.json(fallback);
+        }
         
     } catch (err) {
-        console.error("Error fetching banks:", err);
+        const country = req.params.country;
+        console.error(`❌ Error fetching banks for ${country}:`, err.message);
         
-        // Return fallback banks for common countries
-        const fallbackBanks = {
-            'US': [
-                { code: '021000021', name: 'Chase Bank' },
-                { code: '026009593', name: 'Bank of America' },
-                { code: '121000358', name: 'Wells Fargo' }
-            ],
-            'GB': [
-                { code: '40-00-00', name: 'Barclays' },
-                { code: '60-00-00', name: 'NatWest' },
-                { code: '20-00-00', name: 'HSBC UK' }
-            ]
-        };
-        
-        res.json(fallbackBanks[country] || []);
+        // Return fallback banks for all countries
+        const fallback = getFallbackBanksForCountry(country);
+        res.json(fallback);
     }
 });
+
+// Helper function to get fallback banks for any country
+function getFallbackBanksForCountry(countryCode) {
+    const fallbackBanks = {
+        // North America
+        'US': [
+            { code: '021000021', name: 'Chase Bank' },
+            { code: '026009593', name: 'Bank of America' },
+            { code: '121000358', name: 'Wells Fargo' },
+            { code: '021001088', name: 'Citibank' },
+            { code: '054001725', name: 'PNC Bank' }
+        ],
+        'CA': [
+            { code: '000001', name: 'Royal Bank of Canada' },
+            { code: '000002', name: 'TD Canada Trust' },
+            { code: '000003', name: 'Scotiabank' },
+            { code: '000004', name: 'Bank of Montreal' }
+        ],
+        // Europe
+        'GB': [
+            { code: '40-00-00', name: 'Barclays' },
+            { code: '60-00-00', name: 'NatWest' },
+            { code: '20-00-00', name: 'HSBC UK' },
+            { code: '30-00-00', name: 'Lloyds Bank' }
+        ],
+        'FR': [
+            { code: '30001', name: 'BNP Paribas' },
+            { code: '30002', name: 'Société Générale' },
+            { code: '30003', name: 'Crédit Agricole' }
+        ],
+        'DE': [
+            { code: '10000000', name: 'Deutsche Bank' },
+            { code: '20000000', name: 'Commerzbank' },
+            { code: '30000000', name: 'Sparkasse' }
+        ],
+        'ES': [
+            { code: '2100', name: 'Santander' },
+            { code: '2101', name: 'BBVA' },
+            { code: '2102', name: 'CaixaBank' }
+        ],
+        'IT': [
+            { code: '03000', name: 'Intesa Sanpaolo' },
+            { code: '02000', name: 'UniCredit' },
+            { code: '01000', name: 'Poste Italiane' }
+        ],
+        'NL': [
+            { code: 'ABNANL2A', name: 'ABN AMRO' },
+            { code: 'INGBNL2A', name: 'ING Bank' },
+            { code: 'RABONL2U', name: 'Rabobank' }
+        ],
+        // Africa
+        'NG': [
+            { code: '000001', name: 'Access Bank' },
+            { code: '000002', name: 'GTBank' },
+            { code: '000003', name: 'Zenith Bank' },
+            { code: '000004', name: 'First Bank' },
+            { code: '000005', name: 'UBA' }
+        ],
+        'GH': [
+            { code: '000001', name: 'Ghana Commercial Bank' },
+            { code: '000002', name: 'Ecobank Ghana' },
+            { code: '000003', name: 'Stanbic Bank Ghana' }
+        ],
+        'KE': [
+            { code: '000001', name: 'Equity Bank' },
+            { code: '000002', name: 'KCB Bank' },
+            { code: '000003', name: 'Cooperative Bank' }
+        ],
+        'ZA': [
+            { code: '000001', name: 'Standard Bank' },
+            { code: '000002', name: 'First National Bank' },
+            { code: '000003', name: 'ABSA' },
+            { code: '000004', name: 'Nedbank' }
+        ],
+        'UG': [
+            { code: '000001', name: 'Centenary Bank' },
+            { code: '000002', name: 'Stanbic Bank Uganda' },
+            { code: '000003', name: 'Equity Bank Uganda' }
+        ],
+        'TZ': [
+            { code: '000001', name: 'CRDB Bank' },
+            { code: '000002', name: 'NMB Bank' },
+            { code: '000003', name: 'Stanbic Bank Tanzania' }
+        ],
+        'RW': [
+            { code: '000001', name: 'Bank of Kigali' },
+            { code: '000002', name: 'Equity Bank Rwanda' },
+            { code: '000003', name: 'I&M Bank Rwanda' }
+        ],
+        // Asia & Middle East
+        'AE': [
+            { code: '001', name: 'Emirates NBD' },
+            { code: '002', name: 'Abu Dhabi Commercial Bank' },
+            { code: '003', name: 'Dubai Islamic Bank' }
+        ],
+        'IN': [
+            { code: 'SBIN0000001', name: 'State Bank of India' },
+            { code: 'HDFC0000001', name: 'HDFC Bank' },
+            { code: 'ICIC0000001', name: 'ICICI Bank' }
+        ],
+        // Oceania
+        'AU': [
+            { code: '01', name: 'Commonwealth Bank' },
+            { code: '02', name: 'Westpac' },
+            { code: '03', name: 'ANZ' },
+            { code: '04', name: 'National Australia Bank' }
+        ],
+        'NZ': [
+            { code: '01', name: 'ANZ Bank New Zealand' },
+            { code: '02', name: 'BNZ' },
+            { code: '03', name: 'Westpac New Zealand' }
+        ]
+    };
+    
+    // Return fallback for specific country or generic fallback
+    if (fallbackBanks[countryCode]) {
+        return fallbackBanks[countryCode];
+    }
+    
+    // Generic fallback for any other country
+    return [
+        { code: 'MANUAL', name: 'Enter bank code manually' }
+    ];
+}
 
 // Verify international account (Flutterwave) - Supports Real & Virtual Accounts
 app.post("/api/verify-account/flutterwave/:country", async (req, res) => {
@@ -11763,11 +12004,9 @@ app.post("/api/verify-account/flutterwave/:country", async (req, res) => {
     }
 });
 
-// Helper function to get bank name from code
 function getBankNameFromCode(bankCode, country) {
     const bankNames = {
         'US': {
-            '121042882': 'Wells Fargo (Virtual Account)',
             '021000021': 'Chase Bank',
             '026009593': 'Bank of America',
             '121000358': 'Wells Fargo',
@@ -11784,6 +12023,17 @@ function getBankNameFromCode(bankCode, country) {
             '000002': 'GTBank',
             '000003': 'Zenith Bank',
             'default': 'Nigerian Bank'
+        },
+        'KE': {
+            '000001': 'Equity Bank',
+            '000002': 'KCB Bank',
+            'default': 'Kenyan Bank'
+        },
+        'ZA': {
+            '000001': 'Standard Bank',
+            '000002': 'FNB',
+            '000003': 'ABSA',
+            'default': 'South African Bank'
         },
         'default': 'International Bank'
     };

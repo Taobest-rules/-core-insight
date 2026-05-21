@@ -4217,6 +4217,224 @@ In the name of Allah, the Most Gracious, the Most Merciful
     background: var(--accent);
     border-radius: 3px;
 }
+/* Purchases Grid Styles */
+.purchases-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.purchase-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.purchase-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.purchase-header {
+    padding: 16px 20px;
+    background: rgba(59, 130, 246, 0.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.purchase-order-id {
+    font-size: 14px;
+    color: var(--text-gray);
+}
+
+.purchase-order-id strong {
+    color: var(--accent);
+    font-size: 16px;
+}
+
+.purchase-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.purchase-body {
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.purchase-image {
+    width: 120px;
+    height: 120px;
+    border-radius: var(--radius-md);
+    background: var(--secondary-dark);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.purchase-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.purchase-details {
+    flex: 1;
+}
+
+.purchase-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 8px;
+}
+
+.purchase-seller {
+    font-size: 13px;
+    color: var(--text-gray);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.purchase-seller i {
+    color: var(--accent);
+}
+
+.purchase-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.purchase-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.purchase-meta-item .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.purchase-meta-item .value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.purchase-price {
+    color: var(--success);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.purchase-timeline {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    color: var(--text-gray);
+}
+
+.purchase-actions {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: rgba(15, 23, 42, 0.3);
+}
+
+.refund-warning {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--warning);
+    font-size: 12px;
+    color: var(--warning);
+}
+
+.refund-warning i {
+    margin-right: 6px;
+}
+
+.escrow-info {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    color: var(--accent);
+}
+
+/* Refund Modal */
+.refund-modal-content {
+    max-width: 500px;
+}
+
+.refund-options {
+    margin: 20px 0;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: var(--radius-md);
+}
+
+.refund-option {
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.refund-option:hover {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.refund-option.selected {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.refund-option-title {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 4px;
+}
+
+.refund-option-desc {
+    font-size: 12px;
+    color: var(--text-gray);
+}
+
+.pickup-address-field {
+    margin-top: 12px;
+    display: none;
+}
+
+.pickup-address-field.show {
+    display: block;
+}
   </style>
 </head>
 <body>
@@ -5236,6 +5454,9 @@ In the name of Allah, the Most Gracious, the Most Merciful
             <button class="tab-btn" data-tab="analytics">Analytics</button>
             <button class="tab-btn" data-tab="refunds">Refund Requests</button>
             <button class="tab-btn" data-tab="shares">📊 Share Stats</button>
+            <button class="tab-btn" data-tab="purchases">
+    <i class="fas fa-shopping-bag"></i> My Purchases
+</button>
             <button id="adminTabBtn" class="tab-btn" data-tab="admin" style="display: none;">Admin Panel</button>
         </div>
         
@@ -5390,7 +5611,35 @@ In the name of Allah, the Most Gracious, the Most Merciful
                     </div>
                 </div>
             </div>
-            
+            <!-- Purchases Tab (Buyer Orders) -->
+<div id="purchasesTab" class="tab-content">
+    <div class="tab-header">
+        <h3><i class="fas fa-shopping-bag"></i> My Purchases</h3>
+        <div class="tab-actions">
+            <select id="purchaseFilter" class="select">
+                <option value="all">All Orders</option>
+                <option value="pending_seller_approval">Pending Approval</option>
+                <option value="seller_accepted">Awaiting Payment</option>
+                <option value="paid">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="completed">Completed</option>
+                <option value="refunded">Refunded</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <button id="refreshPurchasesBtn" class="btn secondary" style="padding: 8px 16px;">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+    <div id="purchasesList" class="purchases-grid">
+        <div class="empty-state">
+            <i class="fas fa-shopping-bag"></i>
+            <h4>No purchases yet</h4>
+            <p>Your purchased products will appear here</p>
+        </div>
+    </div>
+</div>
             <!-- Admin Panel Tab -->
             <div id="adminTabContent" class="tab-content">
                 <div class="admin-panel">
@@ -7862,6 +8111,376 @@ async function loadSalesHistory() {
     }
 }
 window.loadPaidOrders = loadPaidOrders;
+// ============================================
+// LOAD BUYER PURCHASES (My Purchases Tab)
+// ============================================
+async function loadMyPurchases() {
+    const container = document.getElementById('purchasesList');
+    if (!container) return;
+    
+    try {
+        console.log('Loading buyer purchases...');
+        
+        const filter = document.getElementById('purchaseFilter')?.value || 'all';
+        
+        const response = await fetch('/api/my-orders', {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load purchases');
+        }
+        
+        const data = await response.json();
+        let orders = data.orders || [];
+        
+        // Apply filter
+        if (filter !== 'all') {
+            orders = orders.filter(order => order.order_status === filter);
+        }
+        
+        if (orders.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-shopping-bag"></i>
+                    <h4>No purchases found</h4>
+                    <p>${filter !== 'all' ? 'No orders with this status' : 'You haven\'t purchased any products yet'}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="purchases-grid">';
+        
+        for (const order of orders) {
+            const orderDate = new Date(order.created_at).toLocaleDateString();
+            const totalAmount = parseFloat(order.total_amount);
+            const orderStatus = order.order_status;
+            const paymentStatus = order.payment_status;
+            
+            // Calculate escrow/refund info
+            let refundAvailable = false;
+            let refundDeadline = null;
+            let canReorder = true;
+            let canRefund = false;
+            let daysLeft = 0;
+            
+            if (orderStatus === 'delivered' && order.payment_held_until) {
+                const releaseDate = new Date(order.payment_held_until);
+                const now = new Date();
+                daysLeft = Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24));
+                refundAvailable = daysLeft > 0 && daysLeft <= 5;
+                canRefund = refundAvailable;
+                refundDeadline = releaseDate;
+            } else if (orderStatus === 'paid' || orderStatus === 'processing' || orderStatus === 'shipped') {
+                // Pre-delivery refund available
+                canRefund = true;
+                refundAvailable = true;
+            } else if (orderStatus === 'completed') {
+                canRefund = false;
+                canReorder = true;
+            } else if (orderStatus === 'refunded') {
+                canRefund = false;
+                canReorder = true;
+            }
+            
+            // Status badge styling
+            let statusClass = '';
+            let statusText = '';
+            switch(orderStatus) {
+                case 'pending_seller_approval':
+                    statusClass = 'status-warning';
+                    statusText = '⏳ Awaiting Seller Approval';
+                    break;
+                case 'seller_accepted':
+                    statusClass = 'status-info';
+                    statusText = '✅ Accepted - Payment Required';
+                    break;
+                case 'paid':
+                    statusClass = 'status-info';
+                    statusText = '💰 Paid - Processing';
+                    break;
+                case 'shipped':
+                    statusClass = 'status-info';
+                    statusText = '📦 Shipped';
+                    break;
+                case 'delivered':
+                    statusClass = 'status-success';
+                    statusText = '🚚 Delivered';
+                    break;
+                case 'completed':
+                    statusClass = 'status-success';
+                    statusText = '✓ Completed';
+                    break;
+                case 'refunded':
+                    statusClass = 'status-success';
+                    statusText = '✅ Refunded';
+                    break;
+                case 'cancelled':
+                    statusClass = 'status-danger';
+                    statusText = '✗ Cancelled';
+                    break;
+                default:
+                    statusClass = 'status-pending';
+                    statusText = orderStatus?.replace(/_/g, ' ') || 'Processing';
+            }
+            
+            html += `
+                <div class="purchase-card" data-order-id="${order.id}" data-product-id="${order.product_id}">
+                    <div class="purchase-header">
+                        <div class="purchase-order-id">
+                            <strong>Order #${order.id}</strong> • ${orderDate}
+                        </div>
+                        <div>
+                            <span class="purchase-status ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="purchase-body">
+                        <div class="purchase-image">
+                            ${order.product_image ? 
+                                `<img src="${order.product_image}" alt="${escapeHtml(order.product_name)}" onerror="this.src='https://placehold.co/120x120/1e293b/3b82f6/png?text=Product'">` :
+                                `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--secondary-dark);">
+                                    <i class="fas fa-box" style="font-size: 32px; color: var(--text-muted);"></i>
+                                </div>`
+                            }
+                        </div>
+                        <div class="purchase-details">
+                            <h4 class="purchase-title">${escapeHtml(order.product_name)}</h4>
+                            <div class="purchase-seller">
+                                <i class="fas fa-store"></i> Sold by: ${escapeHtml(order.seller_name || 'Seller')}
+                            </div>
+                            <div class="purchase-meta">
+                                <div class="purchase-meta-item">
+                                    <span class="label">Quantity</span>
+                                    <span class="value">${order.quantity}</span>
+                                </div>
+                                <div class="purchase-meta-item">
+                                    <span class="label">Unit Price</span>
+                                    <span class="value">${fmtPrice(order.price)}</span>
+                                </div>
+                                <div class="purchase-meta-item">
+                                    <span class="label">Total Paid</span>
+                                    <span class="value purchase-price">${fmtPrice(totalAmount)}</span>
+                                </div>
+                            </div>
+                            ${order.shipping_address ? `
+                                <div class="purchase-timeline">
+                                    <i class="fas fa-map-marker-alt"></i> 
+                                    Delivery to: ${escapeHtml(order.shipping_address)}
+                                    ${order.delivery_phone ? `<br><i class="fas fa-phone"></i> Contact: ${escapeHtml(order.delivery_phone)}` : ''}
+                                </div>
+                            ` : ''}
+                            
+                            ${refundAvailable && canRefund ? `
+                                <div class="refund-warning">
+                                    <i class="fas fa-clock"></i> 
+                                    <strong>Refund available for ${daysLeft} more day${daysLeft !== 1 ? 's' : ''}!</strong><br>
+                                    You have until ${refundDeadline?.toLocaleDateString()} to request a refund.
+                                </div>
+                            ` : orderStatus === 'delivered' && !refundAvailable ? `
+                                <div class="refund-warning" style="background: rgba(239, 68, 68, 0.1); border-left-color: var(--danger);">
+                                    <i class="fas fa-lock"></i> 
+                                    <strong>Refund window has closed.</strong><br>
+                                    Funds have been released to the seller.
+                                </div>
+                            ` : ''}
+                            
+                            ${order.payment_held_until && orderStatus === 'delivered' ? `
+                                <div class="escrow-info">
+                                    <i class="fas fa-shield-alt"></i> 
+                                    Escrow protection until: ${new Date(order.payment_held_until).toLocaleDateString()}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="purchase-actions">
+                        ${canRefund && refundAvailable ? `
+                            <button class="btn danger" onclick="requestRefundForOrder(${order.id}, '${escapeHtml(order.product_name).replace(/'/g, "\\'")}')" style="background: var(--danger);">
+                                <i class="fas fa-undo-alt"></i> Request Refund
+                            </button>
+                        ` : ''}
+                        
+                        <button class="btn primary" onclick="reorderProduct(${order.product_id})">
+                            <i class="fas fa-shopping-cart"></i> Order Again
+                        </button>
+                        
+                        <button class="small-btn" onclick="viewOrderDetails(${order.id})">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        
+                        ${order.order_status === 'seller_accepted' ? `
+                            <button class="btn success" onclick="proceedToPayment(${order.id})">
+                                <i class="fas fa-credit-card"></i> Pay Now
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading purchases:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading purchases</h4>
+                <p>${error.message || 'Please refresh and try again'}</p>
+                <button onclick="loadMyPurchases()" class="btn primary" style="margin-top: 12px;">Retry</button>
+            </div>
+        `;
+    }
+}
+// ============================================
+// REQUEST REFUND WITH RETURN OPTIONS
+// ============================================
+async function requestRefundForOrder(orderId, productName) {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    // Show refund options modal
+    const modalHtml = `
+        <div class="modal open" id="refundRequestModal">
+            <div class="modal-card refund-modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;"><i class="fas fa-undo-alt" style="color: var(--warning);"></i> Request Refund</h3>
+                    <span class="close-x" onclick="closeRefundModal()">&times;</span>
+                </div>
+                
+                <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
+                <p><strong>Order #${orderId}</strong></p>
+                
+                <div class="form-group">
+                    <label>Reason for refund <span class="required">*</span></label>
+                    <textarea id="refundReason" class="form-textarea" rows="3" placeholder="Please explain why you want a refund..."></textarea>
+                </div>
+                
+                <div class="refund-options">
+                    <label style="display: block; margin-bottom: 12px; font-weight: 600;">Return Method <span class="required">*</span></label>
+                    
+                    <div class="refund-option" data-option="dropoff" onclick="selectRefundOption('dropoff')">
+                        <div class="refund-option-title">📦 Dropoff - Free</div>
+                        <div class="refund-option-desc">Drop off the product at the seller's location. Full refund, no fees.</div>
+                    </div>
+                    
+                    <div class="refund-option" data-option="pickup" onclick="selectRefundOption('pickup')">
+                        <div class="refund-option-title">🚚 Home Pickup - 3% Fee</div>
+                        <div class="refund-option-desc">Seller picks up from your address. 3% fee deducted from refund.</div>
+                    </div>
+                    
+                    <div id="pickupAddressField" class="pickup-address-field">
+                        <label class="form-label">Pickup Address <span class="required">*</span></label>
+                        <textarea id="pickupAddress" class="form-textarea" rows="2" placeholder="Enter your full address for pickup..."></textarea>
+                        <span class="form-help">The seller will pick up the product from this address</span>
+                    </div>
+                </div>
+                
+                <div class="modal-buttons" style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button class="btn danger" onclick="submitRefundRequest(${orderId})" style="flex: 1;">
+                        <i class="fas fa-paper-plane"></i> Submit Refund Request
+                    </button>
+                    <button class="btn secondary" onclick="closeRefundModal()" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('refundRequestModal');
+    if (existingModal) existingModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Set default selection
+    window.selectedRefundOption = 'dropoff';
+    document.querySelector('.refund-option[data-option="dropoff"]')?.classList.add('selected');
+}
+
+function closeRefundModal() {
+    const modal = document.getElementById('refundRequestModal');
+    if (modal) modal.remove();
+}
+
+function selectRefundOption(option) {
+    window.selectedRefundOption = option;
+    
+    document.querySelectorAll('.refund-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.querySelector(`.refund-option[data-option="${option}"]`)?.classList.add('selected');
+    
+    const pickupField = document.getElementById('pickupAddressField');
+    if (pickupField) {
+        pickupField.classList.toggle('show', option === 'pickup');
+    }
+}
+
+async function submitRefundRequest(orderId) {
+    const reason = document.getElementById('refundReason')?.value.trim();
+    const returnOption = window.selectedRefundOption || 'dropoff';
+    const pickupAddress = document.getElementById('pickupAddress')?.value.trim();
+    
+    if (!reason || reason.length < 10) {
+        showToast('Error', 'Please provide a detailed reason (minimum 10 characters)', 'danger');
+        return;
+    }
+    
+    if (returnOption === 'pickup' && !pickupAddress) {
+        showToast('Error', 'Please provide your pickup address', 'danger');
+        return;
+    }
+    
+    closeRefundModal();
+    showToast('Submitting refund request...', 'info');
+    
+    try {
+        const response = await fetch(`/api/physical-orders/${orderId}/refund`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                reason: reason,
+                return_option: returnOption,
+                pickup_address: returnOption === 'pickup' ? pickupAddress : null
+            }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(
+                'Refund Request Submitted', 
+                `Your refund request has been submitted. The seller will respond within 48 hours.`,
+                'success'
+            );
+            loadMyPurchases(); // Refresh the purchases list
+        } else {
+            showToast('Error', data.error || 'Failed to submit refund request', 'danger');
+        }
+    } catch (error) {
+        console.error('Refund request error:', error);
+        showToast('Error', 'Network error. Please try again.', 'danger');
+    }
+}
+
+async function reorderProduct(productId) {
+    if (!currentUser) {
+        openModal(document.getElementById('loginModal'));
+        return;
+    }
+    
+    showToast('Redirecting to product...', 'info');
+    setTimeout(() => {
+        window.location.href = `/products.html?product=${productId}`;
+    }, 500);
+}
 
 async function generateDeliveryCode(orderId) {
     if (!confirm("Once you click OK, a delivery code will be sent to the customer. This will mark the order as shipped and cannot be undone.")) {
@@ -10027,6 +10646,9 @@ function loadTabData(tabId) {
         case 'shares':
             if (typeof loadShareStats === 'function') loadShareStats();
             break;
+        case 'purchases':
+            if (typeof loadMyPurchases === 'function') loadMyPurchases();
+            break;
         case 'admin':
             if (currentUser && currentUser.role === 'admin') {
                 if (typeof loadAdminData === 'function') loadAdminData();
@@ -10395,6 +11017,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     addVirtualAccountToggle();
     
     console.log("✅ DOMContentLoaded initialization complete");
+    // Add to your DOMContentLoaded or initialization code
+const purchaseFilter = document.getElementById('purchaseFilter');
+const refreshPurchasesBtn = document.getElementById('refreshPurchasesBtn');
+
+if (purchaseFilter) {
+    purchaseFilter.addEventListener('change', () => loadMyPurchases());
+}
+if (refreshPurchasesBtn) {
+    refreshPurchasesBtn.addEventListener('click', () => loadMyPurchases());
+}
 });
 
 // ========== ADDITIONAL EVENT LISTENERS (OUTSIDE DOMContentLoaded) ==========

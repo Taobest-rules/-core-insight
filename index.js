@@ -11719,52 +11719,20 @@ app.get("/api/banks/flutterwave/:country", async (req, res) => {
         const country = req.params.country;
         console.log(`🌍 Fetching banks for country: ${country}`);
         
-        // Map country codes to Flutterwave's required format - EXPANDED FOR ALL COUNTRIES
-        const countryMap = {
-            // North America
-            'US': 'US', 'CA': 'CA',
-            // Europe
-            'GB': 'GB', 'FR': 'FR', 'DE': 'DE', 'ES': 'ES', 'IT': 'IT',
-            'NL': 'NL', 'BE': 'BE', 'PT': 'PT', 'CH': 'CH', 'SE': 'SE',
-            'NO': 'NO', 'DK': 'DK', 'FI': 'FI', 'IE': 'IE', 'AT': 'AT',
-            'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR', 'HU': 'HU', 'RO': 'RO',
-            // West Africa
-            'NG': 'NG', 'GH': 'GH', 'SN': 'SN', 'CI': 'CI', 'SL': 'SL',
-            'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF', 'BJ': 'BJ',
-            'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW', 'CV': 'CV',
-            // East Africa
-            'KE': 'KE', 'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ET': 'ET',
-            'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ', 'ER': 'ER', 'SO': 'SO',
-            // Southern Africa
-            'ZA': 'ZA', 'ZM': 'ZM', 'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ',
-            'AO': 'AO', 'BW': 'BW', 'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS',
-            'MG': 'MG', 'MU': 'MU', 'KM': 'KM', 'SC': 'SC',
-            // Central Africa
-            'CM': 'CM', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA', 'CF': 'CF',
-            'TD': 'TD', 'GQ': 'GQ',
-            // North Africa
-            'EG': 'EG', 'MA': 'MA', 'TN': 'TN', 'DZ': 'DZ', 'LY': 'LY',
-            'SD': 'SD', 'MR': 'MR',
-            // Asia & Middle East
-            'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW', 'BH': 'BH',
-            'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN', 'PK': 'PK',
-            // Oceania
-            'AU': 'AU', 'NZ': 'NZ'
-        };
+        // ONLY these countries have Flutterwave API support for bank listing
+        const supportedCountries = ['NG', 'GH', 'KE', 'UG', 'TZ', 'ZA', 'RW', 'US', 'GB', 'CA'];
         
-        const countryCode = countryMap[country] || country;
-        
-        // List of countries where Flutterwave actually returns banks
-        const countriesWithBanks = ['NG', 'GH', 'KE', 'UG', 'TZ', 'ZA', 'RW', 'US', 'GB', 'CA', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR'];
-        
-        if (!countriesWithBanks.includes(countryCode)) {
-            console.log(`⚠️ No bank list available for ${country}, returning fallback banks`);
-            const fallback = getFallbackBanksForCountry(country);
-            return res.json(fallback);
+        if (!supportedCountries.includes(country)) {
+            console.log(`⚠️ No API bank list for ${country} - returning manual entry option`);
+            return res.json({ 
+                manual_entry: true, 
+                message: `Manual bank entry required for ${country}`,
+                banks: []
+            });
         }
         
         const response = await axios.get(
-            `https://api.flutterwave.com/v3/banks/${countryCode}`,
+            `https://api.flutterwave.com/v3/banks/${country}`,
             {
                 headers: { 
                     Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
@@ -11776,20 +11744,28 @@ app.get("/api/banks/flutterwave/:country", async (req, res) => {
         
         if (response.data.status === 'success' && response.data.data) {
             console.log(`✅ Found ${response.data.data.length} banks for ${country}`);
-            res.json(response.data.data);
+            res.json({ 
+                manual_entry: false, 
+                banks: response.data.data 
+            });
         } else {
-            console.log(`⚠️ No banks found for ${country}`);
-            const fallback = getFallbackBanksForCountry(country);
-            res.json(fallback);
+            res.json({ 
+                manual_entry: true, 
+                banks: [],
+                message: 'No banks found - manual entry required'
+            });
         }
         
     } catch (err) {
         const country = req.params.country;
         console.error(`❌ Error fetching banks for ${country}:`, err.message);
         
-        // Return fallback banks for all countries
-        const fallback = getFallbackBanksForCountry(country);
-        res.json(fallback);
+        // Return manual entry for all errors
+        res.json({ 
+            manual_entry: true, 
+            banks: [],
+            message: 'Bank API unavailable - manual entry required'
+        });
     }
 });
 

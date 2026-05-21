@@ -4960,103 +4960,32 @@ In the name of Allah, the Most Gracious, the Most Merciful
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Select Bank Country <span class="required">*</span></label>
-      <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+<select id="bankCountry" class="form-select" onchange="updateBankFieldsByCountry()">
     <option value="">Select country</option>
-    <!-- North America -->
-    <option value="US">🇺🇸 United States</option>
-    <option value="CA">🇨🇦 Canada</option>
-    <!-- Europe -->
-    <option value="GB">🇬🇧 United Kingdom</option>
-    <option value="FR">🇫🇷 France</option>
-    <option value="DE">🇩🇪 Germany</option>
-    <option value="ES">🇪🇸 Spain</option>
-    <option value="IT">🇮🇹 Italy</option>
-    <option value="NL">🇳🇱 Netherlands</option>
-    <option value="BE">🇧🇪 Belgium</option>
-    <option value="PT">🇵🇹 Portugal</option>
-    <option value="CH">🇨🇭 Switzerland</option>
-    <option value="SE">🇸🇪 Sweden</option>
-    <option value="NO">🇳🇴 Norway</option>
-    <option value="DK">🇩🇰 Denmark</option>
-    <option value="FI">🇫🇮 Finland</option>
-    <option value="IE">🇮🇪 Ireland</option>
-    <option value="AT">🇦🇹 Austria</option>
-    <option value="PL">🇵🇱 Poland</option>
-    <option value="CZ">🇨🇿 Czech Republic</option>
-    <option value="GR">🇬🇷 Greece</option>
-    <!-- West Africa -->
-    <option value="NG">🇳🇬 Nigeria</option>
-    <option value="GH">🇬🇭 Ghana</option>
-    <option value="SN">🇸🇳 Senegal</option>
-    <option value="CI">🇨🇮 Côte d'Ivoire</option>
-    <option value="SL">🇸🇱 Sierra Leone</option>
-    <option value="GM">🇬🇲 Gambia</option>
-    <option value="LR">🇱🇷 Liberia</option>
-    <option value="ML">🇲🇱 Mali</option>
-    <option value="BF">🇧🇫 Burkina Faso</option>
-    <option value="BJ">🇧🇯 Benin</option>
-    <option value="TG">🇹🇬 Togo</option>
-    <option value="NE">🇳🇪 Niger</option>
-    <option value="GN">🇬🇳 Guinea</option>
-    <option value="GW">🇬🇼 Guinea-Bissau</option>
-    <option value="CV">🇨🇻 Cape Verde</option>
-    <!-- East Africa -->
-    <option value="KE">🇰🇪 Kenya</option>
-    <option value="UG">🇺🇬 Uganda</option>
-    <option value="TZ">🇹🇿 Tanzania</option>
-    <option value="RW">🇷🇼 Rwanda</option>
-    <option value="ET">🇪🇹 Ethiopia</option>
-    <option value="BI">🇧🇮 Burundi</option>
-    <option value="SS">🇸🇸 South Sudan</option>
-    <option value="DJ">🇩🇯 Djibouti</option>
-    <option value="ER">🇪🇷 Eritrea</option>
-    <option value="SO">🇸🇴 Somalia</option>
-    <!-- Southern Africa -->
-    <option value="ZA">🇿🇦 South Africa</option>
-    <option value="ZM">🇿🇲 Zambia</option>
-    <option value="ZW">🇿🇼 Zimbabwe</option>
-    <option value="MW">🇲🇼 Malawi</option>
-    <option value="MZ">🇲🇿 Mozambique</option>
-    <option value="AO">🇦🇴 Angola</option>
-    <option value="BW">🇧🇼 Botswana</option>
-    <option value="NA">🇳🇦 Namibia</option>
-    <option value="SZ">🇸🇿 Eswatini</option>
-    <option value="LS">🇱🇸 Lesotho</option>
-    <option value="MG">🇲🇬 Madagascar</option>
-    <option value="MU">🇲🇺 Mauritius</option>
-    <option value="KM">🇰🇲 Comoros</option>
-    <option value="SC">🇸🇨 Seychelles</option>
-    <!-- Central Africa -->
-    <option value="CM">🇨🇲 Cameroon</option>
-    <option value="CD">🇨🇩 DR Congo</option>
-    <option value="CG">🇨🇬 Republic of Congo</option>
-    <option value="GA">🇬🇦 Gabon</option>
-    <option value="CF">🇨🇫 Central African Republic</option>
-    <option value="TD">🇹🇩 Chad</option>
-    <option value="GQ">🇬🇶 Equatorial Guinea</option>
-    <!-- North Africa -->
-    <option value="EG">🇪🇬 Egypt</option>
-    <option value="MA">🇲🇦 Morocco</option>
-    <option value="TN">🇹🇳 Tunisia</option>
-    <option value="DZ">🇩🇿 Algeria</option>
-    <option value="LY">🇱🇾 Libya</option>
-    <option value="SD">🇸🇩 Sudan</option>
-    <option value="MR">🇲🇷 Mauritania</option>
-    <!-- Asia & Middle East -->
-    <option value="AE">🇦🇪 United Arab Emirates</option>
-    <option value="SA">🇸🇦 Saudi Arabia</option>
-    <option value="QA">🇶🇦 Qatar</option>
-    <option value="KW">🇰🇼 Kuwait</option>
-    <option value="BH">🇧🇭 Bahrain</option>
-    <option value="OM">🇴🇲 Oman</option>
-    <option value="JO">🇯🇴 Jordan</option>
-    <option value="LB">🇱🇧 Lebanon</option>
-    <option value="IN">🇮🇳 India</option>
-    <option value="PK">🇵🇰 Pakistan</option>
-    <!-- Oceania -->
-    <option value="AU">🇦🇺 Australia</option>
-    <option value="NZ">🇳🇿 New Zealand</option>
-</select>
+    
+    <!-- Countries with Flutterwave API Support (Auto-load banks) -->
+    <optgroup label="🌍 Auto Bank Listing Available">
+        <option value="NG">🇳🇬 Nigeria</option>
+        <option value="GH">🇬🇭 Ghana</option>
+        <option value="KE">🇰🇪 Kenya</option>
+        <option value="UG">🇺🇬 Uganda</option>
+        <option value="TZ">🇹🇿 Tanzania</option>
+        <option value="ZA">🇿🇦 South Africa</option>
+        <option value="RW">🇷🇼 Rwanda</option>
+        <option value="US">🇺🇸 United States</option>
+        <option value="GB">🇬🇧 United Kingdom</option>
+        <option value="CA">🇨🇦 Canada</option>
+    </optgroup>
+    
+    <!-- Other Countries - Manual Entry Only -->
+    <optgroup label="🌍 Other Countries (Manual Bank Entry)">
+        <option value="OTHER_EUROPE">🇪🇺 Europe (SEPA) - Manual Entry</option>
+        <option value="OTHER_ASIA">🌏 Asia - Manual Entry</option>
+        <option value="OTHER_AFRICA">🌍 Other Africa - Manual Entry</option>
+        <option value="OTHER_OCEANIA">🌏 Oceania - Manual Entry</option>
+        <option value="OTHER">🌐 Other Country - Manual Entry</option>
+    </optgroup>
+</select>>
             </div>
             <div class="form-group">
                 <label class="form-label">Bank Name <span class="required">*</span></label>
@@ -9244,70 +9173,53 @@ function loadBankForm(gateway) {
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Select Bank Country <span class="required">*</span></label>
-                <select id="bankCountry" class="form-select" onchange="updateBankFieldsByCountry()">
-                    <option value="">Select country</option>
-                    <!-- North America -->
-                    <option value="US">🇺🇸 United States</option>
-                    <option value="CA">🇨🇦 Canada</option>
-                    <!-- Europe -->
-                    <option value="GB">🇬🇧 United Kingdom</option>
-                    <option value="FR">🇫🇷 France</option>
-                    <option value="DE">🇩🇪 Germany</option>
-                    <option value="ES">🇪🇸 Spain</option>
-                    <option value="IT">🇮🇹 Italy</option>
-                    <option value="NL">🇳🇱 Netherlands</option>
-                    <option value="BE">🇧🇪 Belgium</option>
-                    <option value="PT">🇵🇹 Portugal</option>
-                    <option value="CH">🇨🇭 Switzerland</option>
-                    <option value="SE">🇸🇪 Sweden</option>
-                    <option value="NO">🇳🇴 Norway</option>
-                    <option value="DK">🇩🇰 Denmark</option>
-                    <option value="FI">🇫🇮 Finland</option>
-                    <option value="IE">🇮🇪 Ireland</option>
-                    <option value="AT">🇦🇹 Austria</option>
-                    <option value="PL">🇵🇱 Poland</option>
-                    <option value="CZ">🇨🇿 Czech Republic</option>
-                    <option value="GR">🇬🇷 Greece</option>
-                    <option value="HU">🇭🇺 Hungary</option>
-                    <option value="RO">🇷🇴 Romania</option>
-                    <!-- Africa -->
-                    <option value="NG">🇳🇬 Nigeria</option>
-                    <option value="GH">🇬🇭 Ghana</option>
-                    <option value="KE">🇰🇪 Kenya</option>
-                    <option value="UG">🇺🇬 Uganda</option>
-                    <option value="TZ">🇹🇿 Tanzania</option>
-                    <option value="RW">🇷🇼 Rwanda</option>
-                    <option value="ZA">🇿🇦 South Africa</option>
-                    <option value="ZM">🇿🇲 Zambia</option>
-                    <option value="ZW">🇿🇼 Zimbabwe</option>
-                    <option value="MW">🇲🇼 Malawi</option>
-                    <option value="MZ">🇲🇿 Mozambique</option>
-                    <option value="AO">🇦🇴 Angola</option>
-                    <option value="BW">🇧🇼 Botswana</option>
-                    <option value="NA">🇳🇦 Namibia</option>
-                    <option value="EG">🇪🇬 Egypt</option>
-                    <option value="MA">🇲🇦 Morocco</option>
-                    <option value="TN">🇹🇳 Tunisia</option>
-                    <option value="CM">🇨🇲 Cameroon</option>
-                    <option value="SN">🇸🇳 Senegal</option>
-                    <option value="CI">🇨🇮 Côte d'Ivoire</option>
-                    <!-- Asia -->
-                    <option value="AE">🇦🇪 United Arab Emirates</option>
-                    <option value="SA">🇸🇦 Saudi Arabia</option>
-                    <option value="QA">🇶🇦 Qatar</option>
-                    <option value="KW">🇰🇼 Kuwait</option>
-                    <option value="IN">🇮🇳 India</option>
-                    <option value="PK">🇵🇰 Pakistan</option>
-                    <!-- Oceania -->
-                    <option value="AU">🇦🇺 Australia</option>
-                    <option value="NZ">🇳🇿 New Zealand</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Bank Name <span class="required">*</span></label>
-                <select id="p_bankName" class="form-select" required>
-                    <option value="">Select bank country first</option>
-                </select>
+<select id="bankCountry" class="form-select" onchange="updateBankFieldsByCountry()">
+    <option value="">Select country</option>
+    
+    <!-- North America (API Support) -->
+    <optgroup label="🇺🇸 North America">
+        <option value="US">🇺🇸 United States (Auto)</option>
+        <option value="CA">🇨🇦 Canada (Auto)</option>
+        <option value="MX">🇲🇽 Mexico (Manual)</option>
+    </optgroup>
+    
+    <!-- Europe (Only UK has API, others manual) -->
+    <optgroup label="🇪🇺 Europe">
+        <option value="GB">🇬🇧 United Kingdom (Auto)</option>
+        <option value="EUROPE">🇪🇺 Europe (SEPA) - Manual Entry</option>
+    </optgroup>
+    
+    <!-- Africa (API countries only) -->
+    <optgroup label="🇿🇦 Africa (Auto Bank Listing)">
+        <option value="NG">🇳🇬 Nigeria (Auto)</option>
+        <option value="GH">🇬🇭 Ghana (Auto)</option>
+        <option value="KE">🇰🇪 Kenya (Auto)</option>
+        <option value="UG">🇺🇬 Uganda (Auto)</option>
+        <option value="TZ">🇹🇿 Tanzania (Auto)</option>
+        <option value="ZA">🇿🇦 South Africa (Auto)</option>
+        <option value="RW">🇷🇼 Rwanda (Auto)</option>
+    </optgroup>
+    
+    <!-- Other Africa (Manual) -->
+    <optgroup label="🌍 Other Africa (Manual Entry)">
+        <option value="OTHER_AFRICA">🌍 Other African Countries - Manual Entry</option>
+    </optgroup>
+    
+    <!-- Asia (Manual) -->
+    <optgroup label="🌏 Asia (Manual Entry)">
+        <option value="OTHER_ASIA">🌏 Asia (UAE, Saudi, India, etc.) - Manual Entry</option>
+    </optgroup>
+    
+    <!-- Oceania (Manual) -->
+    <optgroup label="🌏 Oceania (Manual Entry)">
+        <option value="OTHER_OCEANIA">🌏 Australia & New Zealand - Manual Entry</option>
+    </optgroup>
+    
+    <!-- Other -->
+    <optgroup label="🌐 Other Regions">
+        <option value="OTHER">🌐 Other Country - Manual Entry</option>
+    </optgroup>
+</select>
                 <div id="p_bankName_error" class="form-error"></div>
             </div>
         </div>
@@ -9467,6 +9379,7 @@ function updateBankFieldsByCountry() {
         additionalFieldsDiv.innerHTML = '';
     }
 }
+
 async function loadFlutterwaveBanks() {
     const country = document.getElementById('bankCountry')?.value;
     if (!country) {
@@ -9478,44 +9391,42 @@ async function loadFlutterwaveBanks() {
     const bankCodeInput = document.getElementById('p_bankCode');
     const accountNumberInput = document.getElementById('p_accountNumber');
     
-    if (!bankSelect) {
-        console.error('Bank select element not found');
+    if (!bankSelect) return;
+    
+    // Check if this is a manual entry country
+    const manualCountries = ['OTHER_EUROPE', 'OTHER_ASIA', 'OTHER_AFRICA', 'OTHER_OCEANIA', 'OTHER', 'MX', 'EUROPE'];
+    
+    if (manualCountries.includes(country) || country.startsWith('OTHER_')) {
+        // Manual entry mode
+        bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
+        bankSelect.disabled = false;
+        
+        // Create manual input field
+        let manualInput = document.getElementById('manualBankCodeInput');
+        if (!manualInput) {
+            manualInput = document.createElement('input');
+            manualInput.type = 'text';
+            manualInput.placeholder = 'Enter your bank code (e.g., 044, 000001, SWIFT code)';
+            manualInput.className = 'form-input';
+            manualInput.style.marginTop = '8px';
+            manualInput.id = 'manualBankCodeInput';
+            bankSelect.parentNode.appendChild(manualInput);
+            
+            manualInput.addEventListener('input', function() {
+                if (bankCodeInput) bankCodeInput.value = this.value;
+            });
+        }
+        
+        showToast(`Please enter your bank code manually for ${country.replace('OTHER_', '')}`, 'info');
         return;
     }
     
-    // Show loading state
+    // Auto-bank listing for supported countries
     bankSelect.innerHTML = '<option value="">Loading banks...</option>';
     bankSelect.disabled = true;
     
     try {
-        console.log(`🌍 Loading banks for country: ${country}`);
-        
-        // Map country codes to Flutterwave's expected format
-        const countryMap = {
-            'US': 'US', 'CA': 'CA', 'GB': 'GB', 'FR': 'FR', 'DE': 'DE',
-            'ES': 'ES', 'IT': 'IT', 'NL': 'NL', 'BE': 'BE', 'PT': 'PT',
-            'CH': 'CH', 'SE': 'SE', 'NO': 'NO', 'DK': 'DK', 'FI': 'FI',
-            'IE': 'IE', 'AT': 'AT', 'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR',
-            'HU': 'HU', 'RO': 'RO', 'NG': 'NG', 'GH': 'GH', 'KE': 'KE',
-            'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ZA': 'ZA', 'ZM': 'ZM',
-            'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ', 'AO': 'AO', 'BW': 'BW',
-            'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS', 'MG': 'MG', 'MU': 'MU',
-            'SC': 'SC', 'CM': 'CM', 'EG': 'EG', 'MA': 'MA', 'TN': 'TN',
-            'DZ': 'DZ', 'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW',
-            'BH': 'BH', 'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN',
-            'PK': 'PK', 'AU': 'AU', 'NZ': 'NZ', 'SN': 'SN', 'CI': 'CI',
-            'SL': 'SL', 'ET': 'ET', 'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ',
-            'ER': 'ER', 'SO': 'SO', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA',
-            'CF': 'CF', 'TD': 'TD', 'GQ': 'GQ', 'LY': 'LY', 'SD': 'SD',
-            'MR': 'MR', 'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF',
-            'BJ': 'BJ', 'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW',
-            'CV': 'CV', 'KM': 'KM'
-        };
-        
-        const flutterwaveCountry = countryMap[country] || country;
-        
-        // Try to fetch banks from API
-        const response = await fetch(`/api/banks/flutterwave/${flutterwaveCountry}`, {
+        const response = await fetch(`/api/banks/flutterwave/${country}`, {
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
         });
@@ -9523,112 +9434,77 @@ async function loadFlutterwaveBanks() {
         bankSelect.disabled = false;
         
         if (response.ok) {
-            const banks = await response.json();
+            const data = await response.json();
             
-            if (banks && banks.length > 0) {
-                bankSelect.innerHTML = '<option value="">Select your bank</option>';
-                
-                banks.forEach(bank => {
-                    const option = document.createElement('option');
-                    option.value = bank.code;
-                    option.textContent = `${bank.name} (Code: ${bank.code})`;
-                    bankSelect.appendChild(option);
-                });
-                
-                // Clear any previous verification
-                if (accountNumberInput && accountNumberInput.value) {
-                    accountNumberInput.value = '';
-                    const accountNameField = document.getElementById('p_accountName');
-                    if (accountNameField) {
-                        accountNameField.value = '';
-                        accountNameField.readOnly = false;
-                    }
-                }
-                
-                bankSelect.onchange = function() {
-                    if (bankCodeInput) {
-                        bankCodeInput.value = this.value;
-                    }
-                    // Clear previous verification when bank changes
-                    if (accountNumberInput && accountNumberInput.value) {
-                        const event = new Event('input', { bubbles: true });
-                        accountNumberInput.dispatchEvent(event);
-                    }
-                };
-                
-                console.log(`✅ Loaded ${banks.length} banks for ${country}`);
-                showToast(`Loaded ${banks.length} banks for ${getCountryName(country)}`, 'success');
+            if (data.manual_entry || !data.banks || data.banks.length === 0) {
+                // Fallback to manual entry
+                bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
+                provideManualBankEntry(bankSelect, bankCodeInput, country);
                 return;
             }
-        }
-        
-        // FALLBACK: Manual bank code entry with helpful message
-        console.log(`⚠️ No banks from API for ${country}, using manual entry`);
-        bankSelect.innerHTML = `
-            <option value="">Enter bank code manually</option>
-            <option value="manual">✏️ Manual Entry - I will enter bank code</option>
-        `;
-        
-        // Create manual input field
-        let manualInput = document.getElementById('manualBankCodeInput');
-        if (!manualInput) {
-            manualInput = document.createElement('input');
-            manualInput.type = 'text';
-            manualInput.placeholder = 'Enter your bank code (e.g., 000001 for Access Bank, 044 for GTBank)';
-            manualInput.className = 'form-input';
-            manualInput.style.marginTop = '8px';
-            manualInput.id = 'manualBankCodeInput';
-        } else {
-            manualInput.value = '';
-        }
-        
-        bankSelect.onchange = function() {
-            const existingManual = document.getElementById('manualBankCodeInput');
-            if (this.value === 'manual') {
-                if (!existingManual) {
-                    bankSelect.parentNode.appendChild(manualInput);
-                    manualInput.addEventListener('input', function() {
-                        if (bankCodeInput) bankCodeInput.value = this.value;
-                    });
-                }
-                bankSelect.style.marginBottom = '0';
-            } else {
-                if (existingManual) existingManual.remove();
-                if (bankCodeInput) bankCodeInput.value = this.value;
-                bankSelect.style.marginBottom = '';
-            }
             
-            if (accountNumberInput && accountNumberInput.value) {
-                const event = new Event('input', { bubbles: true });
-                accountNumberInput.dispatchEvent(event);
-            }
-        };
+            bankSelect.innerHTML = '<option value="">Select your bank</option>';
+            
+            data.banks.forEach(bank => {
+                const option = document.createElement('option');
+                option.value = bank.code;
+                option.textContent = `${bank.name} (Code: ${bank.code})`;
+                bankSelect.appendChild(option);
+            });
+            
+            bankSelect.onchange = function() {
+                if (bankCodeInput) bankCodeInput.value = this.value;
+                if (accountNumberInput && accountNumberInput.value) {
+                    const event = new Event('input', { bubbles: true });
+                    accountNumberInput.dispatchEvent(event);
+                }
+            };
+            
+            console.log(`✅ Loaded ${data.banks.length} banks for ${country}`);
+            showToast(`Loaded ${data.banks.length} banks`, 'success');
+        } else {
+            throw new Error('API error');
+        }
         
-        // If manual entry was previously selected, show the input
-        if (bankSelect.value === 'manual') {
-            const existingManual = document.getElementById('manualBankCodeInput');
-            if (!existingManual) {
+    } catch (err) {
+        console.error('Error loading banks:', err);
+        bankSelect.disabled = false;
+        provideManualBankEntry(bankSelect, bankCodeInput, country);
+    }
+}
+
+function provideManualBankEntry(bankSelect, bankCodeInput, country) {
+    bankSelect.innerHTML = `
+        <option value="">Enter bank code manually</option>
+        <option value="manual">✏️ Manual Entry</option>
+    `;
+    
+    const existingManual = document.getElementById('manualBankCodeInput');
+    if (existingManual) existingManual.remove();
+    
+    bankSelect.onchange = function() {
+        const existingInput = document.getElementById('manualBankCodeInput');
+        if (this.value === 'manual') {
+            if (!existingInput) {
+                const manualInput = document.createElement('input');
+                manualInput.type = 'text';
+                manualInput.placeholder = `Enter your bank code for ${country}`;
+                manualInput.className = 'form-input';
+                manualInput.style.marginTop = '8px';
+                manualInput.id = 'manualBankCodeInput';
                 bankSelect.parentNode.appendChild(manualInput);
+                
                 manualInput.addEventListener('input', function() {
                     if (bankCodeInput) bankCodeInput.value = this.value;
                 });
             }
+        } else {
+            if (existingInput) existingInput.remove();
+            if (bankCodeInput) bankCodeInput.value = this.value;
         }
-        
-        showToast(`Manual bank code entry available for ${getCountryName(country)}`, 'info');
-        
-    } catch (err) {
-        console.error('Error loading banks:', err);
-        
-        if (bankSelect) {
-            bankSelect.disabled = false;
-            bankSelect.innerHTML = '<option value="">Enter bank code manually</option>';
-            bankSelect.onchange = function() {
-                if (bankCodeInput) bankCodeInput.value = this.value;
-            };
-        }
-        showToast(`Please enter your bank code manually for ${getCountryName(country)}`, 'warning');
-    }
+    };
+    
+    showToast(`Manual bank code entry for ${country}`, 'info');
 }
 function updateBankCountry() {
     const sellerCountry = document.getElementById('sellerCountry').value;

@@ -9345,51 +9345,63 @@ async function loadFlutterwaveBanks() {
     const bankCodeInput = document.getElementById('p_bankCode');
     const accountNumberInput = document.getElementById('p_accountNumber');
     
-    // Show loading state
-    if (bankSelect) {
-        bankSelect.innerHTML = '<option value="">Loading banks...</option>';
-        bankSelect.disabled = true;
+    if (!bankSelect) {
+        console.error('Bank select element not found');
+        return;
     }
+    
+    // Show loading state
+    bankSelect.innerHTML = '<option value="">Loading banks...</option>';
+    bankSelect.disabled = true;
     
     try {
         console.log(`🌍 Loading banks for country: ${country}`);
         
-        // Map country codes to Flutterwave's expected format
+        // Map country codes to Flutterwave's expected format - EXPANDED FOR ALL 50+ COUNTRIES
         const countryMap = {
-            'US': 'US', 'CA': 'CA', 'GB': 'GB', 'FR': 'FR', 'DE': 'DE',
-            'ES': 'ES', 'IT': 'IT', 'NL': 'NL', 'BE': 'BE', 'PT': 'PT',
-            'CH': 'CH', 'SE': 'SE', 'NO': 'NO', 'DK': 'DK', 'FI': 'FI',
-            'IE': 'IE', 'AT': 'AT', 'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR',
-            'NG': 'NG', 'GH': 'GH', 'KE': 'KE', 'UG': 'UG', 'TZ': 'TZ',
-            'RW': 'RW', 'ZA': 'ZA', 'ZM': 'ZM', 'ZW': 'ZW', 'MW': 'MW',
-            'MZ': 'MZ', 'AO': 'AO', 'BW': 'BW', 'NA': 'NA', 'SZ': 'SZ',
-            'LS': 'LS', 'MG': 'MG', 'MU': 'MU', 'SC': 'SC', 'CM': 'CM',
-            'CD': 'CD', 'CG': 'CG', 'GA': 'GA', 'CF': 'CF', 'TD': 'TD',
-            'EG': 'EG', 'MA': 'MA', 'TN': 'TN', 'DZ': 'DZ', 'AE': 'AE',
-            'SA': 'SA', 'QA': 'QA', 'KW': 'KW', 'BH': 'BH', 'OM': 'OM',
-            'JO': 'JO', 'LB': 'LB', 'IN': 'IN', 'PK': 'PK', 'AU': 'AU',
-            'NZ': 'NZ', 'SN': 'SN', 'CI': 'CI', 'SL': 'SL', 'GM': 'GM',
-            'LR': 'LR', 'ML': 'ML', 'BF': 'BF', 'BJ': 'BJ', 'TG': 'TG',
-            'NE': 'NE', 'GN': 'GN', 'GW': 'GW', 'CV': 'CV', 'ET': 'ET',
+            // North America
+            'US': 'US', 'CA': 'CA',
+            // Europe
+            'GB': 'GB', 'FR': 'FR', 'DE': 'DE', 'ES': 'ES', 'IT': 'IT',
+            'NL': 'NL', 'BE': 'BE', 'PT': 'PT', 'CH': 'CH', 'SE': 'SE',
+            'NO': 'NO', 'DK': 'DK', 'FI': 'FI', 'IE': 'IE', 'AT': 'AT',
+            'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR', 'HU': 'HU', 'RO': 'RO',
+            // West Africa
+            'NG': 'NG', 'GH': 'GH', 'SN': 'SN', 'CI': 'CI', 'SL': 'SL',
+            'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF', 'BJ': 'BJ',
+            'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW', 'CV': 'CV',
+            // East Africa
+            'KE': 'KE', 'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ET': 'ET',
             'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ', 'ER': 'ER', 'SO': 'SO',
-            'LY': 'LY', 'SD': 'SD', 'MR': 'MR', 'GQ': 'GQ', 'KM': 'KM'
+            // Southern Africa
+            'ZA': 'ZA', 'ZM': 'ZM', 'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ',
+            'AO': 'AO', 'BW': 'BW', 'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS',
+            'MG': 'MG', 'MU': 'MU', 'KM': 'KM', 'SC': 'SC',
+            // Central Africa
+            'CM': 'CM', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA', 'CF': 'CF',
+            'TD': 'TD', 'GQ': 'GQ',
+            // North Africa
+            'EG': 'EG', 'MA': 'MA', 'TN': 'TN', 'DZ': 'DZ', 'LY': 'LY',
+            'SD': 'SD', 'MR': 'MR',
+            // Asia & Middle East
+            'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW', 'BH': 'BH',
+            'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN', 'PK': 'PK',
+            // Oceania
+            'AU': 'AU', 'NZ': 'NZ'
         };
         
         const flutterwaveCountry = countryMap[country] || country;
         
+        // Try to fetch banks from API
         const response = await fetch(`/api/banks/flutterwave/${flutterwaveCountry}`, {
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
+        bankSelect.disabled = false;
         
-        const banks = await response.json();
-        
-        if (bankSelect) {
-            bankSelect.disabled = false;
+        if (response.ok) {
+            const banks = await response.json();
             
             if (banks && banks.length > 0) {
                 bankSelect.innerHTML = '<option value="">Select your bank</option>';
@@ -9423,19 +9435,94 @@ async function loadFlutterwaveBanks() {
                 };
                 
                 console.log(`✅ Loaded ${banks.length} banks for ${country}`);
-            } else {
-                bankSelect.innerHTML = '<option value="">No banks available - try manual entry</option>';
-                console.warn(`No banks returned for ${country}`);
+                showToast(`Loaded ${banks.length} banks for ${getCountryName(country)}`, 'success');
+                return;
             }
         }
         
+        // FALLBACK: Use manual bank entry for all countries
+        console.log(`⚠️ API failed or no banks, using manual entry for ${country}`);
+        bankSelect.innerHTML = `
+            <option value="">Enter bank code manually</option>
+            <option value="MANUAL">--- Manual Entry ---</option>
+        `;
+        
+        bankSelect.onchange = function() {
+            if (this.value === 'MANUAL') {
+                // Create a text input for manual bank code entry
+                const manualInput = document.createElement('input');
+                manualInput.type = 'text';
+                manualInput.placeholder = 'Enter bank code (e.g., 000001)';
+                manualInput.className = 'form-input';
+                manualInput.style.marginTop = '8px';
+                manualInput.id = 'manualBankCode';
+                
+                const existingManual = document.getElementById('manualBankCode');
+                if (existingManual) existingManual.remove();
+                
+                bankSelect.parentNode.appendChild(manualInput);
+                
+                manualInput.addEventListener('input', function() {
+                    if (bankCodeInput) {
+                        bankCodeInput.value = this.value;
+                    }
+                });
+            } else {
+                const manualInput = document.getElementById('manualBankCode');
+                if (manualInput) manualInput.remove();
+                if (bankCodeInput) {
+                    bankCodeInput.value = this.value;
+                }
+            }
+            
+            // Clear previous verification when bank changes
+            if (accountNumberInput && accountNumberInput.value) {
+                const event = new Event('input', { bubbles: true });
+                accountNumberInput.dispatchEvent(event);
+            }
+        };
+        
+        showToast(`Please enter your bank code manually for ${getCountryName(country)}`, 'info');
+        
     } catch (err) {
         console.error('Error loading Flutterwave banks:', err);
+        
         if (bankSelect) {
             bankSelect.disabled = false;
-            bankSelect.innerHTML = '<option value="">Error loading banks - you can enter bank code manually</option>';
+            bankSelect.innerHTML = `
+                <option value="">Enter bank code manually</option>
+                <option value="MANUAL">--- Manual Entry ---</option>
+            `;
+            
+            bankSelect.onchange = function() {
+                if (this.value === 'MANUAL') {
+                    const manualInput = document.createElement('input');
+                    manualInput.type = 'text';
+                    manualInput.placeholder = 'Enter bank code (e.g., 000001)';
+                    manualInput.className = 'form-input';
+                    manualInput.style.marginTop = '8px';
+                    manualInput.id = 'manualBankCode';
+                    
+                    const existingManual = document.getElementById('manualBankCode');
+                    if (existingManual) existingManual.remove();
+                    
+                    bankSelect.parentNode.appendChild(manualInput);
+                    
+                    manualInput.addEventListener('input', function() {
+                        if (bankCodeInput) {
+                            bankCodeInput.value = this.value;
+                        }
+                    });
+                } else {
+                    const manualInput = document.getElementById('manualBankCode');
+                    if (manualInput) manualInput.remove();
+                    if (bankCodeInput) {
+                        bankCodeInput.value = this.value;
+                    }
+                }
+            };
         }
-        showToast(`Could not load banks for ${country}. You can enter bank code manually.`, 'warning');
+        showToast(`Could not load banks. You can enter bank code manually.`, 'warning');
     }
 }
 function updateBankCountry() {
@@ -9632,7 +9719,36 @@ function updateBankCountry() {
         inputElement.setAttribute('data-verified', 'false');
     }
 }
-
+// Helper function to get common bank codes for manual entry
+function getCommonBankCodes(countryCode) {
+    const bankCodes = {
+        'US': [
+            { code: '021000021', name: 'Chase Bank' },
+            { code: '026009593', name: 'Bank of America' },
+            { code: '121000358', name: 'Wells Fargo' },
+            { code: '021001088', name: 'Citibank' }
+        ],
+        'GB': [
+            { code: '40-00-00', name: 'Barclays' },
+            { code: '60-00-00', name: 'NatWest' },
+            { code: '20-00-00', name: 'HSBC UK' }
+        ],
+        'NG': [
+            { code: '000001', name: 'Access Bank' },
+            { code: '000002', name: 'GTBank' },
+            { code: '000003', name: 'Zenith Bank' }
+        ],
+        'KE': [
+            { code: '000001', name: 'Equity Bank' },
+            { code: '000002', name: 'KCB Bank' }
+        ],
+        'ZA': [
+            { code: '000001', name: 'Standard Bank' },
+            { code: '000002', name: 'FNB' }
+        ]
+    };
+    return bankCodes[countryCode] || [];
+}
 // Helper function to get country name from code
 function getCountryName(countryCode) {
     const countryNames = {

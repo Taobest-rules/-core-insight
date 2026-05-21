@@ -4224,10 +4224,12 @@ In the name of Allah, the Most Gracious, the Most Merciful
   <!-- HEADER SECTION -->
   <header>
     <div style="display:flex;gap:12px;align-items:center">
-      <div class="logo">
-        <div class="logo-icon"><i class="fas fa-store"></i></div>
-        <div class="logo-text">Core Insight</div>
-      </div>
+<div class="logo">
+  <div class="logo-icon">
+    <img src="https://i.pinimg.com/736x/02/49/75/0249752685670a5f2b0979b60df290a6.jpg" alt="Core Insight Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+  </div>
+  <div class="logo-text">Core Insight</div>
+</div>
     </div>
 
     <nav>
@@ -8040,16 +8042,52 @@ window.loadCharts = loadCharts;
 function toggleDashboardView() {
     const dashboardSection = document.getElementById('dashboardSection');
     const buyerView = document.getElementById('buyerView');
-    if (dashboardSection.style.display === 'none' || dashboardSection.style.display === '') {
-        if (!currentUser) { openModal(document.getElementById('loginModal')); return; }
+    const sellerView = document.getElementById('sellerView');
+    
+    console.log("Toggling dashboard view. Current state:", {
+        dashboardDisplay: dashboardSection?.style.display,
+        buyerDisplay: buyerView?.style.display
+    });
+    
+    // If dashboard is hidden or not shown, show it
+    if (!dashboardSection || dashboardSection.style.display === 'none' || dashboardSection.style.display === '') {
+        if (!currentUser) { 
+            openModal(document.getElementById('loginModal')); 
+            return; 
+        }
+        
+        // Hide other views
+        if (buyerView) buyerView.style.display = 'none';
+        if (sellerView) sellerView.style.display = 'none';
+        
+        // Show dashboard
         dashboardSection.style.display = 'block';
-        buyerView.style.display = 'none';
-        document.getElementById('sellerView').style.display = 'none';
+        
+        // Load dashboard data
         loadDashboardStats();
         loadMyProducts();
+        
+        // Initialize tabs
+        initDashboardTabs();
+        
+        // Load share stats
+        loadShareStats();
+        
+        // Check admin features
+        if (currentUser && currentUser.role === 'admin') {
+            const adminTab = document.getElementById('adminTabBtn');
+            const adminControls = document.getElementById('adminControls');
+            if (adminTab) adminTab.style.display = 'block';
+            if (adminControls) adminControls.style.display = 'block';
+            loadAdminData();
+        }
+        
+        console.log("Dashboard opened");
     } else {
+        // Close dashboard and go back to buyer view
         dashboardSection.style.display = 'none';
-        buyerView.style.display = 'block';
+        if (buyerView) buyerView.style.display = 'block';
+        console.log("Dashboard closed, buyer view restored");
     }
 }
 window.toggleDashboardView = toggleDashboardView;
@@ -9976,44 +10014,82 @@ function loadTabData(tabId) {
 // ============================================
 // INITIALIZE EVERYTHING ON PAGE LOAD
 // ============================================
+// INITIALIZE EVERYTHING ON PAGE LOAD
+// ============================================
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("🚀 DOM Content Loaded - Initializing...");
+    
     initMobileNav();
     await initCurrency();
     await loadUser();
     await loadProducts();
     initializeCategories();
-    if (products.length > 0) { currentProductId = products[0].id; loadProductReviews(currentProductId); }
+    
+    if (products.length > 0) { 
+        currentProductId = products[0].id; 
+        loadProductReviews(currentProductId); 
+    }
+    
+    // ========== MODAL ELEMENTS ==========
     const loginModal = document.getElementById('loginModal');
     const signupModal = document.getElementById('signupModal');
     const loginOpenBtn = document.getElementById('loginOpen');
     const signupOpenBtn = document.getElementById('signupOpen');
     const closeLogin = document.getElementById('closeLogin');
     const closeSignup = document.getElementById('closeSignup');
+    
     if (loginOpenBtn) loginOpenBtn.addEventListener('click', () => openModal(loginModal));
     if (signupOpenBtn) signupOpenBtn.addEventListener('click', () => openModal(signupModal));
     if (closeLogin) closeLogin.addEventListener('click', () => closeModal(loginModal));
     if (closeSignup) closeSignup.addEventListener('click', () => closeModal(signupModal));
-    window.addEventListener('click', (e) => { if (e.target === loginModal) closeModal(loginModal); if (e.target === signupModal) closeModal(signupModal); });
+    
+    window.addEventListener('click', (e) => { 
+        if (e.target === loginModal) closeModal(loginModal); 
+        if (e.target === signupModal) closeModal(signupModal); 
+    });
+    
+    // ========== PASSWORD TOGGLE ==========
     const toggleLoginPwd = document.getElementById('toggleLoginPwd');
     const loginPassword = document.getElementById('loginPassword');
-    if (toggleLoginPwd && loginPassword) toggleLoginPwd.addEventListener('click', () => { loginPassword.type = loginPassword.type === 'password' ? 'text' : 'password'; });
+    if (toggleLoginPwd && loginPassword) {
+        toggleLoginPwd.addEventListener('click', () => { 
+            loginPassword.type = loginPassword.type === 'password' ? 'text' : 'password'; 
+        });
+    }
+    
     const toggleSignupPwd = document.getElementById('toggleSignupPwd');
     const signupPassword = document.getElementById('signupPassword');
-    if (toggleSignupPwd && signupPassword) toggleSignupPwd.addEventListener('click', () => { signupPassword.type = signupPassword.type === 'password' ? 'text' : 'password'; });
+    if (toggleSignupPwd && signupPassword) {
+        toggleSignupPwd.addEventListener('click', () => { 
+            signupPassword.type = signupPassword.type === 'password' ? 'text' : 'password'; 
+        });
+    }
+    
+    // ========== LOGIN METHOD TOGGLE ==========
     const loginByUsername = document.getElementById('loginByUsername');
     const loginByEmail = document.getElementById('loginByEmail');
     const usernameGroup = document.getElementById('usernameGroup');
     const emailGroup = document.getElementById('emailGroup');
-    if (loginByUsername) loginByUsername.addEventListener('click', () => {
-        loginByUsername.style.color = 'var(--accent)'; loginByEmail.style.color = 'var(--text-gray)';
-        if (usernameGroup) usernameGroup.style.display = 'block';
-        if (emailGroup) emailGroup.style.display = 'none';
-    });
-    if (loginByEmail) loginByEmail.addEventListener('click', () => {
-        loginByEmail.style.color = 'var(--accent)'; loginByUsername.style.color = 'var(--text-gray)';
-        if (usernameGroup) usernameGroup.style.display = 'none';
-        if (emailGroup) emailGroup.style.display = 'block';
-    });
+    
+    if (loginByUsername) {
+        loginByUsername.addEventListener('click', () => {
+            loginByUsername.style.color = 'var(--accent)';
+            loginByEmail.style.color = 'var(--text-gray)';
+            if (usernameGroup) usernameGroup.style.display = 'block';
+            if (emailGroup) emailGroup.style.display = 'none';
+        });
+    }
+    
+    if (loginByEmail) {
+        loginByEmail.addEventListener('click', () => {
+            loginByEmail.style.color = 'var(--accent)';
+            loginByUsername.style.color = 'var(--text-gray)';
+            if (usernameGroup) usernameGroup.style.display = 'none';
+            if (emailGroup) emailGroup.style.display = 'block';
+        });
+    }
+    
+    // ========== LOGIN FORM ==========
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -10025,17 +10101,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (useUsername) payload.username = document.getElementById('loginUsername').value;
             else payload.email = document.getElementById('loginEmail').value;
             try {
-                const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, body: JSON.stringify(payload) });
+                const res = await fetch('/api/login', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, 
+                    body: JSON.stringify(payload) 
+                });
                 const data = await res.json();
-                if (!res.ok) { if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml(data.error || 'Login failed')}</div>`; return; }
+                if (!res.ok) { 
+                    if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml(data.error || 'Login failed')}</div>`; 
+                    return; 
+                }
                 if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--success);padding:8px;">✅ ${escapeHtml(data.message || 'Logged in')}</div>`;
                 await loadUser();
                 await loadUserFavorites();
                 closeModal(loginModal);
-                if (sellerMode) { const sellerView = document.getElementById('sellerView'); if (sellerView) sellerView.classList.add('active'); }
-            } catch(err) { console.error('login err', err); if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml('Login failed')}</div>`; }
+                if (sellerMode) { 
+                    const sellerView = document.getElementById('sellerView'); 
+                    if (sellerView) sellerView.classList.add('active'); 
+                }
+            } catch(err) { 
+                console.error('login err', err); 
+                if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml('Login failed')}</div>`; 
+            }
         });
     }
+    
+    // ========== SIGNUP FORM ==========
     const signupForm = document.getElementById('signupForm');
     if (signupForm) {
         signupForm.addEventListener('submit', async (e) => {
@@ -10045,26 +10136,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             const username = document.getElementById('signupUsername').value.trim();
             const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value;
-            if (!username || !email || !password) { if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">All fields required.</div>`; return; }
+            if (!username || !email || !password) { 
+                if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">All fields required.</div>`; 
+                return; 
+            }
             try {
-                const res = await fetch('/api/signup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, body: JSON.stringify({ username, email, password }) });
+                const res = await fetch('/api/signup', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, 
+                    body: JSON.stringify({ username, email, password }) 
+                });
                 const data = await res.json();
-                if (!res.ok) { if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml(data.error || 'Signup failed')}</div>`; return; }
+                if (!res.ok) { 
+                    if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">${escapeHtml(data.error || 'Signup failed')}</div>`; 
+                    return; 
+                }
                 if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--success);padding:8px;">${escapeHtml(data.message || 'Signup success')}<br/>Attempting to login...</div>`;
-                const loginRes = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, body: JSON.stringify({ username, password }) });
+                const loginRes = await fetch('/api/login', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() }, 
+                    body: JSON.stringify({ username, password }) 
+                });
                 if (loginRes.ok) {
                     await loadUser();
                     await loadUserFavorites();
                     if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--success);padding:8px;">Signed up and logged in ✅</div>`;
                     closeModal(signupModal);
-                } else { if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--success);padding:8px;">${escapeHtml(data.message || 'Signup success')}. Please login.</div>`; }
-            } catch(err) { console.error('signup err', err); if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">Signup failed</div>`; }
+                } else { 
+                    if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--success);padding:8px;">${escapeHtml(data.message || 'Signup success')}. Please login.</div>`; 
+                }
+            } catch(err) { 
+                console.error('signup err', err); 
+                if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--danger);padding:8px;">Signup failed</div>`; 
+            }
         });
     }
+    
+    // ========== SWITCH BETWEEN LOGIN/SIGNUP MODALS ==========
     const openSignupFromLogin = document.getElementById('openSignupFromLogin');
     const openLoginFromSignup = document.getElementById('openLoginFromSignup');
     if (openSignupFromLogin) openSignupFromLogin.addEventListener('click', () => { closeModal(loginModal); openModal(signupModal); });
     if (openLoginFromSignup) openLoginFromSignup.addEventListener('click', () => { closeModal(signupModal); openModal(loginModal); });
+    
+    // ========== BECOME SELLER BUTTON ==========
     const becomeSellerBtn = document.getElementById('becomeSeller');
     if (becomeSellerBtn) {
         becomeSellerBtn.addEventListener('click', async () => {
@@ -10080,6 +10194,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!sellerMode) window.scrollTo({ top: 200, behavior: 'smooth' });
         });
     }
+    
+    // ========== CANCEL SELLER BUTTON ==========
     const cancelSellerBtn = document.getElementById('cancelSeller');
     if (cancelSellerBtn) {
         cancelSellerBtn.addEventListener('click', () => {
@@ -10092,58 +10208,114 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (browseModeText) browseModeText.innerHTML = 'Buyer';
         });
     }
+    
+    // ========== PRODUCT FILTERS ==========
     const searchInput = document.getElementById('searchInput');
     const filterType = document.getElementById('filterType');
     const filterCategory = document.getElementById('filterCategory');
     const sortSelect = document.getElementById('sortSelect');
     const refreshBtn = document.getElementById('refreshBtn');
+    
     if (searchInput) searchInput.addEventListener('input', debounce(renderProducts, 250));
     if (filterType) filterType.addEventListener('change', renderProducts);
     if (filterCategory) filterCategory.addEventListener('change', renderProducts);
     if (sortSelect) sortSelect.addEventListener('change', renderProducts);
     if (refreshBtn) refreshBtn.addEventListener('click', () => loadProducts());
+    
+    // ========== CURRENCY HEADER ==========
     const currencyHeader = document.getElementById('currencyHeader');
     if (currencyHeader) currencyHeader.value = userCurrency;
+    
+    // ========== DASHBOARD BUTTONS - FIXED ==========
     const dashboardToggleBtn = document.getElementById('toggleDashboardBtn');
     const toggleDashboard = document.getElementById('toggleDashboard');
-    if (dashboardToggleBtn) dashboardToggleBtn.addEventListener('click', toggleDashboardView);
-    if (toggleDashboard) toggleDashboard.addEventListener('click', toggleDashboardView);
+    
+    // Helper function to safely add event listener
+    function addSafeEventListener(element, event, handler) {
+        if (!element) return;
+        const newElement = element.cloneNode(true);
+        element.parentNode.replaceChild(newElement, element);
+        newElement.addEventListener(event, handler);
+        return newElement;
+    }
+    
+    // Fix Dashboard Toggle Button
+    if (dashboardToggleBtn) {
+        const fixedDashboardBtn = addSafeEventListener(dashboardToggleBtn, 'click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Dashboard button clicked - toggling view");
+            toggleDashboardView();
+        });
+        console.log("✅ Dashboard toggle button handler attached");
+    }
+    
+    // Fix Toggle Dashboard Button (inside dashboard)
+    if (toggleDashboard) {
+        const fixedToggleDashboard = addSafeEventListener(toggleDashboard, 'click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Toggle dashboard button clicked - closing dashboard");
+            toggleDashboardView();
+        });
+        console.log("✅ Toggle dashboard button handler attached");
+    }
+    
+    // ========== SALES HISTORY FILTERS ==========
     const salesPeriod = document.getElementById('salesPeriod');
     const salesStatus = document.getElementById('salesStatus');
     const searchMyProducts = document.getElementById('searchMyProducts');
     const filterMyProducts = document.getElementById('filterMyProducts');
+    
     if (salesPeriod) salesPeriod.addEventListener('change', () => loadSalesHistory());
     if (salesStatus) salesStatus.addEventListener('change', () => loadSalesHistory());
     if (searchMyProducts) searchMyProducts.addEventListener('input', debounce(loadMyProducts, 300));
     if (filterMyProducts) filterMyProducts.addEventListener('change', loadMyProducts);
+    
+    // ========== ADDRESS FORM ==========
     const addressForm = document.getElementById('addressForm');
     const closeAddressModalBtn = document.getElementById('closeAddressModal');
     const cancelAddressBtn = document.getElementById('cancelAddress');
     const orderQuantity = document.getElementById('orderQuantity');
+    
     if (addressForm) {
         const newForm = addressForm.cloneNode(true);
         addressForm.parentNode.replaceChild(newForm, addressForm);
         newForm.addEventListener('submit', submitOrderForm);
     }
+    
     if (closeAddressModalBtn) {
         const newClose = closeAddressModalBtn.cloneNode(true);
         closeAddressModalBtn.parentNode.replaceChild(newClose, closeAddressModalBtn);
         newClose.addEventListener('click', closeAddressModal);
     }
+    
     if (cancelAddressBtn) {
         const newCancel = cancelAddressBtn.cloneNode(true);
         cancelAddressBtn.parentNode.replaceChild(newCancel, cancelAddressBtn);
         newCancel.addEventListener('click', closeAddressModal);
     }
+    
     if (orderQuantity) {
         const newQuantity = orderQuantity.cloneNode(true);
         orderQuantity.parentNode.replaceChild(newQuantity, orderQuantity);
         newQuantity.removeAttribute('max');
-        newQuantity.addEventListener('input', function() { let val = parseInt(this.value); if (isNaN(val) || val < 1) { this.value = 1; } if (typeof updateOrderTotalDisplay === 'function') updateOrderTotalDisplay(); });
-        newQuantity.addEventListener('change', function() { let val = parseInt(this.value); if (isNaN(val) || val < 1) { this.value = 1; } if (typeof updateOrderTotalDisplay === 'function') updateOrderTotalDisplay(); });
+        newQuantity.addEventListener('input', function() { 
+            let val = parseInt(this.value); 
+            if (isNaN(val) || val < 1) { this.value = 1; } 
+            if (typeof updateOrderTotalDisplay === 'function') updateOrderTotalDisplay(); 
+        });
+        newQuantity.addEventListener('change', function() { 
+            let val = parseInt(this.value); 
+            if (isNaN(val) || val < 1) { this.value = 1; } 
+            if (typeof updateOrderTotalDisplay === 'function') updateOrderTotalDisplay(); 
+        });
     }
+    
+    // ========== PAYMENT PROVIDER OPTIONS ==========
     const providerOptions = document.querySelectorAll('.provider-option');
     const paymentProviderInput = document.getElementById('p_paymentProvider');
+    
     if (providerOptions.length && paymentProviderInput) {
         providerOptions.forEach(option => {
             option.addEventListener('click', function() {
@@ -10155,36 +10327,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
     }
+    
+    // ========== FLUTTERWAVE DEFAULT SELECTION ==========
     const flutterwaveOption = document.querySelector('.provider-option[data-provider="flutterwave"]');
     if (flutterwaveOption && paymentProviderInput) {
         flutterwaveOption.classList.add('selected');
         paymentProviderInput.value = 'flutterwave';
     }
+    
+    // ========== BUSINESS INFO DISPLAY ==========
     const businessInfoDiv = document.getElementById('businessInfo');
     if (businessInfoDiv) businessInfoDiv.classList.add('show');
+    
+    // ========== PAYMENT OPTION DEFAULT ==========
     const paymentOption = document.getElementById('p_paymentOption');
     if (paymentOption) paymentOption.value = 'pay_on_delivery';
+    
+    // ========== AFFILIATE BLOCK ==========
     createAffiliateBlock();
     const affiliateBlock = document.getElementById('affiliateBlock');
     if (affiliateBlock) affiliateBlock.classList.remove('show');
+    
+    // ========== DELIVERY METHOD ==========
     toggleDeliveryMethod();
-    // Notification bell click handler
-const notificationBtn = document.getElementById('notificationBtn');
-if (notificationBtn) {
-    notificationBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showNotificationDropdown();
-    });
-}
-
-if (paymentProviderInput) {
-    paymentProviderInput.value = 'flutterwave';
-    selectPaymentGateway('flutterwave');
-}
-
-// Add virtual account toggle
-addVirtualAccountToggle();
+    
+    // ========== NOTIFICATION BELL ==========
+    const notificationBtn = document.getElementById('notificationBtn');
+    if (notificationBtn) {
+        const newNotificationBtn = notificationBtn.cloneNode(true);
+        notificationBtn.parentNode.replaceChild(newNotificationBtn, notificationBtn);
+        newNotificationBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showNotificationDropdown();
+        });
+    }
+    
+    // ========== PAYMENT GATEWAY ==========
+    if (paymentProviderInput) {
+        paymentProviderInput.value = 'flutterwave';
+        selectPaymentGateway('flutterwave');
+    }
+    
+    // ========== VIRTUAL ACCOUNT TOGGLE ==========
+    addVirtualAccountToggle();
+    
+    console.log("✅ DOMContentLoaded initialization complete");
 });
+
+// ========== ADDITIONAL EVENT LISTENERS (OUTSIDE DOMContentLoaded) ==========
 document.getElementById('searchInput')?.addEventListener('input', debounce(renderProducts, 250));
 document.getElementById('filterType')?.addEventListener('change', renderProducts);
 document.getElementById('filterCategory')?.addEventListener('change', renderProducts);

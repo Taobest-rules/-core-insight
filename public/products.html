@@ -7787,9 +7787,9 @@ async function loadPaidOrders() {
                                                placeholder="Enter 6-digit code" 
                                                maxlength="6" 
                                                style="flex: 1; padding: 12px; border-radius: 8px; background: var(--primary-dark); border: 1px solid var(--border); color: white; font-size: 20px; text-align: center; letter-spacing: 4px;">
-                                        <button class="btn success" onclick="confirmDeliveryWithCode(${order.id})" style="background: var(--success);">
-                                            <i class="fas fa-check-circle"></i> Confirm Delivery
-                                        </button>
+                                        <button class="btn success" onclick="verifyDeliveryWithCode(${order.id})" style="background: var(--success);">
+    <i class="fas fa-check-circle"></i> Verify Delivery Code
+</button>
                                     </div>
                                     <p class="form-help" style="margin-top: 8px; font-size: 11px;">
                                         <i class="fas fa-info-circle"></i> After confirming delivery, a 5-day escrow period starts
@@ -7887,7 +7887,8 @@ async function generateDeliveryCode(orderId) {
 }
 window.generateDeliveryCode = generateDeliveryCode;
 
-async function confirmDeliveryWithCode(orderId) {
+// Rename this function to be clearer
+async function verifyDeliveryWithCode(orderId) {
     const codeInput = document.getElementById(`deliveryCode_${orderId}`);
     const deliveryCode = codeInput?.value.trim();
     
@@ -7896,7 +7897,7 @@ async function confirmDeliveryWithCode(orderId) {
         return;
     }
     
-    if (!confirm("Confirming delivery will start the 5-day escrow countdown. Funds will be released to you after 5 days unless the customer requests a refund.")) {
+    if (!confirm("⚠️ IMPORTANT: Only confirm delivery AFTER the customer has received the product and provided the delivery code.\n\nConfirming will start the 5-day escrow countdown. The customer will have 5 days to request a refund.")) {
         return;
     }
     
@@ -7904,11 +7905,12 @@ async function confirmDeliveryWithCode(orderId) {
     const confirmBtn = document.querySelector(`#deliveryConfirmSection_${orderId} .btn.success`);
     if (confirmBtn) {
         confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirming...';
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
     }
     
     try {
-        const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+        // ✅ Use the correct backend endpoint: verify-delivery (not confirm-delivery)
+        const response = await fetch(`/api/orders/${orderId}/verify-delivery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ delivery_code: deliveryCode }),
@@ -7919,31 +7921,29 @@ async function confirmDeliveryWithCode(orderId) {
         
         if (response.ok) {
             showToast(
-                '✅ Delivery Confirmed!', 
-                `5-day escrow period has started. Funds will be released after 5 days unless customer requests a refund.`,
+                '✅ Delivery Verified!', 
+                `5-day escrow period has started. Customer has 5 days to request a refund. Funds will be released to you after 5 days.`,
                 'success'
             );
-            
-            // Refresh the paid orders list to show confirmed status
+            // Refresh the paid orders list
             await loadPaidOrders();
-            
         } else {
-            showToast('Error', data.error || 'Invalid delivery code', 'danger');
+            showToast('Error', data.error || 'Invalid delivery code. Please check with the customer.', 'danger');
+            console.error('Verification error:', data);
             if (confirmBtn) {
                 confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Delivery';
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify Delivery';
             }
         }
     } catch (error) {
-        console.error('Error confirming delivery:', error);
+        console.error('Error verifying delivery:', error);
         showToast('Error', 'Network error. Please try again.', 'danger');
         if (confirmBtn) {
             confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Delivery';
+            confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify Delivery';
         }
     }
 }
-window.confirmDeliveryWithCode = confirmDeliveryWithCode;
 
 async function viewEscrowStatus(orderId) {
     try {

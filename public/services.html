@@ -4008,6 +4008,130 @@ In the name of Allah, the Most Gracious, the Most Merciful
     background: rgba(239, 68, 68, 0.2);
     color: var(--error-red);
   }
+  /* Locked Account Styles */
+.locked-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.locked-modal {
+    max-width: 500px;
+    width: 90%;
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+.locked-modal .lock-icon {
+    font-size: 5rem;
+    color: var(--warning-orange);
+    margin-bottom: 20px;
+}
+
+.locked-modal h2 {
+    color: var(--text-light);
+    margin-bottom: 15px;
+}
+
+.locked-modal p {
+    color: var(--text-gray);
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.locked-modal .price {
+    font-size: 2rem;
+    color: var(--accent-gold);
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.locked-modal .btn-primary {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.locked-modal .btn-secondary {
+    width: 100%;
+}
+
+.disabled-tab {
+    opacity: 0.5;
+    pointer-events: none;
+    position: relative;
+}
+
+.disabled-tab::after {
+    content: '🔒';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+}
+
+.service-card.locked,
+.product-card.locked {
+    opacity: 0.6;
+    filter: blur(2px);
+    pointer-events: none;
+    position: relative;
+}
+
+.service-card.locked::before,
+.product-card.locked::before {
+    content: '🔒 Account Locked - Subscribe to Unlock';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: var(--warning-orange);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 10;
+    white-space: nowrap;
+    border: 1px solid var(--warning-orange);
+}
+
+.chat-input.locked,
+.message-input-area.locked {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.chat-input.locked::after {
+    content: '💬 Subscription required to send messages';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--warning-orange);
+    color: #000;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    margin-bottom: 10px;
+}
   </style>
 </head>
 <body>
@@ -9327,7 +9451,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Also set up when create service form is shown
-const originalShowCreateServiceForm = window.showCreateServiceForm;
+
 window.showCreateServiceForm = function() {
     if (originalShowCreateServiceForm) originalShowCreateServiceForm();
     setTimeout(() => {
@@ -10601,6 +10725,7 @@ async function showFreelancerProfile() {
     }
 }
 
+   
    function updateProfileDisplay(profile) {
     // Basic info
     const usernameEl = document.getElementById('profileUsername');
@@ -10714,17 +10839,38 @@ async function showFreelancerProfile() {
     // ==================== CERTIFICATES - FIXED ====================
     const certificatesContainer = document.getElementById('profileCertificates');
     if (certificatesContainer) {
-        // Check both possible field names for certificates
-        let certImages = profile.certificate_images || profile.certificate_image_urls || profile.certificates;
+        let certImages = [];
         
-        // Parse if it's a string (JSON string from database)
-        if (typeof certImages === 'string') {
+        // Try both possible column names
+        if (profile.certificate_image_urls) {
             try {
-                const parsed = JSON.parse(certImages);
-                certImages = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+                if (typeof profile.certificate_image_urls === 'string') {
+                    if (profile.certificate_image_urls.startsWith('[')) {
+                        certImages = JSON.parse(profile.certificate_image_urls);
+                    } else {
+                        certImages = [profile.certificate_image_urls];
+                    }
+                } else if (Array.isArray(profile.certificate_image_urls)) {
+                    certImages = profile.certificate_image_urls;
+                }
             } catch (e) {
-                // If JSON parse fails, treat as single URL if not empty
-                certImages = certImages && certImages.length > 0 ? [certImages] : [];
+                console.error("Error parsing certificate_image_urls:", e);
+                certImages = [];
+            }
+        } else if (profile.certificate_images) {
+            try {
+                if (typeof profile.certificate_images === 'string') {
+                    if (profile.certificate_images.startsWith('[')) {
+                        certImages = JSON.parse(profile.certificate_images);
+                    } else {
+                        certImages = [profile.certificate_images];
+                    }
+                } else if (Array.isArray(profile.certificate_images)) {
+                    certImages = profile.certificate_images;
+                }
+            } catch (e) {
+                console.error("Error parsing certificate_images:", e);
+                certImages = [];
             }
         }
         
@@ -10733,14 +10879,14 @@ async function showFreelancerProfile() {
             certImages = [];
         }
         
-        // Filter out empty/invalid URLs
+        // Filter out invalid URLs
         certImages = certImages.filter(url => url && url !== 'null' && url !== 'undefined' && url.trim() !== '');
         
-        console.log("Certificates to display:", certImages.length);
+        console.log("Certificates to display:", certImages.length, certImages);
         
         if (certImages.length > 0) {
             certificatesContainer.innerHTML = certImages.map((cert, index) => `
-                <div class="certificate-item">
+                <div class="certificate-item" data-cert-index="${index}">
                     <img src="${cert}" alt="Certificate ${index + 1}" class="certificate-image" 
                          style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
                          onclick="openCertificateViewer('${cert}', ${index})"
@@ -11146,6 +11292,7 @@ function switchTab(tabName) {
 /*********************
  *  Authentication Functions *
  *********************/
+// Update the handleLoginSubmit function
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const msgEl = $('loginMsg');
@@ -11206,13 +11353,34 @@ async function handleLoginSubmit(e) {
         
         userRole = currentUser?.role || null;
         
+        // Check subscription for freelancers
+        if (userRole === 'freelancer') {
+            await checkSubscriptionAndLock();
+        }
+        
         updateHeader();
         updateUIForUserRole();
         
-        setTimeout(() => {
+        // Reload services and profile if needed
+        if (userRole === 'freelancer') {
+            await loadMyServices();
+            await showFreelancerProfile();
+        } else {
+            await loadServices();
+        }
+        
+        setTimeout(async () => {
             closeModal($('loginModal'));
             if ($('loginForm')) $('loginForm').reset();
             showToast('✅ Logged in successfully!', 'success');
+            
+            // Refresh the page to apply all locks/restrictions
+            if (userRole === 'freelancer') {
+                const hasAccess = await checkSubscriptionAndLock();
+                if (!hasAccess) {
+                    showSubscriptionModal();
+                }
+            }
         }, 1500);
 
     } catch (err) {
@@ -11222,7 +11390,6 @@ async function handleLoginSubmit(e) {
         }
     }
 }
-
 async function handleSignupSubmit(e) {
     e.preventDefault();
     const msgEl = $('signupMsg');
@@ -13023,6 +13190,212 @@ async function executeDelete(serviceId, reason) {
         showToast('Error deleting service: ' + err.message, 'error');
     }
 }
+// Check if freelancer has active subscription
+let isSubscriptionActive = true;
+let subscriptionExpired = false;
+
+async function checkSubscriptionAndLock() {
+    if (!currentUser) return true;
+    
+    // Only check for freelancers
+    if (currentUser.role !== 'freelancer') return true;
+    
+    try {
+        const response = await fetch('/api/subscription/status', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        isSubscriptionActive = data.hasActiveSubscription;
+        subscriptionExpired = !isSubscriptionActive && data.requiresSubscription;
+        
+        if (subscriptionExpired) {
+            console.log('⚠️ Subscription expired - applying locks');
+            applySubscriptionLocks();
+            showSubscriptionLockOverlay();
+            return false;
+        } else {
+            console.log('✅ Subscription active');
+            removeSubscriptionLocks();
+            return true;
+        }
+    } catch (err) {
+        console.error('Subscription check error:', err);
+        return true;
+    }
+}
+
+// Apply locks to UI elements
+function applySubscriptionLocks() {
+    // Lock all tabs
+    const tabs = document.querySelectorAll('.tab, .nav-tab, .category-tab-btn');
+    tabs.forEach(tab => {
+        if (!tab.classList.contains('subscription-tab')) {
+            tab.classList.add('disabled-tab');
+        }
+    });
+    
+    // Lock service cards
+    const serviceCards = document.querySelectorAll('.service-card');
+    serviceCards.forEach(card => {
+        card.classList.add('locked');
+    });
+    
+    // Lock product cards
+    const productCards = document.querySelectorAll('.product-card');
+    productCards.forEach(card => {
+        card.classList.add('locked');
+    });
+    
+    // Lock chat input
+    const chatInput = document.querySelector('.chat-input');
+    const messageInputArea = document.getElementById('messageInputArea');
+    if (chatInput) chatInput.classList.add('locked');
+    if (messageInputArea) messageInputArea.classList.add('locked');
+    
+    // Disable recruit buttons
+    const recruitBtns = document.querySelectorAll('.recruit-btn');
+    recruitBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.title = 'Subscription required to recruit';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
+    
+    // Disable chat buttons
+    const chatBtns = document.querySelectorAll('.chat-btn');
+    chatBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.title = 'Subscription required to chat';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
+    
+    // Disable create service button
+    const createServiceBtn = document.getElementById('createServiceBtn');
+    if (createServiceBtn) {
+        createServiceBtn.disabled = true;
+        createServiceBtn.title = 'Subscription required to create services';
+        createServiceBtn.style.opacity = '0.5';
+    }
+    
+    // Disable offer service button
+    const offerServiceBtn = document.getElementById('offerServiceBtn');
+    if (offerServiceBtn) {
+        offerServiceBtn.disabled = true;
+        offerServiceBtn.innerHTML = '<i class="fas fa-lock"></i> Subscribe to Offer Services';
+        offerServiceBtn.style.opacity = '0.7';
+    }
+    
+    // Hide subscription banner if showing trial info
+    const subscriptionBanner = document.getElementById('subscriptionBanner');
+    if (subscriptionBanner && !subscriptionBanner.classList.contains('warning')) {
+        subscriptionBanner.classList.add('hidden');
+    }
+}
+
+// Remove locks when subscription is active
+function removeSubscriptionLocks() {
+    const tabs = document.querySelectorAll('.tab.disabled-tab, .nav-tab.disabled-tab');
+    tabs.forEach(tab => {
+        tab.classList.remove('disabled-tab');
+    });
+    
+    const serviceCards = document.querySelectorAll('.service-card.locked');
+    serviceCards.forEach(card => {
+        card.classList.remove('locked');
+    });
+    
+    const productCards = document.querySelectorAll('.product-card.locked');
+    productCards.forEach(card => {
+        card.classList.remove('locked');
+    });
+    
+    const chatInput = document.querySelector('.chat-input.locked');
+    const messageInputArea = document.getElementById('messageInputArea');
+    if (chatInput) chatInput.classList.remove('locked');
+    if (messageInputArea) messageInputArea.classList.remove('locked');
+    
+    const recruitBtns = document.querySelectorAll('.recruit-btn');
+    recruitBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.title = '';
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+    });
+    
+    const chatBtns = document.querySelectorAll('.chat-btn');
+    chatBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.title = '';
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+    });
+    
+    const createServiceBtn = document.getElementById('createServiceBtn');
+    if (createServiceBtn) {
+        createServiceBtn.disabled = false;
+        createServiceBtn.title = '';
+        createServiceBtn.style.opacity = '';
+    }
+    
+    const offerServiceBtn = document.getElementById('offerServiceBtn');
+    if (offerServiceBtn) {
+        offerServiceBtn.disabled = false;
+        offerServiceBtn.innerHTML = '<i class="fas fa-plus"></i> Offer a Service';
+        offerServiceBtn.style.opacity = '';
+    }
+}
+
+// Show lock overlay
+let lockOverlay = null;
+
+function showSubscriptionLockOverlay() {
+    if (lockOverlay) return;
+    
+    lockOverlay = document.createElement('div');
+    lockOverlay.className = 'locked-overlay';
+    lockOverlay.innerHTML = `
+        <div class="locked-modal">
+            <div class="lock-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>⚠️ Subscription Required</h2>
+            <p>Your free trial has ended. To continue using Core Insight and offer your services, please subscribe to one of our plans.</p>
+            <div class="price">$5<span style="font-size: 1rem;">/month</span></div>
+            <p style="font-size: 0.9rem;">or save 4% with yearly plan</p>
+            <button class="btn btn-primary" id="lockSubscribeBtn">
+                <i class="fas fa-crown"></i> Subscribe Now
+            </button>
+            <button class="btn btn-secondary" id="lockCloseBtn">
+                Maybe Later
+            </button>
+            <p style="margin-top: 20px; font-size: 0.8rem; color: var(--text-gray);">
+                <i class="fas fa-info-circle"></i> Your services are hidden from clients until you subscribe
+            </p>
+        </div>
+    `;
+    
+    document.body.appendChild(lockOverlay);
+    
+    document.getElementById('lockSubscribeBtn')?.addEventListener('click', () => {
+        showSubscriptionModal();
+        if (lockOverlay) lockOverlay.remove();
+        lockOverlay = null;
+    });
+    
+    document.getElementById('lockCloseBtn')?.addEventListener('click', () => {
+        if (lockOverlay) lockOverlay.remove();
+        lockOverlay = null;
+    });
+}
+
+function hideSubscriptionLockOverlay() {
+    if (lockOverlay) {
+        lockOverlay.remove();
+        lockOverlay = null;
+    }
+}
 // Update providers badge count
 async function updateProvidersBadge() {
     try {
@@ -14022,7 +14395,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup delete modal buttons
     setupDeleteModalButtons();
 });
-
+// Initialize subscription checking
+document.addEventListener('DOMContentLoaded', async () => {
+    // Wait for auth to load
+    setTimeout(async () => {
+        await checkSubscriptionAndLock();
+        
+        // Check every 30 seconds for subscription status
+        setInterval(async () => {
+            await checkSubscriptionAndLock();
+        }, 30000);
+    }, 2000);
+});
 // Add admin review button if admin
 function addAdminReviewButton() {
     if (currentUser?.role === 'admin') {
@@ -14642,15 +15026,20 @@ function initCertificateUpload() {
     
     console.log("Certificate upload initialized");
 }
-// Delete certificate function
 async function removeCertificate(index) {
     if (!confirm("Are you sure you want to remove this certificate?")) return;
     
     try {
         showToast("Removing certificate...", "info");
         
-        const response = await fetch(`/api/freelancer/certificate-images/${index}`, {
+        // Make sure index is a number
+        const certIndex = parseInt(index);
+        
+        const response = await fetch(`/api/freelancer/certificate-images/${certIndex}`, {
             method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             credentials: 'include'
         });
         
@@ -14658,17 +15047,88 @@ async function removeCertificate(index) {
         
         if (response.ok && result.success) {
             showToast('✅ Certificate removed successfully', 'success');
-            // Refresh the profile to update the display
-            await showFreelancerProfile();
+            
+            // Refresh the profile display
+            if (typeof showFreelancerProfile === 'function') {
+                await showFreelancerProfile();
+            } else {
+                // If showFreelancerProfile not available, reload the page
+                location.reload();
+            }
         } else {
             showToast(result.error || 'Failed to remove certificate', 'error');
         }
     } catch (err) {
         console.error('Delete error:', err);
-        showToast('Error removing certificate', 'error');
+        showToast('Error removing certificate: ' + err.message, 'error');
     }
-}
-// ==================== INITIALIZE EVERYTHING ====================
+}// Override the original showFreelancerProfile function
+const originalShowFreelancerProfile = window.showFreelancerProfile;
+window.showFreelancerProfile = async function() {
+    const hasAccess = await checkSubscriptionAndLock();
+    if (!hasAccess && currentUser?.role === 'freelancer') {
+        showToast('Your subscription has expired. Please renew to access your profile.', 'warning');
+        return;
+    }
+    if (originalShowFreelancerProfile) originalShowFreelancerProfile();
+};
+
+// Override the original showCreateServiceForm function
+const originalShowCreateServiceForm = window.showCreateServiceForm;
+window.showCreateServiceForm = async function() {
+    const hasAccess = await checkSubscriptionAndLock();
+    if (!hasAccess && currentUser?.role === 'freelancer') {
+        showToast('Subscription required to create services', 'warning');
+        showSubscriptionModal();
+        return;
+    }
+    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
+};
+
+// Override checkAndStartConversation function
+const originalCheckAndStartConversation = window.checkAndStartConversation;
+window.checkAndStartConversation = async function(serviceId, freelancerId) {
+    const hasAccess = await checkSubscriptionAndLock();
+    if (!hasAccess && currentUser?.role === 'freelancer') {
+        showToast('Your subscription has expired. Please renew to send messages.', 'warning');
+        showSubscriptionModal();
+        return;
+    }
+    if (originalCheckAndStartConversation) {
+        originalCheckAndStartConversation(serviceId, freelancerId);
+    }
+};
+
+// Override recruitFreelancer function
+const originalRecruitFreelancer = window.recruitFreelancer;
+window.recruitFreelancer = async function(freelancerId, serviceId, buttonElement) {
+    const hasAccess = await checkSubscriptionAndLock();
+    if (!hasAccess && currentUser?.role === 'freelancer') {
+        showToast('Your subscription has expired. You cannot be recruited until you renew.', 'warning');
+        showSubscriptionModal();
+        return;
+    }
+    if (originalRecruitFreelancer) {
+        originalRecruitFreelancer(freelancerId, serviceId, buttonElement);
+    }
+};
+
+// Override sendMessage function
+const originalSendMessage = window.sendMessage;
+window.sendMessage = async function(e) {
+    const hasAccess = await checkSubscriptionAndLock();
+    if (!hasAccess && currentUser?.role === 'freelancer') {
+        showToast('Your subscription has expired. Please renew to send messages.', 'warning');
+        showSubscriptionModal();
+        return;
+    }
+    if (originalSendMessage) {
+        originalSendMessage(e);
+    }
+};
+
+  // Replace your existing removeCertificate function with this:
+//================== INITIALIZE EVERYTHING ====================
 document.addEventListener('DOMContentLoaded', function() {
     setupServiceForm();
     setupCertificateUpload();

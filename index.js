@@ -548,7 +548,82 @@ function getOrderStatusUpdateTemplate(orderData) {
     </html>
   `;
 }
+// Middleware to check if freelancer has active subscription
+async function checkFreelancerSubscription(req, res, next) {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Please login" });
+    }
+    
+    // Admins always have access
+    if (req.session.user.role === 'admin') {
+        return next();
+    }
+    
+    // Clients always have access
+    if (req.session.user.role === 'client') {
+        return next();
+    }
+    
+    try {
+        const userId = req.session.user.id;
+        
+        const userResult = await db.query(
+            `SELECT subscription_status, subscription_end_date, trial_end_date, role 
+             FROM users WHERE id = ?`,
+            [userId]
+        );
+        
+        if (!userResult || userResult.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        const user = userResult[0];
+        const today = new Date();
+        let hasActiveSubscription = false;
+        
+        // Check trial period
+        if (user.trial_end_date) {
+            const trialEnd = new Date(user.trial_end_date);
+            if (today <= trialEnd) {
+                hasActiveSubscription = true;
+            }
+        }
+        
+        // Check paid subscription
+        if (!hasActiveSubscription && user.subscription_end_date) {
+            const subEnd = new Date(user.subscription_end_date);
+            if (today <= subEnd) {
+                hasActiveSubscription = true;
+            }
+        }
+        
+        if (!hasActiveSubscription) {
+            return res.status(403).json({ 
+                error: "Your subscription has expired. Please renew to continue.",
+                requiresSubscription: true,
+                expired: true,
+                redirect: "/subscription.html"
+            });
+        }
+        
+        next();
+    } catch (err) {
+        console.error("Subscription check error:", err);
+        res.status(500).json({ error: err.message });
+    }
+}
 
+// Apply middleware to protected routes
+app.use("/api/services", checkFreelancerSubscription);
+app.use("/api/services/create", checkFreelancerSubscription);
+app.use("/api/services/my-services", checkFreelancerSubscription);
+app.use("/api/messages/send", checkFreelancerSubscription);
+app.use("/api/messages/send-with-image", checkFreelancerSubscription);
+app.use("/api/conversations/start", checkFreelancerSubscription);
+app.use("/api/freelancer/update-profile", checkFreelancerSubscription);
+app.use("/api/freelancer/certificate-images", checkFreelancerSubscription);
+app.use("/api/freelancer/profile", checkFreelancerSubscription);
+app.use("/api/freelancer/dashboard", checkFreelancerSubscription);
 // ============================================
 // COMPLETE PRODUCT UPLOAD - FLUTTERWAVE ONLY
 // ============================================
@@ -5890,82 +5965,94 @@ app.post("/api/conversations/start", async (req, res) => {
   }
 });
 
-// Send a message
+// Block chat messages from expired freelancers
 app.post("/api/messages/send", async (req, res) => {
-  try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Login required" });
+    try {
+        const user = req.session.user;
+        if (!user) return res.status(401).json({ error: "Login required" });
 
-    const { conversation_id, message } = req.body;
-    if (!conversation_id || !message?.trim()) {
-      return res.status(400).json({ error: "Missing message or conversation ID" });
+        const { conversation_id, message } = req.body;
+        if (!conversation_id || !message?.trim()) {
+            return res.status(400).json({ error: "Missing message or conversation ID" });
+        }
+
+        // Check if sender is freelancer and has active subscription
+        if (user.role === 'freelancer') {
+            const userResult = await db.query(
+                `SELECT subscription_end_date, trial_end_date 
+                 FROM users WHERE id = ?`,
+                [user.id]
+            );
+            
+            if (userResult && userResult.length > 0) {
+                const userData = userResult[0];
+                const today = new Date();
+                let hasActiveSubscription = false;
+                
+                if (userData.trial_end_date && today <= new Date(userData.trial_end_date)) {
+                    hasActiveSubscription = true;
+                }
+                if (!hasActiveSubscription && userData.subscription_end_date && today <= new Date(userData.subscription_end_date)) {
+                    hasActiveSubscription = true;
+                }
+                
+                if (!hasActiveSubscription) {
+                    return res.status(403).json({ 
+                        error: "Your subscription has expired. Please renew to send messages.",
+                        requiresSubscription: true
+                    });
+                }
+            }
+        }
+
+        // Check conversation access
+        const convResult = await db.query(
+            `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+            [conversation_id]
+        );
+
+        const conversations = extractRows(convResult);
+        const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
+
+        if (!conversation) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+        const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+        
+        if (!isClient && !isFreelancer) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        const insertResult = await db.query(
+            `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read)
+             VALUES (?, ?, ?, NOW(), 0)`,
+            [conversation_id, user.id, message.trim()]
+        );
+
+        const messageId = extractInsertId(insertResult);
+
+        const messageResult = await db.query(
+            `SELECT m.*, u.username AS sender_name 
+             FROM messages m 
+             JOIN users u ON m.sender_id = u.id 
+             WHERE m.id = ?`,
+            [messageId]
+        );
+
+        const messages = extractRows(messageResult);
+        const newMessage = messages && messages.length > 0 ? messages[0] : null;
+
+        res.status(200).json({ 
+            success: true, 
+            data: newMessage 
+        });
+        
+    } catch (err) {
+        console.error("Send message error:", err);
+        res.status(500).json({ error: err.message });
     }
-
-    console.log(`Sending message to conversation ${conversation_id} from user ${user.id}`);
-
-    // Check if user has access to this conversation
-    const convResult = await db.query(
-      `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
-      [conversation_id]
-    );
-
-    const conversations = extractRows(convResult);
-    const conversation = conversations && conversations.length > 0 ? conversations[0] : null;
-
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found" });
-    }
-
-    // Check if user is either client or freelancer
-    const isClient = parseInt(conversation.client_id) === parseInt(user.id);
-    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
-    
-    if (!isClient && !isFreelancer) {
-      console.error(`Access denied: User ${user.id} not in conversation ${conversation_id}`);
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    // Insert the message
-    const insertResult = await db.query(
-      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read)
-       VALUES (?, ?, ?, NOW(), 0)`,
-      [conversation_id, user.id, message.trim()]
-    );
-
-    const messageId = extractInsertId(insertResult);
-
-    if (!messageId) {
-      console.error("Failed to get insertId:", insertResult);
-      return res.status(500).json({ error: "Failed to insert message" });
-    }
-
-    console.log(`Message inserted with ID: ${messageId}`);
-
-    // Get the inserted message with sender info
-    const messageResult = await db.query(
-      `SELECT m.*, u.username AS sender_name 
-       FROM messages m 
-       JOIN users u ON m.sender_id = u.id 
-       WHERE m.id = ?`,
-      [messageId]
-    );
-
-    const messages = extractRows(messageResult);
-    const newMessage = messages && messages.length > 0 ? messages[0] : null;
-
-    if (!newMessage) {
-      return res.status(500).json({ error: "Failed to retrieve inserted message" });
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      data: newMessage 
-    });
-    
-  } catch (err) {
-    console.error("Send message error:", err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 
@@ -8141,7 +8228,7 @@ app.get("/api/users/:userId/certificates", async (req, res) => {
 
 
 
-// ==================== DELETE CERTIFICATE ====================
+// DELETE CERTIFICATE - FIXED VERSION
 app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
@@ -8150,8 +8237,13 @@ app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
     try {
         const index = parseInt(req.params.index);
         
+        if (isNaN(index) || index < 0) {
+            return res.status(400).json({ error: "Invalid certificate index" });
+        }
+        
+        // Get current profile - check BOTH column names
         const currentProfile = await db.query(
-            "SELECT certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
+            "SELECT certificate_images, certificate_image_urls FROM freelancer_profiles WHERE user_id = ?",
             [req.session.user.id]
         );
 
@@ -8160,9 +8252,20 @@ app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
         }
 
         let certificates = [];
+        
+        // Try certificate_image_urls first (newer column)
         if (currentProfile[0].certificate_image_urls) {
             try {
                 certificates = JSON.parse(currentProfile[0].certificate_image_urls);
+            } catch (e) {
+                certificates = [];
+            }
+        }
+        
+        // Fallback to certificate_images (older column)
+        if (certificates.length === 0 && currentProfile[0].certificate_images) {
+            try {
+                certificates = JSON.parse(currentProfile[0].certificate_images);
             } catch (e) {
                 certificates = [];
             }
@@ -8171,9 +8274,15 @@ app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
         if (index >= 0 && index < certificates.length) {
             certificates.splice(index, 1);
             
+            // Update BOTH columns to maintain consistency
+            const certsJson = JSON.stringify(certificates);
             await db.query(
-                "UPDATE freelancer_profiles SET certificate_image_urls = ?, updated_at = NOW() WHERE user_id = ?",
-                [JSON.stringify(certificates), req.session.user.id]
+                `UPDATE freelancer_profiles 
+                 SET certificate_image_urls = ?, 
+                     certificate_images = ?,
+                     updated_at = NOW() 
+                 WHERE user_id = ?`,
+                [certsJson, certsJson, req.session.user.id]
             );
             
             res.json({
@@ -8182,7 +8291,9 @@ app.delete("/api/freelancer/certificate-images/:index", async (req, res) => {
                 certificate_images: certificates
             });
         } else {
-            res.status(400).json({ error: "Invalid certificate index" });
+            res.status(400).json({ 
+                error: `Invalid certificate index: ${index}. Total certificates: ${certificates.length}` 
+            });
         }
         
     } catch (err) {
@@ -8299,43 +8410,68 @@ app.get("/api/services/favorites", async (req, res) => {
     }
 });
 
+// Block recruiting for expired freelancers
 app.post("/api/freelancer/recruit", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ error: "Please login" });
     }
-
+    
+    const { freelancerId, serviceId } = req.body;
+    
+    // Check if the freelancer being recruited has active subscription
+    const freelancerResult = await db.query(
+        `SELECT subscription_status, subscription_end_date, trial_end_date 
+         FROM users WHERE id = ? AND role = 'freelancer'`,
+        [freelancerId]
+    );
+    
+    if (freelancerResult && freelancerResult.length > 0) {
+        const freelancer = freelancerResult[0];
+        const today = new Date();
+        let hasActiveSubscription = false;
+        
+        if (freelancer.trial_end_date && today <= new Date(freelancer.trial_end_date)) {
+            hasActiveSubscription = true;
+        }
+        if (!hasActiveSubscription && freelancer.subscription_end_date && today <= new Date(freelancer.subscription_end_date)) {
+            hasActiveSubscription = true;
+        }
+        
+        if (!hasActiveSubscription) {
+            return res.status(403).json({ 
+                error: "This freelancer's account is inactive. They cannot be recruited until they renew their subscription.",
+                freelancer_expired: true
+            });
+        }
+    }
+    
+    // Continue with existing recruitment logic
     try {
-        const { freelancerId, serviceId } = req.body;
         const clientId = req.session.user.id;
-
-        console.log("Recruit attempt:", { clientId, freelancerId, serviceId });
-
+        
         if (req.session.user.role !== 'client') {
             return res.status(403).json({ error: "Only clients can recruit freelancers" });
         }
-
+        
         if (parseInt(clientId) === parseInt(freelancerId)) {
             return res.status(400).json({ error: "You cannot recruit yourself" });
         }
-
-        // Check if freelancer exists
+        
         const freelancerCheck = await db.query(
             "SELECT id FROM users WHERE id = ? AND role = 'freelancer'",
             [freelancerId]
         );
-
+        
         if (!freelancerCheck || freelancerCheck.length === 0) {
             return res.status(404).json({ error: "Freelancer not found" });
         }
-
-        // Check if already recruited
+        
         const existing = await db.query(
             "SELECT id FROM client_providers WHERE client_id = ? AND freelancer_id = ?",
             [clientId, freelancerId]
         );
-
+        
         if (existing && existing.length > 0) {
-            // Update existing
             await db.query(
                 `UPDATE client_providers 
                  SET service_id = COALESCE(?, service_id),
@@ -8350,26 +8486,24 @@ app.post("/api/freelancer/recruit", async (req, res) => {
                 message: "Provider already in your list, updated successfully"
             });
         }
-
-        // Insert new
-        const insertResult = await db.query(
+        
+        await db.query(
             `INSERT INTO client_providers (client_id, freelancer_id, service_id, recruited_at, last_contacted, status) 
              VALUES (?, ?, ?, NOW(), NOW(), 'active')`,
             [clientId, freelancerId, serviceId || null]
         );
-
-        console.log("Insert result:", insertResult);
-
+        
         res.json({
             success: true,
             message: "Freelancer added to your providers list successfully!"
         });
-
+        
     } catch (err) {
         console.error("Recruit error:", err);
         res.status(500).json({ error: err.message });
     }
 });
+
 // ==================== GET USER PROFILE ENDPOINT ====================
 app.get("/api/users/:userId/profile", async (req, res) => {
     try {
@@ -10551,61 +10685,7 @@ app.post("/api/subscription/verify", async (req, res) => {
     }
 });
 
-// Middleware to check subscription for freelancers
-const checkFreelancerSubscription = async (req, res, next) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Please login" });
-    }
 
-    // Clients and admins bypass subscription check
-    if (req.session.user.role === 'client' || req.session.user.role === 'admin') {
-        return next();
-    }
-
-    try {
-        const userId = req.session.user.id;
-        
-        const userResult = await db.query(
-            `SELECT subscription_status, subscription_end_date, trial_end_date 
-             FROM users WHERE id = ?`,
-            [userId]
-        );
-        
-        let user = null;
-        if (Array.isArray(userResult) && userResult.length > 0) {
-            user = userResult[0];
-        }
-
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        const today = new Date();
-        const trialEnd = user.trial_end_date ? new Date(user.trial_end_date) : null;
-        const subEnd = user.subscription_end_date ? new Date(user.subscription_end_date) : null;
-
-        let isActive = false;
-
-        if (trialEnd && today <= trialEnd) {
-            isActive = true;
-        } else if (subEnd && today <= subEnd) {
-            isActive = true;
-        }
-
-        if (!isActive) {
-            return res.status(403).json({ 
-                error: "Your subscription has expired. Please renew to continue.",
-                requiresSubscription: true,
-                expired: true
-            });
-        }
-
-        next();
-    } catch (err) {
-        console.error("Subscription check error:", err);
-        res.status(500).json({ error: "Error checking subscription" });
-    }
-};
 
 // Create subscription payment
 app.post("/api/subscription/pay", async (req, res) => {
@@ -11714,7 +11794,7 @@ app.get("/api/debug/flutterwave", async (req, res) => {
 // FLUTTERWAVE INTERNATIONAL BANKS
 // ============================================
 
-aapp.get("/api/banks/flutterwave/:country", async (req, res) => {
+app.get("/api/banks/flutterwave/:country", async (req, res) => {
     try {
         const country = req.params.country;
         console.log(`🌍 Fetching banks for country: ${country}`);

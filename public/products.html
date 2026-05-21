@@ -9232,180 +9232,187 @@ function loadBankForm(gateway) {
     const detailsSection = document.getElementById('bankDetailsSection');
     if (!detailsSection) return;
     
-    // Flutterwave: International + African banks - ALL 50+ COUNTRIES
+    // Get the existing bank country select if it exists to preserve selection
+    const existingBankCountry = document.getElementById('bankCountry');
+    const savedCountry = existingBankCountry ? existingBankCountry.value : '';
+    
+    // Flutterwave: FULL 50+ COUNTRIES (PRESERVE THE EXISTING HTML STRUCTURE)
     detailsSection.innerHTML = `
         <div class="form-section-header" style="margin-bottom: 16px;">
             <i class="fas fa-globe"></i>
             <h4>International Bank Account Details</h4>
         </div>
-        <div id="flutterwaveBankForm">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Select Bank Country <span class="required">*</span></label>
-                    <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
-                        <option value="">Select country</option>
-                        <!-- North America -->
-                        <option value="US">🇺🇸 United States</option>
-                        <option value="CA">🇨🇦 Canada</option>
-                        <!-- Europe -->
-                        <option value="GB">🇬🇧 United Kingdom</option>
-                        <option value="FR">🇫🇷 France</option>
-                        <option value="DE">🇩🇪 Germany</option>
-                        <option value="ES">🇪🇸 Spain</option>
-                        <option value="IT">🇮🇹 Italy</option>
-                        <option value="NL">🇳🇱 Netherlands</option>
-                        <option value="BE">🇧🇪 Belgium</option>
-                        <option value="PT">🇵🇹 Portugal</option>
-                        <option value="CH">🇨🇭 Switzerland</option>
-                        <option value="SE">🇸🇪 Sweden</option>
-                        <option value="NO">🇳🇴 Norway</option>
-                        <option value="DK">🇩🇰 Denmark</option>
-                        <option value="FI">🇫🇮 Finland</option>
-                        <option value="IE">🇮🇪 Ireland</option>
-                        <option value="AT">🇦🇹 Austria</option>
-                        <option value="PL">🇵🇱 Poland</option>
-                        <option value="CZ">🇨🇿 Czech Republic</option>
-                        <option value="GR">🇬🇷 Greece</option>
-                        <option value="HU">🇭🇺 Hungary</option>
-                        <option value="RO">🇷🇴 Romania</option>
-                        <!-- West Africa -->
-                        <option value="NG">🇳🇬 Nigeria</option>
-                        <option value="GH">🇬🇭 Ghana</option>
-                        <option value="SN">🇸🇳 Senegal</option>
-                        <option value="CI">🇨🇮 Côte d'Ivoire</option>
-                        <option value="SL">🇸🇱 Sierra Leone</option>
-                        <option value="GM">🇬🇲 Gambia</option>
-                        <option value="LR">🇱🇷 Liberia</option>
-                        <option value="ML">🇲🇱 Mali</option>
-                        <option value="BF">🇧🇫 Burkina Faso</option>
-                        <option value="BJ">🇧🇯 Benin</option>
-                        <option value="TG">🇹🇬 Togo</option>
-                        <option value="NE">🇳🇪 Niger</option>
-                        <option value="GN">🇬🇳 Guinea</option>
-                        <option value="GW">🇬🇼 Guinea-Bissau</option>
-                        <option value="CV">🇨🇻 Cape Verde</option>
-                        <!-- East Africa -->
-                        <option value="KE">🇰🇪 Kenya</option>
-                        <option value="UG">🇺🇬 Uganda</option>
-                        <option value="TZ">🇹🇿 Tanzania</option>
-                        <option value="RW">🇷🇼 Rwanda</option>
-                        <option value="ET">🇪🇹 Ethiopia</option>
-                        <option value="BI">🇧🇮 Burundi</option>
-                        <option value="SS">🇸🇸 South Sudan</option>
-                        <option value="DJ">🇩🇯 Djibouti</option>
-                        <option value="ER">🇪🇷 Eritrea</option>
-                        <option value="SO">🇸🇴 Somalia</option>
-                        <!-- Southern Africa -->
-                        <option value="ZA">🇿🇦 South Africa</option>
-                        <option value="ZM">🇿🇲 Zambia</option>
-                        <option value="ZW">🇿🇼 Zimbabwe</option>
-                        <option value="MW">🇲🇼 Malawi</option>
-                        <option value="MZ">🇲🇿 Mozambique</option>
-                        <option value="AO">🇦🇴 Angola</option>
-                        <option value="BW">🇧🇼 Botswana</option>
-                        <option value="NA">🇳🇦 Namibia</option>
-                        <option value="SZ">🇸🇿 Eswatini</option>
-                        <option value="LS">🇱🇸 Lesotho</option>
-                        <option value="MG">🇲🇬 Madagascar</option>
-                        <option value="MU">🇲🇺 Mauritius</option>
-                        <option value="KM">🇰🇲 Comoros</option>
-                        <option value="SC">🇸🇨 Seychelles</option>
-                        <!-- Central Africa -->
-                        <option value="CM">🇨🇲 Cameroon</option>
-                        <option value="CD">🇨🇩 DR Congo</option>
-                        <option value="CG">🇨🇬 Republic of Congo</option>
-                        <option value="GA">🇬🇦 Gabon</option>
-                        <option value="CF">🇨🇫 Central African Republic</option>
-                        <option value="TD">🇹🇩 Chad</option>
-                        <option value="GQ">🇬🇶 Equatorial Guinea</option>
-                        <!-- North Africa -->
-                        <option value="EG">🇪🇬 Egypt</option>
-                        <option value="MA">🇲🇦 Morocco</option>
-                        <option value="TN">🇹🇳 Tunisia</option>
-                        <option value="DZ">🇩🇿 Algeria</option>
-                        <option value="LY">🇱🇾 Libya</option>
-                        <option value="SD">🇸🇩 Sudan</option>
-                        <option value="MR">🇲🇷 Mauritania</option>
-                        <!-- Asia & Middle East -->
-                        <option value="AE">🇦🇪 United Arab Emirates</option>
-                        <option value="SA">🇸🇦 Saudi Arabia</option>
-                        <option value="QA">🇶🇦 Qatar</option>
-                        <option value="KW">🇰🇼 Kuwait</option>
-                        <option value="BH">🇧🇭 Bahrain</option>
-                        <option value="OM">🇴🇲 Oman</option>
-                        <option value="JO">🇯🇴 Jordan</option>
-                        <option value="LB">🇱🇧 Lebanon</option>
-                        <option value="IN">🇮🇳 India</option>
-                        <option value="PK">🇵🇰 Pakistan</option>
-                        <!-- Oceania -->
-                        <option value="AU">🇦🇺 Australia</option>
-                        <option value="NZ">🇳🇿 New Zealand</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Bank Name <span class="required">*</span></label>
-                    <select id="p_bankName" class="form-select" required>
-                        <option value="">Select bank country first</option>
-                    </select>
-                    <div id="p_bankName_error" class="form-error"></div>
-                </div>
+        
+        <!-- Bank Country Selection - FULL 50+ COUNTRIES -->
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Select Bank Country <span class="required">*</span></label>
+                <select id="bankCountry" class="form-select" onchange="loadFlutterwaveBanks()">
+                    <option value="">Select country</option>
+                    <!-- North America -->
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="CA">🇨🇦 Canada</option>
+                    <!-- Europe -->
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="ES">🇪🇸 Spain</option>
+                    <option value="IT">🇮🇹 Italy</option>
+                    <option value="NL">🇳🇱 Netherlands</option>
+                    <option value="BE">🇧🇪 Belgium</option>
+                    <option value="PT">🇵🇹 Portugal</option>
+                    <option value="CH">🇨🇭 Switzerland</option>
+                    <option value="SE">🇸🇪 Sweden</option>
+                    <option value="NO">🇳🇴 Norway</option>
+                    <option value="DK">🇩🇰 Denmark</option>
+                    <option value="FI">🇫🇮 Finland</option>
+                    <option value="IE">🇮🇪 Ireland</option>
+                    <option value="AT">🇦🇹 Austria</option>
+                    <option value="PL">🇵🇱 Poland</option>
+                    <option value="CZ">🇨🇿 Czech Republic</option>
+                    <option value="GR">🇬🇷 Greece</option>
+                    <option value="HU">🇭🇺 Hungary</option>
+                    <option value="RO">🇷🇴 Romania</option>
+                    <!-- West Africa -->
+                    <option value="NG">🇳🇬 Nigeria</option>
+                    <option value="GH">🇬🇭 Ghana</option>
+                    <option value="SN">🇸🇳 Senegal</option>
+                    <option value="CI">🇨🇮 Côte d'Ivoire</option>
+                    <option value="SL">🇸🇱 Sierra Leone</option>
+                    <option value="GM">🇬🇲 Gambia</option>
+                    <option value="LR">🇱🇷 Liberia</option>
+                    <option value="ML">🇲🇱 Mali</option>
+                    <option value="BF">🇧🇫 Burkina Faso</option>
+                    <option value="BJ">🇧🇯 Benin</option>
+                    <option value="TG">🇹🇬 Togo</option>
+                    <option value="NE">🇳🇪 Niger</option>
+                    <option value="GN">🇬🇳 Guinea</option>
+                    <option value="GW">🇬🇼 Guinea-Bissau</option>
+                    <option value="CV">🇨🇻 Cape Verde</option>
+                    <!-- East Africa -->
+                    <option value="KE">🇰🇪 Kenya</option>
+                    <option value="UG">🇺🇬 Uganda</option>
+                    <option value="TZ">🇹🇿 Tanzania</option>
+                    <option value="RW">🇷🇼 Rwanda</option>
+                    <option value="ET">🇪🇹 Ethiopia</option>
+                    <option value="BI">🇧🇮 Burundi</option>
+                    <option value="SS">🇸🇸 South Sudan</option>
+                    <option value="DJ">🇩🇯 Djibouti</option>
+                    <option value="ER">🇪🇷 Eritrea</option>
+                    <option value="SO">🇸🇴 Somalia</option>
+                    <!-- Southern Africa -->
+                    <option value="ZA">🇿🇦 South Africa</option>
+                    <option value="ZM">🇿🇲 Zambia</option>
+                    <option value="ZW">🇿🇼 Zimbabwe</option>
+                    <option value="MW">🇲🇼 Malawi</option>
+                    <option value="MZ">🇲🇿 Mozambique</option>
+                    <option value="AO">🇦🇴 Angola</option>
+                    <option value="BW">🇧🇼 Botswana</option>
+                    <option value="NA">🇳🇦 Namibia</option>
+                    <option value="SZ">🇸🇿 Eswatini</option>
+                    <option value="LS">🇱🇸 Lesotho</option>
+                    <option value="MG">🇲🇬 Madagascar</option>
+                    <option value="MU">🇲🇺 Mauritius</option>
+                    <option value="KM">🇰🇲 Comoros</option>
+                    <option value="SC">🇸🇨 Seychelles</option>
+                    <!-- Central Africa -->
+                    <option value="CM">🇨🇲 Cameroon</option>
+                    <option value="CD">🇨🇩 DR Congo</option>
+                    <option value="CG">🇨🇬 Republic of Congo</option>
+                    <option value="GA">🇬🇦 Gabon</option>
+                    <option value="CF">🇨🇫 Central African Republic</option>
+                    <option value="TD">🇹🇩 Chad</option>
+                    <option value="GQ">🇬🇶 Equatorial Guinea</option>
+                    <!-- North Africa -->
+                    <option value="EG">🇪🇬 Egypt</option>
+                    <option value="MA">🇲🇦 Morocco</option>
+                    <option value="TN">🇹🇳 Tunisia</option>
+                    <option value="DZ">🇩🇿 Algeria</option>
+                    <option value="LY">🇱🇾 Libya</option>
+                    <option value="SD">🇸🇩 Sudan</option>
+                    <option value="MR">🇲🇷 Mauritania</option>
+                    <!-- Asia & Middle East -->
+                    <option value="AE">🇦🇪 United Arab Emirates</option>
+                    <option value="SA">🇸🇦 Saudi Arabia</option>
+                    <option value="QA">🇶🇦 Qatar</option>
+                    <option value="KW">🇰🇼 Kuwait</option>
+                    <option value="BH">🇧🇭 Bahrain</option>
+                    <option value="OM">🇴🇲 Oman</option>
+                    <option value="JO">🇯🇴 Jordan</option>
+                    <option value="LB">🇱🇧 Lebanon</option>
+                    <option value="IN">🇮🇳 India</option>
+                    <option value="PK">🇵🇰 Pakistan</option>
+                    <!-- Oceania -->
+                    <option value="AU">🇦🇺 Australia</option>
+                    <option value="NZ">🇳🇿 New Zealand</option>
+                </select>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Bank Code</label>
-                    <input type="text" id="p_bankCode" class="form-input" readonly />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Account Number <span class="required">*</span></label>
-                    <input type="text" id="p_accountNumber" class="form-input" placeholder="Your account number" required />
-                    <div id="p_accountNumber_error" class="form-error"></div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Account Holder Name</label>
-                    <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Payout Currency</label>
-                    <select id="payoutCurrency" class="form-select">
-                        <option value="USD">🇺🇸 USD - US Dollar</option>
-                        <option value="CAD">🇨🇦 CAD - Canadian Dollar</option>
-                        <option value="GBP">🇬🇧 GBP - British Pound</option>
-                        <option value="EUR">🇪🇺 EUR - Euro</option>
-                        <option value="CHF">🇨🇭 CHF - Swiss Franc</option>
-                        <option value="SEK">🇸🇪 SEK - Swedish Krona</option>
-                        <option value="NOK">🇳🇴 NOK - Norwegian Krone</option>
-                        <option value="DKK">🇩🇰 DKK - Danish Krone</option>
-                        <option value="PLN">🇵🇱 PLN - Polish Zloty</option>
-                        <option value="CZK">🇨🇿 CZK - Czech Koruna</option>
-                        <option value="NGN">🇳🇬 NGN - Nigerian Naira</option>
-                        <option value="GHS">🇬🇭 GHS - Ghanaian Cedi</option>
-                        <option value="KES">🇰🇪 KES - Kenyan Shilling</option>
-                        <option value="UGX">🇺🇬 UGX - Ugandan Shilling</option>
-                        <option value="TZS">🇹🇿 TZS - Tanzanian Shilling</option>
-                        <option value="RWF">🇷🇼 RWF - Rwandan Franc</option>
-                        <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
-                        <option value="ZMW">🇿🇲 ZMW - Zambian Kwacha</option>
-                        <option value="MZN">🇲🇿 MZN - Mozambican Metical</option>
-                        <option value="EGP">🇪🇬 EGP - Egyptian Pound</option>
-                        <option value="MAD">🇲🇦 MAD - Moroccan Dirham</option>
-                        <option value="TND">🇹🇳 TND - Tunisian Dinar</option>
-                        <option value="AED">🇦🇪 AED - UAE Dirham</option>
-                        <option value="SAR">🇸🇦 SAR - Saudi Riyal</option>
-                        <option value="QAR">🇶🇦 QAR - Qatari Riyal</option>
-                        <option value="KWD">🇰🇼 KWD - Kuwaiti Dinar</option>
-                        <option value="BHD">🇧🇭 BHD - Bahraini Dinar</option>
-                        <option value="INR">🇮🇳 INR - Indian Rupee</option>
-                        <option value="PKR">🇵🇰 PKR - Pakistani Rupee</option>
-                        <option value="AUD">🇦🇺 AUD - Australian Dollar</option>
-                        <option value="NZD">🇳🇿 NZD - New Zealand Dollar</option>
-                        <option value="XOF">🌍 XOF - West African CFA</option>
-                        <option value="XAF">🌍 XAF - Central African CFA</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label class="form-label">Bank Name <span class="required">*</span></label>
+                <select id="p_bankName" class="form-select" required>
+                    <option value="">Select bank country first</option>
+                </select>
+                <div id="p_bankName_error" class="form-error"></div>
             </div>
         </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Bank Code</label>
+                <input type="text" id="p_bankCode" class="form-input" readonly placeholder="Will auto-fill when bank selected" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Account Number <span class="required">*</span></label>
+                <input type="text" id="p_accountNumber" class="form-input" placeholder="Your account number" required />
+                <div id="p_accountNumber_error" class="form-error"></div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Account Holder Name</label>
+                <input type="text" id="p_accountName" class="form-input" placeholder="Will be verified automatically" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Payout Currency</label>
+                <select id="payoutCurrency" class="form-select">
+                    <option value="USD">🇺🇸 USD - US Dollar</option>
+                    <option value="CAD">🇨🇦 CAD - Canadian Dollar</option>
+                    <option value="GBP">🇬🇧 GBP - British Pound</option>
+                    <option value="EUR">🇪🇺 EUR - Euro</option>
+                    <option value="CHF">🇨🇭 CHF - Swiss Franc</option>
+                    <option value="SEK">🇸🇪 SEK - Swedish Krona</option>
+                    <option value="NOK">🇳🇴 NOK - Norwegian Krone</option>
+                    <option value="DKK">🇩🇰 DKK - Danish Krone</option>
+                    <option value="PLN">🇵🇱 PLN - Polish Zloty</option>
+                    <option value="CZK">🇨🇿 CZK - Czech Koruna</option>
+                    <option value="NGN">🇳🇬 NGN - Nigerian Naira</option>
+                    <option value="GHS">🇬🇭 GHS - Ghanaian Cedi</option>
+                    <option value="KES">🇰🇪 KES - Kenyan Shilling</option>
+                    <option value="UGX">🇺🇬 UGX - Ugandan Shilling</option>
+                    <option value="TZS">🇹🇿 TZS - Tanzanian Shilling</option>
+                    <option value="RWF">🇷🇼 RWF - Rwandan Franc</option>
+                    <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
+                    <option value="ZMW">🇿🇲 ZMW - Zambian Kwacha</option>
+                    <option value="MZN">🇲🇿 MZN - Mozambican Metical</option>
+                    <option value="EGP">🇪🇬 EGP - Egyptian Pound</option>
+                    <option value="MAD">🇲🇦 MAD - Moroccan Dirham</option>
+                    <option value="TND">🇹🇳 TND - Tunisian Dinar</option>
+                    <option value="AED">🇦🇪 AED - UAE Dirham</option>
+                    <option value="SAR">🇸🇦 SAR - Saudi Riyal</option>
+                    <option value="QAR">🇶🇦 QAR - Qatari Riyal</option>
+                    <option value="KWD">🇰🇼 KWD - Kuwaiti Dinar</option>
+                    <option value="BHD">🇧🇭 BHD - Bahraini Dinar</option>
+                    <option value="INR">🇮🇳 INR - Indian Rupee</option>
+                    <option value="PKR">🇵🇰 PKR - Pakistani Rupee</option>
+                    <option value="AUD">🇦🇺 AUD - Australian Dollar</option>
+                    <option value="NZD">🇳🇿 NZD - New Zealand Dollar</option>
+                    <option value="XOF">🌍 XOF - West African CFA</option>
+                    <option value="XAF">🌍 XAF - Central African CFA</option>
+                </select>
+            </div>
+        </div>
+        
         <div id="subaccountStatus" style="display: none; margin-top: 16px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
             <p id="subaccountStatusText" style="margin: 0; color: var(--success); font-size: 13px;">
                 <i class="fas fa-check-circle"></i> Auto-split active! 90% of payments will go to your account.
@@ -9415,13 +9422,25 @@ function loadBankForm(gateway) {
     
     detailsSection.style.display = 'block';
     
+    // Restore previously selected country if any
+    if (savedCountry) {
+        const bankCountrySelect = document.getElementById('bankCountry');
+        if (bankCountrySelect) {
+            bankCountrySelect.value = savedCountry;
+            // Trigger bank loading for the restored country
+            setTimeout(() => {
+                loadFlutterwaveBanks();
+            }, 100);
+        }
+    }
+    
     // Setup account verification after form is loaded
     setTimeout(() => {
         setupAccountVerification();
     }, 100);
 }
 
-  async function loadFlutterwaveBanks() {
+async function loadFlutterwaveBanks() {
     const country = document.getElementById('bankCountry')?.value;
     if (!country) {
         console.log('No country selected');
@@ -9444,37 +9463,26 @@ function loadBankForm(gateway) {
     try {
         console.log(`🌍 Loading banks for country: ${country}`);
         
-        // Map country codes to Flutterwave's expected format - SUPPORTS ALL 50+ COUNTRIES
+        // Map country codes to Flutterwave's expected format
         const countryMap = {
-            // North America
-            'US': 'US', 'CA': 'CA',
-            // Europe
-            'GB': 'GB', 'FR': 'FR', 'DE': 'DE', 'ES': 'ES', 'IT': 'IT',
-            'NL': 'NL', 'BE': 'BE', 'PT': 'PT', 'CH': 'CH', 'SE': 'SE',
-            'NO': 'NO', 'DK': 'DK', 'FI': 'FI', 'IE': 'IE', 'AT': 'AT',
-            'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR', 'HU': 'HU', 'RO': 'RO',
-            // West Africa
-            'NG': 'NG', 'GH': 'GH', 'SN': 'SN', 'CI': 'CI', 'SL': 'SL',
-            'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF', 'BJ': 'BJ',
-            'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW', 'CV': 'CV',
-            // East Africa
-            'KE': 'KE', 'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ET': 'ET',
-            'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ', 'ER': 'ER', 'SO': 'SO',
-            // Southern Africa
-            'ZA': 'ZA', 'ZM': 'ZM', 'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ',
-            'AO': 'AO', 'BW': 'BW', 'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS',
-            'MG': 'MG', 'MU': 'MU', 'KM': 'KM', 'SC': 'SC',
-            // Central Africa
-            'CM': 'CM', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA', 'CF': 'CF',
-            'TD': 'TD', 'GQ': 'GQ',
-            // North Africa
-            'EG': 'EG', 'MA': 'MA', 'TN': 'TN', 'DZ': 'DZ', 'LY': 'LY',
-            'SD': 'SD', 'MR': 'MR',
-            // Asia & Middle East
-            'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW', 'BH': 'BH',
-            'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN', 'PK': 'PK',
-            // Oceania
-            'AU': 'AU', 'NZ': 'NZ'
+            'US': 'US', 'CA': 'CA', 'GB': 'GB', 'FR': 'FR', 'DE': 'DE',
+            'ES': 'ES', 'IT': 'IT', 'NL': 'NL', 'BE': 'BE', 'PT': 'PT',
+            'CH': 'CH', 'SE': 'SE', 'NO': 'NO', 'DK': 'DK', 'FI': 'FI',
+            'IE': 'IE', 'AT': 'AT', 'PL': 'PL', 'CZ': 'CZ', 'GR': 'GR',
+            'HU': 'HU', 'RO': 'RO', 'NG': 'NG', 'GH': 'GH', 'KE': 'KE',
+            'UG': 'UG', 'TZ': 'TZ', 'RW': 'RW', 'ZA': 'ZA', 'ZM': 'ZM',
+            'ZW': 'ZW', 'MW': 'MW', 'MZ': 'MZ', 'AO': 'AO', 'BW': 'BW',
+            'NA': 'NA', 'SZ': 'SZ', 'LS': 'LS', 'MG': 'MG', 'MU': 'MU',
+            'SC': 'SC', 'CM': 'CM', 'EG': 'EG', 'MA': 'MA', 'TN': 'TN',
+            'DZ': 'DZ', 'AE': 'AE', 'SA': 'SA', 'QA': 'QA', 'KW': 'KW',
+            'BH': 'BH', 'OM': 'OM', 'JO': 'JO', 'LB': 'LB', 'IN': 'IN',
+            'PK': 'PK', 'AU': 'AU', 'NZ': 'NZ', 'SN': 'SN', 'CI': 'CI',
+            'SL': 'SL', 'ET': 'ET', 'BI': 'BI', 'SS': 'SS', 'DJ': 'DJ',
+            'ER': 'ER', 'SO': 'SO', 'CD': 'CD', 'CG': 'CG', 'GA': 'GA',
+            'CF': 'CF', 'TD': 'TD', 'GQ': 'GQ', 'LY': 'LY', 'SD': 'SD',
+            'MR': 'MR', 'GM': 'GM', 'LR': 'LR', 'ML': 'ML', 'BF': 'BF',
+            'BJ': 'BJ', 'TG': 'TG', 'NE': 'NE', 'GN': 'GN', 'GW': 'GW',
+            'CV': 'CV', 'KM': 'KM'
         };
         
         const flutterwaveCountry = countryMap[country] || country;
@@ -9496,7 +9504,7 @@ function loadBankForm(gateway) {
                 banks.forEach(bank => {
                     const option = document.createElement('option');
                     option.value = bank.code;
-                    option.textContent = bank.name;
+                    option.textContent = `${bank.name} (Code: ${bank.code})`;
                     bankSelect.appendChild(option);
                 });
                 
@@ -9514,6 +9522,7 @@ function loadBankForm(gateway) {
                     if (bankCodeInput) {
                         bankCodeInput.value = this.value;
                     }
+                    // Clear previous verification when bank changes
                     if (accountNumberInput && accountNumberInput.value) {
                         const event = new Event('input', { bubbles: true });
                         accountNumberInput.dispatchEvent(event);
@@ -9526,20 +9535,25 @@ function loadBankForm(gateway) {
             }
         }
         
-        // FALLBACK: Manual entry for countries without bank API
+        // FALLBACK: Manual bank code entry with helpful message
         console.log(`⚠️ No banks from API for ${country}, using manual entry`);
         bankSelect.innerHTML = `
             <option value="">Enter bank code manually</option>
-            <option value="manual">--- Manual Entry ---</option>
+            <option value="manual">✏️ Manual Entry - I will enter bank code</option>
         `;
         
         // Create manual input field
-        const manualInput = document.createElement('input');
-        manualInput.type = 'text';
-        manualInput.placeholder = 'Enter bank code (e.g., 000001)';
-        manualInput.className = 'form-input';
-        manualInput.style.marginTop = '8px';
-        manualInput.id = 'manualBankCodeInput';
+        let manualInput = document.getElementById('manualBankCodeInput');
+        if (!manualInput) {
+            manualInput = document.createElement('input');
+            manualInput.type = 'text';
+            manualInput.placeholder = 'Enter your bank code (e.g., 000001 for Access Bank, 044 for GTBank)';
+            manualInput.className = 'form-input';
+            manualInput.style.marginTop = '8px';
+            manualInput.id = 'manualBankCodeInput';
+        } else {
+            manualInput.value = '';
+        }
         
         bankSelect.onchange = function() {
             const existingManual = document.getElementById('manualBankCodeInput');
@@ -9550,9 +9564,11 @@ function loadBankForm(gateway) {
                         if (bankCodeInput) bankCodeInput.value = this.value;
                     });
                 }
+                bankSelect.style.marginBottom = '0';
             } else {
                 if (existingManual) existingManual.remove();
                 if (bankCodeInput) bankCodeInput.value = this.value;
+                bankSelect.style.marginBottom = '';
             }
             
             if (accountNumberInput && accountNumberInput.value) {
@@ -9561,7 +9577,18 @@ function loadBankForm(gateway) {
             }
         };
         
-        showToast(`Please enter your bank code manually for ${getCountryName(country)}`, 'info');
+        // If manual entry was previously selected, show the input
+        if (bankSelect.value === 'manual') {
+            const existingManual = document.getElementById('manualBankCodeInput');
+            if (!existingManual) {
+                bankSelect.parentNode.appendChild(manualInput);
+                manualInput.addEventListener('input', function() {
+                    if (bankCodeInput) bankCodeInput.value = this.value;
+                });
+            }
+        }
+        
+        showToast(`Manual bank code entry available for ${getCountryName(country)}`, 'info');
         
     } catch (err) {
         console.error('Error loading banks:', err);
@@ -9573,7 +9600,7 @@ function loadBankForm(gateway) {
                 if (bankCodeInput) bankCodeInput.value = this.value;
             };
         }
-        showToast(`Manual bank code entry available for ${getCountryName(country)}`, 'warning');
+        showToast(`Please enter your bank code manually for ${getCountryName(country)}`, 'warning');
     }
 }
 function updateBankCountry() {

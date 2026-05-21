@@ -12494,6 +12494,118 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
     }
 });
 
+
+// ============================================
+// SELLER VERIFIES DELIVERY WITH CODE
+// ============================================
+app.post("/api/orders/:orderId/verify-delivery-seller", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+        
+        const orderId = req.params.orderId;
+        const { delivery_code } = req.body;
+        
+        if (!delivery_code || delivery_code.length !== 6) {
+            return res.status(400).json({ error: "Please enter a valid 6-digit delivery code" });
+        }
+        
+        // Verify SELLER owns this order (NOT buyer)
+        const orderResult = await db.query(
+            `SELECT o.*, u.email as buyer_email, u.username as buyer_name, p.title as product_name,
+                    o.seller_earnings, o.total_amount
+             FROM physical_orders o
+             LEFT JOIN users u ON o.buyer_id = u.id
+             LEFT JOIN products p ON o.product_id = p.id
+             WHERE o.id = ? AND o.seller_id = ?`,
+            [orderId, req.session.user.id]
+        );
+        
+        if (!orderResult || orderResult.length === 0) {
+            return res.status(404).json({ error: "Order not found or you don't have permission" });
+        }
+        
+        const order = orderResult[0];
+        
+        // Check if order is in shipped status
+        if (order.order_status !== 'shipped') {
+            return res.status(400).json({ 
+                error: `Cannot verify delivery. Order status is: ${order.order_status}. Expected: shipped`,
+                current_status: order.order_status
+            });
+        }
+        
+        // Check if delivery code exists
+        if (!order.delivery_code) {
+            return res.status(400).json({ error: "No delivery code generated for this order yet. Please generate one first." });
+        }
+        
+        // Verify the delivery code matches
+        if (order.delivery_code !== delivery_code) {
+            return res.status(400).json({ error: "Invalid delivery code. Please check with the customer." });
+        }
+        
+        // Check if code already used
+        if (order.delivery_code_used === 1) {
+            return res.status(400).json({ error: "This delivery code has already been used." });
+        }
+        
+        // ✅ START 5-DAY ESCROW COUNTDOWN
+        const escrowReleaseDate = new Date();
+        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+        
+        console.log(`✅ Delivery verified by seller for order #${orderId}`);
+        console.log(`   Escrow release date: ${escrowReleaseDate.toISOString()}`);
+        
+        await db.query(
+            `UPDATE physical_orders 
+             SET order_status = 'delivered',
+                 delivered_at = NOW(),
+                 payment_held_until = ?,
+                 delivery_code_used = 1,
+                 delivery_code_used_at = NOW()
+             WHERE id = ?`,
+            [escrowReleaseDate, orderId]
+        );
+        
+        // Send email confirmation to buyer
+        const buyerEmailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Delivery Confirmed - Core Insight</title></head>
+            <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                    <h1 style="color:#10b981;">✅ Delivery Confirmed!</h1>
+                    <p>The seller has confirmed delivery of your order.</p>
+                    <p><strong>What happens next:</strong></p>
+                    <ul>
+                        <li>You have 5 days to request a refund if there are issues</li>
+                        <li>After 5 days, funds will be released to the seller</li>
+                        <li>Refund available until: ${escrowReleaseDate.toLocaleDateString()}</li>
+                    </ul>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        await sendEmail(order.buyer_email, `Delivery Confirmed - Order #${orderId}`, buyerEmailHtml);
+        
+        res.json({
+            success: true,
+            message: "Delivery verified! 5-day escrow period started.",
+            order_status: 'delivered',
+            escrow_release_date: escrowReleaseDate,
+            days_until_release: 5,
+            seller_earnings: order.seller_earnings,
+            platform_fee: order.platform_fee
+        });
+        
+    } catch (err) {
+        console.error("❌ Seller verify delivery error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ============================================
 // NOTIFICATION HELPER FUNCTIONS
 // ============================================

@@ -7887,8 +7887,8 @@ async function generateDeliveryCode(orderId) {
 }
 window.generateDeliveryCode = generateDeliveryCode;
 
-// Rename this function to be clearer
-async function verifyDeliveryWithCode(orderId) {
+
+   async function verifyDeliveryWithCode(orderId) {
     const codeInput = document.getElementById(`deliveryCode_${orderId}`);
     const deliveryCode = codeInput?.value.trim();
     
@@ -7901,7 +7901,6 @@ async function verifyDeliveryWithCode(orderId) {
         return;
     }
     
-    // Show loading state
     const confirmBtn = document.querySelector(`#deliveryConfirmSection_${orderId} .btn.success`);
     if (confirmBtn) {
         confirmBtn.disabled = true;
@@ -7909,8 +7908,8 @@ async function verifyDeliveryWithCode(orderId) {
     }
     
     try {
-        // ✅ Use the correct backend endpoint: verify-delivery (not confirm-delivery)
-        const response = await fetch(`/api/orders/${orderId}/verify-delivery`, {
+        // ✅ Use the SELLER endpoint
+        const response = await fetch(`/api/orders/${orderId}/verify-delivery-seller`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ delivery_code: deliveryCode }),
@@ -7922,14 +7921,12 @@ async function verifyDeliveryWithCode(orderId) {
         if (response.ok) {
             showToast(
                 '✅ Delivery Verified!', 
-                `5-day escrow period has started. Customer has 5 days to request a refund. Funds will be released to you after 5 days.`,
+                `5-day escrow period has started. Funds will be released to you after 5 days.`,
                 'success'
             );
-            // Refresh the paid orders list
             await loadPaidOrders();
         } else {
             showToast('Error', data.error || 'Invalid delivery code. Please check with the customer.', 'danger');
-            console.error('Verification error:', data);
             if (confirmBtn) {
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify Delivery';

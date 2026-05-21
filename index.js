@@ -13878,6 +13878,9 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
 // ============================================
 // GET MY ORDERS - UPDATED with product images
 // ============================================
+// ============================================
+// GET MY ORDERS - FIXED PARAMETER ISSUE
+// ============================================
 app.get("/api/my-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -13886,9 +13889,11 @@ app.get("/api/my-orders", async (req, res) => {
     
     const userId = req.session.user.id;
     const { status, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const parsedLimit = parseInt(limit);
+    const parsedPage = parseInt(page);
+    const offset = (parsedPage - 1) * parsedLimit;
     
-    // Build query dynamically with product images
+    // Build query WITHOUT LIMIT in the main query to avoid parameter issues
     let query = `
       SELECT 
         o.id,
@@ -13928,15 +13933,19 @@ app.get("/api/my-orders", async (req, res) => {
     
     const queryParams = [userId];
     
+    // Add status filter if provided
     if (status && status !== 'all') {
       query += " AND o.order_status = ?";
       queryParams.push(status);
     }
     
-    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-    queryParams.push(parseInt(limit), offset);
+    query += " ORDER BY o.created_at DESC";
     
+    // Execute query first to get all orders
     const orders = await db.query(query, queryParams);
+    
+    // Apply pagination manually after fetching (simpler and avoids parameter issues)
+    const paginatedOrders = orders.slice(offset, offset + parsedLimit);
     
     // Get counts for each status
     const countsResult = await db.query(`
@@ -13957,8 +13966,8 @@ app.get("/api/my-orders", async (req, res) => {
     
     // Process orders with product images
     const processedOrders = [];
-    if (orders && orders.length > 0) {
-      for (const order of orders) {
+    if (paginatedOrders && paginatedOrders.length > 0) {
+      for (const order of paginatedOrders) {
         // Parse product images from either images or image_urls
         let productImage = null;
         const imageSource = order.product_images || order.image_urls;
@@ -14036,9 +14045,10 @@ app.get("/api/my-orders", async (req, res) => {
       orders: processedOrders,
       counts: counts,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        has_more: (orders || []).length === parseInt(limit)
+        page: parsedPage,
+        limit: parsedLimit,
+        total: orders.length,
+        has_more: offset + parsedLimit < orders.length
       }
     });
     

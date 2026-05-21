@@ -10704,7 +10704,7 @@ app.post("/api/subscription/verify", async (req, res) => {
 
 
 
-// Get order details - STANDARDIZED
+// GET /api/orders/:orderId - UPDATED with product images
 app.get("/api/orders/:orderId", async (req, res) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Please login" });
@@ -10712,9 +10712,15 @@ app.get("/api/orders/:orderId", async (req, res) => {
     const orderId = req.params.orderId;
     
     const orderResult = await db.query(`
-      SELECT o.*, p.title as product_name, p.images,
-             u_seller.username as seller_name, u_seller.email as seller_email,
-             u_buyer.username as buyer_name, u_buyer.email as buyer_email
+      SELECT o.*, 
+             p.id as product_id,
+             p.title as product_name, 
+             p.images,
+             p.image_urls,
+             u_seller.username as seller_name, 
+             u_seller.email as seller_email,
+             u_buyer.username as buyer_name, 
+             u_buyer.email as buyer_email
       FROM physical_orders o
       LEFT JOIN products p ON o.product_id = p.id
       LEFT JOIN users u_seller ON o.seller_id = u_seller.id
@@ -10727,13 +10733,32 @@ app.get("/api/orders/:orderId", async (req, res) => {
     }
     
     const order = orderResult[0];
-    const isSeller = req.session.user.id === order.seller_id;
     
-    // Seller can see that code EXISTS but NOT the actual code
-    // Only the customer received the code via email
+    // Parse product image
+    let productImage = null;
+    const imageSource = order.images || order.image_urls;
+    if (imageSource) {
+      try {
+        if (typeof imageSource === 'string') {
+          if (imageSource.startsWith('[')) {
+            const parsed = JSON.parse(imageSource);
+            productImage = Array.isArray(parsed) ? parsed[0] : parsed;
+          } else if (imageSource.startsWith('http')) {
+            productImage = imageSource;
+          }
+        } else if (Array.isArray(imageSource)) {
+          productImage = imageSource[0];
+        }
+      } catch (e) {
+        productImage = null;
+      }
+    }
+    
     const responseOrder = {
       id: order.id,
+      product_id: order.product_id,
       product_name: order.product_name,
+      product_image: productImage,
       quantity: parseInt(order.quantity),
       price: parseFloat(order.price),
       total_amount: parseFloat(order.total_amount),
@@ -10741,16 +10766,20 @@ app.get("/api/orders/:orderId", async (req, res) => {
       payment_status: order.payment_status,
       shipping_address: order.shipping_address,
       delivery_phone: order.delivery_phone,
+      city: order.city,
+      state: order.state,
+      country: order.country,
+      notes: order.notes,
       created_at: order.created_at,
       seller_accepted_at: order.seller_accepted_at,
       payment_collected_at: order.payment_collected_at,
       payment_held_until: order.payment_held_until,
-      
-      // IMPORTANT: Code is only shown as EXISTS, not the actual value
+      delivered_at: order.delivered_at,
+      completed_at: order.completed_at,
+      estimated_delivery_days: order.estimated_delivery_days || 7,
       has_delivery_code: !!(order.delivery_code && order.order_status === 'shipped'),
       delivery_code_generated_at: order.delivery_code_sent_at,
       delivery_code_used: order.delivery_code_used === 1,
-      
       buyer: {
         id: order.buyer_id,
         name: order.buyer_name,
@@ -10760,7 +10789,11 @@ app.get("/api/orders/:orderId", async (req, res) => {
         id: order.seller_id,
         name: order.seller_name,
         email: order.seller_email
-      }
+      },
+      platform_fee: parseFloat(order.platform_fee) || 0,
+      seller_earnings: parseFloat(order.seller_earnings) || 0,
+      refund_available: order.order_status === 'delivered' && order.payment_held_until && new Date(order.payment_held_until) > new Date(),
+      refund_deadline: order.payment_held_until
     };
     
     res.json({ success: true, order: responseOrder });
@@ -10769,7 +10802,7 @@ app.get("/api/orders/:orderId", async (req, res) => {
     console.error("❌ Error loading order:", err);
     res.status(500).json({ error: err.message });
   }
-});
+});;
 
 
 // ===========================================
@@ -13842,7 +13875,9 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
   }
 });
 
-// GET /api/my-orders - Fixed SQL query
+// ============================================
+// GET MY ORDERS - UPDATED with product images
+// ============================================
 app.get("/api/my-orders", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -13853,25 +13888,41 @@ app.get("/api/my-orders", async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    // Build query dynamically
+    // Build query dynamically with product images
     let query = `
       SELECT 
         o.id,
+        o.product_id,
         o.product_name,
         o.quantity,
+        o.price,
         o.total_amount,
         o.order_status,
         o.payment_status,
         o.created_at,
         o.shipping_address,
         o.delivery_phone,
+        o.city,
+        o.state,
+        o.country,
         o.estimated_delivery_days,
-        o.tracking_number,
         o.payment_collected_at,
         o.payment_held_until,
         o.refund_requested_at,
-        o.seller_id
+        o.refund_processed_at,
+        o.delivered_at,
+        o.completed_at,
+        o.seller_id,
+        o.platform_fee,
+        o.seller_earnings,
+        p.title as product_title,
+        p.images as product_images,
+        p.image_urls,
+        u.username as seller_name,
+        u.email as seller_email
       FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN users u ON o.seller_id = u.id
       WHERE o.buyer_id = ?
     `;
     
@@ -13887,30 +13938,6 @@ app.get("/api/my-orders", async (req, res) => {
     
     const orders = await db.query(query, queryParams);
     
-    // Get seller names separately
-    const sellerIds = [];
-    if (orders && orders.length > 0) {
-      for (const order of orders) {
-        if (order.seller_id && !sellerIds.includes(order.seller_id)) {
-          sellerIds.push(order.seller_id);
-        }
-      }
-    }
-    
-    let sellerNames = {};
-    if (sellerIds.length > 0) {
-      const placeholders = sellerIds.map(() => '?').join(',');
-      const sellers = await db.query(`
-        SELECT id, username FROM users WHERE id IN (${placeholders})
-      `, sellerIds);
-      
-      if (sellers && sellers.length > 0) {
-        sellers.forEach(s => {
-          sellerNames[s.id] = s.username;
-        });
-      }
-    }
-    
     // Get counts for each status
     const countsResult = await db.query(`
       SELECT 
@@ -13923,31 +13950,83 @@ app.get("/api/my-orders", async (req, res) => {
     
     const counts = {};
     if (countsResult && countsResult.length > 0) {
-      countsResult.forEach(row => {
+      for (const row of countsResult) {
         counts[row.order_status] = parseInt(row.count);
-      });
+      }
     }
     
-    // Process orders
+    // Process orders with product images
     const processedOrders = [];
     if (orders && orders.length > 0) {
       for (const order of orders) {
+        // Parse product images from either images or image_urls
+        let productImage = null;
+        const imageSource = order.product_images || order.image_urls;
+        
+        if (imageSource) {
+          try {
+            if (typeof imageSource === 'string') {
+              if (imageSource.startsWith('[')) {
+                const parsed = JSON.parse(imageSource);
+                productImage = Array.isArray(parsed) ? parsed[0] : parsed;
+              } else if (imageSource.startsWith('http')) {
+                productImage = imageSource;
+              } else {
+                productImage = imageSource;
+              }
+            } else if (Array.isArray(imageSource)) {
+              productImage = imageSource[0];
+            }
+          } catch (e) {
+            productImage = null;
+          }
+        }
+        
+        // Calculate refund availability
+        let refundAvailable = false;
+        let refundDeadline = null;
+        let daysLeft = 0;
+        
+        if (order.order_status === 'delivered' && order.payment_held_until) {
+          const releaseDate = new Date(order.payment_held_until);
+          const now = new Date();
+          daysLeft = Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24));
+          refundAvailable = daysLeft > 0 && daysLeft <= 5;
+          refundDeadline = releaseDate;
+        } else if (order.order_status === 'paid' || order.order_status === 'processing' || order.order_status === 'shipped') {
+          refundAvailable = true;
+        }
+        
         processedOrders.push({
           id: order.id,
-          product_name: order.product_name || 'Product',
+          product_id: order.product_id,
+          product_name: order.product_name || order.product_title || 'Product',
+          product_image: productImage,
           quantity: parseInt(order.quantity) || 1,
+          price: parseFloat(order.price) || 0,
           total_amount: parseFloat(order.total_amount) || 0,
           order_status: order.order_status || 'pending_seller_approval',
           payment_status: order.payment_status || 'pending',
-          seller_name: sellerNames[order.seller_id] || 'Seller',
+          seller_name: order.seller_name || 'Seller',
+          seller_id: order.seller_id,
           created_at: order.created_at,
           shipping_address: order.shipping_address,
           delivery_phone: order.delivery_phone,
+          city: order.city,
+          state: order.state,
+          country: order.country,
           estimated_delivery_days: order.estimated_delivery_days || 7,
-          tracking_number: order.tracking_number,
           payment_collected_at: order.payment_collected_at,
           payment_held_until: order.payment_held_until,
-          refund_requested_at: order.refund_requested_at
+          refund_requested_at: order.refund_requested_at,
+          refund_processed_at: order.refund_processed_at,
+          delivered_at: order.delivered_at,
+          completed_at: order.completed_at,
+          platform_fee: parseFloat(order.platform_fee) || 0,
+          seller_earnings: parseFloat(order.seller_earnings) || 0,
+          refund_available: refundAvailable,
+          refund_deadline: refundDeadline,
+          refund_days_left: daysLeft
         });
       }
     }
@@ -13965,7 +14044,12 @@ app.get("/api/my-orders", async (req, res) => {
     
   } catch (err) {
     console.error("❌ Error fetching my orders:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      orders: [],
+      counts: {}
+    });
   }
 });
 

@@ -6317,78 +6317,84 @@ const chatFileUpload = multer({
 });
 
 // Chat File Attachment Upload (Documents, PDFs, etc.)
+// In your index.js, update the file upload endpoint
 app.post("/api/messages/send-with-file", chatFileUpload.single('file'), async (req, res) => {
-  try {
-    const user = req.session.user;
-    if (!user) {
-      return res.status(401).json({ error: "Login required" });
+    try {
+        const user = req.session.user;
+        if (!user) {
+            return res.status(401).json({ error: "Login required" });
+        }
+
+        const { conversation_id, message } = req.body;
+        if (!conversation_id) {
+            return res.status(400).json({ error: "Missing conversation ID" });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        console.log(`📎 Received file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+
+        // Check access to conversation
+        const convResult = await db.query(
+            `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
+            [conversation_id]
+        );
+
+        if (!convResult || convResult.length === 0) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        const conversation = convResult[0];
+        const isClient = parseInt(conversation.client_id) === parseInt(user.id);
+        const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
+        
+        if (!isClient && !isFreelancer) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        let fileUrl = null;
+        let fileName = req.file.originalname;
+        let fileSize = req.file.size;
+        
+        // Upload using smart file upload
+        try {
+            fileUrl = await uploadFile(req.file.path, req.file.originalname);
+            console.log(`✅ File uploaded to: ${fileUrl.substring(0, 80)}...`);
+        } catch (uploadErr) {
+            console.error('File upload error:', uploadErr);
+            return res.status(500).json({ error: "Failed to upload file: " + uploadErr.message });
+        }
+
+        const messageContent = message || `📎 ${fileName}`;
+
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
+            [conversation_id, user.id, messageContent, fileUrl, fileName, fileSize]
+        );
+
+        const messageId = result.insertId;
+
+        const messageResult = await db.query(
+            `SELECT m.*, u.username AS sender_name 
+             FROM messages m 
+             JOIN users u ON m.sender_id = u.id 
+             WHERE m.id = ?`,
+            [messageId]
+        );
+
+        res.json({ 
+            success: true, 
+            data: messageResult[0],
+            file_url: fileUrl
+        });
+        
+    } catch (err) {
+        console.error("Send file error:", err);
+        res.status(500).json({ error: err.message });
     }
-
-    const { conversation_id, message } = req.body;
-    if (!conversation_id) {
-      return res.status(400).json({ error: "Missing conversation ID" });
-    }
-
-    // Check access to conversation
-    const convResult = await db.query(
-      `SELECT id, client_id, freelancer_id FROM conversations WHERE id = ?`,
-      [conversation_id]
-    );
-
-    if (!convResult || convResult.length === 0) {
-      return res.status(404).json({ error: "Conversation not found" });
-    }
-
-    const conversation = convResult[0];
-    const isClient = parseInt(conversation.client_id) === parseInt(user.id);
-    const isFreelancer = parseInt(conversation.freelancer_id) === parseInt(user.id);
-    
-    if (!isClient && !isFreelancer) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    let messageContent = message || '';
-    let fileUrl = null;
-    let fileName = null;
-    let fileSize = null;
-    
-    if (req.file) {
-      // Upload file to ImgBB
-      fileUrl = await uploadToImgbb(req.file.path, req.file.originalname);
-      fileName = req.file.originalname;
-      fileSize = req.file.size;
-      messageContent = messageContent || `📎 Sent a file: ${fileName}`;
-    }
-
-    if (!messageContent && !fileUrl) {
-      return res.status(400).json({ error: "Message or file is required" });
-    }
-
-    const result = await db.query(
-      `INSERT INTO messages (conversation_id, sender_id, message, file_url, file_name, file_size, created_at, is_read)
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
-      [conversation_id, user.id, messageContent, fileUrl, fileName, fileSize]
-    );
-
-    const messageId = result.insertId;
-
-    const messageResult = await db.query(
-      `SELECT m.*, u.username AS sender_name 
-       FROM messages m 
-       JOIN users u ON m.sender_id = u.id 
-       WHERE m.id = ?`,
-      [messageId]
-    );
-
-    res.status(200).json({ 
-      success: true, 
-      data: messageResult[0] 
-    });
-    
-  } catch (err) {
-    console.error("Send file error:", err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 

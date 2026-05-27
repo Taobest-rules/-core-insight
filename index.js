@@ -625,6 +625,63 @@ app.use("/api/freelancer/certificate-images", checkFreelancerSubscription);
 app.use("/api/freelancer/profile", checkFreelancerSubscription);
 app.use("/api/freelancer/dashboard", checkFreelancerSubscription);
 // ============================================
+// RATE LIMITING CONFIGURATION
+// ============================================
+const rateLimit = require('express-rate-limit');
+
+// General API rate limiter (all routes)
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute
+    message: { 
+        error: 'Too many requests. Please slow down.',
+        retryAfter: 60 
+    },
+    standardHeaders: true, // Send rate limit info in headers
+    legacyHeaders: false,
+});
+
+// Strict limiter for authentication (login, signup, password reset)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Only 5 attempts per 15 minutes
+    message: { 
+        error: 'Too many attempts. Please try again after 15 minutes.',
+        retryAfter: 900 
+    },
+    skipSuccessfulRequests: true, // Don't count successful logins
+});
+
+// Password reset limiter (even stricter)
+const resetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // Only 3 reset attempts per hour
+    message: { 
+        error: 'Too many password reset attempts. Please try again in 1 hour.'
+    },
+});
+
+// Contact form/verification OTP limiter
+const otpLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // 10 OTP requests per hour
+    message: { 
+        error: 'Too many verification code requests. Please wait.'
+    },
+});
+
+// Apply general limiter to all API routes
+app.use('/api/', generalLimiter);
+
+// Apply stricter limits to specific routes
+app.post('/api/login', authLimiter);
+app.post('/api/signup', authLimiter);
+app.post('/api/forgot-password', resetLimiter);
+app.post('/api/reset-password', resetLimiter);
+app.post('/api/verification/send-otp', otpLimiter);
+app.post('/api/send-complaint', otpLimiter);
+
+// ============================================
 // COMPLETE PRODUCT UPLOAD - FLUTTERWAVE ONLY
 // ============================================
 

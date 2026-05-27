@@ -4138,6 +4138,174 @@ In the name of Allah, the Most Gracious, the Most Merciful
         height: 40px !important;
     }
 }
+/* Welcome Modal Styles */
+.welcome-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.welcome-modal-content {
+    max-width: 550px;
+    width: 90%;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #fbbf24);
+}
+
+.welcome-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.welcome-icon.client {
+    color: #3b82f6;
+}
+
+.welcome-icon.freelancer {
+    color: #fbbf24;
+}
+
+.welcome-modal-content h2 {
+    color: var(--text-light);
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+}
+
+.welcome-modal-content p {
+    color: var(--text-gray);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.welcome-highlight {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.welcome-highlight p {
+    margin-bottom: 8px;
+}
+
+.welcome-highlight i {
+    color: #3b82f6;
+    margin-right: 10px;
+    width: 20px;
+}
+
+.welcome-features {
+    display: flex;
+    gap: 15px;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.welcome-feature {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.welcome-feature i {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.welcome-feature.client-feature i {
+    color: #3b82f6;
+}
+
+.welcome-feature.freelancer-feature i {
+    color: #fbbf24;
+}
+
+.welcome-feature span {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.welcome-checkbox {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.welcome-checkbox input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.welcome-checkbox label {
+    color: var(--text-gray);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.welcome-btn {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.welcome-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
   </style>
 </head>
 <body>
@@ -6049,6 +6217,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     }, 1500);
+    
+  
 });
   // ==================== REVIEW MODAL FOR FREELANCERS ====================
 function showReviewModalForFreelancer(freelancerId, freelancerName, serviceId) {
@@ -11381,6 +11551,23 @@ async function handleLoginSubmit(e) {
             await loadServices();
         }
         
+        // Show welcome message for first-time users (after successful login)
+        // Check if this is a new user from signup
+        const isNewUser = sessionStorage.getItem('newUserRole') !== null;
+        if (isNewUser) {
+            setTimeout(() => {
+                showWelcomeMessage();
+                // Clear the flag after showing
+                sessionStorage.removeItem('newUserRole');
+                sessionStorage.removeItem('newUserName');
+            }, 2000);
+        } else {
+            // Also check if user hasn't seen welcome message before
+            setTimeout(() => {
+                showWelcomeMessage();
+            }, 2000);
+        }
+        
         setTimeout(async () => {
             closeModal($('loginModal'));
             if ($('loginForm')) $('loginForm').reset();
@@ -11449,6 +11636,10 @@ async function handleSignupSubmit(e) {
         if (msgEl) {
             msgEl.innerHTML = `<div class="text-success">✅ Account created! Redirecting to login...</div>`;
         }
+
+        // Store the role for welcome message after login
+        sessionStorage.setItem('newUserRole', role);
+        sessionStorage.setItem('newUserName', username);
 
         setTimeout(() => {
             closeModal($('signupModal'));
@@ -14389,7 +14580,93 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
+// Show welcome message for first-time users
+async function showWelcomeMessage() {
+    if (!currentUser) return;
+    
+    const userId = currentUser.id;
+    const userRole = currentUser.role;
+    
+    // Check if user has seen welcome message before
+    const hasSeenWelcome = localStorage.getItem(`welcome_seen_${userId}`);
+    if (hasSeenWelcome === 'true') return;
+    
+    // Wait a bit for page to load
+    setTimeout(() => {
+        const modal = document.createElement('div');
+        modal.className = 'welcome-modal';
+        
+        const isClient = userRole === 'client';
+        const iconClass = isClient ? 'client' : 'freelancer';
+        const icon = isClient ? '🤝' : '💼';
+        const title = isClient ? 'Welcome to Core Insight Marketplace!' : 'Welcome to Core Insight Freelancer Hub!';
+        
+        modal.innerHTML = `
+            <div class="welcome-modal-content">
+                <div class="welcome-icon ${iconClass}">
+                    ${icon}
+                </div>
+                <h2>${title}</h2>
+                
+                <p><strong>Core Insight</strong> is a neutral marketplace where <strong>clients and freelancers</strong> connect directly — no middlemen, no hidden fees, no payment holds.</p>
+                
+                <div class="welcome-highlight">
+                    <p><i class="fas fa-check-circle"></i> <strong>We do NOT hold your funds</strong> — 100% direct payments</p>
+                    <p><i class="fas fa-check-circle"></i> <strong>We do NOT take commissions</strong> — freelancers keep 100%</p>
+                    <p><i class="fas fa-check-circle"></i> <strong>We are only a meeting platform</strong> — you control the transaction</p>
+                    <p><i class="fas fa-check-circle"></i> <strong>No discrimination</strong> — choose based on skills & merit only</p>
+                </div>
+                
+                <div class="welcome-features">
+                    <div class="welcome-feature ${isClient ? 'client-feature' : 'freelancer-feature'}">
+                        <i class="fas ${isClient ? 'fa-search' : 'fa-briefcase'}"></i>
+                        <span>${isClient ? 'Find Top Talent' : 'Showcase Your Skills'}</span>
+                    </div>
+                    <div class="welcome-feature ${isClient ? 'client-feature' : 'freelancer-feature'}">
+                        <i class="fas ${isClient ? 'fa-comments' : 'fa-handshake'}"></i>
+                        <span>${isClient ? 'Direct Negotiation' : 'Direct Payments'}</span>
+                    </div>
+                    <div class="welcome-feature ${isClient ? 'client-feature' : 'freelancer-feature'}">
+                        <i class="fas ${isClient ? 'fa-star' : 'fa-chart-line'}"></i>
+                        <span>${isClient ? 'Merit-Based Hiring' : 'Build Your Reputation'}</span>
+                    </div>
+                </div>
+                
+                <div class="welcome-checkbox">
+                    <input type="checkbox" id="dontShowAgain">
+                    <label for="dontShowAgain">Don't show this again</label>
+                </div>
+                
+                <button class="welcome-btn" id="closeWelcomeBtn">
+                    <i class="fas fa-rocket"></i> Get Started
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const closeBtn = document.getElementById('closeWelcomeBtn');
+        const dontShowAgain = document.getElementById('dontShowAgain');
+        
+        closeBtn.addEventListener('click', () => {
+            if (dontShowAgain && dontShowAgain.checked) {
+                localStorage.setItem(`welcome_seen_${userId}`, 'true');
+            }
+            modal.remove();
+        });
+        
+        // Close when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                if (dontShowAgain && dontShowAgain.checked) {
+                    localStorage.setItem(`welcome_seen_${userId}`, 'true');
+                }
+                modal.remove();
+            }
+        });
+        
+    }, 1500);
+}
 // Add this to your existing DOMContentLoaded
 setTimeout(checkFreelancerStatementNeeded, 2000);
 // ============================================

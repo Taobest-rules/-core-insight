@@ -11687,7 +11687,23 @@ async function handleOfferServiceClick() {
         openModal(document.getElementById('roleModal'));
     }
 }
-
+// Add edit/delete buttons to message hover
+function addMessageActions(messageDiv, messageId, messageText) {
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+    actionsDiv.innerHTML = `
+        <button class="message-action-btn" onclick="editMessage(${messageId}, this)">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="message-action-btn" onclick="deleteMessage(${messageId}, this)">
+            <i class="fas fa-trash"></i>
+        </button>
+        <button class="message-action-btn" onclick="copyMessage('${escapeHtml(messageText)}')">
+            <i class="fas fa-copy"></i>
+        </button>
+    `;
+    messageDiv.appendChild(actionsDiv);
+}
 function showSubscriptionRestrictions() {
     const heroSection = document.querySelector('.hero');
     if (heroSection && !document.querySelector('.restriction-banner')) {

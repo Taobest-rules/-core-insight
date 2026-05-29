@@ -6453,7 +6453,71 @@ app.post("/api/messages/send-with-file", chatFileUpload.single('file'), async (r
         res.status(500).json({ error: err.message });
     }
 });
+// Add to index.js - Edit message
+app.put("/api/messages/:messageId", async (req, res) => {
+    try {
+        if (!req.session.user) return res.status(401).json({ error: "Login required" });
+        
+        const messageId = req.params.messageId;
+        const { message } = req.body;
+        
+        // Verify user owns this message
+        const [msg] = await db.query(
+            "SELECT sender_id FROM messages WHERE id = ?",
+            [messageId]
+        );
+        
+        if (!msg || msg.sender_id !== req.session.user.id) {
+            return res.status(403).json({ error: "Can only edit your own messages" });
+        }
+        
+        // Check if within edit window (e.g., 5 minutes)
+        const [timeCheck] = await db.query(
+            "SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM messages WHERE id = ?",
+            [messageId]
+        );
+        
+        if (timeCheck.minutes_ago > 5) {
+            return res.status(403).json({ error: "Edit window expired (5 minutes)" });
+        }
+        
+        await db.query(
+            "UPDATE messages SET message = ?, is_edited = 1 WHERE id = ?",
+            [message, messageId]
+        );
+        
+        res.json({ success: true, message: "Message updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
+// Delete message (soft delete)
+app.delete("/api/messages/:messageId", async (req, res) => {
+    try {
+        if (!req.session.user) return res.status(401).json({ error: "Login required" });
+        
+        const messageId = req.params.messageId;
+        
+        const [msg] = await db.query(
+            "SELECT sender_id FROM messages WHERE id = ?",
+            [messageId]
+        );
+        
+        if (!msg || msg.sender_id !== req.session.user.id) {
+            return res.status(403).json({ error: "Can only delete your own messages" });
+        }
+        
+        await db.query(
+            "UPDATE messages SET is_deleted = 1, message = '[deleted]' WHERE id = ?",
+            [messageId]
+        );
+        
+        res.json({ success: true, message: "Message deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 // ============================================

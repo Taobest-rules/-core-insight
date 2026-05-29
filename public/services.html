@@ -4306,6 +4306,360 @@ In the name of Allah, the Most Gracious, the Most Merciful
         transform: translateY(0);
     }
 }
+/* Message Actions */
+.message {
+    position: relative;
+}
+
+.message-actions {
+    position: absolute;
+    top: -30px;
+    right: 0;
+    display: flex;
+    gap: 6px;
+    background: var(--chat-header);
+    padding: 6px 12px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+.message.sent .message-actions {
+    right: 0;
+    left: auto;
+}
+
+.message.received .message-actions {
+    left: 0;
+    right: auto;
+}
+
+.message-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-gray);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.message-action-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Edit mode styles */
+.message-edit-container {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.message-edit-input {
+    font-family: inherit;
+    resize: vertical;
+}
+
+.message-edit-input:focus {
+    outline: none;
+}
+
+/* Deleted message styling */
+.message-deleted {
+    opacity: 0.7;
+}
+
+.message-deleted .message-text {
+    font-style: italic;
+}
+
+.message-deleted .message-actions .message-action-btn[onclick*="editMessage"],
+.message-deleted .message-actions .message-action-btn[onclick*="deleteMessage"] {
+    display: none;
+}
+
+/* Edited label styling */
+.edited-label {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    margin-left: 8px;
+}
+
+/* Message group adjustments for actions */
+.message-group {
+    position: relative;
+}
+
+.message-group:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .message-actions {
+        top: -25px;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    
+    .message-action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .message-edit-input {
+        font-size: 0.85rem;
+    }
+}/* ============================================
+   MOBILE-RESPONSIVE CHAT INBOX
+   ============================================ */
+
+/* Base container - responsive grid */
+.inbox-container {
+    display: grid;
+    grid-template-columns: 320px 1fr 300px;
+    height: calc(100vh - 140px);
+    max-height: calc(100vh - 140px);
+    background: var(--chat-bg);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+}
+
+/* Mobile: Single column, show only one panel at a time */
+@media (max-width: 768px) {
+    .inbox-container {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 120px);
+        border-radius: 16px;
+    }
+    
+    /* Hide panels by default on mobile */
+    .inbox-sidebar {
+        display: none;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .inbox-main {
+        display: none;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .inbox-sidebar-right {
+        display: none;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: var(--chat-sidebar);
+        z-index: 20;
+    }
+    
+    /* Show active panel on mobile */
+    .inbox-sidebar.mobile-active,
+    .inbox-main.mobile-active,
+    .inbox-sidebar-right.mobile-active {
+        display: flex !important;
+        flex-direction: column;
+    }
+    
+    /* Back button for mobile */
+    .mobile-back-btn {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--chat-header);
+        border-bottom: 1px solid var(--chat-divider);
+        cursor: pointer;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+    
+    .mobile-back-btn i {
+        font-size: 1.2rem;
+    }
+    
+    /* Adjust chat header for mobile */
+    .chat-header {
+        padding: 12px 16px;
+    }
+    
+    .chat-user-avatar {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .chat-user-details h4 {
+        font-size: 1rem;
+    }
+    
+    /* Message bubbles on mobile */
+    .message-group {
+        max-width: 85%;
+    }
+    
+    .message {
+        padding: 8px 12px;
+    }
+    
+    .message-text {
+        font-size: 0.9rem;
+    }
+    
+    /* Input area on mobile */
+    .chat-input {
+        padding: 12px;
+    }
+    
+    .input-group {
+        padding: 2px;
+    }
+    
+    .input-group input {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .input-group button {
+        width: 40px;
+        height: 40px;
+    }
+    
+    /* Conversation list on mobile */
+    .conversation-item {
+        padding: 12px;
+    }
+    
+    .conversation-avatar {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .conversation-name {
+        font-size: 0.95rem;
+    }
+    
+    /* Empty states on mobile */
+    .empty-chat {
+        padding: 40px 20px;
+    }
+    
+    .empty-chat i {
+        font-size: 3rem;
+    }
+    
+    /* Message actions on mobile (show always, not just hover) */
+    .message-actions {
+        position: relative;
+        top: auto;
+        right: auto;
+        opacity: 1;
+        visibility: visible;
+        background: transparent;
+        padding: 0;
+        margin-top: 8px;
+        justify-content: flex-end;
+        box-shadow: none;
+    }
+    
+    .message:hover .message-actions {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .message-action-btn {
+        width: 36px;
+        height: 36px;
+        background: rgba(0,0,0,0.3);
+    }
+    
+    /* Edit container on mobile */
+    .message-edit-input {
+        font-size: 0.85rem;
+    }
+    
+    .message-edit-container .btn-sm {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Tablet styles (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .inbox-container {
+        grid-template-columns: 280px 1fr 280px;
+    }
+    
+    .conversation-item {
+        padding: 10px 12px;
+    }
+    
+    .conversation-avatar {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* Desktop styles (default, no changes) */
+@media (min-width: 1025px) {
+    .mobile-back-btn {
+        display: none !important;
+    }
+}
+/* Touch-friendly tap targets on mobile */
+@media (max-width: 768px) {
+    .conversation-item,
+    .chat-btn,
+    .profile-btn,
+    .message-action-btn,
+    .input-group button,
+    .btn {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .conversation-item:active {
+        background: var(--chat-hover);
+        transform: scale(0.98);
+    }
+    
+    .message-action-btn:active {
+        transform: scale(0.95);
+    }
+    
+    /* Better scrolling on mobile */
+    .conversation-list,
+    .chat-messages {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Fix for 100vh issue on mobile browsers */
+    .inbox-container {
+        height: -webkit-fill-available;
+        height: calc(100vh - 120px);
+    }
+}
   </style>
 </head>
 <body>
@@ -8172,7 +8526,10 @@ function showInboxAndOpenConversation(conversationId, username, userId) {
 
 async function sendMessage(e) {
     e.preventDefault();
-
+ if (currentlyEditingMessageId) {
+        cancelEdit(currentlyEditingMessageId);
+        currentlyEditingMessageId = null;
+    }
     let conversationId = window.activeConversationId;
     const form = $('sendMessageForm');
     const input = $('messageInput');
@@ -11687,6 +12044,308 @@ async function handleOfferServiceClick() {
         openModal(document.getElementById('roleModal'));
     }
 }
+// ============================================
+// MESSAGE ACTIONS - EDIT, DELETE, COPY
+// ============================================
+
+// Global variable to track which message is being edited
+let currentlyEditingMessageId = null;
+
+// Edit message function
+async function editMessage(messageId, currentText, messageElement) {
+    // If already editing another message, cancel that edit first
+    if (currentlyEditingMessageId) {
+        cancelEdit(currentlyEditingMessageId);
+    }
+    
+    currentlyEditingMessageId = messageId;
+    
+    // Find the message div and its parent group
+    const messageDiv = messageElement.closest('.message');
+    const messageGroup = messageDiv.closest('.message-group');
+    const messageTextDiv = messageDiv.querySelector('.message-text');
+    
+    if (!messageTextDiv) return;
+    
+    const originalText = currentText || messageTextDiv.textContent;
+    
+    // Create edit UI
+    const editHtml = `
+        <div class="message-edit-container" style="width: 100%;">
+            <textarea class="message-edit-input" rows="2" 
+                      style="width: 100%; padding: 10px; background: var(--chat-input); border: 2px solid var(--accent-blue); border-radius: 12px; color: var(--text-light); font-size: 0.9rem; resize: vertical;">${escapeHtml(originalText)}</textarea>
+            <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${messageId})" style="padding: 6px 12px; font-size: 0.85rem;">
+                    Cancel
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="saveEdit(${messageId})" style="padding: 6px 12px; font-size: 0.85rem;">
+                    Save
+                </button>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-gray); margin-top: 5px;">
+                <i class="fas fa-info-circle"></i> You can edit messages within 30 minutes of sending
+            </div>
+        </div>
+    `;
+    
+    // Replace message text with edit UI
+    messageTextDiv.style.display = 'none';
+    messageTextDiv.insertAdjacentHTML('afterend', editHtml);
+    
+    // Focus the textarea
+    const textarea = messageDiv.querySelector('.message-edit-input');
+    if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+    
+    // Hide the original message actions
+    const messageActions = messageDiv.querySelector('.message-actions');
+    if (messageActions) messageActions.style.display = 'none';
+}
+
+// Cancel edit
+function cancelEdit(messageId) {
+    const messageDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
+    if (!messageDiv) return;
+    
+    const messageTextDiv = messageDiv.querySelector('.message-text');
+    const editContainer = messageDiv.querySelector('.message-edit-container');
+    
+    if (editContainer) editContainer.remove();
+    if (messageTextDiv) messageTextDiv.style.display = 'block';
+    
+    const messageActions = messageDiv.querySelector('.message-actions');
+    if (messageActions) messageActions.style.display = 'flex';
+    
+    currentlyEditingMessageId = null;
+}
+
+// Save edited message
+async function saveEdit(messageId) {
+    const messageDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
+    if (!messageDiv) return;
+    
+    const textarea = messageDiv.querySelector('.message-edit-input');
+    const newMessage = textarea?.value.trim();
+    
+    if (!newMessage) {
+        showToast("Message cannot be empty", "warning");
+        return;
+    }
+    
+    if (newMessage.length > 2000) {
+        showToast("Message too long (max 2000 characters)", "warning");
+        return;
+    }
+    
+    showToast("Saving changes...", "info");
+    
+    try {
+        const response = await fetch(`/api/messages/${messageId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ message: newMessage })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showToast("✅ Message edited", "success");
+            
+            // Update the message display
+            const messageTextDiv = messageDiv.querySelector('.message-text');
+            if (messageTextDiv) {
+                messageTextDiv.innerHTML = escapeHtml(newMessage);
+                messageTextDiv.style.display = 'block';
+            }
+            
+            // Add "(edited)" label if not already there
+            let editedLabel = messageDiv.querySelector('.edited-label');
+            if (!editedLabel) {
+                editedLabel = document.createElement('span');
+                editedLabel.className = 'edited-label';
+                editedLabel.style.fontSize = '0.65rem';
+                editedLabel.style.opacity = '0.6';
+                editedLabel.style.marginLeft = '8px';
+                editedLabel.textContent = '(edited)';
+                
+                const timeDiv = messageDiv.querySelector('.message-time');
+                if (timeDiv) {
+                    timeDiv.appendChild(editedLabel);
+                }
+            } else {
+                editedLabel.style.display = 'inline';
+            }
+            
+            // Remove edit container
+            const editContainer = messageDiv.querySelector('.message-edit-container');
+            if (editContainer) editContainer.remove();
+            
+            // Show actions again
+            const messageActions = messageDiv.querySelector('.message-actions');
+            if (messageActions) messageActions.style.display = 'flex';
+            
+            currentlyEditingMessageId = null;
+            
+        } else {
+            showToast(data.error || "Failed to edit message", "error");
+        }
+    } catch (err) {
+        console.error("Edit error:", err);
+        showToast("Error editing message", "error");
+    }
+}
+
+// Delete message function
+async function deleteMessage(messageId, buttonElement, isOwnMessage = true) {
+    if (!isOwnMessage) {
+        showToast("You can only delete your own messages", "warning");
+        return;
+    }
+    
+    // Show confirmation modal
+    const confirmDelete = confirm("Delete this message?\n\n- Delete for everyone: Message will be removed for all participants\n- This action cannot be undone");
+    
+    if (!confirmDelete) return;
+    
+    // Ask if they want to delete for everyone or just themselves
+    const deleteForEveryone = confirm("Delete for everyone?\n\n• Yes = Message removed for everyone\n• No = Only you will see '[you deleted this message]'\n\nClick OK for everyone, Cancel for just you");
+    
+    showToast("Deleting message...", "info");
+    
+    try {
+        const response = await fetch(`/api/messages/${messageId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ delete_for_everyone: deleteForEveryone })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showToast(data.message, "success");
+            
+            const messageDiv = buttonElement.closest('.message');
+            
+            if (deleteForEveryone) {
+                // Replace message content with "[message deleted]"
+                const messageTextDiv = messageDiv.querySelector('.message-text');
+                if (messageTextDiv) {
+                    messageTextDiv.textContent = "[message deleted]";
+                    messageTextDiv.style.fontStyle = "italic";
+                    messageTextDiv.style.opacity = "0.6";
+                }
+                
+                // Hide edit button (can't edit deleted message)
+                const editBtn = messageDiv.querySelector('.message-action-btn[onclick*="editMessage"]');
+                if (editBtn) editBtn.style.display = 'none';
+                
+                // Change delete button to disabled or remove it
+                const deleteBtn = messageDiv.querySelector('.message-action-btn[onclick*="deleteMessage"]');
+                if (deleteBtn) deleteBtn.style.display = 'none';
+                
+                // Add a visual indicator
+                messageDiv.classList.add('message-deleted');
+            } else {
+                // Delete just for self - remove from DOM
+                const messageGroup = messageDiv.closest('.message-group');
+                if (messageGroup && messageGroup.children.length === 2) {
+                    // If only this message in group, remove the whole group
+                    messageGroup.remove();
+                } else {
+                    // Remove just this message
+                    messageDiv.remove();
+                }
+            }
+            
+        } else {
+            showToast(data.error || "Failed to delete message", "error");
+        }
+    } catch (err) {
+        console.error("Delete error:", err);
+        showToast("Error deleting message", "error");
+    }
+}
+
+// Copy message text to clipboard
+async function copyMessage(messageText, buttonElement) {
+    try {
+        // Remove HTML tags if any
+        const textToCopy = messageText.replace(/<[^>]*>/g, '');
+        
+        await navigator.clipboard.writeText(textToCopy);
+        
+        // Show success feedback on button
+        const originalIcon = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-check"></i>';
+        showToast("✓ Copied to clipboard!", "success");
+        
+        setTimeout(() => {
+            buttonElement.innerHTML = originalIcon;
+        }, 1500);
+        
+    } catch (err) {
+        console.error("Copy error:", err);
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = messageText.replace(/<[^>]*>/g, '');
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast("✓ Copied to clipboard!", "success");
+    }
+}
+
+// View edit history (optional feature)
+async function viewEditHistory(messageId) {
+    try {
+        const response = await fetch(`/api/messages/${messageId}/history`, {
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(data.error || "Failed to load history", "error");
+            return;
+        }
+        
+        // Show history modal
+        const modalContent = `
+            <div style="max-width: 500px;">
+                <h4 style="color: var(--text-light); margin-bottom: 15px;">Message Edit History</h4>
+                <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <div style="color: var(--text-gray); font-size: 0.85rem; margin-bottom: 5px;">
+                        <i class="fas fa-clock"></i> Sent: ${new Date(data.created_at).toLocaleString()}
+                    </div>
+                    <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        ${escapeHtml(data.original_message || data.current_message)}
+                    </div>
+                </div>
+                ${data.is_edited ? `
+                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px;">
+                        <div style="color: var(--accent-gold); font-size: 0.85rem; margin-bottom: 5px;">
+                            <i class="fas fa-edit"></i> Edited: ${new Date(data.edited_at).toLocaleString()}
+                        </div>
+                        <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            ${escapeHtml(data.current_message)}
+                        </div>
+                    </div>
+                ` : '<p style="color: var(--text-gray);">No edit history</p>'}
+            </div>
+        `;
+        
+        showModalWithContent("Edit History", modalContent);
+        
+    } catch (err) {
+        console.error("History error:", err);
+        showToast("Error loading edit history", "error");
+    }
+}
 // Add edit/delete buttons to message hover
 function addMessageActions(messageDiv, messageId, messageText) {
     const actionsDiv = document.createElement('div');
@@ -11704,6 +12363,204 @@ function addMessageActions(messageDiv, messageId, messageText) {
     `;
     messageDiv.appendChild(actionsDiv);
 }
+// Updated message rendering with action buttons
+function renderMessageWithActions(message) {
+    const isMe = message.sender_id === currentUser?.id;
+    const isDeleted = message.is_deleted;
+    const isEdited = message.is_edited;
+    
+    let displayText = message.message || '';
+    let actionsHtml = '';
+    
+    // Only show action buttons for own messages that aren't deleted (or allow copy for all)
+    if (!isDeleted) {
+        const copyButton = `<button class="message-action-btn" onclick="copyMessage('${escapeHtml(displayText)}', this)" title="Copy">
+            <i class="fas fa-copy"></i>
+        </button>`;
+        
+        if (isMe) {
+            // My message - show all actions
+            const timeSinceSent = (Date.now() - new Date(message.created_at).getTime()) / (1000 * 60);
+            const canEdit = timeSinceSent <= 30; // 30 minute edit window
+            
+            actionsHtml = `
+                <div class="message-actions">
+                    ${copyButton}
+                    ${canEdit ? `<button class="message-action-btn" onclick="editMessage(${message.id}, '${escapeHtml(displayText)}', this)" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>` : ''}
+                    <button class="message-action-btn" onclick="deleteMessage(${message.id}, this, true)" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    ${isEdited ? `<button class="message-action-btn" onclick="viewEditHistory(${message.id})" title="Edit History">
+                        <i class="fas fa-history"></i>
+                    </button>` : ''}
+                </div>
+            `;
+        } else {
+            // Other's message - only copy button
+            actionsHtml = `
+                <div class="message-actions">
+                    ${copyButton}
+                </div>
+            `;
+        }
+    }
+    
+    const editedLabel = isEdited ? '<span class="edited-label" style="font-size: 0.65rem; opacity: 0.6; margin-left: 8px;">(edited)</span>' : '';
+    const deletedClass = isDeleted ? 'message-deleted' : '';
+    const deletedText = isDeleted ? '<span style="font-style: italic; opacity: 0.6;">[message deleted]</span>' : escapeHtml(displayText);
+    
+    const timeString = new Date(message.created_at).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    });
+    
+    return `
+        <div class="message ${isMe ? 'sent' : 'received'} ${deletedClass}" data-message-id="${message.id}">
+            <div class="message-text">${deletedText}</div>
+            <div class="message-time">
+                ${timeString}
+                ${editedLabel}
+            </div>
+            ${actionsHtml}
+        </div>
+    `;
+}
+// ============================================
+// MOBILE CHAT NAVIGATION
+// ============================================
+
+let currentMobilePanel = 'conversations'; // 'conversations', 'chat', 'info'
+
+function showMobilePanel(panel) {
+    const sidebar = document.querySelector('.inbox-sidebar');
+    const main = document.querySelector('.inbox-main');
+    const rightSidebar = document.querySelector('.inbox-sidebar-right');
+    
+    // Remove active class from all
+    if (sidebar) sidebar.classList.remove('mobile-active');
+    if (main) main.classList.remove('mobile-active');
+    if (rightSidebar) rightSidebar.classList.remove('mobile-active');
+    
+    // Show selected panel
+    if (panel === 'conversations') {
+        if (sidebar) sidebar.classList.add('mobile-active');
+        currentMobilePanel = 'conversations';
+    } else if (panel === 'chat') {
+        if (main) main.classList.add('mobile-active');
+        currentMobilePanel = 'chat';
+    } else if (panel === 'info') {
+        if (rightSidebar) rightSidebar.classList.add('mobile-active');
+        currentMobilePanel = 'info';
+    }
+}
+
+// Add mobile back buttons
+function addMobileBackButtons() {
+    // Only on mobile
+    if (window.innerWidth > 768) return;
+    
+    // Add back button to chat header (to go back to conversations)
+    const chatHeader = document.querySelector('.chat-header');
+    if (chatHeader && !document.querySelector('.mobile-back-btn-chat')) {
+        const backBtn = document.createElement('div');
+        backBtn.className = 'mobile-back-btn mobile-back-btn-chat';
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span>Back</span>';
+        backBtn.onclick = () => showMobilePanel('conversations');
+        chatHeader.insertBefore(backBtn, chatHeader.firstChild);
+    }
+    
+    // Add back button to user info panel
+    const userInfoHeader = document.querySelector('.user-info-header');
+    if (userInfoHeader && !document.querySelector('.mobile-back-btn-info')) {
+        const backBtn = document.createElement('div');
+        backBtn.className = 'mobile-back-btn mobile-back-btn-info';
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span>Back to Chat</span>';
+        backBtn.style.marginBottom = '15px';
+        backBtn.onclick = () => showMobilePanel('chat');
+        userInfoHeader.parentNode.insertBefore(backBtn, userInfoHeader);
+    }
+    
+    // Add back button to conversation list header
+    const inboxHeader = document.querySelector('.inbox-header');
+    if (inboxHeader && !document.querySelector('.mobile-close-chat')) {
+        // For when we need to close chat from conversation list, but no back needed
+    }
+}
+
+// Override openConversation function for mobile
+const originalOpenConversation = window.openConversation;
+window.openConversation = function(conversationId, username, otherUserId) {
+    // Call original function
+    if (originalOpenConversation) {
+        originalOpenConversation(conversationId, username, otherUserId);
+    }
+    
+    // On mobile, switch to chat panel
+    if (window.innerWidth <= 768) {
+        setTimeout(() => {
+            showMobilePanel('chat');
+            addMobileBackButtons();
+        }, 100);
+    }
+};
+
+// Override toggleUserInfoBtn for mobile
+const originalToggleUserInfo = window.setupInboxButtons;
+function setupMobileUserInfo() {
+    const toggleBtn = document.getElementById('toggleUserInfoBtn');
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            if (window.innerWidth <= 768) {
+                showMobilePanel('info');
+            } else {
+                const panel = document.getElementById('userInfoPanel');
+                if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+    }
+}
+
+// Handle window resize
+function handleMobileResize() {
+    const wasMobile = window.innerWidth <= 768;
+    
+    if (wasMobile) {
+        // On mobile, start with conversations panel
+        if (!currentMobilePanel) {
+            showMobilePanel('conversations');
+        }
+        addMobileBackButtons();
+    } else {
+        // On desktop, show all panels
+        const sidebar = document.querySelector('.inbox-sidebar');
+        const main = document.querySelector('.inbox-main');
+        const rightSidebar = document.querySelector('.inbox-sidebar-right');
+        
+        if (sidebar) sidebar.classList.remove('mobile-active');
+        if (main) main.classList.remove('mobile-active');
+        if (rightSidebar) rightSidebar.classList.remove('mobile-active');
+        
+        // Remove mobile back buttons
+        document.querySelectorAll('.mobile-back-btn').forEach(btn => btn.remove());
+    }
+}
+
+// Initialize mobile chat when inbox is opened
+const originalShowInboxMobile = window.showInbox;
+window.showInbox = function() {
+    if (originalShowInboxMobile) originalShowInboxMobile();
+    
+    setTimeout(() => {
+        handleMobileResize();
+        setupMobileUserInfo();
+        
+        // Listen for resize events
+        window.addEventListener('resize', handleMobileResize);
+    }, 100);
+};
 function showSubscriptionRestrictions() {
     const heroSection = document.querySelector('.hero');
     if (heroSection && !document.querySelector('.restriction-banner')) {

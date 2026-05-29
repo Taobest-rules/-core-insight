@@ -6453,68 +6453,229 @@ app.post("/api/messages/send-with-file", chatFileUpload.single('file'), async (r
         res.status(500).json({ error: err.message });
     }
 });
-// Add to index.js - Edit message
+// ============================================
+// EDIT MESSAGE ENDPOINT
+// ============================================
 app.put("/api/messages/:messageId", async (req, res) => {
     try {
-        if (!req.session.user) return res.status(401).json({ error: "Login required" });
-        
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
         const messageId = req.params.messageId;
         const { message } = req.body;
-        
-        // Verify user owns this message
-        const [msg] = await db.query(
-            "SELECT sender_id FROM messages WHERE id = ?",
+
+        if (!message || message.trim() === "") {
+            return res.status(400).json({ error: "Message cannot be empty" });
+        }
+
+        if (message.length > 2000) {
+            return res.status(400).json({ error: "Message too long (max 2000 characters)" });
+        }
+
+        // Get the message and check ownership
+        const messageResult = await db.query(
+            `SELECT m.*, c.client_id, c.freelancer_id 
+             FROM messages m
+             JOIN conversations c ON m.conversation_id = c.id
+             WHERE m.id = ?`,
             [messageId]
         );
-        
-        if (!msg || msg.sender_id !== req.session.user.id) {
-            return res.status(403).json({ error: "Can only edit your own messages" });
+
+        if (!messageResult || messageResult.length === 0) {
+            return res.status(404).json({ error: "Message not found" });
         }
-        
-        // Check if within edit window (e.g., 5 minutes)
-        const [timeCheck] = await db.query(
-            "SELECT TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago FROM messages WHERE id = ?",
-            [messageId]
-        );
-        
-        if (timeCheck.minutes_ago > 5) {
-            return res.status(403).json({ error: "Edit window expired (5 minutes)" });
+
+        const messageData = messageResult[0];
+        const userId = req.session.user.id;
+
+        // Check if user owns this message
+        if (messageData.sender_id !== userId) {
+            return res.status(403).json({ error: "You can only edit your own messages" });
         }
-        
+
+        // Check if within edit window (30 minutes)
+        const createdAt = new Date(messageData.created_at);
+        const now = new Date();
+        const minutesSinceSent = (now - createdAt) / (1000 * 60);
+
+        if (minutesSinceSent > 30) {
+            return res.status(403).json({ 
+                error: "Edit window expired (30 minutes). Cannot edit older messages." 
+            });
+        }
+
+        // Check if already deleted
+        if (messageData.is_deleted) {
+            return res.status(400).json({ error: "Cannot edit a deleted message" });
+        }
+
+        // Store original message if this is first edit
+        let originalMessage = messageData.original_message;
+        if (!originalMessage && !messageData.is_edited) {
+            originalMessage = messageData.message;
+        }
+
+        // Update the message
         await db.query(
-            "UPDATE messages SET message = ?, is_edited = 1 WHERE id = ?",
-            [message, messageId]
+            `UPDATE messages 
+             SET message = ?,
+                 is_edited = TRUE,
+                 edited_at = NOW(),
+                 original_message = COALESCE(original_message, ?)
+             WHERE id = ?`,
+            [message.trim(), originalMessage, messageId]
         );
-        
-        res.json({ success: true, message: "Message updated" });
+
+        // Get the updated message with user info
+        const updatedResult = await db.query(
+            `SELECT m.*, u.username as sender_name 
+             FROM messages m
+             JOIN users u ON m.sender_id = u.id
+             WHERE m.id = ?`,
+            [messageId]
+        );
+
+        res.json({
+            success: true,
+            message: "Message edited successfully",
+            data: updatedResult[0]
+        });
+
     } catch (err) {
+        console.error("❌ Edit message error:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Delete message (soft delete)
+// ============================================
+// DELETE MESSAGE ENDPOINT (Soft Delete)
+// ============================================
 app.delete("/api/messages/:messageId", async (req, res) => {
     try {
-        if (!req.session.user) return res.status(401).json({ error: "Login required" });
-        
-        const messageId = req.params.messageId;
-        
-        const [msg] = await db.query(
-            "SELECT sender_id FROM messages WHERE id = ?",
-            [messageId]
-        );
-        
-        if (!msg || msg.sender_id !== req.session.user.id) {
-            return res.status(403).json({ error: "Can only delete your own messages" });
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
         }
-        
-        await db.query(
-            "UPDATE messages SET is_deleted = 1, message = '[deleted]' WHERE id = ?",
+
+        const messageId = req.params.messageId;
+        const { delete_for_everyone = true } = req.body;
+
+        // Get the message and check ownership
+        const messageResult = await db.query(
+            `SELECT m.*, c.client_id, c.freelancer_id 
+             FROM messages m
+             JOIN conversations c ON m.conversation_id = c.id
+             WHERE m.id = ?`,
             [messageId]
         );
-        
-        res.json({ success: true, message: "Message deleted" });
+
+        if (!messageResult || messageResult.length === 0) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        const messageData = messageResult[0];
+        const userId = req.session.user.id;
+
+        // Check if user owns this message
+        if (messageData.sender_id !== userId) {
+            return res.status(403).json({ error: "You can only delete your own messages" });
+        }
+
+        // Check if already deleted
+        if (messageData.is_deleted) {
+            return res.status(400).json({ error: "Message already deleted" });
+        }
+
+        // Check delete window (1 hour for "delete for everyone", otherwise unlimited for "delete for me")
+        const createdAt = new Date(messageData.created_at);
+        const now = new Date();
+        const minutesSinceSent = (now - createdAt) / (1000 * 60);
+
+        if (delete_for_everyone && minutesSinceSent > 60) {
+            return res.status(403).json({ 
+                error: "Delete for everyone window expired (1 hour). You can only delete for yourself now.",
+                can_delete_for_self: true
+            });
+        }
+
+        // Store original message before deletion
+        const originalMsg = messageData.message;
+
+        // Soft delete the message
+        await db.query(
+            `UPDATE messages 
+             SET is_deleted = TRUE,
+                 deleted_at = NOW(),
+                 message = ?,
+                 original_message = COALESCE(original_message, ?)
+             WHERE id = ?`,
+            [delete_for_everyone ? "[message deleted]" : "[you deleted this message]", originalMsg, messageId]
+        );
+
+        res.json({
+            success: true,
+            message: delete_for_everyone ? "Message deleted for everyone" : "Message deleted for you",
+            deleted_for_everyone: delete_for_everyone
+        });
+
     } catch (err) {
+        console.error("❌ Delete message error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================
+// GET MESSAGE EDIT HISTORY (for future feature)
+// ============================================
+app.get("/api/messages/:messageId/history", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        const messageId = req.params.messageId;
+
+        const messageResult = await db.query(
+            `SELECT id, message, original_message, is_edited, edited_at, created_at
+             FROM messages 
+             WHERE id = ?`,
+            [messageId]
+        );
+
+        if (!messageResult || messageResult.length === 0) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        const message = messageResult[0];
+        
+        // Only show edit history to message owner and conversation participants
+        const convCheck = await db.query(
+            `SELECT c.client_id, c.freelancer_id 
+             FROM messages m
+             JOIN conversations c ON m.conversation_id = c.id
+             WHERE m.id = ?`,
+            [messageId]
+        );
+
+        const isParticipant = convCheck && convCheck.length > 0 && 
+            (convCheck[0].client_id === req.session.user.id || 
+             convCheck[0].freelancer_id === req.session.user.id);
+
+        if (!isParticipant && message.sender_id !== req.session.user.id) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        res.json({
+            success: true,
+            current_message: message.message,
+            original_message: message.original_message,
+            is_edited: message.is_edited,
+            edited_at: message.edited_at,
+            created_at: message.created_at
+        });
+
+    } catch (err) {
+        console.error("❌ Get message history error:", err);
         res.status(500).json({ error: err.message });
     }
 });

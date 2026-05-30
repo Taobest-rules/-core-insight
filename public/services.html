@@ -13914,6 +13914,20 @@ async function reportUserInChat(userId) {
         showToast("Error submitting report", "error");
     }
 }
+// Call this after loading messages
+function initMessageClickHandler() {
+    setupMessageClickHandler();
+}
+
+// Call when loading messages
+const originalLoadMessagesForConversation = window.loadMessagesForConversation;
+window.loadMessagesForConversation = async function(conversationId) {
+    if (originalLoadMessagesForConversation) {
+        await originalLoadMessagesForConversation(conversationId);
+    }
+    // Setup click handler after messages are loaded
+    setTimeout(setupMessageClickHandler, 100);
+};
 /*********************
  *  Initialization   *
  *********************/

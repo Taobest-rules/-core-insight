@@ -4737,6 +4737,105 @@ In the name of Allah, the Most Gracious, the Most Merciful
         margin-top: -40px;
     }
 }
+/* Make message actions visible on mobile (no hover needed) */
+@media (max-width: 768px) {
+    .message-actions {
+        position: relative;
+        top: auto;
+        right: auto;
+        opacity: 1;
+        visibility: visible;
+        background: transparent;
+        padding: 0;
+        margin-top: 8px;
+        justify-content: flex-end;
+        box-shadow: none;
+        display: flex !important;
+        gap: 8px;
+    }
+    
+    .message-action-btn {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 50%;
+        font-size: 1rem;
+    }
+    
+    .message-action-btn:active {
+        transform: scale(0.95);
+        background: var(--accent-blue);
+    }
+    
+    /* Make tap targets larger */
+    .message-action-btn i {
+        font-size: 1.1rem;
+    }
+}
+/* Mobile-specific message action styles */
+@media (max-width: 768px) {
+    /* Make action buttons always visible on mobile */
+    .message-actions {
+        position: relative;
+        top: auto;
+        right: auto;
+        left: auto;
+        opacity: 1;
+        visibility: visible;
+        background: transparent;
+        padding: 0;
+        margin-top: 8px;
+        justify-content: flex-end;
+        box-shadow: none;
+        display: flex !important;
+        gap: 10px;
+    }
+    
+    .message-action-btn {
+        width: 44px;
+        height: 44px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 50%;
+        font-size: 1rem;
+        backdrop-filter: blur(4px);
+    }
+    
+    .message-action-btn:active {
+        transform: scale(0.95);
+        background: var(--accent-blue);
+    }
+    
+    .message-action-btn i {
+        font-size: 1.2rem;
+    }
+    
+    /* Larger edit textarea on mobile */
+    .message-edit-input {
+        font-size: 1rem !important;
+        padding: 14px !important;
+    }
+    
+    /* Better spacing for edited label */
+    .edited-label {
+        font-size: 0.7rem;
+        margin-left: 6px;
+    }
+    
+    /* Delete modal adjustments */
+    #deleteConfirmModal .modal-card {
+        margin: 20px;
+        width: auto;
+        max-width: 350px;
+    }
+    
+    #deleteConfirmModal label {
+        padding: 12px !important;
+    }
+    
+    #deleteConfirmModal label strong {
+        font-size: 1rem;
+    }
+}
   </style>
 </head>
 <body>
@@ -12223,10 +12322,15 @@ async function handleOfferServiceClick() {
 // MESSAGE ACTIONS - EDIT, DELETE, COPY
 // ============================================
 
+
+  // ============================================
+// MOBILE-FRIENDLY MESSAGE ACTIONS
+// ============================================
+
 // Global variable to track which message is being edited
 let currentlyEditingMessageId = null;
 
-// Edit message function
+// Edit message function - Mobile friendly
 async function editMessage(messageId, currentText, messageElement) {
     // If already editing another message, cancel that edit first
     if (currentlyEditingMessageId) {
@@ -12235,25 +12339,32 @@ async function editMessage(messageId, currentText, messageElement) {
     
     currentlyEditingMessageId = messageId;
     
-    // Find the message div and its parent group
-    const messageDiv = messageElement.closest('.message');
-    const messageGroup = messageDiv.closest('.message-group');
-    const messageTextDiv = messageDiv.querySelector('.message-text');
+    // Find the message div
+    let messageDiv = messageElement;
+    if (messageElement && !messageElement.classList.contains('message')) {
+        messageDiv = messageElement.closest('.message');
+    }
+    if (!messageDiv) {
+        console.error("Could not find message div");
+        return;
+    }
     
+    const messageTextDiv = messageDiv.querySelector('.message-text');
     if (!messageTextDiv) return;
     
     const originalText = currentText || messageTextDiv.textContent;
+    const isMobile = window.innerWidth <= 768;
     
-    // Create edit UI
+    // Create edit UI - optimized for mobile
     const editHtml = `
         <div class="message-edit-container" style="width: 100%;">
-            <textarea class="message-edit-input" rows="2" 
-                      style="width: 100%; padding: 10px; background: var(--chat-input); border: 2px solid var(--accent-blue); border-radius: 12px; color: var(--text-light); font-size: 0.9rem; resize: vertical;">${escapeHtml(originalText)}</textarea>
+            <textarea class="message-edit-input" rows="${isMobile ? '3' : '2'}" 
+                      style="width: 100%; padding: ${isMobile ? '14px' : '10px'}; background: var(--chat-input); border: 2px solid var(--accent-blue); border-radius: 12px; color: var(--text-light); font-size: ${isMobile ? '1rem' : '0.9rem'}; resize: vertical; font-family: inherit;">${escapeHtml(originalText)}</textarea>
             <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
-                <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${messageId})" style="padding: 6px 12px; font-size: 0.85rem;">
+                <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${messageId})" style="padding: ${isMobile ? '10px 16px' : '6px 12px'}; font-size: ${isMobile ? '0.9rem' : '0.85rem'};">
                     Cancel
                 </button>
-                <button class="btn btn-primary btn-sm" onclick="saveEdit(${messageId})" style="padding: 6px 12px; font-size: 0.85rem;">
+                <button class="btn btn-primary btn-sm" onclick="saveEdit(${messageId})" style="padding: ${isMobile ? '10px 16px' : '6px 12px'}; font-size: ${isMobile ? '0.9rem' : '0.85rem'};">
                     Save
                 </button>
             </div>
@@ -12267,10 +12378,14 @@ async function editMessage(messageId, currentText, messageElement) {
     messageTextDiv.style.display = 'none';
     messageTextDiv.insertAdjacentHTML('afterend', editHtml);
     
-    // Focus the textarea
+    // Focus the textarea and show keyboard on mobile
     const textarea = messageDiv.querySelector('.message-edit-input');
     if (textarea) {
         textarea.focus();
+        if (isMobile) {
+            // On mobile, wait a bit then focus again to ensure keyboard shows
+            setTimeout(() => textarea.focus(), 300);
+        }
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     }
     
@@ -12373,79 +12488,132 @@ async function saveEdit(messageId) {
     }
 }
 
-// Delete message function
+// Delete message function - Mobile friendly with custom modal
 async function deleteMessage(messageId, buttonElement, isOwnMessage = true) {
     if (!isOwnMessage) {
         showToast("You can only delete your own messages", "warning");
         return;
     }
     
-    // Show confirmation modal
-    const confirmDelete = confirm("Delete this message?\n\n- Delete for everyone: Message will be removed for all participants\n- This action cannot be undone");
+    const isMobile = window.innerWidth <= 768;
     
-    if (!confirmDelete) return;
+    // Create custom modal for mobile (better than browser confirm)
+    const modalHtml = `
+        <div id="deleteConfirmModal" class="modal" style="display: flex; z-index: 10001;">
+            <div class="modal-card" style="max-width: 350px; padding: 25px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <i class="fas fa-trash-alt" style="font-size: 3rem; color: #ef4444; margin-bottom: 15px;"></i>
+                    <h3 style="color: var(--text-light); margin-bottom: 10px;">Delete Message?</h3>
+                    <p style="color: var(--text-gray); margin-bottom: 15px;">This action cannot be undone.</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(239,68,68,0.1); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="deleteOption" value="everyone" checked>
+                        <div>
+                            <strong style="color: var(--text-light);">Delete for everyone</strong>
+                            <p style="color: var(--text-gray); font-size: 0.8rem; margin: 0;">Message removed for all participants</p>
+                        </div>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px; cursor: pointer;">
+                        <input type="radio" name="deleteOption" value="self">
+                        <div>
+                            <strong style="color: var(--text-light);">Delete for me only</strong>
+                            <p style="color: var(--text-gray); font-size: 0.8rem; margin: 0;">Only you will see "[you deleted this message]"</p>
+                        </div>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="cancelDeleteBtn" style="flex: 1; padding: 12px;">Cancel</button>
+                    <button class="btn btn-danger" id="confirmDeleteBtn" style="flex: 1; padding: 12px;">Delete</button>
+                </div>
+            </div>
+        </div>
+    `;
     
-    // Ask if they want to delete for everyone or just themselves
-    const deleteForEveryone = confirm("Delete for everyone?\n\n• Yes = Message removed for everyone\n• No = Only you will see '[you deleted this message]'\n\nClick OK for everyone, Cancel for just you");
+    // Remove existing modal if any
+    const existingModal = document.getElementById('deleteConfirmModal');
+    if (existingModal) existingModal.remove();
     
-    showToast("Deleting message...", "info");
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('deleteConfirmModal');
     
-    try {
-        const response = await fetch(`/api/messages/${messageId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ delete_for_everyone: deleteForEveryone })
-        });
+    // Handle cancel
+    document.getElementById('cancelDeleteBtn').onclick = () => {
+        modal.remove();
+    };
+    
+    // Handle confirm
+    document.getElementById('confirmDeleteBtn').onclick = async () => {
+        const deleteOption = document.querySelector('input[name="deleteOption"]:checked').value;
+        const deleteForEveryone = deleteOption === 'everyone';
         
-        const data = await response.json();
+        modal.remove();
+        showToast("Deleting message...", "info");
         
-        if (response.ok && data.success) {
-            showToast(data.message, "success");
+        try {
+            const response = await fetch(`/api/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ delete_for_everyone: deleteForEveryone })
+            });
             
-            const messageDiv = buttonElement.closest('.message');
+            const data = await response.json();
             
-            if (deleteForEveryone) {
-                // Replace message content with "[message deleted]"
-                const messageTextDiv = messageDiv.querySelector('.message-text');
-                if (messageTextDiv) {
-                    messageTextDiv.textContent = "[message deleted]";
-                    messageTextDiv.style.fontStyle = "italic";
-                    messageTextDiv.style.opacity = "0.6";
-                }
+            if (response.ok && data.success) {
+                showToast(data.message, "success");
                 
-                // Hide edit button (can't edit deleted message)
-                const editBtn = messageDiv.querySelector('.message-action-btn[onclick*="editMessage"]');
-                if (editBtn) editBtn.style.display = 'none';
+                const messageDiv = buttonElement.closest('.message');
                 
-                // Change delete button to disabled or remove it
-                const deleteBtn = messageDiv.querySelector('.message-action-btn[onclick*="deleteMessage"]');
-                if (deleteBtn) deleteBtn.style.display = 'none';
-                
-                // Add a visual indicator
-                messageDiv.classList.add('message-deleted');
-            } else {
-                // Delete just for self - remove from DOM
-                const messageGroup = messageDiv.closest('.message-group');
-                if (messageGroup && messageGroup.children.length === 2) {
-                    // If only this message in group, remove the whole group
-                    messageGroup.remove();
+                if (deleteForEveryone) {
+                    // Replace message content with "[message deleted]"
+                    const messageTextDiv = messageDiv.querySelector('.message-text');
+                    if (messageTextDiv) {
+                        messageTextDiv.textContent = "[message deleted]";
+                        messageTextDiv.style.fontStyle = "italic";
+                        messageTextDiv.style.opacity = "0.6";
+                    }
+                    
+                    // Hide edit button (can't edit deleted message)
+                    const editBtn = messageDiv.querySelector('.message-action-btn[onclick*="editMessage"]');
+                    if (editBtn) editBtn.style.display = 'none';
+                    
+                    // Change delete button to disabled or remove it
+                    const deleteBtn = messageDiv.querySelector('.message-action-btn[onclick*="deleteMessage"]');
+                    if (deleteBtn) deleteBtn.style.display = 'none';
+                    
+                    // Add a visual indicator
+                    messageDiv.classList.add('message-deleted');
                 } else {
-                    // Remove just this message
-                    messageDiv.remove();
+                    // Delete just for self - remove from DOM
+                    const messageGroup = messageDiv.closest('.message-group');
+                    if (messageGroup && messageGroup.children.length === 2) {
+                        // If only this message in group, remove the whole group
+                        messageGroup.remove();
+                    } else {
+                        // Remove just this message
+                        messageDiv.remove();
+                    }
                 }
+                
+            } else {
+                showToast(data.error || "Failed to delete message", "error");
             }
-            
-        } else {
-            showToast(data.error || "Failed to delete message", "error");
+        } catch (err) {
+            console.error("Delete error:", err);
+            showToast("Error deleting message", "error");
         }
-    } catch (err) {
-        console.error("Delete error:", err);
-        showToast("Error deleting message", "error");
-    }
+    };
+    
+    // Close modal when clicking outside
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
 }
 
-// Copy message text to clipboard
+// Copy message text to clipboard - Mobile friendly
 async function copyMessage(messageText, buttonElement) {
     try {
         // Remove HTML tags if any
@@ -12456,10 +12624,14 @@ async function copyMessage(messageText, buttonElement) {
         // Show success feedback on button
         const originalIcon = buttonElement.innerHTML;
         buttonElement.innerHTML = '<i class="fas fa-check"></i>';
+        buttonElement.style.background = '#10b981';
+        buttonElement.style.color = 'white';
         showToast("✓ Copied to clipboard!", "success");
         
         setTimeout(() => {
             buttonElement.innerHTML = originalIcon;
+            buttonElement.style.background = '';
+            buttonElement.style.color = '';
         }, 1500);
         
     } catch (err) {
@@ -12475,7 +12647,7 @@ async function copyMessage(messageText, buttonElement) {
     }
 }
 
-// View edit history (optional feature)
+// View edit history
 async function viewEditHistory(messageId) {
     try {
         const response = await fetch(`/api/messages/${messageId}/history`, {
@@ -12489,28 +12661,33 @@ async function viewEditHistory(messageId) {
             return;
         }
         
+        const isMobile = window.innerWidth <= 768;
+        
         // Show history modal
         const modalContent = `
-            <div style="max-width: 500px;">
+            <div style="max-width: 500px; width: 100%;">
                 <h4 style="color: var(--text-light); margin-bottom: 15px;">Message Edit History</h4>
-                <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <div style="background: var(--secondary-dark); padding: ${isMobile ? '20px' : '15px'}; border-radius: 10px; margin-bottom: 15px;">
                     <div style="color: var(--text-gray); font-size: 0.85rem; margin-bottom: 5px;">
                         <i class="fas fa-clock"></i> Sent: ${new Date(data.created_at).toLocaleString()}
                     </div>
-                    <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; word-break: break-word;">
                         ${escapeHtml(data.original_message || data.current_message)}
                     </div>
                 </div>
                 ${data.is_edited ? `
-                    <div style="background: var(--secondary-dark); padding: 15px; border-radius: 10px;">
+                    <div style="background: var(--secondary-dark); padding: ${isMobile ? '20px' : '15px'}; border-radius: 10px;">
                         <div style="color: var(--accent-gold); font-size: 0.85rem; margin-bottom: 5px;">
                             <i class="fas fa-edit"></i> Edited: ${new Date(data.edited_at).toLocaleString()}
                         </div>
-                        <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <div style="color: var(--text-light); padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; word-break: break-word;">
                             ${escapeHtml(data.current_message)}
                         </div>
                     </div>
                 ` : '<p style="color: var(--text-gray);">No edit history</p>'}
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="closeModal(document.getElementById('editHistoryModal'))">Close</button>
+                </div>
             </div>
         `;
         

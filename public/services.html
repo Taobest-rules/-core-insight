@@ -4836,6 +4836,105 @@ In the name of Allah, the Most Gracious, the Most Merciful
         font-size: 1rem;
     }
 }
+/* Message Actions - Show on Click/Tap instead of Hover */
+.message {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* When message is active/selected, show actions */
+.message.active-message {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.message.active-message .message-actions {
+    opacity: 1;
+    visibility: visible;
+    display: flex !important;
+}
+
+.message-actions {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    display: flex;
+    gap: 8px;
+    background: var(--chat-header);
+    padding: 8px 16px;
+    border-radius: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+/* On mobile, position differently */
+@media (max-width: 768px) {
+    .message-actions {
+        position: absolute;
+        top: auto;
+        bottom: -45px;
+        right: 0;
+        left: auto;
+        background: rgba(0, 0, 0, 0.9);
+        padding: 10px 20px;
+        gap: 15px;
+    }
+    
+    .message.active-message {
+        background: rgba(59, 130, 246, 0.2);
+        border-radius: 12px;
+    }
+}
+
+/* Desktop positioning */
+@media (min-width: 769px) {
+    .message.sent .message-actions {
+        right: 0;
+        left: auto;
+    }
+    
+    .message.received .message-actions {
+        left: 0;
+        right: auto;
+    }
+}
+
+.message-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.message-action-btn:hover {
+    background: var(--accent-blue);
+    transform: scale(1.1);
+}
+
+.message-action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Mobile tap targets */
+@media (max-width: 768px) {
+    .message-action-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+}
   </style>
 </head>
 <body>
@@ -9248,7 +9347,433 @@ function stopMessagePolling() {
         messagePollingInterval = null;
     }
 }
+// ============================================
+// MESSAGE CLICK HANDLER - Shows edit/delete options
+// ============================================
 
+// Track currently active message
+let activeMessageElement = null;
+
+// Handle message click/tap
+function setupMessageClickHandler() {
+    // Use event delegation on messages container
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (!messagesContainer) return;
+    
+    // Remove existing listener if any
+    messagesContainer.removeEventListener('click', handleMessageClick);
+    messagesContainer.addEventListener('click', handleMessageClick);
+}
+
+function handleMessageClick(e) {
+    // Find the clicked message element
+    let targetMessage = e.target.closest('.message');
+    if (!targetMessage) return;
+    
+    // Prevent triggering if clicking on action buttons
+    if (e.target.closest('.message-action-btn')) {
+        return;
+    }
+    
+    // Prevent triggering if clicking on edit container elements
+    if (e.target.closest('.message-edit-container')) {
+        return;
+    }
+    
+    // If there's an active message and it's not this one, deactivate it
+    if (activeMessageElement && activeMessageElement !== targetMessage) {
+        deactivateMessage(activeMessageElement);
+    }
+    
+    // Toggle active state on clicked message
+    if (activeMessageElement === targetMessage) {
+        // Same message clicked again - hide options
+        deactivateMessage(targetMessage);
+        activeMessageElement = null;
+    } else {
+        // New message clicked - show options
+        activateMessage(targetMessage);
+        activeMessageElement = targetMessage;
+        
+        // Auto-hide after 5 seconds on mobile (optional)
+        if (window.innerWidth <= 768) {
+            setTimeout(() => {
+                if (activeMessageElement === targetMessage) {
+                    deactivateMessage(targetMessage);
+                    activeMessageElement = null;
+                }
+            }, 5000);
+        }
+    }
+}
+
+function activateMessage(messageElement) {
+    messageElement.classList.add('active-message');
+    
+    // Get message data
+    const messageId = messageElement.dataset.messageId;
+    const isOwnMessage = messageElement.classList.contains('sent');
+    const messageText = messageElement.querySelector('.message-text')?.textContent || '';
+    const isDeleted = messageElement.classList.contains('message-deleted');
+    const isEdited = messageElement.querySelector('.edited-label') !== null;
+    const timeSinceSent = getTimeSinceSent(messageElement);
+    const canEdit = isOwnMessage && !isDeleted && timeSinceSent <= 30; // 30 minutes edit window
+    
+    // Build action buttons dynamically
+    const actionsContainer = messageElement.querySelector('.message-actions');
+    if (actionsContainer) {
+        // Update existing actions container
+        actionsContainer.innerHTML = buildActionButtons(messageId, messageText, isOwnMessage, isDeleted, canEdit, isEdited);
+        
+        // Attach event listeners to new buttons
+        attachActionButtonListeners(actionsContainer, messageId, messageText);
+    } else {
+        // Create actions container if it doesn't exist
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+        actionsDiv.innerHTML = buildActionButtons(messageId, messageText, isOwnMessage, isDeleted, canEdit, isEdited);
+        messageElement.appendChild(actionsDiv);
+        
+        // Attach event listeners
+        attachActionButtonListeners(actionsDiv, messageId, messageText);
+    }
+}
+
+function deactivateMessage(messageElement) {
+    messageElement.classList.remove('active-message');
+    
+    // Don't remove actions, just hide them (CSS handles visibility)
+    // This way they can reappear quickly if needed
+}
+
+function buildActionButtons(messageId, messageText, isOwnMessage, isDeleted, canEdit, isEdited) {
+    if (isDeleted) {
+        // Deleted messages only show copy button if there's text
+        if (messageText && messageText !== '[message deleted]' && messageText !== '[you deleted this message]') {
+            return `<button class="message-action-btn copy-btn" data-message-id="${messageId}" data-message-text="${escapeHtml(messageText)}" title="Copy">
+                        <i class="fas fa-copy"></i>
+                    </button>`;
+        }
+        return '';
+    }
+    
+    let buttons = '';
+    
+    // Copy button (always shown for non-deleted messages)
+    buttons += `<button class="message-action-btn copy-btn" data-message-id="${messageId}" data-message-text="${escapeHtml(messageText)}" title="Copy">
+                    <i class="fas fa-copy"></i>
+                </button>`;
+    
+    // Edit button (only for own messages within time limit)
+    if (isOwnMessage && canEdit) {
+        buttons += `<button class="message-action-btn edit-btn" data-message-id="${messageId}" data-message-text="${escapeHtml(messageText)}" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>`;
+    }
+    
+    // Delete button (only for own messages)
+    if (isOwnMessage) {
+        buttons += `<button class="message-action-btn delete-btn" data-message-id="${messageId}" title="Delete">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>`;
+    }
+    
+    // Edit history button (only for edited messages that aren't deleted)
+    if (isEdited && !isDeleted) {
+        buttons += `<button class="message-action-btn history-btn" data-message-id="${messageId}" title="View Edit History">
+                        <i class="fas fa-history"></i>
+                    </button>`;
+    }
+    
+    return buttons;
+}
+
+function attachActionButtonListeners(container, messageId, messageText) {
+    // Copy button
+    const copyBtn = container.querySelector('.copy-btn');
+    if (copyBtn) {
+        copyBtn.onclick = (e) => {
+            e.stopPropagation();
+            const text = copyBtn.dataset.messageText || messageText;
+            copyMessageToClipboard(text, copyBtn);
+        };
+    }
+    
+    // Edit button
+    const editBtn = container.querySelector('.edit-btn');
+    if (editBtn) {
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            const messageDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
+            const text = editBtn.dataset.messageText || messageText;
+            startEditMessage(messageId, text, messageDiv);
+            // Deactivate after starting edit
+            if (activeMessageElement) {
+                deactivateMessage(activeMessageElement);
+                activeMessageElement = null;
+            }
+        };
+    }
+    
+    // Delete button
+    const deleteBtn = container.querySelector('.delete-btn');
+    if (deleteBtn) {
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            confirmDeleteMessage(messageId, deleteBtn);
+            // Deactivate after delete
+            if (activeMessageElement) {
+                deactivateMessage(activeMessageElement);
+                activeMessageElement = null;
+            }
+        };
+    }
+    
+    // History button
+    const historyBtn = container.querySelector('.history-btn');
+    if (historyBtn) {
+        historyBtn.onclick = (e) => {
+            e.stopPropagation();
+            viewEditHistory(messageId);
+        };
+    }
+}
+
+function getTimeSinceSent(messageElement) {
+    const timeElement = messageElement.querySelector('.message-time');
+    if (!timeElement) return 0;
+    
+    // Extract time string and parse
+    const timeText = timeElement.textContent;
+    // This is simplified - you may want to store timestamp in data attribute
+    const messageDate = new Date(messageElement.dataset.createdAt || Date.now());
+    const now = new Date();
+    return (now - messageDate) / (1000 * 60);
+}
+
+function copyMessageToClipboard(text, buttonElement) {
+    const textToCopy = text.replace(/<[^>]*>/g, '');
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalIcon = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-check"></i>';
+        buttonElement.style.background = '#10b981';
+        showToast("✓ Copied!", "success");
+        
+        setTimeout(() => {
+            buttonElement.innerHTML = originalIcon;
+            buttonElement.style.background = '';
+        }, 1500);
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast("✓ Copied!", "success");
+    });
+}
+
+function startEditMessage(messageId, currentText, messageDiv) {
+    const messageTextDiv = messageDiv.querySelector('.message-text');
+    if (!messageTextDiv) return;
+    
+    const isMobile = window.innerWidth <= 768;
+    const originalText = currentText;
+    
+    // Hide actions
+    const actionsContainer = messageDiv.querySelector('.message-actions');
+    if (actionsContainer) actionsContainer.style.display = 'none';
+    
+    // Create edit UI
+    const editHtml = `
+        <div class="message-edit-container" style="width: 100%;">
+            <textarea class="message-edit-input" rows="${isMobile ? '3' : '2'}" 
+                      style="width: 100%; padding: ${isMobile ? '14px' : '10px'}; background: var(--chat-input); border: 2px solid var(--accent-blue); border-radius: 12px; color: var(--text-light); font-size: ${isMobile ? '1rem' : '0.9rem'}; resize: vertical; font-family: inherit;">${escapeHtml(originalText)}</textarea>
+            <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: ${isMobile ? '10px 16px' : '6px 12px'};">
+                    Cancel
+                </button>
+                <button class="btn btn-primary btn-sm save-edit-btn" style="padding: ${isMobile ? '10px 16px' : '6px 12px'};">
+                    Save
+                </button>
+            </div>
+        </div>
+    `;
+    
+    messageTextDiv.style.display = 'none';
+    messageTextDiv.insertAdjacentHTML('afterend', editHtml);
+    
+    const textarea = messageDiv.querySelector('.message-edit-input');
+    if (textarea) {
+        textarea.focus();
+        if (isMobile) setTimeout(() => textarea.focus(), 300);
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+    
+    // Handle cancel
+    const cancelBtn = messageDiv.querySelector('.cancel-edit-btn');
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            const editContainer = messageDiv.querySelector('.message-edit-container');
+            if (editContainer) editContainer.remove();
+            messageTextDiv.style.display = 'block';
+            if (actionsContainer) actionsContainer.style.display = 'flex';
+        };
+    }
+    
+    // Handle save
+    const saveBtn = messageDiv.querySelector('.save-edit-btn');
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            const newMessage = textarea.value.trim();
+            if (!newMessage) {
+                showToast("Message cannot be empty", "warning");
+                return;
+            }
+            
+            showToast("Saving...", "info");
+            
+            try {
+                const response = await fetch(`/api/messages/${messageId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ message: newMessage })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showToast("✅ Message edited", "success");
+                    messageTextDiv.innerHTML = escapeHtml(newMessage);
+                    messageTextDiv.style.display = 'block';
+                    
+                    // Add edited label
+                    let editedLabel = messageDiv.querySelector('.edited-label');
+                    if (!editedLabel) {
+                        editedLabel = document.createElement('span');
+                        editedLabel.className = 'edited-label';
+                        editedLabel.style.fontSize = '0.65rem';
+                        editedLabel.style.opacity = '0.6';
+                        editedLabel.style.marginLeft = '8px';
+                        editedLabel.textContent = '(edited)';
+                        const timeDiv = messageDiv.querySelector('.message-time');
+                        if (timeDiv) timeDiv.appendChild(editedLabel);
+                    }
+                    
+                    const editContainer = messageDiv.querySelector('.message-edit-container');
+                    if (editContainer) editContainer.remove();
+                    if (actionsContainer) actionsContainer.style.display = 'flex';
+                } else {
+                    showToast(data.error || "Failed to edit", "error");
+                }
+            } catch (err) {
+                showToast("Error editing message", "error");
+            }
+        };
+    }
+}
+
+function confirmDeleteMessage(messageId, buttonElement) {
+    const isMobile = window.innerWidth <= 768;
+    
+    // Create custom modal
+    const modalHtml = `
+        <div id="deleteConfirmModal" class="modal" style="display: flex; z-index: 10001;">
+            <div class="modal-card" style="max-width: 350px; padding: 25px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <i class="fas fa-trash-alt" style="font-size: 3rem; color: #ef4444; margin-bottom: 15px;"></i>
+                    <h3 style="color: var(--text-light);">Delete Message?</h3>
+                    <p style="color: var(--text-gray); margin: 10px 0;">This action cannot be undone.</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(239,68,68,0.1); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="deleteOption" value="everyone" checked>
+                        <div>
+                            <strong style="color: var(--text-light);">Delete for everyone</strong>
+                            <p style="color: var(--text-gray); font-size: 0.8rem; margin: 0;">Removed for all participants</p>
+                        </div>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px; cursor: pointer;">
+                        <input type="radio" name="deleteOption" value="self">
+                        <div>
+                            <strong style="color: var(--text-light);">Delete for me only</strong>
+                            <p style="color: var(--text-gray); font-size: 0.8rem; margin: 0;">Only you see "[deleted]"</p>
+                        </div>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" id="cancelDeleteBtn" style="flex: 1; padding: 12px;">Cancel</button>
+                    <button class="btn btn-danger" id="confirmDeleteBtn" style="flex: 1; padding: 12px;">Delete</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('deleteConfirmModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('deleteConfirmModal');
+    
+    document.getElementById('cancelDeleteBtn').onclick = () => modal.remove();
+    
+    document.getElementById('confirmDeleteBtn').onclick = async () => {
+        const deleteOption = document.querySelector('input[name="deleteOption"]:checked').value;
+        const deleteForEveryone = deleteOption === 'everyone';
+        
+        modal.remove();
+        showToast("Deleting...", "info");
+        
+        try {
+            const response = await fetch(`/api/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ delete_for_everyone: deleteForEveryone })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast(data.message, "success");
+                
+                const messageDiv = buttonElement.closest('.message');
+                
+                if (deleteForEveryone) {
+                    const messageTextDiv = messageDiv.querySelector('.message-text');
+                    if (messageTextDiv) {
+                        messageTextDiv.textContent = "[message deleted]";
+                        messageTextDiv.style.fontStyle = "italic";
+                        messageTextDiv.style.opacity = "0.6";
+                    }
+                    messageDiv.classList.add('message-deleted');
+                } else {
+                    const messageGroup = messageDiv.closest('.message-group');
+                    if (messageGroup && messageGroup.children.length === 2) {
+                        messageGroup.remove();
+                    } else {
+                        messageDiv.remove();
+                    }
+                }
+                
+                if (activeMessageElement === messageDiv) {
+                    deactivateMessage(messageDiv);
+                    activeMessageElement = null;
+                }
+            } else {
+                showToast(data.error || "Failed to delete", "error");
+            }
+        } catch (err) {
+            showToast("Error deleting message", "error");
+        }
+    };
+    
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
 /*********************
  *  New Conversation Modal *
  *********************/

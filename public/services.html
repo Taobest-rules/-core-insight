@@ -4660,6 +4660,83 @@ In the name of Allah, the Most Gracious, the Most Merciful
         height: calc(100vh - 120px);
     }
 }
+/* Make sure panels are visible when active */
+.inbox-sidebar.mobile-active,
+.inbox-main.mobile-active,
+.inbox-sidebar-right.mobile-active {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+/* Ensure the container takes full height on mobile */
+@media (max-width: 768px) {
+    .inbox-container {
+        display: block;
+        height: calc(100vh - 120px);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .inbox-sidebar,
+    .inbox-main,
+    .inbox-sidebar-right {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        overflow-y: auto;
+    }
+    
+    .inbox-sidebar.mobile-active,
+    .inbox-main.mobile-active,
+    .inbox-sidebar-right.mobile-active {
+        display: flex !important;
+    }
+    
+    /* Back button styling */
+    .mobile-back-btn {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--chat-header);
+        border-bottom: 1px solid var(--chat-divider);
+        cursor: pointer;
+        color: var(--text-light);
+        font-weight: 500;
+        margin-bottom: 0;
+        width: 100%;
+    }
+    
+    .mobile-back-btn i {
+        font-size: 1.2rem;
+    }
+    
+    .mobile-back-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    
+    /* Adjust chat header for mobile back button */
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 16px;
+    }
+    
+    .chat-user-info {
+        width: 100%;
+    }
+    
+    .chat-actions {
+        align-self: flex-end;
+        margin-top: -40px;
+    }
+}
   </style>
 </head>
 <body>
@@ -6865,6 +6942,10 @@ function updateHeader() {
 /*********************
  *  FIXED SHOW INBOX FUNCTION *
  *********************/
+
+  /*********************
+ *  FIXED SHOW INBOX FUNCTION WITH MOBILE SUPPORT
+ *********************/
 function showInbox() {
     console.log('showInbox called');
     console.log('Current user:', currentUser);
@@ -6974,6 +7055,13 @@ function showInbox() {
             badge.classList.add('hidden');
         }
         
+        // ✅ CRITICAL: Initialize mobile view AFTER inbox is shown
+        setTimeout(() => {
+            initMobileChatView();
+            setupInboxAttachments();
+            setupMobileUserInfo();
+        }, 100);
+        
         showToast('📬 Inbox opened', 'success');
         
     } catch (error) {
@@ -6982,6 +7070,93 @@ function showInbox() {
     }
 }
 
+// Override openConversation function for mobile
+const originalOpenConversation = window.openConversation;
+window.openConversation = function(conversationId, username, otherUserId) {
+    // Call original function if it exists
+    if (originalOpenConversation && typeof originalOpenConversation === 'function') {
+        originalOpenConversation(conversationId, username, otherUserId);
+    } else {
+        // Fallback if original doesn't exist
+        window.activeConversationId = conversationId;
+        window.activeConversationUserId = otherUserId;
+        
+        const sendMessageForm = document.getElementById('sendMessageForm');
+        if (sendMessageForm) {
+            sendMessageForm.dataset.conversationId = conversationId;
+        }
+        
+        const chatUserName = document.getElementById('chatUserName');
+        if (chatUserName) chatUserName.textContent = username;
+        
+        const messageInputArea = document.getElementById('messageInputArea');
+        if (messageInputArea) messageInputArea.style.display = 'block';
+        
+        const emptyChatMessage = document.getElementById('emptyChatMessage');
+        const messagesContainer = document.getElementById('messagesContainer');
+        
+        if (emptyChatMessage) emptyChatMessage.style.display = 'none';
+        if (messagesContainer) {
+            messagesContainer.style.display = 'block';
+            messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
+        }
+        
+        loadMessagesForConversation(conversationId);
+    }
+    
+    // On mobile, switch to chat panel
+    if (window.innerWidth <= 768) {
+        setTimeout(() => {
+            showMobilePanel('chat');
+            addMobileBackButtons();
+        }, 100);
+    }
+};
+
+// Setup mobile user info button
+function setupMobileUserInfo() {
+    const toggleBtn = document.getElementById('toggleUserInfoBtn');
+    if (toggleBtn) {
+        // Remove existing listeners
+        const newBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
+        
+        newBtn.onclick = () => {
+            if (window.innerWidth <= 768) {
+                showMobilePanel('info');
+                addMobileBackButtons();
+            } else {
+                const panel = document.getElementById('userInfoPanel');
+                if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+    }
+}
+
+// Handle window resize
+function handleMobileResize() {
+    if (window.innerWidth <= 768) {
+        // On mobile, ensure we're showing the right panel
+        if (!document.querySelector('.inbox-sidebar.mobile-active') && 
+            !document.querySelector('.inbox-main.mobile-active') && 
+            !document.querySelector('.inbox-sidebar-right.mobile-active')) {
+            showMobilePanel('conversations');
+        }
+        addMobileBackButtons();
+    } else {
+        // On desktop, show all panels
+        const sidebar = document.querySelector('.inbox-sidebar');
+        const main = document.querySelector('.inbox-main');
+        const rightSidebar = document.querySelector('.inbox-sidebar-right');
+        
+        if (sidebar) sidebar.classList.remove('mobile-active');
+        if (main) main.classList.remove('mobile-active');
+        if (rightSidebar) rightSidebar.classList.remove('mobile-active');
+        
+        // Remove mobile back buttons
+        document.querySelectorAll('.mobile-back-btn').forEach(btn => btn.remove());
+    }
+}
 function hideAllPages() {
     stopMessagePolling();
 
@@ -12432,6 +12607,10 @@ function renderMessageWithActions(message) {
 // MOBILE CHAT NAVIGATION
 // ============================================
 
+// ============================================
+// MOBILE CHAT NAVIGATION - COMPLETE FIX
+// ============================================
+
 let currentMobilePanel = 'conversations'; // 'conversations', 'chat', 'info'
 
 function showMobilePanel(panel) {
@@ -12448,12 +12627,15 @@ function showMobilePanel(panel) {
     if (panel === 'conversations') {
         if (sidebar) sidebar.classList.add('mobile-active');
         currentMobilePanel = 'conversations';
+        console.log("Mobile: Showing conversations panel");
     } else if (panel === 'chat') {
         if (main) main.classList.add('mobile-active');
         currentMobilePanel = 'chat';
+        console.log("Mobile: Showing chat panel");
     } else if (panel === 'info') {
         if (rightSidebar) rightSidebar.classList.add('mobile-active');
         currentMobilePanel = 'info';
+        console.log("Mobile: Showing info panel");
     }
 }
 
@@ -12467,7 +12649,7 @@ function addMobileBackButtons() {
     if (chatHeader && !document.querySelector('.mobile-back-btn-chat')) {
         const backBtn = document.createElement('div');
         backBtn.className = 'mobile-back-btn mobile-back-btn-chat';
-        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span>Back</span>';
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span>Back to Chats</span>';
         backBtn.onclick = () => showMobilePanel('conversations');
         chatHeader.insertBefore(backBtn, chatHeader.firstChild);
     }
@@ -12482,59 +12664,17 @@ function addMobileBackButtons() {
         backBtn.onclick = () => showMobilePanel('chat');
         userInfoHeader.parentNode.insertBefore(backBtn, userInfoHeader);
     }
-    
-    // Add back button to conversation list header
-    const inboxHeader = document.querySelector('.inbox-header');
-    if (inboxHeader && !document.querySelector('.mobile-close-chat')) {
-        // For when we need to close chat from conversation list, but no back needed
-    }
 }
 
-// Override openConversation function for mobile
-const originalOpenConversation = window.openConversation;
-window.openConversation = function(conversationId, username, otherUserId) {
-    // Call original function
-    if (originalOpenConversation) {
-        originalOpenConversation(conversationId, username, otherUserId);
-    }
-    
-    // On mobile, switch to chat panel
+// Initialize mobile view - THIS IS THE KEY FUNCTION THAT WAS MISSING
+function initMobileChatView() {
     if (window.innerWidth <= 768) {
-        setTimeout(() => {
-            showMobilePanel('chat');
-            addMobileBackButtons();
-        }, 100);
-    }
-};
-
-// Override toggleUserInfoBtn for mobile
-const originalToggleUserInfo = window.setupInboxButtons;
-function setupMobileUserInfo() {
-    const toggleBtn = document.getElementById('toggleUserInfoBtn');
-    if (toggleBtn) {
-        toggleBtn.onclick = () => {
-            if (window.innerWidth <= 768) {
-                showMobilePanel('info');
-            } else {
-                const panel = document.getElementById('userInfoPanel');
-                if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            }
-        };
-    }
-}
-
-// Handle window resize
-function handleMobileResize() {
-    const wasMobile = window.innerWidth <= 768;
-    
-    if (wasMobile) {
+        console.log("Mobile device detected - initializing chat view");
         // On mobile, start with conversations panel
-        if (!currentMobilePanel) {
-            showMobilePanel('conversations');
-        }
+        showMobilePanel('conversations');
         addMobileBackButtons();
     } else {
-        // On desktop, show all panels
+        // On desktop, ensure all panels are visible
         const sidebar = document.querySelector('.inbox-sidebar');
         const main = document.querySelector('.inbox-main');
         const rightSidebar = document.querySelector('.inbox-sidebar-right');
@@ -12547,7 +12687,6 @@ function handleMobileResize() {
         document.querySelectorAll('.mobile-back-btn').forEach(btn => btn.remove());
     }
 }
-
 // Initialize mobile chat when inbox is opened
 const originalShowInboxMobile = window.showInbox;
 window.showInbox = function() {

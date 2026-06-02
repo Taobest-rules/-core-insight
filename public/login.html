@@ -9,9 +9,11 @@
             --primary-dark: #0f172a;
             --secondary-dark: #1e293b;
             --accent-gold: #FFD700;
+            --accent-blue: #3b82f6;
             --text-light: #e0e0e0;
             --text-gray: #a0a0a0;
             --success: #10b981;
+            --warning: #f59e0b;
             --danger: #ef4444;
         }
         
@@ -32,6 +34,7 @@
             padding: 2rem 1rem;
         }
         
+        /* Bismillah Banner */
         .bismillah {
             text-align: center;
             padding: 1.5rem;
@@ -50,12 +53,13 @@
         
         .bismillah .arabic {
             font-size: 1.8rem;
-            font-family: 'Amiri', 'Traditional Arabic', serif;
+            font-family: 'Amiri', 'Traditional Arabic', 'Times New Roman', serif;
             margin-bottom: 0.5rem;
         }
         
         .bismillah .english {
             font-size: 1rem;
+            letter-spacing: 0.5px;
         }
         
         .auth-container {
@@ -63,6 +67,7 @@
             backdrop-filter: blur(10px);
             padding: 2rem;
             border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             width: 100%;
             max-width: 450px;
             border: 1px solid rgba(255, 215, 0, 0.2);
@@ -85,6 +90,7 @@
             background: rgba(15, 23, 42, 0.5);
             padding: 0.25rem;
             border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
         }
         
         .toggle-btn {
@@ -96,11 +102,13 @@
             cursor: pointer;
             border-radius: 8px;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
         
         .toggle-btn.active {
             background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
             color: #000;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
         }
         
         .field-group {
@@ -118,7 +126,9 @@
         label {
             display: block;
             margin-bottom: 0.5rem;
+            color: var(--text-light);
             font-weight: 600;
+            font-size: 0.9rem;
         }
         
         input {
@@ -129,11 +139,29 @@
             background: rgba(15, 23, 42, 0.8);
             color: var(--text-light);
             font-size: 16px;
+            transition: all 0.3s ease;
         }
         
         input:focus {
             outline: none;
             border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+        }
+        
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .password-wrapper button {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 1rem;
         }
         
         .options-row {
@@ -143,12 +171,34 @@
             margin: 1.25rem 0;
         }
         
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .remember-me input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-gold);
+            cursor: pointer;
+        }
+        
         .forgot-link {
             color: var(--accent-gold);
             text-decoration: none;
+            font-size: 0.9rem;
             cursor: pointer;
             background: none;
             border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .forgot-link:hover {
+            text-decoration: underline;
         }
         
         button[type="submit"] {
@@ -160,7 +210,14 @@
             border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
+            transition: all 0.3s ease;
             font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        button[type="submit"]:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
         }
         
         button[type="submit"]:disabled {
@@ -173,11 +230,13 @@
             padding: 0.75rem;
             border-radius: 10px;
             text-align: center;
+            font-size: 0.9rem;
         }
         
-        .success { background: rgba(16, 185, 129, 0.15); color: #51cf66; }
-        .error { background: rgba(239, 68, 68, 0.15); color: #ff6b6b; }
-        .warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .success { background: rgba(16, 185, 129, 0.15); color: #51cf66; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .error { background: rgba(239, 68, 68, 0.15); color: #ff6b6b; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .info { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
         
         .links {
             text-align: center;
@@ -189,13 +248,60 @@
         .links a {
             color: var(--accent-gold);
             text-decoration: none;
+            font-weight: 500;
         }
         
-        .resend-link {
-            display: inline-block;
-            margin-top: 0.5rem;
-            color: var(--accent-gold);
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: var(--secondary-dark);
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h3 {
+            color: var(--text-light);
+            font-size: 1.3rem;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 1.5rem;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .close-modal:hover {
+            color: var(--accent-gold);
         }
         
         .spinner {
@@ -213,12 +319,34 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 1.5rem;
+            }
+            
+            .bismillah .arabic {
+                font-size: 1.4rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .options-row {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="auth-container">
+        <!-- Bismillah Banner -->
         <div class="bismillah">
             <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
             <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
@@ -248,10 +376,18 @@
             
             <div class="form-group">
                 <label><i class="fas fa-lock"></i> Password</label>
-                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                <div class="password-wrapper">
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                    <button type="button" onclick="togglePassword('loginPassword')">
+                        <i class="far fa-eye"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="options-row">
+                <label class="remember-me">
+                    <input type="checkbox" id="rememberMe"> Remember me
+                </label>
                 <button type="button" class="forgot-link" onclick="openForgotModal()">Forgot Password?</button>
             </div>
             
@@ -268,17 +404,41 @@
     </div>
 
     <!-- Forgot Password Modal -->
-    <div id="forgotModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: var(--secondary-dark); max-width: 400px; width: 90%; border-radius: 20px; padding: 2rem;">
-            <h3 style="color: var(--accent-gold); margin-bottom: 1rem;">Reset Password</h3>
+    <div class="modal" id="forgotModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-key"></i> Reset Password</h3>
+                <button class="close-modal" onclick="closeForgotModal()">✕</button>
+            </div>
+            
             <div id="forgotMessage"></div>
-            <input type="email" id="resetEmail" placeholder="Enter your email" style="width: 100%; padding: 0.85rem; border-radius: 12px; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,215,0,0.2); color: white; margin-bottom: 1rem;">
-            <button onclick="sendResetLink()" style="width: 100%; padding: 0.85rem; background: var(--accent-gold); border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Send Reset Link</button>
-            <button onclick="closeForgotModal()" style="width: 100%; margin-top: 0.5rem; padding: 0.85rem; background: transparent; border: 1px solid var(--accent-gold); border-radius: 12px; color: var(--accent-gold); cursor: pointer;">Cancel</button>
+            
+            <form id="forgotForm">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email Address</label>
+                    <input type="email" id="resetEmail" placeholder="Enter your email" required>
+                </div>
+                <button type="submit" id="resetBtn">
+                    <i class="fas fa-paper-plane"></i> Send Reset Link
+                </button>
+            </form>
         </div>
     </div>
 
     <script>
+        // Toggle password visibility
+        function togglePassword(id) {
+            const field = document.getElementById(id);
+            const icon = field.nextElementSibling.querySelector('i');
+            if (field.type === "password") {
+                field.type = "text";
+                if (icon) icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                field.type = "password";
+                if (icon) icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
         // Toggle between username and email
         const usernameToggle = document.getElementById('usernameToggle');
         const emailToggle = document.getElementById('emailToggle');
@@ -299,16 +459,98 @@
             usernameGroup.classList.remove('active');
         });
 
+        // Modal functions
         function openForgotModal() {
             document.getElementById('forgotModal').style.display = 'flex';
         }
 
         function closeForgotModal() {
             document.getElementById('forgotModal').style.display = 'none';
+            document.getElementById('forgotMessage').innerHTML = '';
+            document.getElementById('resetEmail').value = '';
         }
 
-        async function sendResetLink() {
+        // LOGIN FORM HANDLER - Redirects to courses.html for EVERYONE
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('loginUsername').value.trim();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const loginBtn = document.getElementById('loginBtn');
+            const messageDiv = document.getElementById('loginMessage');
+
+            messageDiv.innerHTML = '';
+
+            if (!password) {
+                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please enter your password</div>';
+                return;
+            }
+
+            const useUsername = usernameToggle.classList.contains('active');
+            
+            if (useUsername && !username) {
+                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please enter your username</div>';
+                return;
+            }
+            
+            if (!useUsername && !email) {
+                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please enter your email</div>';
+                return;
+            }
+
+            const loginData = useUsername 
+                ? { username, password, rememberMe } 
+                : { email, password, rememberMe };
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginData),
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    messageDiv.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> Login successful! Redirecting to courses...</div>';
+                    // ✅ REDIRECT EVERYONE TO courses.html
+                    setTimeout(() => {
+                        window.location.href = '/courses.html';
+                    }, 1000);
+                } else {
+                    if (data.unverified || (data.error && data.error.toLowerCase().includes('verify'))) {
+                        messageDiv.innerHTML = `
+                            <div class="message warning">
+                                <i class="fas fa-envelope"></i> Please verify your email before logging in.<br>
+                                Check your inbox for the verification link.<br>
+                                <a href="verify.html" style="color: var(--accent-gold);">Click here to verify</a>
+                            </div>
+                        `;
+                    } else {
+                        messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Invalid credentials'}</div>`;
+                    }
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> Connection error. Please try again.</div>';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }
+        });
+        
+        // FORGOT PASSWORD HANDLER
+        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
             const email = document.getElementById('resetEmail').value.trim();
+            const resetBtn = document.getElementById('resetBtn');
             const messageDiv = document.getElementById('forgotMessage');
             
             if (!email) {
@@ -316,7 +558,8 @@
                 return;
             }
             
-            messageDiv.innerHTML = '<div class="message info">Sending...</div>';
+            resetBtn.disabled = true;
+            resetBtn.innerHTML = '<span class="spinner"></span> Sending...';
             
             try {
                 const res = await fetch('/api/forgot-password', {
@@ -335,95 +578,45 @@
                 }
             } catch (err) {
                 messageDiv.innerHTML = '<div class="message error">Network error. Please try again.</div>';
-            }
-        }
-
-        // LOGIN HANDLER
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('loginUsername').value.trim();
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const messageDiv = document.getElementById('loginMessage');
-
-            messageDiv.innerHTML = '';
-
-            if (!password) {
-                messageDiv.innerHTML = '<div class="message error">Please enter your password</div>';
-                return;
-            }
-
-            const useUsername = usernameToggle.classList.contains('active');
-            
-            if (useUsername && !username) {
-                messageDiv.innerHTML = '<div class="message error">Please enter your username</div>';
-                return;
-            }
-            
-            if (!useUsername && !email) {
-                messageDiv.innerHTML = '<div class="message error">Please enter your email</div>';
-                return;
-            }
-
-            const loginData = useUsername 
-                ? { username, password } 
-                : { email, password };
-
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(loginData),
-                    credentials: 'include'
-                });
-
-                const data = await res.json();
-                
-                if (res.ok) {
-                    messageDiv.innerHTML = '<div class="message success">✅ Login successful! Redirecting...</div>';
-                    setTimeout(() => {
-                        window.location.href = '/dashboard.html';
-                    }, 1000);
-                } else {
-                    if (data.unverified || (data.error && data.error.toLowerCase().includes('verify'))) {
-                        messageDiv.innerHTML = `
-                            <div class="message warning">
-                                ⚠️ Please verify your email before logging in.<br>
-                                Check your inbox for the verification link.<br>
-                                <a href="verify.html" style="color: var(--accent-gold);">Click here to verify</a>
-                            </div>
-                        `;
-                    } else {
-                        messageDiv.innerHTML = `<div class="message error">${data.error || 'Invalid credentials'}</div>`;
-                    }
-                }
-            } catch (err) {
-                messageDiv.innerHTML = '<div class="message error">Connection error. Please try again.</div>';
             } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                resetBtn.disabled = false;
+                resetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
             }
         });
 
-        // Check for message parameter
+        // Check for message parameter from signup
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('message') === 'check_email') {
-            document.getElementById('loginMessage').innerHTML = '<div class="message success">✅ Account created! Please check your email for verification link.</div>';
+            document.getElementById('loginMessage').innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> Account created! Please check your email for verification link.</div>';
         }
         if (urlParams.get('verified') === 'true') {
-            document.getElementById('loginMessage').innerHTML = '<div class="message success">✅ Email verified! You can now login.</div>';
+            document.getElementById('loginMessage').innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> Email verified! You can now login.</div>';
         }
 
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
             const modal = document.getElementById('forgotModal');
-            if (e.target === modal) closeForgotModal();
+            if (e.target === modal) {
+                closeForgotModal();
+            }
         });
+
+        // Check if user is already logged in
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/me');
+                const user = await res.json();
+                
+                if (user && user.id) {
+                    // Already logged in, redirect to courses
+                    window.location.href = '/courses.html';
+                }
+            } catch (error) {
+                // Not logged in, stay on login page
+            }
+        }
+
+        checkAuth();
     </script>
 </body>
 </html>

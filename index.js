@@ -3671,7 +3671,86 @@ app.get("/api/admin/sync-files", async (req, res) => {
     res.status(500).send(`Error: ${err.message}`);
   }
 });
+// ============================================
+// ADMIN: GET NEW USERS STATS (FOR DASHBOARD)
+// ============================================
+app.get("/api/admin/new-users-stats", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(todayStart);
+    monthStart.setDate(monthStart.getDate() - 30);
+    
+    // Get all users with created_at
+    const users = await db.query(`
+      SELECT id, username, email, role, created_at, account_locked
+      FROM users 
+      ORDER BY created_at DESC
+    `);
+    
+    // Calculate stats
+    let newToday = 0;
+    let newThisWeek = 0;
+    let newThisMonth = 0;
+    let recentUsers = [];
+    
+    for (const user of users) {
+      const createdAt = new Date(user.created_at);
+      
+      if (createdAt >= todayStart) {
+        newToday++;
+        recentUsers.push({ ...user, period: 'today' });
+      } else if (createdAt >= weekStart) {
+        newThisWeek++;
+        if (recentUsers.length < 10) recentUsers.push({ ...user, period: 'week' });
+      } else if (createdAt >= monthStart) {
+        newThisMonth++;
+      }
+    }
+    
+    res.json({
+      success: true,
+      stats: {
+        new_today: newToday,
+        new_this_week: newThisWeek,
+        new_this_month: newThisMonth,
+        total_users: users.length
+      },
+      recent_users: recentUsers.slice(0, 10)
+    });
+    
+  } catch (err) {
+    console.error("Error fetching new users stats:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
+// Add this to your index.js if missing
+app.get("/api/orders/all", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    
+    const orders = await db.query(`
+      SELECT o.*, p.title as product_name
+      FROM physical_orders o
+      LEFT JOIN products p ON o.product_id = p.id
+      ORDER BY o.created_at DESC
+    `);
+    
+    res.json(orders || []);
+  } catch (err) {
+    console.error("Error fetching all orders:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get("/api/admin/recover-files", async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'admin') {

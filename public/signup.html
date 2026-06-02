@@ -373,7 +373,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- Bismillah Banner - Properly placed at the top -->
+        <!-- Bismillah Banner -->
         <div class="bismillah">
             <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
             <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
@@ -598,7 +598,91 @@
         
         document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
         
-        // Form submission
+        // Terms Modal Functions
+        function openTermsModal() {
+            const modal = document.getElementById('termsModal');
+            const termsContent = document.getElementById('termsContent');
+            
+            termsContent.innerHTML = `
+                <h3>1. Acceptance of Terms</h3>
+                <p>By registering for Core Insight, you agree to these Terms of Service.</p>
+                
+                <h3>2. Account Types</h3>
+                <p><strong>Buyers:</strong> Can purchase products, courses, and services. No subscription required.</p>
+                <p><strong>Sellers:</strong> Can offer services, sell products, and earn money. Subject to platform fees. 90-day free trial available.</p>
+                
+                <h3>3. Platform Fees</h3>
+                <p>Core Insight charges a 10% platform fee on all sales. This fee is automatically deducted from each transaction.</p>
+                
+                <h3>4. Content Guidelines</h3>
+                <p>Users are responsible for the content they upload. Prohibited content includes illegal materials, hate speech, and copyright violations.</p>
+                
+                <h3>5. Payments</h3>
+                <p>All payments are processed through secure third-party payment providers (Flutterwave, Paystack).</p>
+                
+                <h3>6. Termination</h3>
+                <p>Core Insight reserves the right to suspend or terminate accounts that violate these terms.</p>
+                
+                <h3>7. Changes to Terms</h3>
+                <p>Terms may be updated from time to time. Continued use constitutes acceptance of changes.</p>
+                
+                <h3>8. Contact</h3>
+                <p>For questions, contact: support@coreinsight.com</p>
+                
+                <p><strong>Last Updated:</strong> May 2026</p>
+            `;
+            modal.style.display = 'flex';
+        }
+        
+        function closeTermsModal() {
+            document.getElementById('termsModal').style.display = 'none';
+        }
+        
+        function openPrivacyModal() {
+            const modal = document.getElementById('privacyModal');
+            const privacyContent = document.getElementById('privacyContent');
+            
+            privacyContent.innerHTML = `
+                <h3>Information We Collect</h3>
+                <p>We collect information you provide directly to us, such as your name, email address, and payment information when you create an account or make a purchase.</p>
+                
+                <h3>How We Use Your Information</h3>
+                <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices, and respond to your comments.</p>
+                
+                <h3>Data Security</h3>
+                <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+                
+                <h3>Sharing of Information</h3>
+                <p>We do not share your personal information with third parties except as necessary to provide our services (e.g., payment processing) or as required by law.</p>
+                
+                <h3>Your Rights</h3>
+                <p>You may access, correct, or delete your personal information by contacting us. You may also opt out of marketing communications at any time.</p>
+                
+                <h3>Cookies</h3>
+                <p>We use cookies to enhance your experience on our platform. You can set your browser to refuse cookies, but some features may not function properly.</p>
+                
+                <p><strong>Last Updated:</strong> May 2026</p>
+            `;
+            modal.style.display = 'flex';
+        }
+        
+        function closePrivacyModal() {
+            document.getElementById('privacyModal').style.display = 'none';
+        }
+        
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const termsModal = document.getElementById('termsModal');
+            const privacyModal = document.getElementById('privacyModal');
+            if (event.target === termsModal) {
+                termsModal.style.display = 'none';
+            }
+            if (event.target === privacyModal) {
+                privacyModal.style.display = 'none';
+            }
+        };
+        
+        // FORM SUBMISSION - FIXED VERSION
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -666,12 +750,25 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> ✅ Account created successfully! Redirecting to login...</div>';
-                    document.getElementById('signupForm').reset();
+                    // SUCCESS - Show verification message
+                    messageDiv.innerHTML = `
+                        <div class="message success">
+                            <i class="fas fa-check-circle"></i> 
+                            ✅ Account created successfully!<br><br>
+                            <strong>📧 A verification link has been sent to ${email}</strong><br><br>
+                            Please check your email and click the verification link to activate your account.<br><br>
+                            <small>Redirecting to login page in 5 seconds...</small>
+                        </div>
+                    `;
                     
+                    // Clear form
+                    document.getElementById('signupForm').reset();
+                    document.querySelectorAll('.role-card').forEach(card => card.classList.remove('selected'));
+                    
+                    // Redirect to login page after 5 seconds
                     setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2500);
+                        window.location.href = 'login.html?message=check_email';
+                    }, 5000);
                 } else {
                     messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Error creating account'}</div>`;
                 }
@@ -683,91 +780,6 @@
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up';
             }
         });
-        
-        // Terms Modal Functions
-        function openTermsModal() {
-            const modal = document.getElementById('termsModal');
-            const termsContent = document.getElementById('termsContent');
-            
-            termsContent.innerHTML = `
-                <h3>1. Acceptance of Terms</h3>
-                <p>By registering for Core Insight, you agree to these Terms of Service.</p>
-                
-                <h3>2. Account Types</h3>
-                <p><strong>Buyers:</strong> Can purchase products, courses, and services. No subscription required.</p>
-                <p><strong>Sellers:</strong> Can offer services, sell products, and earn money. Subject to platform fees. 90-day free trial available.</p>
-                
-                <h3>3. Platform Fees</h3>
-                <p>Core Insight charges a 10% platform fee on all sales. This fee is automatically deducted from each transaction.</p>
-                
-                <h3>4. Content Guidelines</h3>
-                <p>Users are responsible for the content they upload. Prohibited content includes illegal materials, hate speech, and copyright violations.</p>
-                
-                <h3>5. Payments</h3>
-                <p>All payments are processed through secure third-party payment providers (Flutterwave, Paystack).</p>
-                
-                <h3>6. Termination</h3>
-                <p>Core Insight reserves the right to suspend or terminate accounts that violate these terms.</p>
-                
-                <h3>7. Changes to Terms</h3>
-                <p>Terms may be updated from time to time. Continued use constitutes acceptance of changes.</p>
-                
-                <h3>8. Contact</h3>
-                <p>For questions, contact: support@coreinsight.com</p>
-                
-                <p><strong>Last Updated:</strong> May 2026</p>
-            `;
-            modal.style.display = 'flex';
-        }
-        
-        function closeTermsModal() {
-            document.getElementById('termsModal').style.display = 'none';
-        }
-        
-        // Privacy Modal Functions
-        function openPrivacyModal() {
-            const modal = document.getElementById('privacyModal');
-            const privacyContent = document.getElementById('privacyContent');
-            
-            privacyContent.innerHTML = `
-                <h3>Information We Collect</h3>
-                <p>We collect information you provide directly to us, such as your name, email address, and payment information when you create an account or make a purchase.</p>
-                
-                <h3>How We Use Your Information</h3>
-                <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices, and respond to your comments.</p>
-                
-                <h3>Data Security</h3>
-                <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
-                
-                <h3>Sharing of Information</h3>
-                <p>We do not share your personal information with third parties except as necessary to provide our services (e.g., payment processing) or as required by law.</p>
-                
-                <h3>Your Rights</h3>
-                <p>You may access, correct, or delete your personal information by contacting us. You may also opt out of marketing communications at any time.</p>
-                
-                <h3>Cookies</h3>
-                <p>We use cookies to enhance your experience on our platform. You can set your browser to refuse cookies, but some features may not function properly.</p>
-                
-                <p><strong>Last Updated:</strong> May 2026</p>
-            `;
-            modal.style.display = 'flex';
-        }
-        
-        function closePrivacyModal() {
-            document.getElementById('privacyModal').style.display = 'none';
-        }
-        
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const termsModal = document.getElementById('termsModal');
-            const privacyModal = document.getElementById('privacyModal');
-            if (event.target === termsModal) {
-                termsModal.style.display = 'none';
-            }
-            if (event.target === privacyModal) {
-                privacyModal.style.display = 'none';
-            }
-        };
         
         // Initialize eye icons
         document.querySelectorAll('.password-toggle').forEach(btn => {

@@ -1,711 +1,429 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login - Core Insight</title>
-  <style>
-    :root {
-      --primary-dark: #0f172a;
-      --secondary-dark: #1e293b;
-      --accent-gold: #FFD700;
-      --accent-blue: #3b82f6;
-      --text-light: #e0e0e0;
-      --text-gray: #a0a0a0;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      color: var(--text-light);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem 1rem;
-    }
-    
-    /* Bismillah Banner */
-    .bismillah {
-      text-align: center;
-      padding: 1.5rem;
-      background: rgba(255, 215, 0, 0.1);
-      border-radius: 16px;
-      margin-bottom: 1.5rem;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-    }
-    
-    .bismillah span {
-      color: #FFD700;
-      font-size: 1.3rem;
-      line-height: 1.8;
-      display: block;
-    }
-    
-    .bismillah .arabic {
-      font-size: 1.8rem;
-      font-family: 'Amiri', 'Traditional Arabic', 'Times New Roman', serif;
-      margin-bottom: 0.5rem;
-    }
-    
-    .bismillah .english {
-      font-size: 1rem;
-      letter-spacing: 0.5px;
-    }
-    
-    .auth-container {
-      background: rgba(30, 41, 59, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 2rem;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      width: 100%;
-      max-width: 450px;
-      border: 1px solid rgba(255, 215, 0, 0.2);
-    }
-    
-    h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      font-size: 1.8rem;
-    }
-    
-    .login-toggle {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      background: rgba(15, 23, 42, 0.5);
-      padding: 0.25rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 215, 0, 0.2);
-    }
-    
-    .toggle-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text-gray);
-      padding: 0.75rem;
-      cursor: pointer;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-    
-    .toggle-btn.active {
-      background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-      color: #000;
-      box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-    }
-    
-    .field-group {
-      display: none;
-    }
-    
-    .field-group.active {
-      display: block;
-    }
-    
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: var(--text-light);
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    
-    input {
-      width: 100%;
-      padding: 0.85rem 1rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      background: rgba(15, 23, 42, 0.8);
-      color: var(--text-light);
-      font-size: 16px;
-      transition: all 0.3s ease;
-    }
-    
-    input:focus {
-      outline: none;
-      border-color: var(--accent-gold);
-      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
-    }
-    
-    .password-wrapper {
-      position: relative;
-    }
-    
-    .password-wrapper button {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--text-gray);
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    
-    .options-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 1.25rem 0;
-    }
-    
-    .remember-me {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-gray);
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    
-    .remember-me input {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent-gold);
-      cursor: pointer;
-    }
-    
-    .forgot-link {
-      color: var(--accent-gold);
-      text-decoration: none;
-      font-size: 0.9rem;
-      cursor: pointer;
-      background: none;
-      border: none;
-      transition: all 0.2s ease;
-    }
-    
-    .forgot-link:hover {
-      text-decoration: underline;
-      transform: translateX(2px);
-    }
-    
-    button[type="submit"] {
-      width: 100%;
-      padding: 1rem;
-      background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-      color: #000;
-      border: none;
-      border-radius: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 1rem;
-      margin-top: 0.5rem;
-    }
-    
-    button[type="submit"]:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
-    }
-    
-    button[type="submit"]:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .message {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    
-    .success { background: rgba(16, 185, 129, 0.15); color: #51cf66; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .error { background: rgba(239, 68, 68, 0.15); color: #ff6b6b; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .info { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    
-    .links {
-      text-align: center;
-      margin-top: 1.5rem;
-      padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .links a {
-      color: var(--accent-gold);
-      text-decoration: none;
-      font-weight: 500;
-    }
-    
-    .links a:hover {
-      text-decoration: underline;
-    }
-    
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    
-    .modal-content {
-      background: var(--secondary-dark);
-      padding: 2rem;
-      border-radius: 20px;
-      max-width: 400px;
-      width: 90%;
-      border: 1px solid rgba(255, 215, 0, 0.2);
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-    
-    .modal-header h3 {
-      color: var(--text-light);
-      font-size: 1.3rem;
-    }
-    
-    .close-modal {
-      background: none;
-      border: none;
-      color: var(--text-gray);
-      font-size: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .close-modal:hover {
-      color: var(--accent-gold);
-      transform: rotate(90deg);
-    }
-    
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(0, 0, 0, 0.2);
-      border-radius: 50%;
-      border-top-color: #000;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Verification Help Box */
-    .verification-help {
-      margin-top: 1rem;
-      padding: 1rem;
-      background: rgba(100, 255, 218, 0.1);
-      border: 1px solid rgba(100, 255, 218, 0.3);
-      border-radius: 12px;
-      text-align: center;
-    }
-    
-    .verification-help p {
-      margin-bottom: 0.5rem;
-      color: var(--accent-gold);
-    }
-    
-    .verification-help a {
-      color: var(--accent-gold);
-      text-decoration: underline;
-      cursor: pointer;
-    }
-    
-    .resend-link {
-      display: inline-block;
-      margin-top: 0.5rem;
-      color: var(--accent-gold);
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    
-    .resend-link:hover {
-      text-decoration: underline;
-    }
-    
-    /* Responsive */
-    @media (max-width: 480px) {
-      .auth-container {
-        padding: 1.5rem;
-      }
-      
-      .bismillah .arabic {
-        font-size: 1.4rem;
-      }
-      
-      h2 {
-        font-size: 1.5rem;
-      }
-      
-      .options-row {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: flex-start;
-      }
-    }
-  </style>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Core Insight</title>
+    <style>
+        :root {
+            --primary-dark: #0f172a;
+            --secondary-dark: #1e293b;
+            --accent-gold: #FFD700;
+            --text-light: #e0e0e0;
+            --text-gray: #a0a0a0;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+        
+        .bismillah {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .bismillah span {
+            color: #FFD700;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            display: block;
+        }
+        
+        .bismillah .arabic {
+            font-size: 1.8rem;
+            font-family: 'Amiri', 'Traditional Arabic', serif;
+            margin-bottom: 0.5rem;
+        }
+        
+        .bismillah .english {
+            font-size: 1rem;
+        }
+        
+        .auth-container {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.8rem;
+        }
+        
+        .login-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 0.25rem;
+            border-radius: 12px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            padding: 0.75rem;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .toggle-btn.active {
+            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
+            color: #000;
+        }
+        
+        .field-group {
+            display: none;
+        }
+        
+        .field-group.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-light);
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+        
+        .options-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1.25rem 0;
+        }
+        
+        .forgot-link {
+            color: var(--accent-gold);
+            text-decoration: none;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        button[type="submit"] {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        button[type="submit"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .success { background: rgba(16, 185, 129, 0.15); color: #51cf66; }
+        .error { background: rgba(239, 68, 68, 0.15); color: #ff6b6b; }
+        .warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        
+        .links {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .links a {
+            color: var(--accent-gold);
+            text-decoration: none;
+        }
+        
+        .resend-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            color: var(--accent-gold);
+            cursor: pointer;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="auth-container">
-    <!-- Bismillah Banner - Properly placed at the top -->
-    <div class="bismillah">
-      <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-      <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-    </div>
-    
-    <h2>Welcome Back</h2>
-    
-    <div class="login-toggle">
-      <button class="toggle-btn active" id="usernameToggle">Username</button>
-      <button class="toggle-btn" id="emailToggle">Email</button>
-    </div>
-    
-    <form id="loginForm">
-      <div class="field-group active" id="usernameGroup">
-        <div class="form-group">
-          <label><i class="fas fa-user"></i> Username</label>
-          <input type="text" id="loginUsername" placeholder="Enter your username" />
+    <div class="auth-container">
+        <div class="bismillah">
+            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
         </div>
-      </div>
-      
-      <div class="field-group" id="emailGroup">
-        <div class="form-group">
-          <label><i class="fas fa-envelope"></i> Email Address</label>
-          <input type="email" id="loginEmail" placeholder="Enter your email" />
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label><i class="fas fa-lock"></i> Password</label>
-        <div class="password-wrapper">
-          <input type="password" id="loginPassword" placeholder="Enter your password" required />
-          <button type="button" onclick="togglePassword('loginPassword')">
-            <i class="far fa-eye"></i>
-          </button>
-        </div>
-      </div>
-      
-      <div class="options-row">
-        <label class="remember-me">
-          <input type="checkbox" id="rememberMe"> Remember me
-        </label>
-        <button type="button" class="forgot-link" onclick="openForgotModal()">Forgot Password?</button>
-      </div>
-      
-      <button type="submit" id="loginBtn">
-        <i class="fas fa-sign-in-alt"></i> Login
-      </button>
-    </form>
-    
-    <div id="loginMessage"></div>
-    
-    <!-- Verification Help Section (Hidden by default) -->
-    <div id="verificationHelp" class="verification-help" style="display: none;">
-      <p><i class="fas fa-envelope"></i> ⚠️ Account Not Verified</p>
-      <p>Please verify your email before logging in.</p>
-      <a href="/verify-manual.html">Click here to verify your account</a>
-      <div class="resend-link" onclick="resendVerification()">
-        <i class="fas fa-paper-plane"></i> Resend verification email
-      </div>
-    </div>
-    
-    <div class="links">
-      <a href="signup.html"><i class="fas fa-user-plus"></i> Don't have an account? Sign Up</a>
-    </div>
-  </div>
-
-  <!-- Forgot Password Modal -->
-  <div class="modal" id="forgotModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3><i class="fas fa-key"></i> Reset Password</h3>
-        <button class="close-modal" onclick="closeForgotModal()">✕</button>
-      </div>
-      
-      <div id="forgotMessage"></div>
-      
-      <form id="forgotForm">
-        <div class="form-group">
-          <label><i class="fas fa-envelope"></i> Email Address</label>
-          <input type="email" id="resetEmail" placeholder="Enter your email" required />
-        </div>
-        <button type="submit" id="resetBtn">
-          <i class="fas fa-paper-plane"></i> Send Reset Link
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <script>
-    let unverifiedEmail = null;
-    
-    // Toggle password visibility
-    function togglePassword(id) {
-      const field = document.getElementById(id);
-      const icon = field.nextElementSibling.querySelector('i');
-      if (field.type === "password") {
-        field.type = "text";
-        if (icon) icon.classList.replace('fa-eye', 'fa-eye-slash');
-      } else {
-        field.type = "password";
-        if (icon) icon.classList.replace('fa-eye-slash', 'fa-eye');
-      }
-    }
-
-    // Toggle between username and email
-    const usernameToggle = document.getElementById('usernameToggle');
-    const emailToggle = document.getElementById('emailToggle');
-    const usernameGroup = document.getElementById('usernameGroup');
-    const emailGroup = document.getElementById('emailGroup');
-
-    usernameToggle.addEventListener('click', () => {
-      usernameToggle.classList.add('active');
-      emailToggle.classList.remove('active');
-      usernameGroup.classList.add('active');
-      emailGroup.classList.remove('active');
-    });
-
-    emailToggle.addEventListener('click', () => {
-      emailToggle.classList.add('active');
-      usernameToggle.classList.remove('active');
-      emailGroup.classList.add('active');
-      usernameGroup.classList.remove('active');
-    });
-
-    // Modal functions
-    function openForgotModal() {
-      document.getElementById('forgotModal').style.display = 'flex';
-    }
-
-    function closeForgotModal() {
-      document.getElementById('forgotModal').style.display = 'none';
-      document.getElementById('forgotMessage').innerHTML = '';
-      document.getElementById('resetEmail').value = '';
-    }
-
-    // Resend verification function
-    async function resendVerification() {
-      if (!unverifiedEmail) {
-        // Try to get email from input if user typed it
-        const emailInput = document.getElementById('loginEmail').value;
-        if (emailInput && emailInput.includes('@')) {
-          unverifiedEmail = emailInput;
-        } else {
-          alert('Please enter your email address to resend verification');
-          return;
-        }
-      }
-      
-      const messageDiv = document.getElementById('loginMessage');
-      messageDiv.innerHTML = '<div class="message info"><i class="fas fa-spinner fa-pulse"></i> Sending verification email...</div>';
-      
-      try {
-        const response = await fetch('/api/resend-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: unverifiedEmail })
-        });
         
-        const data = await response.json();
+        <h2>Welcome Back</h2>
         
-        if (response.ok) {
-          if (data.token) {
-            messageDiv.innerHTML = `<div class="message success"><i class="fas fa-check-circle"></i> ✅ Verification code: <strong>${data.token}</strong><br>Use this code at <a href="/verify-manual.html" style="color: var(--success);">verify-manual.html</a></div>`;
-          } else {
-            messageDiv.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> ✅ Verification email sent! Check your inbox.</div>';
-          }
-        } else {
-          messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ ${data.error || 'Error sending verification'}</div>`;
-        }
-      } catch (error) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> ⚠️ Network error. Please try again.</div>';
-      }
-    }
+        <div class="login-toggle">
+            <button class="toggle-btn active" id="usernameToggle">Username</button>
+            <button class="toggle-btn" id="emailToggle">Email</button>
+        </div>
+        
+        <form id="loginForm">
+            <div class="field-group active" id="usernameGroup">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username">
+                </div>
+            </div>
+            
+            <div class="field-group" id="emailGroup">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+            </div>
+            
+            <div class="options-row">
+                <button type="button" class="forgot-link" onclick="openForgotModal()">Forgot Password?</button>
+            </div>
+            
+            <button type="submit" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+        
+        <div id="loginMessage"></div>
+        
+        <div class="links">
+            <a href="signup.html"><i class="fas fa-user-plus"></i> Don't have an account? Sign Up</a>
+        </div>
+    </div>
 
-    // LOGIN FORM HANDLER - WITH REDIRECT SUPPORT
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: var(--secondary-dark); max-width: 400px; width: 90%; border-radius: 20px; padding: 2rem;">
+            <h3 style="color: var(--accent-gold); margin-bottom: 1rem;">Reset Password</h3>
+            <div id="forgotMessage"></div>
+            <input type="email" id="resetEmail" placeholder="Enter your email" style="width: 100%; padding: 0.85rem; border-radius: 12px; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,215,0,0.2); color: white; margin-bottom: 1rem;">
+            <button onclick="sendResetLink()" style="width: 100%; padding: 0.85rem; background: var(--accent-gold); border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Send Reset Link</button>
+            <button onclick="closeForgotModal()" style="width: 100%; margin-top: 0.5rem; padding: 0.85rem; background: transparent; border: 1px solid var(--accent-gold); border-radius: 12px; color: var(--accent-gold); cursor: pointer;">Cancel</button>
+        </div>
+    </div>
 
-      // Get redirect URL from query parameter
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectUrl = urlParams.get('redirect') || '/courses.html';
+    <script>
+        // Toggle between username and email
+        const usernameToggle = document.getElementById('usernameToggle');
+        const emailToggle = document.getElementById('emailToggle');
+        const usernameGroup = document.getElementById('usernameGroup');
+        const emailGroup = document.getElementById('emailGroup');
 
-      const username = document.getElementById('loginUsername').value.trim();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      const rememberMe = document.getElementById('rememberMe').checked;
-      const loginBtn = document.getElementById('loginBtn');
-      const messageDiv = document.getElementById('loginMessage');
-      const verificationHelp = document.getElementById('verificationHelp');
-
-      messageDiv.innerHTML = '';
-      verificationHelp.style.display = 'none';
-      unverifiedEmail = null;
-
-      if (!password) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ Please enter your password</div>';
-        return;
-      }
-
-      const useUsername = usernameToggle.classList.contains('active');
-      
-      if (useUsername && !username) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ Please enter your username</div>';
-        return;
-      }
-      
-      if (!useUsername && !email) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ Please enter your email</div>';
-        return;
-      }
-
-      const loginData = useUsername 
-        ? { username, password, rememberMe } 
-        : { email, password, rememberMe };
-
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
-
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loginData),
-          credentials: 'include'
+        usernameToggle.addEventListener('click', () => {
+            usernameToggle.classList.add('active');
+            emailToggle.classList.remove('active');
+            usernameGroup.classList.add('active');
+            emailGroup.classList.remove('active');
         });
 
-        const data = await res.json();
-        
-        if (res.ok) {
-          messageDiv.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> ✅ Login successful! Redirecting...</div>';
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1000);
-        } else {
-          if (data.unverified || (data.error && data.error.toLowerCase().includes('verify'))) {
-            unverifiedEmail = data.email || (useUsername ? null : email);
-            verificationHelp.style.display = 'block';
-            messageDiv.innerHTML = '<div class="message warning"><i class="fas fa-envelope"></i> ⚠️ Please verify your email before logging in.</div>';
-          } else {
-            messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ ${data.error || 'Invalid credentials'}</div>`;
-          }
-        }
-      } catch (err) {
-        console.error('Login error:', err);
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> ⚠️ Connection error. Please check your internet and try again.</div>';
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-      }
-    });
-    
-    // FORGOT PASSWORD HANDLER
-    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const email = document.getElementById('resetEmail').value.trim();
-      const resetBtn = document.getElementById('resetBtn');
-      const messageDiv = document.getElementById('forgotMessage');
-      
-      if (!email) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ Please enter your email</div>';
-        return;
-      }
-      
-      resetBtn.disabled = true;
-      resetBtn.innerHTML = '<span class="spinner"></span> Sending...';
-      
-      try {
-        const res = await fetch('/api/forgot-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+        emailToggle.addEventListener('click', () => {
+            emailToggle.classList.add('active');
+            usernameToggle.classList.remove('active');
+            emailGroup.classList.add('active');
+            usernameGroup.classList.remove('active');
         });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          messageDiv.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> ✅ Reset link sent! Check your email.</div>';
-          setTimeout(closeForgotModal, 2000);
-        } else {
-          messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ❌ ${data.error || 'Error sending reset link'}</div>`;
+
+        function openForgotModal() {
+            document.getElementById('forgotModal').style.display = 'flex';
         }
-      } catch (err) {
-        messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> ⚠️ Network error. Please try again.</div>';
-      } finally {
-        resetBtn.disabled = false;
-        resetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
-      }
-    });
 
-    // Close modal when clicking outside
-    window.addEventListener('click', (e) => {
-      const modal = document.getElementById('forgotModal');
-      if (e.target === modal) {
-        closeForgotModal();
-      }
-    });
-
-    // Check if user is already logged in
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/me');
-        const user = await res.json();
-        
-        if (user && user.id) {
-          // Redirect to courses page if already logged in
-          window.location.href = '/courses.html';
+        function closeForgotModal() {
+            document.getElementById('forgotModal').style.display = 'none';
         }
-      } catch (error) {
-        // User not logged in, stay on login page
-        console.log('Not logged in');
-      }
-    }
 
-    // Check if there's a verified parameter in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('verified') === 'true') {
-      document.getElementById('loginMessage').innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i> ✅ Email verified! You can now login.</div>';
-    }
+        async function sendResetLink() {
+            const email = document.getElementById('resetEmail').value.trim();
+            const messageDiv = document.getElementById('forgotMessage');
+            
+            if (!email) {
+                messageDiv.innerHTML = '<div class="message error">Please enter your email</div>';
+                return;
+            }
+            
+            messageDiv.innerHTML = '<div class="message info">Sending...</div>';
+            
+            try {
+                const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    messageDiv.innerHTML = '<div class="message success">Reset link sent! Check your email.</div>';
+                    setTimeout(closeForgotModal, 2000);
+                } else {
+                    messageDiv.innerHTML = `<div class="message error">${data.error || 'Error sending reset link'}</div>`;
+                }
+            } catch (err) {
+                messageDiv.innerHTML = '<div class="message error">Network error. Please try again.</div>';
+            }
+        }
 
-    // Check authentication on page load
-    checkAuth();
-  </script>
+        // LOGIN HANDLER
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('loginUsername').value.trim();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const messageDiv = document.getElementById('loginMessage');
+
+            messageDiv.innerHTML = '';
+
+            if (!password) {
+                messageDiv.innerHTML = '<div class="message error">Please enter your password</div>';
+                return;
+            }
+
+            const useUsername = usernameToggle.classList.contains('active');
+            
+            if (useUsername && !username) {
+                messageDiv.innerHTML = '<div class="message error">Please enter your username</div>';
+                return;
+            }
+            
+            if (!useUsername && !email) {
+                messageDiv.innerHTML = '<div class="message error">Please enter your email</div>';
+                return;
+            }
+
+            const loginData = useUsername 
+                ? { username, password } 
+                : { email, password };
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginData),
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    messageDiv.innerHTML = '<div class="message success">✅ Login successful! Redirecting...</div>';
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 1000);
+                } else {
+                    if (data.unverified || (data.error && data.error.toLowerCase().includes('verify'))) {
+                        messageDiv.innerHTML = `
+                            <div class="message warning">
+                                ⚠️ Please verify your email before logging in.<br>
+                                Check your inbox for the verification link.<br>
+                                <a href="verify.html" style="color: var(--accent-gold);">Click here to verify</a>
+                            </div>
+                        `;
+                    } else {
+                        messageDiv.innerHTML = `<div class="message error">${data.error || 'Invalid credentials'}</div>`;
+                    }
+                }
+            } catch (err) {
+                messageDiv.innerHTML = '<div class="message error">Connection error. Please try again.</div>';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }
+        });
+
+        // Check for message parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('message') === 'check_email') {
+            document.getElementById('loginMessage').innerHTML = '<div class="message success">✅ Account created! Please check your email for verification link.</div>';
+        }
+        if (urlParams.get('verified') === 'true') {
+            document.getElementById('loginMessage').innerHTML = '<div class="message success">✅ Email verified! You can now login.</div>';
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('forgotModal');
+            if (e.target === modal) closeForgotModal();
+        });
+    </script>
 </body>
 </html>

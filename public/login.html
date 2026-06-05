@@ -34,32 +34,39 @@
             padding: 2rem 1rem;
         }
         
-        /* Bismillah Banner */
-        .bismillah {
+        /* Marketplace Banner - Replacement for Bismillah */
+        .marketplace-banner {
             text-align: center;
             padding: 1.5rem;
             background: rgba(255, 215, 0, 0.1);
             border-radius: 16px;
             margin-bottom: 1.5rem;
             border: 1px solid rgba(255, 215, 0, 0.3);
+            transition: all 0.3s ease;
         }
         
-        .bismillah span {
-            color: #FFD700;
+        .marketplace-banner span {
+            color: gold;
             font-size: 1.3rem;
-            line-height: 1.8;
+            line-height: 1.6;
             display: block;
-        }
-        
-        .bismillah .arabic {
-            font-size: 1.8rem;
-            font-family: 'Amiri', 'Traditional Arabic', 'Times New Roman', serif;
-            margin-bottom: 0.5rem;
-        }
-        
-        .bismillah .english {
-            font-size: 1rem;
+            font-weight: 600;
             letter-spacing: 0.5px;
+        }
+        
+        .marketplace-banner span:first-child {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            color: #FFD700;
+            text-shadow: 0 0 8px rgba(255,215,0,0.3);
+        }
+        
+        .marketplace-banner span:last-child {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #FFD700;
+            opacity: 0.95;
         }
         
         .auth-container {
@@ -326,8 +333,12 @@
                 padding: 1.5rem;
             }
             
-            .bismillah .arabic {
+            .marketplace-banner span:first-child {
                 font-size: 1.4rem;
+            }
+            
+            .marketplace-banner span:last-child {
+                font-size: 0.85rem;
             }
             
             h2 {
@@ -342,14 +353,13 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="auth-container">
-        <!-- Bismillah Banner -->
-        <div class="bismillah">
-            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
+        <div class="marketplace-banner">
+            <span style="color: gold;">Core Insight MarketPlace</span>
+            <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
         </div>
         
         <h2>Welcome Back</h2>

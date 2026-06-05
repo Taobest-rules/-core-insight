@@ -4435,6 +4435,173 @@ In the name of Allah, the Most Gracious, the Most Merciful
 .pickup-address-field.show {
     display: block;
 }
+/* ============================================
+   MOBILE SCALABLE LOGIN & SIGNUP BUTTONS
+   ============================================ */
+
+/* Base button styles - already touch-friendly */
+.auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .header-actions {
+    gap: 8px;
+  }
+  
+  .auth-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-width: 70px;
+    min-height: 40px; /* Minimum touch target size */
+    text-align: center;
+    border-radius: 40px; /* Pill shape for better mobile appearance */
+  }
+  
+  #loginOpen {
+    background: transparent;
+    border: 1px solid var(--border);
+  }
+  
+  #signupOpen {
+    background: var(--accent);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Small mobile devices (up to 480px) */
+@media (max-width: 480px) {
+  .header-actions {
+    gap: 6px;
+  }
+  
+  .auth-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 65px;
+    min-height: 38px;
+    font-weight: 600;
+  }
+  
+  /* Gradient accent for signup button on small screens */
+  #signupOpen {
+    background: linear-gradient(135deg, var(--accent), var(--digital));
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+  
+  /* Active state feedback for touch */
+  #signupOpen:active {
+    transform: scale(0.97);
+    background: var(--accent-hover);
+  }
+  
+  #loginOpen:active {
+    transform: scale(0.97);
+    background: rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* Extra small devices (360px and below) */
+@media (max-width: 360px) {
+  .auth-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    min-width: 58px;
+    min-height: 36px;
+  }
+  
+  .logo-text {
+    font-size: 1rem;
+  }
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .auth-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 38px;
+  }
+  
+  header {
+    padding: 0 16px;
+    height: 60px;
+  }
+}
+
+/* High DPI / Retina screens - ensure crisp text */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .auth-btn {
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Touch devices - remove hover effects, use active states instead */
+@media (hover: none) and (pointer: coarse) {
+  .auth-btn {
+    transition: transform 0.1s ease;
+  }
+  
+  .auth-btn:active {
+    transform: scale(0.96);
+  }
+  
+  #loginOpen:active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--accent);
+  }
+  
+  #signupOpen:active {
+    background: var(--accent-hover);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Ensure buttons don't wrap on very narrow screens */
+@media (max-width: 320px) {
+  .header-actions {
+    gap: 4px;
+  }
+  
+  .auth-btn {
+    padding: 5px 8px;
+    font-size: 10px;
+    min-width: 52px;
+  }
+  
+  /* Hide bell icon text if present, keep icon only */
+  #notificationBtn span:not(#notificationCount) {
+    display: none;
+  }
+}
+
+/* Optional: Add a subtle animation when buttons appear */
+.auth-btn {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
   </style>
 </head>
 <body>

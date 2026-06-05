@@ -1312,6 +1312,196 @@ In the name of Allah, the Most Gracious, the Most Merciful
         font-size: 0.85rem;
       }
     }
+    /* ============================================
+   MOBILE SCALABLE LOGIN & SIGNUP BUTTONS FOR COURSES PAGE
+   ============================================ */
+
+/* Base button styles - already touch-friendly */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .auth-buttons {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .auth-buttons .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px; /* Minimum touch target size */
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 30px;
+  }
+  
+  .btn-login {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+  }
+  
+  .btn-signup {
+    background: var(--gradient-primary);
+    color: var(--primary-dark);
+    font-weight: 700;
+  }
+}
+
+/* Small mobile devices (up to 480px) */
+@media (max-width: 480px) {
+  .auth-buttons {
+    gap: 0.4rem;
+  }
+  
+  .auth-buttons .btn {
+    min-height: 42px;
+    padding: 0.65rem 0.875rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Active state feedback for touch */
+  .btn-login:active {
+    transform: scale(0.97);
+    background: rgba(100, 255, 218, 0.15);
+  }
+  
+  .btn-signup:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, #4cd8c5, #0099cc);
+    box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+  }
+}
+
+/* Extra small devices (360px and below) */
+@media (max-width: 360px) {
+  .auth-buttons .btn {
+    min-height: 40px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .logo-text {
+    font-size: 1.2rem;
+  }
+  
+  .logo-icon {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .auth-buttons {
+    flex-direction: row;
+    gap: 0.75rem;
+    margin-top: 0;
+  }
+  
+  .auth-buttons .btn {
+    width: auto;
+    min-width: 100px;
+  }
+}
+
+/* High DPI / Retina screens - ensure crisp text */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .btn {
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Touch devices - remove hover effects, use active states instead */
+@media (hover: none) and (pointer: coarse) {
+  .btn {
+    transition: transform 0.1s ease;
+  }
+  
+  .btn:active {
+    transform: scale(0.96);
+  }
+  
+  .btn-login:active {
+    background: rgba(100, 255, 218, 0.15);
+    border-color: var(--accent-primary);
+  }
+  
+  .btn-signup:active {
+    background: linear-gradient(135deg, #4cd8c5, #0099cc);
+    box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+  }
+  
+  /* Prevent hover styles on touch devices */
+  .btn-login:hover,
+  .btn-signup:hover {
+    transform: none;
+  }
+}
+
+/* Animation for buttons when they appear */
+.btn {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Ensure header doesn't overflow on mobile */
+@media (max-width: 767px) {
+  header {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--mobile-header-height);
+  }
+  
+  .auth-buttons {
+    width: 100%;
+    order: 3;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .mobile-menu-toggle {
+    order: 2;
+  }
+  
+  .logo {
+    order: 1;
+  }
+  
+  nav {
+    order: 4;
+  }
+}
+
+/* Optional: Add a subtle gradient to signup button on mobile for better visibility */
+@media (max-width: 768px) {
+  .btn-signup {
+    background: linear-gradient(135deg, var(--accent-primary), #00b4d8);
+    box-shadow: 0 2px 8px rgba(100, 255, 218, 0.25);
+  }
+}
   </style>
 </head>
 <body>

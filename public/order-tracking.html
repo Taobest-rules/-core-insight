@@ -33,16 +33,37 @@
     
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
     
-    .bismillah {
+    /* Marketplace Banner - Replacement for Bismillah */
+    .marketplace-banner {
       text-align: center;
       padding: 1rem;
       background: rgba(255, 215, 0, 0.08);
       border-radius: 16px;
       margin-bottom: 2rem;
       border: 1px solid rgba(255, 215, 0, 0.25);
+      transition: all 0.3s ease;
     }
-    .bismillah .arabic { font-size: 1.5rem; font-family: 'Amiri', 'Traditional Arabic', serif; color: #FFD700; display: block; margin-bottom: 0.3rem; }
-    .bismillah .english { font-size: 0.85rem; color: rgba(255, 215, 0, 0.9); }
+    .marketplace-banner span {
+      color: gold;
+      font-size: 1.2rem;
+      line-height: 1.5;
+      display: block;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .marketplace-banner span:first-child {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      color: #FFD700;
+      text-shadow: 0 0 8px rgba(255,215,0,0.3);
+    }
+    .marketplace-banner span:last-child {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #FFD700;
+      opacity: 0.95;
+    }
     
     .search-box {
       background: rgba(30, 41, 59, 0.8);
@@ -167,6 +188,8 @@
       .action-buttons { flex-direction: column; }
       .btn { width: 100%; justify-content: center; }
       .search-input-group { flex-direction: column; }
+      .marketplace-banner span:first-child { font-size: 1.3rem; }
+      .marketplace-banner span:last-child { font-size: 0.8rem; }
     }
   </style>
 </head>
@@ -186,9 +209,10 @@
   </header>
 
   <div class="container">
-    <div class="bismillah">
-      <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-      <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+    <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
+    <div class="marketplace-banner">
+      <span style="color: gold;">Core Insight MarketPlace</span>
+      <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
     </div>
 
     <div id="content">
@@ -306,9 +330,9 @@
     function showOrderNotFound(message) {
       const container = document.getElementById('content');
       container.innerHTML = `
-        <div class="bismillah">
-          <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-          <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        <div class="marketplace-banner">
+          <span style="color: gold;">Core Insight MarketPlace</span>
+          <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
         </div>
         <div class="error-container">
           <i class="fas fa-exclamation-triangle"></i>
@@ -416,7 +440,6 @@
       const isBuyer = currentUserRole === 'client';
       const isSeller = currentUserRole === 'freelancer' || currentUserRole === 'admin';
       
-      // Delivery code section - ONLY visible to SELLER when order is shipped
       const sellerDeliverySection = (isSeller && order.order_status === 'shipped') ? `
         <div class="tracking-card">
           <h3><i class="fas fa-key"></i> Confirm Delivery (Seller Only)</h3>
@@ -435,7 +458,6 @@
         </div>
       ` : '';
       
-      // Cancel/Refund button - ONLY visible to BUYER for cancellable orders
       const canCancel = isBuyer && (order.order_status === 'pending_seller_approval' || order.order_status === 'seller_accepted' || order.order_status === 'paid');
       const buyerCancelSection = canCancel ? `
         <div class="action-buttons">
@@ -454,7 +476,6 @@
         </div>
       `;
       
-      // Escrow info for buyer when order is delivered
       const escrowSection = (isBuyer && order.order_status === 'delivered' && order.payment_held_until) ? `
         <div class="tracking-card">
           <h3><i class="fas fa-clock"></i> Escrow Status</h3>
@@ -465,7 +486,6 @@
         </div>
       ` : '';
       
-      // Show delivery code to seller if generated
       const deliveryCodeDisplay = (isSeller && order.delivery_code) ? `
         <div class="tracking-card">
           <h3><i class="fas fa-qrcode"></i> Delivery Code</h3>
@@ -482,9 +502,9 @@
       const roleBadge = isBuyer ? '<span class="role-badge role-buyer">👤 Buyer View</span>' : (isSeller ? '<span class="role-badge role-seller">🏪 Seller View</span>' : '');
       
       const html = `
-        <div class="bismillah">
-          <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-          <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        <div class="marketplace-banner">
+          <span style="color: gold;">Core Insight MarketPlace</span>
+          <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
         </div>
         <div class="tracking-header">
           <div class="order-id">Order #${order.id} ${roleBadge}</div>
@@ -526,7 +546,6 @@
       
       container.innerHTML = html;
       
-      // Re-attach event listeners for seller delivery code if needed
       if (isSeller && order.order_status === 'shipped') {
         const sellerCodeInput = document.getElementById('sellerDeliveryCodeInput');
         if (sellerCodeInput) {
@@ -540,7 +559,6 @@
       }
     }
     
-    // FIXED: renderTimeline that properly shows all steps including delivered and completed
     function renderTimeline(timeline, currentStatus) {
       if (!timeline || timeline.length === 0) {
         return '<div class="timeline-step"><div class="step-content">No timeline information available</div></div>';
@@ -555,7 +573,6 @@
         { status: 'completed', title: 'Completed', icon: 'fa-trophy', description: 'Order completed. Funds released to seller.' }
       ];
       
-      // Create a map of completed statuses from timeline
       const completedStatuses = new Set();
       timeline.forEach(step => {
         if (step.completed === true || step.completed === undefined) {
@@ -563,10 +580,8 @@
         }
       });
       
-      // Also mark current status as completed if it's in the list
       completedStatuses.add(currentStatus);
       
-      // Find the highest index that is completed
       let highestCompletedIndex = -1;
       for (let i = 0; i < allSteps.length; i++) {
         if (completedStatuses.has(allSteps[i].status)) {
@@ -574,29 +589,21 @@
         }
       }
       
-      // If order is delivered but completed isn't marked, mark it
-      if (currentStatus === 'delivered' && !completedStatuses.has('completed')) {
-        // Don't mark completed yet - funds not released
-      }
-      
       if (currentStatus === 'completed') {
         highestCompletedIndex = allSteps.length - 1;
       }
       
-      // Special case: if order is delivered, mark up to delivered
       if (currentStatus === 'delivered' && highestCompletedIndex < 4) {
-        highestCompletedIndex = 4; // delivered index
+        highestCompletedIndex = 4;
       }
       
       return allSteps.map((step, index) => {
         const isCompleted = index <= highestCompletedIndex;
         const isCurrent = index === highestCompletedIndex + 1 && !isCompleted;
         
-        // Find matching timeline entry for timestamp
         const stepData = timeline.find(t => t.status === step.status);
         let timestamp = stepData?.timestamp;
         
-        // If no timestamp but step is completed, try to infer from order data
         if (!timestamp && isCompleted) {
           if (step.status === 'order_placed' && currentOrder.created_at) timestamp = currentOrder.created_at;
           if (step.status === 'seller_accepted' && currentOrder.seller_accepted_at) timestamp = currentOrder.seller_accepted_at;

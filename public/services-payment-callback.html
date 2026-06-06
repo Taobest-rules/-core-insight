@@ -27,24 +27,36 @@
             padding: 40px;
             border: 1px solid rgba(255, 215, 0, 0.2);
         }
-        .bismillah {
+        /* Marketplace Banner - Replacement for Bismillah */
+        .marketplace-banner {
             text-align: center;
             padding: 1rem;
             background: rgba(255, 215, 0, 0.08);
             border-radius: 16px;
             margin-bottom: 1.5rem;
             border: 1px solid rgba(255, 215, 0, 0.25);
+            transition: all 0.3s ease;
         }
-        .bismillah .arabic {
-            font-size: 1.5rem;
-            font-family: 'Amiri', 'Traditional Arabic', serif;
-            color: #FFD700;
+        .marketplace-banner span {
+            color: gold;
+            font-size: 1.1rem;
+            line-height: 1.5;
             display: block;
-            margin-bottom: 0.3rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
-        .bismillah .english {
+        .marketplace-banner span:first-child {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            color: #FFD700;
+            text-shadow: 0 0 8px rgba(255,215,0,0.3);
+        }
+        .marketplace-banner span:last-child {
             font-size: 0.85rem;
-            color: rgba(255, 215, 0, 0.9);
+            font-weight: 500;
+            color: #FFD700;
+            opacity: 0.95;
         }
         .spinner {
             border: 4px solid #334155;
@@ -73,13 +85,20 @@
         }
         .btn:hover { transform: translateY(-2px); }
         h2 { margin-bottom: 20px; }
+        
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            .marketplace-banner span:first-child { font-size: 1.3rem; }
+            .marketplace-banner span:last-child { font-size: 0.75rem; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="bismillah">
-            <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-            <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
+        <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
+        <div class="marketplace-banner">
+            <span style="color: gold;">Core Insight MarketPlace</span>
+            <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
         </div>
         <h2>Processing Your Payment...</h2>
         <div class="spinner"></div>

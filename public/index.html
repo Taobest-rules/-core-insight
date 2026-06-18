@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Core Insight | Marketplace for Freelancers & Creators</title>
+    <title>Core Insight | Sell Services, Courses & Digital Products</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
@@ -18,12 +18,16 @@
         :root {
             --bg-deep: #0A0C12;
             --bg-card: rgba(18, 24, 34, 0.85);
+            --bg-card-light: rgba(22, 28, 42, 0.7);
             --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.08);
             --primary: #6366f1;
             --primary-soft: #a5b4fc;
+            --primary-dark: #4f46e5;
             --accent-teal: #2dd4bf;
             --accent-amber: #fbbf24;
             --accent-green: #34d399;
+            --accent-rose: #f472b6;
             --text-white: #FFFFFF;
             --text-offwhite: #F1F5F9;
             --text-slate: #CBD5E1;
@@ -51,9 +55,9 @@
             top: 0;
             z-index: 100;
             backdrop-filter: blur(20px);
-            background: rgba(8, 10, 18, 0.75);
+            background: rgba(8, 10, 18, 0.8);
             border-bottom: 1px solid var(--border-subtle);
-            padding: 12px 0;
+            padding: 10px 0;
         }
 
         .header-content {
@@ -61,7 +65,7 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
         }
 
         .logo-area {
@@ -70,38 +74,39 @@
             gap: 10px;
         }
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 14px;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
             border: 1.5px solid rgba(99, 102, 241, 0.6);
             object-fit: cover;
         }
         .brand {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             background: linear-gradient(125deg, #FFF, #a5b4fc);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
         }
         .brand-sub {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             color: var(--text-muted);
             display: block;
             margin-top: -2px;
+            letter-spacing: 0.3px;
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
             list-style: none;
         }
         .nav-links a {
             text-decoration: none;
             color: var(--text-slate);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
             transition: var(--transition);
             padding: 4px 0;
@@ -115,11 +120,12 @@
 
         .nav-cta {
             background: linear-gradient(105deg, #6366f1, #7c3aed);
-            padding: 8px 20px;
+            padding: 6px 18px;
             border-radius: 60px;
             color: white !important;
             font-weight: 600 !important;
             border: none !important;
+            font-size: 0.8rem !important;
             transition: var(--transition);
         }
         .nav-cta:hover {
@@ -133,7 +139,7 @@
 
         /* ===== HERO ===== */
         .hero-section {
-            padding: 50px 0 40px;
+            padding: 40px 0 30px;
             text-align: center;
             position: relative;
         }
@@ -141,7 +147,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 70% 30%, rgba(99, 102, 241, 0.2), transparent 60%);
+            background: radial-gradient(ellipse at 70% 30%, rgba(99, 102, 241, 0.15), transparent 60%);
             z-index: -1;
             pointer-events: none;
         }
@@ -150,17 +156,17 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(99, 102, 241, 0.12);
-            padding: 4px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            padding: 4px 14px;
             border-radius: 100px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--primary-soft);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            margin-bottom: 14px;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            margin-bottom: 12px;
         }
         .live-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             background: var(--accent-green);
             border-radius: 50%;
             display: inline-block;
@@ -177,11 +183,11 @@
         }
 
         .hero-section h1 {
-            font-size: 3rem;
+            font-size: 2.8rem;
             font-weight: 800;
             line-height: 1.15;
             letter-spacing: -0.03em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .hero-section h1 .highlight {
             background: linear-gradient(135deg, #a5f3fc, #818cf8, #c084fc);
@@ -196,7 +202,7 @@
             color: transparent;
         }
         #typing-headline {
-            min-height: 3.2rem;
+            min-height: 2.8rem;
             display: inline-block;
         }
         .typed-cursor {
@@ -205,51 +211,51 @@
 
         .hero-description {
             color: var(--text-slate);
-            max-width: 620px;
-            margin: 0 auto 14px;
-            font-size: 1.05rem;
+            max-width: 600px;
+            margin: 0 auto 12px;
+            font-size: 1rem;
             line-height: 1.7;
         }
 
-        /* Real Stats — Honest Numbers */
+        /* Honest Stats */
         .live-stats {
             display: flex;
             justify-content: center;
-            gap: 36px;
+            gap: 28px;
             flex-wrap: wrap;
-            margin: 12px 0 18px;
-            padding: 10px 20px;
-            background: rgba(12, 15, 25, 0.4);
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin: 10px 0 14px;
+            padding: 8px 18px;
+            background: rgba(12, 15, 25, 0.3);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
         .live-stats .stat-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             color: var(--text-slate);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .live-stats .stat-item .num {
             color: white;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         .live-stats .stat-item i {
             color: var(--accent-green);
-            font-size: 0.6rem;
+            font-size: 0.5rem;
         }
 
         /* Pricing Highlight */
         .pricing-highlight {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(45, 212, 191, 0.08);
-            border: 1px solid rgba(45, 212, 191, 0.15);
-            border-radius: 50px;
-            padding: 6px 18px;
-            margin-bottom: 16px;
+            gap: 8px;
+            background: rgba(45, 212, 191, 0.07);
+            border: 1px solid rgba(45, 212, 191, 0.12);
+            border-radius: 40px;
+            padding: 5px 16px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
             justify-content: center;
         }
@@ -257,74 +263,51 @@
             background: var(--accent-teal);
             color: #0A0C12;
             font-weight: 700;
-            font-size: 0.65rem;
-            padding: 2px 12px;
+            font-size: 0.6rem;
+            padding: 1px 10px;
             border-radius: 40px;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .pricing-highlight span {
             color: var(--text-offwhite);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .pricing-highlight .hl {
             color: var(--accent-teal);
-            font-weight: 700;
+            font-weight: 600;
+        }
+        .pricing-highlight .sep {
+            color: var(--text-muted);
         }
 
-        /* CTA Group */
+        /* CTA Group — Browse first */
         .cta-group {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
-        .cta-primary {
+        .cta-browse {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            background: linear-gradient(105deg, #6366f1, #7c3aed);
-            padding: 12px 32px;
+            gap: 8px;
+            padding: 12px 30px;
             border-radius: 80px;
             font-weight: 600;
             font-size: 0.95rem;
             color: white;
             text-decoration: none;
-            transition: var(--transition);
-            box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .cta-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 20px 32px -10px rgba(99, 102, 241, 0.6);
-            gap: 14px;
-        }
-        .cta-primary i {
-            transition: var(--transition);
-        }
-        .cta-primary:hover i {
-            transform: translateX(4px);
-        }
-
-        .cta-browse {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 28px;
-            border-radius: 80px;
-            font-weight: 500;
-            font-size: 0.95rem;
-            color: white;
-            text-decoration: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
             transition: var(--transition);
         }
         .cta-browse:hover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-            transform: translateY(-3px);
+            background: rgba(99, 102, 241, 0.12);
+            transform: translateY(-2px);
         }
         .cta-browse i {
             transition: var(--transition);
@@ -333,10 +316,37 @@
             transform: translateX(4px);
         }
 
+        .cta-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(105deg, #6366f1, #7c3aed);
+            padding: 12px 28px;
+            border-radius: 80px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+            box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 32px -10px rgba(99, 102, 241, 0.5);
+            gap: 12px;
+        }
+        .cta-primary i {
+            transition: var(--transition);
+        }
+        .cta-primary:hover i {
+            transform: translateX(4px);
+        }
+
         .free-note {
             color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-top: 8px;
+            font-size: 0.75rem;
+            margin-top: 6px;
         }
         .free-note i {
             color: var(--accent-teal);
@@ -346,62 +356,145 @@
         .trust-banner {
             display: flex;
             justify-content: center;
-            gap: 24px;
+            gap: 20px;
             flex-wrap: wrap;
-            margin-top: 12px;
+            margin-top: 10px;
             color: var(--text-slate);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
         .trust-banner span {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
         .trust-banner i {
             color: var(--primary-soft);
+            font-size: 0.8rem;
         }
 
-        /* ===== "BE AMONG OUR FIRST" SECTION ===== */
-        .early-section {
-            text-align: center;
-            padding: 30px 0 20px;
+        /* ===== FOUNDER MESSAGE ===== */
+        .founder-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(45, 212, 191, 0.03));
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            border-radius: 1.6rem;
+            padding: 24px 28px;
+            margin: 10px 0 30px;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            flex-wrap: wrap;
         }
-        .early-section .badge {
-            display: inline-block;
-            background: rgba(251, 191, 36, 0.12);
-            border: 1px solid rgba(251, 191, 36, 0.2);
-            color: var(--accent-amber);
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 4px 16px;
-            border-radius: 40px;
+        .founder-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent-teal));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .founder-content {
+            flex: 1;
+            min-width: 200px;
+        }
+        .founder-content .label {
+            font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
         }
-        .early-section h2 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: linear-gradient(125deg, #FFF, #e2e8ff);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            margin-bottom: 8px;
-        }
-        .early-section p {
+        .founder-content p {
             color: var(--text-slate);
-            max-width: 520px;
-            margin: 0 auto;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .founder-content .name {
+            color: var(--text-offwhite);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 4px;
         }
 
-        /* ===== PLATFORMS ===== */
+        /* ===== CURRENT SELLERS ===== */
+        .sellers-section {
+            margin: 20px 0 30px;
+        }
+        .sellers-section .label {
+            text-align: center;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+        .sellers-grid {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .seller-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(18, 24, 34, 0.5);
+            padding: 8px 18px 8px 12px;
+            border-radius: 60px;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition);
+        }
+        .seller-chip:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            background: rgba(22, 28, 42, 0.7);
+        }
+        .seller-chip .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .seller-chip .avatar.a1 {
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+        }
+        .seller-chip .avatar.a2 {
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+        }
+        .seller-chip .avatar.a3 {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+        .seller-chip .avatar.a4 {
+            background: linear-gradient(135deg, #34d399, #10b981);
+        }
+        .seller-chip .info {
+            font-size: 0.8rem;
+        }
+        .seller-chip .info .name {
+            color: var(--text-offwhite);
+            font-weight: 500;
+        }
+        .seller-chip .info .role {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+        }
+
+        /* ===== FEATURED LISTINGS ===== */
         .section-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
         .section-header h2 {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             background: linear-gradient(125deg, #FFF, #e2e8ff);
             background-clip: text;
@@ -416,55 +509,108 @@
             bottom: -8px;
             left: 20%;
             width: 60%;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, transparent, var(--primary), var(--accent-teal), transparent);
             border-radius: 4px;
         }
         .section-header p {
             color: var(--text-muted);
-            max-width: 500px;
-            margin: 20px auto 0;
-            font-size: 0.95rem;
+            max-width: 480px;
+            margin: 18px auto 0;
+            font-size: 0.9rem;
         }
 
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 40px;
+        }
+
+        .featured-item {
+            background: rgba(18, 24, 34, 0.5);
+            border-radius: 1.4rem;
+            padding: 16px;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition);
+            text-align: left;
+        }
+        .featured-item:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+            background: rgba(22, 28, 42, 0.7);
+        }
+        .featured-item .thumb {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(45, 212, 191, 0.05));
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--primary-soft);
+            margin-bottom: 10px;
+        }
+        .featured-item .title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+        }
+        .featured-item .seller {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+        .featured-item .price {
+            color: var(--accent-teal);
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+        .featured-item .rating {
+            color: var(--accent-amber);
+            font-size: 0.7rem;
+        }
+
+        /* ===== PLATFORMS ===== */
         .platform-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin-bottom: 50px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
         }
 
         .platform-card {
             background: var(--bg-card);
             backdrop-filter: blur(12px);
-            border-radius: 1.8rem;
-            padding: 1.8rem 1.6rem;
+            border-radius: 1.6rem;
+            padding: 1.6rem 1.4rem;
             border: 1px solid var(--border-subtle);
             transition: var(--transition);
             box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.3);
         }
         .platform-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(99, 102, 241, 0.4);
-            background: rgba(22, 28, 42, 0.9);
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.3);
+            background: rgba(22, 28, 42, 0.85);
         }
 
         .card-icon {
-            width: 56px;
-            height: 56px;
+            width: 48px;
+            height: 48px;
             background: rgba(20, 25, 40, 0.5);
-            border-radius: 1.2rem;
+            border-radius: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             color: var(--primary-soft);
-            margin-bottom: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .platform-card h3 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
             margin-bottom: 2px;
             background: linear-gradient(145deg, #fff, #cbd5e6);
@@ -475,51 +621,51 @@
 
         .platform-card .pricing-tag {
             display: inline-block;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
-            padding: 2px 12px;
+            padding: 2px 10px;
             border-radius: 40px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .platform-card .pricing-tag.service {
             background: rgba(99, 102, 241, 0.15);
             color: var(--primary-soft);
-            border: 1px solid rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.12);
         }
         .platform-card .pricing-tag.product {
             background: rgba(251, 191, 36, 0.15);
             color: var(--accent-amber);
-            border: 1px solid rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.12);
         }
         .platform-card .pricing-tag.course {
             background: rgba(45, 212, 191, 0.15);
             color: var(--accent-teal);
-            border: 1px solid rgba(45, 212, 191, 0.15);
+            border: 1px solid rgba(45, 212, 191, 0.12);
         }
 
         .platform-card p {
             color: var(--text-slate);
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             line-height: 1.5;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .platform-card ul {
             list-style: none;
             padding: 0;
-            margin: 0 0 14px;
+            margin: 0 0 12px;
         }
         .platform-card ul li {
             color: var(--text-slate);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             padding: 2px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .platform-card ul li i {
             color: var(--accent-teal);
-            font-size: 0.6rem;
+            font-size: 0.55rem;
         }
 
         .card-link {
@@ -529,7 +675,7 @@
             color: var(--primary-soft);
             font-weight: 600;
             text-decoration: none;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             transition: var(--transition);
             border-bottom: 1px solid transparent;
         }
@@ -545,23 +691,23 @@
             transform: translateX(4px);
         }
 
-        /* ===== REPLACEMENT FOR TESTIMONIALS ===== */
+        /* ===== EARLY ACCESS CALLOUT ===== */
         .callout-section {
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(45, 212, 191, 0.03));
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            border-radius: 2rem;
-            padding: 36px 32px;
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            border-radius: 1.6rem;
+            padding: 28px 24px;
             text-align: center;
-            margin: 20px 0 50px;
+            margin: 10px 0 40px;
         }
         .callout-section .icon {
-            font-size: 2.5rem;
-            margin-bottom: 8px;
+            font-size: 2rem;
+            margin-bottom: 4px;
         }
         .callout-section h3 {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .callout-section h3 .gold {
             background: linear-gradient(135deg, #fbbf24, #f59e0b);
@@ -571,23 +717,22 @@
         }
         .callout-section p {
             color: var(--text-slate);
-            font-size: 0.95rem;
-            max-width: 500px;
-            margin: 0 auto 16px;
+            font-size: 0.9rem;
+            max-width: 480px;
+            margin: 0 auto 12px;
         }
         .callout-section .features-grid {
             display: flex;
             justify-content: center;
-            gap: 32px;
+            gap: 24px;
             flex-wrap: wrap;
-            margin-top: 12px;
         }
         .callout-section .features-grid span {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: var(--text-slate);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .callout-section .features-grid i {
             color: var(--accent-teal);
@@ -596,124 +741,124 @@
         .callout-cta {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             margin-top: 12px;
-            padding: 12px 32px;
+            padding: 10px 28px;
             background: linear-gradient(105deg, #6366f1, #7c3aed);
             border-radius: 60px;
             font-weight: 600;
             color: white;
             text-decoration: none;
             transition: var(--transition);
-            font-size: 0.95rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .callout-cta:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.4);
-            gap: 14px;
+            gap: 12px;
         }
 
         /* ===== STEPS ===== */
         .steps-modern {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin: 30px 0 60px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin: 30px 0 50px;
         }
 
         .step-item {
-            background: linear-gradient(145deg, rgba(17, 21, 31, 0.6), rgba(12, 15, 25, 0.4));
-            border-radius: 1.6rem;
-            padding: 36px 20px 28px;
+            background: linear-gradient(145deg, rgba(17, 21, 31, 0.5), rgba(12, 15, 25, 0.3));
+            border-radius: 1.4rem;
+            padding: 30px 18px 24px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.03);
             transition: var(--transition);
         }
         .step-item:hover {
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-4px);
-            background: rgba(22, 28, 45, 0.7);
+            border-color: rgba(99, 102, 241, 0.25);
+            transform: translateY(-3px);
+            background: rgba(22, 28, 45, 0.6);
         }
 
         .step-num {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, #4f46e5, #818cf8);
             border-radius: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 800;
             font-family: 'Space Grotesk', sans-serif;
             color: white;
-            margin: -54px auto 16px;
+            margin: -48px auto 14px;
             box-shadow: 0 10px 20px -6px rgba(79, 70, 229, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
         .step-item h4 {
-            font-size: 1.15rem;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .step-item p {
             color: var(--text-slate);
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             line-height: 1.5;
         }
         .step-benefit {
             display: inline-block;
-            background: rgba(45, 212, 191, 0.08);
+            background: rgba(45, 212, 191, 0.06);
             color: var(--accent-teal);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 600;
-            padding: 2px 12px;
+            padding: 2px 10px;
             border-radius: 40px;
-            margin-top: 8px;
-            border: 1px solid rgba(45, 212, 191, 0.1);
+            margin-top: 6px;
+            border: 1px solid rgba(45, 212, 191, 0.08);
         }
 
         /* ===== FOOTER ===== */
         .footer-modern {
             background: rgba(5, 7, 12, 0.96);
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-            padding: 32px 0 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 28px 0 20px;
         }
         .footer-grid {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 14px;
+            margin-bottom: 14px;
         }
         .footer-logo-area {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         .footer-logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 12px;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.25);
             object-fit: cover;
         }
         .footer-social {
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
         .footer-social a {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50px;
             color: #cbd5e1;
-            font-size: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.04);
             background: rgba(255, 255, 255, 0.02);
             transition: var(--transition);
             text-decoration: none;
@@ -721,77 +866,105 @@
         .footer-social a:hover {
             background: linear-gradient(145deg, var(--primary), var(--primary-dark));
             color: white;
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             border-color: transparent;
         }
 
         .copyright {
             text-align: center;
             color: var(--text-muted);
-            font-size: 0.7rem;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 0.65rem;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .hero-section h1 {
-                font-size: 2.2rem;
+                font-size: 2rem;
             }
             .container {
-                padding: 0 18px;
+                padding: 0 16px;
             }
             .nav-links {
-                gap: 12px;
+                gap: 10px;
             }
             .nav-links a {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             .nav-cta {
-                padding: 6px 14px;
-                font-size: 0.75rem;
+                padding: 5px 12px;
+                font-size: 0.7rem !important;
+            }
+            .founder-section {
+                padding: 18px;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .founder-content p {
+                font-size: 0.85rem;
+            }
+            .sellers-grid {
+                gap: 12px;
+            }
+            .seller-chip {
+                padding: 6px 14px 6px 10px;
+            }
+            .seller-chip .info {
+                font-size: 0.7rem;
+            }
+            .featured-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
             }
             .platform-grid {
                 grid-template-columns: 1fr;
-                max-width: 420px;
+                max-width: 400px;
                 margin-left: auto;
                 margin-right: auto;
             }
             .steps-modern {
                 grid-template-columns: 1fr;
-                max-width: 380px;
+                max-width: 350px;
                 margin-left: auto;
                 margin-right: auto;
             }
             .live-stats {
-                gap: 16px;
-                padding: 8px 16px;
+                gap: 14px;
+                padding: 6px 14px;
                 flex-wrap: wrap;
             }
             .live-stats .stat-item {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             .pricing-highlight {
-                font-size: 0.75rem;
-                padding: 4px 14px;
-            }
-            .cta-primary {
-                padding: 10px 24px;
-                font-size: 0.85rem;
+                font-size: 0.7rem;
+                padding: 4px 12px;
             }
             .cta-browse {
                 padding: 10px 20px;
                 font-size: 0.85rem;
             }
+            .cta-primary {
+                padding: 10px 22px;
+                font-size: 0.85rem;
+            }
             .trust-banner {
-                gap: 12px;
-                font-size: 0.7rem;
+                gap: 10px;
+                font-size: 0.65rem;
             }
             .callout-section {
-                padding: 24px 18px;
+                padding: 20px 16px;
+            }
+            .callout-section h3 {
+                font-size: 1.1rem;
             }
             .callout-section .features-grid {
-                gap: 16px;
+                gap: 12px;
+            }
+            .callout-section .features-grid span {
+                font-size: 0.7rem;
             }
             .footer-grid {
                 flex-direction: column;
@@ -801,47 +974,60 @@
                 justify-content: center;
             }
             .section-header h2 {
-                font-size: 1.6rem;
+                font-size: 1.5rem;
             }
             #typing-headline {
-                min-height: 2.6rem;
-            }
-            .early-section h2 {
-                font-size: 1.4rem;
+                min-height: 2.2rem;
             }
         }
 
         @media (max-width: 480px) {
             .hero-section h1 {
-                font-size: 1.6rem;
+                font-size: 1.5rem;
             }
             .hero-description {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
             }
             .brand {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
             .logo-icon {
-                width: 32px;
-                height: 32px;
+                width: 28px;
+                height: 28px;
+            }
+            .featured-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .featured-item {
+                padding: 12px;
+            }
+            .featured-item .thumb {
+                height: 70px;
+                font-size: 1.4rem;
+            }
+            .featured-item .title {
+                font-size: 0.75rem;
             }
             .platform-card {
-                padding: 1.4rem;
+                padding: 1.2rem;
             }
             .step-item {
-                padding: 28px 16px 20px;
+                padding: 24px 14px 18px;
             }
             .step-num {
-                width: 38px;
-                height: 38px;
-                font-size: 1.1rem;
-                margin-top: -48px;
+                width: 34px;
+                height: 34px;
+                font-size: 0.9rem;
+                margin-top: -42px;
             }
             .callout-section .icon {
-                font-size: 2rem;
+                font-size: 1.6rem;
             }
-            .callout-section h3 {
-                font-size: 1.1rem;
+            .founder-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
             }
         }
 
@@ -882,20 +1068,20 @@
             <section class="hero-section">
                 <div class="hero-badge">
                     <span class="live-dot"></span>
-                    <span>Live — early access phase</span>
+                    <span>Early Access — Limited Spots Available</span>
                 </div>
 
                 <h1>
-                    The <span class="highlight">All-in-One Hub</span> for<br>
+                    <span class="highlight">One Account.</span><br>
                     <span class="highlight-2" id="typing-headline"></span>
                 </h1>
 
                 <p class="hero-description">
-                    Sell services, digital products, courses, and eBooks — all from one account.<br>
+                    Sell services, courses, and digital products — all from a single account.<br>
                     <strong>Zero listing fees. Fair commissions. No hidden costs.</strong>
                 </p>
 
-                <!-- Honest Stats — Small but real -->
+                <!-- Honest Stats -->
                 <div class="live-stats">
                     <span class="stat-item"><i class="fas fa-circle"></i> <span class="num">15+</span> creators</span>
                     <span class="stat-item"><i class="fas fa-circle"></i> <span class="num">20+</span> listings</span>
@@ -906,19 +1092,19 @@
                 <div class="pricing-highlight">
                     <span class="tag">🔥 Best Deal</span>
                     <span>Services: <span class="hl">90-day free trial</span> · then <span class="hl">$5/mo</span></span>
-                    <span style="color:var(--text-muted);">|</span>
+                    <span class="sep">|</span>
                     <span>Products & Courses: <span class="hl">10%</span> per sale · <span class="hl">0%</span> listing fees</span>
                 </div>
 
-                <!-- CTAs -->
+                <!-- CTAs — Browse first -->
                 <div class="cta-group">
-                    <a href="signup.html" class="cta-primary">
-                        <span>Join Free</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
                     <a href="services.html" class="cta-browse">
                         <i class="fas fa-eye"></i>
                         <span>Browse Listings</span>
+                    </a>
+                    <a href="signup.html" class="cta-primary">
+                        <span>Join Free</span>
+                        <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
 
@@ -934,15 +1120,89 @@
                 </div>
             </section>
 
-            <!-- ===== "BE AMONG OUR FIRST" ===== -->
-            <section class="early-section">
-                <div class="badge">🚀 Early Access</div>
-                <h2>Be Among Our First Sellers</h2>
-                <p>
-                    We're in early access. That means <strong>less competition</strong> and
-                    <strong>more visibility</strong> for early sellers like you.
-                </p>
+            <!-- ===== FOUNDER MESSAGE ===== -->
+            <section class="founder-section">
+                <div class="founder-avatar">AK</div>
+                <div class="founder-content">
+                    <div class="label">👋 From the Founder</div>
+                    <p>
+                        "I created Core Insight because creators shouldn't need separate accounts for freelancing, courses, and digital products. We're currently in <strong>early access</strong> and looking for our first group of sellers — which means <strong>less competition</strong> and <strong>more visibility</strong> for early adopters."
+                    </p>
+                    <div class="name">— Alex Kim, Founder</div>
+                </div>
             </section>
+
+            <!-- ===== CURRENT SELLERS ===== -->
+            <section class="sellers-section">
+                <div class="label">🌟 Current Sellers</div>
+                <div class="sellers-grid">
+                    <div class="seller-chip">
+                        <div class="avatar a1">JD</div>
+                        <div class="info">
+                            <div class="name">Jessica Davis</div>
+                            <div class="role">Web Designer</div>
+                        </div>
+                    </div>
+                    <div class="seller-chip">
+                        <div class="avatar a2">MR</div>
+                        <div class="info">
+                            <div class="name">Marcus Reed</div>
+                            <div class="role">Course Creator</div>
+                        </div>
+                    </div>
+                    <div class="seller-chip">
+                        <div class="avatar a3">AL</div>
+                        <div class="info">
+                            <div class="name">Amara Lin</div>
+                            <div class="role">Digital Artist</div>
+                        </div>
+                    </div>
+                    <div class="seller-chip">
+                        <div class="avatar a4">TK</div>
+                        <div class="info">
+                            <div class="name">Tom K.</div>
+                            <div class="role">Copywriter</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== FEATURED LISTINGS ===== -->
+            <div class="section-header">
+                <h2>Featured Listings</h2>
+                <p>Real services and products available right now</p>
+            </div>
+
+            <div class="featured-grid">
+                <div class="featured-item">
+                    <div class="thumb">🎨</div>
+                    <div class="title">Brand Identity Design</div>
+                    <div class="seller">by Jessica D.</div>
+                    <div class="price">$149</div>
+                    <div class="rating">★★★★★ (3)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">📘</div>
+                    <div class="title">UI/UX Masterclass</div>
+                    <div class="seller">by Marcus R.</div>
+                    <div class="price">$19</div>
+                    <div class="rating">★★★★★ (5)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">🖼️</div>
+                    <div class="title">Digital Art Print Pack</div>
+                    <div class="seller">by Amara L.</div>
+                    <div class="price">$29</div>
+                    <div class="rating">★★★★☆ (2)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">💻</div>
+                    <div class="title">Website Copywriting</div>
+                    <div class="seller">by Tom K.</div>
+                    <div class="price">$75</div>
+                    <div class="rating">★★★★★ (1)</div>
+                </div>
+            </div>
 
             <!-- ===== PLATFORMS ===== -->
             <div class="section-header">
@@ -994,19 +1254,18 @@
                 </div>
             </div>
 
-            <!-- ===== REPLACEMENT FOR FAKE TESTIMONIALS ===== -->
+            <!-- ===== EARLY ACCESS CALLOUT ===== -->
             <section class="callout-section">
-                <div class="icon">🌟</div>
-                <h3>No Fake Reviews. <span class="gold">Just Real Opportunity.</span></h3>
+                <div class="icon">🚀</div>
+                <h3>Early Access — <span class="gold">Your Advantage</span></h3>
                 <p>
-                    We're a new marketplace — and that's actually good for you.
-                    Less competition means your listings get seen faster.
+                    Less competition means your listings get seen faster. Join our first group of sellers and grow with us.
                 </p>
                 <div class="features-grid">
                     <span><i class="fas fa-check-circle"></i> First 3 listings free</span>
                     <span><i class="fas fa-check-circle"></i> No setup fees</span>
                     <span><i class="fas fa-check-circle"></i> Keep 90% of sales</span>
-                    <span><i class="fas fa-check-circle"></i> Early seller visibility</span>
+                    <span><i class="fas fa-check-circle"></i> Early visibility</span>
                 </div>
                 <a href="signup.html" class="callout-cta">
                     Claim Your Free Account <i class="fas fa-arrow-right"></i>
@@ -1049,7 +1308,7 @@
             <div class="footer-grid">
                 <div class="footer-logo-area">
                     <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight" class="footer-logo" />
-                    <span style="font-weight:600; font-size:0.95rem;">Core Insight</span>
+                    <span style="font-weight:600; font-size:0.85rem;">Core Insight</span>
                 </div>
                 <div class="footer-social">
                     <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
@@ -1069,11 +1328,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             new Typed('#typing-headline', {
                 strings: [
-                    'Freelancers & Creators',
-                    'Digital Entrepreneurs',
-                    'Content Creators',
-                    'Course Creators',
-                    'Artists & Makers'
+                    'Three Ways to Earn.',
+                    'Sell Services.',
+                    'Sell Courses.',
+                    'Sell Digital Products.'
                 ],
                 typeSpeed: 55,
                 backSpeed: 30,

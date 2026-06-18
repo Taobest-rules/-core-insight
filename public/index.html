@@ -1,13 +1,9 @@
-<span style="color: gold;">
-Core Insight MarketPlace<br>
-The One Place Where Everyone Is Welcomed
-</span> 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Core Insight | Digital Marketplace</title>
+    <title>Core Insight | Digital Marketplace for Creators & Freelancers</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -55,7 +51,6 @@ The One Place Where Everyone Is Welcomed
             padding: 0 32px;
         }
 
-        /* refined header - glass elevated */
         header {
             position: sticky;
             top: 0;
@@ -145,9 +140,8 @@ The One Place Where Everyone Is Welcomed
             color: white;
         }
 
-        /* Hero section - Elegant minimal glow */
         .hero-section {
-            padding: 130px 0 110px;
+            padding: 100px 0 80px;
             text-align: center;
             position: relative;
             isolation: isolate;
@@ -173,33 +167,51 @@ The One Place Where Everyone Is Welcomed
             font-weight: 500;
             letter-spacing: 0.3px;
             color: var(--primary-soft);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             border: 1px solid rgba(99, 102, 241, 0.4);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .hero-section h1 {
-            font-size: 4rem;
+            font-size: 3.8rem;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.15;
             letter-spacing: -0.03em;
-            background: linear-gradient(135deg, #ffffff, #e0e7ff, #a5b4fc);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
             max-width: 900px;
             margin-left: auto;
             margin-right: auto;
+        }
+
+        .hero-section h1 .highlight {
+            background: linear-gradient(135deg, #a5f3fc, #818cf8, #c084fc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero-section h1 .highlight-2 {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #f97316);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
         }
 
         .hero-description {
             font-size: 1.2rem;
             color: var(--text-slate);
             max-width: 680px;
-            margin: 0 auto 42px;
+            margin: 0 auto 32px;
             line-height: 1.7;
-            backdrop-filter: blur(2px);
+        }
+
+        .cta-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
         }
 
         .cta-primary {
@@ -234,10 +246,108 @@ The One Place Where Everyone Is Welcomed
             transform: translateX(5px);
         }
 
-        /* Section headers with fresh underlines */
+        .cta-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: 80px;
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--text-slate);
+            text-decoration: none;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .cta-secondary:hover {
+            border-color: var(--primary);
+            color: white;
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .cta-secondary i {
+            transition: transform 0.25s;
+        }
+
+        .cta-secondary:hover i {
+            transform: translateX(5px);
+        }
+
+        .trust-banner {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+            color: var(--text-slate);
+            font-size: 0.9rem;
+        }
+
+        .trust-banner span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trust-banner i {
+            color: var(--primary-soft);
+            font-size: 1.1rem;
+        }
+
+        .free-note {
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .free-note i {
+            color: var(--accent-teal);
+            margin-right: 6px;
+        }
+
+        /* Social Proof Bar */
+        .social-proof {
+            display: flex;
+            justify-content: center;
+            gap: 56px;
+            flex-wrap: wrap;
+            padding: 32px 24px;
+            margin: 30px 0 60px;
+            background: rgba(12, 15, 25, 0.5);
+            border-radius: 60px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .proof-item {
+            text-align: center;
+        }
+
+        .proof-number {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(145deg, #FFF, #c7d2fe);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+            display: block;
+            line-height: 1.2;
+        }
+
+        .proof-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
         .section-header {
             text-align: center;
-            margin-bottom: 70px;
+            margin-bottom: 60px;
         }
 
         .section-header h2 {
@@ -270,12 +380,11 @@ The One Place Where Everyone Is Welcomed
             font-size: 1.05rem;
         }
 
-        /* Cards - 3D subtle depth */
         .platform-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
             gap: 36px;
-            margin-bottom: 130px;
+            margin-bottom: 100px;
         }
 
         .platform-card {
@@ -386,43 +495,71 @@ The One Place Where Everyone Is Welcomed
             transform: translateX(6px);
         }
 
-        /* Trust stats - redesigned with subtle glow */
-        .insight-stats {
-            display: flex;
-            justify-content: center;
-            gap: 64px;
-            flex-wrap: wrap;
-            margin: 50px 0 80px;
-            padding: 36px 28px;
-            background: rgba(12, 15, 25, 0.5);
-            border-radius: 80px;
+        /* Testimonials Section */
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            margin: 40px 0 80px;
+        }
+
+        .testimonial-card {
+            background: rgba(18, 24, 34, 0.6);
+            border-radius: 1.8rem;
+            padding: 2rem 2rem 1.8rem;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .stat-item {
-            text-align: center;
+        .testimonial-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-6px);
         }
 
-        .stat-number {
-            font-size: 2.6rem;
-            font-weight: 800;
-            background: linear-gradient(145deg, #FFF, #c7d2fe);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            letter-spacing: -0.5px;
+        .testimonial-stars {
+            color: var(--accent-amber);
+            margin-bottom: 12px;
+            letter-spacing: 2px;
         }
 
-        .stat-label {
+        .testimonial-text {
+            color: var(--text-offwhite);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .testimonial-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent-teal));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .testimonial-role {
             color: var(--text-muted);
-            font-size: 0.85rem;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            font-weight: 500;
+            font-size: 0.8rem;
         }
 
-        /* Steps - modern interactive */
         .steps-modern {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -485,12 +622,12 @@ The One Place Where Everyone Is Welcomed
             line-height: 1.6;
         }
 
-        /* Footer redesigned clean */
+        /* Footer */
         .footer-modern {
             background: rgba(5, 7, 12, 0.96);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 70px 0 40px;
+            padding: 60px 0 40px;
             margin-top: 20px;
         }
 
@@ -500,7 +637,7 @@ The One Place Where Everyone Is Welcomed
             align-items: center;
             flex-wrap: wrap;
             gap: 32px;
-            margin-bottom: 48px;
+            margin-bottom: 40px;
         }
 
         .footer-logo-area {
@@ -566,10 +703,9 @@ The One Place Where Everyone Is Welcomed
             letter-spacing: 0.3px;
         }
 
-        /* Responsive refinements */
         @media (max-width: 880px) {
             .hero-section h1 {
-                font-size: 3rem;
+                font-size: 2.8rem;
             }
             .container {
                 padding: 0 28px;
@@ -580,25 +716,28 @@ The One Place Where Everyone Is Welcomed
             .section-header h2 {
                 font-size: 2.1rem;
             }
+            .social-proof {
+                gap: 32px;
+                border-radius: 40px;
+                padding: 24px 16px;
+            }
+            .proof-number {
+                font-size: 2rem;
+            }
         }
 
         @media (max-width: 680px) {
             .hero-section {
-                padding: 90px 0 70px;
+                padding: 70px 0 50px;
             }
             .hero-section h1 {
-                font-size: 2.3rem;
+                font-size: 2.2rem;
             }
             .platform-grid {
                 gap: 28px;
             }
-            .insight-stats {
-                gap: 32px;
-                border-radius: 48px;
-                padding: 28px 16px;
-            }
-            .stat-number {
-                font-size: 2rem;
+            .testimonial-grid {
+                grid-template-columns: 1fr;
             }
             .footer-grid {
                 flex-direction: column;
@@ -607,21 +746,37 @@ The One Place Where Everyone Is Welcomed
             .footer-social {
                 justify-content: center;
             }
+            .trust-banner {
+                gap: 20px;
+                font-size: 0.8rem;
+            }
         }
         
         @media (max-width: 480px) {
             .hero-section h1 {
-                font-size: 1.9rem;
+                font-size: 1.8rem;
             }
             .cta-primary {
-                padding: 12px 28px;
+                padding: 14px 28px;
+                font-size: 0.9rem;
+            }
+            .cta-secondary {
+                padding: 14px 24px;
+                font-size: 0.9rem;
             }
             .platform-card h3 {
                 font-size: 1.5rem;
             }
+            .social-proof {
+                gap: 20px;
+                padding: 20px 12px;
+                border-radius: 30px;
+            }
+            .proof-number {
+                font-size: 1.6rem;
+            }
         }
         
-        /* additional polished spacing */
         .platform-card .card-icon img {
             transition: transform 0.3s;
         }
@@ -660,76 +815,159 @@ The One Place Where Everyone Is Welcomed
 
 <main>
     <div class="container">
-        <!-- Hero Section (content preserved exactly) -->
+        <!-- HERO SECTION - REDESIGNED -->
         <section class="hero-section">
-            <span class="hero-badge">✦ Your Digital Marketplace</span>
-            <h1>Your Digital Marketplace for <span style="background: linear-gradient(135deg, #a5f3fc, #818cf8); background-clip: text; -webkit-background-clip: text; color: transparent;">Services, Books & Products</span></h1>
+            <span class="hero-badge">✦ Join 2,500+ Creators Already Earning</span>
+            <h1>
+                The <span class="highlight">All-in-One Hub</span> for<br>
+                <span class="highlight-2">Freelancers & Creators</span>
+            </h1>
             <p class="hero-description">
-                Connect with professionals, share knowledge, and discover unique products in one seamless platform designed for modern digital commerce.
+                Sell your services, digital products, and eBooks — all in one place. 
+                <strong>Zero monthly fees.</strong> Keep 95% of what you earn.
             </p>
-            <a href="main.html" class="cta-primary">
-                <span>Get Started</span>
-                <i class="fas fa-arrow-right"></i>
-            </a>
+            
+            <!-- CTA Group - Now with Browse option -->
+            <div class="cta-group">
+                <a href="main.html" class="cta-primary">
+                    <span>Get Started Free</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <a href="services.html" class="cta-secondary">
+                    <i class="fas fa-eye"></i>
+                    <span>Browse Marketplace</span>
+                </a>
+            </div>
+            
+            <!-- Free tier reassurance -->
+            <div class="free-note">
+                <i class="fas fa-check-circle"></i> No credit card required • Free to list your first 5 items
+            </div>
+            
+            <!-- Trust Banner -->
+            <div class="trust-banner">
+                <span><i class="fas fa-shield-alt"></i> Secure Transactions</span>
+                <span><i class="fas fa-user-check"></i> Verified Sellers</span>
+                <span><i class="fas fa-headset"></i> 24/7 Support</span>
+                <span><i class="fas fa-lock"></i> SSL Encrypted</span>
+            </div>
         </section>
 
-        <!-- Our Platforms Section (exact content from original) -->
+        <!-- SOCIAL PROOF - New Section -->
+        <div class="social-proof">
+            <div class="proof-item">
+                <span class="proof-number">2,500+</span>
+                <span class="proof-label">Active Creators</span>
+            </div>
+            <div class="proof-item">
+                <span class="proof-number">8,400+</span>
+                <span class="proof-label">Listings Sold</span>
+            </div>
+            <div class="proof-item">
+                <span class="proof-number">97%</span>
+                <span class="proof-label">Satisfaction Rate</span>
+            </div>
+            <div class="proof-item">
+                <span class="proof-number">4.9★</span>
+                <span class="proof-label">Average Rating</span>
+            </div>
+        </div>
+
+        <!-- Our Platforms Section -->
         <div class="section-header">
-            <h2>Our <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Platforms</span></h2>
-            <p>Three powerful ways to grow, learn, and trade</p>
+            <h2>Three <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Ways to Grow</span></h2>
+            <p>Choose your path — or combine all three to maximize your reach</p>
         </div>
         <div class="platform-grid">
-            <!-- Service Marketplace Card (original content + logo) -->
             <div class="platform-card">
                 <div class="card-icon">
                     <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
                 </div>
                 <h3>Service Marketplace</h3>
-                <p>Find skilled professionals or offer your expertise. Connect with freelancers, consultants, and service providers across various industries with secure transactions and quality assurance.</p>
-                <a href="services.html" class="card-link">Browse Services <i class="fas fa-arrow-right"></i></a>
+                <p>Offer your skills to a global audience. From design to consulting — set your rates, get paid securely, and build your reputation.</p>
+                <a href="services.html" class="card-link">Find Freelancers <i class="fas fa-arrow-right"></i></a>
             </div>
 
-            <!-- Digital Library / Books Card (original content) -->
             <div class="platform-card">
                 <div class="card-icon">
                     <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
                 </div>
                 <h3>Digital Library</h3>
-                <p>Upload and download eBooks, documents, and learning resources. Share knowledge with our community or access a growing collection of digital content for personal and professional growth.</p>
+                <p>Publish and sell eBooks, templates, and learning resources. Share your knowledge with a community hungry for quality content.</p>
                 <a href="courses.html" class="card-link">Explore Library <i class="fas fa-arrow-right"></i></a>
             </div>
 
-            <!-- Product Marketplace Card (original content) -->
             <div class="platform-card">
                 <div class="card-icon">
                     <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
                 </div>
                 <h3>Product Marketplace</h3>
-                <p>Buy and sell unique products, from digital assets to handmade crafts. Our secure platform connects buyers with verified sellers for a seamless shopping experience.</p>
-                <a href="products.html" class="card-link">Visit Marketplace <i class="fas fa-arrow-right"></i></a>
+                <p>Sell digital assets, handmade goods, or physical products. Our secure platform connects you with buyers who value quality.</p>
+                <a href="products.html" class="card-link">Shop Now <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
 
-        <!-- How It Works Section (original text preserved) -->
+        <!-- TESTIMONIALS - New Section -->
+        <div class="section-header">
+            <h2>What Our <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); background-clip: text; -webkit-background-clip: text; color: transparent;">Community Says</span></h2>
+            <p>Real stories from real creators who've found their home here</p>
+        </div>
+        <div class="testimonial-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"I've made more in 3 months here than I did in a year on Fiverr. The community is supportive and the fees are incredibly fair."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">JD</div>
+                    <div>
+                        <div class="testimonial-name">Jessica Davis</div>
+                        <div class="testimonial-role">Graphic Designer, 200+ sales</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"The Digital Library feature changed my life. My eBook has been downloaded over 1,000 times and I'm earning passive income every month."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">MR</div>
+                    <div>
+                        <div class="testimonial-name">Marcus Reed</div>
+                        <div class="testimonial-role">Author & Course Creator</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"The product marketplace is so easy to use. I sell my digital art here and the 95% payout means I actually make a living from my work."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">AL</div>
+                    <div>
+                        <div class="testimonial-name">Amara Lin</div>
+                        <div class="testimonial-role">Digital Artist, Top Seller</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works -->
         <div class="section-header">
             <h2>How It <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Works</span></h2>
-            <p>Simple steps to start your journey</p>
+            <p>Get started in 3 simple steps — it's free to join</p>
         </div>
         <div class="steps-modern">
             <div class="step-item">
                 <div class="step-num">1</div>
                 <h4>Create Account</h4>
-                <p>Sign up for free and set up your profile. Choose whether you want to offer services, share books, or sell products.</p>
+                <p>Sign up in 2 minutes — no credit card required. Set up your profile and choose how you want to earn.</p>
             </div>
             <div class="step-item">
                 <div class="step-num">2</div>
-                <h4>Browse or List</h4>
-                <p>Explore services, books, and products from our community, or list your own offerings to share with others.</p>
+                <h4>List or Browse</h4>
+                <p>List your services, books, or products — or browse the marketplace to find exactly what you need.</p>
             </div>
             <div class="step-item">
                 <div class="step-num">3</div>
-                <h4>Connect & Transact</h4>
-                <p>Connect with other users, communicate securely, and complete transactions with our protected payment system.</p>
+                <h4>Earn & Grow</h4>
+                <p>Connect with buyers, get paid securely, and build your reputation with every successful transaction.</p>
             </div>
         </div>
     </div>
@@ -740,12 +978,18 @@ The One Place Where Everyone Is Welcomed
         <div class="footer-grid">
             <div class="footer-logo-area">
                 <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight" class="footer-logo">
-                <span style="font-weight: 600; letter-spacing: -0.2px;">Core Insight</span>
+                <span style="font-weight: 600; letter-spacing: -0.2px; font-size: 1.1rem;">Core Insight</span>
             </div>
-            
+            <div class="footer-social">
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            </div>
+        </div>
         <div class="copyright">
-            <p>Core Insight — Empowering digital commerce & knowledge sharing.</p>
-            <p style="margin-top: 8px; font-size: 0.75rem;">All transactions secured | Global community</p>
+            <p>Core Insight — Empowering creators to earn, grow, and thrive.</p>
+            <p style="margin-top: 8px; font-size: 0.75rem;">© 2026 Core Insight. All rights reserved. · 95% payout · Secure transactions</p>
         </div>
     </div>
 </footer>

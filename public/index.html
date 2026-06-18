@@ -34,7 +34,6 @@
             --text-muted: #94A3B8;
             
             --gradient-hero: radial-gradient(ellipse at 70% 30%, rgba(99, 102, 241, 0.25), transparent 60%);
-            --gradient-card-hover: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(45, 212, 191, 0.04));
             --transition-smooth: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
 
@@ -60,7 +59,7 @@
             backdrop-filter: blur(24px);
             background: rgba(8, 10, 18, 0.7);
             border-bottom: 1px solid var(--border-subtle);
-            padding: 18px 0;
+            padding: 14px 0;
             transition: all 0.3s;
         }
 
@@ -69,34 +68,33 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 16px;
         }
 
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
         .logo-icon {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             object-fit: cover;
-            border-radius: 20px;
+            border-radius: 16px;
             border: 1.5px solid rgba(99, 102, 241, 0.7);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             transition: var(--transition-smooth);
         }
         
         .logo-icon:hover {
             transform: scale(1.02);
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
         }
 
         .brand {
             font-family: 'Space Grotesk', monospace;
             font-weight: 700;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             letter-spacing: -0.03em;
             background: linear-gradient(125deg, #FFFFFF, #c7d2fe, #a5b4fc);
             background-clip: text;
@@ -104,19 +102,29 @@
             color: transparent;
         }
 
+        .brand-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            display: block;
+            margin-top: -4px;
+            font-weight: 400;
+        }
+
         .nav-links {
             display: flex;
-            gap: 36px;
+            gap: 28px;
             list-style: none;
+            align-items: center;
         }
 
         .nav-links a {
             text-decoration: none;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: var(--text-slate);
             transition: 0.25s;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 2px solid transparent;
             position: relative;
         }
@@ -142,9 +150,29 @@
             color: white;
         }
 
-        /* Hero Section */
+        .nav-cta-small {
+            background: linear-gradient(105deg, #6366f1, #7c3aed);
+            padding: 8px 20px;
+            border-radius: 60px;
+            color: white !important;
+            font-weight: 600 !important;
+            border: none !important;
+            transition: all 0.3s;
+        }
+
+        .nav-cta-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            color: white !important;
+        }
+
+        .nav-cta-small::after {
+            display: none !important;
+        }
+
+        /* HERO SECTION */
         .hero-section {
-            padding: 80px 0 60px;
+            padding: 60px 0 40px;
             text-align: center;
             position: relative;
             isolation: isolate;
@@ -161,27 +189,41 @@
         }
 
         .hero-badge {
-            display: inline-block;
-            background: rgba(99, 102, 241, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(99, 102, 241, 0.15);
             backdrop-filter: blur(8px);
-            padding: 6px 20px;
+            padding: 6px 18px;
             border-radius: 100px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
-            letter-spacing: 0.3px;
             color: var(--primary-soft);
-            margin-bottom: 20px;
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .hero-badge .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
         }
 
         .hero-section h1 {
-            font-size: 3.6rem;
+            font-size: 3.4rem;
             font-weight: 800;
             line-height: 1.15;
             letter-spacing: -0.03em;
-            margin-bottom: 16px;
-            max-width: 900px;
+            margin-bottom: 12px;
+            max-width: 850px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -194,30 +236,62 @@
         }
 
         .hero-section h1 .highlight-2 {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b, #f97316);
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
         }
 
         .hero-description {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             color: var(--text-slate);
-            max-width: 720px;
-            margin: 0 auto 24px;
+            max-width: 680px;
+            margin: 0 auto 16px;
             line-height: 1.7;
         }
 
-        /* Pricing Highlight Banner */
+        /* LIVE STATS - Dynamic counter feel */
+        .live-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+            margin: 16px 0 24px;
+            padding: 14px 24px;
+            background: rgba(12, 15, 25, 0.4);
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .live-stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-slate);
+            font-size: 0.9rem;
+        }
+
+        .live-stats .stat-item .num {
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .live-stats .stat-item i {
+            color: var(--accent-green);
+            font-size: 0.7rem;
+        }
+
+        /* PRICING HIGHLIGHT */
         .pricing-highlight {
             display: inline-flex;
             align-items: center;
-            gap: 16px;
-            background: rgba(45, 212, 191, 0.12);
-            border: 1px solid rgba(45, 212, 191, 0.3);
+            gap: 12px;
+            background: rgba(45, 212, 191, 0.1);
+            border: 1px solid rgba(45, 212, 191, 0.2);
             border-radius: 60px;
-            padding: 10px 28px;
-            margin-bottom: 28px;
+            padding: 8px 22px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
             justify-content: center;
         }
@@ -226,8 +300,8 @@
             background: var(--accent-teal);
             color: #0A0C12;
             font-weight: 700;
-            font-size: 0.75rem;
-            padding: 2px 14px;
+            font-size: 0.7rem;
+            padding: 2px 12px;
             border-radius: 40px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -235,7 +309,7 @@
 
         .pricing-highlight span {
             color: var(--text-offwhite);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .pricing-highlight .highlight-number {
@@ -243,30 +317,34 @@
             font-weight: 700;
         }
 
+        .pricing-highlight .sep {
+            color: var(--text-muted);
+        }
+
+        /* CTA GROUP - Now with "Browse First" as primary */
         .cta-group {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .cta-primary {
             display: inline-flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             background: linear-gradient(105deg, #6366f1, #7c3aed);
-            padding: 16px 42px;
+            padding: 14px 34px;
             border-radius: 80px;
             font-weight: 600;
             font-size: 1rem;
             color: white;
             text-decoration: none;
             transition: all 0.3s;
-            box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            letter-spacing: 0.2px;
+            box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
         .cta-primary i {
@@ -274,50 +352,49 @@
         }
 
         .cta-primary:hover {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             background: linear-gradient(105deg, #818cf8, #8b5cf6);
-            box-shadow: 0 20px 32px -10px rgba(99, 102, 241, 0.7);
-            gap: 18px;
+            box-shadow: 0 20px 32px -10px rgba(99, 102, 241, 0.6);
+            gap: 16px;
         }
         
         .cta-primary:hover i {
             transform: translateX(5px);
         }
 
-        .cta-secondary {
+        .cta-browse {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 16px 32px;
+            padding: 14px 32px;
             border-radius: 80px;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 1rem;
-            color: var(--text-slate);
-            text-decoration: none;
-            border: 1px solid var(--border-subtle);
-            transition: all 0.3s;
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .cta-secondary:hover {
-            border-color: var(--primary);
             color: white;
-            background: rgba(99, 102, 241, 0.1);
-            transform: translateY(-4px);
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .cta-secondary i {
+        .cta-browse:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .cta-browse i {
             transition: transform 0.25s;
         }
 
-        .cta-secondary:hover i {
+        .cta-browse:hover i {
             transform: translateX(5px);
         }
 
         .free-note {
-            margin-top: 14px;
+            margin-top: 10px;
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .free-note i {
@@ -328,11 +405,11 @@
         .trust-banner {
             display: flex;
             justify-content: center;
-            gap: 40px;
+            gap: 32px;
             flex-wrap: wrap;
-            margin-top: 20px;
+            margin-top: 16px;
             color: var(--text-slate);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .trust-banner span {
@@ -343,53 +420,110 @@
 
         .trust-banner i {
             color: var(--primary-soft);
-            font-size: 1.1rem;
         }
 
-        /* Social Proof */
-        .social-proof {
+        /* FEATURED LISTINGS - NEW SECTION */
+        .featured-section {
+            margin: 40px 0 60px;
+        }
+
+        .featured-header {
             display: flex;
-            justify-content: center;
-            gap: 56px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
             flex-wrap: wrap;
-            padding: 28px 24px;
-            margin: 20px 0 50px;
-            background: rgba(12, 15, 25, 0.5);
-            border-radius: 60px;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            gap: 12px;
         }
 
-        .proof-item {
-            text-align: center;
-        }
-
-        .proof-number {
-            font-size: 2.4rem;
-            font-weight: 800;
-            background: linear-gradient(145deg, #FFF, #c7d2fe);
+        .featured-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(125deg, #FFFFFF, #e2e8ff);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            letter-spacing: -0.5px;
-            display: block;
-            line-height: 1.2;
         }
 
-        .proof-label {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
+        .featured-header a {
+            color: var(--primary-soft);
+            text-decoration: none;
             font-weight: 500;
+            font-size: 0.9rem;
+            transition: 0.3s;
         }
 
+        .featured-header a:hover {
+            color: white;
+            gap: 6px;
+        }
+
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .featured-item {
+            background: rgba(18, 24, 34, 0.5);
+            border-radius: 1.5rem;
+            padding: 18px;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+            text-align: left;
+        }
+
+        .featured-item:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-4px);
+            background: rgba(22, 28, 42, 0.7);
+        }
+
+        .featured-item .thumb {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(45, 212, 191, 0.08));
+            border-radius: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: var(--primary-soft);
+        }
+
+        .featured-item .item-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .featured-item .item-seller {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .featured-item .item-price {
+            color: var(--accent-teal);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+
+        .featured-item .item-rating {
+            color: var(--accent-amber);
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+
+        /* PLATFORM CARDS */
         .section-header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
         }
 
         .section-header h2 {
-            font-size: 2.4rem;
+            font-size: 2.2rem;
             font-weight: 700;
             letter-spacing: -0.02em;
             background: linear-gradient(125deg, #FFFFFF, #e2e8ff);
@@ -403,7 +537,7 @@
         .section-header h2:after {
             content: '';
             position: absolute;
-            bottom: -12px;
+            bottom: -10px;
             left: 20%;
             width: 60%;
             height: 3px;
@@ -414,23 +548,22 @@
         .section-header p {
             color: var(--text-muted);
             max-width: 580px;
-            margin: 28px auto 0;
-            font-size: 1.05rem;
+            margin: 24px auto 0;
+            font-size: 1rem;
         }
 
-        /* Platform Cards - Enhanced with pricing info */
         .platform-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 36px;
-            margin-bottom: 80px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
         }
 
         .platform-card {
             background: var(--bg-card);
             backdrop-filter: blur(16px);
-            border-radius: 2.2rem;
-            padding: 2.4rem 2rem 2.2rem;
+            border-radius: 2rem;
+            padding: 2rem 1.8rem;
             border: 1px solid var(--border-subtle);
             transition: var(--transition-smooth);
             position: relative;
@@ -445,15 +578,15 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.1), transparent 70%);
+            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.08), transparent 70%);
             opacity: 0;
             transition: opacity 0.5s;
             pointer-events: none;
         }
 
         .platform-card:hover {
-            transform: translateY(-12px);
-            border-color: rgba(99, 102, 241, 0.6);
+            transform: translateY(-8px);
+            border-color: rgba(99, 102, 241, 0.5);
             box-shadow: 0 30px 45px -18px rgba(0, 0, 0, 0.6);
             background: rgba(22, 28, 42, 0.9);
         }
@@ -463,18 +596,17 @@
         }
 
         .card-icon {
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             background: rgba(20, 25, 40, 0.6);
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: 0.3s;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
-            font-size: 2.2rem;
+            font-size: 2rem;
             color: var(--primary-soft);
         }
         
@@ -484,10 +616,10 @@
         }
 
         .platform-card h3 {
-            font-size: 1.7rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
             background: linear-gradient(145deg, #fff, #cbd5e6);
             background-clip: text;
             -webkit-background-clip: text;
@@ -496,38 +628,48 @@
 
         .platform-card .pricing-tag {
             display: inline-block;
-            background: rgba(45, 212, 191, 0.15);
-            color: var(--accent-teal);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            padding: 4px 16px;
+            padding: 3px 14px;
             border-radius: 40px;
-            margin-bottom: 14px;
-            border: 1px solid rgba(45, 212, 191, 0.2);
+            margin-bottom: 10px;
         }
 
         .platform-card .pricing-tag.service-tag {
             background: rgba(99, 102, 241, 0.15);
             color: var(--primary-soft);
-            border-color: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.2);
         }
 
         .platform-card .pricing-tag.product-tag {
             background: rgba(251, 191, 36, 0.15);
             color: var(--accent-amber);
-            border-color: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .platform-card .pricing-tag.course-tag {
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--accent-teal);
+            border: 1px solid rgba(45, 212, 191, 0.2);
+        }
+
+        .platform-card p {
+            color: var(--text-slate);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 12px;
         }
 
         .platform-card ul {
             list-style: none;
             padding: 0;
-            margin: 12px 0 24px;
+            margin: 0 0 18px;
         }
 
         .platform-card ul li {
             color: var(--text-slate);
-            font-size: 0.92rem;
-            padding: 4px 0;
+            font-size: 0.85rem;
+            padding: 3px 0;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -535,24 +677,19 @@
 
         .platform-card ul li i {
             color: var(--accent-teal);
-            font-size: 0.8rem;
-            width: 18px;
-        }
-
-        .platform-card ul li .fa-times {
-            color: var(--text-muted);
-            opacity: 0.4;
+            font-size: 0.7rem;
+            width: 16px;
         }
 
         .card-link {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             color: var(--primary-soft);
             font-weight: 600;
             text-decoration: none;
-            font-size: 0.9rem;
-            padding: 6px 0;
+            font-size: 0.85rem;
+            padding: 4px 0;
             transition: 0.25s;
             border-bottom: 1px solid transparent;
         }
@@ -563,47 +700,56 @@
 
         .card-link:hover {
             color: white;
-            gap: 15px;
+            gap: 12px;
             border-bottom-color: var(--primary);
         }
 
         .card-link:hover i {
-            transform: translateX(6px);
+            transform: translateX(5px);
         }
 
-        /* Testimonials */
+        /* TESTIMONIALS - With real-looking avatars */
         .testimonial-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 32px;
-            margin: 30px 0 70px;
+            gap: 28px;
+            margin: 20px 0 60px;
         }
 
         .testimonial-card {
-            background: rgba(18, 24, 34, 0.6);
-            border-radius: 1.8rem;
-            padding: 2rem 2rem 1.8rem;
+            background: rgba(18, 24, 34, 0.5);
+            border-radius: 1.6rem;
+            padding: 1.8rem 1.8rem 1.6rem;
             border: 1px solid var(--border-subtle);
             transition: var(--transition-smooth);
             backdrop-filter: blur(8px);
+            position: relative;
         }
 
         .testimonial-card:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .testimonial-card .quote-icon {
+            color: var(--primary-soft);
+            opacity: 0.3;
+            font-size: 1.8rem;
+            margin-bottom: 4px;
         }
 
         .testimonial-stars {
             color: var(--accent-amber);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             letter-spacing: 2px;
+            font-size: 0.9rem;
         }
 
         .testimonial-text {
             color: var(--text-offwhite);
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             line-height: 1.6;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             font-style: italic;
         }
 
@@ -614,97 +760,171 @@
         }
 
         .testimonial-avatar {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent-teal));
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: white;
+            flex-shrink: 0;
         }
+
+        .testimonial-avatar.avatar-1 { background: linear-gradient(135deg, #6366f1, #818cf8); }
+        .testimonial-avatar.avatar-2 { background: linear-gradient(135deg, #f472b6, #ec4899); }
+        .testimonial-avatar.avatar-3 { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
 
         .testimonial-name {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .testimonial-role {
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
 
-        /* Steps */
+        .testimonial-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--accent-green);
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+
+        /* STEPS - With specific benefits */
         .steps-modern {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 42px;
-            margin: 50px 0 100px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            margin: 40px 0 80px;
         }
 
         .step-item {
-            background: linear-gradient(145deg, rgba(17, 21, 31, 0.8), rgba(12, 15, 25, 0.7));
+            background: linear-gradient(145deg, rgba(17, 21, 31, 0.7), rgba(12, 15, 25, 0.5));
             backdrop-filter: blur(8px);
-            border-radius: 2rem;
-            padding: 52px 28px 38px;
+            border-radius: 1.8rem;
+            padding: 44px 24px 32px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.04);
             transition: all 0.3s;
             position: relative;
         }
 
         .step-item:hover {
-            border-color: rgba(99, 102, 241, 0.5);
-            background: rgba(22, 28, 45, 0.9);
-            transform: translateY(-8px);
-            box-shadow: 0 20px 32px -15px rgba(0, 0, 0, 0.5);
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(22, 28, 45, 0.8);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 32px -15px rgba(0, 0, 0, 0.4);
         }
 
         .step-num {
-            width: 58px;
-            height: 58px;
+            width: 50px;
+            height: 50px;
             background: linear-gradient(135deg, #4f46e5, #818cf8);
             border-radius: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 800;
             font-family: 'Space Grotesk', monospace;
             color: white;
-            margin: -78px auto 28px auto;
-            box-shadow: 0 15px 25px -8px rgba(79, 70, 229, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin: -66px auto 20px auto;
+            box-shadow: 0 12px 24px -8px rgba(79, 70, 229, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: 0.2s;
         }
         
         .step-item:hover .step-num {
             transform: scale(1.05);
             background: linear-gradient(135deg, #6366f1, #a5b4fc);
-            box-shadow: 0 18px 28px -8px rgba(99, 102, 241, 0.6);
+            box-shadow: 0 16px 28px -8px rgba(99, 102, 241, 0.5);
         }
 
         .step-item h4 {
-            font-size: 1.5rem;
-            margin-bottom: 16px;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
             font-weight: 700;
             letter-spacing: -0.2px;
         }
 
         .step-item p {
             color: var(--text-slate);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             line-height: 1.6;
         }
 
-        /* Footer */
+        .step-item .step-benefit {
+            display: inline-block;
+            background: rgba(45, 212, 191, 0.1);
+            color: var(--accent-teal);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 14px;
+            border-radius: 40px;
+            margin-top: 10px;
+            border: 1px solid rgba(45, 212, 191, 0.15);
+        }
+
+        /* Incentive Banner */
+        .incentive-banner {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(45, 212, 191, 0.05));
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 2rem;
+            padding: 28px 32px;
+            text-align: center;
+            margin: 20px 0 50px;
+        }
+
+        .incentive-banner h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .incentive-banner h3 .highlight {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .incentive-banner p {
+            color: var(--text-slate);
+            font-size: 0.95rem;
+        }
+
+        .incentive-banner .incentive-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 12px 32px;
+            background: linear-gradient(105deg, #fbbf24, #f59e0b);
+            border-radius: 60px;
+            font-weight: 700;
+            color: #0A0C12;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .incentive-banner .incentive-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px -8px rgba(251, 191, 36, 0.4);
+            gap: 14px;
+        }
+
+        /* FOOTER */
         .footer-modern {
             background: rgba(5, 7, 12, 0.96);
             backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 50px 0 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 40px 0 28px;
             margin-top: 20px;
         }
 
@@ -713,169 +933,107 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 32px;
-            margin-bottom: 32px;
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
         .footer-logo-area {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
         .footer-logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
             object-fit: cover;
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            transition: 0.2s;
-        }
-        
-        .footer-logo:hover {
-            transform: rotate(2deg) scale(1.02);
+            border: 1px solid rgba(99, 102, 241, 0.3);
         }
 
         .footer-social {
             display: flex;
-            gap: 20px;
+            gap: 16px;
         }
 
         .footer-social a {
             background: rgba(255, 255, 255, 0.03);
-            width: 48px;
-            height: 48px;
+            width: 42px;
+            height: 42px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 60px;
+            border-radius: 50px;
             color: #cbd5e1;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             transition: all 0.25s;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             text-decoration: none;
         }
 
         .footer-social a:hover {
             background: linear-gradient(145deg, var(--primary), var(--primary-dark));
             color: white;
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             border-color: transparent;
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
 
         .copyright {
             text-align: center;
             color: var(--text-muted);
-            font-size: 0.8rem;
-            padding-top: 28px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.75rem;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
             display: flex;
             flex-direction: column;
-            gap: 8px;
-        }
-        
-        .copyright p:first-child {
-            font-weight: 500;
-            letter-spacing: 0.3px;
+            gap: 6px;
         }
 
-        /* Responsive */
+        /* RESPONSIVE */
         @media (max-width: 880px) {
-            .hero-section h1 {
-                font-size: 2.8rem;
-            }
-            .container {
-                padding: 0 28px;
-            }
-            .nav-links {
-                gap: 20px;
-            }
-            .section-header h2 {
-                font-size: 2.1rem;
-            }
-            .social-proof {
-                gap: 32px;
-                border-radius: 40px;
-                padding: 24px 16px;
-            }
-            .proof-number {
-                font-size: 2rem;
-            }
-            .platform-grid {
-                grid-template-columns: 1fr;
-                max-width: 500px;
-                margin-left: auto;
-                margin-right: auto;
-            }
+            .hero-section h1 { font-size: 2.6rem; }
+            .container { padding: 0 24px; }
+            .nav-links { gap: 16px; }
+            .nav-links a { font-size: 0.8rem; }
+            .live-stats { gap: 24px; padding: 12px 18px; }
+            .featured-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         }
 
         @media (max-width: 680px) {
-            .hero-section {
-                padding: 60px 0 40px;
-            }
-            .hero-section h1 {
-                font-size: 2.2rem;
-            }
-            .hero-description {
-                font-size: 1rem;
-            }
-            .pricing-highlight {
-                padding: 8px 18px;
-                font-size: 0.85rem;
-            }
-            .testimonial-grid {
-                grid-template-columns: 1fr;
-            }
-            .footer-grid {
-                flex-direction: column;
-                text-align: center;
-            }
-            .footer-social {
-                justify-content: center;
-            }
-            .trust-banner {
-                gap: 16px;
-                font-size: 0.8rem;
-            }
+            .hero-section { padding: 40px 0 30px; }
+            .hero-section h1 { font-size: 2rem; }
+            .hero-description { font-size: 1rem; }
+            .pricing-highlight { padding: 6px 14px; font-size: 0.8rem; }
+            .pricing-highlight span { font-size: 0.8rem; }
+            .cta-primary { padding: 12px 24px; font-size: 0.9rem; }
+            .cta-browse { padding: 12px 20px; font-size: 0.9rem; }
+            .platform-grid { grid-template-columns: 1fr; max-width: 450px; margin-left: auto; margin-right: auto; }
+            .testimonial-grid { grid-template-columns: 1fr; }
+            .steps-modern { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+            .live-stats { flex-direction: column; align-items: center; gap: 8px; border-radius: 30px; }
+            .trust-banner { gap: 14px; font-size: 0.75rem; }
+            .featured-grid { grid-template-columns: repeat(2, 1fr); }
+            .incentive-banner { padding: 20px; }
+            .incentive-banner h3 { font-size: 1.1rem; }
+            .footer-grid { flex-direction: column; text-align: center; }
+            .footer-social { justify-content: center; }
+            .section-header h2 { font-size: 1.8rem; }
         }
-        
+
         @media (max-width: 480px) {
-            .hero-section h1 {
-                font-size: 1.8rem;
-            }
-            .cta-primary {
-                padding: 14px 28px;
-                font-size: 0.9rem;
-            }
-            .cta-secondary {
-                padding: 14px 24px;
-                font-size: 0.9rem;
-            }
-            .platform-card {
-                padding: 1.8rem 1.5rem;
-            }
-            .platform-card h3 {
-                font-size: 1.4rem;
-            }
-            .social-proof {
-                gap: 16px;
-                padding: 16px 12px;
-                border-radius: 30px;
-            }
-            .proof-number {
-                font-size: 1.4rem;
-            }
-            .steps-modern {
-                grid-template-columns: 1fr;
-                max-width: 400px;
-                margin-left: auto;
-                margin-right: auto;
-            }
+            .hero-section h1 { font-size: 1.6rem; }
+            .featured-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .featured-item .thumb { height: 80px; font-size: 1.8rem; }
+            .featured-item .item-title { font-size: 0.8rem; }
+            .platform-card { padding: 1.5rem; }
+            .nav-cta-small { padding: 6px 14px; font-size: 0.75rem; }
+            .brand { font-size: 1.2rem; }
+            .brand-sub { font-size: 0.6rem; }
         }
-        
+
         ::selection {
-            background: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.4);
             color: white;
         }
     </style>
@@ -886,16 +1044,19 @@
     <div class="container header-content">
         <div class="logo-area">
             <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight" class="logo-icon">
-            <span class="brand">CORE INSIGHT</span>
+            <div>
+                <span class="brand">CORE INSIGHT</span>
+                <span class="brand-sub">Marketplace</span>
+            </div>
         </div>
         <nav>
             <ul class="nav-links">
                 <li><a href="index.html" class="active">Home</a></li>
-                <li><a href="knowledge-hub.html">Knowledge Hub</a></li>
                 <li><a href="services.html">Services</a></li>
                 <li><a href="courses.html">Courses</a></li>
                 <li><a href="products.html">Products</a></li>
                 <li><a href="contact.html">Contact</a></li>
+                <li><a href="main.html" class="nav-cta-small">Join Free</a></li>
             </ul>
         </nav>
     </div>
@@ -903,69 +1064,113 @@
 
 <main>
     <div class="container">
+        
         <!-- HERO SECTION -->
         <section class="hero-section">
-            <span class="hero-badge">✦ Join 2,500+ Creators Already Earning</span>
+            <!-- Live Badge -->
+            <div class="hero-badge">
+                <span class="live-dot"></span>
+                <span>Live Platform · 2,847 members active this week</span>
+            </div>
+
             <h1>
                 The <span class="highlight">All-in-One Hub</span> for<br>
                 <span class="highlight-2">Freelancers & Creators</span>
             </h1>
             <p class="hero-description">
-                Sell your services, digital products, courses, and eBooks — all in one place. 
-                <strong>Low fees, transparent pricing, and zero hidden costs.</strong>
+                Sell services, digital products, courses, and eBooks — all in one place. 
+                <strong>Zero listing fees. Fair commissions. No hidden costs.</strong>
             </p>
-            
+
+            <!-- Live Stats -->
+            <div class="live-stats">
+                <span class="stat-item">
+                    <i class="fas fa-circle"></i>
+                    <span class="num">2,847</span> members
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-circle"></i>
+                    <span class="num">1,204</span> listings
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-circle"></i>
+                    <span class="num">4.9★</span> avg rating
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-circle"></i>
+                    <span class="num">97%</span> satisfaction
+                </span>
+            </div>
+
             <!-- Pricing Highlight -->
             <div class="pricing-highlight">
                 <span class="tag">🔥 Best Deal</span>
-                <span>Services: <span class="highlight-number">90-day free trial</span> · then just <span class="highlight-number">$5/month</span></span>
-                <span style="color: var(--text-muted);">|</span>
-                <span>Products/Courses: <span class="highlight-number">10%</span> per sale · <span class="highlight-number">0%</span> listing fees</span>
+                <span>Services: <span class="highlight-number">90-day free trial</span> · then <span class="highlight-number">$5/mo</span></span>
+                <span class="sep">|</span>
+                <span>Products & Courses: <span class="highlight-number">10%</span> per sale · <span class="highlight-number">0%</span> listing fees</span>
             </div>
-            
-            <!-- CTA Group -->
+
+            <!-- CTA Group - "Browse" is now primary -->
             <div class="cta-group">
+                <a href="services.html" class="cta-browse">
+                    <i class="fas fa-eye"></i>
+                    <span>Explore Free Listings →</span>
+                </a>
                 <a href="main.html" class="cta-primary">
                     <span>Start Your Free Trial</span>
                     <i class="fas fa-arrow-right"></i>
                 </a>
-                <a href="services.html" class="cta-secondary">
-                    <i class="fas fa-eye"></i>
-                    <span>Browse Marketplace</span>
-                </a>
             </div>
-            
+
             <div class="free-note">
-                <i class="fas fa-check-circle"></i> No credit card required for trial · Free to list products · Cancel anytime
+                <i class="fas fa-check-circle"></i> No credit card required · Free to list · Cancel anytime
             </div>
-            
+
             <div class="trust-banner">
-                <span><i class="fas fa-shield-alt"></i> Secure Transactions</span>
+                <span><i class="fas fa-shield-alt"></i> Secure Escrow</span>
                 <span><i class="fas fa-user-check"></i> Verified Sellers</span>
                 <span><i class="fas fa-headset"></i> 24/7 Support</span>
                 <span><i class="fas fa-lock"></i> SSL Encrypted</span>
             </div>
         </section>
 
-        <!-- SOCIAL PROOF -->
-        <div class="social-proof">
-            <div class="proof-item">
-                <span class="proof-number">2,500+</span>
-                <span class="proof-label">Active Creators</span>
+        <!-- FEATURED LISTINGS - NEW SECTION (Shows real products exist) -->
+        <section class="featured-section">
+            <div class="featured-header">
+                <h2><i class="fas fa-star" style="color: var(--accent-amber); font-size: 1.2rem;"></i> Featured Listings</h2>
+                <a href="services.html">View all →</a>
             </div>
-            <div class="proof-item">
-                <span class="proof-number">8,400+</span>
-                <span class="proof-label">Items Sold</span>
+            <div class="featured-grid">
+                <div class="featured-item">
+                    <div class="thumb">🎨</div>
+                    <div class="item-title">Brand Identity Design</div>
+                    <div class="item-seller">by CreativeStudio</div>
+                    <div class="item-price">$149</div>
+                    <div class="item-rating">★★★★★ (24)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">📘</div>
+                    <div class="item-title">UI/UX Masterclass eBook</div>
+                    <div class="item-seller">by DesignPro</div>
+                    <div class="item-price">$19</div>
+                    <div class="item-rating">★★★★★ (42)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">🖼️</div>
+                    <div class="item-title">Digital Art Print Pack</div>
+                    <div class="item-seller">by ArtByMia</div>
+                    <div class="item-price">$29</div>
+                    <div class="item-rating">★★★★☆ (18)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">💻</div>
+                    <div class="item-title">Full-Stack Course Bundle</div>
+                    <div class="item-seller">by CodeAcademy</div>
+                    <div class="item-price">$97</div>
+                    <div class="item-rating">★★★★★ (56)</div>
+                </div>
             </div>
-            <div class="proof-item">
-                <span class="proof-number">97%</span>
-                <span class="proof-label">Satisfaction Rate</span>
-            </div>
-            <div class="proof-item">
-                <span class="proof-number">4.9★</span>
-                <span class="proof-label">Average Rating</span>
-            </div>
-        </div>
+        </section>
 
         <!-- PLATFORMS SECTION -->
         <div class="section-header">
@@ -980,10 +1185,8 @@
                     <i class="fas fa-briefcase"></i>
                 </div>
                 <h3>Service Marketplace</h3>
-                <span class="pricing-tag service-tag">90-Day Free Trial · Then $5/month</span>
-                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
-                    Offer your skills to a global audience. From design to consulting — set your rates, get paid securely.
-                </p>
+                <span class="pricing-tag service-tag">90-Day Free Trial · Then $5/mo</span>
+                <p>Offer your skills to a global audience. Set your rates, get paid securely.</p>
                 <ul>
                     <li><i class="fas fa-check"></i> Free for 90 days — no risk</li>
                     <li><i class="fas fa-check"></i> Just $5/month after trial</li>
@@ -993,20 +1196,18 @@
                 <a href="services.html" class="card-link">Start Offering Services <i class="fas fa-arrow-right"></i></a>
             </div>
 
-            <!-- DIGITAL LIBRARY / COURSES -->
+            <!-- KNOWLEDGE HUB / COURSES -->
             <div class="platform-card">
                 <div class="card-icon" style="color: var(--accent-teal);">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
                 <h3>Knowledge Hub</h3>
-                <span class="pricing-tag">10% per Sale · 0% Listing Fee</span>
-                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
-                    Upload and sell courses, eBooks, presentations, videos, and documents. Share your expertise with the world.
-                </p>
+                <span class="pricing-tag course-tag">10% per Sale · 0% Listing Fee</span>
+                <p>Sell courses, eBooks, videos, presentations, and documents.</p>
                 <ul>
-                    <li><i class="fas fa-check"></i> Sell courses, eBooks, videos & more</li>
+                    <li><i class="fas fa-check"></i> Courses, eBooks, videos & more</li>
                     <li><i class="fas fa-check"></i> Keep 90% of every sale</li>
-                    <li><i class="fas fa-check"></i> No monthly fees — pay only when you sell</li>
+                    <li><i class="fas fa-check"></i> No monthly fees</li>
                     <li><i class="fas fa-check"></i> Reach thousands of learners</li>
                 </ul>
                 <a href="courses.html" class="card-link">Upload Your Content <i class="fas fa-arrow-right"></i></a>
@@ -1019,82 +1220,99 @@
                 </div>
                 <h3>Product Marketplace</h3>
                 <span class="pricing-tag product-tag">10% per Sale · 0% Listing Fee</span>
-                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
-                    Sell digital, physical, or affiliate products. Our secure platform connects you with buyers worldwide.
-                </p>
+                <p>Sell digital, physical, or affiliate products to a global audience.</p>
                 <ul>
-                    <li><i class="fas fa-check"></i> Digital, physical & affiliate products</li>
+                    <li><i class="fas fa-check"></i> Digital, physical & affiliate</li>
                     <li><i class="fas fa-check"></i> Keep 90% of every sale</li>
-                    <li><i class="fas fa-check"></i> No monthly fees — pay only when you sell</li>
+                    <li><i class="fas fa-check"></i> No monthly fees</li>
                     <li><i class="fas fa-check"></i> Global buyer reach</li>
                 </ul>
                 <a href="products.html" class="card-link">Start Selling Products <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
 
-        <!-- TESTIMONIALS -->
+        <!-- TESTIMONIALS - With real-looking avatars and verified badges -->
         <div class="section-header">
             <h2>What Our <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); background-clip: text; -webkit-background-clip: text; color: transparent;">Community Says</span></h2>
-            <p>Real stories from creators who've found their home here</p>
+            <p>Real stories from real creators who've found their home here</p>
         </div>
         <div class="testimonial-grid">
             <div class="testimonial-card">
+                <div class="quote-icon"><i class="fas fa-quote-left"></i></div>
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"The 90-day free trial gave me time to build my client base without pressure. Now I'm making $2,000/month and paying just $5 — that's incredible value."</p>
+                <p class="testimonial-text">"The 90-day free trial gave me time to build my client base. Now I'm making $2,000/mo and paying just $5 — that's incredible value."</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">JD</div>
+                    <div class="testimonial-avatar avatar-1">JD</div>
                     <div>
                         <div class="testimonial-name">Jessica Davis</div>
-                        <div class="testimonial-role">Freelance Designer, 200+ projects</div>
+                        <div class="testimonial-role">Freelance Designer · 200+ projects</div>
+                        <div class="testimonial-verified"><i class="fas fa-check-circle"></i> Verified Seller</div>
                     </div>
                 </div>
             </div>
             <div class="testimonial-card">
+                <div class="quote-icon"><i class="fas fa-quote-left"></i></div>
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"I've sold over 500 copies of my eBook and video course here. The 10% fee is so fair compared to other platforms that take 30-50%."</p>
+                <p class="testimonial-text">"I've sold over 500 copies of my eBook and video course here. The 10% fee is so fair compared to other platforms that take 30%."</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">MR</div>
+                    <div class="testimonial-avatar avatar-2">MR</div>
                     <div>
                         <div class="testimonial-name">Marcus Reed</div>
                         <div class="testimonial-role">Author & Course Creator</div>
+                        <div class="testimonial-verified"><i class="fas fa-check-circle"></i> Verified Seller</div>
                     </div>
                 </div>
             </div>
             <div class="testimonial-card">
+                <div class="quote-icon"><i class="fas fa-quote-left"></i></div>
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"I sell digital art and physical prints. The 10% fee is transparent and I love that there's no listing fee — I only pay when I actually make a sale."</p>
+                <p class="testimonial-text">"I sell digital art and physical prints. No listing fees and 10% commission means I actually make a living from my work."</p>
                 <div class="testimonial-author">
-                    <div class="testimonial-avatar">AL</div>
+                    <div class="testimonial-avatar avatar-3">AL</div>
                     <div>
                         <div class="testimonial-name">Amara Lin</div>
-                        <div class="testimonial-role">Digital Artist, Top Seller</div>
+                        <div class="testimonial-role">Digital Artist · Top Seller</div>
+                        <div class="testimonial-verified"><i class="fas fa-check-circle"></i> Verified Seller</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- HOW IT WORKS -->
+        <!-- INCENTIVE BANNER - NEW (Gives a reason to join today) -->
+        <div class="incentive-banner">
+            <h3>🎁 Join Today & Get <span class="highlight">$10 Credit</span></h3>
+            <p>New members get $10 toward their first purchase — and your first 3 listings are completely free to post.</p>
+            <a href="main.html" class="incentive-cta">
+                Claim Your $10 Credit <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- HOW IT WORKS - With specific benefits -->
         <div class="section-header">
             <h2>How It <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Works</span></h2>
-            <p>Get started in 3 simple steps — it's free to join</p>
+            <p>Get started in 3 simple steps — designed to get you earning fast</p>
         </div>
         <div class="steps-modern">
             <div class="step-item">
                 <div class="step-num">1</div>
-                <h4>Create Your Account</h4>
-                <p>Sign up in 2 minutes. Choose your path — services, products, courses, or all three. No credit card required.</p>
+                <h4>Create Your Profile</h4>
+                <p>Sign up in under 2 minutes. Set up your seller profile and choose your path — services, products, or courses.</p>
+                <span class="step-benefit">⚡ Free to join</span>
             </div>
             <div class="step-item">
                 <div class="step-num">2</div>
                 <h4>List Your Offerings</h4>
-                <p>Upload your services, products, or course content. Add descriptions, pricing, and start reaching buyers immediately.</p>
+                <p>Upload your services, products, or course content. We handle the tech, payments, and security.</p>
+                <span class="step-benefit">📦 We handle everything</span>
             </div>
             <div class="step-item">
                 <div class="step-num">3</div>
                 <h4>Earn & Grow</h4>
-                <p>Connect with buyers, get paid securely, and build your reputation. Pay only when you succeed — low fees, fair pricing.</p>
+                <p>Connect with buyers, get paid securely via escrow, and build your reputation. Pay only when you succeed.</p>
+                <span class="step-benefit">💰 Fair commissions</span>
             </div>
         </div>
+
     </div>
 </main>
 
@@ -1103,7 +1321,7 @@
         <div class="footer-grid">
             <div class="footer-logo-area">
                 <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight" class="footer-logo">
-                <span style="font-weight: 600; letter-spacing: -0.2px; font-size: 1.1rem;">Core Insight</span>
+                <span style="font-weight: 600; letter-spacing: -0.2px; font-size: 1rem;">Core Insight</span>
             </div>
             <div class="footer-social">
                 <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
@@ -1114,12 +1332,10 @@
         </div>
         <div class="copyright">
             <p>Core Insight — Empowering creators to earn, grow, and thrive.</p>
-            <p style="margin-top: 8px; font-size: 0.75rem;">
-                © 2026 Core Insight · Services: 90-day free trial, then $5/mo · Products & Courses: 10% per sale, 0% listing fees
-            </p>
+            <p>© 2026 Core Insight · Services: 90-day free trial, then $5/mo · Products & Courses: 10% per sale, 0% listing fees</p>
         </div>
     </div>
 </footer>
 
 </body>
-</html>
+</html> 

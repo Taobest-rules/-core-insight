@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Core Insight | Sell Services, Courses & Digital Products</title>
+    <title>Core Insight | One Account. Three Ways to Earn.</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
@@ -45,6 +45,44 @@
             max-width: 1100px;
             margin: 0 auto;
             padding: 0 24px;
+        }
+
+        /* ===== BISMILLAH — Tiny, Subtle ===== */
+        .bismillah {
+            text-align: center;
+            padding: 2px 0 0 0;
+            font-size: 0.4rem;
+            /* Extremely small */
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.08);
+            /* Almost invisible */
+            font-weight: 300;
+            user-select: none;
+            pointer-events: none;
+            font-family: 'Inter', sans-serif;
+            transition: color 0.3s;
+        }
+
+        .bismillah:hover {
+            color: rgba(255, 255, 255, 0.2);
+            /* Slightly visible on hover */
+        }
+
+        .bismillah .arabic {
+            font-family: 'Times New Roman', 'Amiri', serif;
+            font-size: 0.5rem;
+            letter-spacing: 0.3px;
+        }
+
+        .bismillah .english {
+            font-size: 0.35rem;
+            letter-spacing: 0.3px;
+            text-transform: lowercase;
+        }
+
+        .bismillah .sep {
+            opacity: 0.3;
+            margin: 0 3px;
         }
 
         /* ===== HEADER ===== */
@@ -448,6 +486,46 @@
             font-size: 0.8rem;
         }
 
+        /* ===== WHY BUYERS JOIN ===== */
+        .buyers-section {
+            background: rgba(99, 102, 241, 0.04);
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            border-radius: 1.6rem;
+            padding: 24px 28px;
+            margin: 10px 0 30px;
+            text-align: center;
+        }
+        .buyers-section h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .buyers-section h3 .teal {
+            color: var(--accent-teal);
+        }
+        .buyers-section p.sub {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+        }
+        .buyers-grid {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .buyers-grid .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-slate);
+            font-size: 0.8rem;
+        }
+        .buyers-grid .item i {
+            color: var(--accent-teal);
+            font-size: 0.8rem;
+        }
+
         /* ===== REAL USERS ===== */
         .users-section {
             margin: 20px 0 30px;
@@ -459,6 +537,10 @@
             letter-spacing: 0.5px;
             color: var(--text-muted);
             margin-bottom: 12px;
+        }
+        .users-section .label .honest {
+            color: var(--accent-teal);
+            font-weight: 600;
         }
         .users-grid {
             display: flex;
@@ -597,10 +679,6 @@
             font-weight: 700;
             font-size: 0.9rem;
             margin-top: 4px;
-        }
-        .featured-item .rating {
-            color: var(--accent-amber);
-            font-size: 0.7rem;
         }
 
         /* ===== PLATFORMS ===== */
@@ -945,6 +1023,15 @@
             .why-grid .item {
                 font-size: 0.7rem;
             }
+            .buyers-section {
+                padding: 18px;
+            }
+            .buyers-grid {
+                gap: 14px;
+            }
+            .buyers-grid .item {
+                font-size: 0.7rem;
+            }
             .users-grid {
                 gap: 12px;
             }
@@ -1077,6 +1164,14 @@
 </head>
 <body>
 
+    <!-- ===== BISMILLAH — Extremely Small, Almost Invisible ===== -->
+    <div class="bismillah">
+        <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
+        <span class="sep">·</span>
+        <span class="english">in the name of god, the most gracious, the most merciful</span>
+    </div>
+
+    <!-- ===== HEADER ===== -->
     <header>
         <div class="container header-content">
             <div class="logo-area">
@@ -1115,7 +1210,7 @@
                 </h1>
 
                 <p class="hero-description">
-                    Sell services, courses, and digital products — all from a single account.<br>
+                    Sell services, courses, and products — all from a single account.<br>
                     <strong>Zero listing fees. Fair commissions. No hidden costs.</strong>
                 </p>
 
@@ -1163,7 +1258,7 @@
                 <div class="founder-content">
                     <div class="label">👋 From the Founder</div>
                     <p>
-                        "I created Core Insight because creators shouldn't need separate accounts for freelancing, courses, and digital products. We're currently in <strong>early access</strong> — which means <strong>less competition</strong> and <strong>more visibility</strong> for early sellers."
+                        "I created Core Insight because creators shouldn't need separate accounts for freelancing, courses, and products. We're currently in <strong>early access</strong> — which means <strong>less competition</strong> and <strong>more visibility</strong> for early sellers."
                     </p>
                     <div class="name">— Alex Kim, Founder</div>
                 </div>
@@ -1181,9 +1276,21 @@
                 </div>
             </section>
 
+            <!-- ===== WHY BUYERS JOIN ===== -->
+            <section class="buyers-section">
+                <h3>Why Buyers Choose <span class="teal">Core Insight</span></h3>
+                <p class="sub">Find quality services, courses, and products — all in one place</p>
+                <div class="buyers-grid">
+                    <span class="item"><i class="fas fa-check-circle"></i> Wide variety of offerings</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> Secure payment protection</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> Verified sellers</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> Competitive prices</span>
+                </div>
+            </section>
+
             <!-- ===== REAL USERS ===== -->
             <section class="users-section">
-                <div class="label">🌟 Real People, Real Sellers</div>
+                <div class="label">🌟 <span class="honest">Early</span> Sellers on the Platform</div>
                 <div class="users-grid">
                     <div class="user-chip">
                         <div class="avatar a1">PR</div>
@@ -1236,21 +1343,18 @@
                     <div class="title">JavaScript Mastery</div>
                     <div class="seller">by Prince</div>
                     <div class="price">$29</div>
-                    <div class="rating">★★★★★ (4)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">📗</div>
                     <div class="title">HTML & CSS Guide</div>
                     <div class="seller">by Taobest</div>
                     <div class="price">$19</div>
-                    <div class="rating">★★★★★ (6)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">📕</div>
                     <div class="title">SEO Masterclass</div>
                     <div class="seller">by Freelancer</div>
                     <div class="price">$24</div>
-                    <div class="rating">★★★★☆ (3)</div>
                 </div>
                 <!-- Products -->
                 <div class="featured-item">
@@ -1258,35 +1362,30 @@
                     <div class="title">Premium Smart Watch</div>
                     <div class="seller">by Tester</div>
                     <div class="price">$149</div>
-                    <div class="rating">★★★★★ (2)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">📱</div>
                     <div class="title">Latest Smartphone</div>
                     <div class="seller">by Jessica</div>
                     <div class="price">$599</div>
-                    <div class="rating">★★★★☆ (1)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">🏋️</div>
                     <div class="title">Home Gym Equipment</div>
                     <div class="seller">by Prince</div>
                     <div class="price">$89</div>
-                    <div class="rating">★★★★★ (3)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">🕶️</div>
                     <div class="title">Designer Sunglasses</div>
                     <div class="seller">by Taobest</div>
                     <div class="price">$45</div>
-                    <div class="rating">★★★★☆ (2)</div>
                 </div>
                 <div class="featured-item">
                     <div class="thumb">🏸</div>
                     <div class="title">Sports Gear Bundle</div>
                     <div class="seller">by Freelancer</div>
                     <div class="price">$67</div>
-                    <div class="rating">★★★★★ (1)</div>
                 </div>
             </div>
 

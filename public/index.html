@@ -6,7 +6,6 @@
     <title>Core Insight | Sell Services, Courses & Digital Products</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
     <style>
         /* ===== RESET & VARIABLES ===== */
         * {
@@ -27,7 +26,6 @@
             --accent-teal: #2dd4bf;
             --accent-amber: #fbbf24;
             --accent-green: #34d399;
-            --accent-rose: #f472b6;
             --text-white: #FFFFFF;
             --text-offwhite: #F1F5F9;
             --text-slate: #CBD5E1;
@@ -201,49 +199,39 @@
             -webkit-background-clip: text;
             color: transparent;
         }
-        #typing-headline {
-            min-height: 2.8rem;
-            display: inline-block;
-        }
-        .typed-cursor {
-            color: var(--primary);
-        }
 
         .hero-description {
             color: var(--text-slate);
-            max-width: 600px;
+            max-width: 620px;
             margin: 0 auto 12px;
             font-size: 1rem;
             line-height: 1.7;
         }
 
-        /* Honest Stats */
-        .live-stats {
-            display: flex;
-            justify-content: center;
-            gap: 28px;
-            flex-wrap: wrap;
-            margin: 10px 0 14px;
-            padding: 8px 18px;
-            background: rgba(12, 15, 25, 0.3);
-            border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-        }
-        .live-stats .stat-item {
-            display: flex;
+        /* Risk-Reversal Banner */
+        .risk-banner {
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
-            color: var(--text-slate);
+            gap: 8px;
+            background: rgba(45, 212, 191, 0.08);
+            border: 1px solid rgba(45, 212, 191, 0.15);
+            border-radius: 40px;
+            padding: 6px 18px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .risk-banner i {
+            color: var(--accent-teal);
             font-size: 0.8rem;
         }
-        .live-stats .stat-item .num {
-            color: white;
-            font-weight: 700;
-            font-size: 0.95rem;
+        .risk-banner span {
+            color: var(--text-offwhite);
+            font-size: 0.8rem;
         }
-        .live-stats .stat-item i {
-            color: var(--accent-green);
-            font-size: 0.5rem;
+        .risk-banner .hl {
+            color: var(--accent-teal);
+            font-weight: 600;
         }
 
         /* Pricing Highlight */
@@ -251,8 +239,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(45, 212, 191, 0.07);
-            border: 1px solid rgba(45, 212, 191, 0.12);
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.1);
             border-radius: 40px;
             padding: 5px 16px;
             margin-bottom: 14px;
@@ -260,8 +248,8 @@
             justify-content: center;
         }
         .pricing-highlight .tag {
-            background: var(--accent-teal);
-            color: #0A0C12;
+            background: var(--primary);
+            color: white;
             font-weight: 700;
             font-size: 0.6rem;
             padding: 1px 10px;
@@ -274,14 +262,11 @@
             font-size: 0.8rem;
         }
         .pricing-highlight .hl {
-            color: var(--accent-teal);
+            color: var(--primary-soft);
             font-weight: 600;
         }
-        .pricing-highlight .sep {
-            color: var(--text-muted);
-        }
 
-        /* CTA Group — Browse first */
+        /* CTA Group */
         .cta-group {
             display: flex;
             justify-content: center;
@@ -380,20 +365,20 @@
             padding: 24px 28px;
             margin: 10px 0 30px;
             display: flex;
-            gap: 24px;
+            gap: 20px;
             align-items: flex-start;
             flex-wrap: wrap;
         }
         .founder-avatar {
-            width: 56px;
-            height: 56px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--accent-teal));
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: white;
             flex-shrink: 0;
         }
@@ -420,72 +405,118 @@
             margin-top: 4px;
         }
 
-        /* ===== CURRENT SELLERS ===== */
-        .sellers-section {
-            margin: 20px 0 30px;
-        }
-        .sellers-section .label {
+        /* ===== WHY SELLERS JOIN ===== */
+        .why-section {
+            background: rgba(18, 24, 34, 0.4);
+            border: 1px solid var(--border-subtle);
+            border-radius: 1.6rem;
+            padding: 24px 28px;
+            margin: 10px 0 30px;
             text-align: center;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        }
+        .why-section h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .why-section h3 .gold {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .why-section p.sub {
             color: var(--text-muted);
+            font-size: 0.85rem;
             margin-bottom: 14px;
         }
-        .sellers-grid {
+        .why-grid {
             display: flex;
             justify-content: center;
             gap: 24px;
             flex-wrap: wrap;
         }
-        .seller-chip {
+        .why-grid .item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            color: var(--text-slate);
+            font-size: 0.8rem;
+        }
+        .why-grid .item i {
+            color: var(--accent-teal);
+            font-size: 0.8rem;
+        }
+
+        /* ===== REAL USERS ===== */
+        .users-section {
+            margin: 20px 0 30px;
+        }
+        .users-section .label {
+            text-align: center;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .users-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             background: rgba(18, 24, 34, 0.5);
-            padding: 8px 18px 8px 12px;
+            padding: 6px 16px 6px 10px;
             border-radius: 60px;
             border: 1px solid var(--border-subtle);
             transition: var(--transition);
         }
-        .seller-chip:hover {
+        .user-chip:hover {
             border-color: rgba(99, 102, 241, 0.3);
             background: rgba(22, 28, 42, 0.7);
         }
-        .seller-chip .avatar {
-            width: 28px;
-            height: 28px;
+        .user-chip .avatar {
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: white;
             flex-shrink: 0;
         }
-        .seller-chip .avatar.a1 {
+        .user-chip .avatar.a1 {
             background: linear-gradient(135deg, #6366f1, #818cf8);
         }
-        .seller-chip .avatar.a2 {
+        .user-chip .avatar.a2 {
             background: linear-gradient(135deg, #f472b6, #ec4899);
         }
-        .seller-chip .avatar.a3 {
+        .user-chip .avatar.a3 {
             background: linear-gradient(135deg, #fbbf24, #f59e0b);
         }
-        .seller-chip .avatar.a4 {
+        .user-chip .avatar.a4 {
             background: linear-gradient(135deg, #34d399, #10b981);
         }
-        .seller-chip .info {
-            font-size: 0.8rem;
+        .user-chip .avatar.a5 {
+            background: linear-gradient(135deg, #f97316, #fb923c);
         }
-        .seller-chip .info .name {
+        .user-chip .info {
+            font-size: 0.75rem;
+        }
+        .user-chip .info .name {
             color: var(--text-offwhite);
             font-weight: 500;
         }
-        .seller-chip .info .role {
+        .user-chip .info .role {
             color: var(--text-muted);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
         }
 
         /* ===== FEATURED LISTINGS ===== */
@@ -905,13 +936,22 @@
             .founder-content p {
                 font-size: 0.85rem;
             }
-            .sellers-grid {
+            .why-section {
+                padding: 18px;
+            }
+            .why-grid {
+                gap: 14px;
+            }
+            .why-grid .item {
+                font-size: 0.7rem;
+            }
+            .users-grid {
                 gap: 12px;
             }
-            .seller-chip {
-                padding: 6px 14px 6px 10px;
+            .user-chip {
+                padding: 5px 12px 5px 8px;
             }
-            .seller-chip .info {
+            .user-chip .info {
                 font-size: 0.7rem;
             }
             .featured-grid {
@@ -930,13 +970,9 @@
                 margin-left: auto;
                 margin-right: auto;
             }
-            .live-stats {
-                gap: 14px;
-                padding: 6px 14px;
-                flex-wrap: wrap;
-            }
-            .live-stats .stat-item {
+            .risk-banner {
                 font-size: 0.7rem;
+                padding: 4px 12px;
             }
             .pricing-highlight {
                 font-size: 0.7rem;
@@ -975,9 +1011,6 @@
             }
             .section-header h2 {
                 font-size: 1.5rem;
-            }
-            #typing-headline {
-                min-height: 2.2rem;
             }
         }
 
@@ -1029,6 +1062,11 @@
                 height: 44px;
                 font-size: 1rem;
             }
+            .user-chip .avatar {
+                width: 22px;
+                height: 22px;
+                font-size: 0.55rem;
+            }
         }
 
         ::selection {
@@ -1068,12 +1106,12 @@
             <section class="hero-section">
                 <div class="hero-badge">
                     <span class="live-dot"></span>
-                    <span>Early Access — Limited Spots Available</span>
+                    <span>Early Access — Growing Marketplace</span>
                 </div>
 
                 <h1>
                     <span class="highlight">One Account.</span><br>
-                    <span class="highlight-2" id="typing-headline"></span>
+                    <span class="highlight-2">Three Ways to Earn.</span>
                 </h1>
 
                 <p class="hero-description">
@@ -1081,26 +1119,25 @@
                     <strong>Zero listing fees. Fair commissions. No hidden costs.</strong>
                 </p>
 
-                <!-- Honest Stats -->
-                <div class="live-stats">
-                    <span class="stat-item"><i class="fas fa-circle"></i> <span class="num">15+</span> creators</span>
-                    <span class="stat-item"><i class="fas fa-circle"></i> <span class="num">20+</span> listings</span>
-                    <span class="stat-item"><i class="fas fa-circle"></i> <span class="num">4.8★</span> avg rating</span>
+                <!-- Risk-Reversal Banner -->
+                <div class="risk-banner">
+                    <i class="fas fa-check-circle"></i>
+                    <span><span class="hl">List your first item free</span> — 0% commission until you sell</span>
                 </div>
 
                 <!-- Pricing -->
                 <div class="pricing-highlight">
-                    <span class="tag">🔥 Best Deal</span>
+                    <span class="tag">💰 Fair Pricing</span>
                     <span>Services: <span class="hl">90-day free trial</span> · then <span class="hl">$5/mo</span></span>
-                    <span class="sep">|</span>
+                    <span style="color:var(--text-muted);">|</span>
                     <span>Products & Courses: <span class="hl">10%</span> per sale · <span class="hl">0%</span> listing fees</span>
                 </div>
 
-                <!-- CTAs — Browse first -->
+                <!-- CTAs -->
                 <div class="cta-group">
                     <a href="services.html" class="cta-browse">
                         <i class="fas fa-eye"></i>
-                        <span>Browse Listings</span>
+                        <span>Browse All Listings</span>
                     </a>
                     <a href="signup.html" class="cta-primary">
                         <span>Join Free</span>
@@ -1126,42 +1163,61 @@
                 <div class="founder-content">
                     <div class="label">👋 From the Founder</div>
                     <p>
-                        "I created Core Insight because creators shouldn't need separate accounts for freelancing, courses, and digital products. We're currently in <strong>early access</strong> and looking for our first group of sellers — which means <strong>less competition</strong> and <strong>more visibility</strong> for early adopters."
+                        "I created Core Insight because creators shouldn't need separate accounts for freelancing, courses, and digital products. We're currently in <strong>early access</strong> — which means <strong>less competition</strong> and <strong>more visibility</strong> for early sellers."
                     </p>
                     <div class="name">— Alex Kim, Founder</div>
                 </div>
             </section>
 
-            <!-- ===== CURRENT SELLERS ===== -->
-            <section class="sellers-section">
-                <div class="label">🌟 Current Sellers</div>
-                <div class="sellers-grid">
-                    <div class="seller-chip">
-                        <div class="avatar a1">JD</div>
+            <!-- ===== WHY SELLERS JOIN ===== -->
+            <section class="why-section">
+                <h3>Why Sellers Join <span class="gold">Core Insight</span></h3>
+                <p class="sub">We're actively growing — and early sellers get the most visibility</p>
+                <div class="why-grid">
+                    <span class="item"><i class="fas fa-check-circle"></i> Featured on homepage</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> Promoted on social media</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> Lower fees than competitors</span>
+                    <span class="item"><i class="fas fa-check-circle"></i> One account for everything</span>
+                </div>
+            </section>
+
+            <!-- ===== REAL USERS ===== -->
+            <section class="users-section">
+                <div class="label">🌟 Real People, Real Sellers</div>
+                <div class="users-grid">
+                    <div class="user-chip">
+                        <div class="avatar a1">PR</div>
                         <div class="info">
-                            <div class="name">Jessica Davis</div>
-                            <div class="role">Web Designer</div>
+                            <div class="name">Prince</div>
+                            <div class="role">Web Developer</div>
                         </div>
                     </div>
-                    <div class="seller-chip">
-                        <div class="avatar a2">MR</div>
+                    <div class="user-chip">
+                        <div class="avatar a2">TB</div>
                         <div class="info">
-                            <div class="name">Marcus Reed</div>
-                            <div class="role">Course Creator</div>
-                        </div>
-                    </div>
-                    <div class="seller-chip">
-                        <div class="avatar a3">AL</div>
-                        <div class="info">
-                            <div class="name">Amara Lin</div>
+                            <div class="name">Taobest</div>
                             <div class="role">Digital Artist</div>
                         </div>
                     </div>
-                    <div class="seller-chip">
-                        <div class="avatar a4">TK</div>
+                    <div class="user-chip">
+                        <div class="avatar a3">FL</div>
                         <div class="info">
-                            <div class="name">Tom K.</div>
-                            <div class="role">Copywriter</div>
+                            <div class="name">Freelancer</div>
+                            <div class="role">UI/UX Designer</div>
+                        </div>
+                    </div>
+                    <div class="user-chip">
+                        <div class="avatar a4">TE</div>
+                        <div class="info">
+                            <div class="name">Tester</div>
+                            <div class="role">Course Creator</div>
+                        </div>
+                    </div>
+                    <div class="user-chip">
+                        <div class="avatar a5">JD</div>
+                        <div class="info">
+                            <div class="name">Jessica</div>
+                            <div class="role">Content Writer</div>
                         </div>
                     </div>
                 </div>
@@ -1170,36 +1226,66 @@
             <!-- ===== FEATURED LISTINGS ===== -->
             <div class="section-header">
                 <h2>Featured Listings</h2>
-                <p>Real services and products available right now</p>
+                <p>Real products and courses available right now</p>
             </div>
 
             <div class="featured-grid">
+                <!-- Courses -->
                 <div class="featured-item">
-                    <div class="thumb">🎨</div>
-                    <div class="title">Brand Identity Design</div>
-                    <div class="seller">by Jessica D.</div>
+                    <div class="thumb">📘</div>
+                    <div class="title">JavaScript Mastery</div>
+                    <div class="seller">by Prince</div>
+                    <div class="price">$29</div>
+                    <div class="rating">★★★★★ (4)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">📗</div>
+                    <div class="title">HTML & CSS Guide</div>
+                    <div class="seller">by Taobest</div>
+                    <div class="price">$19</div>
+                    <div class="rating">★★★★★ (6)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">📕</div>
+                    <div class="title">SEO Masterclass</div>
+                    <div class="seller">by Freelancer</div>
+                    <div class="price">$24</div>
+                    <div class="rating">★★★★☆ (3)</div>
+                </div>
+                <!-- Products -->
+                <div class="featured-item">
+                    <div class="thumb">⌚</div>
+                    <div class="title">Premium Smart Watch</div>
+                    <div class="seller">by Tester</div>
                     <div class="price">$149</div>
+                    <div class="rating">★★★★★ (2)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">📱</div>
+                    <div class="title">Latest Smartphone</div>
+                    <div class="seller">by Jessica</div>
+                    <div class="price">$599</div>
+                    <div class="rating">★★★★☆ (1)</div>
+                </div>
+                <div class="featured-item">
+                    <div class="thumb">🏋️</div>
+                    <div class="title">Home Gym Equipment</div>
+                    <div class="seller">by Prince</div>
+                    <div class="price">$89</div>
                     <div class="rating">★★★★★ (3)</div>
                 </div>
                 <div class="featured-item">
-                    <div class="thumb">📘</div>
-                    <div class="title">UI/UX Masterclass</div>
-                    <div class="seller">by Marcus R.</div>
-                    <div class="price">$19</div>
-                    <div class="rating">★★★★★ (5)</div>
-                </div>
-                <div class="featured-item">
-                    <div class="thumb">🖼️</div>
-                    <div class="title">Digital Art Print Pack</div>
-                    <div class="seller">by Amara L.</div>
-                    <div class="price">$29</div>
+                    <div class="thumb">🕶️</div>
+                    <div class="title">Designer Sunglasses</div>
+                    <div class="seller">by Taobest</div>
+                    <div class="price">$45</div>
                     <div class="rating">★★★★☆ (2)</div>
                 </div>
                 <div class="featured-item">
-                    <div class="thumb">💻</div>
-                    <div class="title">Website Copywriting</div>
-                    <div class="seller">by Tom K.</div>
-                    <div class="price">$75</div>
+                    <div class="thumb">🏸</div>
+                    <div class="title">Sports Gear Bundle</div>
+                    <div class="seller">by Freelancer</div>
+                    <div class="price">$67</div>
                     <div class="rating">★★★★★ (1)</div>
                 </div>
             </div>
@@ -1322,26 +1408,6 @@
             </div>
         </div>
     </footer>
-
-    <!-- ===== TYPING ANIMATION ===== -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            new Typed('#typing-headline', {
-                strings: [
-                    'Three Ways to Earn.',
-                    'Sell Services.',
-                    'Sell Courses.',
-                    'Sell Digital Products.'
-                ],
-                typeSpeed: 55,
-                backSpeed: 30,
-                backDelay: 2000,
-                loop: true,
-                showCursor: true,
-                cursorChar: '|'
-            });
-        });
-    </script>
 
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Core Insight | Digital Marketplace for Creators & Freelancers</title>
+    <title>Core Insight | Marketplace for Freelancers & Creators</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -25,6 +25,8 @@
             --primary-dark: #4f46e5;
             --accent-teal: #2dd4bf;
             --accent-amber: #fbbf24;
+            --accent-rose: #f472b6;
+            --accent-green: #34d399;
             
             --text-white: #FFFFFF;
             --text-offwhite: #F1F5F9;
@@ -140,8 +142,9 @@
             color: white;
         }
 
+        /* Hero Section */
         .hero-section {
-            padding: 100px 0 80px;
+            padding: 80px 0 60px;
             text-align: center;
             position: relative;
             isolation: isolate;
@@ -167,17 +170,17 @@
             font-weight: 500;
             letter-spacing: 0.3px;
             color: var(--primary-soft);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             border: 1px solid rgba(99, 102, 241, 0.4);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .hero-section h1 {
-            font-size: 3.8rem;
+            font-size: 3.6rem;
             font-weight: 800;
             line-height: 1.15;
             letter-spacing: -0.03em;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             max-width: 900px;
             margin-left: auto;
             margin-right: auto;
@@ -200,9 +203,44 @@
         .hero-description {
             font-size: 1.2rem;
             color: var(--text-slate);
-            max-width: 680px;
-            margin: 0 auto 32px;
+            max-width: 720px;
+            margin: 0 auto 24px;
             line-height: 1.7;
+        }
+
+        /* Pricing Highlight Banner */
+        .pricing-highlight {
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(45, 212, 191, 0.12);
+            border: 1px solid rgba(45, 212, 191, 0.3);
+            border-radius: 60px;
+            padding: 10px 28px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pricing-highlight .tag {
+            background: var(--accent-teal);
+            color: #0A0C12;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 2px 14px;
+            border-radius: 40px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-highlight span {
+            color: var(--text-offwhite);
+            font-size: 0.95rem;
+        }
+
+        .pricing-highlight .highlight-number {
+            color: var(--accent-teal);
+            font-weight: 700;
         }
 
         .cta-group {
@@ -211,7 +249,7 @@
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .cta-primary {
@@ -276,12 +314,23 @@
             transform: translateX(5px);
         }
 
+        .free-note {
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .free-note i {
+            color: var(--accent-teal);
+            margin-right: 6px;
+        }
+
         .trust-banner {
             display: flex;
             justify-content: center;
             gap: 40px;
             flex-wrap: wrap;
-            margin-top: 24px;
+            margin-top: 20px;
             color: var(--text-slate);
             font-size: 0.9rem;
         }
@@ -297,25 +346,14 @@
             font-size: 1.1rem;
         }
 
-        .free-note {
-            margin-top: 16px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .free-note i {
-            color: var(--accent-teal);
-            margin-right: 6px;
-        }
-
-        /* Social Proof Bar */
+        /* Social Proof */
         .social-proof {
             display: flex;
             justify-content: center;
             gap: 56px;
             flex-wrap: wrap;
-            padding: 32px 24px;
-            margin: 30px 0 60px;
+            padding: 28px 24px;
+            margin: 20px 0 50px;
             background: rgba(12, 15, 25, 0.5);
             border-radius: 60px;
             backdrop-filter: blur(8px);
@@ -347,11 +385,11 @@
 
         .section-header {
             text-align: center;
-            margin-bottom: 60px;
+            margin-bottom: 50px;
         }
 
         .section-header h2 {
-            font-size: 2.6rem;
+            font-size: 2.4rem;
             font-weight: 700;
             letter-spacing: -0.02em;
             background: linear-gradient(125deg, #FFFFFF, #e2e8ff);
@@ -380,11 +418,12 @@
             font-size: 1.05rem;
         }
 
+        /* Platform Cards - Enhanced with pricing info */
         .platform-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
             gap: 36px;
-            margin-bottom: 100px;
+            margin-bottom: 80px;
         }
 
         .platform-card {
@@ -424,17 +463,19 @@
         }
 
         .card-icon {
-            width: 88px;
-            height: 88px;
+            width: 80px;
+            height: 80px;
             background: rgba(20, 25, 40, 0.6);
             border-radius: 2rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: 0.3s;
             box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+            font-size: 2.2rem;
+            color: var(--primary-soft);
         }
         
         .platform-card:hover .card-icon {
@@ -442,18 +483,10 @@
             transform: scale(1.02);
         }
 
-        .logo-inside {
-            width: 64px;
-            height: 64px;
-            object-fit: cover;
-            border-radius: 1.2rem;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-
         .platform-card h3 {
-            font-size: 1.85rem;
+            font-size: 1.7rem;
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             letter-spacing: -0.3px;
             background: linear-gradient(145deg, #fff, #cbd5e6);
             background-clip: text;
@@ -461,11 +494,54 @@
             color: transparent;
         }
 
-        .platform-card p {
+        .platform-card .pricing-tag {
+            display: inline-block;
+            background: rgba(45, 212, 191, 0.15);
+            color: var(--accent-teal);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 40px;
+            margin-bottom: 14px;
+            border: 1px solid rgba(45, 212, 191, 0.2);
+        }
+
+        .platform-card .pricing-tag.service-tag {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary-soft);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .platform-card .pricing-tag.product-tag {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--accent-amber);
+            border-color: rgba(251, 191, 36, 0.2);
+        }
+
+        .platform-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0 24px;
+        }
+
+        .platform-card ul li {
             color: var(--text-slate);
-            font-size: 0.96rem;
-            line-height: 1.65;
-            margin-bottom: 32px;
+            font-size: 0.92rem;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .platform-card ul li i {
+            color: var(--accent-teal);
+            font-size: 0.8rem;
+            width: 18px;
+        }
+
+        .platform-card ul li .fa-times {
+            color: var(--text-muted);
+            opacity: 0.4;
         }
 
         .card-link {
@@ -495,12 +571,12 @@
             transform: translateX(6px);
         }
 
-        /* Testimonials Section */
+        /* Testimonials */
         .testimonial-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 32px;
-            margin: 40px 0 80px;
+            margin: 30px 0 70px;
         }
 
         .testimonial-card {
@@ -560,11 +636,12 @@
             font-size: 0.8rem;
         }
 
+        /* Steps */
         .steps-modern {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 42px;
-            margin: 70px 0 120px;
+            margin: 50px 0 100px;
         }
 
         .step-item {
@@ -627,7 +704,7 @@
             background: rgba(5, 7, 12, 0.96);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 60px 0 40px;
+            padding: 50px 0 30px;
             margin-top: 20px;
         }
 
@@ -637,7 +714,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 32px;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
 
         .footer-logo-area {
@@ -691,7 +768,7 @@
             text-align: center;
             color: var(--text-muted);
             font-size: 0.8rem;
-            padding-top: 32px;
+            padding-top: 28px;
             border-top: 1px solid rgba(255, 255, 255, 0.04);
             display: flex;
             flex-direction: column;
@@ -703,6 +780,7 @@
             letter-spacing: 0.3px;
         }
 
+        /* Responsive */
         @media (max-width: 880px) {
             .hero-section h1 {
                 font-size: 2.8rem;
@@ -711,7 +789,7 @@
                 padding: 0 28px;
             }
             .nav-links {
-                gap: 24px;
+                gap: 20px;
             }
             .section-header h2 {
                 font-size: 2.1rem;
@@ -724,17 +802,27 @@
             .proof-number {
                 font-size: 2rem;
             }
+            .platform-grid {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+                margin-left: auto;
+                margin-right: auto;
+            }
         }
 
         @media (max-width: 680px) {
             .hero-section {
-                padding: 70px 0 50px;
+                padding: 60px 0 40px;
             }
             .hero-section h1 {
                 font-size: 2.2rem;
             }
-            .platform-grid {
-                gap: 28px;
+            .hero-description {
+                font-size: 1rem;
+            }
+            .pricing-highlight {
+                padding: 8px 18px;
+                font-size: 0.85rem;
             }
             .testimonial-grid {
                 grid-template-columns: 1fr;
@@ -747,7 +835,7 @@
                 justify-content: center;
             }
             .trust-banner {
-                gap: 20px;
+                gap: 16px;
                 font-size: 0.8rem;
             }
         }
@@ -764,28 +852,28 @@
                 padding: 14px 24px;
                 font-size: 0.9rem;
             }
+            .platform-card {
+                padding: 1.8rem 1.5rem;
+            }
             .platform-card h3 {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
             }
             .social-proof {
-                gap: 20px;
-                padding: 20px 12px;
+                gap: 16px;
+                padding: 16px 12px;
                 border-radius: 30px;
             }
             .proof-number {
-                font-size: 1.6rem;
+                font-size: 1.4rem;
+            }
+            .steps-modern {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin-left: auto;
+                margin-right: auto;
             }
         }
         
-        .platform-card .card-icon img {
-            transition: transform 0.3s;
-        }
-        .platform-card:hover .card-icon img {
-            transform: scale(1.02);
-        }
-        .brand, .footer-logo-area span {
-            user-select: none;
-        }
         ::selection {
             background: rgba(99, 102, 241, 0.5);
             color: white;
@@ -815,7 +903,7 @@
 
 <main>
     <div class="container">
-        <!-- HERO SECTION - REDESIGNED -->
+        <!-- HERO SECTION -->
         <section class="hero-section">
             <span class="hero-badge">✦ Join 2,500+ Creators Already Earning</span>
             <h1>
@@ -823,14 +911,22 @@
                 <span class="highlight-2">Freelancers & Creators</span>
             </h1>
             <p class="hero-description">
-                Sell your services, digital products, and eBooks — all in one place. 
-                <strong>Zero monthly fees.</strong> Keep 95% of what you earn.
+                Sell your services, digital products, courses, and eBooks — all in one place. 
+                <strong>Low fees, transparent pricing, and zero hidden costs.</strong>
             </p>
             
-            <!-- CTA Group - Now with Browse option -->
+            <!-- Pricing Highlight -->
+            <div class="pricing-highlight">
+                <span class="tag">🔥 Best Deal</span>
+                <span>Services: <span class="highlight-number">90-day free trial</span> · then just <span class="highlight-number">$5/month</span></span>
+                <span style="color: var(--text-muted);">|</span>
+                <span>Products/Courses: <span class="highlight-number">10%</span> per sale · <span class="highlight-number">0%</span> listing fees</span>
+            </div>
+            
+            <!-- CTA Group -->
             <div class="cta-group">
                 <a href="main.html" class="cta-primary">
-                    <span>Get Started Free</span>
+                    <span>Start Your Free Trial</span>
                     <i class="fas fa-arrow-right"></i>
                 </a>
                 <a href="services.html" class="cta-secondary">
@@ -839,12 +935,10 @@
                 </a>
             </div>
             
-            <!-- Free tier reassurance -->
             <div class="free-note">
-                <i class="fas fa-check-circle"></i> No credit card required • Free to list your first 5 items
+                <i class="fas fa-check-circle"></i> No credit card required for trial · Free to list products · Cancel anytime
             </div>
             
-            <!-- Trust Banner -->
             <div class="trust-banner">
                 <span><i class="fas fa-shield-alt"></i> Secure Transactions</span>
                 <span><i class="fas fa-user-check"></i> Verified Sellers</span>
@@ -853,7 +947,7 @@
             </div>
         </section>
 
-        <!-- SOCIAL PROOF - New Section -->
+        <!-- SOCIAL PROOF -->
         <div class="social-proof">
             <div class="proof-item">
                 <span class="proof-number">2,500+</span>
@@ -861,7 +955,7 @@
             </div>
             <div class="proof-item">
                 <span class="proof-number">8,400+</span>
-                <span class="proof-label">Listings Sold</span>
+                <span class="proof-label">Items Sold</span>
             </div>
             <div class="proof-item">
                 <span class="proof-number">97%</span>
@@ -873,60 +967,91 @@
             </div>
         </div>
 
-        <!-- Our Platforms Section -->
+        <!-- PLATFORMS SECTION -->
         <div class="section-header">
-            <h2>Three <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Ways to Grow</span></h2>
-            <p>Choose your path — or combine all three to maximize your reach</p>
+            <h2>Three <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Ways to Earn</span></h2>
+            <p>Choose your path — or combine all three to maximize your income</p>
         </div>
         <div class="platform-grid">
+            
+            <!-- SERVICE MARKETPLACE -->
             <div class="platform-card">
-                <div class="card-icon">
-                    <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
+                <div class="card-icon" style="color: var(--primary-soft);">
+                    <i class="fas fa-briefcase"></i>
                 </div>
                 <h3>Service Marketplace</h3>
-                <p>Offer your skills to a global audience. From design to consulting — set your rates, get paid securely, and build your reputation.</p>
-                <a href="services.html" class="card-link">Find Freelancers <i class="fas fa-arrow-right"></i></a>
+                <span class="pricing-tag service-tag">90-Day Free Trial · Then $5/month</span>
+                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
+                    Offer your skills to a global audience. From design to consulting — set your rates, get paid securely.
+                </p>
+                <ul>
+                    <li><i class="fas fa-check"></i> Free for 90 days — no risk</li>
+                    <li><i class="fas fa-check"></i> Just $5/month after trial</li>
+                    <li><i class="fas fa-check"></i> Keep 100% of your earnings</li>
+                    <li><i class="fas fa-check"></i> Build your reputation with reviews</li>
+                </ul>
+                <a href="services.html" class="card-link">Start Offering Services <i class="fas fa-arrow-right"></i></a>
             </div>
 
+            <!-- DIGITAL LIBRARY / COURSES -->
             <div class="platform-card">
-                <div class="card-icon">
-                    <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
+                <div class="card-icon" style="color: var(--accent-teal);">
+                    <i class="fas fa-graduation-cap"></i>
                 </div>
-                <h3>Digital Library</h3>
-                <p>Publish and sell eBooks, templates, and learning resources. Share your knowledge with a community hungry for quality content.</p>
-                <a href="courses.html" class="card-link">Explore Library <i class="fas fa-arrow-right"></i></a>
+                <h3>Knowledge Hub</h3>
+                <span class="pricing-tag">10% per Sale · 0% Listing Fee</span>
+                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
+                    Upload and sell courses, eBooks, presentations, videos, and documents. Share your expertise with the world.
+                </p>
+                <ul>
+                    <li><i class="fas fa-check"></i> Sell courses, eBooks, videos & more</li>
+                    <li><i class="fas fa-check"></i> Keep 90% of every sale</li>
+                    <li><i class="fas fa-check"></i> No monthly fees — pay only when you sell</li>
+                    <li><i class="fas fa-check"></i> Reach thousands of learners</li>
+                </ul>
+                <a href="courses.html" class="card-link">Upload Your Content <i class="fas fa-arrow-right"></i></a>
             </div>
 
+            <!-- PRODUCT MARKETPLACE -->
             <div class="platform-card">
-                <div class="card-icon">
-                    <img src="https://i.pinimg.com/736x/4d/cb/0d/4dcb0d8e2e7f83d4690b8d7fd2924bb3.jpg" alt="Core Insight Logo" class="logo-inside">
+                <div class="card-icon" style="color: var(--accent-amber);">
+                    <i class="fas fa-box-open"></i>
                 </div>
                 <h3>Product Marketplace</h3>
-                <p>Sell digital assets, handmade goods, or physical products. Our secure platform connects you with buyers who value quality.</p>
-                <a href="products.html" class="card-link">Shop Now <i class="fas fa-arrow-right"></i></a>
+                <span class="pricing-tag product-tag">10% per Sale · 0% Listing Fee</span>
+                <p style="color: var(--text-slate); font-size: 0.95rem; margin-bottom: 12px;">
+                    Sell digital, physical, or affiliate products. Our secure platform connects you with buyers worldwide.
+                </p>
+                <ul>
+                    <li><i class="fas fa-check"></i> Digital, physical & affiliate products</li>
+                    <li><i class="fas fa-check"></i> Keep 90% of every sale</li>
+                    <li><i class="fas fa-check"></i> No monthly fees — pay only when you sell</li>
+                    <li><i class="fas fa-check"></i> Global buyer reach</li>
+                </ul>
+                <a href="products.html" class="card-link">Start Selling Products <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
 
-        <!-- TESTIMONIALS - New Section -->
+        <!-- TESTIMONIALS -->
         <div class="section-header">
             <h2>What Our <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); background-clip: text; -webkit-background-clip: text; color: transparent;">Community Says</span></h2>
-            <p>Real stories from real creators who've found their home here</p>
+            <p>Real stories from creators who've found their home here</p>
         </div>
         <div class="testimonial-grid">
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"I've made more in 3 months here than I did in a year on Fiverr. The community is supportive and the fees are incredibly fair."</p>
+                <p class="testimonial-text">"The 90-day free trial gave me time to build my client base without pressure. Now I'm making $2,000/month and paying just $5 — that's incredible value."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">JD</div>
                     <div>
                         <div class="testimonial-name">Jessica Davis</div>
-                        <div class="testimonial-role">Graphic Designer, 200+ sales</div>
+                        <div class="testimonial-role">Freelance Designer, 200+ projects</div>
                     </div>
                 </div>
             </div>
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"The Digital Library feature changed my life. My eBook has been downloaded over 1,000 times and I'm earning passive income every month."</p>
+                <p class="testimonial-text">"I've sold over 500 copies of my eBook and video course here. The 10% fee is so fair compared to other platforms that take 30-50%."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">MR</div>
                     <div>
@@ -937,7 +1062,7 @@
             </div>
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"The product marketplace is so easy to use. I sell my digital art here and the 95% payout means I actually make a living from my work."</p>
+                <p class="testimonial-text">"I sell digital art and physical prints. The 10% fee is transparent and I love that there's no listing fee — I only pay when I actually make a sale."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">AL</div>
                     <div>
@@ -948,7 +1073,7 @@
             </div>
         </div>
 
-        <!-- How It Works -->
+        <!-- HOW IT WORKS -->
         <div class="section-header">
             <h2>How It <span style="background: linear-gradient(135deg, #c084fc, #60a5fa); background-clip: text; -webkit-background-clip: text; color: transparent;">Works</span></h2>
             <p>Get started in 3 simple steps — it's free to join</p>
@@ -956,18 +1081,18 @@
         <div class="steps-modern">
             <div class="step-item">
                 <div class="step-num">1</div>
-                <h4>Create Account</h4>
-                <p>Sign up in 2 minutes — no credit card required. Set up your profile and choose how you want to earn.</p>
+                <h4>Create Your Account</h4>
+                <p>Sign up in 2 minutes. Choose your path — services, products, courses, or all three. No credit card required.</p>
             </div>
             <div class="step-item">
                 <div class="step-num">2</div>
-                <h4>List or Browse</h4>
-                <p>List your services, books, or products — or browse the marketplace to find exactly what you need.</p>
+                <h4>List Your Offerings</h4>
+                <p>Upload your services, products, or course content. Add descriptions, pricing, and start reaching buyers immediately.</p>
             </div>
             <div class="step-item">
                 <div class="step-num">3</div>
                 <h4>Earn & Grow</h4>
-                <p>Connect with buyers, get paid securely, and build your reputation with every successful transaction.</p>
+                <p>Connect with buyers, get paid securely, and build your reputation. Pay only when you succeed — low fees, fair pricing.</p>
             </div>
         </div>
     </div>
@@ -989,7 +1114,9 @@
         </div>
         <div class="copyright">
             <p>Core Insight — Empowering creators to earn, grow, and thrive.</p>
-            <p style="margin-top: 8px; font-size: 0.75rem;">© 2026 Core Insight. All rights reserved. · 95% payout · Secure transactions</p>
+            <p style="margin-top: 8px; font-size: 0.75rem;">
+                © 2026 Core Insight · Services: 90-day free trial, then $5/mo · Products & Courses: 10% per sale, 0% listing fees
+            </p>
         </div>
     </div>
 </footer>

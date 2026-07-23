@@ -938,9 +938,385 @@ async function createBuyerNotification(buyerId, orderId, notificationType, title
         return null;
     }
 }
+
+
+// ---- Cover image upload config ----
+const articleCoverDir = path.join(__dirname, "uploads", "article-covers");
+if (!fs.existsSync(articleCoverDir)) fs.mkdirSync(articleCoverDir, { recursive: true });
+
+const articleCoverStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, articleCoverDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000);
+    const ext = path.extname(file.originalname);
+    cb(null, `${timestamp}-${random}${ext}`);
+  }
+});
+
+const uploadArticleCover = multer({
+  storage: articleCoverStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed for cover images'));
+  }
+}).single('cover_image');
+
+// ---- Helpers ----
+function slugify(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 80);
+}
+
+async function generateUniqueSlug(title) {
+  const base = slugify(title) || 'article';
+  let slug = base;
+  let counter = 1;
+  while (true) {
+    const existing = await db.query("SELECT id FROM articles WHERE slug = ?", [slug]);
+    if (!existing || existing.length === 0) return slug;
+    slug = `${base}-${counter}`;
+    counter++;
+  }
+}
+
+function estimateReadTime(content) {
+  const words = (content || '').replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200)); // ~200 wpm
+}
+
 // ============================================
-// CURRENCY CONVERSION ENDPOINT
+// CREATE ARTICLE (draft or publish)
 // ============================================
+app.post("/api/articles", uploadArticleCover, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to write an article" });
+    }
+
+    const { title, excerpt, content, category, tags, status } = req.body;
+
+    if (!title || title.trim().length < 5) {
+      return res.status(400).json({ error: "Title must be at least 5 characters" });
+    }
+    if (!content || content.trim().length < 50) {
+      return res.status(400).json({ error: "Article content must be at least 50 characters" });
+    }
+
+    const finalStatus = status === 'published' ? 'published' : 'draft';
+    const slug = await generateUniqueSlug(title);
+    const readTime = estimateReadTime(content);
+
+    let coverImageUrl = null;
+    if (req.file) {
+      coverImageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+
+    let parsedTags = null;
+    if (tags) {
+      try {
+        parsedTags = JSON.stringify(typeof tags === 'string' ? JSON.parse(tags) : tags);
+      } catch (e) {
+        parsedTags = JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean));
+      }
+    }
+
+    const result = await db.query(
+      `INSERT INTO articles
+        (user_id, title, slug, excerpt, content, cover_image_url, category, tags,
+         status, read_time_minutes, created_at, updated_at, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
+      [
+        req.session.user.id,
+        title.trim(),
+        slug,
+        excerpt ? excerpt.trim().substring(0, 500) : null,
+        content,
+        coverImageUrl,
+        category ? category.trim() : 'general',
+        parsedTags,
+        finalStatus,
+        readTime,
+        finalStatus === 'published' ? new Date() : null
+      ]
+    );
+
+    const articleId = extractInsertId(result);
+
+    res.json({
+      success: true,
+      message: finalStatus === 'published' ? "Article published!" : "Draft saved!",
+      articleId,
+      slug,
+      status: finalStatus
+    });
+
+  } catch (err) {
+    console.error("❌ Article creation error:", err);
+    res.status(500).json({ error: "Error creating article: " + err.message });
+  }
+});
+
+// ============================================
+// LIST PUBLISHED ARTICLES (public, paginated, filterable)
+// ============================================
+app.get("/api/articles", async (req, res) => {
+  try {
+    const { category, search, sort = 'newest', limit = 12, offset = 0 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit) || 12, 50);
+    const parsedOffset = parseInt(offset) || 0;
+
+    let sql = `
+      SELECT a.id, a.title, a.slug, a.excerpt, a.cover_image_url, a.category,
+             a.tags, a.views_count, a.read_time_minutes, a.published_at,
+             u.id as author_id, u.username as author_name,
+             fp.profile_picture_url as author_picture
+      FROM articles a
+      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN freelancer_profiles fp ON fp.user_id = a.user_id
+      WHERE a.status = 'published' AND a.is_deleted = 0
+    `;
+    const params = [];
+
+    if (category) {
+      sql += " AND a.category = ?";
+      params.push(category);
+    }
+    if (search) {
+      sql += " AND (a.title LIKE ? OR a.excerpt LIKE ?)";
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    sql += sort === 'popular' ? " ORDER BY a.views_count DESC" : " ORDER BY a.published_at DESC";
+    sql += ` LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
+
+    const articles = await db.query(sql, params);
+    const rows = extractRows(articles).map(a => {
+      if (a.tags) {
+        try { a.tags = JSON.parse(a.tags); } catch (e) { a.tags = []; }
+      } else {
+        a.tags = [];
+      }
+      return a;
+    });
+
+    res.json({ success: true, articles: rows, count: rows.length });
+
+  } catch (err) {
+    console.error("❌ Error fetching articles:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET SINGLE ARTICLE BY SLUG (public, increments view count)
+// ============================================
+app.get("/api/articles/:slug", async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const result = await db.query(`
+      SELECT a.*, u.username as author_name, u.id as author_id,
+             fp.profile_picture_url as author_picture, fp.headline as author_headline
+      FROM articles a
+      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN freelancer_profiles fp ON fp.user_id = a.user_id
+      WHERE a.slug = ? AND a.is_deleted = 0
+    `, [slug]);
+
+    const rows = extractRows(result);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    const article = rows[0];
+
+    // Only the author/admin can view drafts
+    const isOwner = req.session.user && req.session.user.id === article.user_id;
+    const isAdmin = req.session.user && req.session.user.role === 'admin';
+    if (article.status !== 'published' && !isOwner && !isAdmin) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    if (article.tags) {
+      try { article.tags = JSON.parse(article.tags); } catch (e) { article.tags = []; }
+    } else {
+      article.tags = [];
+    }
+
+    // Track view (fire and forget) — skip counting the author's own views
+    if (!isOwner) {
+      db.query("UPDATE articles SET views_count = views_count + 1 WHERE id = ?", [article.id]).catch(() => {});
+      db.query(
+        "INSERT INTO article_views (article_id, user_id, ip_address, created_at) VALUES (?, ?, ?, NOW())",
+        [article.id, req.session.user ? req.session.user.id : null, req.headers['x-forwarded-for'] || req.socket.remoteAddress]
+      ).catch(() => {});
+    }
+
+    res.json({ success: true, article });
+
+  } catch (err) {
+    console.error("❌ Error fetching article:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET MY ARTICLES (drafts + published, author dashboard)
+// ============================================
+app.get("/api/articles/my/list", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const articles = await db.query(`
+      SELECT id, title, slug, excerpt, cover_image_url, category, status,
+             views_count, read_time_minutes, created_at, published_at
+      FROM articles
+      WHERE user_id = ? AND is_deleted = 0
+      ORDER BY created_at DESC
+    `, [req.session.user.id]);
+
+    res.json({ success: true, articles: extractRows(articles) });
+
+  } catch (err) {
+    console.error("❌ Error fetching my articles:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// UPDATE ARTICLE (author or admin only)
+// ============================================
+app.put("/api/articles/:id", uploadArticleCover, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const articleId = req.params.id;
+    const existing = await db.query("SELECT * FROM articles WHERE id = ? AND is_deleted = 0", [articleId]);
+    const rows = extractRows(existing);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    const article = rows[0];
+    const isOwner = article.user_id === req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "You can only edit your own articles" });
+    }
+
+    const { title, excerpt, content, category, tags, status } = req.body;
+
+    let coverImageUrl = article.cover_image_url;
+    if (req.file) {
+      coverImageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+
+    let parsedTags = article.tags;
+    if (tags) {
+      try {
+        parsedTags = JSON.stringify(typeof tags === 'string' ? JSON.parse(tags) : tags);
+      } catch (e) {
+        parsedTags = JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean));
+      }
+    }
+
+    const newStatus = status || article.status;
+    const wasPublished = article.status === 'published';
+    const willBePublished = newStatus === 'published';
+
+    await db.query(
+      `UPDATE articles
+       SET title = ?, excerpt = ?, content = ?, cover_image_url = ?, category = ?,
+           tags = ?, status = ?, read_time_minutes = ?, updated_at = NOW(),
+           published_at = ?
+       WHERE id = ?`,
+      [
+        title ? title.trim() : article.title,
+        excerpt !== undefined ? excerpt.trim().substring(0, 500) : article.excerpt,
+        content || article.content,
+        coverImageUrl,
+        category ? category.trim() : article.category,
+        parsedTags,
+        newStatus,
+        estimateReadTime(content || article.content),
+        !wasPublished && willBePublished ? new Date() : article.published_at,
+        articleId
+      ]
+    );
+
+    res.json({ success: true, message: "Article updated successfully" });
+
+  } catch (err) {
+    console.error("❌ Article update error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// DELETE ARTICLE (soft delete, author or admin only)
+// ============================================
+app.delete("/api/articles/:id", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const articleId = req.params.id;
+    const existing = await db.query("SELECT user_id FROM articles WHERE id = ?", [articleId]);
+    const rows = extractRows(existing);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    const isOwner = rows[0].user_id === req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "You can only delete your own articles" });
+    }
+
+    await db.query("UPDATE articles SET is_deleted = 1 WHERE id = ?", [articleId]);
+    res.json({ success: true, message: "Article deleted successfully" });
+
+  } catch (err) {
+    console.error("❌ Article delete error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// GET ARTICLE CATEGORIES (for filter dropdown)
+// ============================================
+app.get("/api/articles/meta/categories", async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT category, COUNT(*) as count
+      FROM articles
+      WHERE status = 'published' AND is_deleted = 0
+      GROUP BY category
+      ORDER BY count DESC
+    `);
+    res.json({ success: true, categories: extractRows(result) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ============================================
 // CURRENCY CONVERSION - FIXED

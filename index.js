@@ -1075,7 +1075,8 @@ app.get("/api/articles", async (req, res) => {
 
     let sql = `
       SELECT a.id, a.title, a.slug, a.excerpt, a.cover_image_url, a.category,
-             a.tags, a.views_count, a.read_time_minutes, a.published_at,
+             a.tags, a.views_count, a.likes_count, a.comments_count, a.bookmarks_count,
+             a.read_time_minutes, a.published_at,
              u.id as author_id, u.username as author_name,
              fp.profile_picture_url as author_picture
       FROM articles a
@@ -1550,7 +1551,6 @@ app.get("/api/articles/:id/comments", async (req, res) => {
 
     const allComments = extractRows(result);
 
-    // Nest replies under their parent comment
     const topLevel = [];
     const byId = {};
     allComments.forEach(c => { c.replies = []; byId[c.id] = c; });
@@ -1646,8 +1646,8 @@ app.post("/api/articles/:id/share", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Toggle follow/unfollow an author
-app.post("/api/users/:authorId/follow", async (req, res) => {
+// Toggle follow/unfollow an author — SCOPED TO KNOWLEDGE HUB ONLY
+app.post("/api/articles/authors/:authorId/follow", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Login required" });
@@ -1666,27 +1666,27 @@ app.post("/api/users/:authorId/follow", async (req, res) => {
     }
 
     const existing = await db.query(
-      "SELECT id FROM author_follows WHERE follower_id = ? AND author_id = ?",
+      "SELECT id FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
       [followerId, authorId]
     );
 
     let following;
     if (existing.length > 0) {
       await db.query(
-        "DELETE FROM author_follows WHERE follower_id = ? AND author_id = ?",
+        "DELETE FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
         [followerId, authorId]
       );
       following = false;
     } else {
       await db.query(
-        "INSERT INTO author_follows (follower_id, author_id, created_at) VALUES (?, ?, NOW())",
+        "INSERT INTO article_author_follows (follower_id, author_id, created_at) VALUES (?, ?, NOW())",
         [followerId, authorId]
       );
       following = true;
     }
 
     const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
       [authorId]
     );
 
@@ -1697,18 +1697,18 @@ app.post("/api/users/:authorId/follow", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Follow error:", err);
+    console.error("❌ Article author follow error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Check if current user follows a specific author + get their follower count
-app.get("/api/users/:authorId/follow-status", async (req, res) => {
+// Check if current user follows this author (article context) + get their article-follower count
+app.get("/api/articles/authors/:authorId/follow-status", async (req, res) => {
   try {
     const authorId = req.params.authorId;
 
     const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
       [authorId]
     );
     const followerCount = countResult[0]?.count || 0;
@@ -1718,20 +1718,20 @@ app.get("/api/users/:authorId/follow-status", async (req, res) => {
     }
 
     const result = await db.query(
-      "SELECT id FROM author_follows WHERE follower_id = ? AND author_id = ?",
+      "SELECT id FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
       [req.session.user.id, authorId]
     );
 
     res.json({ following: result && result.length > 0, followerCount });
 
   } catch (err) {
-    console.error("❌ Follow status error:", err);
+    console.error("❌ Article follow status error:", err);
     res.json({ following: false, followerCount: 0 });
   }
 });
 
-// Get list of authors the current user follows
-app.get("/api/users/following", async (req, res) => {
+// Get list of authors the current user follows (article context)
+app.get("/api/articles/authors/following", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
@@ -1740,7 +1740,7 @@ app.get("/api/users/following", async (req, res) => {
     const authors = await db.query(`
       SELECT u.id, u.username, fp.profile_picture_url, fp.headline,
              af.created_at as followed_at
-      FROM author_follows af
+      FROM article_author_follows af
       JOIN users u ON af.author_id = u.id
       LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
       WHERE af.follower_id = ?
@@ -1750,25 +1750,25 @@ app.get("/api/users/following", async (req, res) => {
     res.json({ success: true, authors: extractRows(authors) });
 
   } catch (err) {
-    console.error("❌ Error fetching following list:", err);
+    console.error("❌ Error fetching article-following list:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get an author's followers (for their profile page)
-app.get("/api/users/:authorId/followers", async (req, res) => {
+// Get an author's article-follower count (for use on their author card in the hub, NOT their main profile)
+app.get("/api/articles/authors/:authorId/followers", async (req, res) => {
   try {
     const authorId = req.params.authorId;
 
     const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
       [authorId]
     );
 
     res.json({ success: true, followerCount: countResult[0]?.count || 0 });
 
   } catch (err) {
-    console.error("❌ Error fetching followers:", err);
+    console.error("❌ Error fetching article followers:", err);
     res.status(500).json({ error: err.message });
   }
 });

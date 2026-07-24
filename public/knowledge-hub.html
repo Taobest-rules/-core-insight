@@ -779,18 +779,18 @@ async function renderArticle(a) {
   const followBtn = document.getElementById('followBtn');
   if (followBtn) {
     followBtn.addEventListener('click', async () => {
-      if (!state.currentUser) { toast('Please login to follow.'); return; }
-      try {
-        const res = await fetch(`/api/users/${a.author_id}/follow`, { method: 'POST', credentials: 'include' });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
-          document.getElementById('followerCountLabel').textContent = data.followerCount;
-          followBtn.classList.toggle('following', data.following);
-          toast(data.following ? `Following ${a.author_name}` : `Unfollowed ${a.author_name}`);
-        }
-      } catch(e) { toast('Error updating follow status.'); }
-    });
+  if (!state.currentUser) { toast('Please login to follow.'); return; }
+  try {
+    const res = await fetch(`/api/articles/authors/${a.author_id}/follow`, { method: 'POST', credentials: 'include' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
+      document.getElementById('followerCountLabel').textContent = data.followerCount;
+      followBtn.classList.toggle('following', data.following);
+      toast(data.following ? `Following ${a.author_name}` : `Unfollowed ${a.author_name}`);
+    }
+  } catch(e) { toast('Error updating follow status.'); }
+});
   }
 
   // --- Load current like / bookmark / follow state ---
@@ -843,16 +843,16 @@ async function loadEngagementState(a) {
     if (bookmarkBtn) bookmarkBtn.classList.toggle('active-bookmark', bookmarkData.bookmarked);
   } catch(e) {}
 
-  const followBtn = document.getElementById('followBtn');
-  if (followBtn && a.author_id) {
-    try {
-      const res = await fetch(`/api/users/${a.author_id}/follow-status`, { credentials: 'include' });
-      const data = await res.json();
-      document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
-      document.getElementById('followerCountLabel').textContent = data.followerCount;
-      followBtn.classList.toggle('following', data.following);
-    } catch(e) {}
-  }
+ const followBtn = document.getElementById('followBtn');
+if (followBtn && a.author_id) {
+  try {
+    const res = await fetch(`/api/articles/authors/${a.author_id}/follow-status`, { credentials: 'include' });
+    const data = await res.json();
+    document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
+    document.getElementById('followerCountLabel').textContent = data.followerCount;
+    followBtn.classList.toggle('following', data.following);
+  } catch(e) {}
+}
 }
 
 function commentItemHtml(c) {

@@ -1318,111 +1318,309 @@ app.get("/api/articles/meta/categories", async (req, res) => {
   }
 });
 app.post("/api/articles/:id/like", async (req, res) => {
+  try {
     if (!req.session.user) {
-        return res.status(401).json({ error: "Login required" });
+      return res.status(401).json({ error: "Login required" });
     }
 
     const articleId = req.params.id;
     const userId = req.session.user.id;
 
     const existing = await db.query(
-        "SELECT id FROM article_likes WHERE article_id=? AND user_id=?",
-        [articleId, userId]
+      "SELECT id FROM article_likes WHERE article_id=? AND user_id=?",
+      [articleId, userId]
     );
 
     if (existing.length > 0) {
-        await db.query(
-            "DELETE FROM article_likes WHERE article_id=? AND user_id=?",
-            [articleId, userId]
-        );
-
-        await db.query(
-            "UPDATE articles SET likes_count = likes_count - 1 WHERE id=?",
-            [articleId]
-        );
-
-        return res.json({ liked: false });
-    }
-
-    await db.query(
-        "INSERT INTO article_likes(article_id,user_id) VALUES (?,?)",
+      await db.query(
+        "DELETE FROM article_likes WHERE article_id=? AND user_id=?",
         [articleId, userId]
-    );
-
-    await db.query(
-        "UPDATE articles SET likes_count = likes_count + 1 WHERE id=?",
+      );
+      await db.query(
+        "UPDATE articles SET likes_count = GREATEST(likes_count - 1, 0) WHERE id=?",
         [articleId]
-    );
-
-    res.json({ liked: true });
-});
-app.post("/api/articles/:id/bookmark", async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Login required" });
-    }
-
-    const articleId = req.params.id;
-    const userId = req.session.user.id;
-
-    const existing = await db.query(
-        "SELECT id FROM article_bookmarks WHERE article_id=? AND user_id=?",
-        [articleId, userId]
-    );
-
-    if (existing.length > 0) {
-        await db.query(
-            "DELETE FROM article_bookmarks WHERE article_id=? AND user_id=?",
-            [articleId, userId]
-        );
-
-        await db.query(
-            "UPDATE articles SET bookmarks_count = bookmarks_count - 1 WHERE id=?",
-            [articleId]
-        );
-
-        return res.json({ bookmarked: false });
+      );
+      return res.json({ success: true, liked: false });
     }
 
     await db.query(
-        "INSERT INTO article_bookmarks(article_id,user_id) VALUES (?,?)",
-        [articleId, userId]
+      "INSERT INTO article_likes(article_id,user_id,created_at) VALUES (?,?,NOW())",
+      [articleId, userId]
     );
-
     await db.query(
-        "UPDATE articles SET bookmarks_count = bookmarks_count + 1 WHERE id=?",
-        [articleId]
+      "UPDATE articles SET likes_count = likes_count + 1 WHERE id=?",
+      [articleId]
     );
 
-    res.json({ bookmarked: true });
-});
-app.post("/api/articles/:id/comments", async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: "Login required" });
-    }
+    res.json({ success: true, liked: true });
 
-    const { comment, parent_comment_id } = req.body;
+  } catch (err) {
+    console.error("❌ Like error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check if current user liked a specific article
+app.get("/api/articles/:id/like-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({ liked: false });
+    }
 
     const result = await db.query(
-        `INSERT INTO article_comments
-        (article_id,user_id,parent_comment_id,comment)
-        VALUES (?,?,?,?)`,
-        [
-            req.params.id,
-            req.session.user.id,
-            parent_comment_id || null,
-            comment
-        ]
+      "SELECT id FROM article_likes WHERE article_id=? AND user_id=?",
+      [req.params.id, req.session.user.id]
+    );
+
+    res.json({ liked: result && result.length > 0 });
+
+  } catch (err) {
+    console.error("❌ Like status error:", err);
+    res.json({ liked: false });
+  }
+});
+app.post("/api/articles/:id/bookmark", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Login required" });
+    }
+
+    const articleId = req.params.id;
+    const userId = req.session.user.id;
+
+    const existing = await db.query(
+      "SELECT id FROM article_bookmarks WHERE article_id=? AND user_id=?",
+      [articleId, userId]
+    );
+
+    if (existing.length > 0) {
+      await db.query(
+        "DELETE FROM article_bookmarks WHERE article_id=? AND user_id=?",
+        [articleId, userId]
+      );
+      await db.query(
+        "UPDATE articles SET bookmarks_count = GREATEST(bookmarks_count - 1, 0) WHERE id=?",
+        [articleId]
+      );
+      return res.json({ success: true, bookmarked: false });
+    }
+
+    await db.query(
+      "INSERT INTO article_bookmarks(article_id,user_id,created_at) VALUES (?,?,NOW())",
+      [articleId, userId]
+    );
+    await db.query(
+      "UPDATE articles SET bookmarks_count = bookmarks_count + 1 WHERE id=?",
+      [articleId]
+    );
+
+    res.json({ success: true, bookmarked: true });
+
+  } catch (err) {
+    console.error("❌ Bookmark error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check if current user bookmarked a specific article
+app.get("/api/articles/:id/bookmark-status", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({ bookmarked: false });
+    }
+
+    const result = await db.query(
+      "SELECT id FROM article_bookmarks WHERE article_id=? AND user_id=?",
+      [req.params.id, req.session.user.id]
+    );
+
+    res.json({ bookmarked: result && result.length > 0 });
+
+  } catch (err) {
+    console.error("❌ Bookmark status error:", err);
+    res.json({ bookmarked: false });
+  }
+});
+
+// Get all articles bookmarked by current user
+app.get("/api/articles/my/bookmarks", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const articles = await db.query(`
+      SELECT a.id, a.title, a.slug, a.excerpt, a.cover_image_url, a.category,
+             a.read_time_minutes, a.published_at, ab.created_at as bookmarked_at,
+             u.username as author_name
+      FROM article_bookmarks ab
+      JOIN articles a ON ab.article_id = a.id
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE ab.user_id = ? AND a.is_deleted = 0
+      ORDER BY ab.created_at DESC
+    `, [req.session.user.id]);
+
+    res.json({ success: true, articles: extractRows(articles) });
+
+  } catch (err) {
+    console.error("❌ Error fetching bookmarks:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Post a comment
+app.post("/api/articles/:id/comments", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Login required" });
+    }
+
+    const articleId = req.params.id;
+    const { comment, parent_comment_id } = req.body;
+
+    if (!comment || comment.trim().length < 1) {
+      return res.status(400).json({ error: "Comment cannot be empty" });
+    }
+    if (comment.trim().length > 2000) {
+      return res.status(400).json({ error: "Comment too long (max 2000 characters)" });
+    }
+
+    // If replying, verify parent comment exists and belongs to this article
+    let parentId = null;
+    if (parent_comment_id) {
+      const parentCheck = await db.query(
+        "SELECT id FROM article_comments WHERE id = ? AND article_id = ?",
+        [parent_comment_id, articleId]
+      );
+      if (!parentCheck || parentCheck.length === 0) {
+        return res.status(400).json({ error: "Parent comment not found" });
+      }
+      parentId = parent_comment_id;
+    }
+
+    const result = await db.query(
+      `INSERT INTO article_comments
+       (article_id, user_id, parent_comment_id, comment, created_at)
+       VALUES (?,?,?,?,NOW())`,
+      [articleId, req.session.user.id, parentId, comment.trim()]
     );
 
     await db.query(
-        "UPDATE articles SET comments_count = comments_count + 1 WHERE id=?",
-        [req.params.id]
+      "UPDATE articles SET comments_count = comments_count + 1 WHERE id=?",
+      [articleId]
     );
 
+    const commentId = extractInsertId(result);
+
+    // Return the full comment object so frontend can render it immediately
+    const newComment = await db.query(`
+      SELECT c.id, c.article_id, c.parent_comment_id, c.comment, c.created_at,
+             u.id as user_id, u.username
+      FROM article_comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.id = ?
+    `, [commentId]);
+
     res.json({
-        success: true,
-        commentId: result.insertId
+      success: true,
+      commentId: commentId,
+      comment: extractRows(newComment)[0] || null
     });
+
+  } catch (err) {
+    console.error("❌ Comment post error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get comments for an article (with replies nested)
+app.get("/api/articles/:id/comments", async (req, res) => {
+  try {
+    const articleId = req.params.id;
+
+    const result = await db.query(`
+      SELECT c.id, c.article_id, c.parent_comment_id, c.comment, c.created_at,
+             u.id as user_id, u.username,
+             fp.profile_picture_url as user_picture
+      FROM article_comments c
+      JOIN users u ON c.user_id = u.id
+      LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
+      WHERE c.article_id = ?
+      ORDER BY c.created_at ASC
+    `, [articleId]);
+
+    const allComments = extractRows(result);
+
+    // Nest replies under their parent comment
+    const topLevel = [];
+    const byId = {};
+    allComments.forEach(c => { c.replies = []; byId[c.id] = c; });
+    allComments.forEach(c => {
+      if (c.parent_comment_id && byId[c.parent_comment_id]) {
+        byId[c.parent_comment_id].replies.push(c);
+      } else {
+        topLevel.push(c);
+      }
+    });
+
+    res.json({ success: true, comments: topLevel, count: allComments.length });
+
+  } catch (err) {
+    console.error("❌ Error fetching comments:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a comment (author of comment, or article author, or admin)
+app.delete("/api/articles/comments/:commentId", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Login required" });
+    }
+
+    const commentId = req.params.commentId;
+
+    const result = await db.query(`
+      SELECT c.*, a.user_id as article_author_id
+      FROM article_comments c
+      JOIN articles a ON c.article_id = a.id
+      WHERE c.id = ?
+    `, [commentId]);
+
+    const rows = extractRows(result);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    const commentData = rows[0];
+    const isOwner = commentData.user_id === req.session.user.id;
+    const isArticleAuthor = commentData.article_author_id === req.session.user.id;
+    const isAdmin = req.session.user.role === 'admin';
+
+    if (!isOwner && !isArticleAuthor && !isAdmin) {
+      return res.status(403).json({ error: "You cannot delete this comment" });
+    }
+
+    // Also delete any replies to this comment
+    const repliesResult = await db.query(
+      "SELECT id FROM article_comments WHERE parent_comment_id = ?",
+      [commentId]
+    );
+    const replyCount = extractRows(repliesResult).length;
+
+    await db.query("DELETE FROM article_comments WHERE parent_comment_id = ?", [commentId]);
+    await db.query("DELETE FROM article_comments WHERE id = ?", [commentId]);
+
+    await db.query(
+      "UPDATE articles SET comments_count = GREATEST(comments_count - ?, 0) WHERE id=?",
+      [1 + replyCount, commentData.article_id]
+    );
+
+    res.json({ success: true, message: "Comment deleted" });
+
+  } catch (err) {
+    console.error("❌ Delete comment error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 app.post("/api/articles/:id/share", async (req, res) => {
   try {
@@ -1433,25 +1631,146 @@ app.post("/api/articles/:id/share", async (req, res) => {
       [articleId]
     );
 
-    res.json({
-      success: true,
-      message: "Share recorded"
-    });
+    // Track per-user share if logged in (optional dedupe/analytics)
+    if (req.session.user) {
+      await db.query(
+        "INSERT INTO article_shares (article_id, user_id, created_at) VALUES (?, ?, NOW())",
+        [articleId, req.session.user.id]
+      ).catch(() => {}); // fail silently if table doesn't exist yet
+    }
+
+    res.json({ success: true, message: "Share recorded" });
+
   } catch (err) {
-    console.error("Share error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    console.error("❌ Share error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-app.post("/api/articles/:id/share", async (req,res)=>{
-    await db.query(
-        "UPDATE articles SET shares_count = shares_count + 1 WHERE id=?",
-        [req.params.id]
+// Toggle follow/unfollow an author
+app.post("/api/users/:authorId/follow", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Login required" });
+    }
+
+    const authorId = parseInt(req.params.authorId);
+    const followerId = req.session.user.id;
+
+    if (authorId === followerId) {
+      return res.status(400).json({ error: "You cannot follow yourself" });
+    }
+
+    const authorCheck = await db.query("SELECT id FROM users WHERE id = ?", [authorId]);
+    if (!authorCheck || authorCheck.length === 0) {
+      return res.status(404).json({ error: "Author not found" });
+    }
+
+    const existing = await db.query(
+      "SELECT id FROM author_follows WHERE follower_id = ? AND author_id = ?",
+      [followerId, authorId]
     );
 
-    res.json({success:true});
+    let following;
+    if (existing.length > 0) {
+      await db.query(
+        "DELETE FROM author_follows WHERE follower_id = ? AND author_id = ?",
+        [followerId, authorId]
+      );
+      following = false;
+    } else {
+      await db.query(
+        "INSERT INTO author_follows (follower_id, author_id, created_at) VALUES (?, ?, NOW())",
+        [followerId, authorId]
+      );
+      following = true;
+    }
+
+    const countResult = await db.query(
+      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      [authorId]
+    );
+
+    res.json({
+      success: true,
+      following: following,
+      followerCount: countResult[0]?.count || 0
+    });
+
+  } catch (err) {
+    console.error("❌ Follow error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check if current user follows a specific author + get their follower count
+app.get("/api/users/:authorId/follow-status", async (req, res) => {
+  try {
+    const authorId = req.params.authorId;
+
+    const countResult = await db.query(
+      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      [authorId]
+    );
+    const followerCount = countResult[0]?.count || 0;
+
+    if (!req.session.user) {
+      return res.json({ following: false, followerCount });
+    }
+
+    const result = await db.query(
+      "SELECT id FROM author_follows WHERE follower_id = ? AND author_id = ?",
+      [req.session.user.id, authorId]
+    );
+
+    res.json({ following: result && result.length > 0, followerCount });
+
+  } catch (err) {
+    console.error("❌ Follow status error:", err);
+    res.json({ following: false, followerCount: 0 });
+  }
+});
+
+// Get list of authors the current user follows
+app.get("/api/users/following", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const authors = await db.query(`
+      SELECT u.id, u.username, fp.profile_picture_url, fp.headline,
+             af.created_at as followed_at
+      FROM author_follows af
+      JOIN users u ON af.author_id = u.id
+      LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
+      WHERE af.follower_id = ?
+      ORDER BY af.created_at DESC
+    `, [req.session.user.id]);
+
+    res.json({ success: true, authors: extractRows(authors) });
+
+  } catch (err) {
+    console.error("❌ Error fetching following list:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get an author's followers (for their profile page)
+app.get("/api/users/:authorId/followers", async (req, res) => {
+  try {
+    const authorId = req.params.authorId;
+
+    const countResult = await db.query(
+      "SELECT COUNT(*) as count FROM author_follows WHERE author_id = ?",
+      [authorId]
+    );
+
+    res.json({ success: true, followerCount: countResult[0]?.count || 0 });
+
+  } catch (err) {
+    console.error("❌ Error fetching followers:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 // ============================================
 // CURRENCY CONVERSION - FIXED

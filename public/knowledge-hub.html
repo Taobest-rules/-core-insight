@@ -140,7 +140,9 @@
     .engage-btn .soon-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--study-gold); margin-left:4px; }
     .engage-btn.support { background:var(--study-gold); color:#fff; border-color:var(--study-gold); }
     .engage-btn.support:hover { background:#b8860b; border-color:#b8860b; color:#fff; }
-
+.engage-btn.active-like { color:#e74c3c; border-color:#e74c3c; background:rgba(231,76,60,.06); }
+.engage-btn.active-bookmark { color:var(--study-gold); border-color:var(--study-gold); background:rgba(201,151,31,.06); }
+#followBtn.following { background:var(--study-blue); color:#fff; border-color:var(--study-blue); }
     /* comments */
     #commentInput { width:100%; min-height:100px; padding:12px; border:1px solid var(--study-neutral-dark); border-radius:8px; font-family:inherit; font-size:.95rem; resize:vertical; }
     #commentInput:focus { outline:none; border-color:var(--study-blue); }
@@ -390,7 +392,6 @@
   </div>
 </div>
 <div class="download-progress" id="downloadProgress"><i class="fas fa-spinner fa-spin"></i><span>Downloading...</span></div>
-
 <script>
 // ======================================================================
 //  IMAGE VIEWER + LOGO DOWNLOAD
@@ -649,13 +650,15 @@ document.getElementById('searchInput').addEventListener('input', e=>{
   searchTimer = setTimeout(()=>{ state.search = e.target.value.trim(); loadArticles(true); }, 350);
 });
 
-// Share function
 function shareArticle(articleId, title, url) {
+  // Always record the share server-side
+  fetch(`/api/articles/${articleId}/share`, {
+    method: 'POST',
+    credentials: 'include'
+  }).catch(() => {});
+
   if (navigator.share) {
-    navigator.share({
-      title: title,
-      url: url
-    }).catch(() => {});
+    navigator.share({ title: title, url: url }).catch(() => {});
   } else {
     navigator.clipboard.writeText(url).then(() => {
       toast('Link copied to clipboard!');
@@ -676,7 +679,7 @@ async function openArticle(slug) {
   } catch(e) { toast('Something went wrong loading that article.'); }
 }
 
-function renderArticle(a) {
+async function renderArticle(a) {
   const meta = catMeta(a.category);
   const tagsHtml = (a.tags||[]).map(t=>`<span class="tag-pill">${escapeHtml(t)}</span>`).join('');
   const likes = a.likes_count || 0;
@@ -684,6 +687,10 @@ function renderArticle(a) {
   const bookmarks = a.bookmarks_count || 0;
   const isTrending = (a.views_count || 0) > 100 || (a.likes_count || 0) > 20;
   const trendingBadge = isTrending ? `<span style="background:var(--study-gold);color:#fff;padding:2px 12px;border-radius:20px;font-size:.7rem;font-weight:600;margin-left:8px;">🔥 Trending</span>` : '';
+
+  const isOwnArticle = state.currentUser && a.author_id === state.currentUser.id;
+  const followBtnHtml = isOwnArticle ? '' :
+    `<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:14px;" id="followBtn"><i class="fas fa-user-plus"></i> <span id="followBtnLabel">Follow</span></button>`;
 
   document.getElementById('readerWrap').innerHTML = `
     <div class="reader-body">
@@ -706,10 +713,10 @@ function renderArticle(a) {
           <div class="avatar">${a.author_picture ? `<img src="${a.author_picture}">` : initials(a.author_name)}</div>
           <div>
             <h5>${escapeHtml(a.author_name||'Unknown')}</h5>
-            <p>${escapeHtml(a.author_headline || 'Core Insight member')}</p>
+            <p><span id="followerCountLabel">${a.follower_count || 0}</span> followers</p>
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:14px;" onclick="toast('Follow system is coming soon.')"><i class="fas fa-user-plus"></i> Follow</button>
+        ${followBtnHtml}
       </div>
 
       <!-- Engagement Bar -->
@@ -739,49 +746,55 @@ function renderArticle(a) {
 
   // --- Like Button ---
   document.getElementById('likeBtn').addEventListener('click', async () => {
-    const id = a.id;
     if (!state.currentUser) { toast('Please login to like.'); return; }
     try {
-      const res = await fetch(`/api/articles/${id}/like`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      const data = await res.json();
-      // Re-fetch and re-render the article to update counts
+      await fetch(`/api/articles/${a.id}/like`, { method: 'POST', credentials: 'include' });
       const fetchRes = await fetch('/api/articles/' + encodeURIComponent(a.slug));
       const freshData = await fetchRes.json();
       renderArticle(freshData.article);
-    } catch(e) {
-      toast('Error liking article.');
-    }
+    } catch(e) { toast('Error liking article.'); }
   });
 
   // --- Bookmark Button ---
   document.getElementById('bookmarkBtn').addEventListener('click', async () => {
-    const id = a.id;
     if (!state.currentUser) { toast('Please login to bookmark.'); return; }
     try {
-      const res = await fetch(`/api/articles/${id}/bookmark`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      const res = await fetch(`/api/articles/${a.id}/bookmark`, { method: 'POST', credentials: 'include' });
       const data = await res.json();
       if (data.bookmarked !== undefined) {
         toast(data.bookmarked ? 'Saved to bookmarks!' : 'Removed from bookmarks.');
-        // Re-fetch to update count
         const fetchRes = await fetch('/api/articles/' + encodeURIComponent(a.slug));
         const freshData = await fetchRes.json();
         renderArticle(freshData.article);
       }
-    } catch(e) {
-      toast('Error bookmarking article.');
-    }
+    } catch(e) { toast('Error bookmarking article.'); }
   });
 
-  // --- Share Button (upgraded) ---
+  // --- Share Button ---
   document.getElementById('shareBtn').addEventListener('click', () => {
     shareArticle(a.id, a.title, location.href);
   });
+
+  // --- Follow Button ---
+  const followBtn = document.getElementById('followBtn');
+  if (followBtn) {
+    followBtn.addEventListener('click', async () => {
+      if (!state.currentUser) { toast('Please login to follow.'); return; }
+      try {
+        const res = await fetch(`/api/users/${a.author_id}/follow`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
+          document.getElementById('followerCountLabel').textContent = data.followerCount;
+          followBtn.classList.toggle('following', data.following);
+          toast(data.following ? `Following ${a.author_name}` : `Unfollowed ${a.author_name}`);
+        }
+      } catch(e) { toast('Error updating follow status.'); }
+    });
+  }
+
+  // --- Load current like / bookmark / follow state ---
+  loadEngagementState(a);
 
   // --- Comments ---
   loadComments(a.id);
@@ -791,7 +804,6 @@ function renderArticle(a) {
     const content = input.value.trim();
     if (!content) { toast('Please write a comment.'); return; }
     if (!state.currentUser) { toast('Please login to comment.'); return; }
-
     try {
       const res = await fetch(`/api/articles/${a.id}/comments`, {
         method: 'POST',
@@ -807,12 +819,57 @@ function renderArticle(a) {
       } else {
         toast(data.error || 'Error posting comment.');
       }
-    } catch(e) {
-      toast('Error posting comment.');
-    }
+    } catch(e) { toast('Error posting comment.'); }
   });
 
   loadRelated(a.category, a.slug);
+}
+
+// Fetch and apply current like/bookmark/follow state so buttons reflect reality
+async function loadEngagementState(a) {
+  if (!state.currentUser) return;
+
+  try {
+    const [likeRes, bookmarkRes] = await Promise.all([
+      fetch(`/api/articles/${a.id}/like-status`, { credentials: 'include' }),
+      fetch(`/api/articles/${a.id}/bookmark-status`, { credentials: 'include' })
+    ]);
+    const likeData = await likeRes.json();
+    const bookmarkData = await bookmarkRes.json();
+
+    const likeBtn = document.getElementById('likeBtn');
+    const bookmarkBtn = document.getElementById('bookmarkBtn');
+    if (likeBtn) likeBtn.classList.toggle('active-like', likeData.liked);
+    if (bookmarkBtn) bookmarkBtn.classList.toggle('active-bookmark', bookmarkData.bookmarked);
+  } catch(e) {}
+
+  const followBtn = document.getElementById('followBtn');
+  if (followBtn && a.author_id) {
+    try {
+      const res = await fetch(`/api/users/${a.author_id}/follow-status`, { credentials: 'include' });
+      const data = await res.json();
+      document.getElementById('followBtnLabel').textContent = data.following ? 'Following' : 'Follow';
+      document.getElementById('followerCountLabel').textContent = data.followerCount;
+      followBtn.classList.toggle('following', data.following);
+    } catch(e) {}
+  }
+}
+
+function commentItemHtml(c) {
+  const repliesHtml = (c.replies || []).map(r => `
+    <div class="comment-item" style="margin-left:24px;border-bottom:none;padding-bottom:0;">
+      <div class="comment-author">${escapeHtml(r.username || 'Anonymous')} <span class="comment-time">${timeAgo(r.created_at)}</span></div>
+      <div class="comment-body">${escapeHtml(r.comment)}</div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="comment-item">
+      <div class="comment-author">${escapeHtml(c.username || 'Anonymous')} <span class="comment-time">${timeAgo(c.created_at)}</span></div>
+      <div class="comment-body">${escapeHtml(c.comment)}</div>
+      ${repliesHtml}
+    </div>
+  `;
 }
 
 async function loadComments(articleId) {
@@ -824,17 +881,11 @@ async function loadComments(articleId) {
       container.innerHTML = '<p style="color:var(--study-gray);font-size:.9rem;">No comments yet. Be the first!</p>';
       return;
     }
-    container.innerHTML = data.comments.map(c => `
-      <div class="comment-item">
-        <div class="comment-author">${escapeHtml(c.author_name || 'Anonymous')} <span class="comment-time">${timeAgo(c.created_at)}</span></div>
-        <div class="comment-body">${escapeHtml(c.comment)}</div>
-      </div>
-    `).join('');
+    container.innerHTML = data.comments.map(commentItemHtml).join('');
   } catch(e) {
     container.innerHTML = '<p style="color:var(--study-gray);">Could not load comments.</p>';
   }
 }
-
 async function loadRelated(category, excludeSlug) {
   try {
     const res = await fetch('/api/articles?category=' + encodeURIComponent(category) + '&limit=4');

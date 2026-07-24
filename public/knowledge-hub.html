@@ -100,16 +100,23 @@
     .ac-body { padding:20px 22px 22px; display:flex; flex-direction:column; flex:1; }
     .ac-body h4 { font-size:1.08rem; margin-bottom:8px; line-height:1.35; }
     .ac-body p { color:var(--study-text-light); font-size:.9rem; flex:1; margin-bottom:16px; }
-    .ac-footer { display:flex; align-items:center; justify-content:space-between; font-size:.78rem; color:var(--study-gray); border-top:1px solid var(--study-neutral-dark); padding-top:12px; }
-    .ac-author { display:flex; align-items:center; gap:8px; }
-    .avatar { width:26px; height:26px; border-radius:50%; background:var(--study-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; flex-shrink:0; overflow:hidden; }
-    .avatar img { width:100%; height:100%; object-fit:cover; }
+
+    /* NEW: engagement stats row on article card */
+    .ac-stats { display:flex; flex-wrap:wrap; gap:12px 18px; font-size:.78rem; color:var(--study-gray); border-top:1px solid var(--study-neutral-dark); padding-top:12px; margin-top:8px; }
+    .ac-stats span { display:inline-flex; align-items:center; gap:4px; }
+    .ac-stats i { font-size:.85rem; }
+
+    /* author + read time row (replaces old ac-footer) */
+    .ac-byline { display:flex; align-items:center; gap:10px; font-size:.78rem; color:var(--study-gray); margin-top:8px; }
+    .ac-byline .avatar { width:24px; height:24px; border-radius:50%; background:var(--study-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; flex-shrink:0; overflow:hidden; }
+    .ac-byline .avatar img { width:100%; height:100%; object-fit:cover; }
+    .ac-byline .dot { color:var(--study-gray-light); }
 
     .load-more-wrap { text-align:center; margin:10px 0 60px; }
     .empty-state { text-align:center; padding:60px 20px; color:var(--study-gray); }
     .empty-state i { font-size:2.4rem; margin-bottom:14px; color:var(--study-gray-light); display:block; }
 
-    /* reader */
+    /* reader — engagement bar redesign */
     .reader-wrap { display:grid; grid-template-columns:1fr 300px; gap:44px; padding:44px 0 70px; align-items:start; }
     .reader-cover { width:100%; max-height:420px; object-fit:cover; border-radius:14px; margin-bottom:28px; }
     .reader-meta-top { display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
@@ -122,13 +129,20 @@
     .tag-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:34px; }
     .tag-pill { background:var(--study-neutral-dark); color:var(--study-text-light); padding:6px 13px; border-radius:16px; font-size:.8rem; }
 
+    /* sidebar */
     .sidebar-card { background:#fff; border:1px solid var(--study-neutral-dark); border-radius:12px; padding:22px; margin-bottom:20px; box-shadow:var(--study-shadow); }
     .author-block { display:flex; gap:12px; align-items:flex-start; }
-    .author-block .avatar { width:48px; height:48px; font-size:1.1rem; }
-    .engage-row { display:flex; gap:10px; margin-top:18px; }
-    .engage-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 6px; border-radius:10px; border:1px solid var(--study-neutral-dark); background:var(--study-neutral); font-size:.72rem; color:var(--study-text-light); cursor:pointer; position:relative; transition:var(--transition); }
-    .engage-btn:hover { border-color:var(--study-blue-light); }
-    .engage-btn .soon-dot { position:absolute; top:6px; right:8px; width:6px; height:6px; border-radius:50%; background:var(--study-gold); }
+    .author-block .avatar { width:48px; height:48px; font-size:1.1rem; border-radius:50%; background:var(--study-accent); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+    .author-block .avatar img { width:100%; height:100%; object-fit:cover; }
+
+    /* NEW: engagement bar — Like, Comment, Bookmark, Share, Support */
+    .engagement-bar { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 16px; }
+    .engage-btn { display:flex; align-items:center; gap:6px; padding:10px 18px; border-radius:40px; border:1px solid var(--study-neutral-dark); background:var(--study-white); font-size:.85rem; font-weight:500; color:var(--study-text); cursor:pointer; transition:var(--transition); }
+    .engage-btn:hover { border-color:var(--study-blue); color:var(--study-blue); background:rgba(74,111,165,.04); }
+    .engage-btn i { font-size:1rem; }
+    .engage-btn .soon-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--study-gold); margin-left:4px; }
+    .engage-btn.support { background:var(--study-gold); color:#fff; border-color:var(--study-gold); }
+    .engage-btn.support:hover { background:#b8860b; border-color:#b8860b; color:#fff; }
 
     .related-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--study-neutral-dark); cursor:pointer; }
     .related-item:last-child { border-bottom:none; }
@@ -155,14 +169,14 @@
 
     /* my articles */
     .my-articles-wrap { padding:44px 0 70px; }
-    .my-article-row { display:flex; align-items:center; gap:18px; background:#fff; border:1px solid var(--study-neutral-dark); border-radius:10px; padding:16px 18px; margin-bottom:12px; }
+    .my-article-row { display:flex; align-items:center; gap:18px; background:#fff; border:1px solid var(--study-neutral-dark); border-radius:10px; padding:16px 18px; margin-bottom:12px; flex-wrap:wrap; }
     .my-article-row .mar-thumb { width:60px; height:60px; border-radius:8px; background:linear-gradient(135deg,var(--study-blue-light),var(--study-green-light)); background-size:cover; background-position:center; flex-shrink:0; }
-    .my-article-row .mar-body { flex:1; min-width:0; }
+    .my-article-row .mar-body { flex:1; min-width:150px; }
     .my-article-row h5 { font-size:.98rem; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .status-tag { font-size:.7rem; font-weight:700; padding:3px 9px; border-radius:12px; text-transform:uppercase; letter-spacing:.03em; }
     .status-tag.published { background:#e3f3ec; color:var(--study-green); }
     .status-tag.draft { background:#fdf3e0; color:var(--study-gold); }
-    .mar-actions { display:flex; gap:8px; }
+    .mar-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .icon-btn { width:34px; height:34px; border-radius:8px; border:1px solid var(--study-neutral-dark); background:#fff; color:var(--study-text-light); cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .icon-btn:hover { border-color:var(--study-blue); color:var(--study-blue); }
 
@@ -176,6 +190,14 @@
 
     footer { background:var(--study-white); padding:30px 0; margin-top:20px; border-top:1px solid var(--study-neutral-dark); text-align:center; color:var(--study-gray); }
 
+    /* image viewer */
+    .image-viewer { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content:center; align-items:center; }
+    .viewer-content { position:relative; max-width:90%; max-height:90%; }
+    .viewer-content img { max-width:100%; max-height:90vh; border-radius:8px; }
+    .close-viewer { position:absolute; top:-40px; right:0; background:var(--study-blue); color:#fff; border:none; border-radius:50%; width:40px; height:40px; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .download-image { position:absolute; top:-40px; right:50px; background:var(--study-green); color:#fff; border:none; border-radius:50%; width:40px; height:40px; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .download-progress { display:none; position:fixed; top:20px; right:20px; background:var(--study-green); color:#fff; padding:12px 20px; border-radius:8px; z-index:1001; align-items:center; gap:10px; }
+
     @media (max-width:900px) {
       .featured-card { grid-template-columns:1fr; }
       .reader-wrap { grid-template-columns:1fr; }
@@ -186,6 +208,19 @@
       nav.active { max-height:400px; padding:16px; }
       nav ul { flex-direction:column; gap:6px; }
       nav a { display:block; text-align:center; }
+      .engagement-bar { gap:6px; }
+      .engage-btn { padding:8px 14px; font-size:.78rem; }
+      .my-article-row { flex-direction:column; align-items:stretch; }
+      .my-article-row .mar-thumb { width:100%; height:120px; }
+    }
+    @media (max-width:480px) {
+      .hub-hero h1 { font-size:1.8rem; }
+      .fc-body { padding:20px; }
+      .fc-body h2 { font-size:1.3rem; }
+      .ac-body { padding:16px; }
+      .article-grid { grid-template-columns:1fr; }
+      .reader-wrap { padding:20px 0 40px; gap:24px; }
+      .engage-btn { flex:1; justify-content:center; padding:10px 12px; }
     }
   </style>
 </head>
@@ -217,9 +252,7 @@
   </div>
 </div>
 
-<!-- ============================================================
-     VIEW 1 — FEED
-============================================================ -->
+<!-- VIEW 1 — FEED -->
 <section class="view active" id="view-feed">
   <div class="container">
     <div class="hub-hero">
@@ -256,9 +289,7 @@
   </div>
 </section>
 
-<!-- ============================================================
-     VIEW 2 — ARTICLE READER
-============================================================ -->
+<!-- VIEW 2 — ARTICLE READER -->
 <section class="view" id="view-article">
   <div class="container">
     <button class="btn btn-ghost btn-sm" id="backToFeedBtn" style="margin-top:26px;"><i class="fas fa-arrow-left"></i> Back to Knowledge Hub</button>
@@ -266,9 +297,7 @@
   </div>
 </section>
 
-<!-- ============================================================
-     VIEW 3 — EDITOR
-============================================================ -->
+<!-- VIEW 3 — EDITOR -->
 <section class="view" id="view-editor">
   <div class="container editor-wrap">
     <h2 id="editorTitle">Write an article</h2>
@@ -330,9 +359,7 @@
   </div>
 </section>
 
-<!-- ============================================================
-     VIEW 4 — MY ARTICLES
-============================================================ -->
+<!-- VIEW 4 — MY ARTICLES -->
 <section class="view" id="view-my-articles">
   <div class="container my-articles-wrap">
     <div class="section-heading">
@@ -349,19 +376,19 @@
 
 <div id="toast"><i class="fas fa-info-circle"></i><span id="toastMsg"></span></div>
 
-<!-- Image viewer (from original) -->
-<div class="image-viewer" id="imageViewer" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:1000;justify-content:center;align-items:center;">
-  <div class="viewer-content" style="position:relative;max-width:90%;max-height:90%;">
-    <img src="" alt="Enlarged view" id="enlargedImage" style="max-width:100%;max-height:90vh;border-radius:8px;">
-    <button class="close-viewer" id="closeViewer" style="position:absolute;top:-40px;right:0;background:var(--study-blue);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:1.5rem;cursor:pointer;"><i class="fas fa-times"></i></button>
-    <button class="download-image" id="downloadImage" style="position:absolute;top:-40px;right:50px;background:var(--study-green);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:1.2rem;cursor:pointer;"><i class="fas fa-download"></i></button>
+<!-- Image viewer -->
+<div class="image-viewer" id="imageViewer">
+  <div class="viewer-content">
+    <img src="" alt="Enlarged view" id="enlargedImage">
+    <button class="close-viewer" id="closeViewer"><i class="fas fa-times"></i></button>
+    <button class="download-image" id="downloadImage"><i class="fas fa-download"></i></button>
   </div>
 </div>
-<div class="download-progress" id="downloadProgress" style="display:none;position:fixed;top:20px;right:20px;background:var(--study-green);color:#fff;padding:12px 20px;border-radius:8px;z-index:1001;"><i class="fas fa-spinner fa-spin"></i><span>Downloading...</span></div>
+<div class="download-progress" id="downloadProgress"><i class="fas fa-spinner fa-spin"></i><span>Downloading...</span></div>
 
 <script>
 // ======================================================================
-//  ORIGINAL IMAGE VIEWER + LOGO DOWNLOAD (merged)
+//  IMAGE VIEWER + LOGO DOWNLOAD
 // ======================================================================
 document.addEventListener('DOMContentLoaded', function() {
   const imageViewer = document.getElementById('imageViewer');
@@ -404,7 +431,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Escape' && imageViewer.style.display === 'flex') closeViewerFn();
   });
 
-  // Direct download
   downloadImage.addEventListener('click', function() {
     const url = enlargedImage.src;
     downloadProgress.style.display = 'flex';
@@ -427,9 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
       } catch(e) {
         downloadProgress.querySelector('span').textContent = 'Right-click & save';
-        setTimeout(() => {
-          downloadProgress.style.display = 'none';
-        }, 3000);
+        setTimeout(() => { downloadProgress.style.display = 'none'; }, 3000);
       } finally {
         document.body.removeChild(link);
       }
@@ -438,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ======================================================================
-//  MAIN APP — FEED, READER, EDITOR, MY ARTICLES
+//  MAIN APP
 // ======================================================================
 const CATEGORY_META = {
   'technology': { label:'Technology', icon:'fa-laptop-code', color:'var(--cat-technology)' },
@@ -522,10 +546,14 @@ async function loadChips() {
   });
 }
 
-// article card html
+// article card — NEW layout with stats row + byline
 function articleCardHtml(a) {
   const meta = catMeta(a.category);
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : `background:linear-gradient(135deg,var(--study-blue-light),var(--study-green-light))`;
+  const likes = a.likes_count || 0;
+  const comments = a.comments_count || 0;
+  const bookmarks = a.bookmarks_count || 0;
+  const views = a.views_count || 0;
   return `
     <div class="article-card" data-slug="${a.slug}">
       <div class="ac-image" style="${cover}">
@@ -534,12 +562,17 @@ function articleCardHtml(a) {
       <div class="ac-body">
         <h4>${escapeHtml(a.title)}</h4>
         <p>${escapeHtml(a.excerpt || '')}</p>
-        <div class="ac-footer">
-          <div class="ac-author">
-            <div class="avatar">${a.author_picture ? `<img src="${a.author_picture}">` : initials(a.author_name)}</div>
-            <span>${escapeHtml(a.author_name || 'Unknown')}</span>
-          </div>
-          <span>${a.read_time_minutes || 5} min · ${timeAgo(a.published_at)}</span>
+        <div class="ac-stats">
+          <span><i class="fas fa-heart" style="color:#e74c3c;"></i> ${likes}</span>
+          <span><i class="fas fa-comment" style="color:var(--study-blue);"></i> ${comments}</span>
+          <span><i class="fas fa-bookmark" style="color:var(--study-gold);"></i> ${bookmarks}</span>
+          <span><i class="fas fa-eye" style="color:var(--study-gray);"></i> ${views}</span>
+        </div>
+        <div class="ac-byline">
+          <div class="avatar">${a.author_picture ? `<img src="${a.author_picture}">` : initials(a.author_name)}</div>
+          <span>${escapeHtml(a.author_name || 'Unknown')}</span>
+          <span class="dot">•</span>
+          <span>${a.read_time_minutes || 5} min read</span>
         </div>
       </div>
     </div>`;
@@ -609,7 +642,7 @@ document.getElementById('searchInput').addEventListener('input', e=>{
   searchTimer = setTimeout(()=>{ state.search = e.target.value.trim(); loadArticles(true); }, 350);
 });
 
-// article reader
+// article reader — NEW engagement bar
 async function openArticle(slug) {
   location.hash = '#/article/' + slug;
   try {
@@ -624,12 +657,16 @@ async function openArticle(slug) {
 function renderArticle(a) {
   const meta = catMeta(a.category);
   const tagsHtml = (a.tags||[]).map(t=>`<span class="tag-pill">${escapeHtml(t)}</span>`).join('');
+  const likes = a.likes_count || 0;
+  const comments = a.comments_count || 0;
+  const bookmarks = a.bookmarks_count || 0;
+
   document.getElementById('readerWrap').innerHTML = `
     <div class="reader-body">
       <div class="ribbon" style="background:${meta.color};margin-bottom:16px;">${meta.label}</div>
       <h1>${escapeHtml(a.title)}</h1>
       <div class="reader-meta-top">
-        <div class="avatar">${a.author_picture ? `<img src="${a.author_picture}">` : initials(a.author_name)}</div>
+        <div class="avatar" style="width:40px;height:40px;border-radius:50%;background:var(--study-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">${a.author_picture ? `<img src="${a.author_picture}" style="width:100%;height:100%;object-fit:cover;">` : initials(a.author_name)}</div>
         <div>
           <div style="font-weight:600;font-size:.92rem;">${escapeHtml(a.author_name||'Unknown')}</div>
           <div style="font-size:.8rem;color:var(--study-gray);">${timeAgo(a.published_at || a.created_at)} · ${a.read_time_minutes||5} min read · ${a.views_count||0} reads</div>
@@ -650,16 +687,21 @@ function renderArticle(a) {
         </div>
         <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:14px;" onclick="toast('Follow system is coming soon.')"><i class="fas fa-user-plus"></i> Follow</button>
       </div>
+
+      <!-- NEW: Engagement Bar — Like, Comment, Bookmark, Share, Support -->
       <div class="sidebar-card">
-        <div class="engage-row">
-          <div class="engage-btn" onclick="toast('Likes are coming soon.')"><span class="soon-dot"></span><i class="far fa-heart"></i>Like</div>
-          <div class="engage-btn" onclick="toast('Bookmarks are coming soon.')"><span class="soon-dot"></span><i class="far fa-bookmark"></i>Save</div>
-          <div class="engage-btn" id="shareBtn"><i class="fas fa-share-alt"></i>Share</div>
+        <div class="engagement-bar">
+          <button class="engage-btn" onclick="toast('Likes are coming soon.')"><i class="fas fa-heart" style="color:#e74c3c;"></i> <span>${likes}</span></button>
+          <button class="engage-btn" onclick="toast('Comments are coming soon.')"><i class="fas fa-comment" style="color:var(--study-blue);"></i> <span>${comments}</span></button>
+          <button class="engage-btn" onclick="toast('Bookmarks are coming soon.')"><i class="fas fa-bookmark" style="color:var(--study-gold);"></i> <span>${bookmarks}</span></button>
+          <button class="engage-btn" id="shareBtn"><i class="fas fa-share-alt"></i> Share</button>
+          <button class="engage-btn support" onclick="toast('Support feature is coming soon.')"><i class="fas fa-mug-hot"></i> Support</button>
         </div>
       </div>
+
       <div class="sidebar-card">
         <h6 style="margin-bottom:10px;font-size:.9rem;"><i class="fas fa-comments" style="color:var(--study-gold);"></i> Comments — coming soon</h6>
-        <p style="font-size:.82rem;color:var(--study-gray);">Discussion threads on articles are on the way. For now, reach the author through Messages.</p>
+        <p style="font-size:.82rem;color:var(--study-gray);">Discussion threads on articles are on the way.</p>
       </div>
       <div class="sidebar-card" id="relatedCard">
         <h6 style="margin-bottom:12px;font-size:.9rem;">More in ${meta.label}</h6>

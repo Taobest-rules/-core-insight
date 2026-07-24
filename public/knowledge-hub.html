@@ -101,12 +101,10 @@
     .ac-body h4 { font-size:1.08rem; margin-bottom:8px; line-height:1.35; }
     .ac-body p { color:var(--study-text-light); font-size:.9rem; flex:1; margin-bottom:16px; }
 
-    /* NEW: engagement stats row on article card */
     .ac-stats { display:flex; flex-wrap:wrap; gap:12px 18px; font-size:.78rem; color:var(--study-gray); border-top:1px solid var(--study-neutral-dark); padding-top:12px; margin-top:8px; }
     .ac-stats span { display:inline-flex; align-items:center; gap:4px; }
     .ac-stats i { font-size:.85rem; }
 
-    /* author + read time row (replaces old ac-footer) */
     .ac-byline { display:flex; align-items:center; gap:10px; font-size:.78rem; color:var(--study-gray); margin-top:8px; }
     .ac-byline .avatar { width:24px; height:24px; border-radius:50%; background:var(--study-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; flex-shrink:0; overflow:hidden; }
     .ac-byline .avatar img { width:100%; height:100%; object-fit:cover; }
@@ -116,7 +114,7 @@
     .empty-state { text-align:center; padding:60px 20px; color:var(--study-gray); }
     .empty-state i { font-size:2.4rem; margin-bottom:14px; color:var(--study-gray-light); display:block; }
 
-    /* reader — engagement bar redesign */
+    /* reader */
     .reader-wrap { display:grid; grid-template-columns:1fr 300px; gap:44px; padding:44px 0 70px; align-items:start; }
     .reader-cover { width:100%; max-height:420px; object-fit:cover; border-radius:14px; margin-bottom:28px; }
     .reader-meta-top { display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
@@ -135,7 +133,6 @@
     .author-block .avatar { width:48px; height:48px; font-size:1.1rem; border-radius:50%; background:var(--study-accent); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
     .author-block .avatar img { width:100%; height:100%; object-fit:cover; }
 
-    /* NEW: engagement bar — Like, Comment, Bookmark, Share, Support */
     .engagement-bar { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 16px; }
     .engage-btn { display:flex; align-items:center; gap:6px; padding:10px 18px; border-radius:40px; border:1px solid var(--study-neutral-dark); background:var(--study-white); font-size:.85rem; font-weight:500; color:var(--study-text); cursor:pointer; transition:var(--transition); }
     .engage-btn:hover { border-color:var(--study-blue); color:var(--study-blue); background:rgba(74,111,165,.04); }
@@ -143,6 +140,15 @@
     .engage-btn .soon-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--study-gold); margin-left:4px; }
     .engage-btn.support { background:var(--study-gold); color:#fff; border-color:var(--study-gold); }
     .engage-btn.support:hover { background:#b8860b; border-color:#b8860b; color:#fff; }
+
+    /* comments */
+    #commentInput { width:100%; min-height:100px; padding:12px; border:1px solid var(--study-neutral-dark); border-radius:8px; font-family:inherit; font-size:.95rem; resize:vertical; }
+    #commentInput:focus { outline:none; border-color:var(--study-blue); }
+    .comment-item { padding:12px 0; border-bottom:1px solid var(--study-neutral-dark); }
+    .comment-item:last-child { border-bottom:none; }
+    .comment-item .comment-author { font-weight:600; font-size:.9rem; }
+    .comment-item .comment-time { font-size:.75rem; color:var(--study-gray); margin-left:8px; }
+    .comment-item .comment-body { margin-top:4px; color:var(--study-text-light); }
 
     .related-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--study-neutral-dark); cursor:pointer; }
     .related-item:last-child { border-bottom:none; }
@@ -190,7 +196,6 @@
 
     footer { background:var(--study-white); padding:30px 0; margin-top:20px; border-top:1px solid var(--study-neutral-dark); text-align:center; color:var(--study-gray); }
 
-    /* image viewer */
     .image-viewer { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content:center; align-items:center; }
     .viewer-content { position:relative; max-width:90%; max-height:90%; }
     .viewer-content img { max-width:100%; max-height:90vh; border-radius:8px; }
@@ -476,7 +481,7 @@ const CATEGORY_META = {
   'general': { label:'General', icon:'fa-book', color:'var(--study-gray)' }
 };
 
-const state = { category:null, search:'', sort:'newest', offset:0, limit:9, currentUser:null };
+const state = { category:null, search:'', sort:'newest', offset:0, limit:9, currentUser:null, currentArticleId:null };
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -546,7 +551,7 @@ async function loadChips() {
   });
 }
 
-// article card — NEW layout with stats row + byline
+// article card
 function articleCardHtml(a) {
   const meta = catMeta(a.category);
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : `background:linear-gradient(135deg,var(--study-blue-light),var(--study-green-light))`;
@@ -582,10 +587,13 @@ function featuredCardHtml(a) {
   if (!a) return '';
   const meta = catMeta(a.category);
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
+  // Only show trending badge if views > 100 or likes > 20
+  const isTrending = (a.views_count || 0) > 100 || (a.likes_count || 0) > 20;
+  const trendingBadge = isTrending ? `<div class="trend-badge"><i class="fas fa-fire"></i> Trending</div>` : '';
   return `
     <div class="featured-card" data-slug="${a.slug}">
       <div class="fc-image" style="${cover}">
-        <div class="trend-badge"><i class="fas fa-fire"></i> Trending</div>
+        ${trendingBadge}
       </div>
       <div class="fc-body">
         <div class="ribbon" style="background:${meta.color};margin-bottom:14px;">${meta.label}</div>
@@ -641,34 +649,29 @@ document.getElementById('searchInput').addEventListener('input', e=>{
   clearTimeout(searchTimer);
   searchTimer = setTimeout(()=>{ state.search = e.target.value.trim(); loadArticles(true); }, 350);
 });
-async function shareArticle(articleId, articleTitle, articleUrl) {
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: articleTitle,
-        url: articleUrl
-      });
-    } else {
-      await navigator.clipboard.writeText(articleUrl);
-      alert("Link copied!");
-    }
 
-    await fetch(`/api/articles/${articleId}/share`, {
-      method: "POST",
-      credentials: "include"
+// Share function
+function shareArticle(articleId, title, url) {
+  if (navigator.share) {
+    navigator.share({
+      title: title,
+      url: url
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      toast('Link copied to clipboard!');
     });
-
-  } catch (err) {
-    console.error(err);
   }
 }
-// article reader — NEW engagement bar
+
+// article reader
 async function openArticle(slug) {
   location.hash = '#/article/' + slug;
   try {
     const res = await fetch('/api/articles/' + encodeURIComponent(slug));
     if (!res.ok) { toast("That article couldn't be found."); return; }
     const data = await res.json();
+    state.currentArticleId = data.article.id;
     renderArticle(data.article);
     showView('view-article');
   } catch(e) { toast('Something went wrong loading that article.'); }
@@ -680,10 +683,12 @@ function renderArticle(a) {
   const likes = a.likes_count || 0;
   const comments = a.comments_count || 0;
   const bookmarks = a.bookmarks_count || 0;
+  const isTrending = (a.views_count || 0) > 100 || (a.likes_count || 0) > 20;
+  const trendingBadge = isTrending ? `<span style="background:var(--study-gold);color:#fff;padding:2px 12px;border-radius:20px;font-size:.7rem;font-weight:600;margin-left:8px;">🔥 Trending</span>` : '';
 
   document.getElementById('readerWrap').innerHTML = `
     <div class="reader-body">
-      <div class="ribbon" style="background:${meta.color};margin-bottom:16px;">${meta.label}</div>
+      <div class="ribbon" style="background:${meta.color};margin-bottom:16px;">${meta.label} ${trendingBadge}</div>
       <h1>${escapeHtml(a.title)}</h1>
       <div class="reader-meta-top">
         <div class="avatar" style="width:40px;height:40px;border-radius:50%;background:var(--study-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;flex-shrink:0;">${a.author_picture ? `<img src="${a.author_picture}" style="width:100%;height:100%;object-fit:cover;">` : initials(a.author_name)}</div>
@@ -708,31 +713,128 @@ function renderArticle(a) {
         <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:14px;" onclick="toast('Follow system is coming soon.')"><i class="fas fa-user-plus"></i> Follow</button>
       </div>
 
-      <!-- NEW: Engagement Bar — Like, Comment, Bookmark, Share, Support -->
+      <!-- Engagement Bar -->
       <div class="sidebar-card">
         <div class="engagement-bar">
-          <button class="engage-btn" onclick="toast('Likes are coming soon.')"><i class="fas fa-heart" style="color:#e74c3c;"></i> <span>${likes}</span></button>
-          <button class="engage-btn" onclick="toast('Comments are coming soon.')"><i class="fas fa-comment" style="color:var(--study-blue);"></i> <span>${comments}</span></button>
-          <button class="engage-btn" onclick="toast('Bookmarks are coming soon.')"><i class="fas fa-bookmark" style="color:var(--study-gold);"></i> <span>${bookmarks}</span></button>
+          <button class="engage-btn" id="likeBtn"><i class="fas fa-heart" style="color:#e74c3c;"></i> <span id="likeCount">${likes}</span></button>
+          <button class="engage-btn" id="bookmarkBtn"><i class="fas fa-bookmark" style="color:var(--study-gold);"></i> <span id="bookmarkCount">${bookmarks}</span></button>
           <button class="engage-btn" id="shareBtn"><i class="fas fa-share-alt"></i> Share</button>
           <button class="engage-btn support" onclick="toast('Support feature is coming soon.')"><i class="fas fa-mug-hot"></i> Support</button>
         </div>
       </div>
 
+      <!-- Comments Section -->
       <div class="sidebar-card">
-        <h6 style="margin-bottom:10px;font-size:.9rem;"><i class="fas fa-comments" style="color:var(--study-gold);"></i> Comments — coming soon</h6>
-        <p style="font-size:.82rem;color:var(--study-gray);">Discussion threads on articles are on the way.</p>
+        <h4>Comments</h4>
+        <textarea id="commentInput" placeholder="Write a comment..."></textarea>
+        <button class="btn btn-primary" id="postCommentBtn" style="margin-top:10px;">Post Comment</button>
+        <div id="commentsContainer" style="margin-top:20px;"></div>
       </div>
+
       <div class="sidebar-card" id="relatedCard">
         <h6 style="margin-bottom:12px;font-size:.9rem;">More in ${meta.label}</h6>
         <div id="relatedList"><p style="font-size:.8rem;color:var(--study-gray);">Loading...</p></div>
       </div>
     </aside>
   `;
-  document.getElementById('shareBtn').onclick = ()=>{
-    navigator.clipboard.writeText(location.href).then(()=>toast('Link copied to clipboard.'));
-  };
+
+  // --- Like Button ---
+  document.getElementById('likeBtn').addEventListener('click', async () => {
+    const id = a.id;
+    try {
+      const res = await fetch(`/api/articles/${id}/like`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Re-fetch and re-render the article to update counts
+        const fetchRes = await fetch('/api/articles/' + encodeURIComponent(a.slug));
+        const freshData = await fetchRes.json();
+        renderArticle(freshData.article);
+      }
+    } catch(e) {
+      toast('Error liking article.');
+    }
+  });
+
+  // --- Bookmark Button ---
+  document.getElementById('bookmarkBtn').addEventListener('click', async () => {
+    const id = a.id;
+    try {
+      const res = await fetch(`/api/articles/${id}/bookmark`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('Saved to bookmarks!');
+        // Update bookmark count in UI
+        const countEl = document.getElementById('bookmarkCount');
+        if (countEl) {
+          const current = parseInt(countEl.textContent) || 0;
+          countEl.textContent = current + 1;
+        }
+      }
+    } catch(e) {
+      toast('Error bookmarking article.');
+    }
+  });
+
+  // --- Share Button (upgraded) ---
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    shareArticle(a.id, a.title, location.href);
+  });
+
+  // --- Comments ---
+  loadComments(a.id);
+
+  document.getElementById('postCommentBtn').addEventListener('click', async () => {
+    const input = document.getElementById('commentInput');
+    const content = input.value.trim();
+    if (!content) { toast('Please write a comment.'); return; }
+
+    try {
+      const res = await fetch(`/api/articles/${a.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content })
+      });
+      const data = await res.json();
+      if (data.success) {
+        input.value = '';
+        loadComments(a.id);
+        toast('Comment posted!');
+      } else {
+        toast(data.error || 'Error posting comment.');
+      }
+    } catch(e) {
+      toast('Error posting comment.');
+    }
+  });
+
   loadRelated(a.category, a.slug);
+}
+
+async function loadComments(articleId) {
+  const container = document.getElementById('commentsContainer');
+  try {
+    const res = await fetch(`/api/articles/${articleId}/comments`);
+    const data = await res.json();
+    if (!data.comments || data.comments.length === 0) {
+      container.innerHTML = '<p style="color:var(--study-gray);font-size:.9rem;">No comments yet. Be the first!</p>';
+      return;
+    }
+    container.innerHTML = data.comments.map(c => `
+      <div class="comment-item">
+        <div class="comment-author">${escapeHtml(c.author_name || 'Anonymous')} <span class="comment-time">${timeAgo(c.created_at)}</span></div>
+        <div class="comment-body">${escapeHtml(c.content)}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--study-gray);">Could not load comments.</p>';
+  }
 }
 
 async function loadRelated(category, excludeSlug) {
@@ -942,6 +1044,7 @@ async function openArticleFromRoute(slug) {
     const res = await fetch('/api/articles/' + encodeURIComponent(slug));
     if (!res.ok) return;
     const data = await res.json();
+    state.currentArticleId = data.article.id;
     renderArticle(data.article);
     showView('view-article');
   } catch(e) {}

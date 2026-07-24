@@ -641,7 +641,27 @@ document.getElementById('searchInput').addEventListener('input', e=>{
   clearTimeout(searchTimer);
   searchTimer = setTimeout(()=>{ state.search = e.target.value.trim(); loadArticles(true); }, 350);
 });
+async function shareArticle(articleId, articleTitle, articleUrl) {
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: articleTitle,
+        url: articleUrl
+      });
+    } else {
+      await navigator.clipboard.writeText(articleUrl);
+      alert("Link copied!");
+    }
 
+    await fetch(`/api/articles/${articleId}/share`, {
+      method: "POST",
+      credentials: "include"
+    });
+
+  } catch (err) {
+    console.error(err);
+  }
+}
 // article reader — NEW engagement bar
 async function openArticle(slug) {
   location.hash = '#/article/' + slug;

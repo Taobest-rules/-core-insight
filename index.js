@@ -1424,10 +1424,26 @@ app.post("/api/articles/:id/comments", async (req, res) => {
         commentId: result.insertId
     });
 });
-navigator.share({
-    title: article.title,
-    text: article.excerpt,
-    url: window.location.href
+app.post("/api/articles/:id/share", async (req, res) => {
+  try {
+    const articleId = req.params.id;
+
+    await db.query(
+      "UPDATE articles SET shares_count = shares_count + 1 WHERE id = ?",
+      [articleId]
+    );
+
+    res.json({
+      success: true,
+      message: "Share recorded"
+    });
+  } catch (err) {
+    console.error("Share error:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
 });
 app.post("/api/articles/:id/share", async (req,res)=>{
     await db.query(

@@ -1317,7 +1317,126 @@ app.get("/api/articles/meta/categories", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.post("/api/articles/:id/like", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Login required" });
+    }
 
+    const articleId = req.params.id;
+    const userId = req.session.user.id;
+
+    const existing = await db.query(
+        "SELECT id FROM article_likes WHERE article_id=? AND user_id=?",
+        [articleId, userId]
+    );
+
+    if (existing.length > 0) {
+        await db.query(
+            "DELETE FROM article_likes WHERE article_id=? AND user_id=?",
+            [articleId, userId]
+        );
+
+        await db.query(
+            "UPDATE articles SET likes_count = likes_count - 1 WHERE id=?",
+            [articleId]
+        );
+
+        return res.json({ liked: false });
+    }
+
+    await db.query(
+        "INSERT INTO article_likes(article_id,user_id) VALUES (?,?)",
+        [articleId, userId]
+    );
+
+    await db.query(
+        "UPDATE articles SET likes_count = likes_count + 1 WHERE id=?",
+        [articleId]
+    );
+
+    res.json({ liked: true });
+});
+app.post("/api/articles/:id/bookmark", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Login required" });
+    }
+
+    const articleId = req.params.id;
+    const userId = req.session.user.id;
+
+    const existing = await db.query(
+        "SELECT id FROM article_bookmarks WHERE article_id=? AND user_id=?",
+        [articleId, userId]
+    );
+
+    if (existing.length > 0) {
+        await db.query(
+            "DELETE FROM article_bookmarks WHERE article_id=? AND user_id=?",
+            [articleId, userId]
+        );
+
+        await db.query(
+            "UPDATE articles SET bookmarks_count = bookmarks_count - 1 WHERE id=?",
+            [articleId]
+        );
+
+        return res.json({ bookmarked: false });
+    }
+
+    await db.query(
+        "INSERT INTO article_bookmarks(article_id,user_id) VALUES (?,?)",
+        [articleId, userId]
+    );
+
+    await db.query(
+        "UPDATE articles SET bookmarks_count = bookmarks_count + 1 WHERE id=?",
+        [articleId]
+    );
+
+    res.json({ bookmarked: true });
+});
+app.post("/api/articles/:id/comments", async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ error: "Login required" });
+    }
+
+    const { comment, parent_comment_id } = req.body;
+
+    const result = await db.query(
+        `INSERT INTO article_comments
+        (article_id,user_id,parent_comment_id,comment)
+        VALUES (?,?,?,?)`,
+        [
+            req.params.id,
+            req.session.user.id,
+            parent_comment_id || null,
+            comment
+        ]
+    );
+
+    await db.query(
+        "UPDATE articles SET comments_count = comments_count + 1 WHERE id=?",
+        [req.params.id]
+    );
+
+    res.json({
+        success: true,
+        commentId: result.insertId
+    });
+});
+navigator.share({
+    title: article.title,
+    text: article.excerpt,
+    url: window.location.href
+});
+app.post("/api/articles/:id/share", async (req,res)=>{
+    await db.query(
+        "UPDATE articles SET shares_count = shares_count + 1 WHERE id=?",
+        [req.params.id]
+    );
+
+    res.json({success:true});
+});
 // ============================================
 // CURRENCY CONVERSION - FIXED
 // ============================================

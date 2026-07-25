@@ -1646,48 +1646,145 @@ app.post("/api/articles/:id/share", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Toggle follow/unfollow an author — SCOPED TO KNOWLEDGE HUB ONLY
-app.post("/api/articles/authors/:authorId/follow", async (req, res) => {
+// ============================================
+// UNIFIED PROFILE SYSTEM
+// ============================================
+
+// Get a creator's unified profile — currently only populates knowledge hub section
+app.get("/api/profile/:userId", async (req, res) => {
+  try {
+    const profileUserId = req.params.userId;
+
+    const userResult = await db.query(
+      `SELECT u.id, u.username, u.role, u.created_at,
+              fp.headline, fp.profile_picture_url, fp.description as bio
+       FROM users u
+       LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
+       WHERE u.id = ?`,
+      [profileUserId]
+    );
+
+    const rows = extractRows(userResult);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = rows[0];
+
+    const followerCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM user_follows WHERE creator_id = ?",
+      [profileUserId]
+    );
+
+    // Counts across sections — only articles is real for now,
+    // the rest are wired up as those sections get built
+    const articleCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM articles WHERE user_id = ? AND status = 'published' AND is_deleted = 0",
+      [profileUserId]
+    );
+
+    let isFollowing = false;
+    if (req.session.user) {
+      const followCheck = await db.query(
+        "SELECT id FROM user_follows WHERE follower_id = ? AND creator_id = ?",
+        [req.session.user.id, profileUserId]
+      );
+      isFollowing = followCheck && followCheck.length > 0;
+    }
+
+    res.json({
+      success: true,
+      profile: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        headline: user.headline,
+        bio: user.bio,
+        profile_picture: user.profile_picture_url,
+        member_since: user.created_at
+      },
+      follower_count: followerCountResult[0]?.count || 0,
+      is_following: isFollowing,
+      is_own_profile: req.session.user ? req.session.user.id === parseInt(profileUserId) : false,
+      sections: {
+        knowledge: { count: articleCountResult[0]?.count || 0, available: true },
+        services: { count: 0, available: false },
+        courses: { count: 0, available: false },
+        products: { count: 0, available: false }
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching unified profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get a creator's published articles (for the knowledge tab)
+app.get("/api/profile/:userId/articles", async (req, res) => {
+  try {
+    const profileUserId = req.params.userId;
+    const { limit = 12, offset = 0 } = req.query;
+
+    const result = await db.query(`
+      SELECT id, title, slug, excerpt, cover_image_url, category,
+             views_count, likes_count, comments_count, read_time_minutes, published_at
+      FROM articles
+      WHERE user_id = ? AND status = 'published' AND is_deleted = 0
+      ORDER BY published_at DESC
+      LIMIT ? OFFSET ?
+    `, [profileUserId, parseInt(limit), parseInt(offset)]);
+
+    res.json({ success: true, articles: extractRows(result) });
+
+  } catch (err) {
+    console.error("❌ Error fetching profile articles:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Toggle follow — unified across all sections
+app.post("/api/profile/:userId/follow", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Login required" });
     }
 
-    const authorId = parseInt(req.params.authorId);
+    const creatorId = parseInt(req.params.userId);
     const followerId = req.session.user.id;
 
-    if (authorId === followerId) {
+    if (creatorId === followerId) {
       return res.status(400).json({ error: "You cannot follow yourself" });
     }
 
-    const authorCheck = await db.query("SELECT id FROM users WHERE id = ?", [authorId]);
-    if (!authorCheck || authorCheck.length === 0) {
-      return res.status(404).json({ error: "Author not found" });
+    const creatorCheck = await db.query("SELECT id FROM users WHERE id = ?", [creatorId]);
+    if (!creatorCheck || creatorCheck.length === 0) {
+      return res.status(404).json({ error: "User not found" });
     }
 
     const existing = await db.query(
-      "SELECT id FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
-      [followerId, authorId]
+      "SELECT id FROM user_follows WHERE follower_id = ? AND creator_id = ?",
+      [followerId, creatorId]
     );
 
     let following;
     if (existing.length > 0) {
       await db.query(
-        "DELETE FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
-        [followerId, authorId]
+        "DELETE FROM user_follows WHERE follower_id = ? AND creator_id = ?",
+        [followerId, creatorId]
       );
       following = false;
     } else {
       await db.query(
-        "INSERT INTO article_author_follows (follower_id, author_id, created_at) VALUES (?, ?, NOW())",
-        [followerId, authorId]
+        "INSERT INTO user_follows (follower_id, creator_id, created_at) VALUES (?, ?, NOW())",
+        [followerId, creatorId]
       );
       following = true;
     }
 
     const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
-      [authorId]
+      "SELECT COUNT(*) as count FROM user_follows WHERE creator_id = ?",
+      [creatorId]
     );
 
     res.json({
@@ -1697,78 +1794,31 @@ app.post("/api/articles/authors/:authorId/follow", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Article author follow error:", err);
+    console.error("❌ Follow error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Check if current user follows this author (article context) + get their article-follower count
-app.get("/api/articles/authors/:authorId/follow-status", async (req, res) => {
-  try {
-    const authorId = req.params.authorId;
-
-    const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
-      [authorId]
-    );
-    const followerCount = countResult[0]?.count || 0;
-
-    if (!req.session.user) {
-      return res.json({ following: false, followerCount });
-    }
-
-    const result = await db.query(
-      "SELECT id FROM article_author_follows WHERE follower_id = ? AND author_id = ?",
-      [req.session.user.id, authorId]
-    );
-
-    res.json({ following: result && result.length > 0, followerCount });
-
-  } catch (err) {
-    console.error("❌ Article follow status error:", err);
-    res.json({ following: false, followerCount: 0 });
-  }
-});
-
-// Get list of authors the current user follows (article context)
-app.get("/api/articles/authors/following", async (req, res) => {
+// List who the current user follows (for a "Following" page later)
+app.get("/api/profile/me/following", async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(401).json({ error: "Please login" });
     }
 
-    const authors = await db.query(`
-      SELECT u.id, u.username, fp.profile_picture_url, fp.headline,
-             af.created_at as followed_at
-      FROM article_author_follows af
-      JOIN users u ON af.author_id = u.id
+    const result = await db.query(`
+      SELECT u.id, u.username, fp.profile_picture_url, fp.headline, uf.created_at as followed_at
+      FROM user_follows uf
+      JOIN users u ON uf.creator_id = u.id
       LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
-      WHERE af.follower_id = ?
-      ORDER BY af.created_at DESC
+      WHERE uf.follower_id = ?
+      ORDER BY uf.created_at DESC
     `, [req.session.user.id]);
 
-    res.json({ success: true, authors: extractRows(authors) });
+    res.json({ success: true, following: extractRows(result) });
 
   } catch (err) {
-    console.error("❌ Error fetching article-following list:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get an author's article-follower count (for use on their author card in the hub, NOT their main profile)
-app.get("/api/articles/authors/:authorId/followers", async (req, res) => {
-  try {
-    const authorId = req.params.authorId;
-
-    const countResult = await db.query(
-      "SELECT COUNT(*) as count FROM article_author_follows WHERE author_id = ?",
-      [authorId]
-    );
-
-    res.json({ success: true, followerCount: countResult[0]?.count || 0 });
-
-  } catch (err) {
-    console.error("❌ Error fetching article followers:", err);
+    console.error("❌ Error fetching following list:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -9942,7 +9992,145 @@ app.put("/api/services/:id", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// Get notifications for the logged-in freelancer
+app.get("/api/freelancer/notifications", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
 
+        if (req.session.user.role !== 'freelancer') {
+            return res.json({ success: true, notifications: [], unreadCount: 0 });
+        }
+
+        const freelancerId = req.session.user.id;
+
+        const unreadResult = await db.query(
+            "SELECT COUNT(*) as count FROM freelancer_notifications WHERE freelancer_id = ? AND is_read = 0",
+            [freelancerId]
+        );
+
+        const notificationsResult = await db.query(`
+            SELECT fn.id, fn.notification_type, fn.title, fn.message, fn.is_read, fn.created_at,
+                   u.username as client_name
+            FROM freelancer_notifications fn
+            LEFT JOIN users u ON fn.client_id = u.id
+            WHERE fn.freelancer_id = ?
+            ORDER BY fn.created_at DESC
+            LIMIT 50
+        `, [freelancerId]);
+
+        res.json({
+            success: true,
+            unreadCount: unreadResult[0]?.count || 0,
+            notifications: extractRows(notificationsResult)
+        });
+
+    } catch (err) {
+        console.error("❌ Error fetching freelancer notifications:", err);
+        // Return empty data instead of error to prevent frontend crashes
+        res.json({ success: false, notifications: [], unreadCount: 0, error: err.message });
+    }
+});
+
+// Mark a single freelancer notification as read
+app.post("/api/freelancer/notifications/:id/read", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        await db.query(
+            "UPDATE freelancer_notifications SET is_read = 1 WHERE id = ? AND freelancer_id = ?",
+            [req.params.id, req.session.user.id]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("❌ Error marking notification read:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Mark all freelancer notifications as read
+app.post("/api/freelancer/notifications/mark-all-read", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ error: "Please login" });
+        }
+
+        await db.query(
+            "UPDATE freelancer_notifications SET is_read = 1 WHERE freelancer_id = ? AND is_read = 0",
+            [req.session.user.id]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("❌ Error marking all notifications read:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// Check if current client can flag a specific freelancer
+app.get("/api/users/flag-status/:userId", async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.json({ canFlag: false, message: "Please login" });
+        }
+
+        if (req.session.user.role !== 'client') {
+            return res.json({ canFlag: false, message: "Only clients can flag users" });
+        }
+
+        const targetUserId = req.params.userId;
+        const clientId = req.session.user.id;
+
+        if (parseInt(targetUserId) === parseInt(clientId)) {
+            return res.json({ canFlag: false, message: "You cannot flag yourself" });
+        }
+
+        // Verify target is a freelancer
+        const targetResult = await db.query(
+            "SELECT role, account_locked FROM users WHERE id = ?",
+            [targetUserId]
+        );
+
+        if (!targetResult || targetResult.length === 0) {
+            return res.json({ canFlag: false, message: "User not found" });
+        }
+
+        if (targetResult[0].role !== 'freelancer') {
+            return res.json({ canFlag: false, message: "Only freelancers can be flagged" });
+        }
+
+        // Check if this client has already flagged this freelancer (pending flag)
+        const existingFlag = await db.query(
+            "SELECT id FROM user_flags WHERE flagged_user_id = ? AND flagged_by_user_id = ? AND status = 'pending'",
+            [targetUserId, clientId]
+        );
+
+        const hasBeenFlaggedByMe = existingFlag && existingFlag.length > 0;
+
+        // Total pending flag count on the target
+        const flagCountResult = await db.query(
+            "SELECT COUNT(*) as count FROM user_flags WHERE flagged_user_id = ? AND status = 'pending'",
+            [targetUserId]
+        );
+
+        res.json({
+            canFlag: !hasBeenFlaggedByMe,
+            flagCount: flagCountResult[0]?.count || 0,
+            hasBeenFlagged: hasBeenFlaggedByMe,
+            accountLocked: targetResult[0].account_locked === 1,
+            message: hasBeenFlaggedByMe ? "You have already flagged this user" : null
+        });
+
+    } catch (err) {
+        console.error("❌ Error checking flag status:", err);
+        res.json({ canFlag: true, message: null }); // fail open, matches frontend's fallback behavior
+    }
+});
 // ==================== GET FREELANCER'S CLIENTS ====================
 app.get("/api/freelancer/clients", async (req, res) => {
     if (!req.session.user) {

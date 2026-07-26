@@ -240,16 +240,17 @@
       <div class="brand-name">Core Insight</div>
     </div>
     <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
-    <nav id="mainNav">
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
-        <li><a href="services.html">Services</a></li>
-        <li><a href="courses.html">Courses</a></li>
-        <li><a href="products.html">Products</a></li>
-        <li><a href="contact.html">Contact</a></li>
-      </ul>
-    </nav>
+   <nav id="mainNav">
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="knowledge-hub.html" class="active">Knowledge Hub</a></li>
+    <li><a href="services.html">Services</a></li>
+    <li><a href="courses.html">Courses</a></li>
+    <li><a href="products.html">Products</a></li>
+    <li><a href="contact.html">Contact</a></li>
+    <li><a href="#" id="myProfileLink">My Profile</a></li>
+  </ul>
+</nav>
   </div>
 </header>
 
@@ -1201,6 +1202,15 @@ async function openArticleFromRoute(slug) {
 }
 window.addEventListener('hashchange', handleRoute);
 
+document.getElementById('myProfileLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (!state.currentUser) {
+    toast('Please log in to view your profile.');
+    setTimeout(() => location.href = '/login.html', 900);
+    return;
+  }
+  location.href = `profile.html?user=${state.currentUser.id}&tab=knowledge`;
+});
 // init
 (async function init() {
   await checkAuth();

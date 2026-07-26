@@ -24,6 +24,10 @@
       --radius-xl: 20px;
       --radius-md: 14px;
       --radius-sm: 10px;
+      --green: #5a8d7d;
+      --gold: #c9971f;
+      --gray: #6b7a8f;
+      --neutral-dark: #eef1f5;
     }
     body {
       font-family: 'Inter', sans-serif;
@@ -49,6 +53,10 @@
       align-items: flex-end;
       flex-wrap: wrap;
     }
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
     .avatar {
       width: 112px;
       height: 112px;
@@ -62,12 +70,29 @@
       font-size: 2.6rem;
       font-weight: 700;
       overflow: hidden;
-      flex-shrink: 0;
       box-shadow: 0 8px 20px rgba(0,0,0,0.12);
       transition: transform 0.2s;
     }
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .avatar:hover { transform: scale(1.02); }
+    .avatar-edit-btn {
+      display: none;
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: 0.2s;
+    }
+    .avatar-edit-btn:hover { background: var(--primary); color: #fff; }
 
     .header-info { flex: 1; min-width: 200px; }
     .header-info h1 {
@@ -258,7 +283,104 @@
     }
     .coming-soon i { font-size: 3rem; }
 
-    /* toast */
+    /* payout & settings cards */
+    .settings-card, .payout-card {
+      max-width: 620px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      padding: 28px 30px;
+      box-shadow: var(--shadow-sm);
+    }
+    .settings-card h2, .payout-card h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+    }
+    .settings-card .sub, .payout-card .sub {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 22px;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      color: var(--text-soft);
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: 0.2s;
+      background: #fafcff;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(74,111,165,0.15);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: 0.2s;
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(74,111,165,0.25); }
+    .btn-secondary {
+      background: var(--border-light);
+      color: var(--text-soft);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-secondary:hover { background: #d5dce6; }
+    .status-banner {
+      display: none;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      background: rgba(90,141,125,0.1);
+      color: var(--green);
+      border-left: 4px solid var(--green);
+    }
+    .status-banner i { margin-right: 8px; }
+    .status-banner.warning {
+      background: rgba(201,151,31,0.1);
+      color: var(--gold);
+      border-left-color: var(--gold);
+    }
+    .verified-name {
+      margin-top: 10px;
+      font-weight: 600;
+      color: var(--green);
+      font-size: 0.95rem;
+    }
+    .flex-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .flex-row .btn-primary, .flex-row .btn-secondary { width: auto; flex: 1; }
+
     #toast {
       position: fixed;
       bottom: 30px;
@@ -287,6 +409,9 @@
       .header-info h1 { font-size: 1.7rem; }
       .tab-btn { padding: 10px 14px; font-size: 0.8rem; }
       .tab-nav { margin-top: -12px; }
+      .settings-card, .payout-card { padding: 20px 16px; }
+      .flex-row { flex-direction: column; }
+      .flex-row .btn-primary, .flex-row .btn-secondary { flex: unset; width: 100%; }
     }
   </style>
 </head>
@@ -294,7 +419,11 @@
 
 <div class="profile-header">
   <div class="container header-inner">
-    <div class="avatar" id="avatar">?</div>
+    <div class="avatar-wrap">
+      <div class="avatar" id="avatar">?</div>
+      <button class="avatar-edit-btn" id="avatarEditBtn"><i class="fas fa-pen" style="font-size:.8rem;"></i></button>
+      <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+    </div>
     <div class="header-info">
       <h1 id="username">Loading...</h1>
       <p class="headline" id="headline"></p>
@@ -327,6 +456,78 @@
   <div class="tab-panel" id="panel-products">
     <div class="coming-soon"><i class="fas fa-box"></i><p>Products will appear here soon.</p></div>
   </div>
+
+  <div class="tab-panel" id="panel-settings">
+    <div class="settings-card">
+      <h2>Profile Settings</h2>
+      <p class="sub">This is what other people see when they visit your profile.</p>
+      <div class="form-group">
+        <label>Title / Role</label>
+        <input type="text" id="settingsHeadline" placeholder="e.g. Freelance Writer, Web Developer, Course Creator" maxlength="150">
+      </div>
+      <div class="form-group">
+        <label>Bio</label>
+        <textarea id="settingsBio" rows="4" maxlength="1000" placeholder="Tell people a bit about yourself..."></textarea>
+      </div>
+      <button class="btn-primary" id="saveSettingsBtn"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-payouts">
+    <div class="payout-card">
+      <h2>Payout Settings</h2>
+      <p class="sub">Manage how you receive earnings from your content.</p>
+      <div id="payoutStatusBanner" class="status-banner"></div>
+
+      <div class="form-group">
+        <label>Country</label>
+        <select id="payoutCountry">
+          <option value="">Select your country...</option>
+          <option value="CM">Cameroon</option>
+          <option value="CI">Côte d'Ivoire</option>
+          <option value="EU">European Union (SEPA)</option>
+          <option value="GH">Ghana</option>
+          <option value="KE">Kenya</option>
+          <option value="MW">Malawi</option>
+          <option value="NG">Nigeria</option>
+          <option value="RW">Rwanda</option>
+          <option value="SN">Senegal</option>
+          <option value="SL">Sierra Leone</option>
+          <option value="ZA">South Africa</option>
+          <option value="TZ">Tanzania</option>
+          <option value="UG">Uganda</option>
+          <option value="GB">United Kingdom</option>
+          <option value="US">United States</option>
+          <option value="ZM">Zambia</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Bank</label>
+        <select id="payoutBank"><option value="">Select a bank...</option></select>
+        <p id="manualBankNote" style="display:none; font-size:.78rem; color:var(--gray); margin-top:6px;">
+          <i class="fas fa-info-circle"></i> Banks for this country aren't listed automatically yet.
+          <a href="contact.html" style="color:var(--primary);">Contact support</a> to set up payouts.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label>Account Number</label>
+        <div class="flex-row">
+          <input type="text" id="payoutAccountNumber" placeholder="Enter account number" style="flex:2; min-width:160px;">
+          <button class="btn-secondary" id="verifyAccountBtn" style="flex:1; white-space:nowrap;">Verify</button>
+        </div>
+        <div id="verifiedAccountName" class="verified-name"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Business / Account Name</label>
+        <input type="text" id="payoutBusinessName" placeholder="Full name or business name">
+      </div>
+
+      <button class="btn-primary" id="savePayoutBtn"><i class="fas fa-wallet"></i> Save Payout Details</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -343,7 +544,9 @@ const SECTIONS = [
   { key: 'knowledge', label: 'Knowledge Hub', icon: 'fa-book' },
   { key: 'services', label: 'Services', icon: 'fa-briefcase' },
   { key: 'courses', label: 'Courses', icon: 'fa-graduation-cap' },
-  { key: 'products', label: 'Products', icon: 'fa-box' }
+  { key: 'products', label: 'Products', icon: 'fa-box' },
+  { key: 'settings', label: 'Settings', icon: 'fa-user-cog' },
+  { key: 'payouts', label: 'Payouts', icon: 'fa-wallet' }
 ];
 
 function toast(msg) {
@@ -375,27 +578,37 @@ function switchTab(tabKey) {
   const url = new URL(location.href);
   url.searchParams.set('tab', tabKey);
   history.replaceState(null, '', url);
+
+  if (tabKey === 'payouts') {
+    loadPayoutStatus();
+    const country = document.getElementById('payoutCountry').value;
+    if (country) loadBanksForCountry(country);
+  }
 }
 
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
-  nav.innerHTML = SECTIONS.map(s => {
+  let tabsHtml = SECTIONS.map(s => {
+    // Check if this tab is available for this profile
     const info = sections[s.key];
-    const disabled = !info.available;
-    const count = info.count || 0;
+    // If it's settings or payouts, only show when viewing own profile
+    if ((s.key === 'settings' || s.key === 'payouts') && !profileData.is_own_profile) {
+      return '';
+    }
+    const disabled = !info || !info.available;
     return `
       <button class="tab-btn ${disabled ? 'disabled' : ''}" data-tab="${s.key}" ${disabled ? 'disabled' : ''}>
         <i class="fas ${s.icon}"></i> ${s.label}
-        ${count > 0 ? `<span class="tab-count">${count}</span>` : ''}
+        ${info && info.count > 0 ? `<span class="tab-count">${info.count}</span>` : ''}
       </button>
     `;
-  }).join('');
+  }).filter(html => html !== '').join('');
 
+  nav.innerHTML = tabsHtml;
   nav.querySelectorAll('.tab-btn:not(.disabled)').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 }
-
 function articleCardHtml(a) {
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
   return `
@@ -459,6 +672,159 @@ async function toggleFollow() {
   } catch (e) { toast('Something went wrong.'); }
 }
 
+// ---- PAYOUT FUNCTIONS ----
+async function loadPayoutStatus() {
+  try {
+    const res = await fetch('/api/flutterwave/subaccount-status', { credentials: 'include' });
+    const data = await res.json();
+    const banner = document.getElementById('payoutStatusBanner');
+    if (!banner) return;
+    if (data.has_subaccount) {
+      banner.style.display = 'block';
+      banner.className = 'status-banner';
+      banner.style.background = 'rgba(90,141,125,.12)';
+      banner.style.color = 'var(--green)';
+      banner.innerHTML = `<i class="fas fa-check-circle"></i> Payouts are set up. Status: <strong>${data.status}</strong>`;
+    } else {
+      banner.style.display = 'block';
+      banner.className = 'status-banner warning';
+      banner.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No payout account added yet. Until you add one, earnings won't reach you automatically.`;
+    }
+  } catch (e) {}
+}
+
+async function loadBanksForCountry(country) {
+  const bankSelect = document.getElementById('payoutBank');
+  const manualNote = document.getElementById('manualBankNote');
+  if (!country) {
+    bankSelect.innerHTML = '<option value="">Select a country first</option>';
+    if (manualNote) manualNote.style.display = 'none';
+    return;
+  }
+  bankSelect.innerHTML = '<option value="">Loading banks...</option>';
+  if (manualNote) manualNote.style.display = 'none';
+  try {
+    const res = await fetch(`/api/banks/flutterwave/${country}`, { credentials: 'include' });
+    const banks = await res.json();
+    if (!Array.isArray(banks) || banks.length === 0) {
+      bankSelect.innerHTML = '<option value="">No banks found for this country</option>';
+      if (manualNote) manualNote.style.display = 'block';
+      toast('This country isn\'t fully supported yet. You may need to contact support to set up payouts manually.');
+      return;
+    }
+    bankSelect.innerHTML = '<option value="">Select a bank...</option>' +
+      banks.map(b => `<option value="${b.code}">${escapeHtml(b.name)}</option>`).join('');
+  } catch (e) {
+    bankSelect.innerHTML = '<option value="">Error loading banks</option>';
+    if (manualNote) manualNote.style.display = 'block';
+  }
+}
+
+function setupPayoutListeners() {
+  document.getElementById('payoutCountry')?.addEventListener('change', (e) => {
+    loadBanksForCountry(e.target.value);
+  });
+
+  document.getElementById('verifyAccountBtn')?.addEventListener('click', async () => {
+    const country = document.getElementById('payoutCountry').value;
+    const bankCode = document.getElementById('payoutBank').value;
+    const accountNumber = document.getElementById('payoutAccountNumber').value.trim();
+    if (!bankCode || !accountNumber) { toast('Please select a bank and enter an account number'); return; }
+    toast('Verifying account...');
+    try {
+      const res = await fetch(`/api/verify-account/flutterwave/${country}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ account_number: accountNumber, bank_code: bankCode })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        document.getElementById('verifiedAccountName').textContent = `✓ ${data.account_name}`;
+        document.getElementById('payoutBusinessName').value = data.account_name;
+        toast('Account verified!');
+      } else {
+        toast(data.message || 'Verification failed');
+      }
+    } catch (e) { toast('Error verifying account'); }
+  });
+
+  document.getElementById('savePayoutBtn')?.addEventListener('click', async () => {
+    const country = document.getElementById('payoutCountry').value;
+    const bankCode = document.getElementById('payoutBank').value;
+    const accountNumber = document.getElementById('payoutAccountNumber').value.trim();
+    const businessName = document.getElementById('payoutBusinessName').value.trim();
+    if (!bankCode || !accountNumber || !businessName) { toast('Please fill in all payout fields'); return; }
+    toast('Saving payout details...');
+    try {
+      const res = await fetch('/api/flutterwave/create-subaccount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bank_code: bankCode, account_number: accountNumber, business_name: businessName, country })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('✅ Payout details saved!');
+        loadPayoutStatus();
+      } else {
+        toast(data.error || 'Failed to save payout details');
+      }
+    } catch (e) { toast('Error saving payout details'); }
+  });
+}
+
+// ---- SETTINGS / OWNER CONTROLS ----
+function setupOwnerControls() {
+  if (!profileData.is_own_profile) return;
+
+  const editBtn = document.getElementById('avatarEditBtn');
+  editBtn.style.display = 'flex';
+  editBtn.addEventListener('click', () => document.getElementById('avatarFileInput').click());
+
+  document.getElementById('avatarFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    toast('Uploading photo...');
+    try {
+      const res = await fetch('/api/profile/me/picture', { method: 'POST', body: formData, credentials: 'include' });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('avatar').innerHTML = `<img src="${data.profile_picture}">`;
+        toast('Photo updated!');
+      } else {
+        toast(data.error || 'Upload failed');
+      }
+    } catch (err) { toast('Error uploading photo'); }
+  });
+
+  document.getElementById('settingsHeadline').value = profileData.profile.headline || '';
+  document.getElementById('settingsBio').value = profileData.profile.bio || '';
+
+  document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+    const headline = document.getElementById('settingsHeadline').value.trim();
+    const bio = document.getElementById('settingsBio').value.trim();
+    toast('Saving...');
+    try {
+      const res = await fetch('/api/profile/me/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ headline, bio })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('headline').textContent = headline;
+        toast('Profile saved!');
+      } else {
+        toast(data.error || 'Save failed');
+      }
+    } catch (err) { toast('Error saving profile'); }
+  });
+}
+
 async function loadProfile() {
   if (!profileUserId) {
     document.getElementById('username').textContent = 'No profile specified';
@@ -485,12 +851,16 @@ async function loadProfile() {
 
     renderTabs(data.sections);
     renderFollowButton();
+    setupOwnerControls();
+    setupPayoutListeners();
 
     const validTab = data.sections[requestedTab] && data.sections[requestedTab].available ? requestedTab : 'knowledge';
     switchTab(validTab);
-
     await loadKnowledgeSection();
 
+    if (profileData.is_own_profile) {
+      loadPayoutStatus();
+    }
   } catch (e) {
     document.getElementById('username').textContent = 'Error loading profile';
   }

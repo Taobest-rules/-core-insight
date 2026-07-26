@@ -1657,8 +1657,11 @@ app.get("/api/profile/:userId", async (req, res) => {
 
     const userResult = await db.query(
       `SELECT u.id, u.username, u.role, u.created_at,
-              fp.headline, fp.profile_picture_url, fp.description as bio
+              COALESCE(up.headline, fp.headline) as headline,
+              COALESCE(up.profile_picture_url, fp.profile_picture_url) as profile_picture_url,
+              COALESCE(up.bio, fp.description) as bio
        FROM users u
+       LEFT JOIN user_profiles up ON up.user_id = u.id
        LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
        WHERE u.id = ?`,
       [profileUserId]
@@ -1676,8 +1679,6 @@ app.get("/api/profile/:userId", async (req, res) => {
       [profileUserId]
     );
 
-    // Counts across sections — only articles is real for now,
-    // the rest are wired up as those sections get built
     const articleCountResult = await db.query(
       "SELECT COUNT(*) as count FROM articles WHERE user_id = ? AND status = 'published' AND is_deleted = 0",
       [profileUserId]
@@ -1690,6 +1691,15 @@ app.get("/api/profile/:userId", async (req, res) => {
         [req.session.user.id, profileUserId]
       );
       isFollowing = followCheck && followCheck.length > 0;
+    }
+
+    let hasPayoutAccount = false;
+    if (req.session.user && req.session.user.id === parseInt(profileUserId)) {
+      const payoutCheck = await db.query(
+        "SELECT flutterwave_subaccount_id FROM users WHERE id = ?",
+        [profileUserId]
+      );
+      hasPayoutAccount = !!(payoutCheck && payoutCheck[0] && payoutCheck[0].flutterwave_subaccount_id);
     }
 
     res.json({
@@ -1706,6 +1716,7 @@ app.get("/api/profile/:userId", async (req, res) => {
       follower_count: followerCountResult[0]?.count || 0,
       is_following: isFollowing,
       is_own_profile: req.session.user ? req.session.user.id === parseInt(profileUserId) : false,
+      has_payout_account: hasPayoutAccount,
       sections: {
         knowledge: { count: articleCountResult[0]?.count || 0, available: true },
         services: { count: 0, available: false },
@@ -1724,7 +1735,8 @@ app.get("/api/profile/:userId", async (req, res) => {
 app.get("/api/profile/:userId/articles", async (req, res) => {
   try {
     const profileUserId = req.params.userId;
-    const { limit = 12, offset = 0 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 12, 50);
+    const offset = parseInt(req.query.offset) || 0;
 
     const result = await db.query(`
       SELECT id, title, slug, excerpt, cover_image_url, category,
@@ -1732,8 +1744,8 @@ app.get("/api/profile/:userId/articles", async (req, res) => {
       FROM articles
       WHERE user_id = ? AND status = 'published' AND is_deleted = 0
       ORDER BY published_at DESC
-      LIMIT ? OFFSET ?
-    `, [profileUserId, parseInt(limit), parseInt(offset)]);
+      LIMIT ${limit} OFFSET ${offset}
+    `, [profileUserId]);
 
     res.json({ success: true, articles: extractRows(result) });
 
@@ -11940,7 +11952,61 @@ app.post("/api/client/flag", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// Update headline/bio (any account type)
+app.put("/api/profile/me/update", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
 
+    const { headline, bio } = req.body;
+    const userId = req.session.user.id;
+
+    if (headline && headline.length > 150) {
+      return res.status(400).json({ error: "Headline must be under 150 characters" });
+    }
+    if (bio && bio.length > 1000) {
+      return res.status(400).json({ error: "Bio must be under 1000 characters" });
+    }
+
+    await db.query(
+      `INSERT INTO user_profiles (user_id, headline, bio, updated_at)
+       VALUES (?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE headline = ?, bio = ?, updated_at = NOW()`,
+      [userId, headline || null, bio || null, headline || null, bio || null]
+    );
+
+    res.json({ success: true, message: "Profile updated" });
+
+  } catch (err) {
+    console.error("❌ Error updating profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Upload profile picture (any account type)
+app.post("/api/profile/me/picture", uploadProfilePicture, async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: "Only image files are allowed" });
+    }
+
+    const imageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
+
+    await db.query(
+      `INSERT INTO user_profiles (user_id, profile_picture_url, updated_at)
+       VALUES (?, ?, NOW())
+       ON DUPLICATE KEY UPDATE profile_picture_url = ?, updated_at = NOW()`,
+      [req.session.user.id, imageUrl, imageUrl]
+    );
+
+    res.json({ success: true, profile_picture: imageUrl });
+
+  } catch (err) {
+    console.error("❌ Error uploading profile picture:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // SERVICE PAYMENT VERIFICATION
 // ============================================

@@ -1823,6 +1823,262 @@ app.get("/api/profile/me/following", async (req, res) => {
   }
 });
 // ============================================
+// CREATOR SUPPORT (TIPS)
+// ============================================
+
+// Create a support payment
+app.post("/api/support/create", async (req, res) => {
+    try {
+        const { creatorId, articleId, amount, message, isAnonymous } = req.body;
+
+        if (!creatorId || !amount) {
+            return res.status(400).json({ error: "Creator and amount are required" });
+        }
+
+        const tipAmount = parseFloat(amount);
+        if (isNaN(tipAmount) || tipAmount < 1) {
+            return res.status(400).json({ error: "Minimum support amount is $1" });
+        }
+        if (tipAmount > 500) {
+            return res.status(400).json({ error: "Maximum support amount is $500" });
+        }
+
+        if (req.session.user && parseInt(req.session.user.id) === parseInt(creatorId)) {
+            return res.status(400).json({ error: "You cannot support yourself" });
+        }
+
+        // Get creator + their payout subaccount
+        const creatorResult = await db.query(
+            `SELECT id, username, email, flutterwave_subaccount_id FROM users WHERE id = ?`,
+            [creatorId]
+        );
+
+        if (!creatorResult || creatorResult.length === 0) {
+            return res.status(404).json({ error: "Creator not found" });
+        }
+        const creator = creatorResult[0];
+
+        // 90/10 split, same model as digital products
+        const platformFee = tipAmount * 0.10;
+        const creatorEarnings = tipAmount - platformFee;
+
+        const transactionRef = `SUPPORT_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const supporterId = req.session.user ? req.session.user.id : null;
+        const supporterEmail = req.session.user ? req.session.user.email : (req.body.guestEmail || null);
+        const supporterName = req.session.user ? req.session.user.username : (req.body.guestName || "Anonymous Supporter");
+
+        if (!supporterEmail) {
+            return res.status(400).json({ error: "Email is required to process payment" });
+        }
+
+        // Store the support record
+        const insertResult = await db.query(
+            `INSERT INTO creator_support
+             (supporter_id, creator_id, article_id, amount, platform_fee, creator_earnings,
+              message, is_anonymous, transaction_ref, payment_status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+            [
+                supporterId, creatorId, articleId || null, tipAmount, platformFee, creatorEarnings,
+                message ? message.trim().substring(0, 500) : null,
+                isAnonymous ? 1 : 0, transactionRef
+            ]
+        );
+
+        const supportId = extractInsertId(insertResult);
+
+        if (!process.env.FLW_SECRET_KEY) {
+            return res.status(500).json({ error: "Payment system not configured" });
+        }
+
+        const payload = {
+            tx_ref: transactionRef,
+            amount: tipAmount,
+            currency: "USD",
+            redirect_url: "https://coreinsightmarket.com/support-callback.html",
+            customer: {
+                email: supporterEmail,
+                name: supporterName
+            },
+            customizations: {
+                title: "Support a Creator",
+                description: `Supporting ${creator.username}${articleId ? ' for their article' : ''}`
+            },
+            meta: {
+                support_id: supportId,
+                creator_id: creatorId,
+                type: "creator_support"
+            }
+        };
+
+        // Split payout to the creator's subaccount, same mechanism as digital products
+        if (creator.flutterwave_subaccount_id) {
+            payload.subaccounts = [{
+                id: creator.flutterwave_subaccount_id,
+                transaction_split_ratio: 0.9
+            }];
+        }
+
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/payments',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+
+        if (response.data.status === 'success' && response.data.data?.link) {
+            res.json({
+                success: true,
+                paymentLink: response.data.data.link,
+                transactionRef: transactionRef,
+                amount: tipAmount,
+                platformFee: platformFee,
+                creatorEarnings: creatorEarnings
+            });
+        } else {
+            throw new Error(response.data.message || "Payment initialization failed");
+        }
+
+    } catch (err) {
+        console.error("❌ Support payment error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Verify a support payment
+app.get("/api/verify-support-payment/:reference", async (req, res) => {
+    try {
+        let reference = req.params.reference;
+        if (reference.startsWith('FW_')) reference = reference.substring(3);
+
+        const supportResult = await db.query(
+            `SELECT cs.*, u.username as creator_name, u.email as creator_email
+             FROM creator_support cs
+             JOIN users u ON cs.creator_id = u.id
+             WHERE cs.transaction_ref = ?`,
+            [reference]
+        );
+
+        if (!supportResult || supportResult.length === 0) {
+            return res.status(404).json({ error: "Support record not found" });
+        }
+        const support = supportResult[0];
+
+        if (support.payment_status === 'completed') {
+            return res.json({
+                status: "success",
+                message: "Payment already verified",
+                creator_name: support.creator_name,
+                amount: support.amount
+            });
+        }
+
+        const response = await axios.get(
+            `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${reference}`,
+            { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }, timeout: 15000 }
+        );
+
+        if (response.data.status === 'success' && response.data.data.status === 'successful') {
+            await db.query(
+                `UPDATE creator_support
+                 SET payment_status = 'completed', completed_at = NOW()
+                 WHERE transaction_ref = ?`,
+                [reference]
+            );
+
+            // Notify the creator
+            const supporterName = support.is_anonymous ? "Someone" :
+                (support.supporter_id ? (await db.query("SELECT username FROM users WHERE id = ?", [support.supporter_id]))[0]?.username : "A guest supporter");
+
+            const emailHtml = `
+                <!DOCTYPE html>
+                <html><head><title>You've been supported!</title></head>
+                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+                        <h1 style="color:#fbbf24;">💛 You received support!</h1>
+                        <p>${escapeHtml(supporterName)} just supported you with <strong>$${parseFloat(support.amount).toFixed(2)}</strong>.</p>
+                        ${support.message ? `<div style="background:#0f172a;padding:16px;border-radius:10px;margin:16px 0;"><p style="font-style:italic;">"${escapeHtml(support.message)}"</p></div>` : ''}
+                        <p>Your earnings: <strong>$${parseFloat(support.creator_earnings).toFixed(2)}</strong> (after platform fee)</p>
+                    </div>
+                </body></html>
+            `;
+            sendEmail(support.creator_email, "You've received support! 💛", emailHtml).catch(() => {});
+
+            return res.json({
+                status: "success",
+                message: "Payment verified successfully",
+                creator_name: support.creator_name,
+                amount: support.amount
+            });
+        }
+
+        res.status(400).json({ status: "pending", message: "Payment not completed yet" });
+
+    } catch (err) {
+        console.error("❌ Support verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get support stats for a creator (shown on their profile/dashboard)
+app.get("/api/profile/:userId/support-stats", async (req, res) => {
+    try {
+        const creatorId = req.params.userId;
+
+        const result = await db.query(
+            `SELECT COUNT(*) as supporter_count, COALESCE(SUM(amount), 0) as total_received
+             FROM creator_support
+             WHERE creator_id = ? AND payment_status = 'completed'`,
+            [creatorId]
+        );
+
+        res.json({
+            success: true,
+            supporter_count: result[0]?.supporter_count || 0,
+            total_received: parseFloat(result[0]?.total_received || 0)
+        });
+
+    } catch (err) {
+        console.error("❌ Error fetching support stats:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get recent public supporters for a creator (optional wall-of-support display)
+app.get("/api/profile/:userId/supporters", async (req, res) => {
+    try {
+        const creatorId = req.params.userId;
+
+        const result = await db.query(
+            `SELECT cs.amount, cs.message, cs.is_anonymous, cs.created_at,
+                    u.username as supporter_name
+             FROM creator_support cs
+             LEFT JOIN users u ON cs.supporter_id = u.id
+             WHERE cs.creator_id = ? AND cs.payment_status = 'completed'
+             ORDER BY cs.created_at DESC
+             LIMIT 20`,
+            [creatorId]
+        );
+
+        const supporters = extractRows(result).map(s => ({
+            amount: parseFloat(s.amount),
+            message: s.message,
+            created_at: s.created_at,
+            supporter_name: s.is_anonymous ? "Anonymous" : (s.supporter_name || "A guest")
+        }));
+
+        res.json({ success: true, supporters });
+
+    } catch (err) {
+        console.error("❌ Error fetching supporters:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================
 // CURRENCY CONVERSION - FIXED
 // ============================================
 
@@ -12586,6 +12842,9 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
         // PHYSICAL PRODUCT
         await handleFlutterwavePhysicalPayment(tx_ref, transaction);
       }
+      else if (tx_ref && tx_ref.includes('SUPPORT_')) {
+  await handleFlutterwaveSupportPayment(tx_ref, transaction);
+}
     }
     
     res.sendStatus(200);
@@ -12595,7 +12854,19 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
     res.sendStatus(500);
   }
 });
-
+async function handleFlutterwaveSupportPayment(tx_ref, transaction) {
+  console.log(`💛 Processing support payment: ${tx_ref}`);
+  try {
+    await db.query(
+      `UPDATE creator_support SET payment_status = 'completed', completed_at = NOW()
+       WHERE transaction_ref = ?`,
+      [tx_ref]
+    );
+    console.log(`✅ Support payment confirmed via webhook: ${tx_ref}`);
+  } catch (err) {
+    console.error('Error processing support payment webhook:', err);
+  }
+}
 // Helper: Handle Flutterwave Digital Payment
 async function handleFlutterwaveDigitalPayment(tx_ref, transaction) {
   console.log(`📦 Processing Flutterwave digital product payment: ${tx_ref}`);

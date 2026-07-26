@@ -345,6 +345,36 @@
           <input type="text" id="fieldTags" placeholder="e.g. freelancing, ai, pricing">
         </div>
       </div>
+      <div id="supportModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:30px; max-width:420px; width:90%;">
+    <h3 style="margin-bottom:6px;">Support <span id="supportCreatorName"></span></h3>
+    <p style="color:var(--study-gray); font-size:.9rem; margin-bottom:20px;">Your support goes directly to this creator.</p>
+
+    <div style="display:flex; gap:10px; margin-bottom:16px;" id="amountPresets">
+      <button class="amount-chip" data-amount="3">$3</button>
+      <button class="amount-chip" data-amount="5">$5</button>
+      <button class="amount-chip" data-amount="10">$10</button>
+      <button class="amount-chip" data-amount="25">$25</button>
+    </div>
+    <input type="number" id="customAmount" placeholder="Or enter custom amount" min="1" max="500" style="width:100%; padding:12px; border:1px solid var(--study-neutral-dark); border-radius:8px; margin-bottom:14px;">
+
+    <textarea id="supportMessage" placeholder="Leave a message (optional)" maxlength="500" style="width:100%; min-height:70px; padding:12px; border:1px solid var(--study-neutral-dark); border-radius:8px; margin-bottom:14px; font-family:inherit;"></textarea>
+
+    <label style="display:flex; align-items:center; gap:8px; margin-bottom:18px; font-size:.9rem; color:var(--study-gray);">
+      <input type="checkbox" id="supportAnonymous"> Support anonymously
+    </label>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-primary" id="confirmSupportBtn" style="flex:1;">Support</button>
+      <button class="btn btn-ghost" id="cancelSupportBtn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .amount-chip { flex:1; padding:10px; border:1px solid var(--study-neutral-dark); border-radius:8px; background:#fff; cursor:pointer; font-weight:600; }
+  .amount-chip.active { background:var(--study-gold); color:#fff; border-color:var(--study-gold); }
+</style>
       <div class="field">
         <label>Article content</label>
         <div class="editor-toolbar">
@@ -607,7 +637,75 @@ function featuredCardHtml(a) {
       </div>
     </div>`;
 }
+let supportContext = { creatorId: null, articleId: null };
+let selectedAmount = null;
 
+function openSupportModal(creatorId, creatorName, articleId) {
+  if (state.currentUser && state.currentUser.id === creatorId) {
+    toast("You can't support yourself.");
+    return;
+  }
+  supportContext = { creatorId, articleId };
+  selectedAmount = null;
+  document.getElementById('supportCreatorName').textContent = creatorName || 'this creator';
+  document.getElementById('customAmount').value = '';
+  document.getElementById('supportMessage').value = '';
+  document.getElementById('supportAnonymous').checked = false;
+  document.querySelectorAll('.amount-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('supportModal').style.display = 'flex';
+}
+
+document.querySelectorAll('.amount-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.amount-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    selectedAmount = parseFloat(chip.dataset.amount);
+    document.getElementById('customAmount').value = '';
+  });
+});
+
+document.getElementById('customAmount').addEventListener('input', (e) => {
+  document.querySelectorAll('.amount-chip').forEach(c => c.classList.remove('active'));
+  selectedAmount = parseFloat(e.target.value) || null;
+});
+
+document.getElementById('cancelSupportBtn').addEventListener('click', () => {
+  document.getElementById('supportModal').style.display = 'none';
+});
+
+document.getElementById('confirmSupportBtn').addEventListener('click', async () => {
+  const amount = selectedAmount || parseFloat(document.getElementById('customAmount').value);
+  if (!amount || amount < 1) { toast('Please choose or enter an amount (min $1).'); return; }
+
+  if (!state.currentUser) {
+    toast('Please login to support this creator.');
+    return;
+  }
+
+  const message = document.getElementById('supportMessage').value.trim();
+  const isAnonymous = document.getElementById('supportAnonymous').checked;
+
+  try {
+    const res = await fetch('/api/support/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        creatorId: supportContext.creatorId,
+        articleId: supportContext.articleId,
+        amount, message, isAnonymous
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.paymentLink) {
+      window.location.href = data.paymentLink;
+    } else {
+      toast(data.error || 'Could not start payment.');
+    }
+  } catch (e) {
+    toast('Something went wrong.');
+  }
+});
 async function loadFeatured() {
   try {
     const res = await fetch('/api/articles?sort=popular&limit=1');
@@ -725,7 +823,7 @@ async function renderArticle(a) {
           <button class="engage-btn" id="likeBtn"><i class="fas fa-heart" style="color:#e74c3c;"></i> <span id="likeCount">${likes}</span></button>
           <button class="engage-btn" id="bookmarkBtn"><i class="fas fa-bookmark" style="color:var(--study-gold);"></i> <span id="bookmarkCount">${bookmarks}</span></button>
           <button class="engage-btn" id="shareBtn"><i class="fas fa-share-alt"></i> Share</button>
-          <button class="engage-btn support" onclick="toast('Support feature is coming soon.')"><i class="fas fa-mug-hot"></i> Support</button>
+<button class="engage-btn support" id="supportBtn"><i class="fas fa-mug-hot"></i> Support</button>
         </div>
       </div>
 
@@ -770,6 +868,9 @@ async function renderArticle(a) {
     } catch(e) { toast('Error bookmarking article.'); }
   });
 
+document.getElementById('supportBtn').addEventListener('click', () => {
+  openSupportModal(a.author_id, a.author_name, a.id);
+});
   // --- Share Button ---
   document.getElementById('shareBtn').addEventListener('click', () => {
     shareArticle(a.id, a.title, location.href);

@@ -585,17 +585,15 @@ function switchTab(tabKey) {
     if (country) loadBanksForCountry(country);
   }
 }
-
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
   let tabsHtml = SECTIONS.map(s => {
-    // Check if this tab is available for this profile
+    const isOwnerOnlyTab = (s.key === 'settings' || s.key === 'payouts');
+    if (isOwnerOnlyTab && !profileData.is_own_profile) return '';
+
     const info = sections[s.key];
-    // If it's settings or payouts, only show when viewing own profile
-    if ((s.key === 'settings' || s.key === 'payouts') && !profileData.is_own_profile) {
-      return '';
-    }
-    const disabled = !info || !info.available;
+    const disabled = isOwnerOnlyTab ? false : (!info || !info.available);
+
     return `
       <button class="tab-btn ${disabled ? 'disabled' : ''}" data-tab="${s.key}" ${disabled ? 'disabled' : ''}>
         <i class="fas ${s.icon}"></i> ${s.label}
@@ -609,6 +607,8 @@ function renderTabs(sections) {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 }
+
+
 function articleCardHtml(a) {
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
   return `

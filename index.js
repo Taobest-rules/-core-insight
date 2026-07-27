@@ -990,7 +990,24 @@ function estimateReadTime(content) {
   const words = (content || '').replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 200)); // ~200 wpm
 }
-
+async function syncArticleTags(articleId, parsedTags) {
+  try {
+    await db.query("DELETE FROM article_tags WHERE article_id = ?", [articleId]);
+    if (Array.isArray(parsedTags)) {
+      for (const rawTag of parsedTags) {
+        const tag = String(rawTag).trim().toLowerCase().substring(0, 50);
+        if (tag) {
+          await db.query(
+            "INSERT IGNORE INTO article_tags (article_id, tag) VALUES (?, ?)",
+            [articleId, tag]
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error syncing article tags:", err);
+  }
+}
 // ============================================
 // CREATE ARTICLE (draft or publish)
 // ============================================
@@ -1204,7 +1221,12 @@ app.put("/api/articles/:id", uploadArticleCover, async (req, res) => {
     }
 
     const articleId = req.params.id;
-    const existing = await db.query("SELECT * FROM articles WHERE id = ? AND is_deleted = 0", [articleId]);
+
+    const existing = await db.query(
+      "SELECT * FROM articles WHERE id = ? AND is_deleted = 0",
+      [articleId]
+    );
+
     const rows = extractRows(existing);
 
     if (!rows || rows.length === 0) {
@@ -1212,62 +1234,119 @@ app.put("/api/articles/:id", uploadArticleCover, async (req, res) => {
     }
 
     const article = rows[0];
+
     const isOwner = article.user_id === req.session.user.id;
-    const isAdmin = req.session.user.role === 'admin';
+    const isAdmin = req.session.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ error: "You can only edit your own articles" });
+      return res.status(403).json({
+        error: "You can only edit your own articles"
+      });
     }
 
     const { title, excerpt, content, category, tags, status } = req.body;
 
     let coverImageUrl = article.cover_image_url;
+
     if (req.file) {
-      coverImageUrl = await uploadToImgbb(req.file.path, req.file.originalname);
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      coverImageUrl = await uploadToImgbb(
+        req.file.path,
+        req.file.originalname
+      );
+
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {}
     }
 
     let parsedTags = article.tags;
+
     if (tags) {
       try {
-        parsedTags = JSON.stringify(typeof tags === 'string' ? JSON.parse(tags) : tags);
+        parsedTags = JSON.stringify(
+          typeof tags === "string"
+            ? JSON.parse(tags)
+            : tags
+        );
       } catch (e) {
-        parsedTags = JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean));
+        parsedTags = JSON.stringify(
+          tags
+            .split(",")
+            .map(t => t.trim())
+            .filter(Boolean)
+        );
       }
     }
 
+    // Determine content to use for read time
+    const finalContent = content !== undefined ? content : article.content;
+    
     const newStatus = status || article.status;
-    const wasPublished = article.status === 'published';
-    const willBePublished = newStatus === 'published';
+    const wasPublished = article.status === "published";
+    const willBePublished = newStatus === "published";
+    
+    // Determine published_at:
+    // - If going from draft to published: set to now
+    // - Otherwise: keep existing published_at
+    let publishedAt;
+    if (!wasPublished && willBePublished) {
+      // First time publishing (or re-publishing after being draft)
+      publishedAt = new Date();
+    } else {
+      // Keep existing published_at (was already published or remains unpublished)
+      publishedAt = article.published_at;
+    }
 
     await db.query(
       `UPDATE articles
-       SET title = ?, excerpt = ?, content = ?, cover_image_url = ?, category = ?,
-           tags = ?, status = ?, read_time_minutes = ?, updated_at = NOW(),
+       SET title = ?,
+           excerpt = ?,
+           content = ?,
+           cover_image_url = ?,
+           category = ?,
+           tags = ?,
+           status = ?,
+           read_time_minutes = ?,
+           updated_at = NOW(),
            published_at = ?
        WHERE id = ?`,
       [
         title ? title.trim() : article.title,
-        excerpt !== undefined ? excerpt.trim().substring(0, 500) : article.excerpt,
-        content || article.content,
+        excerpt !== undefined
+          ? excerpt.trim().substring(0, 500)
+          : article.excerpt,
+        finalContent,
         coverImageUrl,
         category ? category.trim() : article.category,
         parsedTags,
         newStatus,
-        estimateReadTime(content || article.content),
-        !wasPublished && willBePublished ? new Date() : article.published_at,
+        estimateReadTime(finalContent),
+        publishedAt,
         articleId
       ]
     );
 
-    res.json({ success: true, message: "Article updated successfully" });
+    let tagsArray = [];
+
+    try {
+      tagsArray = JSON.parse(parsedTags) || [];
+    } catch (e) {}
+
+    await syncArticleTags(articleId, tagsArray);
+
+    res.json({
+      success: true,
+      message: "Article updated successfully"
+    });
 
   } catch (err) {
     console.error("❌ Article update error:", err);
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
-
 // ============================================
 // DELETE ARTICLE (soft delete, author or admin only)
 // ============================================
@@ -6491,6 +6570,64 @@ app.post("/api/test-create-subaccount", async (req, res) => {
       error: err.response?.data?.message || err.message,
       full_response: err.response?.data
     });
+  }
+});
+
+app.get("/api/admin/trending-tags", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const result = await db.query(`
+      SELECT at.tag, COUNT(DISTINCT at.article_id) as article_count
+      FROM article_tags at
+      LEFT JOIN promoted_tags pt ON pt.tag = at.tag
+      WHERE pt.tag IS NULL
+      GROUP BY at.tag
+      HAVING article_count >= 50
+      ORDER BY article_count DESC
+    `);
+
+    res.json({ success: true, tags: extractRows(result) });
+
+  } catch (err) {
+    console.error("❌ Error fetching trending tags:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Promote a tag to an official category
+app.post("/api/admin/promote-tag", async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { tag } = req.body;
+    if (!tag) return res.status(400).json({ error: "Tag is required" });
+
+    const cleanTag = tag.trim().toLowerCase();
+
+    await db.query(
+      "INSERT IGNORE INTO promoted_tags (tag, promoted_by, promoted_at) VALUES (?, ?, NOW())",
+      [cleanTag, req.session.user.id]
+    );
+
+    // Retroactively update articles that used this tag to also carry it as their category
+    await db.query(
+      "UPDATE articles SET category = ? WHERE category = 'general' AND JSON_CONTAINS(tags, JSON_QUOTE(?))",
+      [cleanTag, cleanTag]
+    );
+
+    res.json({
+      success: true,
+      message: `"${cleanTag}" promoted to an official category. Add it to CATEGORY_META in the frontend to give it an icon/color.`
+    });
+
+  } catch (err) {
+    console.error("❌ Error promoting tag:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 // ============================================

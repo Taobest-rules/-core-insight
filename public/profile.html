@@ -109,7 +109,13 @@
       opacity: 0.9;
       font-size: 1rem;
       font-weight: 400;
+      margin-bottom: 4px;
+    }
+    .header-info .bio {
+      opacity: 0.85;
+      font-size: 0.92rem;
       margin-bottom: 10px;
+      max-width: 60ch;
     }
     .header-stats {
       display: flex;
@@ -147,6 +153,25 @@
       backdrop-filter: blur(4px);
     }
     .follow-btn.following:hover { background: rgba(255,255,255,0.25); }
+
+    #profileLinksDisplay {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    #profileLinksDisplay a {
+      color: #fff;
+      opacity: 0.9;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.4);
+      transition: opacity 0.2s;
+    }
+    #profileLinksDisplay a:hover { opacity: 1; }
 
     /* tab nav */
     .tab-nav {
@@ -348,12 +373,15 @@
       background: var(--border-light);
       color: var(--text-soft);
       border: none;
-      padding: 12px 24px;
+      padding: 10px 18px;
       border-radius: 40px;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       cursor: pointer;
       transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .btn-secondary:hover { background: #d5dce6; }
     .status-banner {
@@ -378,8 +406,10 @@
       color: var(--green);
       font-size: 0.95rem;
     }
-    .flex-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .flex-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .flex-row .btn-primary, .flex-row .btn-secondary { width: auto; flex: 1; }
+    .flex-row .remove-link-btn { flex: 0 0 auto; background: #fee; color: #c0392b; border: none; padding: 8px 14px; border-radius: 40px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .flex-row .remove-link-btn:hover { background: #fdd; }
 
     #toast {
       position: fixed;
@@ -427,10 +457,12 @@
     <div class="header-info">
       <h1 id="username">Loading...</h1>
       <p class="headline" id="headline"></p>
+      <p class="bio" id="bio"></p>
       <div class="header-stats">
         <span><strong id="followerCount">0</strong> followers</span>
         <span id="memberSince"></span>
       </div>
+      <div id="profileLinksDisplay"></div>
     </div>
     <div class="header-actions" id="followSlot"></div>
   </div>
@@ -468,6 +500,13 @@
       <div class="form-group">
         <label>Bio</label>
         <textarea id="settingsBio" rows="4" maxlength="1000" placeholder="Tell people a bit about yourself..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Links (website, social, portfolio — up to 5)</label>
+        <div id="linksList"></div>
+        <button type="button" class="btn-secondary" id="addLinkBtn" style="margin-top:8px; width:auto;">
+          <i class="fas fa-plus"></i> Add Link
+        </button>
       </div>
       <button class="btn-primary" id="saveSettingsBtn"><i class="fas fa-save"></i> Save Changes</button>
     </div>
@@ -525,6 +564,11 @@
         <input type="text" id="payoutBusinessName" placeholder="Full name or business name">
       </div>
 
+      <div class="form-group">
+        <label>Business Email</label>
+        <input type="email" id="payoutBusinessEmail" placeholder="you@example.com">
+      </div>
+
       <button class="btn-primary" id="savePayoutBtn"><i class="fas fa-wallet"></i> Save Payout Details</button>
     </div>
   </div>
@@ -534,11 +578,13 @@
 
 <script>
 const params = new URLSearchParams(location.search);
-const profileUserId = params.get('user');
+
+let profileUserId = params.get('user');
 const requestedTab = params.get('tab') || 'knowledge';
 
 let currentUser = null;
 let profileData = null;
+let profileLinks = [];
 
 const SECTIONS = [
   { key: 'knowledge', label: 'Knowledge Hub', icon: 'fa-book' },
@@ -581,9 +627,15 @@ function switchTab(tabKey) {
 
   if (tabKey === 'payouts') {
     loadPayoutStatus();
-    const country = document.getElementById('payoutCountry').value;
-    if (country) loadBanksForCountry(country);
-  }
+    loadSavedPayoutDetails();
+
+    const country =
+      document.getElementById('payoutCountry').value;
+
+    if (country) {
+      loadBanksForCountry(country);
+    }
+}
 }
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
@@ -607,7 +659,6 @@ function renderTabs(sections) {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 }
-
 
 function articleCardHtml(a) {
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
@@ -741,7 +792,10 @@ function setupPayoutListeners() {
       const data = await res.json();
       if (data.status === 'success') {
         document.getElementById('verifiedAccountName').textContent = `✓ ${data.account_name}`;
-        document.getElementById('payoutBusinessName').value = data.account_name;
+       const businessNameInput = document.getElementById('payoutBusinessName');
+
+businessNameInput.value = data.account_name;
+businessNameInput.readOnly = true;
         toast('Account verified!');
       } else {
         toast(data.message || 'Verification failed');
@@ -749,19 +803,33 @@ function setupPayoutListeners() {
     } catch (e) { toast('Error verifying account'); }
   });
 
+  // ✅ FULLY INTEGRATED: Business Email in validation and request body
   document.getElementById('savePayoutBtn')?.addEventListener('click', async () => {
     const country = document.getElementById('payoutCountry').value;
     const bankCode = document.getElementById('payoutBank').value;
     const accountNumber = document.getElementById('payoutAccountNumber').value.trim();
     const businessName = document.getElementById('payoutBusinessName').value.trim();
-    if (!bankCode || !accountNumber || !businessName) { toast('Please fill in all payout fields'); return; }
+    const businessEmail = document.getElementById('payoutBusinessEmail').value.trim();
+
+    // ✅ Validation includes business email
+    if (!bankCode || !accountNumber || !businessName || !businessEmail) {
+      toast('Please fill in all payout fields, including business email');
+      return;
+    }
+
     toast('Saving payout details...');
     try {
       const res = await fetch('/api/flutterwave/create-subaccount', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ bank_code: bankCode, account_number: accountNumber, business_name: businessName, country })
+        body: JSON.stringify({
+          bank_code: bankCode,
+          account_number: accountNumber,
+          business_name: businessName,
+          business_email: businessEmail, // ✅ Now correctly included
+          country
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -772,6 +840,97 @@ function setupPayoutListeners() {
       }
     } catch (e) { toast('Error saving payout details'); }
   });
+}
+async function loadSavedPayoutDetails() {
+  try {
+    const res = await fetch('/api/flutterwave/subaccount-status', {
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    if (!data.has_subaccount) return;
+
+    document.getElementById('payoutCountry').value =
+      data.country || '';
+
+    if (data.country) {
+      await loadBanksForCountry(data.country);
+
+      document.getElementById('payoutBank').value =
+        data.bank_code || '';
+    }
+
+    document.getElementById('payoutAccountNumber').value =
+      data.account_number || '';
+
+    document.getElementById('payoutBusinessName').value =
+      data.business_name || '';
+
+    document.getElementById('payoutBusinessEmail').value =
+      data.business_email || '';
+
+    document.getElementById('verifiedAccountName').textContent =
+      data.account_name
+        ? `✓ ${data.account_name}`
+        : '';
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+// ---- LINK EDITOR ----
+function renderLinksEditor() {
+  const container = document.getElementById('linksList');
+  if (!container) return;
+  container.innerHTML = profileLinks.map((link, i) => `
+    <div class="flex-row" style="margin-bottom:8px;" data-index="${i}">
+      <input type="text" class="link-label" placeholder="Label (e.g. Website)" value="${escapeHtml(link.label || '')}" style="flex:1;">
+      <input type="url" class="link-url" placeholder="https://..." value="${escapeHtml(link.url || '')}" style="flex:2;">
+      <button type="button" class="remove-link-btn" style="flex:0 0 auto;"><i class="fas fa-times"></i></button>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.remove-link-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      profileLinks.splice(i, 1);
+      renderLinksEditor();
+    });
+  });
+}
+
+function collectLinksFromEditor() {
+  const rows = document.querySelectorAll('#linksList > div');
+  return Array.from(rows).map(row => ({
+    label: row.querySelector('.link-label').value.trim(),
+    url: row.querySelector('.link-url').value.trim()
+  }));
+}
+
+function renderProfileLinks() {
+  const container = document.getElementById('profileLinksDisplay');
+  if (!container) return;
+  const links = profileData.profile?.links || [];
+  if (!links.length) {
+    container.innerHTML = '';
+    return;
+  }
+ container.innerHTML = links.map(l => {
+
+    const url = l.url.startsWith('http')
+        ? l.url
+        : `https://${l.url}`;
+
+    return `
+        <a href="${escapeHtml(url)}"
+               target="_blank"
+               rel="noopener">
+            <i class="fas fa-link"></i>
+            ${escapeHtml(l.label || url)}
+        </a>
+    `;
+
+}).join('');
 }
 
 // ---- SETTINGS / OWNER CONTROLS ----
@@ -803,20 +962,52 @@ function setupOwnerControls() {
   document.getElementById('settingsHeadline').value = profileData.profile.headline || '';
   document.getElementById('settingsBio').value = profileData.profile.bio || '';
 
+  // Load links
+  profileLinks = profileData.profile.links || [];
+  renderLinksEditor();
+
+  document.getElementById('addLinkBtn').addEventListener('click', () => {
+    if (profileLinks.length >= 5) {
+      toast('Maximum 5 links');
+      return;
+    }
+    profileLinks.push({ label: '', url: '' });
+    renderLinksEditor();
+  });
+
   document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
     const headline = document.getElementById('settingsHeadline').value.trim();
     const bio = document.getElementById('settingsBio').value.trim();
+    let links = collectLinksFromEditor();
+
+for (const link of links) {
+
+  if (!link.url) continue;
+
+  if (
+    !link.url.startsWith('http://') &&
+    !link.url.startsWith('https://')
+  ) {
+    link.url = 'https://' + link.url;
+  }
+
+}
+
     toast('Saving...');
     try {
       const res = await fetch('/api/profile/me/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ headline, bio })
+        body: JSON.stringify({ headline, bio, links })
       });
       const data = await res.json();
       if (data.success) {
         document.getElementById('headline').textContent = headline;
+        document.getElementById('bio').textContent = bio;
+        profileLinks = links.filter(l => l.url);
+        profileData.profile.links = profileLinks;
+        renderProfileLinks();
         toast('Profile saved!');
       } else {
         toast(data.error || 'Save failed');
@@ -838,6 +1029,7 @@ async function loadProfile() {
 
     document.getElementById('username').textContent = data.profile.username;
     document.getElementById('headline').textContent = data.profile.headline || '';
+    document.getElementById('bio').textContent = data.profile.bio || '';
     document.getElementById('followerCount').textContent = data.follower_count;
     document.getElementById('memberSince').textContent = data.profile.member_since
       ? `Member since ${new Date(data.profile.member_since).getFullYear()}` : '';
@@ -851,6 +1043,7 @@ async function loadProfile() {
 
     renderTabs(data.sections);
     renderFollowButton();
+    renderProfileLinks();
     setupOwnerControls();
     setupPayoutListeners();
 
@@ -858,9 +1051,10 @@ async function loadProfile() {
     switchTab(validTab);
     await loadKnowledgeSection();
 
-    if (profileData.is_own_profile) {
-      loadPayoutStatus();
-    }
+   if (profileData.is_own_profile) {
+    loadPayoutStatus();
+    loadSavedPayoutDetails();
+}
   } catch (e) {
     document.getElementById('username').textContent = 'Error loading profile';
   }
@@ -868,6 +1062,12 @@ async function loadProfile() {
 
 (async function init() {
   await checkAuth();
+
+  // Open your own profile if no ?user= was supplied
+  if (!profileUserId && currentUser?.id) {
+    profileUserId = currentUser.id;
+  }
+
   await loadProfile();
 })();
 </script>

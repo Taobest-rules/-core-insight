@@ -1347,6 +1347,43 @@ app.put("/api/articles/:id", uploadArticleCover, async (req, res) => {
     });
   }
 });
+app.put("/api/profile/me/update", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
+    const { headline, bio, links } = req.body;
+    const userId = req.session.user.id;
+
+    if (headline && headline.length > 150) {
+      return res.status(400).json({ error: "Headline must be under 150 characters" });
+    }
+    if (bio && bio.length > 1000) {
+      return res.status(400).json({ error: "Bio must be under 1000 characters" });
+    }
+
+    let linksJson = null;
+    if (links && Array.isArray(links)) {
+      const cleanLinks = links
+        .filter(l => l.url && l.url.trim())
+        .map(l => ({ label: (l.label || 'Link').substring(0, 30), url: l.url.trim().substring(0, 300) }))
+        .slice(0, 5); // cap at 5 links
+      linksJson = JSON.stringify(cleanLinks);
+    }
+
+    await db.query(
+      `INSERT INTO user_profiles (user_id, headline, bio, links, updated_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE headline = ?, bio = ?, links = ?, updated_at = NOW()`,
+      [userId, headline || null, bio || null, linksJson, headline || null, bio || null, linksJson]
+    );
+
+    res.json({ success: true, message: "Profile updated" });
+
+  } catch (err) {
+    console.error("❌ Error updating profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // DELETE ARTICLE (soft delete, author or admin only)
 // ============================================
@@ -1738,7 +1775,8 @@ app.get("/api/profile/:userId", async (req, res) => {
       `SELECT u.id, u.username, u.role, u.created_at,
               COALESCE(up.headline, fp.headline) as headline,
               COALESCE(up.profile_picture_url, fp.profile_picture_url) as profile_picture_url,
-              COALESCE(up.bio, fp.description) as bio
+              COALESCE(up.bio, fp.description) as bio,
+              up.links as links
        FROM users u
        LEFT JOIN user_profiles up ON up.user_id = u.id
        LEFT JOIN freelancer_profiles fp ON fp.user_id = u.id
@@ -1781,6 +1819,9 @@ app.get("/api/profile/:userId", async (req, res) => {
       hasPayoutAccount = !!(payoutCheck && payoutCheck[0] && payoutCheck[0].flutterwave_subaccount_id);
     }
 
+    let parsedLinks = [];
+    try { parsedLinks = user.links ? JSON.parse(user.links) : []; } catch (e) { parsedLinks = []; }
+
     res.json({
       success: true,
       profile: {
@@ -1789,6 +1830,7 @@ app.get("/api/profile/:userId", async (req, res) => {
         role: user.role,
         headline: user.headline,
         bio: user.bio,
+        links: parsedLinks,
         profile_picture: user.profile_picture_url,
         member_since: user.created_at
       },

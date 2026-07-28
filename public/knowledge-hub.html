@@ -100,7 +100,7 @@
     .ac-body { padding:20px 22px 22px; display:flex; flex-direction:column; flex:1; }
     .ac-body h4 { font-size:1.08rem; margin-bottom:8px; line-height:1.35; }
     .ac-body p { color:var(--study-text-light); font-size:.9rem; flex:1; margin-bottom:16px; }
-
+.video-badge { position:absolute; bottom:14px; right:14px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.85rem; }
     .ac-stats { display:flex; flex-wrap:wrap; gap:12px 18px; font-size:.78rem; color:var(--study-gray); border-top:1px solid var(--study-neutral-dark); padding-top:12px; margin-top:8px; }
     .ac-stats span { display:inline-flex; align-items:center; gap:4px; }
     .ac-stats i { font-size:.85rem; }
@@ -322,6 +322,15 @@
           Click to upload a cover image
         </div>
         <input type="file" id="coverInput" accept="image/*" style="display:none;">
+      </div>
+      <div class="field">
+        <label>Video (optional)</label>
+        <div class="cover-drop" id="videoDrop">
+          <i class="fas fa-video" style="font-size:1.6rem;margin-bottom:8px;display:block;"></i>
+          Click to upload a video to go with this article
+        </div>
+        <input type="file" id="videoInput" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska" style="display:none;">
+        <p class="helper-text">MP4, MOV, WEBM, AVI, or MKV — up to 200MB.</p>
       </div>
       <div class="field">
         <label>Excerpt (shown on article cards, optional)</label>
@@ -604,11 +613,15 @@ function articleCardHtml(a) {
   const comments = a.comments_count || 0;
   const bookmarks = a.bookmarks_count || 0;
   const views = a.views_count || 0;
+  const videoBadge = a.video_url 
+  ? `<div class="video-badge"><i class="fas fa-play"></i></div>` 
+  : '';
   return `
     <div class="article-card" data-slug="${a.slug}">
-      <div class="ac-image" style="${cover}">
-        <div class="ribbon" style="background:${meta.color}">${meta.label}</div>
-      </div>
+     <div class="ac-image" style="${cover}">
+  <div class="ribbon" style="background:${meta.color}">${meta.label}</div>
+  ${videoBadge}
+</div>
       <div class="ac-body">
         <h4>${escapeHtml(a.title)}</h4>
         <p>${escapeHtml(a.excerpt || '')}</p>
@@ -634,11 +647,15 @@ function featuredCardHtml(a) {
   const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
   const isTrending = (a.views_count || 0) > 100 || (a.likes_count || 0) > 20;
   const trendingBadge = isTrending ? `<div class="trend-badge"><i class="fas fa-fire"></i> Trending</div>` : '';
+  const videoBadge = a.video_url 
+  ? `<div class="video-badge"><i class="fas fa-play"></i></div>` 
+  : '';
   return `
     <div class="featured-card" data-slug="${a.slug}">
       <div class="fc-image" style="${cover}">
-        ${trendingBadge}
-      </div>
+  ${trendingBadge}
+  ${videoBadge}
+</div>
       <div class="fc-body">
         <div class="ribbon" style="background:${meta.color};margin-bottom:14px;">${meta.label}</div>
         <h2>${escapeHtml(a.title)}</h2>
@@ -720,6 +737,14 @@ document.getElementById('confirmSupportBtn').addEventListener('click', async () 
     toast('Something went wrong.');
   }
 });
+function clearVideoField() {
+  videoFile = null;
+  removeVideoFlag = true;
+  const videoDrop = document.getElementById('videoDrop');
+  videoDrop.classList.remove('has-image');
+  videoDrop.innerHTML = '<i class="fas fa-video" style="font-size:1.6rem;margin-bottom:8px;display:block;"></i>Click to upload a video to go with this article';
+  document.getElementById('videoInput').value = '';
+}
 async function loadFeatured() {
   try {
     const res = await fetch('/api/articles?sort=popular&limit=1');
@@ -815,8 +840,11 @@ async function renderArticle(a) {
           <div style="font-size:.8rem;color:var(--study-gray);">${timeAgo(a.published_at || a.created_at)} · ${a.read_time_minutes||5} min read · ${a.views_count||0} reads</div>
         </div>
       </div>
-      ${a.cover_image_url ? `<img class="reader-cover" src="${a.cover_image_url}" alt="">` : ''}
-      <div class="reader-content">${a.content}</div>
+     ${a.video_url 
+  ? `<video class="reader-cover" src="${a.video_url}" ${a.cover_image_url ? `poster="${a.cover_image_url}"` : ''} controls style="background:#000;"></video>` 
+  : (a.cover_image_url ? `<img class="reader-cover" src="${a.cover_image_url}" alt="">` : '')}
+
+<div class="reader-content">${a.content}</div>
       <div class="tag-row">${tagsHtml}</div>
     </div>
     <aside>
@@ -1025,6 +1053,8 @@ document.getElementById('backToFeedBtn').addEventListener('click', ()=>{
 
 // editor
 let coverFile = null;
+let videoFile = null;
+let removeVideoFlag = false;
 
 function resetEditor() {
   document.getElementById('editArticleId').value = '';
@@ -1038,6 +1068,7 @@ function resetEditor() {
   drop.innerHTML = '<i class="fas fa-image" style="font-size:1.6rem;margin-bottom:8px;display:block;"></i>Click to upload a cover image';
   drop.classList.remove('has-image');
   coverFile = null;
+   clearVideoField();
 }
 
 document.getElementById('writeArticleBtn').addEventListener('click', async ()=>{
@@ -1062,6 +1093,30 @@ document.getElementById('coverInput').addEventListener('change', (e)=>{
   reader.readAsDataURL(file);
 });
 
+document.getElementById('videoDrop').addEventListener('click', ()=>document.getElementById('videoInput').click());
+document.getElementById('videoInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 200 * 1024 * 1024) {
+    toast('That video is too large. Max size is 200MB.');
+    e.target.value = '';
+    return;
+  }
+  videoFile = file;
+  removeVideoFlag = false;
+  const drop = document.getElementById('videoDrop');
+  const previewUrl = URL.createObjectURL(file);
+  drop.classList.add('has-image');
+  drop.innerHTML = `
+    <video src="${previewUrl}" controls style="width:100%;max-height:220px;border-radius:8px;display:block;"></video>
+    <button type="button" id="removeVideoBtn" class="btn btn-ghost btn-sm" style="margin-top:8px;"><i class="fas fa-times"></i> Remove video</button>
+  `;
+  document.getElementById('removeVideoBtn').addEventListener('click', (evt)=>{
+    evt.stopPropagation();
+    clearVideoField();
+  });
+});
+
 document.querySelectorAll('.editor-toolbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.getElementById('richEditor').focus();
@@ -1074,37 +1129,96 @@ document.querySelectorAll('.editor-toolbar button').forEach(btn=>{
   });
 });
 
-document.getElementById('articleForm').addEventListener('submit', async (e)=>{
+document.getElementById('articleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const status = e.submitter ? e.submitter.dataset.status : 'draft';
+
   const title = document.getElementById('fieldTitle').value.trim();
   const content = document.getElementById('richEditor').innerHTML.trim();
   const plainLength = document.getElementById('richEditor').innerText.trim().length;
 
-  if (title.length < 5) { toast('Title must be at least 5 characters.'); return; }
-  if (plainLength < 50) { toast('Write at least 50 characters of content.'); return; }
+  if (title.length < 5) {
+    toast('Title must be at least 5 characters.');
+    return;
+  }
+
+  if (plainLength < 50) {
+    toast('Write at least 50 characters of content.');
+    return;
+  }
 
   const fd = new FormData();
+
   fd.append('title', title);
   fd.append('excerpt', document.getElementById('fieldExcerpt').value.trim());
   fd.append('content', content);
   fd.append('category', document.getElementById('fieldCategory').value);
   fd.append('tags', document.getElementById('fieldTags').value);
   fd.append('status', status);
-  if (coverFile) fd.append('cover_image', coverFile);
+
+  // Cover Image
+  if (coverFile) {
+    fd.append('cover_image', coverFile);
+  }
+
+  // Video
+  if (videoFile) {
+    fd.append('video', videoFile);
+  }
+
+  // Remove existing video
+  if (removeVideoFlag && !videoFile) {
+    fd.append('remove_video', 'true');
+  }
 
   const editId = document.getElementById('editArticleId').value;
-  const url = editId ? '/api/articles/' + editId : '/api/articles';
+  const url = editId
+    ? `/api/articles/${editId}`
+    : '/api/articles';
+
   const method = editId ? 'PUT' : 'POST';
 
+  // Prevent double submission
+  const submitButtons = document.querySelectorAll(
+    '#articleForm button[type="submit"]'
+  );
+
+  submitButtons.forEach(btn => btn.disabled = true);
+
+  if (videoFile) {
+    toast('Uploading video — this can take a moment for larger files...');
+  }
+
   try {
-    const res = await fetch(url, { method, body: fd });
+    const res = await fetch(url, {
+      method,
+      body: fd
+    });
+
     const data = await res.json();
-    if (!res.ok) { toast(data.error || 'Something went wrong.'); return; }
-    toast(status === 'published' ? 'Published!' : 'Draft saved.');
-    if (data.slug) { openArticle(data.slug); }
-    else { loadMyArticles(); showView('view-my-articles'); }
-  } catch(err) { toast('Network error — please try again.'); }
+
+    if (!res.ok) {
+      toast(data.error || 'Something went wrong.');
+      return;
+    }
+
+    toast(status === 'published'
+      ? 'Published!'
+      : 'Draft saved.');
+
+    if (data.slug) {
+      openArticle(data.slug);
+    } else {
+      loadMyArticles();
+      showView('view-my-articles');
+    }
+
+  } catch (err) {
+    toast('Network error — please try again.');
+  } finally {
+    submitButtons.forEach(btn => btn.disabled = false);
+  }
 });
 
 // my articles
@@ -1169,6 +1283,27 @@ async function editArticle(id, slug) {
     }
     showView('view-editor');
   } catch(e) { toast('Could not load article for editing.'); }
+  if (a.video_url) {
+  const videoDrop = document.getElementById('videoDrop');
+
+  videoDrop.classList.add('has-image');
+
+  videoDrop.innerHTML = `
+    <video src="${a.video_url}" controls style="width:100%;max-height:220px;border-radius:8px;display:block;"></video>
+
+    <button type="button" id="removeVideoBtn" class="btn btn-ghost btn-sm" style="margin-top:8px;">
+      <i class="fas fa-times"></i> Remove video
+    </button>
+  `;
+
+  document.getElementById('removeVideoBtn').addEventListener('click', (evt)=>{
+    evt.stopPropagation();
+    clearVideoField();
+  });
+
+  videoFile = null;
+  removeVideoFlag = false;
+}
 }
 
 async function deleteArticleConfirm(id) {

@@ -941,11 +941,17 @@ async function createBuyerNotification(buyerId, orderId, notificationType, title
 
 
 // ---- Cover image upload config ----
+// ---- Cover image + video upload config ----
 const articleCoverDir = path.join(__dirname, "uploads", "article-covers");
 if (!fs.existsSync(articleCoverDir)) fs.mkdirSync(articleCoverDir, { recursive: true });
 
-const articleCoverStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, articleCoverDir),
+const articleVideoDir = path.join(__dirname, "uploads", "article-videos");
+if (!fs.existsSync(articleVideoDir)) fs.mkdirSync(articleVideoDir, { recursive: true });
+
+const articleMediaStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, file.fieldname === 'video' ? articleVideoDir : articleCoverDir);
+  },
   filename: (req, file, cb) => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000);
@@ -954,15 +960,26 @@ const articleCoverStorage = multer.diskStorage({
   }
 });
 
-const uploadArticleCover = multer({
-  storage: articleCoverStorage,
-  limits: { fileSize: 8 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files are allowed for cover images'));
-  }
-}).single('cover_image');
+const ALLOWED_ARTICLE_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska'];
 
+const uploadArticleMedia = multer({
+  storage: articleMediaStorage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB ceiling — this covers the video field, images will never get close
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'cover_image') {
+      if (file.mimetype.startsWith('image/')) return cb(null, true);
+      return cb(new Error('Only image files are allowed for cover images'));
+    }
+    if (file.fieldname === 'video') {
+      if (ALLOWED_ARTICLE_VIDEO_TYPES.includes(file.mimetype)) return cb(null, true);
+      return cb(new Error('Only MP4, MOV, WEBM, AVI, or MKV video files are allowed'));
+    }
+    cb(new Error('Unexpected field: ' + file.fieldname));
+  }
+}).fields([
+  { name: 'cover_image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]);
 // ---- Helpers ----
 function slugify(title) {
   return title
@@ -1081,6 +1098,197 @@ app.post("/api/articles", uploadArticleCover, async (req, res) => {
   }
 });
 
+app.post("/api/articles", uploadArticleMedia, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login to write an article" });
+    }
+
+    const { title, excerpt, content, category, tags, status } = req.body;
+
+    if (!title || title.trim().length < 5) {
+      return res.status(400).json({ error: "Title must be at least 5 characters" });
+    }
+    if (!content || content.trim().length < 50) {
+      return res.status(400).json({ error: "Article content must be at least 50 characters" });
+    }
+
+    const finalStatus = status === 'published' ? 'published' : 'draft';
+    const slug = await generateUniqueSlug(title);
+    const readTime = estimateReadTime(content);
+
+    let coverImageUrl = null;
+    const coverFile = req.files?.cover_image?.[0];
+    if (coverFile) {
+      coverImageUrl = await uploadToImgbb(coverFile.path, coverFile.originalname);
+      try { fs.unlinkSync(coverFile.path); } catch (e) {}
+    }
+
+    let videoUrl = null;
+    const videoFile = req.files?.video?.[0];
+    if (videoFile) {
+      videoUrl = await uploadToBackblaze(videoFile.path, videoFile.originalname);
+      try { fs.unlinkSync(videoFile.path); } catch (e) {}
+    }
+
+    let parsedTags = null;
+    if (tags) {
+      try {
+        parsedTags = JSON.stringify(typeof tags === 'string' ? JSON.parse(tags) : tags);
+      } catch (e) {
+        parsedTags = JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean));
+      }
+    }
+
+    const result = await db.query(
+      `INSERT INTO articles
+        (user_id, title, slug, excerpt, content, cover_image_url, video_url, category, tags,
+         status, read_time_minutes, created_at, updated_at, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
+      [
+        req.session.user.id,
+        title.trim(),
+        slug,
+        excerpt ? excerpt.trim().substring(0, 500) : null,
+        content,
+        coverImageUrl,
+        videoUrl,
+        category ? category.trim() : 'general',
+        parsedTags,
+        finalStatus,
+        readTime,
+        finalStatus === 'published' ? new Date() : null
+      ]
+    );
+
+    const articleId = extractInsertId(result);
+
+    res.json({
+      success: true,
+      message: finalStatus === 'published' ? "Article published!" : "Draft saved!",
+      articleId,
+      slug,
+      status: finalStatus
+    });
+
+  } catch (err) {
+    console.error("❌ Article creation error:", err);
+    res.status(500).json({ error: "Error creating article: " + err.message });
+  }
+});
+app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Please login" });
+    }
+
+    const articleId = req.params.id;
+
+    const existing = await db.query(
+      "SELECT * FROM articles WHERE id = ? AND is_deleted = 0",
+      [articleId]
+    );
+
+    const rows = extractRows(existing);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    const article = rows[0];
+
+    const isOwner = article.user_id === req.session.user.id;
+    const isAdmin = req.session.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        error: "You can only edit your own articles"
+      });
+    }
+
+    const { title, excerpt, content, category, tags, status, remove_video } = req.body;
+
+    let coverImageUrl = article.cover_image_url;
+    const coverFile = req.files?.cover_image?.[0];
+
+    if (coverFile) {
+      coverImageUrl = await uploadToImgbb(coverFile.path, coverFile.originalname);
+      try { fs.unlinkSync(coverFile.path); } catch (e) {}
+    }
+
+    let videoUrl = article.video_url;
+    const videoFile = req.files?.video?.[0];
+
+    if (videoFile) {
+      videoUrl = await uploadToBackblaze(videoFile.path, videoFile.originalname);
+      try { fs.unlinkSync(videoFile.path); } catch (e) {}
+    } else if (remove_video === 'true' || remove_video === true) {
+      videoUrl = null;
+    }
+
+    let parsedTags = article.tags;
+
+    if (tags) {
+      try {
+        parsedTags = JSON.stringify(typeof tags === "string" ? JSON.parse(tags) : tags);
+      } catch (e) {
+        parsedTags = JSON.stringify(tags.split(",").map(t => t.trim()).filter(Boolean));
+      }
+    }
+
+    const finalContent = content !== undefined ? content : article.content;
+
+    const newStatus = status || article.status;
+    const wasPublished = article.status === "published";
+    const willBePublished = newStatus === "published";
+
+    let publishedAt;
+    if (!wasPublished && willBePublished) {
+      publishedAt = new Date();
+    } else {
+      publishedAt = article.published_at;
+    }
+
+    await db.query(
+      `UPDATE articles
+       SET title = ?,
+           excerpt = ?,
+           content = ?,
+           cover_image_url = ?,
+           video_url = ?,
+           category = ?,
+           tags = ?,
+           status = ?,
+           read_time_minutes = ?,
+           updated_at = NOW(),
+           published_at = ?
+       WHERE id = ?`,
+      [
+        title ? title.trim() : article.title,
+        excerpt !== undefined ? excerpt.trim().substring(0, 500) : article.excerpt,
+        finalContent,
+        coverImageUrl,
+        videoUrl,
+        category ? category.trim() : article.category,
+        parsedTags,
+        newStatus,
+        estimateReadTime(finalContent),
+        publishedAt,
+        articleId
+      ]
+    );
+
+    let tagsArray = [];
+    try { tagsArray = JSON.parse(parsedTags) || []; } catch (e) {}
+    await syncArticleTags(articleId, tagsArray);
+
+    res.json({ success: true, message: "Article updated successfully" });
+
+  } catch (err) {
+    console.error("❌ Article update error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // LIST PUBLISHED ARTICLES (public, paginated, filterable)
 // ============================================

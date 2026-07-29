@@ -55,7 +55,6 @@ app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 
 // Session store
-const db = require("./db"); // make sure this line exists near your other requires — you already have it
 
 let sessionStore = null;
 if (isProduction) {

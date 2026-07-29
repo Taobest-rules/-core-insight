@@ -55,29 +55,32 @@ app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 
 // Session store
+const db = require("./db"); // make sure this line exists near your other requires — you already have it
+
 let sessionStore = null;
 if (isProduction) {
-  sessionStore = new MySQLStore({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    clearExpired: true,
-    checkExpirationInterval: 900000,
-    expiration: 86400000,
-    createDatabaseTable: true,
-    schema: {
-      tableName: 'sessions',
-      columnNames: {
-        session_id: 'session_id',
-        expires: 'expires',
-        data: 'data'
+  sessionStore = new MySQLStore(
+    {
+      clearExpired: true,
+      checkExpirationInterval: 900000,
+      expiration: 86400000,
+      createDatabaseTable: true,
+      schema: {
+        tableName: 'sessions',
+        columnNames: {
+          session_id: 'session_id',
+          expires: 'expires',
+          data: 'data'
+        }
       }
-    }
+    },
+    db.pool // second argument: an existing mysql2 pool to reuse
+  );
+
+  sessionStore.on('error', (err) => {
+    console.error('🚨 Session store error:', err.message);
   });
 }
-
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chat_secret',
   store: isProduction ? sessionStore : undefined,

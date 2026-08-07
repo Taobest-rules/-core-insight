@@ -1,249 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0" />
-  <title>Courses · Core Insight</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* ===== DESIGN TOKENS (unchanged) ===== */
-    :root {
-      --color-bg: #faf9f6;
-      --color-bg-alt: #f5f3ee;
-      --color-white: #ffffff;
-      --color-charcoal: #2b2b28;
-      --color-text-soft: #5c584f;
-      --color-text-muted: #8f8a7c;
-      --color-border: #e9e5dc;
-      --color-border-strong: #ddd6c7;
-      --color-blue: #4a6fa5;
-      --color-blue-soft: rgba(74,111,165,0.08);
-      --color-sage: #5a8d7d;
-      --color-sage-soft: rgba(90,141,125,0.12);
-      --color-gold: #c9971f;
-      --color-gold-dark: #a97e18;
-      --color-gold-soft: rgba(201,151,31,0.12);
-      --color-danger: #b3483f;
-      --radius-sm: 8px;
-      --radius-card: 12px;
-      --radius-lg: 20px;
-      --radius-pill: 999px;
-      --shadow-panel: 0 8px 28px -14px rgba(43,36,24,0.18);
-      --shadow-hover: 0 22px 40px -20px rgba(43,36,24,0.22);
-      --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --header-height: 76px;
-      --mobile-header-height: 68px;
-      --container-width: 1280px;
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html { scroll-behavior:smooth; }
-    body { font-family:var(--font-sans); background:var(--color-bg); color:var(--color-charcoal); line-height:1.6; overflow-x:hidden; }
-    img { max-width:100%; display:block; }
-    a { color:inherit; text-decoration:none; }
-    .container { max-width:var(--container-width); margin:0 auto; padding:0 1.5rem; width:100%; }
-    :focus-visible { outline:2px solid var(--color-blue); outline-offset:2px; }
-    @media (prefers-reduced-motion:reduce) { * { animation-duration:0.001ms !important; transition-duration:0.001ms !important; } }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0"/>
+<title>Courses | Core Insight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    /* buttons */
-    .btn-primary, .btn-secondary, .btn-ghost-text { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; border-radius:var(--radius-sm); font-weight:600; cursor:pointer; transition:all 0.2s ease; border:none; text-decoration:none; font-size:0.92rem; white-space:nowrap; }
-    .btn-primary { background:var(--color-gold); color:var(--color-charcoal); padding:0.85rem 1.5rem; min-height:48px; width:100%; }
-    .btn-primary:hover { background:var(--color-gold-dark); transform:translateY(-1px); }
-    .btn-secondary { background:transparent; color:var(--color-charcoal); border:1px solid var(--color-charcoal); padding:0.85rem 1.5rem; min-height:48px; width:100%; }
-    .btn-secondary:hover { background:var(--color-charcoal); color:var(--color-white); }
-    .btn-ghost-text { background:none; color:var(--color-text-soft); padding:0.85rem 1rem; text-decoration:underline; text-underline-offset:3px; }
-    .btn-inline { width:auto; }
-    .btn-login { background:transparent; color:var(--color-charcoal); border:1px solid var(--color-charcoal); padding:0.7rem 1.4rem; border-radius:var(--radius-sm); font-weight:600; min-height:44px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s ease; }
-    .btn-login:hover { background:var(--color-charcoal); color:var(--color-white); }
-    .btn-signup { background:var(--color-gold); color:var(--color-charcoal); padding:0.7rem 1.4rem; border-radius:var(--radius-sm); font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s ease; }
-    .btn-signup:hover { background:var(--color-gold-dark); transform:translateY(-1px); }
-    .icon-btn, .icon-btn-ghost { width:42px; height:42px; border-radius:50%; background:transparent; border:1px solid var(--color-border); color:var(--color-charcoal); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease; flex-shrink:0; }
-    .icon-btn:hover { border-color:var(--color-blue); color:var(--color-blue); }
-    .icon-btn-labeled { display:inline-flex; align-items:center; gap:0.5rem; background:var(--color-white); border:1px solid var(--color-border); border-radius:var(--radius-sm); padding:0.7rem 1rem; color:var(--color-charcoal); font-weight:600; font-size:0.88rem; cursor:pointer; transition:all 0.2s ease; min-height:48px; }
-    .icon-btn-labeled:hover { border-color:var(--color-blue); color:var(--color-blue); }
-    .notif-dot { position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:var(--color-danger); border:1.5px solid var(--color-white); }
+<style>
+:root {
+  --color-bg: #faf9f6;
+  --color-bg-alt: #f5f3ee;
+  --color-white: #ffffff;
+  --color-charcoal: #2b2b28;
+  --color-text-soft: #5c584f;
+  --color-text-muted: #8f8a7c;
+  --color-border: #e9e5dc;
+  --color-border-strong: #ddd6c7;
+  --color-blue: #4a6fa5;
+  --color-blue-soft: rgba(74, 111, 165, 0.08);
+  --color-sage: #5a8d7d;
+  --color-sage-soft: rgba(90, 141, 125, 0.12);
+  --color-gold: #c9971f;
+  --color-gold-dark: #a97e18;
+  --color-gold-soft: rgba(201, 151, 31, 0.12);
+  --color-danger: #b3483f;
+  --color-danger-soft: rgba(179, 72, 63, 0.1);
+  --radius-sm: 8px;
+  --radius-card: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --shadow-panel: 0 8px 28px -14px rgba(43, 36, 24, 0.18);
+  --shadow-hover: 0 22px 40px -20px rgba(43, 36, 24, 0.22);
+  --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --header-height: 76px;
+  --mobile-header-height: 68px;
+  --transition: all 0.2s ease;
+  --container-width: 1280px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-sans); background: var(--color-bg); color: var(--color-charcoal); line-height: 1.6; overflow-x: hidden; }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+button, input, select, textarea { font-family: inherit; font-size: inherit; }
+.container { max-width: var(--container-width); margin: 0 auto; padding: 0 1.5rem; width: 100%; }
+:focus-visible { outline: 2px solid var(--color-blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
 
-    /* header */
-    header { background:rgba(250,249,246,0.96); padding:0 1.5rem; height:var(--header-height); display:flex; justify-content:space-between; align-items:center; position:fixed; top:0; left:0; right:0; z-index:1000; backdrop-filter:blur(10px); border-bottom:1px solid var(--color-border); }
-    .mobile-menu-toggle { display:none; background:none; border:none; color:var(--color-charcoal); font-size:1.4rem; cursor:pointer; padding:0.5rem; z-index:1001; }
-    .logo { display:flex; align-items:center; gap:0.75rem; z-index:1001; }
-    .logo-icon { width:40px; height:40px; border-radius:var(--radius-sm); overflow:hidden; flex-shrink:0; }
-    .logo-icon img { width:100%; height:100%; object-fit:cover; }
-    .logo-text { font-family:var(--font-serif); font-size:1.4rem; font-weight:600; color:var(--color-charcoal); letter-spacing:-0.3px; white-space:nowrap; }
-    nav { display:flex; gap:2rem; align-items:center; }
-    nav a { color:var(--color-text-soft); font-weight:500; position:relative; padding:0.75rem 0; font-size:0.95rem; transition:all 0.2s ease; white-space:nowrap; }
-    nav a.active, nav a:hover { color:var(--color-blue); }
-    nav a::after { content:''; position:absolute; bottom:0; left:0; width:0; height:2px; background:var(--color-blue); transition:all 0.2s ease; }
-    nav a.active::after, nav a:hover::after { width:100%; }
-    nav a.admin-link { color:var(--color-gold-dark); font-weight:700; }
-    nav a.admin-link::after { background:var(--color-gold-dark); }
-    .header-actions { display:flex; align-items:center; gap:0.75rem; }
-    .auth-buttons { display:flex; gap:0.6rem; align-items:center; }
-    .dropdown-panel { position:absolute; top:calc(100% + 10px); right:0; background:var(--color-white); border:1px solid var(--color-border); border-radius:var(--radius-card); box-shadow:var(--shadow-panel); width:300px; padding:1rem; z-index:1200; }
-    .notif-wrap, .preferences-wrap { position:relative; }
+/* Buttons */
+.btn-primary, .btn-secondary, .btn-ghost-text { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; transition: var(--transition); border: none; text-decoration: none; font-size: 0.92rem; white-space: nowrap; }
+.btn-primary { background: var(--color-gold); color: var(--color-charcoal); padding: 0.85rem 1.5rem; min-height: 48px; width: 100%; }
+.btn-primary:hover { background: var(--color-gold-dark); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn-secondary { background: transparent; color: var(--color-charcoal); border: 1px solid var(--color-charcoal); padding: 0.85rem 1.5rem; min-height: 48px; width: 100%; }
+.btn-secondary:hover { background: var(--color-charcoal); color: var(--color-white); }
+.btn-ghost-text { background: none; color: var(--color-text-soft); padding: 0.6rem 0.75rem; text-decoration: underline; text-underline-offset: 3px; font-size: 0.85rem; }
+.btn-ghost-text:hover { color: var(--color-charcoal); }
+.btn-inline { width: auto; }
+.btn-login { background: transparent; color: var(--color-charcoal); border: 1px solid var(--color-charcoal); padding: 0.7rem 1.4rem; border-radius: var(--radius-sm); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: var(--transition); }
+.btn-login:hover { background: var(--color-charcoal); color: var(--color-white); }
+.btn-signup { background: var(--color-gold); color: var(--color-charcoal); padding: 0.7rem 1.4rem; border-radius: var(--radius-sm); font-weight: 700; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: var(--transition); }
+.btn-signup:hover { background: var(--color-gold-dark); transform: translateY(-1px); }
+.icon-btn, .icon-btn-ghost { width: 42px; height: 42px; border-radius: 50%; background: transparent; border: 1px solid var(--color-border); color: var(--color-charcoal); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); position: relative; flex-shrink: 0; }
+.icon-btn:hover, .icon-btn-ghost:hover { border-color: var(--color-blue); color: var(--color-blue); }
+.icon-btn-labeled { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.7rem 1rem; color: var(--color-charcoal); font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: var(--transition); min-height: 48px; }
+.icon-btn-labeled:hover { border-color: var(--color-blue); color: var(--color-blue); }
+.follow-btn-sm, .support-btn-sm { background: none; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
+.follow-btn-sm { color: var(--color-blue); border-color: rgba(74,111,165,0.3); }
+.follow-btn-sm:hover { background: var(--color-blue-soft); }
+.follow-btn-sm.is-following { color: var(--color-text-muted); border-color: var(--color-border); }
+.support-btn-sm { color: var(--color-gold-dark); border-color: rgba(201,151,31,0.35); }
+.support-btn-sm:hover { background: var(--color-gold-soft); }
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); border: 1.5px solid var(--color-white); }
 
-    /* hero */
-    .hero { min-height:46vh; display:flex; align-items:center; justify-content:center; text-align:center; margin-top:var(--header-height); background:radial-gradient(circle at 18% 30%, rgba(201,151,31,0.10) 0%, transparent 55%), radial-gradient(circle at 82% 15%, rgba(74,111,165,0.10) 0%, transparent 55%), var(--color-bg); padding:3.5rem 1rem 4.5rem; }
-    .hero-content { max-width:700px; width:100%; }
-    .hero-badge-icon { width:56px; height:56px; border-radius:var(--radius-card); margin:0 auto 1.5rem; box-shadow:var(--shadow-panel); }
-    .hero h1 { font-family:var(--font-serif); font-weight:600; font-size:2.4rem; color:var(--color-charcoal); line-height:1.2; letter-spacing:-0.5px; margin-bottom:1.25rem; }
-    .hero p { font-size:1.08rem; color:var(--color-text-soft); max-width:560px; margin:0 auto 1.25rem; line-height:1.7; }
-    .hero-stat { font-size:0.88rem; color:var(--color-text-muted); font-weight:500; }
-    .hero-stat strong { color:var(--color-blue); font-weight:700; }
+/* Header */
+header { background: rgba(250, 249, 246, 0.96); padding: 0 1.5rem; height: var(--header-height); display: flex; justify-content: space-between; align-items: center; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; backdrop-filter: blur(10px); border-bottom: 1px solid var(--color-border); }
+.mobile-menu-toggle { display: none; background: none; border: none; color: var(--color-charcoal); font-size: 1.4rem; cursor: pointer; padding: 0.5rem; z-index: 1001; }
+.logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; z-index: 1001; }
+.logo-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
+.logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+.logo-text { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; color: var(--color-charcoal); letter-spacing: -0.3px; white-space: nowrap; }
+nav { display: flex; gap: 2rem; align-items: center; }
+nav a { color: var(--color-text-soft); text-decoration: none; font-weight: 500; position: relative; padding: 0.75rem 0; font-size: 0.95rem; transition: var(--transition); white-space: nowrap; }
+nav a.active, nav a:hover { color: var(--color-blue); }
+nav a::after { content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 2px; background: var(--color-blue); transition: var(--transition); }
+nav a.active::after, nav a:hover::after { width: 100%; }
+nav a.admin-link { color: var(--color-gold-dark); font-weight: 700; }
+nav a.admin-link::after { background: var(--color-gold-dark); }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+.welcome-text { color: var(--color-text-soft); margin-right: 0.5rem; font-size: 0.88rem; }
+.welcome-text .admin-badge { background: var(--color-gold-soft); color: var(--color-gold-dark); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-decoration: none; text-transform: uppercase; }
+.auth-buttons { display: flex; gap: 0.6rem; align-items: center; }
+.dropdown-panel { position: absolute; top: calc(100% + 10px); right: 0; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--shadow-panel); width: 300px; padding: 1rem; z-index: 1200; }
+.dropdown-panel h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.75rem; }
+.dropdown-panel .empty-note { color: var(--color-text-soft); font-size: 0.9rem; line-height: 1.6; text-align: center; padding: 1rem 0.25rem; }
+.dropdown-panel .empty-note i { display: block; font-size: 1.4rem; color: var(--color-border-strong); margin-bottom: 0.5rem; }
+.notif-wrap, .preferences-wrap { position: relative; }
 
-    /* control bar */
-    .control-bar { margin-top:-2.25rem; margin-bottom:2rem; position:relative; z-index:5; }
-    .control-row { background:var(--color-white); border:1px solid var(--color-border); border-radius:var(--radius-lg); box-shadow:var(--shadow-panel); padding:1.1rem; display:flex; flex-wrap:wrap; gap:0.75rem; }
-    .search-field { position:relative; flex:1 1 220px; }
-    .search-field i { position:absolute; left:1.1rem; top:50%; transform:translateY(-50%); color:var(--color-text-muted); }
-    .search-field input { width:100%; padding:0.85rem 1rem 0.85rem 2.6rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); background:var(--color-bg-alt); color:var(--color-charcoal); min-height:48px; transition:all 0.2s ease; }
-    .search-field input:focus { outline:none; border-color:var(--color-blue); background:var(--color-white); box-shadow:0 0 0 3px var(--color-blue-soft); }
-    .control-select { padding:0.85rem 2.2rem 0.85rem 1rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); background:var(--color-bg-alt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%235c584f' d='M6 8 0 0h12z'/%3E%3C/svg%3E") no-repeat right 1rem center; color:var(--color-charcoal); cursor:pointer; min-height:48px; appearance:none; flex:1 1 160px; transition:all 0.2s ease; }
-    .control-select:focus { outline:none; border-color:var(--color-blue); box-shadow:0 0 0 3px var(--color-blue-soft); }
+/* Hero */
+.hero { min-height: 44vh; display: flex; align-items: center; justify-content: center; text-align: center; margin-top: var(--header-height); background: radial-gradient(circle at 18% 30%, rgba(201, 151, 31, 0.10) 0%, transparent 55%), radial-gradient(circle at 82% 15%, rgba(74, 111, 165, 0.10) 0%, transparent 55%), var(--color-bg); padding: 3.25rem 1rem 4.25rem; }
+.hero-content { max-width: 720px; width: 100%; }
+.hero-badge-icon { width: 56px; height: 56px; border-radius: var(--radius-card); margin: 0 auto 1.5rem; box-shadow: var(--shadow-panel); }
+.hero h1 { font-family: var(--font-serif); font-weight: 600; font-size: 2.3rem; color: var(--color-charcoal); line-height: 1.2; letter-spacing: -0.5px; margin-bottom: 1.25rem; padding: 0 0.5rem; }
+.hero p { font-size: 1.05rem; color: var(--color-text-soft); max-width: 600px; margin: 0 auto 1.25rem; line-height: 1.7; padding: 0 0.5rem; }
+.hero-stat { font-size: 0.88rem; color: var(--color-text-muted); font-weight: 500; }
+.hero-stat strong { color: var(--color-blue); font-weight: 700; }
 
-    /* featured section */
-    .featured-section { margin-bottom:2.5rem; }
-    .featured-card { display:flex; flex-wrap:wrap; background:var(--color-white); border:1px solid var(--color-border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-panel); transition:all 0.2s ease; }
-    .featured-card:hover { box-shadow:var(--shadow-hover); }
-    .featured-card__thumb { flex:1 1 260px; min-height:200px; background:var(--color-bg-alt); }
-    .featured-card__thumb img { width:100%; height:100%; object-fit:cover; }
-    .featured-card__body { flex:2 1 300px; padding:1.5rem; display:flex; flex-direction:column; gap:0.4rem; }
-    .featured-card__body .eyebrow { color:var(--color-gold-dark); font-weight:700; }
-    .featured-card__body h3 { font-family:var(--font-serif); font-size:1.5rem; }
-    .featured-card__body .rating-row { font-size:0.9rem; }
-    .featured-card__body .byline { border-top:none; padding-top:0; }
+/* Control bar */
+.control-bar { margin-top: -2.25rem; margin-bottom: 2rem; position: relative; z-index: 5; }
+.control-row { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-panel); padding: 1.1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.search-field { position: relative; flex: 1 1 220px; }
+.search-field i { position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); }
+.search-field input { width: 100%; padding: 0.85rem 1rem 0.85rem 2.6rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-charcoal); min-height: 48px; transition: var(--transition); }
+.search-field input:focus { outline: none; border-color: var(--color-blue); background: var(--color-white); box-shadow: 0 0 0 3px var(--color-blue-soft); }
+.control-select { padding: 0.85rem 2.2rem 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-alt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%235c584f' d='M6 8 0 0h12z'/%3E%3C/svg%3E") no-repeat right 1rem center; color: var(--color-charcoal); cursor: pointer; min-height: 48px; appearance: none; flex: 1 1 160px; transition: var(--transition); }
+.control-select:focus { outline: none; border-color: var(--color-blue); box-shadow: 0 0 0 3px var(--color-blue-soft); }
+.preferences-wrap .dropdown-panel { width: 260px; }
+#preferencesPopover label { display: block; font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 0.5rem; font-weight: 600; }
+#preferencesPopover select { width: 100%; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-alt); min-height: 46px; }
 
-    /* continue learning — hidden by default (logged-out) */
-    .continue-learning { background:var(--color-white); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:1.25rem 1.5rem; margin-bottom:2rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
-    .continue-learning__info { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
-    .continue-learning__info .progress { width:160px; height:6px; background:var(--color-border); border-radius:var(--radius-pill); overflow:hidden; }
-    .continue-learning__info .progress span { display:block; height:100%; width:65%; background:var(--color-blue); border-radius:var(--radius-pill); }
+/* Instructor CTA */
+.instructor-cta { background: var(--color-blue-soft); border: 1px solid rgba(74, 111, 165, 0.18); border-radius: var(--radius-lg); padding: 1.75rem 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; margin-bottom: 2.5rem; }
+.instructor-cta__text h3 { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; margin-bottom: 0.3rem; }
+.instructor-cta__text p { color: var(--color-text-soft); font-size: 0.95rem; }
+.instructor-cta .btn-primary { width: auto; }
 
-    /* instructor CTA + why learn */
-    .instructor-cta, .why-learn { background:var(--color-white); border-radius:var(--radius-lg); padding:2rem 2rem; margin-bottom:2.5rem; border:1px solid var(--color-border); box-shadow:var(--shadow-panel); }
-    .instructor-cta { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.5rem; background:var(--color-blue-soft); border-color:rgba(74,111,165,0.2); }
-    .instructor-cta__text h3 { font-family:var(--font-serif); font-size:1.5rem; }
-    .instructor-cta__text p { color:var(--color-text-soft); }
-    .instructor-cta .btn-primary { width:auto; }
-    .why-learn { background:var(--color-white); }
-    .why-learn h3 { font-family:var(--font-serif); font-size:1.3rem; margin-bottom:1rem; }
-    .why-learn-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
-    .why-learn-item { display:flex; align-items:center; gap:0.6rem; color:var(--color-text-soft); font-weight:500; }
-    .why-learn-item i { color:var(--color-sage); font-size:1.1rem; width:1.6rem; text-align:center; }
+/* Featured spotlight */
+.featured-section { margin-bottom: 2.5rem; }
+.featured-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-gold-dark); font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+.featured-card { display: flex; flex-wrap: wrap; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-panel); transition: var(--transition); }
+.featured-card:hover { box-shadow: var(--shadow-hover); }
+.featured-card__thumb { position: relative; flex: 1 1 280px; min-height: 220px; background: var(--color-bg-alt); }
+.featured-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.featured-card__body { flex: 2 1 320px; padding: 1.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.featured-card__body h3 { font-family: var(--font-serif); font-size: 1.6rem; }
+.featured-card__body p.desc { color: var(--color-text-soft); font-size: 0.95rem; }
+.featured-card__footer { display: flex; align-items: center; gap: 1.25rem; margin-top: 0.5rem; flex-wrap: wrap; }
 
-    /* chips */
-    .chip-row { display:flex; gap:0.6rem; margin-bottom:2.25rem; flex-wrap:wrap; }
-    .filter-chip { padding:0.65rem 1.25rem; border-radius:var(--radius-pill); background:transparent; color:var(--color-text-soft); border:1px solid var(--color-border); cursor:pointer; transition:all 0.2s ease; font-weight:600; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.45rem; min-height:42px; }
-    .filter-chip.active { background:var(--color-charcoal); color:var(--color-white); border-color:var(--color-charcoal); }
-    .filter-chip:hover:not(.active) { border-color:var(--color-blue); color:var(--color-blue); }
+/* Continue learning */
+.continue-learning { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-card); padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.continue-learning__info { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.continue-learning__info .progress { width: 160px; height: 6px; background: var(--color-border); border-radius: var(--radius-pill); overflow: hidden; }
+.continue-learning__info .progress span { display: block; height: 100%; background: var(--color-blue); border-radius: var(--radius-pill); }
 
-    /* grid + cards */
-    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap:1.75rem; }
-    .course-card { background:var(--color-white); border-radius:var(--radius-card); overflow:hidden; border:1px solid var(--color-border); transition:all 0.2s ease; display:flex; flex-direction:column; }
-    .course-card:hover { box-shadow:var(--shadow-hover); border-color:var(--color-border-strong); transform:translateY(-4px); }
-    .course-card__media { position:relative; height:190px; overflow:hidden; background:var(--color-bg-alt); }
-    .course-card__media img { width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease; }
-    .course-card:hover .course-card__media img { transform:scale(1.04); }
-    .format-icon { position:absolute; top:0.85rem; left:0.85rem; width:32px; height:32px; border-radius:50%; background:rgba(250,249,246,0.92); color:var(--color-charcoal); display:flex; align-items:center; justify-content:center; font-size:0.8rem; z-index:2; }
-    .bookmark-btn { position:absolute; top:0.85rem; right:0.85rem; width:32px; height:32px; border-radius:50%; background:rgba(250,249,246,0.92); border:none; color:var(--color-charcoal); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; transition:all 0.2s ease; font-size:0.85rem; }
-    .bookmark-btn:hover { color:var(--color-gold-dark); }
-    .bookmark-btn.is-saved { color:var(--color-gold-dark); }
-    .preview-play { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.85); width:52px; height:52px; border-radius:50%; background:rgba(250,249,246,0.95); color:var(--color-charcoal); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:all 0.2s ease; z-index:2; font-size:1.1rem; }
-    .course-card__media:hover .preview-play { opacity:1; transform:translate(-50%, -50%) scale(1); }
+/* Recently viewed */
+.recently-viewed { margin-bottom: 2.5rem; }
+.recently-viewed h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.recently-viewed__row, .related-courses { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: thin; }
+.rv-card { flex: 0 0 180px; cursor: pointer; border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--color-border); background: var(--color-white); transition: var(--transition); }
+.rv-card:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-hover); transform: translateY(-3px); }
+.rv-card img { width: 100%; height: 95px; object-fit: cover; background: var(--color-bg-alt); }
+.rv-card p { padding: 0.6rem 0.75rem; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .course-card__body { padding:1.4rem; flex-grow:1; display:flex; flex-direction:column; gap:0.3rem; }
-    .eyebrow { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-muted); font-weight:700; display:flex; align-items:center; gap:0.4rem; }
-    .category-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
-    .course-card__title { font-family:var(--font-serif); font-size:1.2rem; font-weight:600; line-height:1.35; color:var(--color-charcoal); }
-    .course-card__desc { color:var(--color-text-soft); font-size:0.92rem; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .rating-row { font-size:0.82rem; color:var(--color-text-soft); display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; }
-    .rating-row .stars { color:var(--color-gold); letter-spacing:1px; }
-    .rating-row .rv-count { color:var(--color-text-muted); }
-    .meta-stats { display:flex; gap:1rem; font-size:0.78rem; color:var(--color-text-muted); flex-wrap:wrap; }
-    .meta-stats span { display:flex; align-items:center; gap:0.25rem; }
-    .difficulty-badge { font-size:0.7rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:var(--radius-pill); background:var(--color-bg-alt); color:var(--color-text-soft); display:inline-block; }
-    .difficulty-badge.beginner { color:#2b6e5c; background:#dff0e8; }
-    .difficulty-badge.intermediate { color:#b3741a; background:#f8edd9; }
-    .difficulty-badge.advanced { color:#9e4b3e; background:#f2dedb; }
-    .verification-badge { color:var(--color-blue); font-weight:600; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.2rem; }
-    .course-benefits { display:flex; gap:0.6rem; font-size:0.7rem; color:var(--color-text-muted); flex-wrap:wrap; margin:0.1rem 0; }
-    .course-benefits span { display:flex; align-items:center; gap:0.2rem; }
-    .course-benefits i { color:var(--color-sage); font-size:0.65rem; }
-    .byline { display:flex; align-items:center; gap:0.65rem; padding-top:0.4rem; border-top:1px solid var(--color-border); }
-    .byline__avatar { width:34px; height:34px; border-radius:50%; background:var(--color-sage-soft); color:var(--color-sage); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
-    .byline__info { flex-grow:1; min-width:0; }
-    .byline__name { display:block; font-weight:700; font-size:0.87rem; color:var(--color-charcoal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
-    .byline__name:hover { color:var(--color-blue); }
-    .byline__meta { display:block; font-size:0.76rem; color:var(--color-text-muted); }
+/* Why learn + creator message */
+.why-learn { background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 2.5rem; border: 1px solid var(--color-border); box-shadow: var(--shadow-panel); }
+.why-learn h3 { font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 1rem; }
+.why-learn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.why-learn-item { display: flex; align-items: center; gap: 0.6rem; color: var(--color-text-soft); font-weight: 500; }
+.why-learn-item i { color: var(--color-sage); font-size: 1.1rem; width: 1.6rem; text-align: center; }
+.creator-message { margin-bottom: 1.5rem; font-size: 1.02rem; color: var(--color-text-soft); text-align: center; padding: 1rem 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
 
-    .course-card__footer { display:flex; align-items:baseline; justify-content:space-between; gap:0.5rem; padding-top:0.35rem; }
-    .price-block { font-family:var(--font-serif); font-weight:700; color:var(--color-gold-dark); font-size:1.3rem; }
-    .price-block.is-free { color:var(--color-sage); font-family:var(--font-sans); font-size:0.95rem; text-transform:uppercase; letter-spacing:0.04em; }
-    .course-card__actions { display:flex; align-items:center; gap:0.6rem; }
-    .course-card__actions .btn-primary { width:auto; flex:1; padding:0.75rem 1.1rem; min-height:44px; font-size:0.86rem; }
+/* Course section / chips */
+.course-section { padding-bottom: 5rem; }
+.section-header { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.section-header h2 { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.85rem; }
+.section-header h2 img { width: 42px; height: 42px; border-radius: var(--radius-sm); object-fit: cover; }
+.course-count { color: var(--color-text-muted); font-size: 0.9rem; font-weight: 600; align-self: flex-start; }
+.chip-row { display: flex; gap: 0.6rem; margin-bottom: 2.25rem; flex-wrap: wrap; }
+.filter-chip { padding: 0.65rem 1.25rem; border-radius: var(--radius-pill); background: transparent; color: var(--color-text-soft); border: 1px solid var(--color-border); cursor: pointer; transition: var(--transition); font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.45rem; min-height: 42px; }
+.filter-chip.active { background: var(--color-charcoal); color: var(--color-white); border-color: var(--color-charcoal); }
+.filter-chip:hover:not(.active) { border-color: var(--color-blue); color: var(--color-blue); }
 
-    .empty-state { grid-column:1/-1; text-align:center; padding:4rem 1.5rem; }
-    .empty-state i { font-size:2.4rem; color:var(--color-border-strong); margin-bottom:1rem; }
-    .empty-state h3 { font-family:var(--font-serif); font-size:1.3rem; margin-bottom:0.5rem; }
+/* Grid + cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 1.75rem; }
+.course-card { background: var(--color-white); border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--color-border); transition: var(--transition); display: flex; flex-direction: column; }
+.course-card:hover { box-shadow: var(--shadow-hover); border-color: var(--color-border-strong); transform: translateY(-4px); }
+.course-card__media { position: relative; height: 190px; overflow: hidden; background: var(--color-bg-alt); }
+.course-card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.course-card:hover .course-card__media img { transform: scale(1.04); }
+.format-icon { position: absolute; top: 0.85rem; left: 0.85rem; width: 32px; height: 32px; border-radius: 50%; background: rgba(250, 249, 246, 0.92); color: var(--color-charcoal); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 2; }
+.bookmark-btn { position: absolute; top: 0.85rem; right: 0.85rem; width: 32px; height: 32px; border-radius: 50%; background: rgba(250, 249, 246, 0.92); border: none; color: var(--color-charcoal); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; transition: var(--transition); font-size: 0.85rem; }
+.bookmark-btn:hover { color: var(--color-gold-dark); }
+.bookmark-btn.is-saved { color: var(--color-gold-dark); }
+.preview-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85); width: 52px; height: 52px; border-radius: 50%; background: rgba(250, 249, 246, 0.95); color: var(--color-charcoal); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: var(--transition); z-index: 2; font-size: 1.1rem; }
+.course-card__media:hover .preview-play { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.progress-rail { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(43,43,40,0.12); z-index: 2; }
+.progress-rail__fill { height: 100%; background: var(--color-blue); }
 
-    /* modals */
-    .modal-overlay { position:fixed; inset:0; background:rgba(43,36,24,0.55); z-index:10000; display:none; align-items:center; justify-content:center; padding:1.5rem; opacity:0; transition:opacity 0.2s ease; }
-    .modal-overlay.is-open { display:flex; opacity:1; }
-    .modal-panel { background:var(--color-white); border-radius:var(--radius-lg); max-width:680px; width:100%; max-height:88vh; overflow-y:auto; position:relative; box-shadow:var(--shadow-hover); }
-    .modal-close { position:absolute; top:1rem; right:1rem; width:36px; height:36px; border-radius:50%; background:var(--color-bg-alt); border:none; font-size:1.3rem; color:var(--color-charcoal); cursor:pointer; z-index:5; display:flex; align-items:center; justify-content:center; }
-    .modal-close:hover { background:var(--color-border); }
-    .modal-preview__media { height:260px; background:var(--color-bg-alt); border-radius:var(--radius-lg) var(--radius-lg) 0 0; overflow:hidden; }
-    .modal-preview__media img { width:100%; height:100%; object-fit:cover; }
-    .modal-preview__body { padding:1.75rem; }
-    .modal-preview__body h2 { font-family:var(--font-serif); font-size:1.6rem; margin:0.4rem 0 0.6rem; }
-    .modal-tabs { display:flex; gap:1.5rem; border-bottom:1px solid var(--color-border); margin:1.25rem 0 1.25rem; }
-    .tab-btn { background:none; border:none; padding:0.6rem 0; font-weight:600; color:var(--color-text-muted); cursor:pointer; border-bottom:2px solid transparent; font-size:0.9rem; }
-    .tab-btn.active { color:var(--color-charcoal); border-bottom-color:var(--color-gold); }
-    .tab-panel p { color:var(--color-text-soft); line-height:1.7; margin-bottom:1rem; }
-    .tab-panel .meta-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:0.75rem; margin:1rem 0; }
-    .tab-panel .meta-grid div { background:var(--color-bg-alt); border-radius:var(--radius-sm); padding:0.7rem 0.85rem; font-size:0.82rem; color:var(--color-text-soft); }
-    .tab-panel .meta-grid strong { display:block; color:var(--color-charcoal); font-size:0.9rem; }
-    .tab-panel ul { padding-left:1.2rem; color:var(--color-text-soft); line-height:1.8; }
-    .learning-outcomes { background:var(--color-bg-alt); border-radius:var(--radius-sm); padding:1rem 1.25rem; margin:0.75rem 0; }
-    .learning-outcomes li { margin-bottom:0.3rem; }
-    .modal-preview__footer { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding-top:1.25rem; border-top:1px solid var(--color-border); margin-top:1.5rem; }
-    .modal-preview__footer .btn-primary { width:auto; }
-    .related-courses { display:flex; gap:1rem; overflow-x:auto; padding:0.5rem 0; }
-    .related-courses .rv-card { flex:0 0 160px; border-radius:var(--radius-card); border:1px solid var(--color-border); background:var(--color-white); padding:0.75rem; transition:all 0.2s ease; }
-    .related-courses .rv-card:hover { border-color:var(--color-border-strong); transform:translateY(-3px); }
-    .related-courses .rv-card img { height:80px; object-fit:cover; border-radius:var(--radius-sm); background:var(--color-bg-alt); margin-bottom:0.4rem; }
-    .related-courses .rv-card p { font-weight:600; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.course-card__body { padding: 1.4rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
+.category-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.course-card__title { font-family: var(--font-serif); font-size: 1.2rem; font-weight: 600; line-height: 1.35; color: var(--color-charcoal); }
+.course-card__desc { color: var(--color-text-soft); font-size: 0.92rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rating-row { font-size: 0.82rem; color: var(--color-text-soft); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.rating-row .stars { color: var(--color-gold); letter-spacing: 1px; }
+.rating-row .rv-count { color: var(--color-text-muted); }
+.meta-stats { display: flex; gap: 0.9rem; font-size: 0.78rem; color: var(--color-text-muted); flex-wrap: wrap; }
+.meta-stats span { display: flex; align-items: center; gap: 0.3rem; }
+.badge-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.difficulty-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: var(--radius-pill); display: inline-block; }
+.difficulty-badge.beginner { color: #2b6e5c; background: #dff0e8; }
+.difficulty-badge.intermediate { color: #b3741a; background: #f8edd9; }
+.difficulty-badge.advanced { color: #9e4b3e; background: #f2dedb; }
+.verification-badge { color: var(--color-blue); font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem; }
+.course-benefits { display: flex; gap: 0.7rem; font-size: 0.7rem; color: var(--color-text-muted); flex-wrap: wrap; }
+.course-benefits span { display: flex; align-items: center; gap: 0.25rem; }
+.course-benefits i { color: var(--color-sage); font-size: 0.65rem; }
 
-    /* footer */
-    footer { background:var(--color-bg-alt); padding:2.5rem 1.5rem; text-align:center; border-top:1px solid var(--color-border); margin-top:2rem; }
-    footer p { color:var(--color-text-soft); font-size:0.9rem; }
+.byline { display: flex; align-items: center; gap: 0.65rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border); }
+.byline__avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--color-sage-soft); color: var(--color-sage); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+.byline__info { flex-grow: 1; min-width: 0; }
+.byline__name { display: block; font-weight: 700; font-size: 0.87rem; color: var(--color-charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+.byline__name:hover { color: var(--color-blue); }
+.byline__meta { display: block; font-size: 0.76rem; font-weight: 600; }
+.byline__meta.new { color: var(--color-text-muted); }
+.byline__meta.rising { color: var(--color-blue); }
+.byline__meta.established { color: var(--color-sage); }
+.byline__meta.top { color: var(--color-gold-dark); }
+.follow-btn { background: none; border: none; color: var(--color-blue); font-weight: 700; font-size: 0.78rem; cursor: pointer; flex-shrink: 0; padding: 0.3rem 0.4rem; }
+.follow-btn.is-following { color: var(--color-text-muted); }
 
-    /* responsive */
-    @media screen and (min-width:768px) {
-      .hero h1 { font-size:3rem; }
-      .control-row { flex-wrap:nowrap; }
-      .search-field { flex:2 1 auto; }
-      .mobile-menu-toggle { display:none; }
-      nav { display:flex !important; }
-    }
-    @media screen and (max-width:767px) {
-      header { height:var(--mobile-header-height); padding:0 1rem; }
-      .mobile-menu-toggle { display:block; }
-      nav { display:none; position:fixed; top:var(--mobile-header-height); left:0; right:0; background:var(--color-bg); flex-direction:column; padding:1.5rem; gap:1rem; border-bottom:1px solid var(--color-border); box-shadow:var(--shadow-panel); z-index:999; }
-      nav.active { display:flex; }
-      .auth-buttons { flex-direction:column; width:100%; gap:0.5rem; }
-      .auth-buttons .btn-login, .auth-buttons .btn-signup { width:100%; }
-      .hero { margin-top:var(--mobile-header-height); padding:2rem 1rem 3rem; min-height:38vh; }
-      .hero h1 { font-size:1.9rem; }
-      .modal-panel { max-height:92vh; }
-    }
-  </style>
+.course-card__footer { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding-top: 0.35rem; }
+.price-block { font-family: var(--font-serif); font-weight: 700; color: var(--color-gold-dark); font-size: 1.3rem; }
+.price-block.is-free { color: var(--color-sage); font-family: var(--font-sans); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.price-block.is-owned { color: var(--color-sage); font-family: var(--font-sans); font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 0.35rem; }
+.course-card__actions { display: flex; align-items: center; gap: 0.6rem; }
+.course-card__actions .btn-primary { width: auto; flex: 1; padding: 0.75rem 1.1rem; min-height: 44px; font-size: 0.86rem; }
+.card-menu { position: relative; flex-shrink: 0; }
+.card-menu__dropdown { position: absolute; bottom: calc(100% + 8px); right: 0; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--shadow-panel); min-width: 190px; overflow: hidden; z-index: 20; }
+.card-menu__dropdown button { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.75rem 1rem; background: none; border: none; text-align: left; cursor: pointer; font-size: 0.86rem; color: var(--color-charcoal); transition: var(--transition); }
+.card-menu__dropdown button:hover { background: var(--color-bg-alt); }
+.card-menu__dropdown button.danger { color: var(--color-danger); }
+.card-menu__dropdown button:disabled { opacity: 0.5; cursor: not-allowed; }
+.card-menu__dropdown button:not(:last-child) { border-bottom: 1px solid var(--color-border); }
+.completed-tag { color: var(--color-sage); font-weight: 700; }
+.load-more-wrap { display: flex; justify-content: center; margin-top: 2.5rem; }
+.empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 1.5rem; }
+.empty-state i { font-size: 2.4rem; color: var(--color-border-strong); margin-bottom: 1rem; }
+.empty-state h3 { font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 0.5rem; }
+.empty-state p { color: var(--color-text-soft); }
+.empty-state button { margin-top: 1.25rem; }
+
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(43, 36, 24, 0.55); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1.5rem; opacity: 0; transition: opacity 0.2s ease; }
+.modal-overlay.is-open { display: flex; opacity: 1; }
+.modal-panel { background: var(--color-white); border-radius: var(--radius-lg); max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; position: relative; box-shadow: var(--shadow-hover); }
+.modal-panel--preview, .modal-panel--wizard { max-width: 700px; }
+.modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: var(--color-bg-alt); border: none; font-size: 1.3rem; color: var(--color-charcoal); cursor: pointer; z-index: 5; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: var(--color-border); }
+.modal-preview__media { position: relative; height: 260px; background: var(--color-bg-alt); border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
+.modal-preview__media img { width: 100%; height: 100%; object-fit: cover; }
+.modal-preview__body { padding: 1.75rem; }
+.modal-preview__body h2 { font-family: var(--font-serif); font-size: 1.6rem; margin: 0.4rem 0 0.6rem; }
+.modal-byline-row { display: flex; align-items: center; gap: 0.75rem; padding-top: 0.75rem; }
+.modal-byline-row .byline { border-top: none; padding-top: 0; flex-grow: 1; }
+.modal-tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--color-border); margin: 1.25rem 0 1.25rem; overflow-x: auto; }
+.tab-btn { background: none; border: none; padding: 0.6rem 0; font-weight: 600; color: var(--color-text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.9rem; white-space: nowrap; }
+.tab-btn.active { color: var(--color-charcoal); border-bottom-color: var(--color-gold); }
+.tab-panel p { color: var(--color-text-soft); line-height: 1.7; margin-bottom: 1rem; }
+.tab-panel .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+.tab-panel .meta-grid div { background: var(--color-bg-alt); border-radius: var(--radius-sm); padding: 0.7rem 0.85rem; font-size: 0.82rem; color: var(--color-text-soft); }
+.tab-panel .meta-grid strong { display: block; color: var(--color-charcoal); font-size: 0.9rem; }
+.tab-panel ul { padding-left: 1.2rem; color: var(--color-text-soft); line-height: 1.8; }
+.learning-outcomes { background: var(--color-bg-alt); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin: 0.75rem 0; }
+.stub-note { background: var(--color-bg-alt); border-radius: var(--radius-sm); padding: 1rem; color: var(--color-text-muted); font-size: 0.88rem; text-align: center; }
+.modal-preview__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border); margin-top: 1.5rem; }
+.modal-preview__footer .btn-primary { width: auto; }
+
+/* Wizard */
+.modal-panel--wizard { padding: 1.75rem; }
+.modal-panel--wizard h2 { font-family: var(--font-serif); font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.65rem; }
+.wizard-steps { display: flex; gap: 0.5rem; margin-bottom: 1.75rem; }
+.wizard-steps .step { flex: 1; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--color-text-muted); padding-bottom: 0.75rem; border-bottom: 3px solid var(--color-border); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.wizard-steps .step em { font-style: normal; width: 26px; height: 26px; border-radius: 50%; background: var(--color-bg-alt); display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 0.75rem; }
+.wizard-steps .step.active { color: var(--color-charcoal); border-bottom-color: var(--color-gold); }
+.wizard-steps .step.active em { background: var(--color-gold); color: var(--color-charcoal); }
+.wizard-steps .step.complete em { background: var(--color-sage); color: var(--color-white); }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.1rem; }
+.form-group label { color: var(--color-text-soft); font-weight: 600; font-size: 0.9rem; }
+.form-group input, .form-group textarea, .form-group select { padding: 0.9rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-charcoal); min-height: 48px; width: 100%; transition: var(--transition); }
+.form-group textarea { min-height: 110px; resize: vertical; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--color-blue); background: var(--color-white); box-shadow: 0 0 0 3px var(--color-blue-soft); }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+.content-type-tags { display: flex; gap: 0.55rem; flex-wrap: wrap; }
+.tag-option { flex: 1 1 100px; min-width: 96px; }
+.tag-option input[type="radio"] { display: none; }
+.tag-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.8rem 0.5rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-bg-alt); color: var(--color-text-soft); cursor: pointer; transition: var(--transition); font-weight: 600; font-size: 0.76rem; text-align: center; }
+.tag-option input[type="radio"]:checked + .tag-box { background: var(--color-charcoal); color: var(--color-white); border-color: var(--color-charcoal); }
+.tag-box:hover { border-color: var(--color-blue); }
+.tag-box i { font-size: 1rem; }
+.image-upload-container, .file-input-container { position: relative; overflow: hidden; display: block; width: 100%; }
+.image-upload-container input[type="file"], .file-input-container input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.image-upload-label, .file-input-label { display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 1.5rem; background: var(--color-bg-alt); border: 2px dashed var(--color-border-strong); border-radius: var(--radius-card); color: var(--color-text-soft); text-align: center; min-height: 100px; transition: var(--transition); flex-wrap: wrap; }
+.image-upload-container:hover .image-upload-label, .file-input-container:hover .file-input-label { border-color: var(--color-blue); background: var(--color-blue-soft); }
+.image-upload-label i, .file-input-label i { color: var(--color-blue); font-size: 1.3rem; }
+.image-preview-container { display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.image-preview { width: 100px; height: 100px; border-radius: var(--radius-sm); overflow: hidden; position: relative; border: 1px solid var(--color-border); }
+.image-preview img { width: 100%; height: 100%; object-fit: cover; }
+.remove-preview { position: absolute; top: 4px; right: 4px; background: rgba(43,43,40,0.75); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 0.7rem; }
+.book-type-selector { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+.book-type-btn { flex: 1; padding: 0.85rem; border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text-soft); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: var(--transition); min-height: 46px; }
+.book-type-btn.active { background: var(--color-charcoal); color: var(--color-white); border-color: var(--color-charcoal); }
+.info-note { background: var(--color-blue-soft); border-radius: var(--radius-sm); padding: 1rem; color: var(--color-text-soft); font-size: 0.9rem; display: flex; gap: 0.6rem; align-items: flex-start; }
+.info-note i { color: var(--color-blue); margin-top: 0.15rem; }
+.wizard-review { background: var(--color-bg-alt); border-radius: var(--radius-card); padding: 1.25rem; font-size: 0.9rem; color: var(--color-text-soft); line-height: 2; }
+.wizard-review strong { color: var(--color-charcoal); }
+.wizard-nav { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+.wizard-nav .btn-primary, .wizard-nav .btn-secondary { flex: 1; min-width: 120px; }
+
+/* Flag modal */
+.modal-panel--flag { max-width: 480px; padding: 1.75rem; }
+.modal-panel--flag h3 { font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.modal-panel--flag p { color: var(--color-text-soft); margin-bottom: 1rem; font-size: 0.92rem; }
+.modal-panel--flag textarea { width: 100%; padding: 0.9rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-alt); min-height: 110px; resize: vertical; margin-bottom: 1.25rem; }
+.modal-buttons { display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+/* Toasts */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 0.9rem 1.3rem; background: var(--color-white); color: var(--color-charcoal); border-radius: var(--radius-sm); box-shadow: var(--shadow-hover); z-index: 10600; font-weight: 600; font-size: 0.9rem; border-left: 4px solid var(--color-sage); animation: slideIn 0.25s ease; max-width: 320px; }
+.toast.error { border-left-color: var(--color-danger); }
+.toast.info { border-left-color: var(--color-blue); }
+@keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+footer { background: var(--color-bg-alt); padding: 2.5rem 1.5rem; text-align: center; border-top: 1px solid var(--color-border); margin-top: 2rem; }
+footer p { color: var(--color-text-soft); font-size: 0.9rem; }
+.loading { opacity: 0.6; pointer-events: none; }
+
+@media screen and (min-width: 768px) {
+  .hero h1 { font-size: 2.9rem; }
+  .control-row { flex-wrap: nowrap; }
+  .search-field { flex: 2 1 auto; }
+  .mobile-menu-toggle { display: none; }
+  nav { display: flex !important; }
+}
+@media screen and (max-width: 767px) {
+  header { height: var(--mobile-header-height); padding: 0 1rem; }
+  .mobile-menu-toggle { display: block; }
+  nav { display: none; position: fixed; top: var(--mobile-header-height); left: 0; right: 0; background: var(--color-bg); flex-direction: column; padding: 1.5rem; gap: 1rem; border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-panel); z-index: 999; }
+  nav.active { display: flex; }
+  .auth-buttons { flex-direction: column; width: 100%; gap: 0.5rem; }
+  .auth-buttons .btn-login, .auth-buttons .btn-signup { width: 100%; }
+  .hero { margin-top: var(--mobile-header-height); padding: 2rem 1rem 3rem; min-height: 36vh; }
+  .hero h1 { font-size: 1.85rem; }
+  .section-header h2 { font-size: 1.5rem; }
+  .modal-panel { max-height: 92vh; }
+  .wizard-nav { flex-direction: column; }
+  .wizard-nav button { width: 100%; }
+  .instructor-cta { flex-direction: column; text-align: center; }
+}
+@media screen and (max-width: 480px) {
+  .course-card__actions { flex-wrap: wrap; }
+  .course-card__actions .btn-primary { width: 100%; }
+  .welcome-text { display: none !important; }
+}
+</style>
 </head>
 <body>
-<!-- HEADER -->
+
+<!-- Header -->
 <header>
   <button class="mobile-menu-toggle" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
   <a href="index.html" class="logo">
@@ -260,8 +378,14 @@
   </nav>
   <div class="header-actions">
     <div class="notif-wrap">
-      <button class="icon-btn" id="notifBtn" aria-label="Notifications" hidden><i class="far fa-bell"></i><span class="notif-dot" hidden></span></button>
-      <div class="dropdown-panel" id="notifDropdown" hidden><h4>Notifications</h4><div class="empty-note"><i class="far fa-bell"></i> All caught up.</div></div>
+      <button class="icon-btn" id="notifBtn" aria-label="Notifications" hidden>
+        <i class="far fa-bell"></i>
+        <span class="notif-dot" id="notifDot" hidden></span>
+      </button>
+      <div class="dropdown-panel" id="notifDropdown" hidden>
+        <h4>Notifications</h4>
+        <div class="empty-note"><i class="far fa-bell"></i> You're all caught up. Enrollment, review, and update notices will show up here.</div>
+      </div>
     </div>
     <div class="auth-buttons" id="headerAuthButtons">
       <a href="login.html" class="btn-login">Login</a>
@@ -270,31 +394,24 @@
   </div>
 </header>
 
-<!-- HERO -->
+<!-- Hero -->
 <section class="hero">
   <div class="hero-content">
     <img src="https://i.pinimg.com/736x/96/d5/cd/96d5cdd6ba69c2feb30cb91bda572d4e.jpg" alt="Core Insight Courses" class="hero-badge-icon">
-    <h1>Master New Skills with Expert-Led Courses</h1>
-    <p>Access free and premium courses designed to advance your career and expand your knowledge. Learn at your own pace with industry-leading content.</p>
-    <p class="hero-stat">Browsing <strong id="heroCourseCount">6</strong> courses</p>
+    <h1>Master New Skills — Through Courses, Books &amp; Guides</h1>
+    <p>Access expert-led courses, books, and practical guides designed to advance your career and expand your knowledge. Learn and read at your own pace.</p>
+    <p class="hero-stat">Browsing <strong id="heroCourseCount">…</strong> titles</p>
   </div>
 </section>
 
-<!-- CONTROL BAR -->
+<!-- Control Bar -->
 <section class="control-bar container">
   <div class="control-row">
-    <div class="search-field"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search courses, topics, or instructors..."></div>
-    <select id="categorySelect" class="control-select">
-      <option value="all">All Categories</option>
-      <option value="Technology">Technology</option>
-      <option value="Business">Business</option>
-      <option value="Marketing">Marketing</option>
-      <option value="Design">Design</option>
-      <option value="Finance">Finance</option>
-      <option value="AI">AI</option>
-      <option value="Health">Health</option>
-      <option value="Personal Growth">Personal Growth</option>
-    </select>
+    <div class="search-field">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search courses, books, guides, or instructors...">
+    </div>
+    <select id="categorySelect" class="control-select"></select>
     <select id="levelSelect" class="control-select">
       <option value="all">All Levels</option>
       <option value="beginner">Beginner</option>
@@ -309,90 +426,111 @@
       <option value="price-high">Price: High to Low</option>
     </select>
     <div class="preferences-wrap">
-      <button class="icon-btn-labeled" id="preferencesBtn" type="button"><i class="fas fa-sliders-h"></i> <span id="currentCurrencyLabel">USD</span></button>
+      <button class="icon-btn-labeled" id="preferencesBtn" type="button">
+        <i class="fas fa-sliders-h"></i> <span id="currentCurrencyLabel">USD</span>
+      </button>
       <div class="dropdown-panel" id="preferencesPopover" hidden>
         <label for="currencySelect">Display currency</label>
-        <select id="currencySelect"><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+        <select id="currencySelect">
+          <option value="USD">USD - US Dollar</option>
+          <option value="EUR">EUR - Euro</option>
+          <option value="GBP">GBP - British Pound</option>
+          <option value="CAD">CAD - Canadian Dollar</option>
+          <option value="NGN">NGN - Nigerian Naira</option>
+          <option value="KES">KES - Kenyan Shilling</option>
+          <option value="GHS">GHS - Ghanaian Cedi</option>
+          <option value="ZAR">ZAR - South African Rand</option>
+          <option value="AUD">AUD - Australian Dollar</option>
+          <option value="JPY">JPY - Japanese Yen</option>
+          <option value="CNY">CNY - Chinese Yuan</option>
+          <option value="INR">INR - Indian Rupee</option>
+          <option value="BRL">BRL - Brazilian Real</option>
+          <option value="MXN">MXN - Mexican Peso</option>
+          <option value="AED">AED - UAE Dirham</option>
+          <option value="SAR">SAR - Saudi Riyal</option>
+          <option value="CHF">CHF - Swiss Franc</option>
+          <option value="SEK">SEK - Swedish Krona</option>
+          <option value="NOK">NOK - Norwegian Krone</option>
+          <option value="DKK">DKK - Danish Krone</option>
+          <option value="PLN">PLN - Polish Zloty</option>
+          <option value="TRY">TRY - Turkish Lira</option>
+          <option value="RUB">RUB - Russian Ruble</option>
+          <option value="KRW">KRW - South Korean Won</option>
+          <option value="SGD">SGD - Singapore Dollar</option>
+          <option value="HKD">HKD - Hong Kong Dollar</option>
+          <option value="NZD">NZD - New Zealand Dollar</option>
+          <option value="ZMW">ZMW - Zambian Kwacha</option>
+          <option value="TZS">TZS - Tanzanian Shilling</option>
+          <option value="UGX">UGX - Ugandan Shilling</option>
+          <option value="RWF">RWF - Rwandan Franc</option>
+          <option value="XOF">XOF - West African CFA Franc</option>
+          <option value="XAF">XAF - Central African CFA Franc</option>
+          <option value="ETB">ETB - Ethiopian Birr</option>
+          <option value="MAD">MAD - Moroccan Dirham</option>
+          <option value="EGP">EGP - Egyptian Pound</option>
+        </select>
       </div>
     </div>
   </div>
 </section>
 
 <div class="container">
-  <!-- INSTRUCTOR CTA (always visible) -->
+  <!-- Instructor / Author CTA -->
   <section class="instructor-cta">
     <div class="instructor-cta__text">
-      <h3>Become an Instructor</h3>
-      <p>Share your expertise and earn from your knowledge. Start teaching today.</p>
+      <h3>Share Your Knowledge</h3>
+      <p>Teach a course, publish a book, or share a practical guide — reach learners and readers worldwide.</p>
     </div>
-    <button class="btn-primary" id="instructorCtaBtn" type="button"><i class="fas fa-chalkboard-teacher"></i> Start Teaching</button>
+    <button class="btn-primary" id="instructorCtaBtn" type="button"><i class="fas fa-feather-pointed"></i> Start Creating</button>
   </section>
 
-  <!-- FEATURED COURSE -->
-  <section class="featured-section" id="featuredSection">
-    <div class="featured-card">
-      <div class="featured-card__thumb"><img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=240&fit=crop" alt="featured course"></div>
-      <div class="featured-card__body">
-        <span class="eyebrow"><i class="fas fa-star" style="color:var(--color-gold);"></i> New Course</span>
-        <h3>Complete Web Development Bootcamp</h3>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="byline" style="border-top:none;padding-top:0;">
-          <div class="byline__avatar">JD</div>
-          <div class="byline__info"><span class="byline__name">John Doe</span><span class="byline__meta">Senior Developer</span></div>
-        </div>
-        <div style="display:flex;gap:1.5rem;font-size:0.85rem;color:var(--color-text-muted);"><span><i class="far fa-clock"></i> 12h</span><span><i class="far fa-file-alt"></i> 48 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first student</span></div>
-        <div style="margin-top:0.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-          <span class="difficulty-badge beginner">Beginner</span>
-          <span class="verification-badge"><i class="fas fa-check-circle"></i> Verified Instructor</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:1rem;margin-top:0.5rem;">
-          <span class="price-block">$49</span>
-          <button class="btn-primary btn-inline" style="padding:0.6rem 1.8rem;">Enroll Now</button>
-        </div>
-      </div>
-    </div>
+  <!-- Featured spotlight -->
+  <section class="featured-section" id="featuredSection" hidden>
+    <p class="featured-label" id="featuredLabel"><i class="fas fa-star"></i> Featured</p>
+    <div class="featured-card" id="featuredCard"></div>
   </section>
 
-  <!-- CONTINUE LEARNING — hidden for logged-out users -->
-  <section class="continue-learning" id="continueLearning" hidden>
-    <div class="continue-learning__info">
-      <i class="fas fa-play-circle" style="color:var(--color-blue);font-size:1.4rem;"></i>
-      <div><strong>Continue Learning</strong><br><span style="font-size:0.85rem;color:var(--color-text-muted);">Digital Marketing</span></div>
-      <div class="progress"><span style="width:65%;"></span></div>
-      <span style="font-weight:600;font-size:0.9rem;">65%</span>
-    </div>
-    <button class="btn-primary btn-inline" style="padding:0.5rem 1.5rem;width:auto;">Resume</button>
+  <!-- Continue learning -->
+  <section class="continue-learning" id="continueLearning" hidden></section>
+
+  <!-- Recently viewed -->
+  <section class="recently-viewed" id="recentlyViewedSection" hidden>
+    <h4><i class="fas fa-clock"></i> Recently Viewed</h4>
+    <div class="recently-viewed__row" id="recentlyViewedRow"></div>
   </section>
 
-  <!-- WHY LEARN -->
+  <!-- Why learn -->
   <section class="why-learn">
     <h3>Why Learn on Core Insight?</h3>
     <div class="why-learn-grid">
-      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Learn at your own pace</div>
-      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Courses from verified creators</div>
-      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Free and premium learning options</div>
-      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Community-driven learning</div>
+      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Learn and read at your own pace</div>
+      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Courses and books from verified creators</div>
+      <div class="why-learn-item"><i class="fas fa-check-circle"></i> Free and premium options</div>
+      <div class="why-learn-item"><i class="fas fa-check-circle"></i> A growing library across tech, business, design &amp; fiction</div>
     </div>
   </section>
 
-  <!-- CREATOR-FOCUSED MESSAGE -->
-  <div style="margin-bottom:1.5rem;font-size:1.05rem;color:var(--color-text-soft);text-align:center;padding:0.5rem 0;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border);">
-    Learn from creators, professionals, and experts across technology, business, design, marketing, AI, and more.
+  <div class="creator-message">
+    Learn from creators, authors, and experts across technology, business, design, marketing, fiction, and more.
   </div>
 </div>
 
-<!-- COURSE GRID -->
+<!-- Course / Book grid -->
 <section class="course-section container">
   <div class="section-header">
-    <h2><img src="https://i.pinimg.com/736x/96/d5/cd/96d5cdd6ba69c2feb30cb91bda572d4e.jpg" alt="Courses"> Available Courses</h2>
-    <div class="course-count" id="courseCount">6 courses</div>
+    <h2>
+      <img src="https://i.pinimg.com/736x/96/d5/cd/96d5cdd6ba69c2feb30cb91bda572d4e.jpg" alt="Courses">
+      Available Courses &amp; Books
+    </h2>
+    <div class="course-count" id="courseCount">Loading…</div>
   </div>
 
   <div class="chip-row" id="chipRow">
     <button class="filter-chip active" data-filter="all"><i class="fas fa-th"></i> All</button>
     <button class="filter-chip" data-filter="free"><i class="fas fa-gift"></i> Free</button>
     <button class="filter-chip" data-filter="premium"><i class="fas fa-crown"></i> Premium</button>
-    <button class="filter-chip" data-filter="video"><i class="fas fa-video"></i> Video</button>
+    <button class="filter-chip" data-filter="courses"><i class="fas fa-video"></i> Courses</button>
+    <button class="filter-chip" data-filter="books"><i class="fas fa-book"></i> Books &amp; Guides</button>
     <button class="filter-chip" data-filter="featured"><i class="fas fa-star"></i> Featured</button>
     <button class="filter-chip" data-filter="trending"><i class="fas fa-arrow-trend-up"></i> Trending</button>
     <button class="filter-chip" data-filter="bestselling"><i class="fas fa-medal"></i> Best-Selling</button>
@@ -401,186 +539,29 @@
   </div>
 
   <div id="coursesGrid" class="grid">
-    <!-- Course 1 -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-video"></i></span>
-        <button class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#4a6fa5;"></span> Technology</span>
-        <h3 class="course-card__title">Python for Data Science</h3>
-        <p class="course-card__desc">Master Python, pandas, and visualization for real-world data analysis.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 8h</span><span><i class="far fa-file-alt"></i> 32 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge beginner">Beginner</span><span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Certificate</span><span><i class="fas fa-check-circle"></i> Lifetime Access</span></div>
-        <div class="byline">
-          <div class="byline__avatar">AS</div>
-          <div class="byline__info"><a href="profile.html?id=1" class="byline__name">Anna Smith</a><span class="byline__meta">Data Scientist</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block is-free">Free</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Course 2 -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-chalkboard-teacher"></i></span>
-        <button class="bookmark-btn is-saved"><i class="fas fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#c9971f;"></span> Business</span>
-        <h3 class="course-card__title">Strategic Management</h3>
-        <p class="course-card__desc">Learn to design and execute business strategy in competitive markets.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 6h</span><span><i class="far fa-file-alt"></i> 24 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge intermediate">Intermediate</span><span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Certificate</span><span><i class="fas fa-check-circle"></i> Downloadable</span></div>
-        <div class="byline">
-          <div class="byline__avatar">MR</div>
-          <div class="byline__info"><a href="profile.html?id=2" class="byline__name">Michael Ross</a><span class="byline__meta">Strategy Consultant</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block">$79</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Course 3 -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-paint-brush"></i></span>
-        <button class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#5a8d7d;"></span> Design</span>
-        <h3 class="course-card__title">UI/UX Design Mastery</h3>
-        <p class="course-card__desc">From wireframing to prototyping, design products that users love.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 10h</span><span><i class="far fa-file-alt"></i> 40 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge intermediate">Intermediate</span><span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Certificate</span><span><i class="fas fa-check-circle"></i> Lifetime Access</span></div>
-        <div class="byline">
-          <div class="byline__avatar">JC</div>
-          <div class="byline__info"><a href="profile.html?id=3" class="byline__name">Jane Chen</a><span class="byline__meta">Lead Designer</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block">$99</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Course 4 -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-brain"></i></span>
-        <button class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#b3483f;"></span> AI</span>
-        <h3 class="course-card__title">Introduction to AI & ML</h3>
-        <p class="course-card__desc">Understand the foundations of artificial intelligence and machine learning.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 7h</span><span><i class="far fa-file-alt"></i> 28 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge advanced">Advanced</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Certificate</span></div>
-        <div class="byline">
-          <div class="byline__avatar">DK</div>
-          <div class="byline__info"><a href="profile.html?id=4" class="byline__name">David Kim</a><span class="byline__meta">AI Researcher</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block is-free">Free</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Course 5 (extra) -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-chart-line"></i></span>
-        <button class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#4a6fa5;"></span> Finance</span>
-        <h3 class="course-card__title">Personal Finance 101</h3>
-        <p class="course-card__desc">Budgeting, saving, and investing for financial independence.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 5h</span><span><i class="far fa-file-alt"></i> 20 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge beginner">Beginner</span><span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Lifetime Access</span></div>
-        <div class="byline">
-          <div class="byline__avatar">LW</div>
-          <div class="byline__info"><a href="profile.html?id=5" class="byline__name">Lisa Wang</a><span class="byline__meta">Financial Advisor</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block is-free">Free</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Course 6 -->
-    <div class="course-card">
-      <div class="course-card__media">
-        <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=200&fit=crop" alt="course">
-        <span class="format-icon"><i class="fas fa-heart"></i></span>
-        <button class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-        <button class="preview-play"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="course-card__body">
-        <span class="eyebrow"><span class="category-dot" style="background:#5a8d7d;"></span> Health</span>
-        <h3 class="course-card__title">Mindfulness & Wellbeing</h3>
-        <p class="course-card__desc">Practical techniques to reduce stress and improve mental health.</p>
-        <div class="rating-row"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-        <div class="meta-stats"><span><i class="far fa-clock"></i> 4h</span><span><i class="far fa-file-alt"></i> 16 lessons</span><span><i class="fas fa-user-graduate"></i> Be the first</span></div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.2rem 0;"><span class="difficulty-badge beginner">Beginner</span></div>
-        <div class="course-benefits"><span><i class="fas fa-check-circle"></i> Certificate</span><span><i class="fas fa-check-circle"></i> Downloadable</span></div>
-        <div class="byline">
-          <div class="byline__avatar">RM</div>
-          <div class="byline__info"><a href="profile.html?id=6" class="byline__name">Rachel Moore</a><span class="byline__meta">Wellness Coach</span></div>
-        </div>
-        <div class="course-card__footer">
-          <span class="price-block">$39</span>
-          <div class="course-card__actions"><button class="btn-primary btn-inline">Enroll</button></div>
-        </div>
-      </div>
+    <div class="empty-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <h3>Loading…</h3>
+      <p>Just a moment while we fetch what's available.</p>
     </div>
   </div>
 
   <div class="load-more-wrap">
-    <button id="loadMoreBtn" class="btn-secondary btn-inline" type="button" hidden>Load More Courses</button>
+    <button id="loadMoreBtn" class="btn-secondary btn-inline" type="button" hidden>Load More</button>
   </div>
 </section>
 
-<!-- PREVIEW MODAL -->
+<!-- Preview Modal -->
 <div class="modal-overlay" id="previewModal">
   <div class="modal-panel modal-panel--preview">
     <button class="modal-close" onclick="closePreviewModal()" aria-label="Close">&times;</button>
-    <div class="modal-preview__media" id="previewMedia"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=260&fit=crop" alt="preview"></div>
+    <div class="modal-preview__media" id="previewMedia"></div>
     <div class="modal-preview__body">
-      <p class="eyebrow" id="previewEyebrow"><span class="category-dot" style="background:#4a6fa5;"></span> Technology</p>
-      <h2 id="previewTitle">Python for Data Science</h2>
-      <div class="rating-row" id="previewRating"><span class="stars">☆☆☆☆☆</span> No reviews yet</div>
-      <div class="byline" style="border-top:none;padding-top:0.75rem;">
-        <div class="byline__avatar">AS</div>
-        <div class="byline__info"><span class="byline__name">Anna Smith</span><span class="byline__meta">Data Scientist</span></div>
+      <p class="eyebrow" id="previewEyebrow"></p>
+      <h2 id="previewTitle"></h2>
+      <div class="rating-row" id="previewRating" hidden></div>
+      <div class="modal-byline-row">
+        <div class="byline" id="previewByline"></div>
       </div>
 
       <nav class="modal-tabs">
@@ -590,127 +571,160 @@
         <button class="tab-btn" data-tab="discussion" type="button">Q&amp;A</button>
       </nav>
 
-      <div class="tab-panel" data-panel="overview" id="previewOverview">
-        <p>This course covers Python programming, data analysis with pandas, and visualization with matplotlib and seaborn. Perfect for beginners who want to start a career in data science.</p>
-        <div class="learning-outcomes">
-          <strong style="display:block;margin-bottom:0.3rem;">What You'll Learn</strong>
-          <ul>
-            <li>Write clean, efficient Python code for data tasks</li>
-            <li>Manipulate and analyze data using pandas</li>
-            <li>Create compelling visualizations with matplotlib</li>
-            <li>Build and evaluate predictive models with scikit-learn</li>
-          </ul>
-        </div>
-        <div class="meta-grid">
-          <div><strong>Duration</strong> 8 hours</div>
-          <div><strong>Lessons</strong> 32</div>
-          <div><strong>Level</strong> Beginner</div>
-          <div><strong>Students</strong> Be the first</div>
-        </div>
-        <div><strong>Related Courses</strong></div>
-        <div class="related-courses">
-          <div class="rv-card"><img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=150&h=80&fit=crop" alt="related"><p>Data Visualization</p></div>
-          <div class="rv-card"><img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=150&h=80&fit=crop" alt="related"><p>Business Analytics</p></div>
-          <div class="rv-card"><img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=150&h=80&fit=crop" alt="related"><p>ML Fundamentals</p></div>
-        </div>
-      </div>
+      <div class="tab-panel" data-panel="overview" id="previewOverview"></div>
       <div class="tab-panel" data-panel="curriculum" id="previewCurriculum" hidden>
-        <p class="stub-note"><i class="fas fa-list-ol"></i> Course curriculum will appear here once the instructor publishes lessons.</p>
+        <p class="stub-note"><i class="fas fa-list-ol"></i> Full curriculum / table of contents will appear here once available.</p>
       </div>
-      <div class="tab-panel" data-panel="reviews" id="previewReviews" hidden>
-        <p class="stub-note"><i class="fas fa-star"></i> No reviews yet. Students who complete this course can leave reviews.</p>
-      </div>
+      <div class="tab-panel" data-panel="reviews" id="previewReviews" hidden></div>
       <div class="tab-panel" data-panel="discussion" id="previewDiscussion" hidden>
-        <p class="stub-note"><i class="fas fa-comments"></i> Course discussions will open soon.</p>
+        <p class="stub-note"><i class="fas fa-comments"></i> Discussion &amp; Q&amp;A is coming soon.</p>
       </div>
 
-      <div class="modal-preview__footer" id="previewFooter">
-        <span class="price-block is-free">Free</span>
-        <button class="btn-primary btn-inline">Enroll Now</button>
-      </div>
+      <div class="modal-preview__footer" id="previewFooter"></div>
     </div>
   </div>
 </div>
 
-<!-- FLAG MODAL -->
+<!-- Upload Wizard Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal-panel modal-panel--wizard">
+    <button class="modal-close" onclick="closeUploadModal()" aria-label="Close">&times;</button>
+    <h2><i class="fas fa-feather-pointed"></i> Share Your Knowledge</h2>
+
+    <div class="wizard-steps">
+      <span class="step active" data-step="1"><em>1</em>Basics</span>
+      <span class="step" data-step="2"><em>2</em>Content</span>
+      <span class="step" data-step="3"><em>3</em>Pricing</span>
+      <span class="step" data-step="4"><em>4</em>Review</span>
+    </div>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="wizard-panel" data-panel="1">
+        <div class="form-group">
+          <label for="wizTitle">Title</label>
+          <input type="text" id="wizTitle" name="title" placeholder="Course, book, or guide title" required>
+        </div>
+        <div class="form-group">
+          <label for="wizDescription">Description</label>
+          <textarea id="wizDescription" name="description" placeholder="What will people learn or read?" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="wizAuthor">Author / Instructor Name</label>
+            <input type="text" id="wizAuthor" name="author" placeholder="Defaults to your username">
+          </div>
+          <div class="form-group">
+            <label for="wizCategory">Category / Genre</label>
+            <select id="wizCategory" name="category"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-panel" data-panel="2" hidden>
+        <div class="form-group">
+          <label>Content Type</label>
+          <div class="content-type-tags">
+            <label class="tag-option"><input type="radio" name="content_type" value="video" checked><span class="tag-box"><i class="fas fa-video"></i>Video Course</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="book"><span class="tag-box"><i class="fas fa-book"></i>Book / PDF</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="ebook"><span class="tag-box"><i class="fas fa-book-open"></i>eBook</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="guide"><span class="tag-box"><i class="fas fa-compass"></i>Guide</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="document"><span class="tag-box"><i class="fas fa-file-alt"></i>Document</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="presentation"><span class="tag-box"><i class="fas fa-chalkboard"></i>Presentation</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="template"><span class="tag-box"><i class="fas fa-layer-group"></i>Template</span></label>
+            <label class="tag-option"><input type="radio" name="content_type" value="worksheet"><span class="tag-box"><i class="fas fa-clipboard-list"></i>Worksheet</span></label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="wizLevel">Level</label>
+            <select id="wizLevel" name="level">
+              <option value="">Not specified</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="form-group" id="wizPagesGroup" hidden>
+            <label for="wizPages">Number of Pages</label>
+            <input type="number" id="wizPages" name="page_count" min="1" placeholder="e.g. 220">
+          </div>
+        </div>
+        <div class="form-group" id="wizLanguageGroup" hidden>
+          <label for="wizLanguage">Language</label>
+          <input type="text" id="wizLanguage" name="language" placeholder="e.g. English">
+        </div>
+
+        <div class="form-group">
+          <label>Cover / Thumbnail Image</label>
+          <div class="image-upload-container">
+            <input type="file" id="wizThumbnail" name="thumbnail" accept="image/*" required>
+            <div class="image-upload-label"><i class="fas fa-image"></i> <span>Click to upload cover image (JPG, PNG, GIF)</span></div>
+          </div>
+          <div id="thumbnailPreview" class="image-preview-container"></div>
+        </div>
+        <div class="form-group">
+          <label>File</label>
+          <div class="file-input-container">
+            <input type="file" id="wizFile" name="file" accept=".pdf,.doc,.docx,.epub,.mp4,.mov,.zip,.ppt,.pptx,.xlsx,.csv" required>
+            <div class="file-input-label"><i class="fas fa-file-upload"></i> <span>Choose file (PDF, DOC, EPUB, PPT, video, etc.)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-panel" data-panel="3" hidden>
+        <div id="wizPricingAdmin" hidden>
+          <div class="book-type-selector">
+            <button type="button" class="book-type-btn active" data-type="free">Free Content</button>
+            <button type="button" class="book-type-btn" data-type="paid">Premium Content</button>
+          </div>
+          <div class="form-group" id="wizPriceField" hidden>
+            <label for="wizPrice">Price (₦)</label>
+            <input type="number" id="wizPrice" name="price" placeholder="0.00" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="info-note" id="wizPricingInfo" hidden>
+          <i class="fas fa-info-circle"></i>
+          <span>Your content will be published as free. Interested in offering paid content? Reach out to our team once you're a verified creator.</span>
+        </div>
+      </div>
+
+      <div class="wizard-panel" data-panel="4" hidden>
+        <div class="wizard-review" id="wizardReview"></div>
+      </div>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn-secondary" id="wizardBackBtn" onclick="prevWizardStep()">Back</button>
+        <button type="button" class="btn-ghost-text" id="wizardDraftBtn" onclick="handleSaveDraft()">Save as Draft</button>
+        <button type="button" class="btn-primary" id="wizardNextBtn" onclick="nextWizardStep()">Next</button>
+        <button type="submit" class="btn-primary" id="wizardPublishBtn" hidden>Publish</button>
+      </div>
+      <div id="uploadMessage"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Flag Modal -->
 <div class="modal-overlay" id="flagModal">
   <div class="modal-panel modal-panel--flag">
     <button class="modal-close" onclick="closeFlagModal()" aria-label="Close">&times;</button>
     <h3><i class="fas fa-flag"></i> Report Content</h3>
-    <p>Please explain why you're flagging this content.</p>
+    <p>Please explain why you're flagging this content. This helps us maintain quality.</p>
     <textarea id="flagReason" placeholder="Describe the issue (minimum 10 characters)..."></textarea>
     <div class="modal-buttons">
       <button class="btn-secondary btn-inline" onclick="closeFlagModal()">Cancel</button>
-      <button class="btn-primary btn-inline" style="background:var(--color-danger);color:#fff;" onclick="submitFlag()">Submit</button>
+      <button class="btn-primary btn-inline" style="background:var(--color-danger);color:#fff;" onclick="submitFlag()">Submit Report</button>
     </div>
   </div>
 </div>
 
-<!-- FOOTER -->
-<footer><div class="container"><p>&copy; Core Insight — Empowering minds through knowledge.</p></div></footer>
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>&copy; Core Insight — Empowering minds through knowledge.</p>
+  </div>
+</footer>
 
-<!-- minimal JS -->
-<script>
-  // helpers
-  function closePreviewModal() { document.getElementById('previewModal').classList.remove('is-open'); }
-  function closeFlagModal() { document.getElementById('flagModal').classList.remove('is-open'); }
-  function submitFlag() { alert('Report submitted (demo)'); closeFlagModal(); }
-
-  // tabs
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
-      const panel = document.querySelector(`[data-panel="${this.dataset.tab}"]`);
-      if(panel) panel.hidden = false;
-    });
-  });
-
-  // filter chips
-  document.querySelectorAll('.filter-chip').forEach(chip => {
-    chip.addEventListener('click', function() {
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-
-  // open preview from featured & cards
-  document.querySelectorAll('.preview-play, .featured-card .btn-primary, .course-card .btn-primary').forEach(el => {
-    el.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('previewModal').classList.add('is-open');
-    });
-  });
-
-  // bookmark toggle
-  document.querySelectorAll('.bookmark-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      this.classList.toggle('is-saved');
-      const icon = this.querySelector('i');
-      icon.className = this.classList.contains('is-saved') ? 'fas fa-bookmark' : 'far fa-bookmark';
-    });
-  });
-
-  // instructor CTA
-  document.getElementById('instructorCtaBtn').addEventListener('click', function() {
-    alert('Start teaching — get in touch with our team.');
-  });
-
-  // mobile menu
-  document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
-    document.querySelector('nav').classList.toggle('active');
-  });
-
-  // close modals on overlay
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-      if(e.target === this) this.classList.remove('is-open');
-    });
-  });
-</script>
 <script src="courses.js"></script>
 </body>
 </html>

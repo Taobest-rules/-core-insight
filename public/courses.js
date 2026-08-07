@@ -1,10 +1,11 @@
+
 /* -------------------------- 1. GLOBAL STATE -------------------------- */
 let userCurrency = 'USD';
 let exchangeRates = {};
 let currentUser = null;
 let allCourses = [];
 
-let activeTypeFilter = 'all';   // all | free | premium | video | featured | trending | bestselling | new | saved
+let activeTypeFilter = 'all';   // all | free | premium | courses | books | featured | trending | bestselling | new | saved
 let activeCategory = 'all';
 let activeLevel = 'all';
 let activeSort = 'newest';
@@ -14,24 +15,36 @@ const PAGE_SIZE = 9;
 let visibleCount = PAGE_SIZE;
 
 let bookmarkedIds = new Set(JSON.parse(localStorage.getItem('ci_bookmarked_courses') || '[]'));
-let followedInstructors = new Set(JSON.parse(localStorage.getItem('ci_followed_instructors') || '[]'));
+let followedAuthorIds = new Set(JSON.parse(localStorage.getItem('ci_followed_author_ids') || '[]'));
 let recentlyViewedIds = JSON.parse(localStorage.getItem('ci_recently_viewed') || '[]');
 
 let currentFlagCourseId = null;
 let wizardCurrentStep = 1;
 
-// Muted category-color system (mirrors the Knowledge Hub's CATEGORY_META pattern).
-// Any course.category value not listed here still renders fine with a neutral dot.
+/* Category / genre taxonomy — covers courses (non-fiction/professional)
+   and books (fiction + non-fiction). Any course.category value not listed
+   here still renders fine with a neutral dot and its raw label. */
 const CATEGORY_META = {
-  'technology': { label: 'Technology', color: '#4a6fa5' },
-  'business': { label: 'Business', color: '#c9971f' },
-  'design': { label: 'Design', color: '#8a6bb1' },
-  'marketing': { label: 'Marketing', color: '#b17a5b' },
-  'personal-growth': { label: 'Personal Growth', color: '#5a8d7d' },
-  'health': { label: 'Health & Wellness', color: '#7d8f4a' },
-  'photography': { label: 'Photography', color: '#5b8a9a' },
-  'music': { label: 'Music', color: '#a15b7d' }
+  'technology': { label: 'Technology', color: '#4a6fa5', group: 'Non-Fiction & Professional' },
+  'business': { label: 'Business', color: '#c9971f', group: 'Non-Fiction & Professional' },
+  'marketing': { label: 'Marketing', color: '#b17a5b', group: 'Non-Fiction & Professional' },
+  'personal-development': { label: 'Personal Development', color: '#5a8d7d', group: 'Non-Fiction & Professional' },
+  'personal-growth': { label: 'Personal Growth', color: '#5a8d7d', group: 'Non-Fiction & Professional' },
+  'finance': { label: 'Finance', color: '#3f7a82', group: 'Non-Fiction & Professional' },
+  'education': { label: 'Education', color: '#8a6bb1', group: 'Non-Fiction & Professional' },
+  'health': { label: 'Health', color: '#7d8f4a', group: 'Non-Fiction & Professional' },
+  'ai': { label: 'AI', color: '#5b6b9a', group: 'Non-Fiction & Professional' },
+  'design': { label: 'Design', color: '#a15b7d', group: 'Non-Fiction & Professional' },
+  'romance': { label: 'Romance', color: '#b15b7d', group: 'Fiction & Creative Writing' },
+  'mystery': { label: 'Mystery', color: '#4a4a52', group: 'Fiction & Creative Writing' },
+  'thriller': { label: 'Thriller', color: '#8a3f3f', group: 'Fiction & Creative Writing' },
+  'fantasy': { label: 'Fantasy', color: '#7a5ba1', group: 'Fiction & Creative Writing' },
+  'sci-fi': { label: 'Sci-Fi', color: '#3f7a9e', group: 'Fiction & Creative Writing' },
+  'historical': { label: 'Historical', color: '#8a6f4a', group: 'Fiction & Creative Writing' },
+  'poetry': { label: 'Poetry', color: '#9a7ab1', group: 'Fiction & Creative Writing' },
+  'short-stories': { label: 'Short Stories', color: '#7a7568', group: 'Fiction & Creative Writing' }
 };
+const CATEGORY_GROUP_ORDER = ['Non-Fiction & Professional', 'Fiction & Creative Writing'];
 
 /* -------------------------- 2. UTILITIES -------------------------- */
 function escapeHtml(str) {
@@ -172,19 +185,17 @@ async function loadUser() {
     currentUser = user || null;
 
     const headerAuthButtons = document.getElementById('headerAuthButtons');
-    const teachBanner = document.getElementById('teachBanner');
     const notifBtn = document.getElementById('notifBtn');
     const adminNavLink = document.getElementById('adminNavLink');
 
     if (user) {
       headerAuthButtons.innerHTML = `
-        <span class="welcome-text" style="display:inline;">
+        <span class="welcome-text">
           Welcome, ${escapeHtml(user.username || 'User')}
           ${user.role === 'admin' ? '<a href="admin-dashboard.html" class="admin-badge">Admin</a>' : ''}
         </span>
         <a href="#" class="btn-login" onclick="logout(); return false;">Logout</a>
       `;
-      teachBanner.hidden = false;
       notifBtn.hidden = false;
       adminNavLink.hidden = user.role !== 'admin';
     } else {
@@ -192,7 +203,6 @@ async function loadUser() {
         <a href="login.html" class="btn-login">Login</a>
         <a href="signup.html" class="btn-signup">Sign Up</a>
       `;
-      teachBanner.hidden = true;
       notifBtn.hidden = true;
       adminNavLink.hidden = true;
     }
@@ -219,20 +229,71 @@ function toggleNotifications(event) {
   panel.hidden = !wasHidden;
 }
 
-/* -------------------------- 5. HELPERS FOR COURSE DISPLAY -------------------------- */
+/* -------------------------- 5. CATEGORY / FORMAT / REPUTATION HELPERS -------------------------- */
 function getCategoryMeta(rawCategory) {
   if (!rawCategory) return null;
   const slug = String(rawCategory).toLowerCase().trim().replace(/\s+/g, '-');
-  return CATEGORY_META[slug] || { label: rawCategory, color: '#8f8a7c' };
+  return CATEGORY_META[slug] || { label: rawCategory, color: '#8f8a7c', group: 'Other' };
+}
+
+function buildCategoryOptionsHTML(includeAllOption) {
+  const byGroup = {};
+  Object.keys(CATEGORY_META).forEach(slug => {
+    // avoid listing both personal-development and personal-growth as separate near-duplicate options
+    if (slug === 'personal-growth') return;
+    const meta = CATEGORY_META[slug];
+    byGroup[meta.group] = byGroup[meta.group] || [];
+    byGroup[meta.group].push({ slug, label: meta.label });
+  });
+
+  let html = includeAllOption ? '<option value="all">All Categories</option>' : '';
+  CATEGORY_GROUP_ORDER.forEach(group => {
+    if (!byGroup[group]) return;
+    html += `<optgroup label="${escapeHtml(group)}">`;
+    byGroup[group].forEach(item => { html += `<option value="${item.slug}">${escapeHtml(item.label)}</option>`; });
+    html += '</optgroup>';
+  });
+
+  // Any category actually present in loaded data but not in our static list
+  const extra = new Set();
+  allCourses.forEach(c => {
+    if (!c.category) return;
+    const slug = String(c.category).toLowerCase().trim().replace(/\s+/g, '-');
+    if (!CATEGORY_META[slug]) extra.add(slug);
+  });
+  if (extra.size) {
+    html += `<optgroup label="Other">`;
+    Array.from(extra).sort().forEach(slug => { html += `<option value="${escapeHtml(slug)}">${escapeHtml(slug)}</option>`; });
+    html += '</optgroup>';
+  }
+  return html;
+}
+
+function populateCategorySelects() {
+  const filterSelect = document.getElementById('categorySelect');
+  const wizSelect = document.getElementById('wizCategory');
+  if (filterSelect) {
+    const current = filterSelect.value || 'all';
+    filterSelect.innerHTML = buildCategoryOptionsHTML(true);
+    filterSelect.value = Array.from(filterSelect.options).some(o => o.value === current) ? current : 'all';
+  }
+  if (wizSelect && !wizSelect.dataset.populated) {
+    wizSelect.innerHTML = buildCategoryOptionsHTML(false);
+    wizSelect.dataset.populated = 'true';
+  }
 }
 
 function getFormatLabel(contentType, isVideo) {
   if (isVideo) return 'Video Course';
   switch ((contentType || '').toLowerCase()) {
-    case 'book': return 'Book / PDF';
+    case 'book': return 'Book';
+    case 'ebook': return 'eBook';
     case 'document': return 'Document';
     case 'presentation': return 'Presentation';
-    default: return 'Course';
+    case 'guide': return 'Guide';
+    case 'template': return 'Template';
+    case 'worksheet': return 'Worksheet';
+    default: return 'Resource';
   }
 }
 
@@ -240,8 +301,12 @@ function getFormatIcon(contentType, isVideo) {
   if (isVideo) return 'fa-video';
   switch ((contentType || '').toLowerCase()) {
     case 'book': return 'fa-book';
+    case 'ebook': return 'fa-book-open';
     case 'document': return 'fa-file-alt';
     case 'presentation': return 'fa-chalkboard';
+    case 'guide': return 'fa-compass';
+    case 'template': return 'fa-layer-group';
+    case 'worksheet': return 'fa-clipboard-list';
     default: return 'fa-graduation-cap';
   }
 }
@@ -256,6 +321,42 @@ function isRecentlyAdded(course) {
   const created = new Date(course.created_at);
   if (isNaN(created)) return false;
   return (Date.now() - created.getTime()) < 30 * 24 * 60 * 60 * 1000;
+}
+
+/* Reputation tier — computed locally from the number of items this creator
+   has published in the currently loaded catalog. This is an honest, real
+   signal (not fabricated), but it's a local approximation, not a lifetime
+   total. Richer signals (follower count, avg rating) get pulled from the
+   real /api/profile/:userId endpoint when someone opens the Quick View. */
+function getCreatorReputation(userId) {
+  const count = allCourses.filter(c => c.user_id === userId).length;
+  if (count >= 10) return { label: 'Top Creator', tier: 'top' };
+  if (count >= 5) return { label: 'Established Creator', tier: 'established' };
+  if (count >= 2) return { label: 'Rising Creator', tier: 'rising' };
+  return { label: 'New Creator', tier: 'new' };
+}
+
+function getRelatedCourses(course, limit = 4) {
+  const sameCategory = allCourses.filter(c => c.id !== course.id && course.category && c.category === course.category);
+  const sameFormat = allCourses.filter(c => c.id !== course.id && c.content_type === course.content_type && !sameCategory.includes(c));
+  const combined = [...sameCategory, ...sameFormat];
+  const seen = new Set();
+  const result = [];
+  for (const c of combined) {
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+    result.push(c);
+    if (result.length >= limit) break;
+  }
+  if (result.length < limit) {
+    for (const c of allCourses) {
+      if (c.id === course.id || seen.has(c.id)) continue;
+      result.push(c);
+      seen.add(c.id);
+      if (result.length >= limit) break;
+    }
+  }
+  return result;
 }
 
 /* -------------------------- 6. LOAD & ENRICH COURSES -------------------------- */
@@ -323,6 +424,7 @@ async function loadCourses() {
       return {
         ...course,
         id: Number(course.id),
+        user_id: Number(course.user_id),
         isVideo, isFree, isPremium, hasAccess, isOwner, showFlagButton, canDelete,
         hasFlagged: flaggedSet.has(Number(course.id)),
         thumbnailSrc,
@@ -334,10 +436,12 @@ async function loadCourses() {
       };
     });
 
-    populateCategoryOptions(allCourses);
+    populateCategorySelects();
     visibleCount = PAGE_SIZE;
     renderCourses();
     renderRecentlyViewed();
+    renderFeaturedSpotlight();
+    renderContinueLearning();
 
     const heroCount = document.getElementById('heroCourseCount');
     if (heroCount) heroCount.textContent = allCourses.length;
@@ -356,28 +460,14 @@ async function loadCourses() {
   }
 }
 
-function populateCategoryOptions(courses) {
-  const select = document.getElementById('categorySelect');
-  if (!select) return;
-  const current = select.value || 'all';
-  const categories = new Set();
-  courses.forEach(c => { if (c.category) categories.add(String(c.category).toLowerCase().trim()); });
-
-  select.innerHTML = '<option value="all">All Categories</option>' +
-    Array.from(categories).sort().map(slug => {
-      const meta = getCategoryMeta(slug);
-      return `<option value="${escapeHtml(slug)}">${escapeHtml(meta.label)}</option>`;
-    }).join('');
-  select.value = Array.from(select.options).some(o => o.value === current) ? current : 'all';
-}
-
 /* -------------------------- 7. FILTER / SORT / RENDER -------------------------- */
 function courseMatchesTypeFilter(course, filter) {
   switch (filter) {
     case 'all': return true;
     case 'free': return course.isFree;
     case 'premium': return course.isPremium;
-    case 'video': return course.isVideo;
+    case 'courses': return course.isVideo;
+    case 'books': return !course.isVideo;
     case 'featured': return course.featured === true;
     case 'trending': return course.trending === true;
     case 'bestselling': return course.bestselling === true;
@@ -388,14 +478,17 @@ function courseMatchesTypeFilter(course, filter) {
 }
 
 function isChipDataAvailable(filter) {
-  if (['all', 'free', 'premium', 'video', 'saved'].includes(filter)) return true;
+  if (['all', 'free', 'premium', 'courses', 'books', 'saved'].includes(filter)) return true;
   return allCourses.some(c => courseMatchesTypeFilter(c, filter));
 }
 
 function getFilteredSortedCourses() {
   let list = allCourses.filter(c => {
     if (!courseMatchesTypeFilter(c, activeTypeFilter)) return false;
-    if (activeCategory !== 'all' && String(c.category || '').toLowerCase().trim() !== activeCategory) return false;
+    if (activeCategory !== 'all') {
+      const slug = String(c.category || '').toLowerCase().trim().replace(/\s+/g, '-');
+      if (slug !== activeCategory) return false;
+    }
     if (activeLevel !== 'all' && String(c.level || '').toLowerCase().trim() !== activeLevel) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -429,15 +522,15 @@ function renderCourses() {
   const loadMoreBtn = document.getElementById('loadMoreBtn');
   const filtered = getFilteredSortedCourses();
 
-  countEl.textContent = `${filtered.length} Course${filtered.length === 1 ? '' : 's'}`;
+  countEl.textContent = `${filtered.length} Title${filtered.length === 1 ? '' : 's'}`;
 
   if (filtered.length === 0) {
     const noneAtAll = allCourses.length === 0;
     grid.innerHTML = `
       <div class="empty-state">
         <i class="fas ${noneAtAll ? 'fa-book-open' : 'fa-magnifying-glass'}"></i>
-        <h3>${noneAtAll ? 'No courses available yet' : 'No courses match those filters'}</h3>
-        <p>${noneAtAll ? 'Check back soon for new course offerings.' : 'Try a different search term or clear a filter.'}</p>
+        <h3>${noneAtAll ? 'Nothing published yet' : 'Nothing matches those filters'}</h3>
+        <p>${noneAtAll ? 'Check back soon for new courses and books.' : 'Try a different search term or clear a filter.'}</p>
         ${!noneAtAll ? '<button class="btn-secondary btn-inline" onclick="resetAllFilters()">Clear filters</button>' : ''}
       </div>`;
     loadMoreBtn.hidden = true;
@@ -463,23 +556,43 @@ function resetAllFilters() {
 }
 
 /* -------------------------- 8. CARD MARKUP -------------------------- */
+function bylineBlockHTML(course, { compact } = {}) {
+  const rep = getCreatorReputation(course.user_id);
+  const isSelf = currentUser && Number(currentUser.id) === Number(course.user_id);
+  return `
+    <div class="byline__avatar">${getInitials(course.author)}</div>
+    <div class="byline__info">
+      <a href="profile.html?id=${course.user_id}" class="byline__name">${course.safeAuthor || 'Core Insight'}</a>
+      <span class="byline__meta ${rep.tier}">${rep.label}</span>
+    </div>
+    ${(!isSelf && course.safeAuthor) ? `<button type="button" class="follow-btn" data-follow-id="${course.user_id}" onclick="toggleFollow(${course.user_id})">${followedAuthorIds.has(course.user_id) ? 'Following' : 'Follow'}</button>` : ''}
+  `;
+}
+
 function courseCardHTML(course) {
   const categoryMeta = getCategoryMeta(course.category);
-  const eyebrowParts = [];
-  if (categoryMeta) eyebrowParts.push(`<span class="category-dot" style="background:${categoryMeta.color}"></span>${escapeHtml(categoryMeta.label)}`);
-  if (course.level) eyebrowParts.push(escapeHtml(course.level));
-  eyebrowParts.push(getFormatLabel(course.content_type, course.isVideo));
-  const eyebrow = eyebrowParts.join(' &middot; ');
+  const eyebrow = categoryMeta ? `<span class="category-dot" style="background:${categoryMeta.color}"></span>${escapeHtml(categoryMeta.label)}` : escapeHtml(getFormatLabel(course.content_type, course.isVideo));
 
   const ratingRow = (course.rating)
     ? `<div class="rating-row"><span class="stars">${'★'.repeat(Math.round(course.rating))}${'☆'.repeat(5 - Math.round(course.rating))}</span> ${Number(course.rating).toFixed(1)}
-        ${course.review_count ? `<span class="rv-count">(${course.review_count})</span>` : ''}
-        ${course.student_count ? `<span class="rv-count">&middot; ${course.student_count.toLocaleString()} students</span>` : ''}</div>`
+        ${course.review_count ? `<span class="rv-count">(${course.review_count})</span>` : ''}</div>`
     : '';
 
-  const tagsRow = Array.isArray(course.tags) && course.tags.length
-    ? `<div class="tag-pills">${course.tags.slice(0, 3).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}${course.tags.length > 3 ? `<span class="tag-pill">+${course.tags.length - 3}</span>` : ''}</div>`
-    : '';
+  const metaBits = [];
+  if (course.duration) metaBits.push(`<span><i class="far fa-clock"></i> ${escapeHtml(String(course.duration))}</span>`);
+  if (course.lesson_count) metaBits.push(`<span><i class="far fa-file-alt"></i> ${course.lesson_count} lessons</span>`);
+  else if (course.page_count) metaBits.push(`<span><i class="far fa-file-alt"></i> ${course.page_count} pages</span>`);
+  if (course.student_count) metaBits.push(`<span><i class="fas fa-user-graduate"></i> ${course.student_count.toLocaleString()} students</span>`);
+  const metaStats = metaBits.length ? `<div class="meta-stats">${metaBits.join('')}</div>` : '';
+
+  const badgeBits = [];
+  if (course.level) badgeBits.push(`<span class="difficulty-badge ${escapeHtml(String(course.level).toLowerCase())}">${escapeHtml(course.level)}</span>`);
+  if (course.user_role === 'admin') badgeBits.push(`<span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span>`);
+  const badgeRow = badgeBits.length ? `<div class="badge-row">${badgeBits.join('')}</div>` : '';
+
+  const benefitBits = [`<span><i class="fas fa-check-circle"></i> Lifetime Access</span>`];
+  if (!course.isVideo) benefitBits.push(`<span><i class="fas fa-check-circle"></i> Downloadable</span>`);
+  const benefitsRow = `<div class="course-benefits">${benefitBits.join('')}</div>`;
 
   let priceBlock;
   if (course.hasAccess && course.isPremium) {
@@ -511,6 +624,9 @@ function courseCardHTML(course) {
     `<button type="button" onclick="openPreviewModal(${course.id})"><i class="fas fa-eye"></i> Quick View</button>`,
     `<button type="button" onclick="shareCourse(${course.id})"><i class="fas fa-share-alt"></i> Share</button>`
   ];
+  if (!currentUser || Number(currentUser.id) !== course.user_id) {
+    menuItems.push(`<button type="button" onclick="supportAuthor(${course.user_id})"><i class="fas fa-hand-holding-heart"></i> Support Author</button>`);
+  }
   if (course.isPremium && !course.hasAccess) menuItems.push(`<button type="button" onclick="checkAccess(${course.id})"><i class="fas fa-shield-halved"></i> Verify Access</button>`);
   if (course.showFlagButton) menuItems.push(`<button type="button" onclick="openFlagModal(${course.id})" ${course.hasFlagged ? 'disabled' : ''}><i class="fas fa-flag"></i> ${course.hasFlagged ? 'Reported' : 'Report'}</button>`);
   if (course.canDelete) menuItems.push(`<button type="button" class="danger" onclick="deleteCourse(${course.id})"><i class="fas fa-trash"></i> Delete</button>`);
@@ -520,7 +636,7 @@ function courseCardHTML(course) {
       <div class="course-card__media">
         <img src="${course.thumbnailSrc}" alt="${course.safeTitle}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x220/f0ece0/2b2b28?text=Course&font=montserrat'">
         <span class="format-icon"><i class="fas ${getFormatIcon(course.content_type, course.isVideo)}"></i></span>
-        <button class="bookmark-btn ${bookmarkedIds.has(course.id) ? 'is-saved' : ''}" data-bookmark-id="${course.id}" onclick="toggleBookmark(${course.id})" aria-label="Save course">
+        <button class="bookmark-btn ${bookmarkedIds.has(course.id) ? 'is-saved' : ''}" data-bookmark-id="${course.id}" onclick="toggleBookmark(${course.id})" aria-label="Save">
           <i class="${bookmarkedIds.has(course.id) ? 'fas' : 'far'} fa-bookmark"></i>
         </button>
         ${playOverlay}
@@ -531,15 +647,10 @@ function courseCardHTML(course) {
         <h3 class="course-card__title">${course.safeTitle}</h3>
         <p class="course-card__desc">${course.safeDescription}</p>
         ${ratingRow}
-        ${tagsRow}
-        <div class="byline">
-          <div class="byline__avatar">${getInitials(course.author)}</div>
-          <div class="byline__info">
-            <span class="byline__name">${course.safeAuthor || 'Core Insight'}</span>
-            <span class="byline__meta">${course.user_role === 'admin' ? 'Verified Instructor' : 'Instructor'}</span>
-          </div>
-          ${course.safeAuthor ? `<button type="button" class="follow-btn ${followedInstructors.has(course.author) ? 'is-following' : ''}" data-follow-author="${escapeHtml(course.author)}" onclick="toggleFollow(this)">${followedInstructors.has(course.author) ? 'Following' : 'Follow'}</button>` : ''}
-        </div>
+        ${metaStats}
+        ${badgeRow}
+        ${benefitsRow}
+        <div class="byline">${bylineBlockHTML(course)}</div>
         <div class="course-card__footer">
           ${priceBlock}
           <div class="course-card__actions">
@@ -554,7 +665,70 @@ function courseCardHTML(course) {
     </article>`;
 }
 
-/* -------------------------- 9. SEARCH / SELECTS / CHIPS / PAGINATION -------------------------- */
+/* -------------------------- 9. FEATURED SPOTLIGHT / CONTINUE LEARNING -------------------------- */
+function renderFeaturedSpotlight() {
+  const section = document.getElementById('featuredSection');
+  const label = document.getElementById('featuredLabel');
+  const card = document.getElementById('featuredCard');
+  if (!allCourses.length) { section.hidden = true; return; }
+
+  let spotlight = allCourses.find(c => c.featured === true);
+  let isRealFeatured = !!spotlight;
+  if (!spotlight) {
+    spotlight = [...allCourses].sort((a, b) => {
+      const aDate = a.created_at ? new Date(a.created_at).getTime() : a.id;
+      const bDate = b.created_at ? new Date(b.created_at).getTime() : b.id;
+      return bDate - aDate;
+    })[0];
+  }
+  if (!spotlight) { section.hidden = true; return; }
+
+  section.hidden = false;
+  label.innerHTML = isRealFeatured ? `<i class="fas fa-star"></i> Featured` : `<i class="fas fa-sparkles"></i> Newest Addition`;
+
+  const eyebrow = getCategoryMeta(spotlight.category);
+  const rep = getCreatorReputation(spotlight.user_id);
+  let priceHtml;
+  if (spotlight.hasAccess && spotlight.isPremium) priceHtml = `<span class="price-block is-owned"><i class="fas fa-check-circle"></i> Enrolled</span>`;
+  else if (spotlight.isFree) priceHtml = `<span class="price-block is-free">Free</span>`;
+  else priceHtml = `<span class="price-block" data-original-price="${spotlight.price}">…</span>`;
+  const ctaLabel = spotlight.hasAccess ? (spotlight.isVideo ? 'Watch Now' : 'Download Now') : 'Enroll Now';
+  const ctaOnclick = spotlight.hasAccess ? (spotlight.isVideo ? `watchVideo(${spotlight.id})` : `handleDownload(${spotlight.id})`) : `initiatePayment(${spotlight.id})`;
+
+  card.innerHTML = `
+    <div class="featured-card__thumb"><img src="${spotlight.thumbnailSrc}" alt="${spotlight.safeTitle}"></div>
+    <div class="featured-card__body">
+      <span class="eyebrow">${eyebrow ? `<span class="category-dot" style="background:${eyebrow.color}"></span>${escapeHtml(eyebrow.label)}` : escapeHtml(getFormatLabel(spotlight.content_type, spotlight.isVideo))}</span>
+      <h3>${spotlight.safeTitle}</h3>
+      <p class="desc">${spotlight.safeDescription}</p>
+      <div class="byline" style="border-top:none;padding-top:0;">${bylineBlockHTML(spotlight)}</div>
+      <div class="featured-card__footer">
+        ${priceHtml}
+        <button class="btn-primary btn-inline" onclick="${ctaOnclick}">${ctaLabel}</button>
+      </div>
+    </div>`;
+  updateAllPrices();
+}
+
+function renderContinueLearning() {
+  const section = document.getElementById('continueLearning');
+  if (!currentUser) { section.hidden = true; return; }
+  const inProgress = allCourses.find(c => c.hasAccess && c.isInProgress);
+  if (!inProgress) { section.hidden = true; return; }
+
+  section.hidden = false;
+  const resumeOnclick = inProgress.isVideo ? `watchVideo(${inProgress.id})` : `handleDownload(${inProgress.id})`;
+  section.innerHTML = `
+    <div class="continue-learning__info">
+      <i class="fas fa-play-circle" style="color:var(--color-blue);font-size:1.4rem;"></i>
+      <div><strong>Continue Learning</strong><br><span style="font-size:0.85rem;color:var(--color-text-muted);">${inProgress.safeTitle}</span></div>
+      <div class="progress"><span style="width:${inProgress.progress_percent}%;"></span></div>
+      <span style="font-weight:600;font-size:0.9rem;">${inProgress.progress_percent}%</span>
+    </div>
+    <button class="btn-primary btn-inline" onclick="${resumeOnclick}">Resume</button>`;
+}
+
+/* -------------------------- 10. SEARCH / SELECTS / CHIPS / PAGINATION -------------------------- */
 function setupSearch() {
   const input = document.getElementById('searchInput');
   let debounceTimer;
@@ -616,7 +790,7 @@ function setupLoadMore() {
   });
 }
 
-/* -------------------------- 10. CARD MENU / BOOKMARK / FOLLOW / SHARE -------------------------- */
+/* -------------------------- 11. CARD MENU / BOOKMARK / FOLLOW / SUPPORT / SHARE -------------------------- */
 function toggleCardMenu(btn, event) {
   event.stopPropagation();
   const dropdown = btn.nextElementSibling;
@@ -628,10 +802,10 @@ function toggleCardMenu(btn, event) {
 function toggleBookmark(courseId) {
   if (bookmarkedIds.has(courseId)) {
     bookmarkedIds.delete(courseId);
-    showToast('Removed from saved courses', 'info');
+    showToast('Removed from saved', 'info');
   } else {
     bookmarkedIds.add(courseId);
-    showToast('Saved to your courses', 'success');
+    showToast('Saved', 'success');
   }
   localStorage.setItem('ci_bookmarked_courses', JSON.stringify(Array.from(bookmarkedIds)));
 
@@ -645,23 +819,80 @@ function toggleBookmark(courseId) {
   if (activeTypeFilter === 'saved') renderCourses();
 }
 
-function toggleFollow(btnEl) {
-  const author = btnEl.dataset.followAuthor;
-  if (!author) return;
-  if (followedInstructors.has(author)) {
-    followedInstructors.delete(author);
-    showToast(`Unfollowed ${author}`, 'info');
-  } else {
-    followedInstructors.add(author);
-    showToast(`Following ${author}`, 'success');
+/* Follow now calls the real, existing creator-follow endpoint
+   (POST /api/profile/:userId/follow) shared with Knowledge Hub authors. */
+async function toggleFollow(authorUserId) {
+  if (!currentUser) {
+    showToast('Please login to follow creators.', 'error');
+    window.location.href = 'login.html';
+    return;
   }
-  localStorage.setItem('ci_followed_instructors', JSON.stringify(Array.from(followedInstructors)));
+  if (Number(currentUser.id) === Number(authorUserId)) {
+    showToast('You cannot follow yourself.', 'error');
+    return;
+  }
+  try {
+    const response = await fetch(`/api/profile/${authorUserId}/follow`, { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      showToast(data.error || 'Could not update follow status.', 'error');
+      return;
+    }
+    if (data.following) followedAuthorIds.add(authorUserId); else followedAuthorIds.delete(authorUserId);
+    localStorage.setItem('ci_followed_author_ids', JSON.stringify(Array.from(followedAuthorIds)));
+    showToast(data.following ? 'Following' : 'Unfollowed', 'success');
 
-  document.querySelectorAll(`[data-follow-author="${CSS.escape(author)}"]`).forEach(btn => {
-    const following = followedInstructors.has(author);
-    btn.classList.toggle('is-following', following);
-    btn.textContent = following ? 'Following' : 'Follow';
-  });
+    document.querySelectorAll(`[data-follow-id="${authorUserId}"]`).forEach(btn => {
+      btn.classList.toggle('is-following', data.following);
+      btn.textContent = data.following ? 'Following' : 'Follow';
+    });
+  } catch (error) {
+    console.error('Follow error:', error);
+    showToast('Network error — please try again.', 'error');
+  }
+}
+
+/* Support Author calls the real, existing creator-support/tip endpoint
+   (POST /api/support/create). articleId is intentionally omitted since
+   this is a course/book, not an article. */
+async function supportAuthor(authorUserId) {
+  if (!currentUser) {
+    showToast('Please login to support a creator.', 'error');
+    window.location.href = 'login.html';
+    return;
+  }
+  if (Number(currentUser.id) === Number(authorUserId)) {
+    showToast('You cannot support yourself.', 'error');
+    return;
+  }
+  const amountStr = prompt('Support this creator — enter an amount in USD ($1–$500):', '5');
+  if (!amountStr) return;
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount < 1 || amount > 500) {
+    showToast('Please enter an amount between $1 and $500.', 'error');
+    return;
+  }
+  const message = (prompt('Add a short message (optional):', '') || '').trim();
+
+  try {
+    showLoading();
+    const response = await fetch('/api/support/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creatorId: authorUserId, amount, message, isAnonymous: false })
+    });
+    const data = await response.json();
+    hideLoading();
+    if (response.ok && data.success && data.paymentLink) {
+      window.location.href = data.paymentLink;
+    } else {
+      showToast(data.error || 'Could not start support payment.', 'error');
+    }
+  } catch (error) {
+    hideLoading();
+    console.error('Support error:', error);
+    showToast('Network error — please try again.', 'error');
+  }
 }
 
 async function shareCourse(courseId) {
@@ -677,11 +908,11 @@ async function shareCourse(courseId) {
       showToast('Link copied to clipboard!', 'success');
     }
   } catch (error) {
-    if (error.name !== 'AbortError') showToast('Could not share this course.', 'error');
+    if (error.name !== 'AbortError') showToast('Could not share this.', 'error');
   }
 }
 
-/* -------------------------- 11. RECENTLY VIEWED -------------------------- */
+/* -------------------------- 12. RECENTLY VIEWED -------------------------- */
 function trackRecentlyViewed(courseId) {
   recentlyViewedIds = [courseId, ...recentlyViewedIds.filter(id => id !== courseId)].slice(0, 8);
   localStorage.setItem('ci_recently_viewed', JSON.stringify(recentlyViewedIds));
@@ -701,7 +932,7 @@ function renderRecentlyViewed() {
     </div>`).join('');
 }
 
-/* -------------------------- 12. PREVIEW / QUICK VIEW MODAL -------------------------- */
+/* -------------------------- 13. PREVIEW / QUICK VIEW MODAL -------------------------- */
 function openPreviewModal(courseId) {
   const course = allCourses.find(c => c.id === courseId);
   if (!course) return;
@@ -710,8 +941,8 @@ function openPreviewModal(courseId) {
   const categoryMeta = getCategoryMeta(course.category);
   const eyebrowParts = [];
   if (categoryMeta) eyebrowParts.push(`<span class="category-dot" style="background:${categoryMeta.color}"></span>${escapeHtml(categoryMeta.label)}`);
-  if (course.level) eyebrowParts.push(escapeHtml(course.level));
   eyebrowParts.push(getFormatLabel(course.content_type, course.isVideo));
+  if (course.level) eyebrowParts.push(escapeHtml(course.level));
 
   document.getElementById('previewMedia').innerHTML = `
     <img src="${course.thumbnailSrc}" alt="${course.safeTitle}">
@@ -729,32 +960,42 @@ function openPreviewModal(courseId) {
     ratingEl.hidden = true;
   }
 
-  document.getElementById('previewByline').innerHTML = `
-    <div class="byline__avatar">${getInitials(course.author)}</div>
-    <div class="byline__info">
-      <span class="byline__name">${course.safeAuthor || 'Core Insight'}</span>
-      <span class="byline__meta">${course.user_role === 'admin' ? 'Verified Instructor' : 'Instructor'}</span>
-    </div>
-    ${course.safeAuthor ? `<button type="button" class="follow-btn ${followedInstructors.has(course.author) ? 'is-following' : ''}" data-follow-author="${escapeHtml(course.author)}" onclick="toggleFollow(this)">${followedInstructors.has(course.author) ? 'Following' : 'Follow'}</button>` : ''}`;
+  document.getElementById('previewByline').innerHTML = bylineBlockHTML(course) +
+    ((!currentUser || Number(currentUser.id) !== course.user_id) ? `<button type="button" class="support-btn-sm" onclick="supportAuthor(${course.user_id})"><i class="fas fa-hand-holding-heart"></i> Support</button>` : '');
+
+  // Enrich with real profile data (accurate follow-state, bio) without blocking initial render
+  fetch(`/api/profile/${course.user_id}`).then(r => r.json()).then(data => {
+    if (!data || !data.success) return;
+    document.querySelectorAll(`[data-follow-id="${course.user_id}"]`).forEach(btn => {
+      btn.classList.toggle('is-following', !!data.is_following);
+      btn.textContent = data.is_following ? 'Following' : 'Follow';
+    });
+  }).catch(() => {});
+
+  const metaGridBits = [];
+  if (course.lesson_count) metaGridBits.push(`<div><strong>${course.lesson_count}</strong>Lessons</div>`);
+  if (course.page_count) metaGridBits.push(`<div><strong>${course.page_count}</strong>Pages</div>`);
+  if (course.duration) metaGridBits.push(`<div><strong>${escapeHtml(String(course.duration))}</strong>Duration</div>`);
+  metaGridBits.push(`<div><strong>${getFormatLabel(course.content_type, course.isVideo)}</strong>Format</div>`);
+  if (course.level) metaGridBits.push(`<div><strong>${escapeHtml(course.level)}</strong>Level</div>`);
+  if (course.language) metaGridBits.push(`<div><strong>${escapeHtml(course.language)}</strong>Language</div>`);
+  if (course.updated_at) metaGridBits.push(`<div><strong>${new Date(course.updated_at).toLocaleDateString()}</strong>Last updated</div>`);
+
+  const related = getRelatedCourses(course, 4);
 
   document.getElementById('previewOverview').innerHTML = `
     <p>${course.safeDescription}</p>
-    <div class="meta-grid">
-      ${course.lesson_count ? `<div><strong>${course.lesson_count}</strong>Lessons</div>` : ''}
-      ${course.duration ? `<div><strong>${escapeHtml(String(course.duration))}</strong>Duration</div>` : ''}
-      <div><strong>${getFormatLabel(course.content_type, course.isVideo)}</strong>Format</div>
-      ${course.level ? `<div><strong>${escapeHtml(course.level)}</strong>Level</div>` : ''}
-      ${course.updated_at ? `<div><strong>${new Date(course.updated_at).toLocaleDateString()}</strong>Last updated</div>` : ''}
-    </div>
-    ${Array.isArray(course.learning_outcomes) && course.learning_outcomes.length ? `<p><strong>What you'll learn</strong></p><ul>${course.learning_outcomes.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>` : `<p class="stub-note"><i class="fas fa-graduation-cap"></i> Learning outcomes for this course will be added soon.</p>`}
+    <div class="meta-grid">${metaGridBits.join('')}</div>
+    ${Array.isArray(course.learning_outcomes) && course.learning_outcomes.length ? `<div class="learning-outcomes"><strong style="display:block;margin-bottom:0.3rem;">What You'll Learn</strong><ul>${course.learning_outcomes.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul></div>` : `<p class="stub-note"><i class="fas fa-graduation-cap"></i> Learning outcomes will be added soon.</p>`}
     ${Array.isArray(course.requirements) && course.requirements.length ? `<p><strong>Requirements</strong></p><ul>${course.requirements.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>` : ''}
+    ${related.length ? `<div><strong>Related</strong></div><div class="related-courses">${related.map(r => `<div class="rv-card" onclick="openPreviewModal(${r.id})"><img src="${r.thumbnailSrc}" alt="${r.safeTitle}" loading="lazy"><p>${r.safeTitle}</p></div>`).join('')}</div>` : ''}
   `;
 
   const reviewsEl = document.getElementById('previewReviews');
   if (Array.isArray(course.reviews) && course.reviews.length) {
     reviewsEl.innerHTML = course.reviews.map(r => `<p><strong>${escapeHtml(r.author || 'Learner')}:</strong> ${escapeHtml(r.text || '')}</p>`).join('');
   } else {
-    reviewsEl.innerHTML = `<p class="stub-note"><i class="fas fa-star"></i> No reviews yet — be the first to review this course after enrolling.</p>`;
+    reviewsEl.innerHTML = `<p class="stub-note"><i class="fas fa-star"></i> No reviews yet — be the first to review after enrolling.</p>`;
   }
 
   let footerHtml;
@@ -798,10 +1039,10 @@ function setupModalTabs() {
   });
 }
 
-/* -------------------------- 13. UPLOAD WIZARD (Teach on Core Insight) -------------------------- */
+/* -------------------------- 14. UPLOAD WIZARD (Share Your Knowledge) -------------------------- */
 function openUploadModal() {
   if (!currentUser) {
-    showToast('Please login to upload a course.', 'error');
+    showToast('Please login to publish a course or book.', 'error');
     window.location.href = 'login.html';
     return;
   }
@@ -841,8 +1082,8 @@ function validateWizardStep(step) {
     return true;
   }
   if (step === 2) {
-    if (!document.getElementById('wizThumbnail').files[0]) { showToast('Please upload a thumbnail image.', 'error'); return false; }
-    if (!document.getElementById('wizFile').files[0]) { showToast('Please upload a course file.', 'error'); return false; }
+    if (!document.getElementById('wizThumbnail').files[0]) { showToast('Please upload a cover/thumbnail image.', 'error'); return false; }
+    if (!document.getElementById('wizFile').files[0]) { showToast('Please upload a file.', 'error'); return false; }
     return true;
   }
   if (step === 3) {
@@ -871,16 +1112,21 @@ function populateWizardReview() {
   const title = document.getElementById('wizTitle').value.trim();
   const desc = document.getElementById('wizDescription').value.trim();
   const author = document.getElementById('wizAuthor').value.trim();
+  const category = document.getElementById('wizCategory').value;
   const contentType = document.querySelector('input[name="content_type"]:checked').value;
+  const level = document.getElementById('wizLevel').value;
   const activeType = document.querySelector('.book-type-btn.active');
   const isPaid = currentUser.role === 'admin' && activeType && activeType.dataset.type === 'paid';
   const price = isPaid ? document.getElementById('wizPrice').value : null;
+  const categoryLabel = category ? (getCategoryMeta(category)?.label || category) : '—';
 
   document.getElementById('wizardReview').innerHTML = `
     <div><strong>Title:</strong> ${escapeHtml(title)}</div>
     <div><strong>Description:</strong> ${escapeHtml(desc.slice(0, 140))}${desc.length > 140 ? '…' : ''}</div>
     ${author ? `<div><strong>Author:</strong> ${escapeHtml(author)}</div>` : ''}
-    <div><strong>Type:</strong> ${escapeHtml(contentType)}</div>
+    <div><strong>Category/Genre:</strong> ${escapeHtml(categoryLabel)}</div>
+    <div><strong>Type:</strong> ${escapeHtml(getFormatLabel(contentType, contentType === 'video'))}</div>
+    ${level ? `<div><strong>Level:</strong> ${escapeHtml(level)}</div>` : ''}
     <div><strong>Pricing:</strong> ${isPaid ? `₦${escapeHtml(price || '0')}` : 'Free'}</div>`;
 }
 
@@ -901,6 +1147,20 @@ function setupBookTypeSelector() {
       }
     });
   });
+}
+
+/* Show Pages/Language fields only for book-like content types */
+function setupContentTypeConditionalFields() {
+  const radios = document.querySelectorAll('input[name="content_type"]');
+  const bookLikeTypes = ['book', 'ebook', 'guide', 'document', 'presentation', 'template', 'worksheet'];
+  function update() {
+    const checked = document.querySelector('input[name="content_type"]:checked');
+    const isBookLike = checked && bookLikeTypes.includes(checked.value);
+    document.getElementById('wizPagesGroup').hidden = !isBookLike;
+    document.getElementById('wizLanguageGroup').hidden = !isBookLike;
+  }
+  radios.forEach(r => r.addEventListener('change', update));
+  update();
 }
 
 function setupImagePreview() {
@@ -932,7 +1192,7 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   if (!validateWizardStep(1) || !validateWizardStep(2) || !validateWizardStep(3)) return;
 
   if (!currentUser) {
-    showToast('Please login to upload a course.', 'error');
+    showToast('Please login to publish content.', 'error');
     window.location.href = 'login.html';
     return;
   }
@@ -941,6 +1201,17 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   formData.append('title', document.getElementById('wizTitle').value);
   formData.append('description', document.getElementById('wizDescription').value);
   formData.append('author', document.getElementById('wizAuthor').value);
+
+  // NOTE: category, level, page_count, and language are sent so the frontend
+  // is ready the moment the backend adds columns for them — the current
+  // POST /api/courses handler only reads title/description/price/author/
+  // content_type, so these extra fields are safely ignored for now.
+  formData.append('category', document.getElementById('wizCategory').value);
+  formData.append('level', document.getElementById('wizLevel').value);
+  const pages = document.getElementById('wizPages').value;
+  if (pages) formData.append('page_count', pages);
+  const language = document.getElementById('wizLanguage').value;
+  if (language) formData.append('language', language);
 
   const contentType = document.querySelector('input[name="content_type"]:checked');
   if (contentType) formData.append('content_type', contentType.value);
@@ -963,7 +1234,7 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
     const result = await response.json();
 
     if (response.ok) {
-      showToast('✅ Course uploaded successfully!', 'success');
+      showToast('✅ Published successfully!', 'success');
       document.getElementById('uploadForm').reset();
       document.getElementById('thumbnailPreview').innerHTML = '';
       closeUploadModal();
@@ -979,9 +1250,8 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-/* -------------------------- 14. FLAG / REPORT -------------------------- */
+/* -------------------------- 15. FLAG / REPORT -------------------------- */
 function openFlagModal(courseId) {
-  const course = allCourses.find(c => c.id === courseId);
   currentFlagCourseId = courseId;
   document.getElementById('flagReason').value = '';
   document.getElementById('flagModal').classList.add('is-open');
@@ -1009,7 +1279,7 @@ async function submitFlag() {
 
     if (response.ok && result.success) {
       if (result.deleted) {
-        showToast('⚠️ This course has been removed due to multiple reports.', 'info');
+        showToast('⚠️ This content has been removed due to multiple reports.', 'info');
         loadCourses();
       } else if (result.warningIssued) {
         showToast('✅ Report submitted. A warning has been issued to the creator.', 'success');
@@ -1030,7 +1300,7 @@ async function submitFlag() {
   }
 }
 
-/* -------------------------- 15. DOWNLOAD / WATCH / ACCESS / PAYMENT / DELETE -------------------------- */
+/* -------------------------- 16. DOWNLOAD / WATCH / ACCESS / PAYMENT / DELETE -------------------------- */
 async function handleDownload(courseId) {
   try {
     window.location.href = `/api/download/${courseId}`;
@@ -1078,7 +1348,6 @@ async function initiatePayment(courseId) {
     return;
   }
 
-  let displayAmount = course.usdPrice || course.price;
   const confirmMessage = `Enroll in "${course.title}" for $${(course.usdPrice || 0).toFixed(2)} USD?`;
   if (!confirm(confirmMessage)) return;
 
@@ -1130,15 +1399,15 @@ async function deleteCourse(courseId) {
     const response = await fetch(`/api/courses/${courseId}`, { method: 'DELETE' });
     const data = await response.json();
     if (response.ok) {
-      showToast('✅ Course deleted successfully!', 'success');
+      showToast('✅ Deleted successfully!', 'success');
       allCourses = allCourses.filter(c => c.id !== courseId);
       renderCourses();
     } else {
-      showToast('❌ ' + (data.error || 'Failed to delete course.'), 'error');
+      showToast('❌ ' + (data.error || 'Failed to delete.'), 'error');
     }
   } catch (error) {
     console.error('Delete error:', error);
-    showToast('Error deleting course. Please try again.', 'error');
+    showToast('Error deleting. Please try again.', 'error');
   }
 }
 
@@ -1182,7 +1451,7 @@ async function checkPendingPayment() {
   }
 }
 
-/* -------------------------- 16. MOBILE MENU -------------------------- */
+/* -------------------------- 17. MOBILE MENU -------------------------- */
 function setupMobileMenu() {
   const toggle = document.querySelector('.mobile-menu-toggle');
   const nav = document.querySelector('nav');
@@ -1201,8 +1470,9 @@ function setupMobileMenu() {
   });
 }
 
-/* -------------------------- 17. INIT -------------------------- */
+/* -------------------------- 18. INIT -------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
+  populateCategorySelects();
   loadUser();
   detectUserCurrency();
   loadCourses();
@@ -1214,12 +1484,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLoadMore();
   setupModalTabs();
   setupBookTypeSelector();
+  setupContentTypeConditionalFields();
   setupImagePreview();
   checkPendingPayment();
 
   document.getElementById('preferencesBtn').addEventListener('click', togglePreferences);
   document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
-  document.getElementById('openUploadModalBtn').addEventListener('click', openUploadModal);
+  document.getElementById('instructorCtaBtn').addEventListener('click', openUploadModal);
 
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('is-open'); });

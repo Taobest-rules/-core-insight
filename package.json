@@ -38,6 +38,7 @@
     "mysql2": "^3.22.3",
     "nodemailer": "^7.0.13",
     "path": "^0.12.7",
+    "resend": "^6.18.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

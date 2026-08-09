@@ -16,7 +16,7 @@ const bcrypt = require("bcryptjs");
 const axios = require("axios");
 const fs = require("fs");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const MySQLStore = require("express-mysql-session")(session);
 const Flutterwave = require('flutterwave-node-v3');
 const csv = require('csv-parser');
@@ -178,101 +178,91 @@ const escapeHtml = (str) => {
     .replace(/'/g, '&#39;');
 };
 
-
-
 // ============================================
-// EMAIL CONFIGURATION - BREVO
-// ============================================
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
-
-// Create email transporter
-let transporter = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    tls: { rejectUnauthorized: false }
-  });
-}
-
-
-
-// ============================================
-// ORDER CONFIRMATION EMAIL
+// EMAIL CONFIGURATION - RESEND
 // ============================================
 
-// ============================================
-// COMPLETE EMAIL SYSTEM - BREVO INTEGRATION
-// ============================================
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-const FROM_EMAIL = 'coreinsightmail@gmail.com';
+const SUPPORT_EMAIL =
+  process.env.SUPPORT_EMAIL || 'suppourtcoreinsight@gmail.com';
+
+const FROM_EMAIL =
+  process.env.FROM_EMAIL || 'noreply@coreinsightmarket.com';
+
 const FROM_NAME = 'Core Insight Marketplace';
 
-// Universal email sender function
+// Initialize Resend
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+
+// ============================================
+// UNIVERSAL EMAIL SENDER - RESEND
+// ============================================
+
 async function sendEmail(to, subject, htmlContent, attachments = []) {
   if (!to || !subject || !htmlContent) {
     console.error('❌ Missing required email parameters');
-    return { success: false, error: 'Missing parameters' };
+
+    return {
+      success: false,
+      error: 'Missing parameters'
+    };
+  }
+
+  if (!resend) {
+    console.error('❌ RESEND_API_KEY is not configured');
+
+    return {
+      success: false,
+      error: 'Email service is not configured'
+    };
   }
 
   try {
-    // Try Brevo first
-    if (BREVO_API_KEY) {
-      const emailData = {
-        sender: { email: FROM_EMAIL, name: FROM_NAME },
-        to: [{ email: to }],
-        subject: subject,
-        htmlContent: htmlContent,
-        headers: { 'X-Mailin-custom': 'core-insight-email' }
+    const emailData = {
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: [to],
+      subject: subject,
+      html: htmlContent
+    };
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      emailData.attachments = attachments.map(att => ({
+        filename: att.filename,
+        content: att.content
+      }));
+    }
+
+    const { data, error } = await resend.emails.send(emailData);
+
+    if (error) {
+      console.error(`❌ Resend email error to ${to}:`, error);
+
+      return {
+        success: false,
+        error: error.message || 'Failed to send email',
+        provider: 'resend'
       };
-
-      // Add attachments if any
-      if (attachments && attachments.length > 0) {
-        emailData.attachment = attachments.map(att => ({
-          name: att.filename,
-          content: att.content // Base64 encoded
-        }));
-      }
-
-      const response = await axios({
-        method: 'POST',
-        url: 'https://api.brevo.com/v3/smtp/email',
-        headers: { 
-          'api-key': BREVO_API_KEY, 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        data: emailData,
-        timeout: 15000
-      });
-
-      console.log(`✅ Email sent to ${to} via Brevo`);
-      return { success: true, provider: 'brevo' };
     }
-    
-    // Fallback to Gmail SMTP
-    else if (transporter) {
-      await transporter.sendMail({
-        from: `"${FROM_NAME}" <${process.env.EMAIL_USER}>`,
-        to: to,
-        subject: subject,
-        html: htmlContent
-      });
-      console.log(`✅ Email sent to ${to} via Gmail`);
-      return { success: true, provider: 'gmail' };
-    }
-    
-    else {
-      console.warn(`⚠️ No email service configured. Would have sent to ${to}`);
-      return { success: false, error: 'No email service configured', fallback: true };
-    }
+
+    console.log(`✅ Email sent to ${to} via Resend. ID: ${data?.id}`);
+
+    return {
+      success: true,
+      provider: 'resend',
+      id: data?.id
+    };
+
   } catch (error) {
-    console.error(`❌ Email error to ${to}:`, error.response?.data?.message || error.message);
-    return { success: false, error: error.message };
+    console.error(`❌ Email error to ${to}:`, error.message);
+
+    return {
+      success: false,
+      error: error.message,
+      provider: 'resend'
+    };
   }
 }
 

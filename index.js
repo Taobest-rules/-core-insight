@@ -39,6 +39,128 @@ const {
 } = require('./mega-storage');
 // Database & Email
 const db = require("./db");
+async function runUnifiedMessagingMigrations() {
+  const alterSafely = async (sql, label) => {
+    try {
+      await db.query(sql);
+      console.log(`✅ Messaging migration: ${label}`);
+    } catch (err) {
+      // Ignore "column already exists" / "duplicate" errors on re-run
+      if (!/duplicate|already exists/i.test(err.message)) {
+        console.error(`❌ Messaging migration failed (${label}):`, err.message);
+      }
+    }
+  };
+ 
+  await alterSafely(
+    `ALTER TABLE conversations ADD COLUMN item_type VARCHAR(20) DEFAULT 'general'`,
+    'conversations.item_type'
+  );
+  await alterSafely(
+    `ALTER TABLE conversations ADD COLUMN item_id INT NULL`,
+    'conversations.item_id'
+  );
+  await alterSafely(
+    `ALTER TABLE conversations ADD COLUMN archived_by_client TINYINT(1) DEFAULT 0`,
+    'conversations.archived_by_client'
+  );
+  await alterSafely(
+    `ALTER TABLE conversations ADD COLUMN archived_by_freelancer TINYINT(1) DEFAULT 0`,
+    'conversations.archived_by_freelancer'
+  );
+ 
+  // Backfill: any existing conversation with a service_id is item_type='service'
+  await alterSafely(
+    `UPDATE conversations SET item_type = 'service', item_id = service_id
+     WHERE service_id IS NOT NULL AND item_type = 'general'`,
+    'backfill service conversations'
+  );
+ 
+  await alterSafely(
+    `ALTER TABLE messages ADD COLUMN attachment_url VARCHAR(500) NULL`,
+    'messages.attachment_url'
+  );
+  await alterSafely(
+    `ALTER TABLE messages ADD COLUMN attachment_type VARCHAR(20) NULL`,
+    'messages.attachment_type'
+  );
+  await alterSafely(
+    `ALTER TABLE messages ADD COLUMN read_at DATETIME NULL`,
+    'messages.read_at'
+  );
+  // Backfill attachment_url from the old image_url column so old chat images still show
+  await alterSafely(
+    `UPDATE messages SET attachment_url = image_url, attachment_type = 'image'
+     WHERE image_url IS NOT NULL AND attachment_url IS NULL`,
+    'backfill message attachments'
+  );
+ 
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      recipient_id INT NOT NULL,
+      type VARCHAR(30) NOT NULL DEFAULT 'message',
+      title VARCHAR(255) NOT NULL,
+      message TEXT,
+      link VARCHAR(500),
+      conversation_id INT NULL,
+      is_read TINYINT(1) DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_recipient (recipient_id, is_read)
+    )`,
+    'notifications table'
+  );
+ 
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS message_typing (
+      conversation_id INT NOT NULL,
+      user_id INT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (conversation_id, user_id)
+    )`,
+    'message_typing table'
+  );
+}
+runUnifiedMessagingMigrations();
+ const MESSAGE_ITEM_CONFIG = {
+  product: { table: 'products', titleCol: 'title', priceCol: 'price', ownerCol: 'user_id', icon: '📦', label: 'Product', urlPrefix: '/product/' },
+  service:  { table: 'services', titleCol: 'title', priceCol: 'price', ownerCol: 'user_id', icon: '🛠', label: 'Service', urlPrefix: '/service/' },
+  course:   { table: 'courses',  titleCol: 'title', priceCol: 'price', ownerCol: 'user_id', icon: '🎓', label: 'Course', urlPrefix: '/course/' },
+  book:     { table: 'books',    titleCol: 'title', priceCol: 'price', ownerCol: 'user_id', icon: '📚', label: 'Book', urlPrefix: '/book/' },
+  general:  { table: null, icon: '💬', label: 'General' },
+  order_support: { table: null, icon: '🛒', label: 'Order Support' },
+};
+ 
+async function getMessageItemContext(itemType, itemId) {
+  const config = MESSAGE_ITEM_CONFIG[itemType];
+  if (!config || !config.table || !itemId) {
+    return { type: itemType || 'general', icon: (config || MESSAGE_ITEM_CONFIG.general).icon, label: (config || MESSAGE_ITEM_CONFIG.general).label, id: itemId || null };
+  }
+  try {
+    const result = await db.query(
+      `SELECT id, ${config.titleCol} AS title, ${config.priceCol} AS price, ${config.ownerCol} AS owner_id
+       FROM ${config.table} WHERE id = ?`,
+      [itemId]
+    );
+    const rows = extractRows(result);
+    const item = rows && rows[0];
+    if (!item) return { type: itemType, icon: config.icon, label: config.label, id: itemId };
+    return {
+      type: itemType,
+      icon: config.icon,
+      label: config.label,
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      owner_id: item.owner_id,
+      url: `${config.urlPrefix}${item.id}`,
+    };
+  } catch (err) {
+    console.error('getMessageItemContext error:', err.message);
+    return { type: itemType, icon: config.icon, label: config.label, id: itemId };
+  }
+}
+ 
 
 // ============================================
 // APP INITIALIZATION
@@ -540,6 +662,52 @@ function getOrderStatusUpdateTemplate(orderData) {
     </html>
   `;
 }
+async function notifyNewMessage({ conversationId, recipientId, senderId, senderName, messagePreview, itemContext }) {
+  const badge = itemContext ? `${itemContext.icon} ${itemContext.label}` : '💬 General';
+  const subjectItem = itemContext && itemContext.title ? ` about "${itemContext.title}"` : '';
+ 
+  try {
+    await db.query(
+      `INSERT INTO notifications (recipient_id, type, title, message, link, conversation_id, created_at)
+       VALUES (?, 'message', ?, ?, ?, ?, NOW())`,
+      [
+        recipientId,
+        `New message${subjectItem}`,
+        `${senderName}: ${messagePreview.slice(0, 140)}`,
+        `/messages.html?conversation=${conversationId}`,
+        conversationId,
+      ]
+    );
+  } catch (err) {
+    console.error('notifyNewMessage: notification insert failed:', err.message);
+  }
+ 
+  try {
+    const recipientResult = await db.query(`SELECT email, username FROM users WHERE id = ?`, [recipientId]);
+    const recipient = extractRows(recipientResult)[0];
+    if (!recipient || !recipient.email) return;
+ 
+    const siteUrl = process.env.SITE_URL || 'https://coreinsightmarket.com';
+    const viewLink = `${siteUrl}/messages.html?conversation=${conversationId}`;
+    const html = `
+      <!DOCTYPE html>
+      <html><body style="font-family:Inter,Arial,sans-serif;background:#faf9f6;padding:32px;">
+        <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e9e5dc;border-radius:16px;padding:32px;">
+          <p style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#5a8d7d;font-weight:600;margin:0 0 12px;">${badge}</p>
+          <h2 style="font-family:Georgia,serif;color:#2b2b28;margin:0 0 12px;">You received a new message</h2>
+          ${itemContext && itemContext.title ? `<p style="color:#55524a;margin:0 0 16px;">About: <strong>${escapeHtml(itemContext.title)}</strong></p>` : ''}
+          <p style="color:#55524a;line-height:1.6;background:#f5f3ee;border-radius:10px;padding:14px;">"${escapeHtml(messagePreview.slice(0, 200))}"</p>
+          <a href="${viewLink}" style="display:inline-block;margin-top:20px;background:#c9971f;color:#2b2b28;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px;">View Message</a>
+          <p style="color:#8a8578;font-size:12px;margin-top:24px;">You're receiving this because someone messaged you on Core Insight.</p>
+        </div>
+      </body></html>`;
+ 
+    await sendEmail(recipient.email, `New message${subjectItem} on Core Insight`, html);
+  } catch (err) {
+    console.error('notifyNewMessage: email failed:', err.message);
+  }
+}
+ 
 // Middleware to check if freelancer has active subscription
 async function checkFreelancerSubscription(req, res, next) {
     if (!req.session.user) {
@@ -7110,7 +7278,79 @@ const chatImageUpload = multer({
     }
   }
 });
-
+app.post("/api/messages/start", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+ 
+    const { item_type, item_id, to_user_id, message } = req.body;
+    const askerId = parseInt(user.id);
+ 
+    let recipientId = to_user_id ? parseInt(to_user_id) : null;
+    let itemContext = null;
+ 
+    if (item_type && item_type !== 'general' && MESSAGE_ITEM_CONFIG[item_type]) {
+      itemContext = await getMessageItemContext(item_type, item_id);
+      if (itemContext.owner_id) recipientId = parseInt(itemContext.owner_id);
+    }
+ 
+    if (!recipientId) return res.status(400).json({ error: "Missing recipient" });
+    if (recipientId === askerId) return res.status(400).json({ error: "You can't message yourself" });
+    if (!message || !message.trim()) return res.status(400).json({ error: "Message is required" });
+ 
+    // Reuse an existing conversation between these two users if one exists
+    const existingResult = await db.query(
+      `SELECT id, item_type, item_id FROM conversations
+       WHERE (client_id = ? AND freelancer_id = ?) OR (client_id = ? AND freelancer_id = ?)
+       LIMIT 1`,
+      [askerId, recipientId, recipientId, askerId]
+    );
+    const existing = extractRows(existingResult)[0];
+ 
+    let conversationId;
+    if (existing) {
+      conversationId = existing.id;
+      // Attach this item to the conversation if it didn't have one yet
+      if (!existing.item_id && item_id) {
+        await db.query(
+          `UPDATE conversations SET item_type = ?, item_id = ?, service_id = ? WHERE id = ?`,
+          [item_type, item_id, item_type === 'service' ? item_id : null, conversationId]
+        );
+      }
+    } else {
+      const insertResult = await db.query(
+        `INSERT INTO conversations (client_id, freelancer_id, item_type, item_id, service_id, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())`,
+        [askerId, recipientId, item_type || 'general', item_id || null, item_type === 'service' ? item_id : null]
+      );
+      conversationId = extractInsertId(insertResult);
+    }
+ 
+    // Insert the first message
+    const msgResult = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read)
+       VALUES (?, ?, ?, NOW(), 0)`,
+      [conversationId, askerId, message.trim()]
+    );
+    const messageId = extractInsertId(msgResult);
+ 
+    await notifyNewMessage({
+      conversationId,
+      recipientId,
+      senderId: askerId,
+      senderName: user.username,
+      messagePreview: message.trim(),
+      itemContext,
+    });
+ 
+    res.status(201).json({ success: true, conversation_id: conversationId, message_id: messageId });
+  } catch (err) {
+    console.error("Unified message start error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+ 
 // =================== CHAT SYSTEM ENDPOINTS ===================
 
 // Get total unread messages
@@ -7171,53 +7411,54 @@ app.get("/api/messages/unread-by-conversation", async (req, res) => {
   }
 });
 
-// List all conversations for the logged-in user
 app.get("/api/messages/conversations", async (req, res) => {
   try {
-    if (!req.session.user) {
-      console.log("No user in session for conversations request");
-      return res.json([]);
-    }
-    
+    if (!req.session.user) return res.json([]);
     const userId = req.session.user.id;
-    console.log(`Fetching conversations for user ${userId}`);
-
+ 
     const result = await db.query(`
-      SELECT 
+      SELECT
         c.id AS conversation_id,
+        c.item_type,
+        c.item_id,
         c.service_id,
-        s.title AS service_title,
         c.created_at,
-        CASE 
-          WHEN c.client_id = ? THEN u2.username 
-          ELSE u1.username 
-        END AS other_user_name,
-        CASE 
-          WHEN c.client_id = ? THEN u2.id 
-          ELSE u1.id 
-        END AS other_user_id,
-        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) as last_message_time,
-        (SELECT message FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+        CASE WHEN c.client_id = ? THEN u2.username ELSE u1.username END AS other_user_name,
+        CASE WHEN c.client_id = ? THEN u2.id ELSE u1.id END AS other_user_id,
+        CASE WHEN c.client_id = ? THEN c.archived_by_client ELSE c.archived_by_freelancer END AS is_archived,
+        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) AS last_message_time,
+        (SELECT message FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_id != ? AND is_read = 0) AS unread_count
       FROM conversations c
       JOIN users u1 ON c.client_id = u1.id
       JOIN users u2 ON c.freelancer_id = u2.id
-      LEFT JOIN services s ON c.service_id = s.id
       WHERE c.client_id = ? OR c.freelancer_id = ?
-      ORDER BY 
-        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC,
-        c.created_at DESC
-    `, [userId, userId, userId, userId]);
-
+      ORDER BY (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC, c.created_at DESC
+    `, [userId, userId, userId, userId, userId, userId]);
+ 
     const conversations = extractRows(result);
-    console.log(`Found ${conversations.length} conversations for user ${userId}`);
-    
+ 
+    // Attach item context (title/price/icon) for each conversation's badge + context card
+    for (const conv of conversations) {
+      const config = MESSAGE_ITEM_CONFIG[conv.item_type] || MESSAGE_ITEM_CONFIG.general;
+      conv.badge_icon = config.icon;
+      conv.badge_label = config.label;
+      if (conv.item_type && conv.item_id && config.table) {
+        const ctx = await getMessageItemContext(conv.item_type, conv.item_id);
+        conv.item_title = ctx.title || null;
+        conv.item_price = ctx.price || null;
+        conv.item_url = ctx.url || null;
+      }
+    }
+ 
     res.json(conversations);
-
   } catch (err) {
     console.error("Conversations fetch error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+ 
+
 
 // Start a new conversation without a service - FIXED
 app.post("/api/conversations/start-without-service", async (req, res) => {
@@ -7723,7 +7964,122 @@ app.get("/api/messages/:conversationId", async (req, res) => {
     return res.json([]);
   }
 });
-
+app.get("/api/notifications/unread-count", async (req, res) => {
+  try {
+    if (!req.session.user) return res.json({ count: 0 });
+    const result = await db.query(
+      `SELECT COUNT(*) AS count FROM notifications WHERE recipient_id = ? AND is_read = 0`,
+      [req.session.user.id]
+    );
+    res.json({ count: extractRows(result)[0]?.count || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+app.get("/api/notifications", async (req, res) => {
+  try {
+    if (!req.session.user) return res.json([]);
+    const result = await db.query(
+      `SELECT * FROM notifications WHERE recipient_id = ? ORDER BY created_at DESC LIMIT 30`,
+      [req.session.user.id]
+    );
+    res.json(extractRows(result));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+app.post("/api/notifications/mark-all-read", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Login required" });
+    await db.query(`UPDATE notifications SET is_read = 1 WHERE recipient_id = ?`, [req.session.user.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+// Read receipts — mark all messages in a conversation as seen by the current user
+app.post("/api/messages/:conversationId/mark-seen", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    const { conversationId } = req.params;
+ 
+    const convResult = await db.query(`SELECT client_id, freelancer_id FROM conversations WHERE id = ?`, [conversationId]);
+    const conv = extractRows(convResult)[0];
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+    if (parseInt(conv.client_id) !== parseInt(user.id) && parseInt(conv.freelancer_id) !== parseInt(user.id)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+ 
+    await db.query(
+      `UPDATE messages SET is_read = 1, read_at = NOW() WHERE conversation_id = ? AND sender_id != ? AND is_read = 0`,
+      [conversationId, user.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+// Typing indicator — lightweight, polled. A row older than 5s is treated as "stopped typing".
+app.post("/api/messages/:conversationId/typing", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    const { conversationId } = req.params;
+    await db.query(
+      `INSERT INTO message_typing (conversation_id, user_id, updated_at) VALUES (?, ?, NOW())
+       ON DUPLICATE KEY UPDATE updated_at = NOW()`,
+      [conversationId, user.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+app.get("/api/messages/:conversationId/typing-status", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    const { conversationId } = req.params;
+    const result = await db.query(
+      `SELECT mt.user_id, u.username FROM message_typing mt
+       JOIN users u ON mt.user_id = u.id
+       WHERE mt.conversation_id = ? AND mt.user_id != ? AND mt.updated_at > (NOW() - INTERVAL 5 SECOND)`,
+      [conversationId, user.id]
+    );
+    const typing = extractRows(result);
+    res.json({ is_typing: typing.length > 0, username: typing[0]?.username || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+// Archive / unarchive (per-user, since either side of a conversation can archive independently)
+app.post("/api/messages/:conversationId/archive", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    const { conversationId } = req.params;
+    const { archived } = req.body; // true/false
+ 
+    const convResult = await db.query(`SELECT client_id, freelancer_id FROM conversations WHERE id = ?`, [conversationId]);
+    const conv = extractRows(convResult)[0];
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+ 
+    const isClient = parseInt(conv.client_id) === parseInt(user.id);
+    const column = isClient ? 'archived_by_client' : 'archived_by_freelancer';
+    await db.query(`UPDATE conversations SET ${column} = ? WHERE id = ?`, [archived ? 1 : 0, conversationId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
 // Mark messages as read
 app.post("/api/messages/mark-read", async (req, res) => {
   try {

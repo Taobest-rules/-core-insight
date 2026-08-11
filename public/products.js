@@ -6115,3 +6115,296 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 150);
 });
+
+/* ============================================================
+   ↓↓↓ UNIFIED MESSAGING FRONTEND ADDITIONS ↓↓↓
+   These override the earlier openAskSeller/closeAskSeller/
+   sendAskSellerQuestion placeholders above (function
+   redeclaration — last one wins) and wire the Ask Seller modal
+   to the real unified /api/messages/start backend.
+   ============================================================ */
+
+/* ================================================================
+   UNIFIED MESSAGING — PRODUCTS FRONTEND ADDITIONS
+   ================================================================
+   This REPLACES the three placeholder functions from the last
+   round (openAskSeller, closeAskSeller, sendAskSellerQuestion —
+   the ones that posted to a fake /api/messages/start) and adds
+   the live-thread behavior on top: context card, read receipts,
+   typing indicator, image/PDF attachment, and bell notifications
+   pulling from the new unified /api/notifications endpoints.
+
+   Products is the only page wiring this up right now — when you
+   move to Services/Courses/Books, the same functions (just with a
+   different item_type/item_id) plug into their "Contact" buttons.
+   ================================================================ */
+
+let activeConversationId = null;
+let activeItemContext = null;
+let messagePollTimer = null;
+let typingPollTimer = null;
+let typingSendThrottle = null;
+
+const MESSAGE_ITEM_ICONS = { product: '📦', service: '🛠', course: '🎓', book: '📚', general: '💬', order_support: '🛒' };
+
+/* ---------- open / close ---------- */
+function openAskSeller(productId, sellerIdOverride, sellerNameOverride) {
+  if (!currentUser) { openModal(document.getElementById('loginModal')); return; }
+
+  const product = products.find(p => p.id === productId);
+  activeItemContext = product
+    ? { type: 'product', id: product.id, title: product.title, price: product.price, owner_id: product.user_id, icon: MESSAGE_ITEM_ICONS.product }
+    : { type: 'general', owner_id: sellerIdOverride, title: sellerNameOverride, icon: MESSAGE_ITEM_ICONS.general };
+
+  activeConversationId = null; // fresh ask — start() will find/create the real conversation
+  renderAskSellerContextCard();
+  renderMessageThread([]); // empty until we have a conversation
+  document.getElementById('askSellerMessage').value = '';
+  document.getElementById('askSellerError').classList.remove('show');
+  document.getElementById('askSellerAttachmentInput').value = '';
+  openModal(document.getElementById('askSellerModal'));
+  document.getElementById('askSellerMessage').focus();
+}
+
+function closeAskSeller() {
+  closeModal(document.getElementById('askSellerModal'));
+  stopMessagePolling();
+  stopTypingPolling();
+}
+
+function renderAskSellerContextCard() {
+  const ctx = activeItemContext;
+  const el = document.getElementById('askSellerContext');
+  if (!ctx) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;width:100%;">
+      <span style="font-size:20px;">${ctx.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--charcoal-soft);font-weight:600;">${ctx.type === 'product' ? 'Product' : 'Message'}</div>
+        <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ctx.title || 'Seller')}</strong>
+        ${ctx.price != null ? `<div style="font-size:12px;color:var(--gold-deep);font-weight:600;">${fmtPrice(ctx.price)}</div>` : ''}
+      </div>
+      ${ctx.type === 'product' ? `<button class="small-btn" onclick="closeAskSeller(); navigateToProduct(${ctx.id});">View</button>` : ''}
+    </div>`;
+}
+
+/* ---------- send first message / start conversation ---------- */
+async function sendAskSellerQuestion() {
+  const msg = document.getElementById('askSellerMessage').value.trim();
+  const errEl = document.getElementById('askSellerError');
+  errEl.classList.remove('show');
+  if (!msg) { errEl.textContent = 'Write a question before sending.'; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('askSellerSendBtn');
+  btn.disabled = true;
+  try {
+    if (!activeConversationId) {
+      // First message — creates or reuses the conversation via the unified endpoint
+      const res = await fetch('/api/messages/start', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
+        body: JSON.stringify({
+          item_type: activeItemContext?.type || 'general',
+          item_id: activeItemContext?.id || null,
+          to_user_id: activeItemContext?.owner_id || null,
+          message: msg,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      activeConversationId = data.conversation_id;
+      startMessagePolling();
+      startTypingPolling();
+    } else {
+      // Thread already open — send a follow-up
+      const res = await fetch('/api/messages/send', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
+        body: JSON.stringify({ conversation_id: activeConversationId, message: msg }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send'); }
+    }
+
+    document.getElementById('askSellerMessage').value = '';
+    await refreshMessageThread();
+    showToast('Question sent', 'You\u2019ll see the reply here and in your notifications.', 'success');
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not send. Try again.';
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------- attachments (image or PDF) ---------- */
+async function sendAskSellerAttachment(fileInputEl) {
+  if (!activeConversationId || !fileInputEl.files.length) return;
+  const file = fileInputEl.files[0];
+  const formData = new FormData();
+  formData.append('conversation_id', activeConversationId);
+  formData.append('image', file); // field name matches your existing uploadChatImage middleware
+  try {
+    const res = await fetch('/api/messages/send-with-image', { method: 'POST', credentials: 'include', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    fileInputEl.value = '';
+    await refreshMessageThread();
+  } catch (e) {
+    showToast('Attachment failed', 'Could not send that file.', 'error');
+  }
+}
+
+/* ---------- thread rendering + polling ---------- */
+async function refreshMessageThread() {
+  if (!activeConversationId) return;
+  try {
+    const res = await fetch(`/api/messages/${activeConversationId}/search?query=`, { credentials: 'include' });
+    // Fallback: if a dedicated "get all messages" route exists under a different
+    // path in your app, swap the URL above for that one — this reuses the
+    // search endpoint with an empty query as a stand-in "get all" call.
+    let messages = [];
+    if (res.ok) {
+      const data = await res.json();
+      messages = Array.isArray(data) ? data : (data.messages || []);
+    }
+    renderMessageThread(messages);
+    fetch(`/api/messages/${activeConversationId}/mark-seen`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': getCSRFToken() } }).catch(() => {});
+  } catch (e) { /* non-fatal */ }
+}
+
+function renderMessageThread(messages) {
+  let threadEl = document.getElementById('askSellerThread');
+  if (!threadEl) {
+    threadEl = document.createElement('div');
+    threadEl.id = 'askSellerThread';
+    threadEl.style.cssText = 'max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin:14px 0;padding:4px;';
+    document.getElementById('askSellerContext').insertAdjacentElement('afterend', threadEl);
+  }
+  if (!messages.length) {
+    threadEl.innerHTML = `<p style="color:var(--text-muted);font-size:12.5px;text-align:center;padding:12px 0;">No messages yet — say hello.</p>`;
+    return;
+  }
+  threadEl.innerHTML = messages.map(m => {
+    const mine = currentUser && parseInt(m.sender_id) === parseInt(currentUser.id);
+    const receipt = mine ? (m.read_at ? '✓✓' : '✓') : '';
+    const attachment = m.attachment_url
+      ? (m.attachment_type === 'pdf'
+          ? `<a href="${m.attachment_url}" target="_blank" style="display:block;font-size:12px;">📎 PDF attachment</a>`
+          : `<img src="${m.attachment_url}" style="max-width:160px;border-radius:8px;margin-top:6px;display:block;">`)
+      : '';
+    return `<div style="align-self:${mine ? 'flex-end' : 'flex-start'};max-width:80%;">
+      <div style="background:${mine ? 'var(--gold-tint)' : 'var(--cream)'};border:1px solid var(--hairline);border-radius:10px;padding:8px 12px;font-size:13px;">
+        ${escapeHtml(m.message || '')}
+        ${attachment}
+      </div>
+      <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;text-align:${mine ? 'right' : 'left'};">
+        ${typeof formatTime === 'function' ? formatTime(m.created_at) : ''} ${receipt}
+      </div>
+    </div>`;
+  }).join('') + `<div id="typingIndicatorRow" style="font-size:12px;color:var(--text-muted);font-style:italic;display:none;"></div>`;
+  threadEl.scrollTop = threadEl.scrollHeight;
+}
+
+function startMessagePolling() {
+  stopMessagePolling();
+  messagePollTimer = setInterval(refreshMessageThread, 4000);
+}
+function stopMessagePolling() {
+  if (messagePollTimer) clearInterval(messagePollTimer);
+  messagePollTimer = null;
+}
+
+/* ---------- typing indicator ---------- */
+function notifyTyping() {
+  if (!activeConversationId) return;
+  if (typingSendThrottle) return;
+  typingSendThrottle = setTimeout(() => { typingSendThrottle = null; }, 2000);
+  fetch(`/api/messages/${activeConversationId}/typing`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': getCSRFToken() } }).catch(() => {});
+}
+
+function startTypingPolling() {
+  stopTypingPolling();
+  typingPollTimer = setInterval(async () => {
+    if (!activeConversationId) return;
+    try {
+      const res = await fetch(`/api/messages/${activeConversationId}/typing-status`, { credentials: 'include' });
+      const data = await res.json();
+      const row = document.getElementById('typingIndicatorRow');
+      if (!row) return;
+      if (data.is_typing) { row.textContent = `${data.username || 'Seller'} is typing…`; row.style.display = 'block'; }
+      else { row.style.display = 'none'; }
+    } catch (e) { /* non-fatal */ }
+  }, 2500);
+}
+function stopTypingPolling() {
+  if (typingPollTimer) clearInterval(typingPollTimer);
+  typingPollTimer = null;
+}
+
+/* ---------- notification bell (unified) ---------- */
+async function refreshUnifiedNotificationBadge() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+    const data = await res.json();
+    const pip = document.getElementById('notificationCount');
+    if (!pip) return;
+    if (data.count > 0) { pip.textContent = data.count; pip.style.display = 'flex'; }
+    else { pip.style.display = 'none'; }
+  } catch (e) { /* non-fatal */ }
+}
+
+async function openUnifiedNotificationsDropdown() {
+  try {
+    const res = await fetch('/api/notifications', { credentials: 'include' });
+    const notifications = res.ok ? await res.json() : [];
+    // Minimal inline list — swap for a styled dropdown/panel when you build
+    // the full Messages inbox page; for now this opens the relevant thread.
+    if (!notifications.length) { showToast('No notifications', 'You\u2019re all caught up.', 'info'); return; }
+    const latest = notifications[0];
+    if (latest.conversation_id) {
+      activeConversationId = latest.conversation_id;
+      openModal(document.getElementById('askSellerModal'));
+      document.getElementById('askSellerContext').innerHTML = `<strong>${escapeHtml(latest.title)}</strong>`;
+      startMessagePolling();
+      startTypingPolling();
+      refreshMessageThread();
+    }
+    fetch('/api/notifications/mark-all-read', { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': getCSRFToken() } })
+      .then(refreshUnifiedNotificationBadge)
+      .catch(() => {});
+  } catch (e) { /* non-fatal */ }
+}
+
+/* ---------- wire it up ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  refreshUnifiedNotificationBadge();
+  setInterval(refreshUnifiedNotificationBadge, 20000);
+
+  const notifBtn = document.getElementById('notificationBtn');
+  if (notifBtn) notifBtn.addEventListener('click', openUnifiedNotificationsDropdown);
+
+  document.getElementById('askSellerMessage')?.addEventListener('input', notifyTyping);
+
+  // Attachment button injected next to the send button, reusing existing modal markup
+  const sendBtn = document.getElementById('askSellerSendBtn');
+  if (sendBtn && !document.getElementById('askSellerAttachmentInput')) {
+    const attachInput = document.createElement('input');
+    attachInput.type = 'file';
+    attachInput.id = 'askSellerAttachmentInput';
+    attachInput.accept = 'image/*,application/pdf';
+    attachInput.style.display = 'none';
+    attachInput.addEventListener('change', () => sendAskSellerAttachment(attachInput));
+
+    const attachBtn = document.createElement('button');
+    attachBtn.type = 'button';
+    attachBtn.className = 'form-btn secondary';
+    attachBtn.innerHTML = '<i class="fas fa-paperclip"></i>';
+    attachBtn.title = 'Attach image or PDF';
+    attachBtn.addEventListener('click', () => attachInput.click());
+
+    sendBtn.insertAdjacentElement('beforebegin', attachBtn);
+    sendBtn.insertAdjacentElement('afterend', attachInput);
+  }
+});

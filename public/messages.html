@@ -1,24 +1,744 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="your-csrf-token-here">
-  <title>Messages | Core Insight</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Messages · Core Insight</title>
+
+  <!-- Font Awesome (icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: soft + modern -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Keep original products.css for base structural classes (modal, buttons, etc.) -->
   <link rel="stylesheet" href="products.css">
-  <link rel="stylesheet" href="messages.css">
+
+  <style>
+    /* ============================================================
+       NEW DESIGN SYSTEM — Messages only
+       Soft, clean, airy — no colors from the original base.
+       ============================================================ */
+
+    /* -------- brand new variables (soft & modern) -------- */
+    :root {
+      --bg-body: #f6f8fc;
+      --bg-panel: #ffffff;
+      --bg-soft: #f0f3f8;
+      --bg-hover: #e9eef4;
+      --bg-active: #e0e8f2;
+      --border-light: #e2e8f0;
+      --border-strong: #cdd7e3;
+      --text-primary: #1a2639;
+      --text-secondary: #3b4a5e;
+      --text-muted: #6f7d91;
+      --text-white: #ffffff;
+      --accent-soft: #5e7ce2;
+      --accent-muted: #889bcb;
+      --accent-glow: rgba(94, 124, 226, 0.08);
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
+      --radius-pill: 40px;
+      --font: 'Inter', sans-serif;
+      --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-body);
+      font-family: var(--font);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* -------- header (keep structure, re-style gently) -------- */
+    header {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-light);
+      padding: 0 28px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #d0dbea;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .logo-text {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    nav {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    nav a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.15s;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 4px;
+    }
+    nav a:hover {
+      color: var(--accent-soft);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: 0.15s;
+      padding: 6px 8px;
+      border-radius: 30px;
+    }
+    .icon-btn.active {
+      background: var(--bg-soft);
+      color: var(--accent-soft);
+    }
+    .icon-btn:hover {
+      background: var(--bg-hover);
+      color: var(--accent-soft);
+    }
+    .auth-btn {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      font-weight: 500;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: 0.15s;
+      font-family: var(--font);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .auth-btn.signup {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: white;
+    }
+    .auth-btn.signup:hover {
+      background: #4b6ad0;
+      border-color: #4b6ad0;
+    }
+    .auth-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    /* -------- main layout -------- */
+    main {
+      padding-top: calc(70px + 40px);
+      max-width: 1320px;
+      margin: 0 auto;
+      padding-left: 28px;
+      padding-right: 28px;
+      padding-bottom: 40px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-bottom: 6px;
+    }
+    .hero .left {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .eyebrow {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 2rem;
+      margin: 0;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+    }
+
+    /* -------- inbox shell (glass / clean) -------- */
+    .inbox-shell {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0;
+      background: var(--bg-panel);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+      height: calc(100vh - 70px - 100px);
+      min-height: 540px;
+      transition: all 0.1s;
+    }
+
+    @media (max-width: 820px) {
+      .inbox-shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+        border-radius: var(--radius-md);
+      }
+      .inbox-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border-light);
+        max-height: 380px;
+      }
+      .inbox-thread {
+        min-height: 480px;
+      }
+    }
+
+    /* -------- sidebar -------- */
+    .inbox-sidebar {
+      border-right: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--bg-panel);
+    }
+
+    .inbox-sidebar-header {
+      padding: 20px 20px 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .inbox-sidebar-header h2 {
+      margin: 0 0 14px;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .inbox-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .inbox-filter-chip {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 30px;
+      border: 1px solid var(--border-light);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: var(--font);
+      background: var(--bg-body);
+    }
+    .inbox-filter-chip.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: white;
+      box-shadow: 0 2px 6px rgba(94, 124, 226, 0.2);
+    }
+    .inbox-filter-chip:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+    .inbox-filter-chip.active:hover {
+      background: #4b6ad0;
+      border-color: #4b6ad0;
+    }
+
+    .conversation-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    .conversation-row {
+      display: flex;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background 0.12s;
+      align-items: flex-start;
+    }
+    .conversation-row:hover {
+      background: var(--bg-soft);
+    }
+    .conversation-row.active {
+      background: var(--bg-active);
+      border-left: 3px solid var(--accent-soft);
+    }
+
+    .conversation-row .badge-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      width: 32px;
+      text-align: center;
+      opacity: 0.8;
+    }
+    .conversation-row .conv-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .conv-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .conv-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+    .conv-time {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-weight: 400;
+    }
+    .conv-item-title {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin: 2px 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0.7;
+    }
+    .conv-preview {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .conversation-row.unread .conv-preview {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      flex-shrink: 0;
+      margin-top: 5px;
+      box-shadow: 0 0 0 2px rgba(94, 124, 226, 0.15);
+    }
+
+    .inbox-empty {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-muted);
+    }
+    .inbox-empty i {
+      font-size: 28px;
+      margin-bottom: 12px;
+      display: block;
+      color: var(--border-strong);
+    }
+
+    /* -------- thread pane -------- */
+    .inbox-thread {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--bg-panel);
+    }
+
+    .thread-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: var(--text-muted);
+      gap: 8px;
+    }
+    .thread-placeholder i {
+      font-size: 38px;
+      color: var(--border-strong);
+      opacity: 0.5;
+    }
+
+    .thread-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-panel);
+    }
+    .thread-header .other-user-name {
+      font-weight: 600;
+      font-size: 1rem;
+      font-family: var(--font-heading);
+    }
+    .thread-header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+    .small-btn {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: 0.1s;
+      font-family: var(--font);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .small-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+
+    .thread-context-card {
+      margin: 16px 24px 8px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .thread-context-card .ctx-icon {
+      font-size: 24px;
+      opacity: 0.7;
+    }
+    .ctx-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .ctx-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .ctx-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .ctx-price {
+      font-size: 0.8rem;
+      color: var(--accent-soft);
+      font-weight: 600;
+    }
+
+    .thread-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 24px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg-body);
+    }
+
+    .msg-bubble-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 72%;
+    }
+    .msg-bubble-row.mine {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+    .msg-bubble-row.theirs {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .msg-bubble {
+      border-radius: 18px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+    .msg-bubble-row.mine .msg-bubble {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-bubble-row.theirs .msg-bubble {
+      background: var(--bg-panel);
+      border-color: var(--border-light);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-meta {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+    .msg-bubble img.attach-img {
+      max-width: 180px;
+      border-radius: 10px;
+      margin-top: 6px;
+      display: block;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .msg-bubble a.attach-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: inherit;
+      text-decoration: underline;
+      opacity: 0.8;
+    }
+
+    #typingIndicatorRowInbox {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 0 24px 4px;
+      height: 22px;
+    }
+
+    .thread-composer {
+      border-top: 1px solid var(--border-light);
+      padding: 14px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      background: var(--bg-panel);
+    }
+    .thread-composer textarea {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      max-height: 100px;
+      background: var(--bg-body);
+      transition: 0.1s;
+    }
+    .thread-composer textarea:focus {
+      outline: none;
+      border-color: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .composer-btn {
+      background: var(--bg-soft);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      width: 40px;
+      height: 40px;
+      border-radius: 40px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.1s;
+      font-size: 1rem;
+    }
+    .composer-btn:hover {
+      background: var(--bg-hover);
+    }
+    .composer-send {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: white;
+    }
+    .composer-send:hover {
+      background: #4b6ad0 !important;
+      border-color: #4b6ad0;
+      color: white;
+    }
+
+    /* -------- login modal (re-style softly) -------- */
+    #msgLoginModal {
+      z-index: 10000;
+    }
+    #msgLoginModal[aria-hidden="true"] {
+      display: none;
+    }
+    #msgLoginModal[aria-hidden="false"] {
+      display: flex;
+    }
+    #msgLoginModal .modal-box {
+      width: min(92vw, 380px);
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+      border: 1px solid var(--border-light);
+    }
+    .close-x {
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: 0.1s;
+    }
+    .close-x:hover {
+      color: var(--text-primary);
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      font-weight: 500;
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-secondary);
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      background: var(--bg-body);
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .form-btn.primary {
+      background: var(--accent-soft);
+      border: none;
+      color: white;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      transition: 0.1s;
+      font-family: var(--font);
+    }
+    .form-btn.primary:hover {
+      background: #4b6ad0;
+    }
+    #msgLoginError {
+      min-height: 20px;
+      margin-bottom: 10px;
+      color: #b13e3e;
+      font-size: 0.75rem;
+    }
+
+    /* small responsive */
+    @media (max-width: 560px) {
+      main {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+      .inbox-shell {
+        border-radius: var(--radius-md);
+      }
+      .thread-header, .thread-composer {
+        padding: 14px 16px;
+      }
+      .thread-context-card {
+        margin: 12px 16px;
+      }
+      .thread-messages {
+        padding: 12px 16px;
+      }
+      .msg-bubble-row {
+        max-width: 86%;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
   <header>
     <div style="display:flex;gap:12px;align-items:center">
       <div class="logo">
-        <div class="logo-icon"><img src="https://i.pinimg.com/736x/96/d5/cd/96d5cdd6ba69c2feb30cb91bda572d4e.jpg" alt="Core Insight Logo" style="width:100%;height:100%;object-fit:cover;"></div>
+        <div class="logo-icon">
+          <img src="https://i.pinimg.com/736x/96/d5/cd/96d5cdd6ba69c2feb30cb91bda572d4e.jpg" alt="Core Insight Logo">
+        </div>
         <div class="logo-text">Core Insight</div>
       </div>
     </div>
+
     <nav>
       <a href="index.html">Home</a>
       <a href="knowledge-hub.html">Knowledge Hub</a>
@@ -26,26 +746,31 @@
       <a href="courses.html">Courses</a>
       <a href="products.html">Products</a>
     </nav>
+
     <div class="header-actions">
-      <a href="/messages.html" class="icon-btn active" title="Messages" style="text-decoration:none;color:var(--blue);"><i class="fas fa-envelope"></i></a>
+      <a href="/messages.html" class="icon-btn active" title="Messages" style="text-decoration:none;">
+        <i class="fas fa-envelope"></i>
+      </a>
       <div id="headerAuthButtons">
         <a href="products.html" class="auth-btn">Back to site</a>
+        <button type="button" id="loginOpenBtn" class="auth-btn signup" style="display:none;">Login</button>
       </div>
     </div>
   </header>
 
-  <main style="padding-top:calc(70px + 32px); max-width:1280px; margin:0 auto; padding-left:28px; padding-right:28px; padding-bottom:40px;">
-    <div class="hero" style="border-bottom:none; margin-bottom:20px; padding-bottom:0;">
+  <main>
+    <div class="hero">
       <div class="left">
         <span class="eyebrow">Unified Inbox</span>
-        <h1 style="font-size:1.9rem;">Messages</h1>
+        <h1>Messages</h1>
       </div>
     </div>
 
     <div class="inbox-shell">
+
       <aside class="inbox-sidebar">
         <div class="inbox-sidebar-header">
-          <h2>Conversations</h2>
+          <h2><i class="far fa-comment-dots" style="font-size:1.1rem;"></i> Conversations</h2>
           <div class="inbox-filters" id="inboxFilters">
             <button class="inbox-filter-chip active" data-filter="all">All</button>
             <button class="inbox-filter-chip" data-filter="unread">Unread</button>
@@ -57,8 +782,12 @@
             <button class="inbox-filter-chip" data-filter="archived">Archived</button>
           </div>
         </div>
+
         <div class="conversation-list" id="conversationList">
-          <div class="inbox-empty"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+          <div class="inbox-empty">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading…</p>
+          </div>
         </div>
       </aside>
 
@@ -68,9 +797,431 @@
           <p>Select a conversation to view it</p>
         </div>
       </section>
+
     </div>
   </main>
 
-  <script src="messages.js"></script>
+  <!-- Login modal (preserved functionality) -->
+  <div id="msgLoginModal" class="modal" aria-hidden="true">
+    <div class="modal-box modal-card" style="max-width:380px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;font-family:var(--font-heading);font-weight:600;">Log in</h3>
+        <span class="close-x" role="button" tabindex="0" aria-label="Close login" onclick="closeMsgLoginModal()" onkeydown="if(event.key==='Enter'||event.key===' ')closeMsgLoginModal()">&times;</span>
+      </div>
+      <form id="msgLoginForm">
+        <div class="form-group">
+          <label class="form-label" for="msgLoginIdentity">Username or email</label>
+          <input type="text" id="msgLoginIdentity" class="form-input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="msgLoginPassword">Password</label>
+          <input type="password" id="msgLoginPassword" class="form-input" required autocomplete="current-password">
+        </div>
+        <div id="msgLoginError" class="form-error"></div>
+        <button type="submit" class="form-btn primary" style="width:100%;justify-content:center;">Log in</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Keep the SAME JavaScript from original — untouched -->
+  <script>
+/* ============================================================
+   MESSAGES.JS — unified inbox page
+   Self-contained on purpose (doesn't load products.js) so this
+   page never breaks due to product-grid-specific code running
+   against a DOM it doesn't recognize. Talks to the same backend
+   endpoints from unified-messaging-backend.js.
+   ============================================================ */
+
+let currentUser = null;
+let conversations = [];
+let activeConversationId = null;
+let activeFilter = 'all';
+let messagePollTimer = null;
+let typingPollTimer = null;
+let typingSendThrottle = null;
+
+const ITEM_ICONS = { product: '📦', service: '🛠', course: '🎓', book: '📚', general: '💬', order_support: '🛒' };
+const ITEM_LABELS = { product: 'Product', service: 'Service', course: 'Course', book: 'Book', general: 'General', order_support: 'Order Support' };
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function fmtMoney(v) { return v == null ? '' : `$${Number(v).toFixed(2)}`; }
+function formatTimeShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  return sameDay ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+function getCSRFToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
+function showToast(title, msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<strong>${escapeHtml(title)}</strong><br><span style="opacity:.85">${escapeHtml(msg)}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+/* ---------- login (self-contained — messages.html does not load products.js) ---------- */
+function openMsgLoginModal() {
+  const modal = document.getElementById('msgLoginModal');
+  const errorEl = document.getElementById('msgLoginError');
+  if (errorEl) errorEl.textContent = '';
+  if (modal) {
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('msgLoginIdentity')?.focus();
+  }
+}
+
+function closeMsgLoginModal() {
+  const modal = document.getElementById('msgLoginModal');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+async function submitMsgLogin(e) {
+  e.preventDefault();
+
+  const identity = document.getElementById('msgLoginIdentity').value.trim();
+  const password = document.getElementById('msgLoginPassword').value;
+  const errEl = document.getElementById('msgLoginError');
+  const submitBtn = document.querySelector('#msgLoginForm button[type="submit"]');
+
+  errEl.textContent = '';
+
+  if (!identity || !password) {
+    errEl.textContent = 'Please enter your login details.';
+    return;
+  }
+
+  const payload = { password };
+  if (identity.includes('@')) payload.email = identity;
+  else payload.username = identity;
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Logging in…';
+  }
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCSRFToken()
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+
+    closeMsgLoginModal();
+    document.getElementById('msgLoginForm')?.reset();
+
+    await loadCurrentUser();
+    updateAuthUI();
+
+    if (currentUser) {
+      await loadConversations();
+      showToast('Welcome back', 'You’re logged in.');
+    }
+  } catch (err) {
+    errEl.textContent =
+      err.message || 'Login failed. Check your details and try again.';
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Log in';
+    }
+  }
+}
+
+function updateAuthUI() {
+  const loginBtn = document.getElementById('loginOpenBtn');
+  if (!loginBtn) return;
+  loginBtn.style.display = currentUser ? 'none' : 'inline-flex';
+}
+
+
+/* ---------- boot ---------- */
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadCurrentUser();
+  updateAuthUI();
+
+  document.getElementById('loginOpenBtn')?.addEventListener('click', openMsgLoginModal);
+  document.getElementById('msgLoginForm')?.addEventListener('submit', submitMsgLogin);
+
+  document.getElementById('msgLoginModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'msgLoginModal') closeMsgLoginModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMsgLoginModal();
+  });
+
+  if (!currentUser) {
+    document.getElementById('conversationList').innerHTML = `
+      <div class="inbox-empty">
+        <i class="fas fa-lock"></i>
+        <p>Log in to view your messages.</p>
+        <button type="button" class="auth-btn signup" id="loginInlineBtn" style="margin-top:12px;">
+          Log in
+        </button>
+      </div>`;
+    document.getElementById('loginInlineBtn')?.addEventListener('click', openMsgLoginModal);
+    return;
+  }
+
+  await loadConversations();
+
+  // Deep link from the email button / bell: /messages.html?conversation=123
+  const params = new URLSearchParams(window.location.search);
+  const target = params.get('conversation');
+  if (target) openConversation(Number(target));
+
+  document.querySelectorAll('.inbox-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.inbox-filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      renderConversationList();
+    });
+  });
+});
+
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (res.ok) currentUser = await res.json();
+  } catch (e) { /* not logged in */ }
+}
+
+/* ---------- conversation list ---------- */
+async function loadConversations() {
+  try {
+    const res = await fetch('/api/messages/conversations', { credentials: 'include' });
+    conversations = res.ok ? await res.json() : [];
+    renderConversationList();
+  } catch (e) {
+    document.getElementById('conversationList').innerHTML = `<div class="inbox-empty"><i class="fas fa-triangle-exclamation"></i><p>Couldn't load messages.</p></div>`;
+  }
+}
+
+function renderConversationList() {
+  const listEl = document.getElementById('conversationList');
+  let filtered = conversations;
+
+  if (activeFilter === 'unread') filtered = conversations.filter(c => Number(c.unread_count) > 0 && !c.is_archived);
+  else if (activeFilter === 'archived') filtered = conversations.filter(c => c.is_archived);
+  else if (activeFilter !== 'all') filtered = conversations.filter(c => c.item_type === activeFilter && !c.is_archived);
+  else filtered = conversations.filter(c => !c.is_archived);
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="inbox-empty"><i class="fas fa-inbox"></i><p>No conversations here yet.</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(c => {
+    const icon = ITEM_ICONS[c.item_type] || ITEM_ICONS.general;
+    const unread = Number(c.unread_count) > 0;
+    return `<div class="conversation-row ${activeConversationId === c.conversation_id ? 'active' : ''} ${unread ? 'unread' : ''}" data-id="${c.conversation_id}">
+      <span class="badge-icon">${icon}</span>
+      <div class="conv-body">
+        <div class="conv-top">
+          <span class="conv-name">${escapeHtml(c.other_user_name || 'User')}</span>
+          <span class="conv-time">${formatTimeShort(c.last_message_time || c.created_at)}</span>
+        </div>
+        ${c.item_title ? `<div class="conv-item-title">${escapeHtml(c.item_title)}</div>` : ''}
+        <div class="conv-preview">${escapeHtml(c.last_message || 'No messages yet')}</div>
+      </div>
+      ${unread ? '<span class="unread-dot"></span>' : ''}
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.conversation-row').forEach(row => {
+    row.addEventListener('click', () => openConversation(Number(row.dataset.id)));
+  });
+}
+
+/* ---------- thread pane ---------- */
+async function openConversation(conversationId) {
+  activeConversationId = conversationId;
+  history.replaceState(null, '', `/messages.html?conversation=${conversationId}`);
+  stopMessagePolling(); stopTypingPolling();
+
+  const conv = conversations.find(c => c.conversation_id === conversationId);
+  renderConversationList(); // to update the active highlight
+
+  const threadEl = document.getElementById('inboxThread');
+  const icon = conv ? (ITEM_ICONS[conv.item_type] || ITEM_ICONS.general) : '💬';
+  const label = conv ? (ITEM_LABELS[conv.item_type] || 'General') : 'General';
+
+  threadEl.innerHTML = `
+    <div class="thread-header">
+      <span class="other-user-name">${escapeHtml(conv?.other_user_name || 'Conversation')}</span>
+      <div class="thread-header-actions">
+        <button class="small-btn" id="archiveConvBtn"><i class="fas fa-box-archive"></i> ${conv?.is_archived ? 'Unarchive' : 'Archive'}</button>
+      </div>
+    </div>
+    ${conv && conv.item_title ? `
+      <div class="thread-context-card">
+        <span class="ctx-icon">${icon}</span>
+        <div class="ctx-body">
+          <div class="ctx-label">${label}</div>
+          <div class="ctx-title">${escapeHtml(conv.item_title)}</div>
+          ${conv.item_price != null ? `<div class="ctx-price">${fmtMoney(conv.item_price)}</div>` : ''}
+        </div>
+        ${conv.item_url ? `<a href="${conv.item_url}" class="small-btn">View</a>` : ''}
+      </div>` : ''}
+    <div class="thread-messages" id="threadMessages">
+      <p style="text-align:center;color:var(--text-muted);font-size:13px;">Loading…</p>
+    </div>
+    <div id="typingIndicatorRowInbox"></div>
+    <div class="thread-composer">
+      <input type="file" id="inboxAttachInput" accept="image/*,application/pdf" style="display:none;">
+      <button class="composer-btn composer-attach" id="inboxAttachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
+      <textarea id="inboxComposerText" rows="1" placeholder="Write a message…"></textarea>
+      <button class="composer-btn composer-send" id="inboxSendBtn" title="Send"><i class="fas fa-paper-plane"></i></button>
+    </div>`;
+
+  document.getElementById('archiveConvBtn').addEventListener('click', () => toggleArchive(conversationId, !conv?.is_archived));
+  document.getElementById('inboxSendBtn').addEventListener('click', sendInboxMessage);
+  document.getElementById('inboxComposerText').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInboxMessage(); }
+  });
+  document.getElementById('inboxComposerText').addEventListener('input', notifyTyping);
+  document.getElementById('inboxAttachBtn').addEventListener('click', () => document.getElementById('inboxAttachInput').click());
+  document.getElementById('inboxAttachInput').addEventListener('change', (e) => sendInboxAttachment(e.target.files[0]));
+
+  await refreshThreadMessages();
+  startMessagePolling();
+  startTypingPolling();
+}
+
+async function refreshThreadMessages() {
+  if (!activeConversationId) return;
+  try {
+    const res = await fetch(`/api/messages/${activeConversationId}/messages`, { credentials: 'include' });
+    const messages = res.ok ? await res.json() : [];
+    renderThreadMessages(messages);
+    fetch(`/api/messages/${activeConversationId}/mark-seen`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': getCSRFToken() } })
+      .then(() => { loadConversations(); }) // refreshes unread counts/dots in the sidebar
+      .catch(() => {});
+  } catch (e) { /* non-fatal, will retry on next poll */ }
+}
+
+function renderThreadMessages(messages) {
+  const el = document.getElementById('threadMessages');
+  if (!el) return;
+  if (!messages.length) {
+    el.innerHTML = `<p style="text-align:center;color:var(--text-muted);font-size:13px;">No messages yet — say hello.</p>`;
+    return;
+  }
+  el.innerHTML = messages.map(m => {
+    const mine = currentUser && parseInt(m.sender_id) === parseInt(currentUser.id);
+    const receipt = mine ? (m.read_at ? '✓✓ Seen' : '✓ Sent') : '';
+    let attachment = '';
+    if (m.attachment_url) {
+      attachment = m.attachment_type === 'pdf'
+        ? `<a class="attach-pdf" href="${m.attachment_url}" target="_blank"><i class="fas fa-file-pdf"></i> View PDF</a>`
+        : `<img class="attach-img" src="${m.attachment_url}">`;
+    }
+    return `<div class="msg-bubble-row ${mine ? 'mine' : 'theirs'}">
+      <div class="msg-bubble">${escapeHtml(m.message || '')}${attachment}</div>
+      <div class="msg-meta">${formatTimeShort(m.created_at)}${receipt ? ' · ' + receipt : ''}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ---------- send ---------- */
+async function sendInboxMessage() {
+  const textarea = document.getElementById('inboxComposerText');
+  const msg = textarea.value.trim();
+  if (!msg || !activeConversationId) return;
+  textarea.value = '';
+  try {
+    const res = await fetch('/api/messages/send', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
+      body: JSON.stringify({ conversation_id: activeConversationId, message: msg }),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Send failed'); }
+    await refreshThreadMessages();
+  } catch (e) {
+    showToast('Could not send', e.message || 'Try again in a moment.');
+  }
+}
+
+async function sendInboxAttachment(file) {
+  if (!file || !activeConversationId) return;
+  const formData = new FormData();
+  formData.append('conversation_id', activeConversationId);
+  formData.append('image', file);
+  try {
+    const res = await fetch('/api/messages/send-with-image', { method: 'POST', credentials: 'include', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    document.getElementById('inboxAttachInput').value = '';
+    await refreshThreadMessages();
+  } catch (e) {
+    showToast('Attachment failed', 'Could not send that file.');
+  }
+}
+
+/* ---------- archive ---------- */
+async function toggleArchive(conversationId, archived) {
+  try {
+    await fetch(`/api/messages/${conversationId}/archive`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
+      body: JSON.stringify({ archived }),
+    });
+    await loadConversations();
+    document.getElementById('inboxThread').innerHTML = `<div class="thread-placeholder"><i class="fas fa-comments"></i><p>Select a conversation to view it</p></div>`;
+    activeConversationId = null;
+    stopMessagePolling(); stopTypingPolling();
+  } catch (e) {
+    showToast('Could not update', 'Try again in a moment.');
+  }
+}
+
+/* ---------- typing indicator ---------- */
+function notifyTyping() {
+  if (!activeConversationId || typingSendThrottle) return;
+  typingSendThrottle = setTimeout(() => { typingSendThrottle = null; }, 2000);
+  fetch(`/api/messages/${activeConversationId}/typing`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': getCSRFToken() } }).catch(() => {});
+}
+function startTypingPolling() {
+  stopTypingPolling();
+  typingPollTimer = setInterval(async () => {
+    if (!activeConversationId) return;
+    try {
+      const res = await fetch(`/api/messages/${activeConversationId}/typing-status`, { credentials: 'include' });
+      const data = await res.json();
+      const row = document.getElementById('typingIndicatorRowInbox');
+      if (!row) return;
+      row.textContent = data.is_typing ? `${data.username || 'They'} are typing…` : '';
+    } catch (e) { /* non-fatal */ }
+  }, 2500);
+}
+function stopTypingPolling() { if (typingPollTimer) clearInterval(typingPollTimer); typingPollTimer = null; }
+
+/* ---------- message polling ---------- */
+function startMessagePolling() { stopMessagePolling(); messagePollTimer = setInterval(refreshThreadMessages, 4000); }
+function stopMessagePolling() { if (messagePollTimer) clearInterval(messagePollTimer); messagePollTimer = null; }
+  </script>
 </body>
 </html>

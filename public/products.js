@@ -5501,14 +5501,14 @@ function enhanceProductCards() {
       actions.appendChild(askBtn);
     }
 
-    // Add-to-cart button for digital/physical (affiliate has no cart concept)
-    if (actions && product.type !== 'affiliate' && !actions.querySelector('.add-to-cart-btn')) {
+    const cardBody = card.querySelector('.card-body');
+    if (cardBody && product.type !== 'affiliate' && !cardBody.querySelector('.add-to-cart-btn')) {
       const cartBtn = document.createElement('button');
-      cartBtn.className = 'small-btn add-to-cart-btn';
-      cartBtn.innerHTML = `<i class="fas fa-cart-plus"></i>`;
-      cartBtn.title = 'Add to cart';
+      cartBtn.className = 'btn secondary block add-to-cart-btn';
+      cartBtn.style.marginTop = '8px';
+      cartBtn.innerHTML = `<i class="fas fa-cart-plus"></i> Add to Cart`;
       cartBtn.addEventListener('click', (e) => { e.stopPropagation(); addToCart(id, 1); });
-      actions.insertBefore(cartBtn, actions.firstChild);
+      cardBody.appendChild(cartBtn);
     }
 
     // Repoint any button whose inline handler opens the old details modal

@@ -841,6 +841,9 @@ app.post('/api/reset-password', resetLimiter);
 app.post('/api/verification/send-otp', otpLimiter);
 app.post('/api/send-complaint', otpLimiter);
 
+app.get(['/product/:id', '/product/:id/*', '/seller/:id', '/seller/:id/*'], (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "products.html"));
+}); 
 // ============================================
 // COMPLETE PRODUCT UPLOAD - FLUTTERWAVE ONLY
 // ============================================

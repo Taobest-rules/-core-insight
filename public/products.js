@@ -6085,6 +6085,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdvancedFilters();
   goToWizardStep(1);
 
+   ['searchInput', 'filterType', 'filterCategory', 'sortSelect', 'refreshBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const fresh = el.cloneNode(true);
+    el.parentNode.replaceChild(fresh, el);
+    if (id === 'refreshBtn') fresh.addEventListener('click', () => loadProducts());
+    else if (id === 'searchInput') fresh.addEventListener('input', debounce(renderProducts, 250));
+    else fresh.addEventListener('change', renderProducts);
+  });
+  
   document.getElementById('cartOpenBtn')?.addEventListener('click', openCart);
   document.getElementById('cartCheckoutBtn')?.addEventListener('click', checkoutCart);
   document.getElementById('askSellerSendBtn')?.addEventListener('click', sendAskSellerQuestion);

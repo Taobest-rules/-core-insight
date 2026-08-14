@@ -6069,10 +6069,134 @@ document.getElementById('wizardNextBtn')?.addEventListener('click', () => {
 });
 document.getElementById('wizardBackBtn')?.addEventListener('click', () => goToWizardStep(wizardCurrentStep - 1));
 
-// Reset wizard to step 1 whenever the seller form is opened
+/* ============================================================
+   CATEGORY TAXONOMY + WORLD COUNTRY LIST
+   Replaces the old "select existing / create new" category field
+   and the short hardcoded delivery-country list.
+   ============================================================ */
+const PRODUCT_CATEGORIES = {
+  "Electronics & Technology": ["Smartphones", "Laptops", "Tablets", "Computers", "Computer Accessories", "Gaming", "Audio & Headphones", "Cameras", "Smart Home Devices", "Networking Equipment", "Storage Devices"],
+  "Fashion & Clothing": ["Men's Clothing", "Women's Clothing", "Children's Clothing", "Shoes", "Bags", "Watches", "Jewelry", "Accessories"],
+  "Beauty & Personal Care": ["Skincare", "Hair Care", "Makeup", "Fragrances", "Grooming", "Personal Hygiene"],
+  "Home & Living": ["Furniture", "Home Decor", "Kitchen & Dining", "Bedding", "Lighting", "Appliances", "Storage & Organization"],
+  "Books & Media": ["Books", "Ebooks", "Audiobooks", "Magazines"],
+  "Health & Fitness": ["Fitness Equipment", "Sportswear", "Supplements", "Health Devices", "Wellness Products"],
+  "Sports & Outdoors": ["Outdoor Equipment", "Camping", "Cycling", "Football", "Basketball", "Gym Equipment", "Fishing"],
+  "Baby & Kids": ["Baby Clothing", "Toys", "Baby Care", "School Supplies"],
+  "Automotive": ["Car Accessories", "Car Parts", "Motorcycle Parts", "Vehicle Care"],
+  "Food & Grocery": ["Snacks", "Beverages", "Packaged Foods", "Organic Foods"],
+  "Agriculture": ["Farming Equipment", "Seeds", "Livestock Supplies", "Agricultural Tools"],
+  "Office & Business": ["Office Supplies", "Printers", "Stationery", "Business Equipment"],
+  "Arts & Crafts": ["Art Supplies", "Craft Materials", "Sewing", "DIY Tools"],
+  "Digital Products": ["Software", "Website Templates", "Graphics", "AI Prompts", "Design Assets"],
+  "Services": ["Graphic Design", "Web Development", "Writing Services", "Marketing Services", "Consulting", "Virtual Assistance"],
+  "Education": ["Online Courses", "Tutorials", "Study Materials", "Coaching"],
+  "Religious & Spiritual": ["Islamic Books", "Christian Books", "Prayer Items", "Religious Resources"],
+  "Collectibles": ["Coins", "Cards", "Memorabilia", "Antiques"],
+  "Other": [],
+};
+// Removed as redundant: "Educational Materials" (covered by Education > Study
+// Materials), "Ebooks" under Digital Products (covered by Books & Media > Ebooks),
+// "Digital Downloads" (too vague, overlapped with the specific digital types),
+// and "Miscellaneous" under Other (Other already implies miscellaneous).
+
+const WORLD_COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
+  "Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan",
+  "Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia",
+  "Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (DRC)","Congo (Republic)",
+  "Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador",
+  "Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France",
+  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau",
+  "Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland",
+  "Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo",
+  "Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania",
+  "Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius",
+  "Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia",
+  "Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",
+  "Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland",
+  "Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino",
+  "Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands",
+  "Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland",
+  "Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia",
+  "Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+];
+
+function populateCategorySelects() {
+  const mainSelect = document.getElementById('p_category_select');
+  const subSelect = document.getElementById('p_subcategory_select');
+  if (!mainSelect || !subSelect) return;
+
+  mainSelect.innerHTML = '<option value="">Select a category</option>' +
+    Object.keys(PRODUCT_CATEGORIES).map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+
+  mainSelect.onchange = () => {
+    const subs = PRODUCT_CATEGORIES[mainSelect.value] || [];
+    if (!subs.length) {
+      subSelect.innerHTML = '<option value="">N/A</option>';
+      subSelect.disabled = true;
+    } else {
+      subSelect.disabled = false;
+      subSelect.innerHTML = '<option value="">Select a subcategory</option>' +
+        subs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    }
+  };
+}
+
+// Overrides the earlier version — now combines "Main Category" and
+// "Subcategory" into one string instead of reading the removed
+// free-text "create new category" field.
+function getSelectedCategory() {
+  const main = document.getElementById('p_category_select')?.value.trim() || '';
+  const sub = document.getElementById('p_subcategory_select')?.value.trim() || '';
+  if (main && sub) return `${main} > ${sub}`;
+  return main;
+}
+
+const GLOBAL_SHIPPING_VALUE = 'Worldwide';
+
+function populateDeliveryCountriesSelect() {
+  const select = document.getElementById('p_deliveryCountries');
+  if (!select) return;
+  select.innerHTML =
+    `<option value="${GLOBAL_SHIPPING_VALUE}">🌍 Global / Ships Worldwide</option>` +
+    WORLD_COUNTRIES.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+  select.onchange = () => {
+    const options = Array.from(select.options);
+    const globalOpt = options.find(o => o.value === GLOBAL_SHIPPING_VALUE);
+    const othersSelected = options.some(o => o.value !== GLOBAL_SHIPPING_VALUE && o.selected);
+    if (globalOpt.selected && othersSelected) {
+      // Whichever was just clicked wins — if Global is selected alongside
+      // others, keep only Global, since it already covers everywhere.
+      options.forEach(o => { if (o.value !== GLOBAL_SHIPPING_VALUE) o.selected = false; });
+    }
+  };
+}
+
+document.getElementById('p_addManualCountryBtn')?.addEventListener('click', () => {
+  const input = document.getElementById('p_manualCountryInput');
+  const select = document.getElementById('p_deliveryCountries');
+  const name = input.value.trim();
+  if (!name || !select) return;
+  const exists = Array.from(select.options).some(o => o.value.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  }
+  Array.from(select.options).find(o => o.value.toLowerCase() === name.toLowerCase()).selected = true;
+  input.value = '';
+});
 const _origBecomeSellerHandler = document.getElementById('becomeSeller');
 if (_origBecomeSellerHandler) {
-  _origBecomeSellerHandler.addEventListener('click', () => setTimeout(() => goToWizardStep(1), 0));
+  _origBecomeSellerHandler.addEventListener('click', () => setTimeout(() => {
+    goToWizardStep(1);
+    populateCategorySelects();
+    populateDeliveryCountriesSelect();
+  }, 0));
 }
 
 /* ============================================================

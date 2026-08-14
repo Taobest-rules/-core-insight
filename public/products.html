@@ -1347,18 +1347,22 @@ main {
                 <span class="form-help">Be detailed about what customers will receive</span>
               </div>
 
-              <div class="form-row">
+             <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Category <span class="required">*</span></label>
-                  <div style="display:flex; gap:12px; align-items:flex-end;">
-                    <select id="p_category_select" class="form-select" style="flex:1;">
-                      <option value="">Select existing category</option>
-                    </select>
-                    <span style="color:var(--text-muted); margin:0 8px;">or</span>
-                    <input type="text" id="p_category_new" class="form-input" placeholder="Create new category" style="flex:1;" />
-                  </div>
+                  <select id="p_category_select" class="form-select">
+                    <option value="">Select a category</option>
+                  </select>
                   <div id="p_category_error" class="form-error"></div>
+                  <input type="hidden" id="p_category_new" value="">
                 </div>
+                <div class="form-group">
+                  <label class="form-label">Subcategory</label>
+                  <select id="p_subcategory_select" class="form-select" disabled>
+                    <option value="">Select a category first</option>
+                  </select>
+                </div>
+              </div>
                 <div class="form-group">
                   <label class="form-label">Price (USD) <span class="required">*</span></label>
                   <input type="number" id="p_price" class="form-input" step="0.01" min="0.01" placeholder="0.00" required />
@@ -1419,23 +1423,22 @@ main {
                   </div>
                 </div>
 
-                <div id="deliverySection" class="conditional-section" style="margin-top:20px;">
+    <div id="deliverySection" class="conditional-section" style="margin-top:20px;">
                   <div class="form-group">
                     <label class="form-label">Ships to countries <span class="required">*</span></label>
-                    <select id="p_deliveryCountries" class="form-select" multiple size="4"></select>
+                    <select id="p_deliveryCountries" class="form-select" multiple size="6"></select>
+                    <span class="form-help">Ctrl/Cmd+click to select multiple. Pick "🌍 Global / Ships Worldwide" if you ship anywhere.</span>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                      <input type="text" id="p_manualCountryInput" class="form-input" placeholder="Don't see a country? Type it here" style="flex:1;">
+                      <button type="button" id="p_addManualCountryBtn" class="btn secondary sm">Add</button>
+                    </div>
                     <div id="p_deliveryCountries_error" class="form-error"></div>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">States / regions (optional)</label>
-                    <input type="text" id="p_deliveryStates" class="form-input" placeholder="e.g. Lagos, Abuja, Rivers, Western Cape, Ontario, Texas" />
+                    <label class="form-label">Cities / regions (optional)</label>
+                    <input type="text" id="p_deliveryStates" class="form-input" placeholder="e.g. New York, London, Dubai, Toronto, Sydney, Berlin" />
                     <div id="p_deliveryStates_error" class="form-error"></div>
                   </div>
-                  <div class="form-group">
-                    <label class="form-label">Estimated delivery days</label>
-                    <input type="number" id="p_deliveryDays" class="form-input" min="1" max="90" value="7" required />
-                  </div>
-                </div>
-
                 <div id="pickupSection" class="conditional-section" style="margin-top:20px;">
                   <div class="form-group">
                     <label class="form-label">Pickup address</label>

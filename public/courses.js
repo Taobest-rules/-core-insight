@@ -3,6 +3,7 @@
 let userCurrency = 'USD';
 let exchangeRates = {};
 let currentUser = null;
+let currentUserVerification = null; // { status: 'unverified'|'pending_review'|'verified', hours_remaining, minutes_remaining, ... }
 let allCourses = [];
 
 let activeTypeFilter = 'all';   // all | free | premium | courses | books | featured | trending | bestselling | new | saved
@@ -21,9 +22,6 @@ let recentlyViewedIds = JSON.parse(localStorage.getItem('ci_recently_viewed') ||
 let currentFlagCourseId = null;
 let wizardCurrentStep = 1;
 
-/* Category / genre taxonomy — covers courses (non-fiction/professional)
-   and books (fiction + non-fiction). Any course.category value not listed
-   here still renders fine with a neutral dot and its raw label. */
 const CATEGORY_META = {
   'technology': { label: 'Technology', color: '#4a6fa5', group: 'Non-Fiction & Professional' },
   'business': { label: 'Business', color: '#c9971f', group: 'Non-Fiction & Professional' },
@@ -68,6 +66,10 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+/* Reserved for genuinely blocking actions (payment redirect, delete, flag,
+   publish) — NOT used for the routine course-grid refresh, which shows a
+   scoped skeleton in the grid instead so the rest of the page (nav, search,
+   wizard) stays fully usable while data loads. */
 function showLoading() { document.body.classList.add('loading'); }
 function hideLoading() { document.body.classList.remove('loading'); }
 
@@ -177,7 +179,7 @@ function togglePreferences(event) {
   panel.hidden = !wasHidden;
 }
 
-/* -------------------------- 4. AUTH / USER -------------------------- */
+/* -------------------------- 4. AUTH / USER / VERIFICATION -------------------------- */
 async function loadUser() {
   try {
     const res = await fetch('/api/me');
@@ -198,6 +200,12 @@ async function loadUser() {
       `;
       notifBtn.hidden = false;
       adminNavLink.hidden = user.role !== 'admin';
+
+      // Fetch once up front so opening the wizard never has to wait on this.
+      try {
+        const vRes = await fetch('/api/verification/status');
+        if (vRes.ok) currentUserVerification = await vRes.json();
+      } catch (e) { /* not fatal — wizard falls back to "unverified" gate */ }
     } else {
       headerAuthButtons.innerHTML = `
         <a href="login.html" class="btn-login">Login</a>
@@ -205,6 +213,7 @@ async function loadUser() {
       `;
       notifBtn.hidden = true;
       adminNavLink.hidden = true;
+      currentUserVerification = null;
     }
   } catch (error) {
     console.error('Error loading user:', error);
@@ -239,8 +248,7 @@ function getCategoryMeta(rawCategory) {
 function buildCategoryOptionsHTML(includeAllOption) {
   const byGroup = {};
   Object.keys(CATEGORY_META).forEach(slug => {
-    // avoid listing both personal-development and personal-growth as separate near-duplicate options
-    if (slug === 'personal-growth') return;
+    if (slug === 'personal-growth') return; // avoid a near-duplicate of personal-development in the picker
     const meta = CATEGORY_META[slug];
     byGroup[meta.group] = byGroup[meta.group] || [];
     byGroup[meta.group].push({ slug, label: meta.label });
@@ -254,7 +262,6 @@ function buildCategoryOptionsHTML(includeAllOption) {
     html += '</optgroup>';
   });
 
-  // Any category actually present in loaded data but not in our static list
   const extra = new Set();
   allCourses.forEach(c => {
     if (!c.category) return;
@@ -323,11 +330,26 @@ function isRecentlyAdded(course) {
   return (Date.now() - created.getTime()) < 30 * 24 * 60 * 60 * 1000;
 }
 
-/* Reputation tier — computed locally from the number of items this creator
-   has published in the currently loaded catalog. This is an honest, real
-   signal (not fabricated), but it's a local approximation, not a lifetime
-   total. Richer signals (follower count, avg rating) get pulled from the
-   real /api/profile/:userId endpoint when someone opens the Quick View. */
+/* "✓ Verified Creator" — real signal for the CURRENT user's own content
+   (we have their live verification status). For other creators' cards we
+   fall back to admin-uploaded as a proxy, since /api/courses doesn't yet
+   join verification_status — see note in chat. The guard on
+   creator_verification_status means this upgrades automatically the
+   moment that field is added server-side. */
+function isVerifiedCreatorContent(course) {
+  if (typeof course.creator_verification_status === 'string') {
+    return course.creator_verification_status === 'verified';
+  }
+  if (currentUser && Number(currentUser.id) === Number(course.user_id) && currentUserVerification) {
+    return currentUserVerification.status === 'verified';
+  }
+  return course.user_role === 'admin';
+}
+
+/* Prolificness tier — separate from verification. Purely a count of items
+   in the currently loaded catalog, labeled honestly as that (not a stand-in
+   for "Trusted Creator", which needs real sales/dispute/rating data this
+   backend doesn't aggregate yet). */
 function getCreatorReputation(userId) {
   const count = allCourses.filter(c => c.user_id === userId).length;
   if (count >= 10) return { label: 'Top Creator', tier: 'top' };
@@ -360,10 +382,16 @@ function getRelatedCourses(course, limit = 4) {
 }
 
 /* -------------------------- 6. LOAD & ENRICH COURSES -------------------------- */
-async function loadCourses() {
-  try {
-    showLoading();
+function skeletonCardsHTML(count) {
+  const one = `<div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>`;
+  return one.repeat(count);
+}
 
+async function loadCourses() {
+  const grid = document.getElementById('coursesGrid');
+  grid.innerHTML = skeletonCardsHTML(6); // scoped loading — rest of the page stays interactive
+
+  try {
     const [coursesRes, userRes] = await Promise.all([fetch('/api/courses'), fetch('/api/me')]);
     const rawCourses = await coursesRes.json();
     const user = await userRes.json();
@@ -390,8 +418,6 @@ async function loadCourses() {
         (purchased || []).forEach(c => purchasedSet.add(Number(c.id)));
       } catch (e) { /* ignore */ }
     }
-
-    const isAdmin = user && user.role === 'admin';
 
     allCourses = (rawCourses || []).map(course => {
       const fileUrl = course.file_url || course.download_url || '';
@@ -445,18 +471,15 @@ async function loadCourses() {
 
     const heroCount = document.getElementById('heroCourseCount');
     if (heroCount) heroCount.textContent = allCourses.length;
-
-    hideLoading();
   } catch (error) {
     console.error('Error loading courses:', error);
-    document.getElementById('coursesGrid').innerHTML = `
+    grid.innerHTML = `
       <div class="empty-state">
         <i class="fas fa-exclamation-triangle"></i>
         <h3>We couldn't load courses</h3>
         <p>Please check your connection and try again.</p>
         <button onclick="loadCourses()" class="btn-primary btn-inline"><i class="fas fa-redo"></i> Retry</button>
       </div>`;
-    hideLoading();
   }
 }
 
@@ -556,7 +579,7 @@ function resetAllFilters() {
 }
 
 /* -------------------------- 8. CARD MARKUP -------------------------- */
-function bylineBlockHTML(course, { compact } = {}) {
+function bylineBlockHTML(course) {
   const rep = getCreatorReputation(course.user_id);
   const isSelf = currentUser && Number(currentUser.id) === Number(course.user_id);
   return `
@@ -567,6 +590,18 @@ function bylineBlockHTML(course, { compact } = {}) {
     </div>
     ${(!isSelf && course.safeAuthor) ? `<button type="button" class="follow-btn" data-follow-id="${course.user_id}" onclick="toggleFollow(${course.user_id})">${followedAuthorIds.has(course.user_id) ? 'Following' : 'Follow'}</button>` : ''}
   `;
+}
+
+function primaryCtaFor(course) {
+  if (course.hasAccess) {
+    if (course.isVideo) {
+      const label = course.isInProgress ? 'Continue Watching' : (course.isCompleted ? 'Watch Again' : 'Watch Now');
+      return { label, onclick: `watchVideo(${course.id})`, icon: 'fa-play' };
+    }
+    const label = course.isInProgress ? 'Continue Learning' : (course.isCompleted ? 'Download Again' : 'Download Now');
+    return { label, onclick: `handleDownload(${course.id})`, icon: 'fa-download' };
+  }
+  return { label: 'Enroll Now', onclick: `initiatePayment(${course.id})`, icon: '' };
 }
 
 function courseCardHTML(course) {
@@ -587,7 +622,7 @@ function courseCardHTML(course) {
 
   const badgeBits = [];
   if (course.level) badgeBits.push(`<span class="difficulty-badge ${escapeHtml(String(course.level).toLowerCase())}">${escapeHtml(course.level)}</span>`);
-  if (course.user_role === 'admin') badgeBits.push(`<span class="verification-badge"><i class="fas fa-check-circle"></i> Verified</span>`);
+  if (isVerifiedCreatorContent(course)) badgeBits.push(`<span class="verification-badge"><i class="fas fa-check-circle"></i> Verified Creator</span>`);
   const badgeRow = badgeBits.length ? `<div class="badge-row">${badgeBits.join('')}</div>` : '';
 
   const benefitBits = [`<span><i class="fas fa-check-circle"></i> Lifetime Access</span>`];
@@ -603,27 +638,25 @@ function courseCardHTML(course) {
     priceBlock = `<div class="price-block" data-original-price="${course.price}">…</div>`;
   }
 
-  let ctaLabel, ctaOnclick;
-  if (course.hasAccess) {
-    if (course.isInProgress) ctaLabel = course.isVideo ? 'Continue Watching' : 'Continue Learning';
-    else if (course.isCompleted) ctaLabel = course.isVideo ? 'Watch Again' : 'Download Again';
-    else ctaLabel = course.isVideo ? 'Watch Now' : 'Download Now';
-    ctaOnclick = course.isVideo ? `watchVideo(${course.id})` : `handleDownload(${course.id})`;
-  } else {
-    ctaLabel = 'Enroll Now';
-    ctaOnclick = `initiatePayment(${course.id})`;
-  }
-
+  const cta = primaryCtaFor(course);
   const progressRail = course.hasProgress
     ? `<div class="progress-rail"><div class="progress-rail__fill" style="width:${course.progress_percent}%"></div></div>`
     : '';
 
-  const playOverlay = course.isVideo ? `<button class="preview-play" onclick="openPreviewModal(${course.id})" aria-label="Preview"><i class="fas fa-play"></i></button>` : '';
+  // Hovering the thumbnail always gives the best available action: full
+  // playback if owned, a free preview if one exists, else the details modal.
+  let playOverlay = '';
+  if (course.isVideo) {
+    playOverlay = `<button class="preview-play" onclick="handleCardPlayClick(${course.id})" aria-label="Play"><i class="fas fa-play"></i></button>`;
+  }
 
   const menuItems = [
     `<button type="button" onclick="openPreviewModal(${course.id})"><i class="fas fa-eye"></i> Quick View</button>`,
     `<button type="button" onclick="shareCourse(${course.id})"><i class="fas fa-share-alt"></i> Share</button>`
   ];
+  if (course.hasAccess && course.isVideo) {
+    menuItems.push(`<button type="button" onclick="handleDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
+  }
   if (!currentUser || Number(currentUser.id) !== course.user_id) {
     menuItems.push(`<button type="button" onclick="supportAuthor(${course.user_id})"><i class="fas fa-hand-holding-heart"></i> Support Author</button>`);
   }
@@ -654,7 +687,7 @@ function courseCardHTML(course) {
         <div class="course-card__footer">
           ${priceBlock}
           <div class="course-card__actions">
-            <button type="button" class="btn-primary" onclick="${ctaOnclick}">${ctaLabel}</button>
+            <button type="button" class="btn-primary" onclick="${cta.onclick}">${cta.icon ? `<i class="fas ${cta.icon}"></i> ` : ''}${cta.label}</button>
             <div class="card-menu">
               <button type="button" class="icon-btn-ghost" onclick="toggleCardMenu(this, event)" aria-label="More options"><i class="fas fa-ellipsis"></i></button>
               <div class="card-menu__dropdown" hidden>${menuItems.join('')}</div>
@@ -687,13 +720,11 @@ function renderFeaturedSpotlight() {
   label.innerHTML = isRealFeatured ? `<i class="fas fa-star"></i> Featured` : `<i class="fas fa-sparkles"></i> Newest Addition`;
 
   const eyebrow = getCategoryMeta(spotlight.category);
-  const rep = getCreatorReputation(spotlight.user_id);
   let priceHtml;
   if (spotlight.hasAccess && spotlight.isPremium) priceHtml = `<span class="price-block is-owned"><i class="fas fa-check-circle"></i> Enrolled</span>`;
   else if (spotlight.isFree) priceHtml = `<span class="price-block is-free">Free</span>`;
   else priceHtml = `<span class="price-block" data-original-price="${spotlight.price}">…</span>`;
-  const ctaLabel = spotlight.hasAccess ? (spotlight.isVideo ? 'Watch Now' : 'Download Now') : 'Enroll Now';
-  const ctaOnclick = spotlight.hasAccess ? (spotlight.isVideo ? `watchVideo(${spotlight.id})` : `handleDownload(${spotlight.id})`) : `initiatePayment(${spotlight.id})`;
+  const cta = primaryCtaFor(spotlight);
 
   card.innerHTML = `
     <div class="featured-card__thumb"><img src="${spotlight.thumbnailSrc}" alt="${spotlight.safeTitle}"></div>
@@ -704,7 +735,7 @@ function renderFeaturedSpotlight() {
       <div class="byline" style="border-top:none;padding-top:0;">${bylineBlockHTML(spotlight)}</div>
       <div class="featured-card__footer">
         ${priceHtml}
-        <button class="btn-primary btn-inline" onclick="${ctaOnclick}">${ctaLabel}</button>
+        <button class="btn-primary btn-inline" onclick="${cta.onclick}">${cta.label}</button>
       </div>
     </div>`;
   updateAllPrices();
@@ -819,8 +850,6 @@ function toggleBookmark(courseId) {
   if (activeTypeFilter === 'saved') renderCourses();
 }
 
-/* Follow now calls the real, existing creator-follow endpoint
-   (POST /api/profile/:userId/follow) shared with Knowledge Hub authors. */
 async function toggleFollow(authorUserId) {
   if (!currentUser) {
     showToast('Please login to follow creators.', 'error');
@@ -852,9 +881,6 @@ async function toggleFollow(authorUserId) {
   }
 }
 
-/* Support Author calls the real, existing creator-support/tip endpoint
-   (POST /api/support/create). articleId is intentionally omitted since
-   this is a course/book, not an article. */
 async function supportAuthor(authorUserId) {
   if (!currentUser) {
     showToast('Please login to support a creator.', 'error');
@@ -932,8 +958,82 @@ function renderRecentlyViewed() {
     </div>`).join('');
 }
 
-/* -------------------------- 13. PREVIEW / QUICK VIEW MODAL -------------------------- */
-function openPreviewModal(courseId) {
+/* -------------------------- 13. VIDEO PLAYBACK (in-browser, not download) -------------------------- */
+/* Direct file URLs get a native <video> element; YouTube/Vimeo links get
+   embedded via iframe. Playback happens in place inside the modal — nothing
+   downloads or opens a new tab. */
+function buildPlayerHTML(url) {
+  if (!url) return '<div class="stub-note" style="height:100%;display:flex;align-items:center;justify-content:center;">Video unavailable.</div>';
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `<iframe width="100%" height="100%" style="border:0;display:block;" src="https://www.youtube.com/embed/${yt[1]}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `<iframe width="100%" height="100%" style="border:0;display:block;" src="https://player.vimeo.com/video/${vimeo[1]}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  return `<video controls autoplay style="width:100%;height:100%;background:#000;" src="${escapeHtml(url)}">Your browser does not support embedded video.</video>`;
+}
+
+async function watchVideo(courseId) {
+  const course = allCourses.find(c => c.id === courseId);
+  if (!course) return;
+  try {
+    const accessRes = await fetch(`/api/check-access/${courseId}`);
+    const accessData = await accessRes.json();
+    if (!accessData.hasAccess) {
+      showToast('You do not have access to this video yet.', 'error');
+      return;
+    }
+    openPreviewModal(courseId, { autoplay: true, source: 'full' });
+  } catch (error) {
+    console.error('Watch video error:', error);
+    showToast('Error playing video: ' + error.message, 'error');
+  }
+}
+
+/* No access check — the whole point of a preview is that anyone can watch
+   it, purchased or not, logged in or not. */
+function watchPreview(courseId) {
+  const course = allCourses.find(c => c.id === courseId);
+  if (!course || !course.preview_url) {
+    showToast('No free preview available for this course yet.', 'info');
+    return;
+  }
+  openPreviewModal(courseId, { autoplay: true, source: 'preview' });
+}
+
+function handleCardPlayClick(courseId) {
+  const course = allCourses.find(c => c.id === courseId);
+  if (!course) return;
+  if (course.hasAccess) watchVideo(courseId);
+  else if (course.preview_url) watchPreview(courseId);
+  else openPreviewModal(courseId);
+}
+
+/* -------------------------- 14. PREVIEW / QUICK VIEW / WATCH MODAL -------------------------- */
+function buildModalFooterHTML(course) {
+  let priceHtml;
+  if (course.hasAccess && course.isPremium) priceHtml = `<div class="price-block is-owned"><i class="fas fa-check-circle"></i> ${course.isCompleted ? 'Completed' : 'Enrolled'}</div>`;
+  else if (course.isFree) priceHtml = `<div class="price-block is-free">Free</div>`;
+  else priceHtml = `<div class="price-block" data-original-price="${course.price}">…</div>`;
+
+  const buttons = [];
+  if (course.hasAccess) {
+    if (course.isVideo) {
+      const cta = primaryCtaFor(course);
+      buttons.push(`<button type="button" class="btn-primary" onclick="${cta.onclick}"><i class="fas ${cta.icon}"></i> ${cta.label}</button>`);
+      buttons.push(`<button type="button" class="btn-secondary" onclick="handleDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
+    } else {
+      const cta = primaryCtaFor(course);
+      buttons.push(`<button type="button" class="btn-primary" onclick="${cta.onclick}"><i class="fas ${cta.icon}"></i> ${cta.label}</button>`);
+    }
+  } else {
+    if (course.isVideo && course.preview_url) {
+      buttons.push(`<button type="button" class="btn-secondary" onclick="watchPreview(${course.id})"><i class="fas fa-play"></i> Free Preview</button>`);
+    }
+    buttons.push(`<button type="button" class="btn-primary" onclick="initiatePayment(${course.id})">Enroll Now</button>`);
+  }
+  return `<div>${priceHtml}</div><div class="modal-preview__footer-actions">${buttons.join('')}</div>`;
+}
+
+function openPreviewModal(courseId, opts = {}) {
   const course = allCourses.find(c => c.id === courseId);
   if (!course) return;
   trackRecentlyViewed(courseId);
@@ -944,9 +1044,16 @@ function openPreviewModal(courseId) {
   eyebrowParts.push(getFormatLabel(course.content_type, course.isVideo));
   if (course.level) eyebrowParts.push(escapeHtml(course.level));
 
-  document.getElementById('previewMedia').innerHTML = `
-    <img src="${course.thumbnailSrc}" alt="${course.safeTitle}">
-    ${course.isVideo ? `<button class="preview-play" style="opacity:1;" onclick="watchVideo(${course.id})" aria-label="Play"><i class="fas fa-play"></i></button>` : ''}`;
+  const mediaEl = document.getElementById('previewMedia');
+  if (opts.autoplay && course.isVideo) {
+    const url = opts.source === 'preview' ? course.preview_url : (course.file_url || course.download_url);
+    mediaEl.innerHTML = buildPlayerHTML(url);
+  } else {
+    mediaEl.innerHTML = `
+      <img src="${course.thumbnailSrc}" alt="${course.safeTitle}">
+      ${course.isVideo ? `<button class="preview-play" style="opacity:1;" onclick="handleCardPlayClick(${course.id})" aria-label="Play"><i class="fas fa-play"></i></button>` : ''}`;
+  }
+
   document.getElementById('previewEyebrow').innerHTML = eyebrowParts.join(' &middot; ');
   document.getElementById('previewTitle').textContent = course.title;
 
@@ -963,7 +1070,6 @@ function openPreviewModal(courseId) {
   document.getElementById('previewByline').innerHTML = bylineBlockHTML(course) +
     ((!currentUser || Number(currentUser.id) !== course.user_id) ? `<button type="button" class="support-btn-sm" onclick="supportAuthor(${course.user_id})"><i class="fas fa-hand-holding-heart"></i> Support</button>` : '');
 
-  // Enrich with real profile data (accurate follow-state, bio) without blocking initial render
   fetch(`/api/profile/${course.user_id}`).then(r => r.json()).then(data => {
     if (!data || !data.success) return;
     document.querySelectorAll(`[data-follow-id="${course.user_id}"]`).forEach(btn => {
@@ -982,8 +1088,10 @@ function openPreviewModal(courseId) {
   if (course.updated_at) metaGridBits.push(`<div><strong>${new Date(course.updated_at).toLocaleDateString()}</strong>Last updated</div>`);
 
   const related = getRelatedCourses(course, 4);
+  const hasFreePreview = course.isVideo && course.preview_url && !course.hasAccess;
 
   document.getElementById('previewOverview').innerHTML = `
+    ${hasFreePreview ? `<p class="stub-note" style="text-align:left;background:var(--color-blue-soft);color:var(--color-charcoal);"><i class="fas fa-circle-play" style="color:var(--color-blue);"></i> A free preview is available — see what you'll get before you pay.</p>` : ''}
     <p>${course.safeDescription}</p>
     <div class="meta-grid">${metaGridBits.join('')}</div>
     ${Array.isArray(course.learning_outcomes) && course.learning_outcomes.length ? `<div class="learning-outcomes"><strong style="display:block;margin-bottom:0.3rem;">What You'll Learn</strong><ul>${course.learning_outcomes.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul></div>` : `<p class="stub-note"><i class="fas fa-graduation-cap"></i> Learning outcomes will be added soon.</p>`}
@@ -998,23 +1106,7 @@ function openPreviewModal(courseId) {
     reviewsEl.innerHTML = `<p class="stub-note"><i class="fas fa-star"></i> No reviews yet — be the first to review after enrolling.</p>`;
   }
 
-  let footerHtml;
-  if (course.hasAccess && course.isPremium) {
-    footerHtml = `<div class="price-block is-owned"><i class="fas fa-check-circle"></i> ${course.isCompleted ? 'Completed' : 'Enrolled'}</div>`;
-  } else if (course.isFree) {
-    footerHtml = `<div class="price-block is-free">Free</div>`;
-  } else {
-    footerHtml = `<div class="price-block" data-original-price="${course.price}">…</div>`;
-  }
-  let ctaLabel, ctaOnclick;
-  if (course.hasAccess) {
-    ctaLabel = course.isVideo ? (course.isInProgress ? 'Continue Watching' : 'Watch Now') : (course.isInProgress ? 'Continue Learning' : 'Download Now');
-    ctaOnclick = course.isVideo ? `watchVideo(${course.id})` : `handleDownload(${course.id})`;
-  } else {
-    ctaLabel = 'Enroll Now';
-    ctaOnclick = `initiatePayment(${course.id})`;
-  }
-  document.getElementById('previewFooter').innerHTML = `${footerHtml}<button type="button" class="btn-primary" onclick="${ctaOnclick}">${ctaLabel}</button>`;
+  document.getElementById('previewFooter').innerHTML = buildModalFooterHTML(course);
   updateAllPrices();
 
   switchPreviewTab('overview');
@@ -1023,6 +1115,8 @@ function openPreviewModal(courseId) {
 
 function closePreviewModal() {
   document.getElementById('previewModal').classList.remove('is-open');
+  // Stop any playing media the instant the modal closes.
+  document.getElementById('previewMedia').innerHTML = '';
 }
 
 function switchPreviewTab(tab) {
@@ -1039,7 +1133,7 @@ function setupModalTabs() {
   });
 }
 
-/* -------------------------- 14. UPLOAD WIZARD (Share Your Knowledge) -------------------------- */
+/* -------------------------- 15. UPLOAD WIZARD (Share Your Knowledge) -------------------------- */
 function openUploadModal() {
   if (!currentUser) {
     showToast('Please login to publish a course or book.', 'error');
@@ -1048,16 +1142,49 @@ function openUploadModal() {
   }
   wizardCurrentStep = 1;
   showWizardStep(1);
-
-  const isAdmin = currentUser.role === 'admin';
-  document.getElementById('wizPricingAdmin').hidden = !isAdmin;
-  document.getElementById('wizPricingInfo').hidden = isAdmin;
-
   document.getElementById('uploadModal').classList.add('is-open');
 }
 
 function closeUploadModal() {
   document.getElementById('uploadModal').classList.remove('is-open');
+}
+
+/* Level 0 (unverified) / Level 1 (verified) gating for pricing, using the
+   real GET /api/verification/status endpoint. Admins can always price
+   content (matches existing backend behavior). The 10% fee is explained
+   here, once, as part of "why verify" — once someone can actually sell,
+   this panel stops appearing, so it's never repeated. */
+function updatePricingStepUI() {
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
+  const canSell = isAdmin || isVerified;
+
+  document.getElementById('wizPricingAdmin').hidden = !canSell;
+  const gate = document.getElementById('wizPricingInfo');
+  gate.hidden = canSell;
+  if (canSell) return;
+
+  const status = currentUserVerification ? currentUserVerification.status : 'unverified';
+  if (status === 'pending_review') {
+    let timeText = 'usually within about 2 hours';
+    if (currentUserVerification && currentUserVerification.hours_remaining != null) {
+      timeText = `about ${currentUserVerification.hours_remaining}h ${currentUserVerification.minutes_remaining || 0}m remaining`;
+    }
+    gate.innerHTML = `
+      <i class="fas fa-hourglass-half"></i>
+      <div>
+        <strong>Verification in review</strong>
+        <p>Your documents are under review (${escapeHtml(timeText)}). You can publish free content right now — paid pricing unlocks automatically the moment you're verified.</p>
+      </div>`;
+  } else {
+    gate.innerHTML = `
+      <i class="fas fa-shield-halved"></i>
+      <div>
+        <strong>Verification required to sell</strong>
+        <p>To sell paid courses, books, or digital products and receive payouts, become a Verified Creator first. This protects buyers, reduces fraud, and unlocks your ✓ Verified Creator badge. You'll keep 90% of every sale — Core Insight takes a 10% platform fee.</p>
+        <a href="verification.html" class="btn-secondary btn-inline" style="margin-top:0.75rem;width:auto;">Start Verification</a>
+      </div>`;
+  }
 }
 
 function showWizardStep(step) {
@@ -1071,6 +1198,7 @@ function showWizardStep(step) {
   document.getElementById('wizardNextBtn').hidden = step === 4;
   document.getElementById('wizardPublishBtn').hidden = step !== 4;
   document.getElementById('wizardDraftBtn').hidden = step === 4;
+  if (step === 3) updatePricingStepUI();
   if (step === 4) populateWizardReview();
 }
 
@@ -1087,7 +1215,9 @@ function validateWizardStep(step) {
     return true;
   }
   if (step === 3) {
-    if (currentUser && currentUser.role === 'admin') {
+    const isAdmin = currentUser && currentUser.role === 'admin';
+    const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
+    if (isAdmin || isVerified) {
       const activeType = document.querySelector('.book-type-btn.active');
       if (activeType && activeType.dataset.type === 'paid') {
         const price = document.getElementById('wizPrice').value;
@@ -1115,8 +1245,10 @@ function populateWizardReview() {
   const category = document.getElementById('wizCategory').value;
   const contentType = document.querySelector('input[name="content_type"]:checked').value;
   const level = document.getElementById('wizLevel').value;
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
   const activeType = document.querySelector('.book-type-btn.active');
-  const isPaid = currentUser.role === 'admin' && activeType && activeType.dataset.type === 'paid';
+  const isPaid = (isAdmin || isVerified) && activeType && activeType.dataset.type === 'paid';
   const price = isPaid ? document.getElementById('wizPrice').value : null;
   const categoryLabel = category ? (getCategoryMeta(category)?.label || category) : '—';
 
@@ -1149,15 +1281,17 @@ function setupBookTypeSelector() {
   });
 }
 
-/* Show Pages/Language fields only for book-like content types */
+/* Pages/Language show for book-like types; Preview Video URL shows only
+   for the video type. */
 function setupContentTypeConditionalFields() {
   const radios = document.querySelectorAll('input[name="content_type"]');
   const bookLikeTypes = ['book', 'ebook', 'guide', 'document', 'presentation', 'template', 'worksheet'];
   function update() {
     const checked = document.querySelector('input[name="content_type"]:checked');
-    const isBookLike = checked && bookLikeTypes.includes(checked.value);
-    document.getElementById('wizPagesGroup').hidden = !isBookLike;
-    document.getElementById('wizLanguageGroup').hidden = !isBookLike;
+    const value = checked ? checked.value : 'video';
+    document.getElementById('wizPagesGroup').hidden = !bookLikeTypes.includes(value);
+    document.getElementById('wizLanguageGroup').hidden = !bookLikeTypes.includes(value);
+    document.getElementById('wizPreviewGroup').hidden = value !== 'video';
   }
   radios.forEach(r => r.addEventListener('change', update));
   update();
@@ -1202,16 +1336,18 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   formData.append('description', document.getElementById('wizDescription').value);
   formData.append('author', document.getElementById('wizAuthor').value);
 
-  // NOTE: category, level, page_count, and language are sent so the frontend
-  // is ready the moment the backend adds columns for them — the current
-  // POST /api/courses handler only reads title/description/price/author/
-  // content_type, so these extra fields are safely ignored for now.
+  // category, level, page_count, language, preview_url: not yet columns on
+  // the courses table, so the current POST /api/courses handler ignores
+  // them safely — sent anyway so nothing needs to change here once the
+  // backend adds support.
   formData.append('category', document.getElementById('wizCategory').value);
   formData.append('level', document.getElementById('wizLevel').value);
   const pages = document.getElementById('wizPages').value;
   if (pages) formData.append('page_count', pages);
   const language = document.getElementById('wizLanguage').value;
   if (language) formData.append('language', language);
+  const previewUrl = document.getElementById('wizPreviewUrl').value.trim();
+  if (previewUrl) formData.append('preview_url', previewUrl);
 
   const contentType = document.querySelector('input[name="content_type"]:checked');
   if (contentType) formData.append('content_type', contentType.value);
@@ -1222,8 +1358,10 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   const fileFile = document.getElementById('wizFile').files[0];
   if (fileFile) formData.append('file', fileFile);
 
+  const isAdmin = currentUser.role === 'admin';
+  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
   const activeType = document.querySelector('.book-type-btn.active');
-  if (currentUser.role === 'admin' && activeType && activeType.dataset.type === 'paid') {
+  if ((isAdmin || isVerified) && activeType && activeType.dataset.type === 'paid') {
     const price = document.getElementById('wizPrice').value;
     if (price && parseFloat(price) > 0) formData.append('price', price);
   }
@@ -1250,7 +1388,7 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-/* -------------------------- 15. FLAG / REPORT -------------------------- */
+/* -------------------------- 16. FLAG / REPORT -------------------------- */
 function openFlagModal(courseId) {
   currentFlagCourseId = courseId;
   document.getElementById('flagReason').value = '';
@@ -1300,7 +1438,7 @@ async function submitFlag() {
   }
 }
 
-/* -------------------------- 16. DOWNLOAD / WATCH / ACCESS / PAYMENT / DELETE -------------------------- */
+/* -------------------------- 17. DOWNLOAD / ACCESS / PAYMENT / DELETE -------------------------- */
 async function handleDownload(courseId) {
   try {
     window.location.href = `/api/download/${courseId}`;
@@ -1308,33 +1446,6 @@ async function handleDownload(courseId) {
   } catch (error) {
     console.error('Download error:', error);
     showToast('Error downloading file: ' + error.message, 'error');
-  }
-}
-
-async function watchVideo(courseId) {
-  const course = allCourses.find(c => c.id === courseId);
-  if (!course) return;
-  try {
-    showLoading();
-    const accessRes = await fetch(`/api/check-access/${courseId}`);
-    const accessData = await accessRes.json();
-    if (!accessData.hasAccess) {
-      showToast('You do not have access to this video yet.', 'error');
-      hideLoading();
-      return;
-    }
-    const fileUrl = course.file_url || course.download_url;
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-      showToast(`Playing: ${course.title}`, 'info');
-    } else {
-      showToast('Video file not found. Please contact support.', 'error');
-    }
-  } catch (error) {
-    console.error('Watch video error:', error);
-    showToast('Error playing video: ' + error.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -1451,7 +1562,7 @@ async function checkPendingPayment() {
   }
 }
 
-/* -------------------------- 17. MOBILE MENU -------------------------- */
+/* -------------------------- 18. MOBILE MENU -------------------------- */
 function setupMobileMenu() {
   const toggle = document.querySelector('.mobile-menu-toggle');
   const nav = document.querySelector('nav');
@@ -1470,10 +1581,10 @@ function setupMobileMenu() {
   });
 }
 
-/* -------------------------- 18. INIT -------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+/* -------------------------- 19. INIT -------------------------- */
+document.addEventListener('DOMContentLoaded', async () => {
   populateCategorySelects();
-  loadUser();
+  await loadUser();      // must resolve first so verification status is ready before anyone opens the wizard
   detectUserCurrency();
   loadCourses();
 
@@ -1493,6 +1604,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('instructorCtaBtn').addEventListener('click', openUploadModal);
 
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('is-open'); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('is-open');
+        if (overlay.id === 'previewModal') document.getElementById('previewMedia').innerHTML = '';
+      }
+    });
   });
 });

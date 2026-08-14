@@ -70,9 +70,6 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .icon-btn-labeled { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.7rem 1rem; color: var(--color-charcoal); font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: var(--transition); min-height: 48px; }
 .icon-btn-labeled:hover { border-color: var(--color-blue); color: var(--color-blue); }
 .follow-btn-sm, .support-btn-sm { background: none; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
-.follow-btn-sm { color: var(--color-blue); border-color: rgba(74,111,165,0.3); }
-.follow-btn-sm:hover { background: var(--color-blue-soft); }
-.follow-btn-sm.is-following { color: var(--color-text-muted); border-color: var(--color-border); }
 .support-btn-sm { color: var(--color-gold-dark); border-color: rgba(201,151,31,0.35); }
 .support-btn-sm:hover { background: var(--color-gold-soft); }
 .notif-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); border: 1.5px solid var(--color-white); }
@@ -245,6 +242,14 @@ nav a.admin-link::after { background: var(--color-gold-dark); }
 .empty-state p { color: var(--color-text-soft); }
 .empty-state button { margin-top: 1.25rem; }
 
+/* Skeleton loading cards */
+.skeleton-card { background: var(--color-white); border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--color-border); display: flex; flex-direction: column; }
+.skeleton-media { height: 190px; }
+.skeleton-body { padding: 1.4rem; display: flex; flex-direction: column; gap: 0.65rem; }
+.skeleton-line { height: 12px; border-radius: 4px; }
+.skeleton-shimmer { background: linear-gradient(90deg, var(--color-bg-alt) 25%, var(--color-border) 50%, var(--color-bg-alt) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(43, 36, 24, 0.55); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1.5rem; opacity: 0; transition: opacity 0.2s ease; }
 .modal-overlay.is-open { display: flex; opacity: 1; }
@@ -252,7 +257,7 @@ nav a.admin-link::after { background: var(--color-gold-dark); }
 .modal-panel--preview, .modal-panel--wizard { max-width: 700px; }
 .modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: var(--color-bg-alt); border: none; font-size: 1.3rem; color: var(--color-charcoal); cursor: pointer; z-index: 5; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .modal-close:hover { background: var(--color-border); }
-.modal-preview__media { position: relative; height: 260px; background: var(--color-bg-alt); border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
+.modal-preview__media { position: relative; height: 260px; background: #000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
 .modal-preview__media img { width: 100%; height: 100%; object-fit: cover; }
 .modal-preview__body { padding: 1.75rem; }
 .modal-preview__body h2 { font-family: var(--font-serif); font-size: 1.6rem; margin: 0.4rem 0 0.6rem; }
@@ -268,8 +273,9 @@ nav a.admin-link::after { background: var(--color-gold-dark); }
 .tab-panel ul { padding-left: 1.2rem; color: var(--color-text-soft); line-height: 1.8; }
 .learning-outcomes { background: var(--color-bg-alt); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin: 0.75rem 0; }
 .stub-note { background: var(--color-bg-alt); border-radius: var(--radius-sm); padding: 1rem; color: var(--color-text-muted); font-size: 0.88rem; text-align: center; }
-.modal-preview__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border); margin-top: 1.5rem; }
-.modal-preview__footer .btn-primary { width: auto; }
+.modal-preview__footer { padding-top: 1.25rem; border-top: 1px solid var(--color-border); margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.85rem; }
+.modal-preview__footer-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.modal-preview__footer-actions .btn-primary, .modal-preview__footer-actions .btn-secondary { width: auto; flex: 1; min-width: 140px; }
 
 /* Wizard */
 .modal-panel--wizard { padding: 1.75rem; }
@@ -305,8 +311,10 @@ nav a.admin-link::after { background: var(--color-gold-dark); }
 .book-type-selector { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
 .book-type-btn { flex: 1; padding: 0.85rem; border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text-soft); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: var(--transition); min-height: 46px; }
 .book-type-btn.active { background: var(--color-charcoal); color: var(--color-white); border-color: var(--color-charcoal); }
-.info-note { background: var(--color-blue-soft); border-radius: var(--radius-sm); padding: 1rem; color: var(--color-text-soft); font-size: 0.9rem; display: flex; gap: 0.6rem; align-items: flex-start; }
-.info-note i { color: var(--color-blue); margin-top: 0.15rem; }
+.verification-gate { background: var(--color-gold-soft); border: 1px solid rgba(201,151,31,0.25); border-radius: var(--radius-sm); padding: 1.1rem; display: flex; gap: 0.75rem; align-items: flex-start; }
+.verification-gate i { color: var(--color-gold-dark); font-size: 1.2rem; margin-top: 0.15rem; }
+.verification-gate strong { display: block; margin-bottom: 0.3rem; color: var(--color-charcoal); }
+.verification-gate p { color: var(--color-text-soft); font-size: 0.9rem; margin: 0; }
 .wizard-review { background: var(--color-bg-alt); border-radius: var(--radius-card); padding: 1.25rem; font-size: 0.9rem; color: var(--color-text-soft); line-height: 2; }
 .wizard-review strong { color: var(--color-charcoal); }
 .wizard-nav { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
@@ -328,7 +336,6 @@ nav a.admin-link::after { background: var(--color-gold-dark); }
 
 footer { background: var(--color-bg-alt); padding: 2.5rem 1.5rem; text-align: center; border-top: 1px solid var(--color-border); margin-top: 2rem; }
 footer p { color: var(--color-text-soft); font-size: 0.9rem; }
-.loading { opacity: 0.6; pointer-events: none; }
 
 @media screen and (min-width: 768px) {
   .hero h1 { font-size: 2.9rem; }
@@ -384,7 +391,7 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
       </button>
       <div class="dropdown-panel" id="notifDropdown" hidden>
         <h4>Notifications</h4>
-        <div class="empty-note"><i class="far fa-bell"></i> You're all caught up. Enrollment, review, and update notices will show up here.</div>
+        <div class="empty-note"><i class="far fa-bell"></i> You're all caught up.</div>
       </div>
     </div>
     <div class="auth-buttons" id="headerAuthButtons">
@@ -539,11 +546,12 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
   </div>
 
   <div id="coursesGrid" class="grid">
-    <div class="empty-state">
-      <i class="fas fa-spinner fa-spin"></i>
-      <h3>Loading…</h3>
-      <p>Just a moment while we fetch what's available.</p>
-    </div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
+    <div class="skeleton-card"><div class="skeleton-media skeleton-shimmer"></div><div class="skeleton-body"><div class="skeleton-line skeleton-shimmer" style="width:35%;height:10px;"></div><div class="skeleton-line skeleton-shimmer" style="width:75%;height:18px;"></div><div class="skeleton-line skeleton-shimmer" style="width:100%;"></div><div class="skeleton-line skeleton-shimmer" style="width:55%;"></div></div></div>
   </div>
 
   <div class="load-more-wrap">
@@ -551,7 +559,7 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
   </div>
 </section>
 
-<!-- Preview Modal -->
+<!-- Preview / Watch Modal -->
 <div class="modal-overlay" id="previewModal">
   <div class="modal-panel modal-panel--preview">
     <button class="modal-close" onclick="closePreviewModal()" aria-label="Close">&times;</button>
@@ -654,6 +662,10 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
           <label for="wizLanguage">Language</label>
           <input type="text" id="wizLanguage" name="language" placeholder="e.g. English">
         </div>
+        <div class="form-group" id="wizPreviewGroup" hidden>
+          <label for="wizPreviewUrl">Preview Video URL (optional)</label>
+          <input type="url" id="wizPreviewUrl" name="preview_url" placeholder="A short free trailer/clip — YouTube, Vimeo, or a direct video link">
+        </div>
 
         <div class="form-group">
           <label>Cover / Thumbnail Image</label>
@@ -683,10 +695,7 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
             <input type="number" id="wizPrice" name="price" placeholder="0.00" min="0" step="0.01">
           </div>
         </div>
-        <div class="info-note" id="wizPricingInfo" hidden>
-          <i class="fas fa-info-circle"></i>
-          <span>Your content will be published as free. Interested in offering paid content? Reach out to our team once you're a verified creator.</span>
-        </div>
+        <div class="verification-gate" id="wizPricingInfo" hidden></div>
       </div>
 
       <div class="wizard-panel" data-panel="4" hidden>

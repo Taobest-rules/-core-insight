@@ -4108,6 +4108,10 @@ function selectPaymentGateway(gateway) {
 // Create subaccount - Works for both real and virtual accounts
 
   async function createSubaccount() {
+     const statusDiv = document.getElementById('subaccountStatus');
+    if (statusDiv && statusDiv.style.display === 'block') {
+      return { success: true, already_verified: true };
+    }
     if (!selectedGateway) {
         console.log('No gateway selected');
         return null;
@@ -4203,10 +4207,12 @@ function selectPaymentGateway(gateway) {
             return data;
         } else {
             console.error('Subaccount creation failed:', data.error);
+            showToast(data.error || 'Could not verify bank details. Please check them and try again.', 'error');
             return null;
         }
     } catch (err) {
         console.error('Subaccount error:', err);
+        showToast('Could not reach the payment provider. Check your connection and try again.', 'error');
         return null;
     }
 }

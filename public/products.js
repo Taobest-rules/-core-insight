@@ -26,6 +26,7 @@ let currentProductForOrder = null;
 let currentOrderTotal = 0;
 let currentOrderQuantity = 1;
 let phoneVerified = false;
+let editingProductId = null;
 // ============================================
 // DOM HELPER FUNCTION - FIX MISSING $ FUNCTION
 // ============================================
@@ -3347,34 +3348,59 @@ window.viewProduct = viewProduct;
 function editProduct(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
+    editingProductId = productId;
     sellerMode = true;
+
     const sellerView = document.getElementById('sellerView');
-    const browseModeText = document.getElementById('browseModeText');
     const becomeBtn = document.getElementById('becomeSeller');
     if (sellerView) sellerView.classList.add('active');
-    if (browseModeText) browseModeText.innerHTML = 'Seller';
     if (becomeBtn) becomeBtn.textContent = 'Back to Buyer View';
-    const titleInput = document.getElementById('p_title');
-    const descInput = document.getElementById('p_description');
-    const priceInput = document.getElementById('p_price');
-    const typeSelect = document.getElementById('p_type');
-    if (titleInput) titleInput.value = product.title || '';
-    if (descInput) descInput.value = product.description || '';
-    if (priceInput) priceInput.value = product.price || '';
-    if (typeSelect) typeSelect.value = product.type || '';
+
+    populateCategorySelects();
+    populateDeliveryCountriesSelect();
+
+    document.getElementById('p_title').value = product.title || '';
+    document.getElementById('p_description').value = product.description || '';
+    document.getElementById('p_price').value = product.price || '';
+    document.getElementById('p_type').value = product.type || '';
+    document.getElementById('p_type').dispatchEvent(new Event('change'));
+
     if (product.category) {
-        const categorySelect = document.getElementById('p_category_select');
-        const existingOption = Array.from(categorySelect.options).find(opt => opt.value === product.category);
-        if (existingOption) categorySelect.value = product.category;
-        else document.getElementById('p_category_new').value = product.category;
+      const [main, sub] = product.category.split(' > ');
+      const mainSelect = document.getElementById('p_category_select');
+      mainSelect.value = main || '';
+      mainSelect.dispatchEvent(new Event('change'));
+      if (sub) setTimeout(() => { document.getElementById('p_subcategory_select').value = sub; }, 0);
     }
-    if (typeSelect) typeSelect.dispatchEvent(new Event('change'));
+
     if (product.type === 'physical') {
-        const deliveryTypeSelect = document.getElementById('p_deliveryType');
-        if (deliveryTypeSelect) deliveryTypeSelect.value = 'delivery';
-        const deliveryLocationsInput = document.getElementById('p_deliveryLocations');
-        if (deliveryLocationsInput && product.delivery_locations) deliveryLocationsInput.value = product.delivery_locations;
+      document.getElementById('p_deliveryType').value = product.delivery_type || 'delivery';
+      document.getElementById('p_deliveryType').dispatchEvent(new Event('change'));
+      document.getElementById('p_deliveryStates').value = product.delivery_states || '';
+      document.getElementById('p_deliveryDays').value = product.estimated_delivery_days || 7;
+      document.getElementById('p_pickupAddress').value = product.pickup_address || '';
+      document.getElementById('p_pickupHours').value = product.pickup_hours || '';
+      document.getElementById('p_condition_type').value = product.condition_type || 'new';
+      document.getElementById('p_condition_description').value = product.condition_description || '';
+      document.getElementById('p_warranty_months').value = product.warranty_months || 0;
+      document.getElementById('p_accessories').value = product.accessories_included || '';
+      document.getElementById('p_defects').value = product.visible_defects || '';
+      if (product.delivery_countries) {
+        const select = document.getElementById('p_deliveryCountries');
+        product.delivery_countries.split(',').map(c => c.trim()).forEach(name => {
+          const opt = Array.from(select.options).find(o => o.value === name);
+          if (opt) opt.selected = true;
+        });
+      }
     }
+    if (product.type === 'affiliate') {
+      document.getElementById('p_affiliate').value = product.affiliate_link || '';
+    }
+
+    const uploadBtn = document.getElementById('uploadProductBtn');
+    if (uploadBtn) uploadBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+
+    goToWizardStep(1);
     if (sellerView) sellerView.scrollIntoView({ behavior: 'smooth' });
 }
 window.editProduct = editProduct;
@@ -4260,6 +4286,28 @@ function setupAccountVerification() {
     
     console.log('✅ Account verification setup complete');
 }
+
+document.getElementById('saveDraftBtn')?.addEventListener('click', () => {
+  const draft = {};
+  document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => {
+    if (el.id && el.type !== 'file' && el.type !== 'button') draft[el.id] = el.value;
+  });
+  localStorage.setItem('ci_product_draft', JSON.stringify(draft));
+  showToast('Draft saved', 'Saved in this browser — reopen the seller form to pick up where you left off.', 'success');
+});
+
+function restoreProductDraftIfAny() {
+  const raw = localStorage.getItem('ci_product_draft');
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw);
+    Object.entries(draft).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el && value) { el.value = value; el.dispatchEvent(new Event('change')); }
+    });
+    showToast('Draft restored', 'Picked up where you left off.', 'info');
+  } catch (e) { /* ignore corrupt draft */ }
+}
 // ============================================
 // SELLER VERIFICATION FUNCTIONS
 // ============================================
@@ -4832,14 +4880,21 @@ document.getElementById('uploadProductBtn')?.addEventListener('click', async (e)
         uploadMessage.innerHTML = '<div class="form-success"><i class="fas fa-spinner fa-spin"></i> Uploading product...</div>';
         uploadMessage.classList.add('show');
     }
-    try {
-        const res = await fetch('/api/upload-product', { method: 'POST', body: fd, credentials: 'include' });
+   try {
+        const isEditing = !!editingProductId;
+        const url = isEditing ? `/api/products/${editingProductId}` : '/api/upload-product';
+        const method = isEditing ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, body: fd, credentials: 'include' });
         const text = await res.text();
         if (!text || text.trim() === '') throw new Error('Server returned empty response');
         let data;
         try { data = JSON.parse(text); } catch (parseError) { console.error("Failed to parse:", text.substring(0, 200)); throw new Error('Invalid server response'); }
         if (!res.ok) { if (uploadMessage) uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ ${escapeHtml(data.error || 'Upload failed')}</div>`; return; }
         if (uploadMessage) uploadMessage.innerHTML = `<div class="form-success" style="color:var(--success)">✅ ${data.message}</div>`;
+        editingProductId = null;
+        localStorage.removeItem('ci_product_draft');
+        const resetBtn = document.getElementById('uploadProductBtn');
+        if (resetBtn) resetBtn.innerHTML = '<i class="fas fa-rocket"></i> Publish Product';
         document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => { if (el.type !== 'button' && el.id !== 'uploadProductBtn') el.value = ''; });
         const fileInput = document.getElementById('p_file'); if (fileInput) fileInput.value = '';
         const imagesInputReset = document.getElementById('p_images'); if (imagesInputReset) imagesInputReset.value = '';
@@ -5604,10 +5659,17 @@ async function renderProductDetailPage(product) {
   // Delivery info for physical products
   const dEl = document.getElementById('pdpDeliveryInfo');
   if (product.type === 'physical') {
-    dEl.innerHTML = `<div class="detail-item"><i class="fas fa-globe"></i><span><strong>Ships to:</strong> ${escapeHtml(product.delivery_countries || 'Worldwide')}</span></div>
-                      <div class="detail-item"><i class="fas fa-calendar-day"></i><span><strong>Est. delivery:</strong> ${product.estimated_delivery_days || 7} days</span></div>`;
+    dEl.innerHTML = `
+      <div class="detail-item"><i class="fas fa-globe"></i><span><strong>Ships to:</strong> ${escapeHtml(product.delivery_countries || 'Worldwide')}</span></div>
+      <div class="detail-item"><i class="fas fa-calendar-day"></i><span><strong>Est. delivery:</strong> ${product.estimated_delivery_days || 7} days</span></div>
+      <div class="detail-item"><i class="fas fa-tag"></i><span><strong>Condition:</strong> ${escapeHtml(product.condition_type || 'Not specified')}</span></div>
+      ${product.condition_description ? `<div class="detail-item"><i class="fas fa-circle-info"></i><span>${escapeHtml(product.condition_description)}</span></div>` : ''}
+      ${product.warranty_months > 0 ? `<div class="detail-item"><i class="fas fa-shield-halved"></i><span><strong>Warranty:</strong> ${product.warranty_months} months</span></div>` : ''}
+      ${product.original_packaging ? `<div class="detail-item"><i class="fas fa-box"></i><span>Original packaging included</span></div>` : ''}
+      ${product.accessories_included ? `<div class="detail-item"><i class="fas fa-plus"></i><span><strong>Includes:</strong> ${escapeHtml(product.accessories_included)}</span></div>` : ''}
+      ${product.visible_defects ? `<div class="detail-item"><i class="fas fa-triangle-exclamation"></i><span><strong>Known issues:</strong> ${escapeHtml(product.visible_defects)}</span></div>` : ''}`;
   } else { dEl.innerHTML = ''; }
-
+ 
   // Reuse the existing reviews loader if present, targeting the same DOM the old page used
   if (typeof selectProductForReviews === 'function') {
     try { selectProductForReviews(product.id); } catch (e) { /* non-fatal */ }

@@ -120,6 +120,8 @@ async function runUnifiedMessagingMigrations() {
     )`,
     'message_typing table'
   );
+  await alterSafely(`ALTER TABLE products ADD COLUMN warranty_months INT NULL`, 'products.warranty_months');
+await alterSafely(`ALTER TABLE products ADD COLUMN manufacturing_date DATE NULL`, 'products.manufacturing_date');
 }
 runUnifiedMessagingMigrations();
  const MESSAGE_ITEM_CONFIG = {
@@ -18732,12 +18734,14 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     }
 
     // ========== EXTRACT FORM DATA ==========
-    const { 
+   const { 
       title, description, price, category, type, affiliate_link, paymentProvider,
       delivery_days, product_cost, delivery_locations, delivery_type, payment_option,
       businessName, businessEmail, businessPhone, country, bankName, bankCode, 
       accountNumber, accountName, delivery_countries, delivery_states,
-      pickup_address, pickup_hours, is_virtual_account
+      pickup_address, pickup_hours, is_virtual_account,
+      condition_type, condition_description, manufacturing_date, warranty_months,
+      original_packaging, accessories_included, visible_defects
     } = req.body;
 
     console.log("📦 Product data:", { title, price, type, paymentProvider });
@@ -18855,14 +18859,16 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
 
     // ========== INSERT PRODUCT INTO DATABASE ==========
     const result = await db.query(
-      `INSERT INTO products (
+     `INSERT INTO products (
         user_id, title, description, price, original_price, platform_fee, product_cost,
         category, type, file_url, image_urls, affiliate_link, 
         seller_payment_provider, delivery_type, delivery_locations, 
         delivery_countries, delivery_states, pickup_address, pickup_hours,
         payment_option, estimated_delivery_days, is_virtual_account,
+        condition_type, condition_description, manufacturing_date, warranty_months,
+        original_packaging, accessories_included, visible_defects,
         rating, review_count, status, sales_count, favorite_count, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         userId, 
         title?.trim() || '', 
@@ -18876,7 +18882,7 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
         fileUrl,
         imageUrls.length ? JSON.stringify(imageUrls) : null, 
         affiliate_link || null, 
-        paymentProvider || 'affiliate',  // Default to 'affiliate' for affiliate products
+        paymentProvider || 'affiliate',
         type === 'physical' ? (delivery_type || 'delivery') : null,
         type === 'physical' ? (delivery_locations || 'Worldwide') : null,
         type === 'physical' ? (delivery_countries || 'Worldwide') : null,
@@ -18886,6 +18892,13 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
         type === 'physical' ? (payment_option || 'pay_before_delivery') : null,
         type === 'physical' ? (parseInt(delivery_days) || 7) : null,
         (is_virtual_account === '1' || is_virtual_account === 'true') ? 1 : 0,
+        type === 'physical' ? (condition_type || 'new') : null,
+        type === 'physical' ? (condition_description || '') : null,
+        type === 'physical' && manufacturing_date ? manufacturing_date : null,
+        type === 'physical' ? (parseInt(warranty_months) || 0) : null,
+        type === 'physical' ? (original_packaging === '1' || original_packaging === 'yes' ? 1 : 0) : null,
+        type === 'physical' ? (accessories_included || '') : null,
+        type === 'physical' ? (visible_defects || '') : null,
         0.00,  // rating
         0,    // review_count
         'active', 
@@ -18893,7 +18906,6 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
         0,    // favorite_count
       ]
     );
-    
     const productId = result.insertId;
     console.log(`✅ Product uploaded successfully! ID: ${productId}`);
     console.log(`📁 File URL saved to database: ${fileUrl ? 'YES' : 'NO'}`);
@@ -18941,6 +18953,54 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
       error: "Error uploading product: " + err.message,
       details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+});
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in." });
+    const productId = req.params.id;
+    const userId = req.session.user.id;
+
+    const existingResult = await db.query(`SELECT user_id, type FROM products WHERE id = ?`, [productId]);
+    const existing = extractRows(existingResult)[0];
+    if (!existing) return res.status(404).json({ error: "Product not found." });
+    if (parseInt(existing.user_id) !== parseInt(userId) && req.session.user.role !== 'admin') {
+      return res.status(403).json({ error: "You don't own this product." });
+    }
+
+    const {
+      title, description, price, category,
+      delivery_days, delivery_type, delivery_countries, delivery_states,
+      pickup_address, pickup_hours,
+      condition_type, condition_description, manufacturing_date, warranty_months,
+      original_packaging, accessories_included, visible_defects,
+      affiliate_link,
+    } = req.body;
+
+    await db.query(
+      `UPDATE products SET
+        title = ?, description = ?, price = ?, original_price = ?, category = ?,
+        delivery_type = ?, delivery_countries = ?, delivery_states = ?,
+        pickup_address = ?, pickup_hours = ?, estimated_delivery_days = ?,
+        condition_type = ?, condition_description = ?, manufacturing_date = ?,
+        warranty_months = ?, original_packaging = ?, accessories_included = ?,
+        visible_defects = ?, affiliate_link = ?
+      WHERE id = ?`,
+      [
+        title?.trim(), description?.trim(), parseFloat(price), parseFloat(price), category?.trim() || 'Uncategorized',
+        delivery_type || null, delivery_countries || null, delivery_states || null,
+        pickup_address || null, pickup_hours || null, parseInt(delivery_days) || null,
+        condition_type || null, condition_description || null, manufacturing_date || null,
+        parseInt(warranty_months) || null, (original_packaging === '1' || original_packaging === 'yes') ? 1 : 0,
+        accessories_included || null, visible_defects || null, affiliate_link || null,
+        productId,
+      ]
+    );
+
+    res.json({ success: true, message: "✅ Product updated successfully." });
+  } catch (err) {
+    console.error("Product update error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 // Debug endpoint - Check subaccount creation status

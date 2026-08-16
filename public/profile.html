@@ -716,9 +716,13 @@ async function loadProductsSection() {
       return;
     }
     grid.innerHTML = `<div class="article-grid">${productList.map(p => {
-      const img = (p.image_urls ? JSON.parse(p.image_urls)[0] : null) || '';
+      let firstImage = '';
+      try {
+        const imgs = Array.isArray(p.image_urls) ? p.image_urls : JSON.parse(p.image_urls || '[]');
+        firstImage = imgs[0] || '';
+      } catch (e) { firstImage = ''; }
       return `<div class="product-mini-card" onclick="window.location.href='/product/${p.id}'">
-        <div class="pc-image" style="${img ? `background-image:url('${img}')` : ''}"></div>
+        <div class="pc-image" style="${firstImage ? `background-image:url('${firstImage}')` : ''}"></div>
         <div class="pc-body">
           <h4>${escapeHtml(p.title)}</h4>
           <div class="pc-price">$${Number(p.price).toFixed(2)}</div>

@@ -726,7 +726,8 @@ async function loadProductsSection() {
       </div>`;
     }).join('')}</div>`;
     grid.dataset.loaded = '1';
-  } catch (e) {
+ } catch (e) {
+    console.error('loadProductsSection failed:', e);
     grid.innerHTML = `<div class="empty-state">Couldn't load products right now.</div>`;
   }
 }

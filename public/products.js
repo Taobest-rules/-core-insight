@@ -4287,26 +4287,30 @@ function setupAccountVerification() {
     console.log('✅ Account verification setup complete');
 }
 
-document.getElementById('saveDraftBtn')?.addEventListener('click', () => {
-  const draft = {};
-  document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => {
-    if (el.id && el.type !== 'file' && el.type !== 'button') draft[el.id] = el.value;
-  });
-  localStorage.setItem('ci_product_draft', JSON.stringify(draft));
-  showToast('Draft saved', 'Saved in this browser — reopen the seller form to pick up where you left off.', 'success');
-});
-
-function restoreProductDraftIfAny() {
-  const raw = localStorage.getItem('ci_product_draft');
-  if (!raw) return;
+async function checkExistingPayoutAccount() {
   try {
-    const draft = JSON.parse(raw);
-    Object.entries(draft).forEach(([id, value]) => {
-      const el = document.getElementById(id);
-      if (el && value) { el.value = value; el.dispatchEvent(new Event('change')); }
-    });
-    showToast('Draft restored', 'Picked up where you left off.', 'info');
-  } catch (e) { /* ignore corrupt draft */ }
+    const res = await fetch('/api/flutterwave/subaccount-status', { credentials: 'include' });
+    const data = await res.json();
+    const bankSection = document.getElementById('bankDetailsSection');
+    const businessSection = document.getElementById('businessInfo');
+    const countrySection = document.getElementById('countrySection');
+    let noticeEl = document.getElementById('payoutAlreadyLinkedNotice');
+
+    if (data.has_subaccount) {
+      [bankSection, businessSection, countrySection].forEach(el => { if (el) el.style.display = 'none'; });
+      if (!noticeEl) {
+        noticeEl = document.createElement('div');
+        noticeEl.id = 'payoutAlreadyLinkedNotice';
+        noticeEl.className = 'info-card';
+        noticeEl.innerHTML = `<h4><i class="fas fa-circle-check" style="color:var(--sage-deep);"></i> Payout account linked</h4>
+          <p style="font-size:13px;color:var(--charcoal-soft);margin:0;">Earnings from this product will go to your existing payout account (status: ${escapeHtml(data.status || 'active')}). <a href="/profile.html?tab=payouts">Manage in Payouts</a></p>`;
+        bankSection.parentElement.insertBefore(noticeEl, bankSection);
+      }
+    } else {
+      [bankSection, businessSection, countrySection].forEach(el => { if (el) el.style.display = ''; });
+      if (noticeEl) noticeEl.remove();
+    }
+  } catch (e) { /* fall back to showing the bank form as-is */ }
 }
 // ============================================
 // SELLER VERIFICATION FUNCTIONS
@@ -4929,7 +4933,27 @@ document.getElementById('uploadProductBtn')?.addEventListener('click', async (e)
         }, 3000);
     } catch(err) { console.error('Upload error:', err); if (uploadMessage) uploadMessage.innerHTML = `<div class="form-success" style="color:var(--danger)">❌ Upload failed: ${err.message}</div>`; }
 });
+document.getElementById('saveDraftBtn')?.addEventListener('click', () => {
+  const draft = {};
+  document.querySelectorAll('#sellerView input, #sellerView textarea, #sellerView select').forEach(el => {
+    if (el.id && el.type !== 'file' && el.type !== 'button') draft[el.id] = el.value;
+  });
+  localStorage.setItem('ci_product_draft', JSON.stringify(draft));
+  showToast('Draft saved', 'Saved in this browser — reopen the seller form to pick up where you left off.', 'success');
+});
 
+function restoreProductDraftIfAny() {
+  const raw = localStorage.getItem('ci_product_draft');
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw);
+    Object.entries(draft).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el && value) { el.value = value; el.dispatchEvent(new Event('change')); }
+    });
+    showToast('Draft restored', 'Picked up where you left off.', 'info');
+  } catch (e) { /* ignore corrupt draft */ }
+}
 // ============================================
 // MOBILE NAVIGATION
 // ============================================
@@ -6102,6 +6126,7 @@ function goToWizardStep(step) {
   document.getElementById('wizardBackBtn').style.visibility = wizardCurrentStep === 1 ? 'hidden' : 'visible';
   const nextBtn = document.getElementById('wizardNextBtn');
   nextBtn.style.display = wizardCurrentStep === WIZARD_TOTAL_STEPS ? 'none' : 'inline-flex';
+  if (wizardCurrentStep === 4) checkExistingPayoutAccount();
   if (wizardCurrentStep === WIZARD_TOTAL_STEPS) populateWizardReview();
 }
 

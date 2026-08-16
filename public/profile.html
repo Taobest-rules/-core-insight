@@ -428,6 +428,12 @@
       z-index: 999;
       box-shadow: 0 8px 30px rgba(0,0,0,0.20);
     }
+    .product-mini-card { background: var(--card-bg); border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s; display: flex; flex-direction: column; }
+    .product-mini-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-hover); border-color: transparent; }
+    .pc-image { height: 170px; background: var(--border-light); background-size: cover; background-position: center; }
+    .pc-body { padding: 18px 20px 20px; flex: 1; display: flex; flex-direction: column; }
+    .pc-body h4 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; line-height: 1.4; color: var(--text-dark); }
+    .pc-price { font-family: 'Fraunces', serif; font-weight: 600; color: var(--accent-gold); font-size: 1.1rem; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border-light); }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 640px) {
@@ -636,6 +642,9 @@ function switchTab(tabKey) {
       loadBanksForCountry(country);
     }
 }
+if (tabKey === 'products') {          // ADD THIS BLOCK
+    loadProductsSection();
+  }
 }
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
@@ -692,6 +701,33 @@ async function loadKnowledgeSection() {
     });
   } catch (e) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Could not load articles.</p></div>`;
+  }
+}
+
+async function loadProductsSection() {
+  const grid = document.getElementById('panel-products');
+  if (!grid || grid.dataset.loaded) return;
+  try {
+    const res = await fetch(`/api/products/seller/${profileUserId}`, { credentials: 'include' });
+    const productList = res.ok ? await res.json() : [];
+    if (!productList.length) {
+      grid.innerHTML = `<div class="empty-state"><i class="fas fa-box" style="font-size:2rem;margin-bottom:12px;display:block;"></i>No products listed yet.</div>`;
+      grid.dataset.loaded = '1';
+      return;
+    }
+    grid.innerHTML = `<div class="article-grid">${productList.map(p => {
+      const img = (p.image_urls ? JSON.parse(p.image_urls)[0] : null) || '';
+      return `<div class="product-mini-card" onclick="window.location.href='/product/${p.id}'">
+        <div class="pc-image" style="${img ? `background-image:url('${img}')` : ''}"></div>
+        <div class="pc-body">
+          <h4>${escapeHtml(p.title)}</h4>
+          <div class="pc-price">$${Number(p.price).toFixed(2)}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    grid.dataset.loaded = '1';
+  } catch (e) {
+    grid.innerHTML = `<div class="empty-state">Couldn't load products right now.</div>`;
   }
 }
 

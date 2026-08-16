@@ -1969,7 +1969,10 @@ app.get("/api/profile/:userId", async (req, res) => {
       "SELECT COUNT(*) as count FROM articles WHERE user_id = ? AND status = 'published' AND is_deleted = 0",
       [profileUserId]
     );
-
+const productCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM products WHERE user_id = ? AND status = 'active'",
+      [profileUserId]
+    );
     let isFollowing = false;
     if (req.session.user) {
       const followCheck = await db.query(
@@ -2011,7 +2014,7 @@ app.get("/api/profile/:userId", async (req, res) => {
         knowledge: { count: articleCountResult[0]?.count || 0, available: true },
         services: { count: 0, available: false },
         courses: { count: 0, available: false },
-        products: { count: 0, available: false }
+      products: { count: productCountResult[0]?.count || 0, available: (productCountResult[0]?.count || 0) > 0 }
       }
     });
 
@@ -18794,26 +18797,37 @@ app.post("/api/upload-product", checkSellerVerification, uploadProduct, async (r
     // ========== CREATE FLUTTERWAVE SUBACCOUNT (ONLY FOR NON-AFFILIATE) ==========
     let subaccountResult = null;
     
-    // Only create subaccount for physical/digital products with Flutterwave
     if (type !== 'affiliate' && paymentProvider === 'flutterwave') {
-      const isVirtual = (is_virtual_account === '1' || is_virtual_account === 'true');
-      const accountNameToUse = isVirtual ? (businessName || accountName) : businessName;
-      
-      subaccountResult = await createFlutterwaveSubaccount(userId, {
-        bank_code: bankCode,
-        account_number: accountNumber,
-        business_name: accountNameToUse,
-        business_email: businessEmail,
-        business_phone: businessPhone,
-        country: country || 'NG',
-        is_virtual: isVirtual
-      });
-      
-      if (!subaccountResult.success) {
-        console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
-        // Continue anyway - product can still be listed
+      // Reuse the seller's existing payout account instead of creating a new
+      // one every upload — Flutterwave rejects duplicate subaccounts for the
+      // same bank + account number.
+      const existingResult = await db.query(
+        `SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [userId]
+      );
+      const existingSubaccountId = extractRows(existingResult)[0]?.flutterwave_subaccount_id;
+
+      if (existingSubaccountId) {
+        console.log(`♻️ Reusing existing subaccount for user ${userId}: ${existingSubaccountId}`);
+        subaccountResult = { success: true, subaccount_id: existingSubaccountId, reused: true };
       } else {
-        console.log(`✅ Subaccount created: ${subaccountResult.subaccount_id}`);
+        const isVirtual = (is_virtual_account === '1' || is_virtual_account === 'true');
+        const accountNameToUse = isVirtual ? (businessName || accountName) : businessName;
+
+        subaccountResult = await createFlutterwaveSubaccount(userId, {
+          bank_code: bankCode,
+          account_number: accountNumber,
+          business_name: accountNameToUse,
+          business_email: businessEmail,
+          business_phone: businessPhone,
+          country: country || 'NG',
+          is_virtual: isVirtual
+        });
+
+        if (!subaccountResult.success) {
+          console.warn(`⚠️ Flutterwave subaccount creation issue: ${subaccountResult.error}`);
+        } else {
+          console.log(`✅ Subaccount created: ${subaccountResult.subaccount_id}`);
+        }
       }
     } else if (type === 'affiliate') {
       console.log("🔗 Affiliate product - skipping subaccount creation");

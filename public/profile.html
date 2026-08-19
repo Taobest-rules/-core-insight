@@ -581,6 +581,30 @@
 </div>
 
 <div id="toast"></div>
+  <div class="tab-panel" id="panel-wallet">
+    <div class="info-card" style="margin-bottom:20px;">
+      <h4><i class="fas fa-sack-dollar"></i> Pay on Delivery Wallet</h4>
+      <div id="walletBalanceRow" style="display:flex; gap:24px; flex-wrap:wrap; margin:16px 0;">
+        <div><div style="font-size:12px;color:var(--text-gray);">Available</div><div id="walletAvailable" style="font-size:1.4rem;font-weight:600;">—</div></div>
+        <div><div style="font-size:12px;color:var(--text-gray);">Reserved</div><div id="walletReserved" style="font-size:1.4rem;font-weight:600;">—</div></div>
+        <div><div style="font-size:12px;color:var(--text-gray);">Owed on credit</div><div id="walletOwed" style="font-size:1.4rem;font-weight:600;">—</div></div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <input type="number" id="walletFundAmount" placeholder="Amount (USD)" min="1" style="width:140px;padding:10px;border-radius:8px;border:1px solid var(--border-light);">
+        <button class="btn" onclick="fundWallet()">Add Funds</button>
+      </div>
+    </div>
+
+    <div class="info-card" style="margin-bottom:20px;">
+      <h4><i class="fas fa-clock"></i> Pending Pay on Delivery Requests</h4>
+      <div id="podPendingOrders"><p style="color:var(--text-gray);">Loading…</p></div>
+    </div>
+
+    <div class="info-card">
+      <h4><i class="fas fa-list"></i> Wallet Activity</h4>
+      <div id="walletTransactionList"><p style="color:var(--text-gray);">Loading…</p></div>
+    </div>
+  </div>
 
 <script>
 const params = new URLSearchParams(location.search);
@@ -598,7 +622,8 @@ const SECTIONS = [
   { key: 'courses', label: 'Courses', icon: 'fa-graduation-cap' },
   { key: 'products', label: 'Products', icon: 'fa-box' },
   { key: 'settings', label: 'Settings', icon: 'fa-user-cog' },
-  { key: 'payouts', label: 'Payouts', icon: 'fa-wallet' }
+  { key: 'payouts', label: 'Payouts', icon: 'fa-wallet' },
+  { key: 'wallet', label: 'POD Wallet', icon: 'fa-sack-dollar' }
 ];
 
 function toast(msg) {
@@ -642,6 +667,9 @@ function switchTab(tabKey) {
       loadBanksForCountry(country);
     }
 }
+  if (tabKey === 'wallet') {
+    loadWalletData();
+  }
 if (tabKey === 'products') {          // ADD THIS BLOCK
     loadProductsSection();
   }
@@ -649,7 +677,7 @@ if (tabKey === 'products') {          // ADD THIS BLOCK
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
   let tabsHtml = SECTIONS.map(s => {
-    const isOwnerOnlyTab = (s.key === 'settings' || s.key === 'payouts');
+        const isOwnerOnlyTab = (s.key === 'settings' || s.key === 'payouts' || s.key === 'wallet');
     if (isOwnerOnlyTab && !profileData.is_own_profile) return '';
 
     const info = sections[s.key];

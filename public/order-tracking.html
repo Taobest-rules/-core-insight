@@ -379,7 +379,7 @@
         const data = await response.json();
         
         if (response.ok) {
-          showToast('✅ Delivery Confirmed!', 'Order marked as delivered. Funds will be released in 5 days.', 'success');
+          showToast('✅ Delivery Confirmed!', 'Order marked as delivered. Funds will be released in 7 days.', 'success');
           setTimeout(() => loadOrderDetails(), 1500);
         } else {
           showToast('Error', data.error || 'Invalid delivery code', 'error');
@@ -452,7 +452,7 @@
               </button>
             </div>
             <p style="margin-top: 12px; font-size: 12px;">
-              <i class="fas fa-lock"></i> Once confirmed, funds will be released to you after 5 days
+              <i class="fas fa-lock"></i> Once confirmed, funds will be released to you after 7 days
             </p>
           </div>
         </div>

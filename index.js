@@ -543,7 +543,7 @@ function getSellerNotificationTemplate(sellerData) {
             <a href=" https://coreinsightmarket.com/dashboard" class="button">Go to Dashboard</a>
           </div>
           
-          <p>Please log in to approve or reject this order. Funds will be held in escrow for 5 days after payment.</p>
+          <p>Please log in to approve or reject this order. Funds will be held in escrow for 7 days after payment.</p>
         </div>
         <div class="footer">
           <p>Core Insight Marketplace<br>Need help? Contact support at ${SUPPORT_EMAIL}</p>
@@ -599,7 +599,7 @@ function getPaymentConfirmationTemplate(paymentData) {
             </a>
           </div>
           
-          <p>Your payment is held in escrow and will be released to the seller 5 days after you confirm delivery.</p>
+          <p>Your payment is held in escrow and will be released to the seller 7 days after you confirm delivery.</p>
         </div>
         <div class="footer">
           <p>© ${new Date().getFullYear()} Core Insight Market. All rights reserved.</p>
@@ -2383,6 +2383,18 @@ app.get("/api/profile/:userId/supporters", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.get("/api/my-pod-orders", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const result = await db.query(
+      `SELECT * FROM physical_orders WHERE seller_id = ? AND is_pay_on_delivery = 1 AND order_status = 'pending_seller_approval' ORDER BY created_at DESC`,
+      [req.session.user.id]
+    );
+    res.json(extractRows(result));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ============================================
 // CURRENCY CONVERSION - FIXED
 // ============================================
@@ -2504,7 +2516,7 @@ async function releaseExpiredEscrowFunds() {
   try {
     console.log(`🕐 Running escrow release at ${new Date().toISOString()}`);
     
-    // ✅ Find orders where 5 days have passed since delivery
+    // ✅ Find orders where 7 days have passed since delivery
     const orders = await db.query(`
       SELECT 
         o.id,
@@ -15036,7 +15048,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
         
         // ✅ START 5-DAY ESCROW COUNTDOWN FROM DELIVERY CONFIRMATION
         const escrowReleaseDate = new Date();
-        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 7);
         
         console.log(`✅ Delivery confirmed for order #${orderId}`);
         console.log(`   Escrow release date: ${escrowReleaseDate.toISOString()}`);
@@ -15066,7 +15078,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
             orderId,
             'delivery_confirmed',
             '✅ Delivery Confirmed!',
-            `You have confirmed delivery for Order #${orderId}. The 5-day escrow period has started. You have 5 days to request a refund if there are any issues.`
+            `You have confirmed delivery for Order #${orderId}. The 5-day escrow period has started. You have 7 days to request a refund if there are any issues.`
         );
         
         // ✅ CREATE SELLER NOTIFICATION - Delivery confirmed, escrow started
@@ -15075,7 +15087,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
             orderId,
             'order_update',
             '✅ Delivery Confirmed!',
-            `The buyer has confirmed delivery for Order #${orderId}. The 5-day escrow period has started. Funds will be released to you after 5 days.`
+            `The buyer has confirmed delivery for Order #${orderId}. The 5-day escrow period has started. Funds will be released to you after 7 days.`
         );
         
         // Send email confirmation to buyer
@@ -15089,8 +15101,8 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
                     <p>Thank you for confirming delivery of your order.</p>
                     <p><strong>What happens next:</strong></p>
                     <ul>
-                        <li>You have 5 days to request a refund if there are issues</li>
-                        <li>After 5 days, funds will be released to the seller</li>
+                        <li>You have 7 days to request a refund if there are issues</li>
+                        <li>After 7 days, funds will be released to the seller</li>
                         <li>Release date: ${escrowReleaseDate.toLocaleDateString()}</li>
                     </ul>
                     <p><strong>Refund available until:</strong> ${escrowReleaseDate.toLocaleDateString()}</p>
@@ -15112,7 +15124,7 @@ app.post("/api/orders/:orderId/verify-delivery", async (req, res) => {
                     <p>The buyer has confirmed delivery for Order #${orderId}.</p>
                     <p><strong>Your earnings: $${parseFloat(order.seller_earnings || order.total_amount * 0.9).toFixed(2)}</strong></p>
                     <p><strong>Funds release date:</strong> ${escrowReleaseDate.toLocaleDateString()}</p>
-                    <p>Funds will be automatically released to your account after 5 days.</p>
+                    <p>Funds will be automatically released to your account after 7 days.</p>
                 </div>
             </body>
             </html>
@@ -15196,7 +15208,7 @@ app.post("/api/orders/:orderId/verify-delivery-seller", async (req, res) => {
         
         // ✅ START 5-DAY ESCROW COUNTDOWN
         const escrowReleaseDate = new Date();
-        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 7);
         
         console.log(`✅ Delivery verified by seller for order #${orderId}`);
         console.log(`   Escrow release date: ${escrowReleaseDate.toISOString()}`);
@@ -15223,8 +15235,8 @@ app.post("/api/orders/:orderId/verify-delivery-seller", async (req, res) => {
                     <p>The seller has confirmed delivery of your order.</p>
                     <p><strong>What happens next:</strong></p>
                     <ul>
-                        <li>You have 5 days to request a refund if there are issues</li>
-                        <li>After 5 days, funds will be released to the seller</li>
+                        <li>You have 7 days to request a refund if there are issues</li>
+                        <li>After 7 days, funds will be released to the seller</li>
                         <li>Refund available until: ${escrowReleaseDate.toLocaleDateString()}</li>
                     </ul>
                 </div>
@@ -15980,7 +15992,7 @@ app.get("/api/orders/:orderId/complete", async (req, res) => {
         refundAvailable = daysSincePayment <= 5;
         if (refundAvailable) {
           refundDeadline = new Date(paymentDate);
-          refundDeadline.setDate(refundDeadline.getDate() + 5);
+          refundDeadline.setDate(refundDeadline.getDate() + 7);
         }
         
         escrowInfo = {
@@ -15994,7 +16006,7 @@ app.get("/api/orders/:orderId/complete", async (req, res) => {
         // Customer received product, 5-day countdown starts for seller payout
         const deliveryDate = order.delivered_at || order.completed_at || new Date();
         const releaseDate = new Date(deliveryDate);
-        releaseDate.setDate(releaseDate.getDate() + 5);
+        releaseDate.setDate(releaseDate.getDate() + 7);
         const now = new Date();
         const daysUntilRelease = Math.max(0, Math.ceil((releaseDate - now) / (1000 * 60 * 60 * 24)));
         
@@ -16459,7 +16471,7 @@ app.post("/api/orders/:orderId/confirm-delivery", async (req, res) => {
     
     // ✅ START 5-DAY ESCROW COUNTDOWN FROM DELIVERY CONFIRMATION
     const escrowReleaseDate = new Date();
-    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 5);
+    escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 7);
     
     await db.query(
       `UPDATE physical_orders 
@@ -16958,7 +16970,7 @@ app.post("/api/orders/:orderId/status", async (req, res) => {
   }
 });
 
-// Mark order as completed and release funds (automatic after 5 days or manual by admin)
+// Mark order as completed and release funds (automatic after 7 days or manual by admin)
 app.post("/api/orders/:orderId/release-funds", async (req, res) => {
   try {
     if (!req.session.user) {
@@ -16984,7 +16996,7 @@ app.post("/api/orders/:orderId/release-funds", async (req, res) => {
       return res.status(400).json({ error: `Cannot release funds for order with status: ${order.order_status}` });
     }
     
-    // Check if 5 days have passed or admin override
+    // Check if 7 days have passed or admin override
     const canRelease = isAdmin || (order.payment_held_until && new Date() >= new Date(order.payment_held_until));
     
     if (!canRelease) {
@@ -17651,7 +17663,7 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
       const paymentDate = new Date(order.payment_collected_at);
       const now = new Date();
       const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
-      refundWindowRemaining = Math.max(0, 5 - daysSincePayment);
+            refundWindowRemaining = Math.max(0, 7 - daysSincePayment);
     }
     
     // SCENARIO 1: Before delivery - Auto-refund (no questions asked)
@@ -17709,7 +17721,7 @@ app.post("/api/physical-orders/:orderId/refund", async (req, res) => {
       // Check if within 5-day refund window
       if (refundWindowRemaining <= 0) {
         return res.status(400).json({ 
-          error: "Refund window has closed. Refunds can only be requested within 5 days of payment.",
+          error: "Refund window has closed. Refunds can only be requested within 7 days of payment.",
           refund_window_expired: true
         });
       }
@@ -18302,7 +18314,7 @@ app.get("/api/orders/:orderId/refund-status", async (req, res) => {
       const paymentDate = new Date(order.payment_collected_at);
       const now = new Date();
       const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
-      const remainingDays = Math.max(0, 5 - daysSincePayment);
+      const remainingDays = Math.max(0, 7 - daysSincePayment);
       refundWindowRemaining = remainingDays;
       canRequestRefund = remainingDays > 0 && (order.order_status === 'paid' || order.order_status === 'shipped' || order.order_status === 'delivered');
     }
@@ -18329,13 +18341,13 @@ app.get("/api/orders/:orderId/refund-status", async (req, res) => {
       const paymentDate = new Date(order.payment_collected_at);
       const now = new Date();
       const daysSincePayment = (now - paymentDate) / (1000 * 60 * 60 * 24);
-      const remainingDays = Math.max(0, 5 - daysSincePayment);
+      const remainingDays = Math.max(0, 7 - daysSincePayment);
       
       if (remainingDays > 0) {
-        message = `You have ${Math.ceil(remainingDays)} days remaining to request a refund. Refund window: 5 days from payment date.`;
+        message = `You have ${Math.ceil(remainingDays)} days remaining to request a refund. Refund window: 7 days from payment date.`;
         canRequestRefund = true;
       } else {
-        message = 'Refund window has closed (5 days from payment). Please contact support if you have issues.';
+        message = 'Refund window has closed (7 days from payment). Please contact support if you have issues.';
       }
     }
     

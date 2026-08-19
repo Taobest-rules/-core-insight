@@ -946,6 +946,10 @@ main {
 .close-form { background: none; border: none; font-size: 16px; color: var(--charcoal-soft); cursor: pointer; width: 32px; height: 32px; border-radius: 50%; }
 .close-form:hover { background: var(--cream-deep); color: var(--charcoal); }
 
+.trust-strip .rank-badge {
+  font-weight: 600;
+  color: var(--gold-deep);
+}
 /* ============================================================
    MODALS (login / signup / address / verification / etc.)
    ============================================================ */
@@ -1143,7 +1147,9 @@ main {
       <a href="/messages.html" class="icon-btn" title="Messages" style="text-decoration:none; display:inline-flex;">
         <i class="fas fa-envelope"></i>
       </a>
-
+      <a href="/profile.html" class="icon-btn" title="Your profile" style="text-decoration:none; display:inline-flex;">
+        <i class="fas fa-user"></i>
+      </a>
       <div id="headerAuthButtons">
         <button id="loginOpen" class="auth-btn">Login</button>
         <a href="signup.html" id="signupOpen" class="auth-btn signup">Sign Up</a>

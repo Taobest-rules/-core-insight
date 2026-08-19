@@ -1779,11 +1779,11 @@ window.openAffiliate = openAffiliate;
                         </h4>
                         <div class="info-row" style="display: flex; margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <div class="info-label" style="width: 140px; font-weight: 600; color: var(--text-light);">Escrow:</div>
-                            <div class="info-value" style="flex: 1; color: var(--text-gray);">Funds held 5 days after delivery confirmation</div>
+                            <div class="info-value" style="flex: 1; color: var(--text-gray);">Funds held 7 days after delivery confirmation</div>
                         </div>
                         <div class="info-row" style="display: flex; margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <div class="info-label" style="width: 140px; font-weight: 600; color: var(--text-light);">Refund Window:</div>
-                            <div class="info-value" style="flex: 1; color: var(--text-gray);">5 days after delivery confirmation</div>
+                            <div class="info-value" style="flex: 1; color: var(--text-gray);">7 days after delivery confirmation</div>
                         </div>
                         <div class="info-row" style="display: flex; margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-light);">
                             <div class="info-label" style="width: 140px; font-weight: 600; color: var(--text-light);">Return Options:</div>
@@ -2140,7 +2140,7 @@ async function loadSalesHistory() {
                             <div>
                                 <h4 style="margin: 0 0 4px 0; color: var(--success);">✅ Delivery Confirmed!</h4>
                                 <p style="margin: 0; font-size: 13px; color: var(--text-gray);">
-                                    ${isCompleted ? 'Funds have been released to your account.' : '5-day escrow period has started. Funds will be released after 5 days.'}
+                                    ${isCompleted ? 'Funds have been released to your account.' : '5-day escrow period has started. Funds will be released after 7 days.'}
                                 </p>
                                 ${order.payment_held_until && !isCompleted ? `
                                     <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">
@@ -2693,7 +2693,7 @@ async function verifyDeliveryWithCode(orderId) {
         return;
     }
     
-    if (!confirm("⚠️ IMPORTANT: Only confirm delivery AFTER the customer has received the product and provided the delivery code.\n\nConfirming will start the 5-day escrow countdown. The customer will have 5 days to request a refund.")) {
+    if (!confirm("⚠️ IMPORTANT: Only confirm delivery AFTER the customer has received the product and provided the delivery code.\n\nConfirming will start the 5-day escrow countdown. The customer will have 7 days to request a refund.")) {
         return;
     }
     
@@ -2717,7 +2717,7 @@ async function verifyDeliveryWithCode(orderId) {
         if (response.ok) {
             showToast(
                 '✅ Delivery Verified!', 
-                `5-day escrow period has started. Funds will be released to you after 5 days.`,
+                `5-day escrow period has started. Funds will be released to you after 7 days.`,
                 'success'
             );
             // Refresh the paid orders list - this will now show the "Delivery Confirmed" message
@@ -2744,7 +2744,7 @@ async function viewEscrowStatus(orderId) {
         const data = await response.json();
         let message = '';
         if (data.is_escrow) {
-            message = `🔒 ESCROW STATUS\n\nAmount Held: $${data.amount_held?.toFixed(2) || '0.00'}\nYour Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}\nPlatform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}\n\nStatus: ${data.funds_released ? '✅ Released to you' : '⏳ Held in escrow'}\n${data.payment_held_until ? `Held until: ${new Date(data.payment_held_until).toLocaleDateString()}` : ''}\n\nNote: Funds are released 5 days after customer confirms delivery.`;
+            message = `🔒 ESCROW STATUS\n\nAmount Held: $${data.amount_held?.toFixed(2) || '0.00'}\nYour Earnings: $${data.seller_earnings?.toFixed(2) || '0.00'}\nPlatform Fee: $${data.platform_fee?.toFixed(2) || '0.00'}\n\nStatus: ${data.funds_released ? '✅ Released to you' : '⏳ Held in escrow'}\n${data.payment_held_until ? `Held until: ${new Date(data.payment_held_until).toLocaleDateString()}` : ''}\n\nNote: Funds are released 7 days after customer confirms delivery.`;
         } else { message = 'No escrow information available for this order.'; }
         alert(message);
     } catch (error) { console.error('Escrow status error:', error); alert('Error loading escrow status. Please try again.'); }
@@ -4453,6 +4453,76 @@ async function submitVerification() {
 }
 window.submitVerification = submitVerification;
 
+async function loadWalletData() {
+  try {
+    const balRes = await fetch('/api/wallet/balance', { credentials: 'include' });
+    const bal = await balRes.json();
+    document.getElementById('walletAvailable').textContent = `$${Number(bal.available_balance).toFixed(2)}`;
+    document.getElementById('walletReserved').textContent = `$${Number(bal.reserved_balance).toFixed(2)}`;
+    document.getElementById('walletOwed').textContent = `$${Number(bal.credit_owed).toFixed(2)}`;
+  } catch (e) { console.error('Wallet balance failed:', e); }
+
+  try {
+    const txRes = await fetch('/api/wallet/transactions', { credentials: 'include' });
+    const txs = txRes.ok ? await txRes.json() : [];
+    const listEl = document.getElementById('walletTransactionList');
+    listEl.innerHTML = txs.length
+      ? txs.map(t => `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light);font-size:13px;">
+          <span>${t.description || t.type}</span>
+          <span style="font-weight:600;">$${Number(t.amount).toFixed(2)}</span>
+        </div>`).join('')
+      : `<p style="color:var(--text-gray);">No wallet activity yet.</p>`;
+  } catch (e) { console.error('Wallet transactions failed:', e); }
+
+  try {
+    const ordersRes = await fetch('/api/my-pod-orders', { credentials: 'include' });
+    const orders = ordersRes.ok ? await ordersRes.json() : [];
+    const pendingEl = document.getElementById('podPendingOrders');
+    pendingEl.innerHTML = orders.length
+      ? orders.map(o => `<div style="padding:12px 0;border-bottom:1px solid var(--border-light);">
+          <strong>${o.product_name}</strong> × ${o.quantity} — fee $${Number(o.pod_fee_amount).toFixed(2)}
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn" style="padding:6px 14px;font-size:12px;" onclick="acceptPodOrder(${o.id})">Accept</button>
+            <button class="btn" style="padding:6px 14px;font-size:12px;background:transparent;border:1px solid var(--border-light);" onclick="rejectPodOrder(${o.id})">Reject</button>
+          </div>
+        </div>`).join('')
+      : `<p style="color:var(--text-gray);">No pending requests.</p>`;
+  } catch (e) { console.error('POD orders failed:', e); }
+}
+
+async function fundWallet() {
+  const amount = document.getElementById('walletFundAmount').value;
+  if (!amount || amount < 1) return toast('Enter a valid amount');
+  try {
+    const res = await fetch('/api/wallet/fund', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    window.location.href = data.payment_link;
+  } catch (e) { toast(e.message || 'Could not start payment'); }
+}
+
+async function acceptPodOrder(orderId) {
+  try {
+    const res = await fetch(`/api/pod-orders/${orderId}/accept`, { method: 'POST', credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    toast('Order accepted');
+    loadWalletData();
+  } catch (e) { toast(e.message || 'Could not accept order'); }
+}
+
+async function rejectPodOrder(orderId) {
+  try {
+    const res = await fetch(`/api/pod-orders/${orderId}/reject`, { method: 'POST', credentials: 'include' });
+    if (!res.ok) throw new Error('Failed');
+    toast('Order rejected');
+    loadWalletData();
+  } catch (e) { toast('Could not reject order'); }
+}
 // ============================================
 // PRODUCT TYPE UI LOGIC
 // ============================================
@@ -5500,7 +5570,14 @@ function renderTrustStrip(product) {
   const sales = Number(product.seller_sales_count || product.sales_count || 0);
   const verified = !!(product.seller_verified || product.is_seller_verified);
   const memberSince = product.seller_since || product.seller_created_at;
+  const rankIcon = product.seller_rank_icon;
+  const rankLabel = product.seller_rank_label;
   let bits = [];
+  // Rank badge shows for anyone above "New Seller" — no point cluttering
+  // every card with a badge that just says "New".
+  if (rankIcon && product.seller_rank !== 'new') {
+    bits.push(`<span class="stat rank-badge" title="${escapeHtml(rankLabel)}">${rankIcon} ${escapeHtml(rankLabel)}</span>`);
+  }
   if (verified) bits.push(`<span class="verified"><i class="fas fa-badge-check"></i> Verified</span>`);
   if (rating > 0) bits.push(`<span class="stat"><i class="fas fa-star" style="color:var(--gold)"></i> ${rating.toFixed(1)}</span>`);
   if (sales > 0) bits.push(`<span class="stat">${sales} sale${sales === 1 ? '' : 's'}</span>`);

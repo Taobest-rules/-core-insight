@@ -162,8 +162,58 @@ async function getMessageItemContext(itemType, itemId) {
     return { type: itemType, icon: config.icon, label: config.label, id: itemId };
   }
 }
+ async function runWalletMigrations() {
+  const alterSafely = async (sql, label) => {
+    try { await db.query(sql); console.log(`✅ Wallet migration: ${label}`); }
+    catch (err) { if (!/duplicate|already exists/i.test(err.message)) console.error(`❌ Wallet migration failed (${label}):`, err.message); }
+  };
  
-
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS seller_wallets (
+      user_id INT PRIMARY KEY,
+      available_balance DECIMAL(10,2) DEFAULT 0.00,
+      reserved_balance DECIMAL(10,2) DEFAULT 0.00,
+      currency VARCHAR(10) DEFAULT 'USD',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, 'seller_wallets table'
+  );
+ 
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      type VARCHAR(30) NOT NULL,
+      amount DECIMAL(10,2) NOT NULL,
+      balance_after DECIMAL(10,2),
+      order_id INT NULL,
+      description VARCHAR(255),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_user (user_id, created_at)
+    )`, 'wallet_transactions table'
+  );
+ 
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN is_pay_on_delivery TINYINT(1) DEFAULT 0`, 'physical_orders.is_pay_on_delivery');
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN pod_fee_amount DECIMAL(10,2) NULL`, 'physical_orders.pod_fee_amount');
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN pod_fee_mode VARCHAR(20) NULL`, 'physical_orders.pod_fee_mode');
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN pod_fee_release_at DATETIME NULL`, 'physical_orders.pod_fee_release_at');
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN pod_fee_released TINYINT(1) DEFAULT 0`, 'physical_orders.pod_fee_released');
+  await alterSafely(`ALTER TABLE physical_orders ADD COLUMN seller_response_deadline DATETIME NULL`, 'physical_orders.seller_response_deadline');
+}
+runWalletMigrations();
+ 
+async function getWallet(userId) {
+  await ensureWallet(userId);
+  const result = await db.query(`SELECT * FROM seller_wallets WHERE user_id = ?`, [userId]);
+  return extractRows(result)[0];
+}
+ 
+async function logWalletTransaction(userId, type, amount, balanceAfter, orderId, description) {
+  await db.query(
+    `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, order_id, description, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    [userId, type, amount, balanceAfter, orderId || null, description || null]
+  );
+}
 // ============================================
 // APP INITIALIZATION
 // ============================================
@@ -2395,6 +2445,7 @@ app.get("/api/my-pod-orders", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+ 
 // ============================================
 // CURRENCY CONVERSION - FIXED
 // ============================================
@@ -6389,7 +6440,265 @@ app.get("/api/notifications/unread-counts", async (req, res) => {
     }
 });
 
-
+app.get("/api/wallet/balance", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const wallet = await getWallet(req.session.user.id);
+    res.json(wallet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+app.get("/api/wallet/transactions", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const result = await db.query(
+      `SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+      [req.session.user.id]
+    );
+    res.json(extractRows(result));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+app.post("/api/wallet/fund", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const { amount } = req.body;
+    const fundAmount = parseFloat(amount);
+    if (!fundAmount || fundAmount < 1) return res.status(400).json({ error: "Enter a valid amount (minimum $1)." });
+ 
+    if (!process.env.FLW_SECRET_KEY) return res.status(500).json({ error: "Payment system not configured." });
+ 
+    const txRef = `WALLET_${req.session.user.id}_${Date.now()}`;
+    const flutterwavePayload = {
+      tx_ref: txRef,
+      amount: fundAmount,
+      currency: "USD",
+      redirect_url: "https://coreinsightmarket.com/wallet-callback.html",
+      customer: { email: req.session.user.email, name: req.session.user.username },
+      customizations: { title: "Core Insight Wallet Top-Up", description: `Add $${fundAmount.toFixed(2)} to your seller wallet` },
+    };
+ 
+    const flwResponse = await fetch("https://api.flutterwave.com/v3/payments", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify(flutterwavePayload),
+    });
+    const flwData = await flwResponse.json();
+    if (flwData.status !== "success") return res.status(500).json({ error: "Could not start payment. Try again." });
+ 
+    res.json({ success: true, payment_link: flwData.data.link, tx_ref: txRef });
+  } catch (err) {
+    console.error("Wallet fund error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get("/api/wallet/verify-topup", async (req, res) => {
+  try {
+    const { tx_ref, transaction_id } = req.query;
+    if (!tx_ref || !tx_ref.startsWith('WALLET_')) return res.status(400).json({ error: "Invalid reference." });
+ 
+    const verifyRes = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
+      headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
+    });
+    const verifyData = await verifyRes.json();
+ 
+    if (verifyData.data?.status !== 'successful') {
+      return res.status(400).json({ success: false, error: "Payment not successful." });
+    }
+ 
+    const userId = tx_ref.split('_')[1];
+    const amount = parseFloat(verifyData.data.amount);
+ 
+    const existing = await db.query(`SELECT id FROM wallet_transactions WHERE description = ?`, [tx_ref]);
+    if (extractRows(existing).length > 0) {
+      return res.json({ success: true, already_processed: true });
+    }
+ 
+    const wallet = await getWallet(userId);
+    const newBalance = parseFloat(wallet.available_balance) + amount;
+    await db.query(`UPDATE seller_wallets SET available_balance = ?, updated_at = NOW() WHERE user_id = ?`, [newBalance, userId]);
+    await logWalletTransaction(userId, 'topup', amount, newBalance, null, tx_ref);
+ 
+    res.json({ success: true, new_balance: newBalance });
+  } catch (err) {
+    console.error("Wallet top-up verification error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+ app.post("/api/pod-orders/create", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const { productId, quantity, deliveryAddress, deliveryPhone, city, state, country, notes } = req.body;
+    const qty = parseInt(quantity) || 1;
+ 
+    const productResult = await db.query(`SELECT * FROM products WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)`, [productId]);
+    const product = extractRows(productResult)[0];
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    if (product.type !== 'physical') return res.status(400).json({ error: "Pay on Delivery is only available for physical products" });
+    if (!['pay_on_delivery', 'both'].includes(product.payment_option)) {
+      return res.status(400).json({ error: "This seller doesn't offer Pay on Delivery for this product" });
+    }
+ 
+    const productPrice = parseFloat(product.price);
+    const totalAmount = productPrice * qty;
+    const platformFee = totalAmount * 0.10;
+    const sellerEarnings = totalAmount - platformFee;
+    const transactionRef = `POD_${Date.now()}_${req.session.user.id}`;
+ 
+    const responseDeadline = new Date();
+    responseDeadline.setHours(responseDeadline.getHours() + 24);
+ 
+    const insertResult = await db.query(
+      `INSERT INTO physical_orders (
+        product_id, seller_id, buyer_id, product_name, quantity,
+        price, total_amount,
+        customer_name, customer_email, shipping_address, delivery_phone,
+        city, state, country, notes,
+        platform_fee, seller_earnings, fee_breakdown,
+        transaction_ref, payment_provider, payment_status, order_status,
+        is_pay_on_delivery, pod_fee_amount, seller_response_deadline, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pay_on_delivery', 'pod_unpaid', 'pending_seller_approval', 1, ?, ?, NOW())`,
+      [
+        productId, product.user_id, req.session.user.id, product.title, qty,
+        productPrice, totalAmount,
+        req.session.user.username, req.session.user.email,
+        deliveryAddress, deliveryPhone, city || null, state || null, country || null, notes || null,
+        platformFee, sellerEarnings, JSON.stringify({ platformFee, sellerEarnings }),
+        transactionRef, platformFee, responseDeadline,
+      ]
+    );
+ 
+    const orderId = extractInsertId(insertResult);
+    const sellerEmail = await getSellerEmail(product.user_id);
+ 
+    await sendEmail(sellerEmail,
+      `New Pay on Delivery order — Order #${orderId}`,
+      `<h2>New Pay on Delivery request</h2>
+       <p><strong>${escapeHtml(product.title)}</strong> × ${qty}</p>
+       <p>Platform fee required to accept: <strong>$${platformFee.toFixed(2)}</strong></p>
+       <p>This fee must be available in your wallet to accept. You have 24 hours to accept or this order will be automatically cancelled.</p>
+       <a href="https://coreinsightmarket.com/dashboard.html?tab=pod-orders">Review order</a>`
+    ).catch(e => console.error('POD notify email failed:', e.message));
+ 
+    res.status(201).json({ success: true, order_id: orderId, platform_fee: platformFee });
+  } catch (err) {
+    console.error("POD order creation error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+async function getSellerEmail(userId) {
+  const result = await db.query(`SELECT email FROM users WHERE id = ?`, [userId]);
+  return extractRows(result)[0]?.email;
+}
+ 
+ app.post("/api/pod-orders/:orderId/accept", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const orderId = req.params.orderId;
+    const sellerId = req.session.user.id;
+ 
+    const orderResult = await db.query(
+      `SELECT * FROM physical_orders WHERE id = ? AND seller_id = ? AND is_pay_on_delivery = 1`,
+      [orderId, sellerId]
+    );
+    const order = extractRows(orderResult)[0];
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    if (order.order_status !== 'pending_seller_approval') {
+      return res.status(400).json({ error: `Order already ${order.order_status}` });
+    }
+ 
+    const fee = parseFloat(order.pod_fee_amount);
+    const wallet = await getWallet(sellerId);
+    const available = parseFloat(wallet.available_balance);
+ 
+    // Flat rule for every seller regardless of rank — the 10% platform
+    // fee already has to cover Flutterwave's own processing costs, so
+    // there's no margin left to also absorb walk-away risk on top of
+    // that. Rank/account restrictions are also trivially bypassed with
+    // a second account, so tier-based credit isn't a reliable
+    // safeguard here — the fee must always be available upfront.
+    if (available < fee) {
+      return res.status(400).json({
+        error: `You need $${fee.toFixed(2)} available in your wallet to accept this order.`,
+        required_fee: fee,
+        available_balance: available,
+      });
+    }
+ 
+    const newAvailable = available - fee;
+    const newReserved = parseFloat(wallet.reserved_balance) + fee;
+    await db.query(`UPDATE seller_wallets SET available_balance = ?, reserved_balance = ?, updated_at = NOW() WHERE user_id = ?`, [newAvailable, newReserved, sellerId]);
+    await logWalletTransaction(sellerId, 'reserve', fee, newAvailable, orderId, `Fee reserved for order #${orderId}`);
+ 
+    await db.query(
+      `UPDATE physical_orders SET order_status = 'accepted_pod', pod_fee_mode = 'reserved' WHERE id = ?`,
+      [orderId]
+    );
+ 
+    res.json({ success: true, fee_mode: 'reserved' });
+  } catch (err) {
+    console.error("POD accept error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+ app.post("/api/pod-orders/:orderId/reject", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const orderId = req.params.orderId;
+    const orderResult = await db.query(
+      `SELECT * FROM physical_orders WHERE id = ? AND seller_id = ? AND is_pay_on_delivery = 1`,
+      [orderId, req.session.user.id]
+    );
+    const order = extractRows(orderResult)[0];
+    if (!order) return res.status(404).json({ error: "Order not found" });
+ 
+    await db.query(`UPDATE physical_orders SET order_status = 'cancelled' WHERE id = ?`, [orderId]);
+ 
+    const buyerResult = await db.query(`SELECT email, username FROM users WHERE id = ?`, [order.buyer_id]);
+    const buyer = extractRows(buyerResult)[0];
+    if (buyer) {
+      sendEmail(buyer.email, `Order #${orderId} could not be fulfilled`,
+        `<p>Unfortunately the seller was unable to accept your Pay on Delivery order for <strong>${escapeHtml(order.product_name)}</strong>. No payment was taken.</p>`
+      ).catch(e => console.error('Reject notify failed:', e.message));
+    }
+ 
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ app.get("/api/cron/reject-stale-pod-orders", async (req, res) => {
+  if (req.query.secret !== process.env.CRON_SECRET) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const staleResult = await db.query(
+      `SELECT id, buyer_id, product_name FROM physical_orders
+       WHERE is_pay_on_delivery = 1 AND order_status = 'pending_seller_approval'
+         AND seller_response_deadline <= NOW()`
+    );
+    const stale = extractRows(staleResult);
+    for (const order of stale) {
+      await db.query(`UPDATE physical_orders SET order_status = 'cancelled' WHERE id = ?`, [order.id]);
+      const buyerResult = await db.query(`SELECT email FROM users WHERE id = ?`, [order.buyer_id]);
+      const buyer = extractRows(buyerResult)[0];
+      if (buyer) {
+        sendEmail(buyer.email, `Order #${order.id} auto-cancelled`,
+          `<p>The seller did not respond in time for your Pay on Delivery order for <strong>${escapeHtml(order.product_name)}</strong>. No payment was taken.</p>`
+        ).catch(() => {});
+      }
+    }
+    res.json({ success: true, cancelled: stale.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
+ 
 // ============================================
 // SELLER ORDERS ENDPOINT - FIXED
 // ============================================
@@ -6446,7 +6755,35 @@ app.get("/api/orders/seller/:sellerId", async (req, res) => {
   }
 });
 
-
+app.get("/api/cron/release-pod-fees", async (req, res) => {
+  if (req.query.secret !== process.env.CRON_SECRET) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const dueResult = await db.query(
+      `SELECT * FROM physical_orders
+       WHERE is_pay_on_delivery = 1 AND order_status = 'delivered'
+         AND pod_fee_release_at <= NOW() AND pod_fee_released = 0`
+    );
+    const due = extractRows(dueResult);
+    let released = 0;
+ 
+    for (const order of due) {
+      const fee = parseFloat(order.pod_fee_amount);
+      const wallet = await getWallet(order.seller_id);
+ 
+      const newReserved = Math.max(0, parseFloat(wallet.reserved_balance) - fee);
+      await db.query(`UPDATE seller_wallets SET reserved_balance = ?, updated_at = NOW() WHERE user_id = ?`, [newReserved, order.seller_id]);
+      await logWalletTransaction(order.seller_id, 'release_to_platform', fee, wallet.available_balance, order.id, `Fee released for order #${order.id}`);
+ 
+      await db.query(`UPDATE physical_orders SET pod_fee_released = 1, order_status = 'completed' WHERE id = ?`, [order.id]);
+      released++;
+    }
+ 
+    res.json({ success: true, released });
+  } catch (err) {
+    console.error("POD fee release sweep error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // Admin resolve dispute endpoint
 app.post("/api/admin/resolve-dispute/:orderId", async (req, res) => {
   try {
@@ -15207,22 +15544,21 @@ app.post("/api/orders/:orderId/verify-delivery-seller", async (req, res) => {
         }
         
         // ✅ START 5-DAY ESCROW COUNTDOWN
-        const escrowReleaseDate = new Date();
-        escrowReleaseDate.setDate(escrowReleaseDate.getDate() + 7);
-        
-        console.log(`✅ Delivery verified by seller for order #${orderId}`);
-        console.log(`   Escrow release date: ${escrowReleaseDate.toISOString()}`);
-        
-        await db.query(
-            `UPDATE physical_orders 
-             SET order_status = 'delivered',
-                 delivered_at = NOW(),
-                 payment_held_until = ?,
-                 delivery_code_used = 1,
-                 delivery_code_used_at = NOW()
-             WHERE id = ?`,
-            [escrowReleaseDate, orderId]
-        );
+       const isPod = !!order.is_pay_on_delivery;
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() + 7);
+ 
+      await db.query(
+          `UPDATE physical_orders
+           SET order_status = 'delivered',
+               delivered_at = NOW(),
+               payment_held_until = ?,
+               pod_fee_release_at = ?,
+               delivery_code_used = 1,
+               delivery_code_used_at = NOW()
+           WHERE id = ?`,
+          [isPod ? null : releaseDate, isPod ? releaseDate : null, orderId]
+      );
         
         // Send email confirmation to buyer
         const buyerEmailHtml = `

@@ -655,7 +655,7 @@ function courseCardHTML(course) {
     `<button type="button" onclick="shareCourse(${course.id})"><i class="fas fa-share-alt"></i> Share</button>`
   ];
   if (course.hasAccess && course.isVideo) {
-    menuItems.push(`<button type="button" onclick="handleDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
+    menuItems.push(`<button type="button" onclick="handleVideoDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
   }
   if (!currentUser || Number(currentUser.id) !== course.user_id) {
     menuItems.push(`<button type="button" onclick="supportAuthor(${course.user_id})"><i class="fas fa-hand-holding-heart"></i> Support Author</button>`);
@@ -1019,7 +1019,7 @@ function buildModalFooterHTML(course) {
     if (course.isVideo) {
       const cta = primaryCtaFor(course);
       buttons.push(`<button type="button" class="btn-primary" onclick="${cta.onclick}"><i class="fas ${cta.icon}"></i> ${cta.label}</button>`);
-      buttons.push(`<button type="button" class="btn-secondary" onclick="handleDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
+      buttons.push(`<button type="button" class="btn-secondary" onclick="handleVideoDownload(${course.id})"><i class="fas fa-download"></i> Download</button>`);
     } else {
       const cta = primaryCtaFor(course);
       buttons.push(`<button type="button" class="btn-primary" onclick="${cta.onclick}"><i class="fas ${cta.icon}"></i> ${cta.label}</button>`);
@@ -1447,6 +1447,38 @@ async function handleDownload(courseId) {
     console.error('Download error:', error);
     showToast('Error downloading file: ' + error.message, 'error');
   }
+}
+
+/* Video files live on cloud storage (Backblaze, etc.) as direct HTTP URLs.
+   The shared /api/download/:id endpoint above 302-redirects to those URLs
+   for any non-local file — as a full-page navigation, that takes the
+   browser away to the raw storage domain instead of downloading (the same
+   thing fixed on the Knowledge Hub page). Videos get their own downloader
+   that uses the direct URL we already have client-side with the
+   `download` attribute, matching that fix, instead of routing through the
+   redirect-prone shared endpoint. Non-video content keeps using
+   handleDownload()/the backend endpoint unchanged. */
+function handleVideoDownload(courseId) {
+  const course = allCourses.find(c => c.id === courseId);
+  if (!course) return;
+  if (!course.hasAccess) {
+    showToast('You do not have access to this yet.', 'error');
+    return;
+  }
+  const url = course.file_url || course.download_url;
+  if (!url) {
+    showToast('File not found. Please contact support.', 'error');
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = course.title || 'video';
+  link.target = '_blank'; // fallback: opens a new tab instead of leaving this page if the browser won't honor cross-origin download
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  showToast('Download started! Check your downloads folder.', 'success');
 }
 
 async function initiatePayment(courseId) {

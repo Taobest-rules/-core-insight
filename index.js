@@ -1256,7 +1256,20 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
       return res.status(400).json({ error: "Article content must be at least 50 characters" });
     }
 
-    const finalStatus = status === 'published' ? 'published' : 'draft';
+      let finalStatus = status === 'published' ? 'published' : 'draft';
+
+  
+    if (finalStatus === 'published') {
+      const payoutCheck = await db.query(`SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [req.session.user.id]);
+      const hasPayoutLinked = !!extractRows(payoutCheck)[0]?.flutterwave_subaccount_id;
+      if (!hasPayoutLinked) {
+        return res.status(400).json({
+          error: "Add your payout details before publishing, so any support you receive goes to you.",
+          requires_payout_setup: true,
+          saved_as_draft: true,
+        });
+      }
+    }
     const slug = await generateUniqueSlug(title);
     const readTime = estimateReadTime(content);
 
@@ -2245,10 +2258,30 @@ app.post("/api/support/create", async (req, res) => {
             return res.status(500).json({ error: "Payment system not configured" });
         }
 
+              
+        let supportCurrency = "USD";
+        let chargeAmount = tipAmount;
+        let paymentOptions = "card";
+
+        try {
+            const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            const geoResponse = await axios.get(`http://ip-api.com/json/${userIp}`, { timeout: 3000 });
+            if (geoResponse.data?.countryCode === 'NG') {
+                const rates = await getExchangeRate();
+                const usdToNgn = rates.USD_TO_NGN || 1500;
+                supportCurrency = "NGN";
+                chargeAmount = Math.round(tipAmount * usdToNgn);
+                paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
+                console.log(`💰 Nigerian supporter — charging ₦${chargeAmount} with local payment methods`);
+            }
+        } catch (geoError) {
+            console.log('Support: could not detect country, defaulting to card/USD');
+        }
+
         const payload = {
             tx_ref: transactionRef,
-            amount: tipAmount,
-            currency: "USD",
+            amount: chargeAmount,
+            currency: supportCurrency,
             redirect_url: "https://coreinsightmarket.com/support-callback.html",
             customer: {
                 email: supporterEmail,
@@ -2258,6 +2291,7 @@ app.post("/api/support/create", async (req, res) => {
                 title: "Support a Creator",
                 description: `Supporting ${creator.username}${articleId ? ' for their article' : ''}`
             },
+            payment_options: paymentOptions,
             meta: {
                 support_id: supportId,
                 creator_id: creatorId,
@@ -2265,13 +2299,16 @@ app.post("/api/support/create", async (req, res) => {
             }
         };
 
-        // Split payout to the creator's subaccount, same mechanism as digital products
-        if (creator.flutterwave_subaccount_id) {
-            payload.subaccounts = [{
-                id: creator.flutterwave_subaccount_id,
-                transaction_split_ratio: 0.9
-            }];
+             
+        if (!creator.flutterwave_subaccount_id) {
+            return res.status(400).json({
+                error: "This creator hasn't finished setting up payouts yet, so support can't be processed right now.",
+            });
         }
+        payload.subaccounts = [{
+            id: creator.flutterwave_subaccount_id,
+            transaction_split_ratio: 0.9
+        }];
 
         const response = await axios.post(
             'https://api.flutterwave.com/v3/payments',

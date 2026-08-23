@@ -1196,10 +1196,17 @@ document.getElementById('articleForm').addEventListener('submit', async (e) => {
       body: fd
     });
 
-    const data = await res.json();
+        const data = await res.json();
 
     if (!res.ok) {
-      toast(data.error || 'Something went wrong.');
+      if (data.requires_payout_setup) {
+        toast('Add your payout details to publish — taking you there now.');
+        setTimeout(() => {
+          window.location.href = '/profile.html?tab=payouts&redirect=publish';
+        }, 1500);
+      } else {
+        toast(data.error || 'Something went wrong.');
+      }
       return;
     }
 

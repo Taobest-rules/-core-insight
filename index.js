@@ -912,7 +912,6 @@ async function createFlutterwaveSubaccount(userId, bankData) {
             business_email, 
             business_phone,
             is_virtual = false,
-            // NEW FIELDS FOR INTERNATIONAL PAYOUTS
             routing_number,
             swift_code,
             iban,
@@ -932,60 +931,42 @@ async function createFlutterwaveSubaccount(userId, bankData) {
             has_branch: !!branch_code
         });
         
-        // Build the payload based on country requirements
         let payload = {
             account_bank: String(bank_code).padStart(3, '0'),
             account_number: String(account_number),
             business_name: business_name,
             split_type: "percentage",
-            split_value: 0.1,  // Platform gets 10%
+            split_value: 0.1,
             country: country,
             business_email: business_email || '',
             business_mobile: business_phone || ''
         };
         
-        // Add country-specific fields
         if (country === 'US') {
-            if (routing_number) {
-                payload.routing_number = routing_number;
-            }
-            if (swift_code) {
-                payload.swift_code = swift_code;
-            }
+            if (routing_number) payload.routing_number = routing_number;
+            if (swift_code) payload.swift_code = swift_code;
         }
         
         if (country === 'CA') {
-            if (institution_number) {
-                payload.institution_number = institution_number;
-            }
-            if (transit_number) {
-                payload.transit_number = transit_number;
-            }
+            if (institution_number) payload.institution_number = institution_number;
+            if (transit_number) payload.transit_number = transit_number;
         }
         
-        // European countries (SEPA)
         const europeanCountries = ['GB', 'FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'PT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'AT', 'PL', 'CZ', 'GR', 'HU', 'RO'];
         if (europeanCountries.includes(country)) {
-            if (swift_code) {
-                payload.swift_code = swift_code;
-            }
-            if (iban) {
-                payload.iban = iban;
-            }
+            if (swift_code) payload.swift_code = swift_code;
+            if (iban) payload.iban = iban;
         }
         
-        // African countries requiring branch code
         const branchCodeCountries = ['GH', 'TZ', 'UG', 'RW'];
         if (branchCodeCountries.includes(country) && branch_code) {
             payload.branch_code = branch_code;
         }
         
-        // Australia
         if (country === 'AU' && bsb_number) {
             payload.bsb_number = bsb_number;
         }
         
-        // For virtual accounts, add metadata
         if (is_virtual) {
             payload.meta = {
                 is_virtual_account: true,
@@ -1009,55 +990,88 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         
         if (response.data.status === 'success') {
             const subaccountId = response.data.data.subaccount_id;
-            
-            // Store all additional fields in database
-            await db.query(
-                `UPDATE users 
-                 SET flutterwave_subaccount_id = ?,
-                     subaccount_created_at = NOW(),
-                     subaccount_status = 'active',
-                     bank_code = ?,
-                     account_number = ?,
-                     account_name = ?,
-                     is_virtual_account = ?,
-                     routing_number = ?,
-                     swift_code = ?,
-                     iban = ?,
-                     branch_code = ?,
-                     institution_number = ?,
-                     transit_number = ?,
-                     bsb_number = ?
-                 WHERE id = ?`,
-                [
-                    subaccountId, 
-                    bank_code, 
-                    account_number, 
-                    business_name, 
-                    is_virtual ? 1 : 0,
-                    routing_number || null,
-                    swift_code || null,
-                    iban || null,
-                    branch_code || null,
-                    institution_number || null,
-                    transit_number || null,
-                    bsb_number || null,
-                    userId
-                ]
-            );
-            
+            await saveSubaccountToUser(userId, subaccountId, bankData);
             console.log(`✅ Flutterwave subaccount created for user ${userId}: ${subaccountId}`);
             console.log(`   Split configuration: Platform gets 10%, Seller gets 90%`);
             console.log(`   Country: ${country}, Has SWIFT: ${!!swift_code}, Has Routing: ${!!routing_number}`);
-            
             return { success: true, subaccount_id: subaccountId };
         } else {
             throw new Error(response.data.message || 'Subaccount creation failed');
         }
         
     } catch (err) {
+        const flwMessage = err.response?.data?.message || err.message;
         console.error(`❌ Flutterwave subaccount error for user ${userId}:`, err.response?.data || err.message);
-        return { success: false, error: err.response?.data?.message || err.message };
+
+        // Recoverable case: this bank account already has a subaccount
+        // (repeated test attempts, a retried signup, or a genuinely shared
+        // bank account between two users). Instead of hard-failing, look
+        // it up on Flutterwave's side and reuse it.
+        const isDuplicate = /already (has|exists)/i.test(flwMessage);
+        if (isDuplicate) {
+            try {
+                const listResponse = await axios.get('https://api.flutterwave.com/v3/subaccounts', {
+                    headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
+                    timeout: 30000,
+                });
+
+                const existing = (listResponse.data.data || []).find(
+                    sub => String(sub.account_number) === String(bankData.account_number)
+                        && String(sub.account_bank) === String(bankData.bank_code).padStart(3, '0')
+                );
+
+                if (existing) {
+                    const existingId = existing.id || existing.subaccount_id;
+                    await saveSubaccountToUser(userId, existingId, bankData);
+                    console.log(`♻️ Reused existing subaccount for user ${userId}: ${existingId}`);
+                    return { success: true, subaccount_id: existingId, reused: true };
+                }
+
+                console.warn(`⚠️ Flutterwave reported a duplicate but no matching subaccount was found in the list for user ${userId}`);
+            } catch (lookupErr) {
+                console.error('Subaccount lookup failed:', lookupErr.response?.data || lookupErr.message);
+            }
+        }
+
+        return { success: false, error: flwMessage };
     }
+}
+
+// Shared by both the fresh-create and reuse-existing paths so the DB
+// write logic only exists in one place.
+async function saveSubaccountToUser(userId, subaccountId, bankData) {
+    const {
+        bank_code, account_number, business_name, is_virtual = false,
+        routing_number, swift_code, iban, branch_code,
+        institution_number, transit_number, bsb_number,
+    } = bankData;
+
+    await db.query(
+        `UPDATE users 
+         SET flutterwave_subaccount_id = ?,
+             subaccount_created_at = NOW(),
+             subaccount_status = 'active',
+             bank_code = ?,
+             account_number = ?,
+             account_name = ?,
+             is_virtual_account = ?,
+             routing_number = ?,
+             swift_code = ?,
+             iban = ?,
+             branch_code = ?,
+             institution_number = ?,
+             transit_number = ?,
+             bsb_number = ?
+         WHERE id = ?`,
+        [
+            subaccountId, bank_code, account_number, business_name,
+            is_virtual ? 1 : 0,
+            routing_number || null, swift_code || null, iban || null,
+            branch_code || null, institution_number || null,
+            transit_number || null, bsb_number || null,
+            userId,
+        ]
+    );
 }
 // Auto-escalate refunds that are pending for more than 3 days
 setInterval(async () => {

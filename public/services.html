@@ -69,18 +69,19 @@
     <section id="servicesBrowser" class="hidden">
 
       <div id="clientTabs" class="dashboard-tabs hidden">
-        <button class="tab-btn active" id="browseTabBtn">Browse Services</button>
-        <button class="tab-btn" id="jobBoardTabBtn">Job Board</button>
-        <button class="tab-btn" id="myProvidersTabBtn">My Freelancers <span class="badge hidden" id="providersBadge"></span></button>
-        <button class="tab-btn" id="favoritesTabBtn">Favorites</button>
+        <button class="tab-btn tab active" id="browseTabBtn">Browse Services</button>
+        <button class="tab-btn tab" id="jobBoardTabBtn">Job Board</button>
+        <button class="tab-btn tab" id="myProvidersTabBtn">My Freelancers <span class="badge hidden" id="providersBadge"></span></button>
+        <button class="tab-btn tab" id="favoritesTabBtn">Favorites</button>
+        <button class="tab-btn tab" id="myOrdersTabBtn">Active Orders <span class="badge hidden" id="activeOrdersBadge"></span></button>
       </div>
 
       <div id="providerTabs" class="dashboard-tabs hidden">
-        <button class="tab-btn active" id="providerBrowseTabBtn">Browse</button>
-        <button class="tab-btn" id="providerJobBoardTabBtn">Job Board</button>
-        <button class="tab-btn" id="providerMyServicesTabBtn">My Services</button>
-        <button class="tab-btn" id="providerProfileTabBtn">Profile</button>
-        <button class="tab-btn" id="providerClientsTabBtn">Clients <span class="badge hidden" id="clientRequestsBadge"></span></button>
+        <button class="tab-btn tab active" id="providerBrowseTabBtn">Browse</button>
+        <button class="tab-btn tab" id="providerJobBoardTabBtn">Job Board</button>
+        <button class="tab-btn tab" id="providerMyServicesTabBtn">My Services</button>
+        <button class="tab-btn tab" id="providerProfileTabBtn">Profile</button>
+        <button class="tab-btn tab" id="providerClientsTabBtn">Clients <span class="badge hidden" id="clientRequestsBadge"></span></button>
       </div>
 
       <!-- Browse Services Tab -->
@@ -230,6 +231,17 @@
           <button class="btn primary" id="browseFromFavoritesBtn" style="margin-top:16px;">Browse Services</button>
         </div>
       </div>
+<!-- Active Orders Tab -->
+<div id="myOrdersTab" class="tab-content hidden">
+  <h3 style="margin:0 0 5px;">Active Orders</h3>
+  <p style="color:var(--charcoal-soft);margin:0 0 20px;">Services currently in progress — quotes, escrow, and work being done.</p>
+  <div id="ordersList" class="grid"></div>
+  <div id="noOrders" class="empty-state" style="display:none;">
+    <i class="fas fa-clipboard-list"></i>
+    <h3>No active orders</h3>
+    <p>Orders in progress will appear here once a quote is accepted or a fixed-price service is booked.</p>
+  </div>
+</div>
 
       <!-- Profile Tab (provider view) -->
       <div id="profileTab" class="tab-content hidden">

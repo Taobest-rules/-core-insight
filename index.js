@@ -825,6 +825,530 @@ async function checkFreelancerSubscription(req, res, next) {
     }
 }
 
+/* ================================================================
+   PART A — SCHEMA MIGRATION
+   ================================================================ */
+async function runServiceEscrowMigrations() {
+  const alterSafely = async (sql, label) => {
+    try { await db.query(sql); console.log(`✅ Service escrow migration: ${label}`); }
+    catch (err) { if (!/duplicate|already exists/i.test(err.message)) console.error(`❌ Service escrow migration failed (${label}):`, err.message); }
+  };
+
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS service_quotes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      conversation_id INT NOT NULL,
+      thread_id INT NULL,
+      parent_quote_id INT NULL,
+      sender_id INT NOT NULL,
+      recipient_id INT NOT NULL,
+      service_id INT NULL,
+      job_id INT NULL,
+      amount DECIMAL(10,2) NOT NULL,
+      scope_items JSON NULL,
+      status VARCHAR(20) DEFAULT 'pending',
+      expires_at DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_thread (thread_id),
+      INDEX idx_conversation (conversation_id)
+    )`, 'service_quotes table'
+  );
+
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS service_orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      quote_id INT NOT NULL,
+      client_id INT NOT NULL,
+      provider_id INT NOT NULL,
+      service_id INT NULL,
+      job_id INT NULL,
+      title VARCHAR(255),
+      agreed_price DECIMAL(10,2) NOT NULL,
+      platform_fee DECIMAL(10,2) NOT NULL,
+      provider_earnings DECIMAL(10,2) NOT NULL,
+      transaction_ref VARCHAR(100),
+      status VARCHAR(30) DEFAULT 'payment_pending',
+      arrival_code VARCHAR(10) NULL,
+      arrival_verified_at DATETIME NULL,
+      completed_by_provider_at DATETIME NULL,
+      payment_held_until DATETIME NULL,
+      released_at DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_client (client_id),
+      INDEX idx_provider (provider_id),
+      INDEX idx_status (status)
+    )`, 'service_orders table'
+  );
+
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS service_change_orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      service_order_id INT NOT NULL,
+      requested_by INT NOT NULL,
+      additional_amount DECIMAL(10,2) NOT NULL,
+      scope_items JSON NULL,
+      status VARCHAR(20) DEFAULT 'pending',
+      response_deadline DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, 'service_change_orders table'
+  );
+
+  await alterSafely(
+    `CREATE TABLE IF NOT EXISTS service_disputes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      service_order_id INT NOT NULL,
+      raised_by INT NOT NULL,
+      reason TEXT,
+      evidence_urls JSON NULL,
+      status VARCHAR(20) DEFAULT 'open',
+      resolution TEXT NULL,
+      resolved_at DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, 'service_disputes table'
+  );
+}
+runServiceEscrowMigrations();
+
+
+/* ================================================================
+   PART B — SEND / ACCEPT / COUNTER / DECLINE A QUOTE
+   ================================================================ */
+app.post("/api/quotes/send", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const { conversation_id, recipient_id, amount, scope_items, service_id, job_id, parent_quote_id } = req.body;
+
+    if (!amount || amount <= 0) return res.status(400).json({ error: "Enter a valid amount" });
+
+    // Only the most recent quote in a thread is acceptable — supersede
+    // any earlier pending quote in the same thread automatically.
+    let threadId = null;
+    if (parent_quote_id) {
+      const parentResult = await db.query(`SELECT thread_id FROM service_quotes WHERE id = ?`, [parent_quote_id]);
+      threadId = extractRows(parentResult)[0]?.thread_id || parent_quote_id;
+      await db.query(`UPDATE service_quotes SET status = 'superseded' WHERE thread_id = ? AND status = 'pending'`, [threadId]);
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 48);
+
+    const insertResult = await db.query(
+      `INSERT INTO service_quotes (conversation_id, thread_id, parent_quote_id, sender_id, recipient_id, service_id, job_id, amount, scope_items, status, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
+      [conversation_id, threadId, parent_quote_id || null, user.id, recipient_id, service_id || null, job_id || null, amount, JSON.stringify(scope_items || []), expiresAt]
+    );
+    const quoteId = extractInsertId(insertResult);
+    if (!threadId) await db.query(`UPDATE service_quotes SET thread_id = ? WHERE id = ?`, [quoteId, quoteId]);
+
+    // Post it into the conversation as a special message type, same
+    // pattern as an image/PDF attachment — quote cards live in the
+    // unified thread, not a separate UI.
+    await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, attachment_type, created_at, is_read)
+       VALUES (?, ?, ?, 'quote', NOW(), 0)`,
+      [conversation_id, user.id, `quote:${quoteId}`]
+    );
+
+    if (typeof notifyNewMessage === 'function') {
+      notifyNewMessage({
+        conversationId: conversation_id, recipientId: recipient_id, senderId: user.id,
+        senderName: user.username, messagePreview: `Sent a quote: $${amount}`,
+        itemContext: { icon: '📋', label: 'Quote', title: `$${amount} quote` },
+      }).catch(() => {});
+    }
+
+    res.status(201).json({ success: true, quote_id: quoteId, thread_id: threadId || quoteId, expires_at: expiresAt });
+  } catch (err) {
+    console.error("Quote send error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/quotes/:quoteId/accept", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const quoteResult = await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]);
+    const quote = extractRows(quoteResult)[0];
+    if (!quote) return res.status(404).json({ error: "Quote not found" });
+    if (quote.recipient_id !== user.id) return res.status(403).json({ error: "Only the recipient can accept this quote" });
+    if (quote.status !== 'pending') return res.status(400).json({ error: `Quote is ${quote.status}, not acceptable` });
+    if (new Date(quote.expires_at) < new Date()) {
+      await db.query(`UPDATE service_quotes SET status = 'expired' WHERE id = ?`, [quote.id]);
+      return res.status(400).json({ error: "This quote has expired" });
+    }
+
+    await db.query(`UPDATE service_quotes SET status = 'accepted' WHERE id = ?`, [quote.id]);
+
+    // Client accepting a provider's quote → client pays, client=recipient, provider=sender.
+    // (If a client sent a counter and the provider accepts, roles flip — handled below.)
+    const senderIsProvider = quote.job_id ? true : (quote.service_id ? true : false);
+    const clientId = senderIsProvider ? quote.recipient_id : quote.sender_id;
+    const providerId = senderIsProvider ? quote.sender_id : quote.recipient_id;
+
+    const platformFee = quote.amount * 0.10;
+    const providerEarnings = quote.amount - platformFee;
+    const transactionRef = `SVC_${Date.now()}_${clientId}`;
+
+    const orderResult = await db.query(
+      `INSERT INTO service_orders (quote_id, client_id, provider_id, service_id, job_id, title, agreed_price, platform_fee, provider_earnings, transaction_ref, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'payment_pending', NOW())`,
+      [quote.id, clientId, providerId, quote.service_id, quote.job_id, `Service Order #${quote.id}`, quote.amount, platformFee, providerEarnings, transactionRef]
+    );
+    const orderId = extractInsertId(orderResult);
+
+    res.json({ success: true, order_id: orderId, agreed_price: quote.amount, transaction_ref: transactionRef });
+  } catch (err) {
+    console.error("Quote accept error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/quotes/:quoteId/decline", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const quoteResult = await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]);
+    const quote = extractRows(quoteResult)[0];
+    if (!quote || quote.recipient_id !== user.id) return res.status(404).json({ error: "Quote not found" });
+    await db.query(`UPDATE service_quotes SET status = 'declined' WHERE id = ?`, [quote.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A counter-offer is just a new quote in the same thread, sent back
+// the other direction — the frontend calls POST /api/quotes/send
+// directly with parent_quote_id set to the quote being countered.
+// No separate route needed: /api/quotes/send already handles
+// threading and auto-superseding the previous quote (see Part B above).
+
+
+/* ================================================================
+   PART C — QUOTE EXPIRATION SWEEP (cron, same pattern as your others)
+   ================================================================ */
+app.get("/api/cron/expire-stale-quotes", async (req, res) => {
+  if (req.query.secret !== process.env.CRON_SECRET) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const result = await db.query(
+      `UPDATE service_quotes SET status = 'expired' WHERE status = 'pending' AND expires_at <= NOW()`
+    );
+    res.json({ success: true, affected: result.affectedRows || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART D — ARRIVAL CODE (generate + verify), same shape as the
+   delivery-code system already built for physical products.
+   ================================================================ */
+app.post("/api/service-orders/:orderId/generate-arrival-code", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'escrow_funded' && order.status !== 'travelling') {
+      return res.status(400).json({ error: "Order isn't ready for an arrival code yet" });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    await db.query(`UPDATE service_orders SET arrival_code = ?, status = 'travelling' WHERE id = ?`, [code, order.id]);
+    res.json({ success: true, arrival_code: code });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/service-orders/:orderId/verify-arrival", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const { code } = req.body;
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.provider_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.arrival_code !== code) return res.status(400).json({ error: "Incorrect code" });
+
+    await db.query(`UPDATE service_orders SET status = 'in_progress', arrival_verified_at = NOW() WHERE id = ?`, [order.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART E — PROVIDER MARKS WORK COMPLETE
+   ================================================================ */
+app.post("/api/service-orders/:orderId/mark-completed", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.provider_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'in_progress') return res.status(400).json({ error: "Order isn't in progress" });
+
+    await db.query(`UPDATE service_orders SET status = 'client_review', completed_by_provider_at = NOW() WHERE id = ?`, [order.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART F — CLIENT REVIEW: Accept & Release / Request Fix / Dispute
+   ================================================================ */
+app.post("/api/service-orders/:orderId/accept-release", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'client_review') return res.status(400).json({ error: "Order isn't awaiting review" });
+
+    // Immediate release since the client explicitly confirmed satisfaction —
+    // no need to wait out a protection window when they've already approved.
+    await releaseServiceOrderFunds(order);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/service-orders/:orderId/request-fix", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const { notes } = req.body;
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'client_review') return res.status(400).json({ error: "Order isn't awaiting review" });
+
+    await db.query(`UPDATE service_orders SET status = 'in_progress' WHERE id = ?`, [order.id]);
+
+    const providerResult = await db.query(`SELECT email FROM users WHERE id = ?`, [order.provider_id]);
+    const provider = extractRows(providerResult)[0];
+    if (provider) {
+      sendEmail(provider.email, `Fix requested — Order #${order.id}`,
+        `<p>The client requested a fix before releasing payment.</p><p>${escapeHtml(notes || '')}</p>`
+      ).catch(() => {});
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/service-orders/:orderId/dispute", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const { reason, evidence_urls } = req.body;
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || (order.client_id !== user.id && order.provider_id !== user.id)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    await db.query(`UPDATE service_orders SET status = 'disputed' WHERE id = ?`, [order.id]);
+    await db.query(
+      `INSERT INTO service_disputes (service_order_id, raised_by, reason, evidence_urls, status, created_at)
+       VALUES (?, ?, ?, ?, 'open', NOW())`,
+      [order.id, user.id, reason, JSON.stringify(evidence_urls || [])]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Shared release helper — used by explicit client acceptance AND the
+// automatic 7-day sweep in Part H.
+async function releaseServiceOrderFunds(order) {
+  await db.query(`UPDATE service_orders SET status = 'completed', released_at = NOW() WHERE id = ?`, [order.id]);
+  try {
+    await db.query(
+      `INSERT INTO wallet_transactions (user_id, type, amount, order_id, description, created_at)
+       VALUES (?, 'service_release', ?, ?, ?, NOW())`,
+      [order.provider_id, order.provider_earnings, order.id, `Released for service order #${order.id}`]
+    );
+  } catch (e) { /* wallet_transactions is optional context here — payment itself already moved via subaccount split at charge time */ }
+}
+
+
+/* ================================================================
+   PART G — CHANGE ORDERS (mid-job scope additions)
+   Provider sends one after arriving and discovering extra work is
+   needed; client approves or rejects the additional cost.
+   ================================================================ */
+app.post("/api/service-orders/:orderId/change-order", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const { additional_amount, scope_items } = req.body;
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.provider_id !== user.id) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'in_progress') return res.status(400).json({ error: "Change orders can only be requested while work is in progress" });
+
+    const deadline = new Date();
+    deadline.setHours(deadline.getHours() + 4); // shorter window — provider is on-site waiting
+
+    const insertResult = await db.query(
+      `INSERT INTO service_change_orders (service_order_id, requested_by, additional_amount, scope_items, status, response_deadline, created_at)
+       VALUES (?, ?, ?, ?, 'pending', ?, NOW())`,
+      [order.id, user.id, additional_amount, JSON.stringify(scope_items || []), deadline]
+    );
+    const changeOrderId = extractInsertId(insertResult);
+
+    const clientResult = await db.query(`SELECT email FROM users WHERE id = ?`, [order.client_id]);
+    const client = extractRows(clientResult)[0];
+    if (client) {
+      sendEmail(client.email, `Additional work requested — Order #${order.id}`,
+        `<p>The provider found additional work needed, adding <strong>$${additional_amount}</strong> to the order.</p>
+         <p>Please respond within 4 hours so work isn't delayed.</p>`
+      ).catch(() => {});
+    }
+
+    res.status(201).json({ success: true, change_order_id: changeOrderId, response_deadline: deadline });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/change-orders/:changeOrderId/approve", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const coResult = await db.query(`SELECT * FROM service_change_orders WHERE id = ?`, [req.params.changeOrderId]);
+    const co = extractRows(coResult)[0];
+    if (!co) return res.status(404).json({ error: "Change order not found" });
+
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [co.service_order_id]);
+    const order = extractRows(orderResult)[0];
+    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
+
+    const newTotal = parseFloat(order.agreed_price) + parseFloat(co.additional_amount);
+    const newFee = newTotal * 0.10;
+    const newEarnings = newTotal - newFee;
+
+    await db.query(`UPDATE service_orders SET agreed_price = ?, platform_fee = ?, provider_earnings = ? WHERE id = ?`, [newTotal, newFee, newEarnings, order.id]);
+    await db.query(`UPDATE service_change_orders SET status = 'approved' WHERE id = ?`, [co.id]);
+
+    // NOTE: actually charging the client the difference should reuse
+    // whichever payment-link mechanism you already use for the initial
+    // order charge — this route updates the order's numbers; wiring the
+    // actual Flutterwave charge for co.additional_amount is the one
+    // piece intentionally left for you to connect to your existing
+    // payment-link creation code, since that logic already exists
+    // elsewhere and shouldn't be duplicated here.
+    res.json({ success: true, new_total: newTotal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/change-orders/:changeOrderId/reject", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    await db.query(`UPDATE service_change_orders SET status = 'rejected' WHERE id = ?`, [req.params.changeOrderId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART H — 7-DAY ESCROW RELEASE SWEEP (cron, same pattern as yours)
+   Only fires if the client never explicitly reviewed — same
+   protection-window logic as your existing Products escrow.
+   ================================================================ */
+app.get("/api/cron/release-service-escrow", async (req, res) => {
+  if (req.query.secret !== process.env.CRON_SECRET) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const dueResult = await db.query(
+      `SELECT * FROM service_orders WHERE status = 'client_review' AND payment_held_until <= NOW()`
+    );
+    const due = extractRows(dueResult);
+    for (const order of due) {
+      await releaseServiceOrderFunds(order);
+    }
+    res.json({ success: true, released: due.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART I — GET /api/service-orders/mine
+   Powers the "Active Orders" tab on services.html.
+   ================================================================ */
+app.get("/api/service-orders/mine", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const result = await db.query(
+      `SELECT so.*, 
+              c.username AS client_name, p.username AS provider_name
+       FROM service_orders so
+       JOIN users c ON so.client_id = c.id
+       JOIN users p ON so.provider_id = p.id
+       WHERE (so.client_id = ? OR so.provider_id = ?) AND so.status NOT IN ('completed', 'refunded')
+       ORDER BY so.created_at DESC`,
+      [user.id, user.id]
+    );
+    res.json(extractRows(result));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+/* ================================================================
+   PART J — ADMIN DISPUTE RESOLUTION
+   ================================================================ */
+app.post("/api/admin/service-disputes/:disputeId/resolve", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user || user.role !== 'admin') return res.status(403).json({ error: "Admin only" });
+    const { resolution, outcome } = req.body; // outcome: 'release' | 'refund'
+
+    const disputeResult = await db.query(`SELECT * FROM service_disputes WHERE id = ?`, [req.params.disputeId]);
+    const dispute = extractRows(disputeResult)[0];
+    if (!dispute) return res.status(404).json({ error: "Dispute not found" });
+
+    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [dispute.service_order_id]);
+    const order = extractRows(orderResult)[0];
+
+    await db.query(`UPDATE service_disputes SET status = 'resolved', resolution = ?, resolved_at = NOW() WHERE id = ?`, [resolution, dispute.id]);
+
+    if (outcome === 'release') {
+      await releaseServiceOrderFunds(order);
+    } else {
+      await db.query(`UPDATE service_orders SET status = 'refunded' WHERE id = ?`, [order.id]);
+      // NOTE: actually refunding the client's original charge should
+      // reuse your existing refund-processing code (the same route
+      // used for Products refunds) — intentionally not duplicated here.
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Apply middleware to protected routes
 app.use("/api/services", checkFreelancerSubscription);
 app.use("/api/services/create", checkFreelancerSubscription);

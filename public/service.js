@@ -11237,7 +11237,39 @@ function handleOfferServiceClick() {
   switchTab('myServices');
 }
 
+async function loadOrders() {
+  const listEl = document.getElementById('ordersList');
+  const noneEl = document.getElementById('noOrders');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/api/service-orders/mine', { credentials: 'include' });
+    const orders = res.ok ? await res.json() : [];
+    if (!orders.length) { listEl.innerHTML = ''; if (noneEl) noneEl.style.display = 'block'; return; }
+    if (noneEl) noneEl.style.display = 'none';
+    listEl.innerHTML = orders.map(renderOrderCard).join('');
+  } catch (e) {
+    console.error('loadOrders failed:', e);
+  }
+}
 
+function renderOrderCard(order) {
+  const isProvider = userRole === 'freelancer';
+  const otherParty = isProvider ? order.client_name : order.provider_name;
+  return `<div class="service-card" style="cursor:default;">
+    <div class="card-body">
+      <h3>${escapeHtml(order.service_title || order.job_title)}</h3>
+      <div class="provider-byline">
+        <div class="provider-meta">
+          <div class="name">${isProvider ? 'Client' : 'Provider'}: ${escapeHtml(otherParty || '—')}</div>
+        </div>
+      </div>
+      <div class="price-row">
+        <div class="price">$${Number(order.agreed_price || 0).toFixed(2)}</div>
+        <span class="status-pill ${order.status}">${(order.status || 'pending').replace('_', ' ')}</span>
+      </div>
+    </div>
+  </div>`;
+}
 /* ============================================================
    8. INIT — wire everything up once the DOM is ready
    ============================================================ */
@@ -11249,6 +11281,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('findServicesBtn')?.addEventListener('click', () => {
     document.getElementById('findServicesBtn')?.classList.add('active');
     document.getElementById('postJobBtn')?.classList.remove('active');
+    document.getElementById('myOrdersTabBtn')?.addEventListener('click', () => switchTab('myOrders'));
     showServicesBrowser();
     switchTab('browse');
   });

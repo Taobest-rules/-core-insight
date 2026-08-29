@@ -384,18 +384,24 @@ main { padding-top: calc(var(--header-h) + 24px); max-width: 1280px; margin: 0 a
 @media (max-width: 860px) {
   nav { display: none; }
   .mobile-menu-toggle { display: inline-flex; }
-  .header-actions #headerAuthButtons { display: none; }
   .hero { flex-direction: column; align-items: flex-start; }
   .hero .right { align-items: stretch; max-width: none; }
   .mode-toggle .btn { min-width: 0; }
 }
 
+@media (max-width: 480px) {
+  /* Keep login/signup visible but compact instead of hiding them —
+     icon-only style so they fit next to the hamburger menu. */
+  .auth-btn { padding: 8px 10px; font-size: 12.5px; }
+  #signupOpen span, #loginOpen span { display: none; }
+}
+
 @media (max-width: 600px) {
   main { padding-top: calc(var(--header-h) + 16px); }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  .service-card .card-body { padding: 11px; gap: 7px; }
-  .service-card h3 { font-size: 13.5px; }
-  .price { font-size: 16px; }
+  .grid { grid-template-columns: 1fr; gap: 14px; }
+  .service-card .card-body { padding: 13px; gap: 8px; }
+  .service-card h3 { font-size: 14.5px; }
+  .price { font-size: 17px; }
   .controls-row { flex-direction: column; align-items: stretch; }
   .filter-group, .select { width: 100%; }
   .job-card-header { flex-direction: column; }

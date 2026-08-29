@@ -47,6 +47,23 @@
 
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --header-h: 64px;
+
+  /* Legacy variable aliases — the preserved profile page (kept
+     structurally intact to avoid breaking its JS bindings) still
+     references the old dark-theme variable names inline. Aliasing
+     them here means every var(--text-light), var(--accent-blue) etc.
+     throughout that section resolves to the correct warm-system
+     color instead of nothing. */
+  --text-light: var(--charcoal);
+  --text-gray: var(--charcoal-soft);
+  --accent-blue: var(--blue);
+  --accent-gold: var(--gold);
+  --card-bg: var(--paper);
+  --secondary-dark: var(--cream-deep);
+  --success-green: var(--sage);
+  --error-red: var(--danger);
+  --warning-orange: var(--gold);
+  --gradient-primary: linear-gradient(135deg, var(--gold), var(--gold-deep));
 }
 
 * { box-sizing: border-box; }
@@ -379,21 +396,81 @@ main { padding-top: calc(var(--header-h) + 24px); max-width: 1280px; margin: 0 a
 .toast { position: fixed; bottom: 16px; right: 16px; left: 16px; margin: 0 auto; max-width: 340px; background: var(--charcoal); color: var(--cream); padding: 13px 16px; border-radius: var(--radius-md); box-shadow: var(--shadow-modal); z-index: 4000; font-size: 13px; }
 
 /* ============================================================
+   FREELANCER PROFILE PAGE — full styling for the preserved
+   structure (previously unstyled, hence "looks like plain HTML")
+   ============================================================ */
+.profile-hero {
+  background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius-lg);
+  padding: clamp(20px, 5vw, 32px); margin-bottom: 24px; text-align: center;
+}
+.profile-avatar-wrapper { position: relative; display: inline-block; margin-bottom: 14px; }
+.profile-avatar-wrapper img { width: clamp(76px, 16vw, 100px); height: clamp(76px, 16vw, 100px); border-radius: 50%; object-fit: cover; background: var(--hairline); border: 3px solid var(--paper); box-shadow: var(--shadow-rest); }
+.profile-badge {
+  display: inline-flex; align-items: center; gap: 5px; background: var(--gold-tint); color: var(--gold-deep);
+  font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 20px; margin-bottom: 8px;
+}
+.profile-description { color: var(--charcoal-soft); font-size: 13.5px; max-width: 480px; margin: 8px auto 0; line-height: 1.6; }
+
+.stats-row, .profile-hero > div[style*="grid"] { display: flex !important; flex-wrap: wrap; justify-content: center; gap: clamp(16px, 4vw, 32px) !important; margin-top: 18px; grid-template-columns: none !important; }
+.stat-item { text-align: center; }
+.stat-value { font-family: 'Fraunces', serif; font-size: clamp(1.2rem, 3vw, 1.5rem); font-weight: 600; color: var(--charcoal); }
+.stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-top: 2px; }
+
+.profile-navigation { margin-bottom: 20px; }
+.nav-tabs-enhanced { display: flex; gap: 6px; overflow-x: auto; border-bottom: 1px solid var(--hairline); -webkit-overflow-scrolling: touch; }
+.nav-tab {
+  background: none; border: none; padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--charcoal-soft);
+  cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 7px;
+  transition: var(--ease);
+}
+.nav-tab:hover { color: var(--charcoal); }
+.nav-tab.active { color: var(--charcoal); border-color: var(--gold); font-weight: 600; }
+.nav-tab i { font-size: 12px; }
+
+.profile-tab-content { display: block; }
+.main-content { min-width: 0; }
+.content-card, .form-section-card {
+  background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  padding: clamp(16px, 4vw, 22px); margin-bottom: 18px;
+}
+.edit-profile-header { padding: 16px 0; }
+
+/* Skills, certificates */
+.skill-tag { display: inline-block; background: var(--cream); border: 1px solid var(--hairline); color: var(--charcoal-soft); font-size: 12px; padding: 5px 12px; border-radius: 20px; margin: 3px; }
+.certificate-uploader {
+  border: 2px dashed var(--hairline-strong); border-radius: var(--radius-md); padding: 24px; text-align: center;
+  color: var(--charcoal-soft); cursor: pointer; transition: var(--ease);
+}
+.certificate-uploader:hover { border-color: var(--blue); background: var(--cream); }
+.certificate-preview { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--hairline); }
+
+/* Admin mini-stats */
+.admin-stat-card { background: var(--cream); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: 14px; text-align: center; }
+.admin-stat-value { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 600; color: var(--charcoal); }
+.admin-stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 3px; }
+
+@media (max-width: 700px) {
+  .profile-hero > div[style*="grid"],
+  div[style*="grid-template-columns: 1fr 400px"] { grid-template-columns: 1fr !important; }
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 860px) {
   nav { display: none; }
   .mobile-menu-toggle { display: inline-flex; }
+  #headerAuthButtons { display: none; }
+  .switch-account-btn { display: inline-flex; }
   .hero { flex-direction: column; align-items: flex-start; }
   .hero .right { align-items: stretch; max-width: none; }
   .mode-toggle .btn { min-width: 0; }
 }
 
+.switch-account-btn { display: none; }
+
 @media (max-width: 480px) {
-  /* Keep login/signup visible but compact instead of hiding them —
-     icon-only style so they fit next to the hamburger menu. */
-  .auth-btn { padding: 8px 10px; font-size: 12.5px; }
-  #signupOpen span, #loginOpen span { display: none; }
+  .switch-account-btn { padding: 8px 10px; font-size: 12px; }
 }
 
 @media (max-width: 600px) {

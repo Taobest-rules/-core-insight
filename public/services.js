@@ -11508,4 +11508,11 @@ document.getElementById('sendQuoteBtn')?.addEventListener('click', async () => {
 /* ---------- init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   loadOrders();
+
+  // Mobile header: "Switch Account" replaces Login/Signup — opens
+  // the same login modal, which serves as the entry point whether
+  // logging in fresh or switching to a different account.
+  document.getElementById('switchAccountBtn')?.addEventListener('click', () => {
+    openModal(document.getElementById('loginModal'));
+  });
 });

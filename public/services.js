@@ -11237,39 +11237,7 @@ function handleOfferServiceClick() {
   switchTab('myServices');
 }
 
-async function loadOrders() {
-  const listEl = document.getElementById('ordersList');
-  const noneEl = document.getElementById('noOrders');
-  if (!listEl) return;
-  try {
-    const res = await fetch('/api/service-orders/mine', { credentials: 'include' });
-    const orders = res.ok ? await res.json() : [];
-    if (!orders.length) { listEl.innerHTML = ''; if (noneEl) noneEl.style.display = 'block'; return; }
-    if (noneEl) noneEl.style.display = 'none';
-    listEl.innerHTML = orders.map(renderOrderCard).join('');
-  } catch (e) {
-    console.error('loadOrders failed:', e);
-  }
-}
 
-function renderOrderCard(order) {
-  const isProvider = userRole === 'freelancer';
-  const otherParty = isProvider ? order.client_name : order.provider_name;
-  return `<div class="service-card" style="cursor:default;">
-    <div class="card-body">
-      <h3>${escapeHtml(order.service_title || order.job_title)}</h3>
-      <div class="provider-byline">
-        <div class="provider-meta">
-          <div class="name">${isProvider ? 'Client' : 'Provider'}: ${escapeHtml(otherParty || '—')}</div>
-        </div>
-      </div>
-      <div class="price-row">
-        <div class="price">$${Number(order.agreed_price || 0).toFixed(2)}</div>
-        <span class="status-pill ${order.status}">${(order.status || 'pending').replace('_', ' ')}</span>
-      </div>
-    </div>
-  </div>`;
-}
 /* ============================================================
    8. INIT — wire everything up once the DOM is ready
    ============================================================ */
@@ -11281,8 +11249,263 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('findServicesBtn')?.addEventListener('click', () => {
     document.getElementById('findServicesBtn')?.classList.add('active');
     document.getElementById('postJobBtn')?.classList.remove('active');
-    document.getElementById('myOrdersTabBtn')?.addEventListener('click', () => switchTab('myOrders'));
     showServicesBrowser();
     switchTab('browse');
   });
+});
+
+/* ============================================================
+   ↓↓↓ ESCROW / QUOTE SYSTEM WIRING ↓↓↓
+   Connects the frontend to service-escrow-backend.js — quote
+   sending, Active Orders, arrival codes, and client review actions.
+   ============================================================ */
+
+/* ---------- Active Orders tab ---------- */
+document.getElementById('myOrdersTabBtn')?.addEventListener('click', () => switchTab('myOrders'));
+document.getElementById('providerMyOrdersTabBtn')?.addEventListener('click', () => switchTab('myOrders'));
+
+async function loadOrders() {
+  const listEl = document.getElementById('ordersList');
+  const noneEl = document.getElementById('noOrders');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/api/service-orders/mine', { credentials: 'include' });
+    const orders = res.ok ? await res.json() : [];
+    if (!orders.length) { listEl.innerHTML = ''; if (noneEl) noneEl.style.display = 'block'; return; }
+    if (noneEl) noneEl.style.display = 'none';
+    listEl.innerHTML = orders.map(renderOrderCard).join('');
+    wireOrderCardActions();
+  } catch (e) {
+    console.error('loadOrders failed:', e);
+  }
+}
+
+function renderOrderCard(order) {
+  const isProvider = currentUser && order.provider_id === currentUser.id;
+  const otherParty = isProvider ? order.client_name : order.provider_name;
+  const statusLabel = (order.status || 'pending').replace(/_/g, ' ');
+
+  let actionsHtml = '';
+  if (order.status === 'escrow_funded' && !isProvider) {
+    actionsHtml = `<button class="btn sm primary order-generate-code-btn" data-order-id="${order.id}">Get Arrival Code</button>`;
+  } else if (order.status === 'travelling' && !isProvider) {
+    actionsHtml = `<button class="btn sm order-view-code-btn" data-order-id="${order.id}" data-code="${order.arrival_code || ''}">View Arrival Code</button>`;
+  } else if (order.status === 'travelling' && isProvider) {
+    actionsHtml = `<button class="btn sm primary order-verify-arrival-btn" data-order-id="${order.id}">Enter Arrival Code</button>`;
+  } else if (order.status === 'in_progress' && isProvider) {
+    actionsHtml = `<button class="btn sm primary order-mark-complete-btn" data-order-id="${order.id}">Mark Work Complete</button>
+                    <button class="btn sm order-change-order-btn" data-order-id="${order.id}">Request Additional Work</button>`;
+  } else if (order.status === 'client_review' && !isProvider) {
+    actionsHtml = `<button class="btn sm success order-accept-release-btn" data-order-id="${order.id}">Accept & Release Funds</button>
+                    <button class="btn sm order-request-fix-btn" data-order-id="${order.id}">Request a Fix</button>
+                    <button class="btn sm danger order-dispute-btn" data-order-id="${order.id}">Open Dispute</button>`;
+  }
+
+  return `<div class="service-card" style="cursor:default;">
+    <div class="card-body">
+      <h3>${escapeHtml(order.title || 'Service Order')}</h3>
+      <div class="provider-byline">
+        <div class="provider-meta">
+          <div class="name">${isProvider ? 'Client' : 'Provider'}: ${escapeHtml(otherParty || '—')}</div>
+        </div>
+      </div>
+      <div class="price-row">
+        <div class="price">$${Number(order.agreed_price || 0).toFixed(2)}</div>
+        <span class="status-pill ${order.status}">${statusLabel}</span>
+      </div>
+      <div class="order-actions-row">${actionsHtml}</div>
+    </div>
+  </div>`;
+}
+
+function wireOrderCardActions() {
+  document.querySelectorAll('.order-generate-code-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/generate-arrival-code`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showArrivalCodeDisplay(data.arrival_code);
+        loadOrders();
+      } catch (e) { showToast(e.message || 'Could not generate code', 'error'); }
+    });
+  });
+
+  document.querySelectorAll('.order-view-code-btn').forEach(btn => {
+    btn.addEventListener('click', () => showArrivalCodeDisplay(btn.dataset.code));
+  });
+
+  document.querySelectorAll('.order-verify-arrival-btn').forEach(btn => {
+    btn.addEventListener('click', () => showArrivalCodeEntry(btn.dataset.orderId));
+  });
+
+  document.querySelectorAll('.order-mark-complete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Mark this job as complete? The client will be asked to review.')) return;
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/mark-completed`, { method: 'POST', credentials: 'include' });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Marked complete — awaiting client review', 'success');
+        loadOrders();
+      } catch (e) { showToast(e.message || 'Could not update order', 'error'); }
+    });
+  });
+
+  document.querySelectorAll('.order-accept-release-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Release payment to the provider? This confirms the work is satisfactory.')) return;
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/accept-release`, { method: 'POST', credentials: 'include' });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Funds released', 'success');
+        loadOrders();
+      } catch (e) { showToast(e.message || 'Could not release funds', 'error'); }
+    });
+  });
+
+  document.querySelectorAll('.order-request-fix-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const notes = prompt('What needs to be fixed?');
+      if (notes === null) return;
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/request-fix`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Fix requested', 'success');
+        loadOrders();
+      } catch (e) { showToast(e.message || 'Could not send request', 'error'); }
+    });
+  });
+
+  document.querySelectorAll('.order-dispute-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const reason = prompt('Describe the issue for our team to review:');
+      if (!reason) return;
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/dispute`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Dispute opened — our team will review', 'info');
+        loadOrders();
+      } catch (e) { showToast(e.message || 'Could not open dispute', 'error'); }
+    });
+  });
+
+  document.querySelectorAll('.order-change-order-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const amount = prompt('Additional cost for the extra work (USD):');
+      if (!amount) return;
+      const scopeDesc = prompt('Briefly describe the additional work:');
+      try {
+        const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/change-order`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ additional_amount: amount, scope_items: [scopeDesc || 'Additional work'] }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Change order sent — client has 4 hours to respond', 'success');
+      } catch (e) { showToast(e.message || 'Could not send change order', 'error'); }
+    });
+  });
+}
+
+/* ---------- Arrival code modal ---------- */
+function showArrivalCodeDisplay(code) {
+  document.getElementById('arrivalCodeEntryView')?.classList.add('hidden');
+  document.getElementById('arrivalCodeDisplayView')?.classList.remove('hidden');
+  document.getElementById('arrivalCodeDisplay').textContent = code || '------';
+  openModal(document.getElementById('arrivalCodeModal'));
+}
+function showArrivalCodeEntry(orderId) {
+  document.getElementById('arrivalCodeDisplayView')?.classList.add('hidden');
+  document.getElementById('arrivalCodeEntryView')?.classList.remove('hidden');
+  document.getElementById('arrivalCodeModal').dataset.orderId = orderId;
+  document.getElementById('arrivalCodeInput').value = '';
+  document.getElementById('arrivalCodeError').classList.remove('show');
+  openModal(document.getElementById('arrivalCodeModal'));
+}
+document.getElementById('closeArrivalCodeModal')?.addEventListener('click', () => closeModal(document.getElementById('arrivalCodeModal')));
+document.getElementById('verifyArrivalCodeBtn')?.addEventListener('click', async () => {
+  const orderId = document.getElementById('arrivalCodeModal').dataset.orderId;
+  const code = document.getElementById('arrivalCodeInput').value.trim();
+  const errEl = document.getElementById('arrivalCodeError');
+  try {
+    const res = await fetch(`/api/service-orders/${orderId}/verify-arrival`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    closeModal(document.getElementById('arrivalCodeModal'));
+    showToast('Arrival confirmed — work can begin', 'success');
+    loadOrders();
+  } catch (e) {
+    errEl.textContent = e.message || 'Incorrect code';
+    errEl.classList.add('show');
+  }
+});
+
+/* ---------- Send Quote modal (provider-initiated, from an order/job/service context) ---------- */
+let sendQuoteContext = { conversationId: null, recipientId: null, serviceId: null, jobId: null, parentQuoteId: null };
+let quoteScopeItemCount = 0;
+
+function openSendQuoteModal({ conversationId, recipientId, recipientName, serviceId, jobId, parentQuoteId }) {
+  sendQuoteContext = { conversationId, recipientId, serviceId, jobId, parentQuoteId };
+  document.getElementById('sendQuoteContext').innerHTML = `<strong>Quote for ${escapeHtml(recipientName || 'client')}</strong>`;
+  document.getElementById('quoteAmount').value = '';
+  document.getElementById('quoteScopeItems').innerHTML = '';
+  quoteScopeItemCount = 0;
+  addQuoteScopeItem();
+  document.getElementById('sendQuoteError').classList.remove('show');
+  openModal(document.getElementById('sendQuoteModal'));
+}
+function addQuoteScopeItem() {
+  const container = document.getElementById('quoteScopeItems');
+  const id = `scopeItem${quoteScopeItemCount++}`;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
+  row.innerHTML = `<input type="text" class="form-input quote-scope-input" id="${id}" placeholder="e.g. Replace washer, test water pressure">`;
+  container.appendChild(row);
+}
+document.getElementById('addQuoteScopeItemBtn')?.addEventListener('click', addQuoteScopeItem);
+document.getElementById('closeSendQuoteModal')?.addEventListener('click', () => closeModal(document.getElementById('sendQuoteModal')));
+
+document.getElementById('sendQuoteBtn')?.addEventListener('click', async () => {
+  const amount = document.getElementById('quoteAmount').value;
+  const scopeItems = Array.from(document.querySelectorAll('.quote-scope-input')).map(i => i.value.trim()).filter(Boolean);
+  const errEl = document.getElementById('sendQuoteError');
+  if (!amount || !scopeItems.length) {
+    errEl.textContent = 'Enter an amount and at least one scope item.';
+    errEl.classList.add('show');
+    return;
+  }
+  try {
+    const res = await fetch('/api/quotes/send', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: sendQuoteContext.conversationId,
+        recipient_id: sendQuoteContext.recipientId,
+        amount, scope_items: scopeItems,
+        service_id: sendQuoteContext.serviceId, job_id: sendQuoteContext.jobId,
+        parent_quote_id: sendQuoteContext.parentQuoteId,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    closeModal(document.getElementById('sendQuoteModal'));
+    showToast('Quote sent', 'success');
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not send quote';
+    errEl.classList.add('show');
+  }
+});
+
+/* ---------- init ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  loadOrders();
 });

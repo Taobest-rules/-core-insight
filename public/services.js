@@ -6255,15 +6255,16 @@ async function handleLoginSubmit(e) {
 
     try {
         const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                [useUsername ? 'username' : 'email']: identifier, 
-                password 
-            })
-        });
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+        [useUsername ? 'username' : 'email']: identifier, 
+        password 
+    })
+});
 
         const data = await res.json();
         

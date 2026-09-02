@@ -1349,17 +1349,7 @@ app.post("/api/admin/service-disputes/:disputeId/resolve", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Apply middleware to protected routes
-app.use("/api/services", checkFreelancerSubscription);
-app.use("/api/services/create", checkFreelancerSubscription);
-app.use("/api/services/my-services", checkFreelancerSubscription);
-app.use("/api/messages/send", checkFreelancerSubscription);
-app.use("/api/messages/send-with-image", checkFreelancerSubscription);
-app.use("/api/conversations/start", checkFreelancerSubscription);
-app.use("/api/freelancer/update-profile", checkFreelancerSubscription);
-app.use("/api/freelancer/certificate-images", checkFreelancerSubscription);
-app.use("/api/freelancer/profile", checkFreelancerSubscription);
-app.use("/api/freelancer/dashboard", checkFreelancerSubscription);
+
 // ============================================
 // RATE LIMITING CONFIGURATION
 // ============================================

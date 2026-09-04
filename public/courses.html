@@ -347,10 +347,17 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
 @media screen and (max-width: 767px) {
   header { height: var(--mobile-header-height); padding: 0 1rem; }
   .mobile-menu-toggle { display: block; }
-  nav { display: none; position: fixed; top: var(--mobile-header-height); left: 0; right: 0; background: var(--color-bg); flex-direction: column; padding: 1.5rem; gap: 1rem; border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-panel); z-index: 999; }
+  nav { display: none; position: fixed; top: var(--mobile-header-height); left: 0; right: 0; background: var(--color-bg); flex-direction: column; padding: 1.5rem; gap: 1rem; border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-panel); z-index: 999; max-height: calc(100vh - var(--mobile-header-height)); overflow-y: auto; }
   nav.active { display: flex; }
-  .auth-buttons { flex-direction: column; width: 100%; gap: 0.5rem; }
-  .auth-buttons .btn-login, .auth-buttons .btn-signup { width: 100%; }
+  nav a { padding: 0.85rem 0.5rem; border-bottom: 1px solid var(--color-border); font-size: 1rem; }
+  nav a:last-of-type { border-bottom: none; }
+  /* Login/Sign Up move into the nav dropdown on mobile instead of
+     sitting in the compact header bar, where they had no room and
+     rendered oversized. */
+  #headerAuthButtons { display: none; }
+  .header-actions { gap: 0.4rem; }
+  .mobile-auth-buttons { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+  .mobile-auth-buttons .btn-login, .mobile-auth-buttons .btn-signup { width: 100%; }
   .hero { margin-top: var(--mobile-header-height); padding: 2rem 1rem 3rem; min-height: 36vh; }
   .hero h1 { font-size: 1.85rem; }
   .section-header h2 { font-size: 1.5rem; }
@@ -359,10 +366,18 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
   .wizard-nav button { width: 100%; }
   .instructor-cta { flex-direction: column; text-align: center; }
 }
+@media screen and (min-width: 768px) {
+  .mobile-auth-buttons { display: none; }
+}
 @media screen and (max-width: 480px) {
   .course-card__actions { flex-wrap: wrap; }
   .course-card__actions .btn-primary { width: 100%; }
   .welcome-text { display: none !important; }
+  .logo-icon { width: 32px; height: 32px; }
+  .logo-text { font-size: 1.15rem; }
+  .icon-btn, .icon-btn-ghost { width: 38px; height: 38px; }
+  .header-actions { gap: 0.4rem; }
+  header { padding: 0 0.75rem; }
 }
 </style>
 </head>
@@ -382,6 +397,10 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
     <a href="courses.html" class="active">Courses</a>
     <a href="products.html">Products</a>
     <a href="admin-dashboard.html" id="adminNavLink" class="admin-link" hidden>Admin Dashboard</a>
+    <div class="mobile-auth-buttons">
+      <a href="login.html" class="btn-login">Login</a>
+      <a href="signup.html" class="btn-signup">Sign Up</a>
+    </div>
   </nav>
   <div class="header-actions">
     <div class="notif-wrap">
@@ -736,4 +755,4 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
 
 <script src="courses.js"></script>
 </body>
-</html> 
+</html>

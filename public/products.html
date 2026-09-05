@@ -121,6 +121,7 @@ header {
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -128,6 +129,13 @@ header {
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--charcoal);
+  white-space: nowrap;
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: none; border: none; font-size: 20px; color: var(--charcoal);
+  cursor: pointer; padding: 8px; flex-shrink: 0;
 }
 
 nav { display: flex; gap: 28px; align-items: center; }
@@ -228,7 +236,7 @@ main {
 }
 
 .hero h1 {
-  font-size: 2.6rem;
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
   margin: 0 0 12px;
   line-height: 1.15;
 }
@@ -236,7 +244,7 @@ main {
 .hero p {
   color: var(--charcoal-soft);
   margin: 0;
-  font-size: 16px;
+  font-size: clamp(13.5px, 2vw, 16px);
   line-height: 1.6;
   max-width: 560px;
 }
@@ -1012,12 +1020,49 @@ main {
 }
 @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
+  nav { display: none; position: fixed; top: 70px; left: 0; right: 0; bottom: 0; background: var(--cream); z-index: 999; padding: 20px; flex-direction: column; align-items: stretch; gap: 4px; overflow-y: auto; }
+  nav.active { display: flex; }
+  nav a { padding: 14px 12px; font-size: 15px; border-bottom: 1px solid var(--hairline); }
+  .mobile-menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  header { padding: 0 16px; }
+  #headerAuthButtons { display: none; }
+  .mobile-auth-row { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+  .mobile-auth-row .auth-btn { width: 100%; justify-content: center; }
+  .header-actions { gap: 4px; }
+  .icon-btn { padding: 7px !important; font-size: 14px; }
+
   .hero { flex-direction: column; align-items: flex-start; }
   .hero .right { text-align: left; width: 100%; }
-  main { padding-left: 16px; padding-right: 16px; }
+  main { padding-left: 16px; padding-right: 16px; padding-top: calc(70px + 20px); }
   #cartDrawer { width: 100%; }
   #orderTrackingPanel { right: 12px; width: calc(100vw - 24px); }
+
+  .controls-row { flex-direction: column; align-items: stretch; }
+  .filter-group, .controls-row .select { width: 100%; }
+
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card-body { padding: 11px; gap: 7px; }
+  .card-body h3 { font-size: 13.5px; }
+  .price { font-size: 16px; }
+
+  .wizard-steps { overflow-x: auto; padding: 16px 16px 0; }
+  .wizard-step { min-width: 64px; font-size: 10px; }
+  .wizard-panel { padding: 16px; }
+  .wizard-nav { padding: 0 16px 16px; }
+
+  .dashboard-tabs, .tabs-header { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .tab-btn { white-space: nowrap; padding: 8px 10px; font-size: 12.5px; }
+
+  .modal-box, .modal-card { padding: 16px; max-width: 94vw; }
+}
+
+@media (max-width: 480px) {
+  .logo-icon { width: 32px; height: 32px; }
+  .logo-text { font-size: 1.05rem; }
+  header { padding: 0 12px; }
+  .grid { grid-template-columns: 1fr; }
+  .icon-btn { padding: 6px !important; }
 }
 
 /* ============================================================
@@ -1116,13 +1161,19 @@ main {
       </div>
     </div>
 
-    <nav>
+    <nav id="mainNav">
       <a href="index.html">Home</a>
       <a href="knowledge-hub.html">Knowledge Hub</a>
       <a href="services.html">Services</a>
       <a href="courses.html">Courses</a>
       <a href="products.html" class="active">Products</a>
+      <div class="mobile-auth-row">
+        <button id="mobileLoginOpen" class="auth-btn">Login</button>
+        <a href="signup.html" class="auth-btn signup">Sign Up</a>
+      </div>
     </nav>
+
+    <button class="mobile-menu-toggle" id="mobileMenuToggle"><i class="fas fa-bars"></i></button>
 
     <div class="header-actions">
       <!-- Order tracking shortcut -->
@@ -1703,7 +1754,6 @@ main {
             </ul>
           </div>
         </div>
-      </div>
     </section>
 
     <!-- ============ PRODUCT GRID ============ -->
@@ -2431,5 +2481,17 @@ main {
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
    <script src="/products.js"></script>
+   <script>
+     document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+       document.getElementById('mainNav')?.classList.toggle('active');
+     });
+     document.getElementById('mobileLoginOpen')?.addEventListener('click', () => {
+       document.getElementById('mainNav')?.classList.remove('active');
+       document.getElementById('loginOpen')?.click();
+     });
+     document.querySelectorAll('#mainNav a:not(.mobile-auth-row a)').forEach(link => {
+       link.addEventListener('click', () => document.getElementById('mainNav')?.classList.remove('active'));
+     });
+   </script>
 </body>
 </html>

@@ -9980,9 +9980,52 @@ app.post("/api/admin/release-escrow/:orderId", async (req, res) => {
 });
 
 
-
-
-
+app.get("/api/check-availability", async (req, res) => {
+  try {
+    const { field, value } = req.query;
+ 
+    // Whitelist which columns can be checked — never build a query
+    // from a raw client-supplied column name.
+    const allowedFields = ["username", "email"];
+    if (!allowedFields.includes(field)) {
+      return res.status(400).json({ error: "Invalid field" });
+    }
+ 
+    if (!value || typeof value !== "string" || value.trim().length === 0) {
+      return res.status(400).json({ error: "Missing value" });
+    }
+ 
+    const cleanValue = value.trim();
+ 
+    // Basic format sanity checks — mirrors the frontend's own
+    // validation, so obviously-invalid input doesn't even hit the DB.
+    if (field === "username") {
+      if (cleanValue.length < 3 || !/^[a-zA-Z0-9_]+$/.test(cleanValue)) {
+        return res.json({ available: false, reason: "invalid_format" });
+      }
+    }
+    if (field === "email") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanValue)) {
+        return res.json({ available: false, reason: "invalid_format" });
+      }
+    }
+ 
+    const column = field === "username" ? "username" : "email";
+    const result = await db.query(
+      `SELECT id FROM users WHERE ${column} = ? LIMIT 1`,
+      [field === "email" ? cleanValue.toLowerCase() : cleanValue]
+    );
+    const existing = extractRows(result);
+ 
+    res.json({ available: existing.length === 0 });
+  } catch (err) {
+    console.error("Availability check error:", err);
+    // Fail open rather than blocking signup entirely if this route
+    // has a hiccup — the frontend already falls back gracefully.
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
 
 
 app.get("/api/users/search", async (req, res) => {

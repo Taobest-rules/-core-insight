@@ -1,803 +1,491 @@
-<div style="font-size: 0.01px; opacity: 0; position: absolute; pointer-events: none; width: 1px; height: 1px; overflow: hidden; color: transparent;">
-<span style="color: transparent;">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br>In the name of Allah, the Most Gracious, the Most Merciful</span>
-</div>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Core Insight</title>
-    <style>
-        :root {
-            --primary-dark: #0f172a;
-            --secondary-dark: #1e293b;
-            --accent-gold: #FFD700;
-            --accent-blue: #3b82f6;
-            --text-light: #e0e0e0;
-            --text-gray: #a0a0a0;
-            --success: #10b981;
-            --danger: #ef4444;
-        }
-        
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            color: var(--text-light);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 2rem 1rem;
-        }
-        
-        /* Marketplace Banner - Replacement for Bismillah */
-        .marketplace-banner {
-            text-align: center;
-            padding: 1.5rem;
-            background: rgba(255, 215, 0, 0.1);
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .marketplace-banner span {
-            color: gold;
-            font-size: 1.3rem;
-            line-height: 1.6;
-            display: block;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        
-        .marketplace-banner span:first-child {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.4rem;
-            color: #FFD700;
-            text-shadow: 0 0 8px rgba(255,215,0,0.3);
-        }
-        
-        .marketplace-banner span:last-child {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #FFD700;
-            opacity: 0.95;
-        }
-        
-        .container {
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 500px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-        }
-        
-        h2 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-size: 1.8rem;
-        }
-        
-        .role-info {
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-gray);
-            margin-bottom: 1.5rem;
-            padding: 0.5rem;
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 8px;
-        }
-        
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-light);
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .input-wrapper {
-            position: relative;
-        }
-        
-        input[type="text"], 
-        input[type="email"], 
-        input[type="password"] {
-            width: 100%;
-            padding: 0.85rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.8);
-            color: var(--text-light);
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
-        }
-        
-        .password-wrapper {
-            position: relative;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-gray);
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        
-        /* Password strength indicator */
-        .strength-meter {
-            margin-top: 0.5rem;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        
-        .strength-fill {
-            height: 100%;
-            width: 0;
-            transition: width 0.3s ease;
-        }
-        
-        .strength-fill.weak {
-            width: 33.33%;
-            background: #ff4444;
-        }
-        
-        .strength-fill.medium {
-            width: 66.66%;
-            background: var(--accent-gold);
-        }
-        
-        .strength-fill.strong {
-            width: 100%;
-            background: #00C851;
-        }
-        
-        .validation-message {
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-            color: var(--text-gray);
-        }
-        
-        .validation-message.error {
-            color: #ff6b6b;
-        }
-        
-        .validation-message.success {
-            color: #51cf66;
-        }
-        
-        /* Role cards */
-        .role-cards {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        .role-card {
-            flex: 1;
-            padding: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            background: rgba(15, 23, 42, 0.5);
-        }
-        
-        .role-card.selected {
-            border-color: var(--accent-gold);
-            background: rgba(255, 215, 0, 0.1);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-        }
-        
-        .role-card:hover {
-            border-color: var(--accent-gold);
-            transform: translateY(-2px);
-        }
-        
-        .role-card i {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-        
-        .role-card h4 {
-            margin: 0.5rem 0;
-            font-size: 1rem;
-            color: var(--text-light);
-        }
-        
-        .role-card p {
-            font-size: 0.7rem;
-            color: var(--text-gray);
-            margin: 0;
-        }
-        
-        .terms-group {
-            margin: 1.25rem 0;
-        }
-        
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-gray);
-            font-size: 0.85rem;
-        }
-        
-        .checkbox-wrapper input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--accent-gold);
-            cursor: pointer;
-        }
-        
-        .checkbox-wrapper label {
-            margin: 0;
-            cursor: pointer;
-        }
-        
-        .checkbox-wrapper a {
-            color: var(--accent-gold);
-            text-decoration: none;
-        }
-        
-        .checkbox-wrapper a:hover {
-            text-decoration: underline;
-        }
-        
-        button[type="submit"] {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-            color: #000;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        button[type="submit"]:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
-        }
-        
-        button[type="submit"]:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        
-        .success { 
-            background: rgba(16, 185, 129, 0.15); 
-            color: #51cf66; 
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        .error { 
-            background: rgba(239, 68, 68, 0.15); 
-            color: #ff6b6b; 
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .links {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .links a {
-            color: var(--accent-gold);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .links a:hover {
-            text-decoration: underline;
-        }
-        
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-radius: 50%;
-            border-top-color: #000;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-            margin-right: 8px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        hr {
-            border-color: rgba(255, 255, 255, 0.1);
-            margin: 1rem 0;
-        }
-        
-        /* Responsive */
-        @media (max-width: 480px) {
-            .container {
-                padding: 1.5rem;
-            }
-            
-            .role-cards {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-            
-            .marketplace-banner span:first-child {
-                font-size: 1.4rem;
-            }
-            
-            .marketplace-banner span:last-child {
-                font-size: 0.85rem;
-            }
-            
-            h2 {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sign Up | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage:#5a8d7d; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2;
+  --danger:#b3492f; --danger-tint:#f7e6e1;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+  --shadow-modal:0 24px 60px rgba(43,43,40,.18); --ease:cubic-bezier(.4,0,.2,1);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); min-height:100vh; -webkit-font-smoothing:antialiased; }
+h2,h3 { font-family:'Fraunces',Georgia,serif; font-weight:600; color:var(--charcoal); }
+a { color:var(--blue); }
+
+.top-bar { display:flex; justify-content:center; padding:20px 16px 0; }
+.top-bar a { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.top-bar .logo-icon { width:34px; height:34px; border-radius:8px; overflow:hidden; border:1px solid var(--hairline); }
+.top-bar .logo-text { font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; color:var(--charcoal); }
+
+.container { max-width:480px; margin:0 auto; padding:28px 20px 60px; }
+.card { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:clamp(24px,6vw,36px); }
+
+.marketplace-banner { text-align:center; margin-bottom:20px; }
+.marketplace-banner .name { display:block; font-family:'Fraunces',serif; font-size:1rem; font-weight:600; color:var(--charcoal); }
+.marketplace-banner .tagline { display:block; font-size:11.5px; font-weight:600; letter-spacing:.05em; color:var(--gold-deep); margin-top:4px; }
+
+.card h2 { text-align:center; font-size:1.6rem; margin:0 0 6px; }
+.card .subtext { text-align:center; color:var(--charcoal-soft); font-size:13.5px; margin:0 0 26px; }
+
+.form-group { margin-bottom:18px; }
+.form-group label { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:var(--charcoal); margin-bottom:7px; }
+.form-group label i { color:var(--gold-deep); width:14px; text-align:center; }
+.form-group input[type="text"], .form-group input[type="email"], .form-group input[type="password"] {
+  width:100%; padding:11px 13px; border:1px solid var(--hairline); border-radius:var(--radius-sm);
+  font-size:14px; font-family:inherit; background:var(--cream); color:var(--charcoal);
+}
+.form-group input:focus { border-color:var(--blue); outline:none; background:var(--paper); }
+
+.password-wrapper { position:relative; }
+.password-wrapper input { padding-right:42px !important; }
+.password-toggle { position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--charcoal-soft); cursor:pointer; padding:8px; }
+
+.strength-meter { height:4px; border-radius:4px; background:var(--hairline); margin-top:8px; overflow:hidden; }
+.strength-fill { height:100%; width:0; border-radius:4px; transition:width .25s var(--ease), background .25s var(--ease); }
+.strength-fill.weak { width:33%; background:var(--danger); }
+.strength-fill.medium { width:66%; background:var(--gold); }
+.strength-fill.strong { width:100%; background:var(--sage); }
+
+.validation-message { font-size:12px; margin-top:6px; min-height:15px; color:var(--text-muted); }
+.validation-message.success { color:var(--sage-deep); }
+.validation-message.error { color:var(--danger); }
+.validation-message.checking { color:var(--text-muted); font-style:italic; }
+
+/* Replaces the old role picker — explains the actual model instead
+   of forcing an upfront account-type choice. */
+.selling-note { display:flex; gap:12px; padding:14px 16px; background:var(--cream); border:1px solid var(--hairline); border-radius:var(--radius-md); margin-bottom:20px; }
+.selling-note i { color:var(--gold-deep); font-size:16px; margin-top:2px; flex-shrink:0; }
+.selling-note p { margin:0; font-size:12.5px; color:var(--charcoal-soft); line-height:1.6; }
+.selling-note strong { color:var(--charcoal); }
+
+.terms-group { margin-bottom:20px; }
+.checkbox-wrapper { display:flex; align-items:flex-start; gap:9px; }
+.checkbox-wrapper input { margin-top:3px; accent-color:var(--gold); flex-shrink:0; }
+.checkbox-wrapper label { font-size:12.5px; color:var(--charcoal-soft); line-height:1.55; }
+
+#submitBtn { width:100%; padding:13px; border:none; border-radius:var(--radius-sm); background:var(--gold); color:var(--charcoal); font-weight:600; font-size:14.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:var(--ease); }
+#submitBtn:hover { background:var(--gold-deep); }
+#submitBtn:disabled { opacity:.65; cursor:not-allowed; }
+.spinner { width:14px; height:14px; border:2px solid rgba(43,43,40,.3); border-top-color:var(--charcoal); border-radius:50%; animation:spin .7s linear infinite; display:inline-block; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+#message { margin-top:16px; }
+.message { padding:13px 15px; border-radius:var(--radius-md); font-size:13px; line-height:1.6; }
+.message.success { background:#e6efe9; color:var(--sage-deep); }
+.message.error { background:var(--danger-tint); color:var(--danger); }
+
+.links { text-align:center; margin-top:22px; }
+.links a { font-size:13.5px; color:var(--charcoal-soft); text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+.links a:hover { color:var(--charcoal); }
+
+/* Modals */
+#termsModal, #privacyModal { display:none; position:fixed; inset:0; background:rgba(43,43,40,.5); backdrop-filter:blur(4px); z-index:1000; justify-content:center; align-items:center; padding:20px; }
+.modal-box { background:var(--paper); border-radius:var(--radius-lg); padding:clamp(20px,5vw,30px); max-width:520px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:var(--shadow-modal); }
+.modal-box h2 { color:var(--gold-deep); margin-bottom:16px; font-size:1.3rem; }
+.modal-box h3 { font-size:14.5px; margin:18px 0 6px; }
+.modal-box h3:first-of-type { margin-top:0; }
+.modal-box p { font-size:13px; color:var(--charcoal-soft); line-height:1.65; margin:0 0 4px; }
+.modal-close-btn { margin-top:20px; width:100%; padding:11px; border:none; border-radius:var(--radius-sm); background:var(--charcoal); color:var(--cream); font-weight:600; cursor:pointer; }
+
+@media (max-width:480px) {
+  .container { padding:20px 14px 40px; }
+  .card { padding:22px; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
-        <div class="marketplace-banner">
-            <span style="color: gold;">Core Insight MarketPlace</span>
-            <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-        </div>
-        
-        <h2>Create Account</h2>
-        
-        <div class="role-info">
-            <i class="fas fa-info-circle"></i> Choose your account type to get started
-        </div>
-        
-        <form id="signupForm">
-            <div class="form-group">
-                <label><i class="fas fa-user"></i> Username</label>
-                <input type="text" id="username" placeholder="Choose a username" required>
-                <div class="validation-message" id="username-validation"></div>
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Email Address</label>
-                <input type="email" id="email" placeholder="Enter your email" required>
-                <div class="validation-message" id="email-validation"></div>
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-lock"></i> Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" placeholder="Create a password" required>
-                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                        <i class="far fa-eye"></i>
-                    </button>
-                </div>
-                <div class="strength-meter">
-                    <div class="strength-fill" id="strength-fill"></div>
-                </div>
-                <div class="validation-message" id="password-validation"></div>
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-check-circle"></i> Confirm Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="confirm-password" placeholder="Confirm your password" required>
-                    <button type="button" class="password-toggle" onclick="togglePassword('confirm-password')">
-                        <i class="far fa-eye"></i>
-                    </button>
-                </div>
-                <div class="validation-message" id="confirm-validation"></div>
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-briefcase"></i> I want to join as:</label>
-                <div class="role-cards">
-                    <div class="role-card" data-role="client" onclick="selectRole('client')">
-                        <i class="fas fa-shopping-cart"></i>
-                        <h4>Buyer</h4>
-                        <p>Purchase products, courses & services</p>
-                    </div>
-                    <div class="role-card" data-role="freelancer" onclick="selectRole('freelancer')">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Seller</h4>
-                        <p>Sell services & earn money (90-day free trial)</p>
-                    </div>
-                </div>
-                <input type="hidden" id="role" name="role" required>
-                <div class="validation-message" id="role-validation"></div>
-            </div>
-            
-            <div class="terms-group">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to the <a href="#" onclick="openTermsModal(); return false;">Terms of Service</a> and <a href="#" onclick="openPrivacyModal(); return false;">Privacy Policy</a></label>
-                </div>
-            </div>
-            
-            <button type="submit" id="submitBtn">
-                <i class="fas fa-user-plus"></i> Sign Up
-            </button>
-        </form>
-        
-        <div id="message"></div>
-        
-        <div class="links">
-            <a href="login.html"><i class="fas fa-sign-in-alt"></i> Already have an account? Login</a>
-        </div>
-    </div>
-    
-    <!-- Terms of Service Modal -->
-    <div id="termsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: var(--secondary-dark); max-width: 600px; max-height: 80vh; overflow-y: auto; border-radius: 20px; padding: 2rem; margin: 2rem; border: 1px solid rgba(255,215,0,0.2);">
-            <h2 style="color: var(--accent-gold); margin-bottom: 1rem;">Terms of Service</h2>
-            <div id="termsContent"></div>
-            <button onclick="closeTermsModal()" style="margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: var(--accent-gold); border: none; border-radius: 10px; cursor: pointer; font-weight: 600;">Close</button>
-        </div>
-    </div>
-    
-    <!-- Privacy Policy Modal -->
-    <div id="privacyModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: var(--secondary-dark); max-width: 600px; max-height: 80vh; overflow-y: auto; border-radius: 20px; padding: 2rem; margin: 2rem; border: 1px solid rgba(255,215,0,0.2);">
-            <h2 style="color: var(--accent-gold); margin-bottom: 1rem;">Privacy Policy</h2>
-            <div id="privacyContent"></div>
-            <button onclick="closePrivacyModal()" style="margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: var(--accent-gold); border: none; border-radius: 10px; cursor: pointer; font-weight: 600;">Close</button>
-        </div>
-    </div>
 
-    <script>
-        let selectedRole = null;
-        
-        function selectRole(role) {
-            selectedRole = role;
-            document.getElementById('role').value = role;
-            
-            // Update UI
-            document.querySelectorAll('.role-card').forEach(card => {
-                card.classList.remove('selected');
-                if (card.getAttribute('data-role') === role) {
-                    card.classList.add('selected');
-                }
-            });
-            
-            // Clear validation
-            document.getElementById('role-validation').textContent = '';
-            document.getElementById('role-validation').classList.remove('error');
-        }
-        
-        function togglePassword(id) {
-            const field = document.getElementById(id);
-            const icon = field.nextElementSibling?.querySelector('i');
-            if (field.type === "password") {
-                field.type = "text";
-                if (icon) icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                field.type = "password";
-                if (icon) icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-        
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-        
-        function validateUsername(username) {
-            return username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
-        }
-        
-        // Real-time username validation
-        document.getElementById('username').addEventListener('input', function() {
-            const username = this.value;
-            const validation = document.getElementById('username-validation');
-            
-            if (username.length === 0) {
-                validation.textContent = '';
-            } else if (validateUsername(username)) {
-                validation.textContent = '✓ Username is available';
-                validation.className = 'validation-message success';
-            } else {
-                validation.textContent = '✗ Username must be 3+ characters (letters, numbers, underscores only)';
-                validation.className = 'validation-message error';
-            }
-        });
-        
-        // Real-time email validation
-        document.getElementById('email').addEventListener('input', function() {
-            const email = this.value;
-            const validation = document.getElementById('email-validation');
-            
-            if (email.length === 0) {
-                validation.textContent = '';
-            } else if (validateEmail(email)) {
-                validation.textContent = '✓ Valid email address';
-                validation.className = 'validation-message success';
-            } else {
-                validation.textContent = '✗ Please enter a valid email address';
-                validation.className = 'validation-message error';
-            }
-        });
-        
-        // Password strength checker
-        document.getElementById('password').addEventListener('input', function() {
-            const password = this.value;
-            const strengthFill = document.getElementById('strength-fill');
-            const validation = document.getElementById('password-validation');
-            
-            if (password.length === 0) {
-                strengthFill.className = 'strength-fill';
-                validation.textContent = '';
-            } else if (password.length < 6) {
-                strengthFill.className = 'strength-fill weak';
-                validation.textContent = '✗ Password must be at least 6 characters';
-                validation.className = 'validation-message error';
-            } else if (password.length < 8) {
-                strengthFill.className = 'strength-fill medium';
-                validation.textContent = '⚠️ Password is okay, but could be stronger';
-                validation.className = 'validation-message';
-            } else {
-                strengthFill.className = 'strength-fill strong';
-                validation.textContent = '✓ Strong password';
-                validation.className = 'validation-message success';
-            }
-            
-            const confirm = document.getElementById('confirm-password').value;
-            if (confirm) {
-                checkPasswordMatch();
-            }
-        });
-        
-        function checkPasswordMatch() {
-            const password = document.getElementById('password').value;
-            const confirm = document.getElementById('confirm-password').value;
-            const validation = document.getElementById('confirm-validation');
-            
-            if (confirm.length === 0) {
-                validation.textContent = '';
-            } else if (password === confirm) {
-                validation.textContent = '✓ Passwords match';
-                validation.className = 'validation-message success';
-            } else {
-                validation.textContent = '✗ Passwords do not match';
-                validation.className = 'validation-message error';
-            }
-        }
-        
-        document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
-        
-        // Terms Modal Functions
-        function openTermsModal() {
-            const modal = document.getElementById('termsModal');
-            const termsContent = document.getElementById('termsContent');
-            
-            termsContent.innerHTML = `
-                <h3>1. Acceptance of Terms</h3>
-                <p>By registering for Core Insight, you agree to these Terms of Service.</p>
-                
-                <h3>2. Account Types</h3>
-                <p><strong>Buyers:</strong> Can purchase products, courses, and services. No subscription required.</p>
-                <p><strong>Sellers:</strong> Can offer services, sell products, and earn money. Subject to platform fees. 90-day free trial available.</p>
-                
-                <h3>3. Platform Fees</h3>
-                <p>Core Insight charges a 10% platform fee on all sales. This fee is automatically deducted from each transaction.</p>
-                
-                <h3>4. Content Guidelines</h3>
-                <p>Users are responsible for the content they upload. Prohibited content includes illegal materials, hate speech, and copyright violations.</p>
-                
-                <h3>5. Payments</h3>
-                <p>All payments are processed through secure third-party payment providers (Flutterwave, Paystack).</p>
-                
-                <h3>6. Termination</h3>
-                <p>Core Insight reserves the right to suspend or terminate accounts that violate these terms.</p>
-                
-                <h3>7. Changes to Terms</h3>
-                <p>Terms may be updated from time to time. Continued use constitutes acceptance of changes.</p>
-                
-                <h3>8. Contact</h3>
-                <p>For questions, contact: support@coreinsight.com</p>
-                
-                <p><strong>Last Updated:</strong> May 2026</p>
-            `;
-            modal.style.display = 'flex';
-        }
-        
-        function closeTermsModal() {
-            document.getElementById('termsModal').style.display = 'none';
-        }
-        
-        function openPrivacyModal() {
-            const modal = document.getElementById('privacyModal');
-            const privacyContent = document.getElementById('privacyContent');
-            
-            privacyContent.innerHTML = `
-                <h3>Information We Collect</h3>
-                <p>We collect information you provide directly to us, such as your name, email address, and payment information when you create an account or make a purchase.</p>
-                
-                <h3>How We Use Your Information</h3>
-                <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices, and respond to your comments.</p>
-                
-                <h3>Data Security</h3>
-                <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
-                
-                <h3>Sharing of Information</h3>
-                <p>We do not share your personal information with third parties except as necessary to provide our services (e.g., payment processing) or as required by law.</p>
-                
-                <h3>Your Rights</h3>
-                <p>You may access, correct, or delete your personal information by contacting us. You may also opt out of marketing communications at any time.</p>
-                
-                <h3>Cookies</h3>
-                <p>We use cookies to enhance your experience on our platform. You can set your browser to refuse cookies, but some features may not function properly.</p>
-                
-                <p><strong>Last Updated:</strong> May 2026</p>
-            `;
-            modal.style.display = 'flex';
-        }
-        
-        function closePrivacyModal() {
-            document.getElementById('privacyModal').style.display = 'none';
-        }
-        
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const termsModal = document.getElementById('termsModal');
-            const privacyModal = document.getElementById('privacyModal');
-            if (event.target === termsModal) {
-                termsModal.style.display = 'none';
-            }
-            if (event.target === privacyModal) {
-                privacyModal.style.display = 'none';
-            }
-        };
-        
-        // FORM SUBMISSION - FIXED VERSION
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirm = document.getElementById('confirm-password').value;
-            const role = document.getElementById('role').value;
-            const terms = document.getElementById('terms').checked;
-            const submitBtn = document.getElementById('submitBtn');
-            const messageDiv = document.getElementById('message');
-            
-            messageDiv.innerHTML = '';
-            
-            // Validate all fields
-            if (!username || !email || !password || !confirm) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please fill in all fields</div>';
-                return;
-            }
-            
-            if (!validateUsername(username)) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Invalid username format</div>';
-                return;
-            }
-            
-            if (!validateEmail(email)) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Invalid email format</div>';
-                return;
-            }
-            
-            if (password.length < 6) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Password must be at least 6 characters</div>';
-                return;
-            }
-            
-            if (password !== confirm) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Passwords do not match</div>';
-                return;
-            }
-            
-            if (!role) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please select whether you want to be a Buyer or Seller</div>';
-                document.getElementById('role-validation').textContent = 'Please select a role';
-                document.getElementById('role-validation').classList.add('error');
-                return;
-            }
-            
-            if (!terms) {
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> You must agree to the Terms of Service</div>';
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner"></span> Creating Account...';
-            
-            try {
-                const response = await fetch('/api/signup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, email, password, role })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // SUCCESS - Show verification message
-                    messageDiv.innerHTML = `
-                        <div class="message success">
-                            <i class="fas fa-check-circle"></i> 
-                            ✅ Account created successfully!<br><br>
-                            <strong>📧 A verification link has been sent to ${email}</strong><br><br>
-                            Please check your email and click the verification link to activate your account.<br><br>
-                            <small>Redirecting to login page in 5 seconds...</small>
-                        </div>
-                    `;
-                    
-                    // Clear form
-                    document.getElementById('signupForm').reset();
-                    document.querySelectorAll('.role-card').forEach(card => card.classList.remove('selected'));
-                    
-                    // Redirect to login page after 5 seconds
-                    setTimeout(() => {
-                        window.location.href = 'login.html?message=check_email';
-                    }, 5000);
-                } else {
-                    messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Error creating account'}</div>`;
-                }
-            } catch (error) {
-                console.error('Signup error:', error);
-                messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> Network error. Please check your connection and try again.</div>';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up';
-            }
-        });
-        
-        // Initialize eye icons
-        document.querySelectorAll('.password-toggle').forEach(btn => {
-            btn.innerHTML = '<i class="far fa-eye"></i>';
-        });
-    </script>
+  <div class="top-bar">
+    <a href="index.html">
+      <div class="logo-icon"><img src="https://i.pinimg.com/736x/27/7a/12/277a1257f00946e8337c57ac43c9b700.jpg" alt="Core Insight" style="width:100%;height:100%;object-fit:cover;"></div>
+      <span class="logo-text">Core Insight</span>
+    </a>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="marketplace-banner">
+        <span class="name">Core Insight Marketplace</span>
+        <span class="tagline">THE ONE PLACE WHERE EVERYONE IS WELCOMED</span>
+      </div>
+
+      <h2>Create Account</h2>
+      <p class="subtext">One account for everything — browse, buy, and sell whenever you're ready.</p>
+
+      <form id="signupForm">
+        <div class="form-group">
+          <label><i class="fas fa-user"></i> Username</label>
+          <input type="text" id="username" placeholder="Choose a username" required>
+          <div class="validation-message" id="username-validation"></div>
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-envelope"></i> Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+          <div class="validation-message" id="email-validation"></div>
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-lock"></i> Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" placeholder="Create a password" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('password')"><i class="far fa-eye"></i></button>
+          </div>
+          <div class="strength-meter"><div class="strength-fill" id="strength-fill"></div></div>
+          <div class="validation-message" id="password-validation"></div>
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-check-circle"></i> Confirm Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="confirm-password" placeholder="Confirm your password" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('confirm-password')"><i class="far fa-eye"></i></button>
+          </div>
+          <div class="validation-message" id="confirm-validation"></div>
+        </div>
+
+        <div class="selling-note">
+          <i class="fas fa-circle-info"></i>
+          <p><strong>No need to choose a role.</strong> Every account can buy right away — and when you're ready to sell, just click "Offer a Service," "Become a Seller," or "Publish a Course" from any section. No separate account or approval needed.</p>
+        </div>
+
+        <div class="terms-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="terms" required>
+            <label for="terms">I agree to the <a href="#" onclick="openTermsModal(); return false;">Terms of Service</a> and <a href="#" onclick="openPrivacyModal(); return false;">Privacy Policy</a></label>
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn"><i class="fas fa-user-plus"></i> Sign Up</button>
+      </form>
+
+      <div id="message"></div>
+
+      <div class="links">
+        <a href="login.html"><i class="fas fa-sign-in-alt"></i> Already have an account? Login</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms of Service Modal -->
+  <div id="termsModal">
+    <div class="modal-box">
+      <h2>Terms of Service</h2>
+      <div id="termsContent"></div>
+      <button class="modal-close-btn" onclick="closeTermsModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div id="privacyModal">
+    <div class="modal-box">
+      <h2>Privacy Policy</h2>
+      <div id="privacyContent"></div>
+      <button class="modal-close-btn" onclick="closePrivacyModal()">Close</button>
+    </div>
+  </div>
+
+<script>
+  function togglePassword(id) {
+    const field = document.getElementById(id);
+    const icon = field.nextElementSibling?.querySelector('i');
+    if (field.type === "password") {
+      field.type = "text";
+      if (icon) icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      field.type = "password";
+      if (icon) icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  }
+
+  function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
+  function validateUsername(username) {
+    return username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
+  }
+
+  // Debounce helper for the availability checks below
+  function debounce(fn, delay) {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+  }
+
+  // Real-time username validation — format check is instant, actual
+  // availability check is debounced against the server so we're not
+  // firing a request on every keystroke.
+  const usernameInput = document.getElementById('username');
+  const usernameValidation = document.getElementById('username-validation');
+
+  const checkUsernameAvailability = debounce(async (username) => {
+    usernameValidation.textContent = 'Checking availability…';
+    usernameValidation.className = 'validation-message checking';
+    try {
+      const res = await fetch(`/api/check-availability?field=username&value=${encodeURIComponent(username)}`);
+      const data = await res.json();
+      if (data.available) {
+        usernameValidation.textContent = '✓ Username is available';
+        usernameValidation.className = 'validation-message success';
+      } else {
+        usernameValidation.textContent = '✗ That username is already taken';
+        usernameValidation.className = 'validation-message error';
+      }
+    } catch (e) {
+      // If the availability endpoint isn't reachable, fall back to
+      // just confirming the format is valid rather than blocking signup.
+      usernameValidation.textContent = '✓ Format looks good';
+      usernameValidation.className = 'validation-message success';
+    }
+  }, 500);
+
+  usernameInput.addEventListener('input', function () {
+    const username = this.value;
+    if (username.length === 0) {
+      usernameValidation.textContent = '';
+    } else if (!validateUsername(username)) {
+      usernameValidation.textContent = '✗ Username must be 3+ characters (letters, numbers, underscores only)';
+      usernameValidation.className = 'validation-message error';
+    } else {
+      checkUsernameAvailability(username);
+    }
+  });
+
+  const emailInput = document.getElementById('email');
+  const emailValidation = document.getElementById('email-validation');
+
+  const checkEmailAvailability = debounce(async (email) => {
+    emailValidation.textContent = 'Checking availability…';
+    emailValidation.className = 'validation-message checking';
+    try {
+      const res = await fetch(`/api/check-availability?field=email&value=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data.available) {
+        emailValidation.textContent = '✓ Valid email address';
+        emailValidation.className = 'validation-message success';
+      } else {
+        emailValidation.textContent = '✗ An account with this email already exists';
+        emailValidation.className = 'validation-message error';
+      }
+    } catch (e) {
+      emailValidation.textContent = '✓ Valid email address';
+      emailValidation.className = 'validation-message success';
+    }
+  }, 500);
+
+  emailInput.addEventListener('input', function () {
+    const email = this.value;
+    if (email.length === 0) {
+      emailValidation.textContent = '';
+    } else if (!validateEmail(email)) {
+      emailValidation.textContent = '✗ Please enter a valid email address';
+      emailValidation.className = 'validation-message error';
+    } else {
+      checkEmailAvailability(email);
+    }
+  });
+
+  // Password strength checker
+  document.getElementById('password').addEventListener('input', function () {
+    const password = this.value;
+    const strengthFill = document.getElementById('strength-fill');
+    const validation = document.getElementById('password-validation');
+
+    if (password.length === 0) {
+      strengthFill.className = 'strength-fill';
+      validation.textContent = '';
+    } else if (password.length < 6) {
+      strengthFill.className = 'strength-fill weak';
+      validation.textContent = '✗ Password must be at least 6 characters';
+      validation.className = 'validation-message error';
+    } else if (password.length < 8) {
+      strengthFill.className = 'strength-fill medium';
+      validation.textContent = '⚠️ Password is okay, but could be stronger';
+      validation.className = 'validation-message';
+    } else {
+      strengthFill.className = 'strength-fill strong';
+      validation.textContent = '✓ Strong password';
+      validation.className = 'validation-message success';
+    }
+
+    const confirm = document.getElementById('confirm-password').value;
+    if (confirm) checkPasswordMatch();
+  });
+
+  function checkPasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+    const validation = document.getElementById('confirm-validation');
+
+    if (confirm.length === 0) {
+      validation.textContent = '';
+    } else if (password === confirm) {
+      validation.textContent = '✓ Passwords match';
+      validation.className = 'validation-message success';
+    } else {
+      validation.textContent = '✗ Passwords do not match';
+      validation.className = 'validation-message error';
+    }
+  }
+  document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
+
+  // Terms Modal
+  function openTermsModal() {
+    const modal = document.getElementById('termsModal');
+    const termsContent = document.getElementById('termsContent');
+    termsContent.innerHTML = `
+      <h3>1. Acceptance of Terms</h3>
+      <p>By registering for Core Insight, you agree to these Terms of Service.</p>
+
+      <h3>2. One Account, Every Role</h3>
+      <p>Every account can browse and purchase right away. When you're ready, the same account can offer services, publish courses, sell products, or publish articles — no separate seller account or approval process required.</p>
+
+      <h3>3. Platform Fees</h3>
+      <p>Core Insight charges a flat 10% platform fee on sales made through the platform. This fee is automatically deducted from each transaction — there is no cost to list or publish anything.</p>
+
+      <h3>4. Content Guidelines</h3>
+      <p>All content and listings must comply with our content guidelines. We reserve the right to remove content that violates these guidelines or applicable law.</p>
+
+      <h3>5. Payments &amp; Escrow</h3>
+      <p>Payments for services and physical products are held in escrow until delivery is confirmed, to protect both buyers and sellers.</p>
+
+      <h3>6. Account Termination</h3>
+      <p>We reserve the right to suspend or terminate accounts that violate these terms.</p>
+
+      <p><strong>Last Updated:</strong> September 2026</p>
+    `;
+    modal.style.display = 'flex';
+  }
+  function closeTermsModal() { document.getElementById('termsModal').style.display = 'none'; }
+
+  function openPrivacyModal() {
+    const modal = document.getElementById('privacyModal');
+    const privacyContent = document.getElementById('privacyContent');
+    privacyContent.innerHTML = `
+      <h3>Information We Collect</h3>
+      <p>We collect information you provide directly to us, such as your name, email address, and payment information when you create an account or make a purchase.</p>
+
+      <h3>How We Use Your Information</h3>
+      <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices, and respond to your comments.</p>
+
+      <h3>Data Security</h3>
+      <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+
+      <h3>Sharing of Information</h3>
+      <p>We do not share your personal information with third parties except as necessary to provide our services (e.g., payment processing) or as required by law.</p>
+
+      <h3>Your Rights</h3>
+      <p>You may access, correct, or delete your personal information by contacting us. You may also opt out of marketing communications at any time.</p>
+
+      <h3>Cookies</h3>
+      <p>We use cookies to enhance your experience on our platform. You can set your browser to refuse cookies, but some features may not function properly.</p>
+
+      <p><strong>Last Updated:</strong> September 2026</p>
+    `;
+    modal.style.display = 'flex';
+  }
+  function closePrivacyModal() { document.getElementById('privacyModal').style.display = 'none'; }
+
+  window.onclick = function (event) {
+    const termsModal = document.getElementById('termsModal');
+    const privacyModal = document.getElementById('privacyModal');
+    if (event.target === termsModal) termsModal.style.display = 'none';
+    if (event.target === privacyModal) privacyModal.style.display = 'none';
+  };
+
+  // FORM SUBMISSION
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+    const terms = document.getElementById('terms').checked;
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+
+    messageDiv.innerHTML = '';
+
+    if (!username || !email || !password || !confirm) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Please fill in all fields</div>';
+      return;
+    }
+    if (!validateUsername(username)) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Invalid username format</div>';
+      return;
+    }
+    if (!validateEmail(email)) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Invalid email format</div>';
+      return;
+    }
+    if (password.length < 6) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Password must be at least 6 characters</div>';
+      return;
+    }
+    if (password !== confirm) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> Passwords do not match</div>';
+      return;
+    }
+    if (!terms) {
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-exclamation-circle"></i> You must agree to the Terms of Service</div>';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Creating Account...';
+
+    try {
+      // role is no longer chosen at signup — every account starts as
+      // a general member and can begin selling anytime from any
+      // section, so we send a single default value here.
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, role: 'client' })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        messageDiv.innerHTML = `
+          <div class="message success">
+            <i class="fas fa-check-circle"></i>
+            ✅ Account created successfully!<br><br>
+            <strong>📧 A verification link has been sent to ${email}</strong><br><br>
+            Please check your email and click the verification link to activate your account.<br><br>
+            <small>Redirecting to login page in 5 seconds...</small>
+          </div>
+        `;
+        document.getElementById('signupForm').reset();
+        setTimeout(() => { window.location.href = 'login.html?message=check_email'; }, 5000);
+      } else {
+        messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Error creating account'}</div>`;
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      messageDiv.innerHTML = '<div class="message error"><i class="fas fa-wifi"></i> Network error. Please check your connection and try again.</div>';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up';
+    }
+  });
+
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.innerHTML = '<i class="far fa-eye"></i>';
+  });
+</script>
+
 </body>
 </html>

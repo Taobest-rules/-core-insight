@@ -89,13 +89,7 @@ a { color:var(--blue); }
 .links a:hover { color:var(--charcoal); }
 
 /* Modals */
-#termsModal, #privacyModal { display:none; position:fixed; inset:0; background:rgba(43,43,40,.5); backdrop-filter:blur(4px); z-index:1000; justify-content:center; align-items:center; padding:20px; }
-.modal-box { background:var(--paper); border-radius:var(--radius-lg); padding:clamp(20px,5vw,30px); max-width:520px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:var(--shadow-modal); }
-.modal-box h2 { color:var(--gold-deep); margin-bottom:16px; font-size:1.3rem; }
-.modal-box h3 { font-size:14.5px; margin:18px 0 6px; }
-.modal-box h3:first-of-type { margin-top:0; }
-.modal-box p { font-size:13px; color:var(--charcoal-soft); line-height:1.65; margin:0 0 4px; }
-.modal-close-btn { margin-top:20px; width:100%; padding:11px; border:none; border-radius:var(--radius-sm); background:var(--charcoal); color:var(--cream); font-weight:600; cursor:pointer; }
+/* Terms/Privacy links now go to real pages (terms.html, privacy.html) instead of modals */
 
 @media (max-width:480px) {
   .container { padding:20px 14px 40px; }
@@ -162,7 +156,7 @@ a { color:var(--blue); }
         <div class="terms-group">
           <div class="checkbox-wrapper">
             <input type="checkbox" id="terms" required>
-            <label for="terms">I agree to the <a href="#" onclick="openTermsModal(); return false;">Terms of Service</a> and <a href="#" onclick="openPrivacyModal(); return false;">Privacy Policy</a></label>
+            <label for="terms">I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a></label>
           </div>
         </div>
 
@@ -174,24 +168,6 @@ a { color:var(--blue); }
       <div class="links">
         <a href="login.html"><i class="fas fa-sign-in-alt"></i> Already have an account? Login</a>
       </div>
-    </div>
-  </div>
-
-  <!-- Terms of Service Modal -->
-  <div id="termsModal">
-    <div class="modal-box">
-      <h2>Terms of Service</h2>
-      <div id="termsContent"></div>
-      <button class="modal-close-btn" onclick="closeTermsModal()">Close</button>
-    </div>
-  </div>
-
-  <!-- Privacy Policy Modal -->
-  <div id="privacyModal">
-    <div class="modal-box">
-      <h2>Privacy Policy</h2>
-      <div id="privacyContent"></div>
-      <button class="modal-close-btn" onclick="closePrivacyModal()">Close</button>
     </div>
   </div>
 
@@ -339,70 +315,6 @@ a { color:var(--blue); }
     }
   }
   document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
-
-  // Terms Modal
-  function openTermsModal() {
-    const modal = document.getElementById('termsModal');
-    const termsContent = document.getElementById('termsContent');
-    termsContent.innerHTML = `
-      <h3>1. Acceptance of Terms</h3>
-      <p>By registering for Core Insight, you agree to these Terms of Service.</p>
-
-      <h3>2. One Account, Every Role</h3>
-      <p>Every account can browse and purchase right away. When you're ready, the same account can offer services, publish courses, sell products, or publish articles — no separate seller account or approval process required.</p>
-
-      <h3>3. Platform Fees</h3>
-      <p>Core Insight charges a flat 10% platform fee on sales made through the platform. This fee is automatically deducted from each transaction — there is no cost to list or publish anything.</p>
-
-      <h3>4. Content Guidelines</h3>
-      <p>All content and listings must comply with our content guidelines. We reserve the right to remove content that violates these guidelines or applicable law.</p>
-
-      <h3>5. Payments &amp; Escrow</h3>
-      <p>Payments for services and physical products are held in escrow until delivery is confirmed, to protect both buyers and sellers.</p>
-
-      <h3>6. Account Termination</h3>
-      <p>We reserve the right to suspend or terminate accounts that violate these terms.</p>
-
-      <p><strong>Last Updated:</strong> September 2026</p>
-    `;
-    modal.style.display = 'flex';
-  }
-  function closeTermsModal() { document.getElementById('termsModal').style.display = 'none'; }
-
-  function openPrivacyModal() {
-    const modal = document.getElementById('privacyModal');
-    const privacyContent = document.getElementById('privacyContent');
-    privacyContent.innerHTML = `
-      <h3>Information We Collect</h3>
-      <p>We collect information you provide directly to us, such as your name, email address, and payment information when you create an account or make a purchase.</p>
-
-      <h3>How We Use Your Information</h3>
-      <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices, and respond to your comments.</p>
-
-      <h3>Data Security</h3>
-      <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
-
-      <h3>Sharing of Information</h3>
-      <p>We do not share your personal information with third parties except as necessary to provide our services (e.g., payment processing) or as required by law.</p>
-
-      <h3>Your Rights</h3>
-      <p>You may access, correct, or delete your personal information by contacting us. You may also opt out of marketing communications at any time.</p>
-
-      <h3>Cookies</h3>
-      <p>We use cookies to enhance your experience on our platform. You can set your browser to refuse cookies, but some features may not function properly.</p>
-
-      <p><strong>Last Updated:</strong> September 2026</p>
-    `;
-    modal.style.display = 'flex';
-  }
-  function closePrivacyModal() { document.getElementById('privacyModal').style.display = 'none'; }
-
-  window.onclick = function (event) {
-    const termsModal = document.getElementById('termsModal');
-    const privacyModal = document.getElementById('privacyModal');
-    if (event.target === termsModal) termsModal.style.display = 'none';
-    if (event.target === privacyModal) privacyModal.style.display = 'none';
-  };
 
   // FORM SUBMISSION
   document.getElementById('signupForm').addEventListener('submit', async (e) => {

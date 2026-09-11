@@ -1,530 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms of Service - Core Insight</title>
-    <style>
-        :root {
-            --primary-dark: #0f172a;
-            --secondary-dark: #1e293b;
-            --accent-gold: #FFD700;
-            --accent-blue: #3b82f6;
-            --text-light: #e6f1ff;
-            --text-gray: #a8b2d1;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --success: #10b981;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            color: var(--text-light);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .bismillah {
-            text-align: center;
-            padding: 1.5rem;
-            background: rgba(255, 215, 0, 0.08);
-            border-bottom: 1px solid rgba(255, 215, 0, 0.25);
-            margin-bottom: 2rem;
-        }
-        
-        .bismillah .arabic {
-            font-size: 1.8rem;
-            font-family: 'Amiri', 'Traditional Arabic', serif;
-            color: #FFD700;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        
-        .bismillah .english {
-            font-size: 0.9rem;
-            color: rgba(255, 215, 0, 0.9);
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        h1, h2, h3 {
-            color: var(--accent-gold);
-        }
-        
-        h1 {
-            border-bottom: 2px solid var(--accent-gold);
-            padding-bottom: 1rem;
-            margin-bottom: 2rem;
-            font-size: 2rem;
-        }
-        
-        h2 {
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-        
-        h3 {
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            font-size: 1.2rem;
-        }
-        
-        p, li {
-            color: var(--text-gray);
-        }
-        
-        .last-updated {
-            color: var(--text-gray);
-            font-style: italic;
-            margin-bottom: 2rem;
-            text-align: right;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 1rem;
-        }
-        
-        .back-link {
-            display: inline-block;
-            margin-top: 2rem;
-            padding: 0.75rem 1.5rem;
-            background: linear-gradient(135deg, var(--accent-gold), #D4AF37);
-            color: var(--primary-dark);
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        
-        .back-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
-        }
-        
-        hr {
-            border-color: rgba(255, 255, 255, 0.1);
-            margin: 2rem 0;
-        }
-        
-        ul, ol {
-            padding-left: 1.5rem;
-        }
-        
-        li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .highlight {
-            background: rgba(255, 215, 0, 0.08);
-            padding: 1.5rem;
-            border-left: 4px solid var(--accent-gold);
-            border-radius: 12px;
-            margin: 1.5rem 0;
-        }
-        
-        .warning-box {
-            background: rgba(239, 68, 68, 0.1);
-            padding: 1.5rem;
-            border-left: 4px solid var(--danger);
-            border-radius: 12px;
-            margin: 1.5rem 0;
-        }
-        
-        .info-box {
-            background: rgba(59, 130, 246, 0.1);
-            padding: 1.5rem;
-            border-left: 4px solid var(--accent-blue);
-            border-radius: 12px;
-            margin: 1.5rem 0;
-        }
-        
-        .knowledge-box {
-            background: rgba(16, 185, 129, 0.08);
-            padding: 1.5rem;
-            border-left: 4px solid var(--success);
-            border-radius: 12px;
-            margin: 1.5rem 0;
-        }
-        
-        .final-decision-box {
-            background: rgba(255, 215, 0, 0.15);
-            padding: 1.5rem;
-            border-left: 4px solid var(--accent-gold);
-            border-radius: 12px;
-            margin: 1.5rem 0;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.75rem;
-            text-align: left;
-        }
-        
-        th {
-            background: var(--secondary-dark);
-            color: var(--accent-gold);
-        }
-        
-        .contact-card {
-            background: var(--secondary-dark);
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin: 1.5rem 0;
-            text-align: center;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-        }
-        
-        .contact-card a {
-            color: var(--accent-gold);
-            text-decoration: none;
-        }
-        
-        .contact-card a:hover {
-            text-decoration: underline;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            h1 {
-                font-size: 1.5rem;
-            }
-            
-            h2 {
-                font-size: 1.2rem;
-            }
-            
-            .bismillah .arabic {
-                font-size: 1.3rem;
-            }
-        }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Terms of Service | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage:#5a8d7d; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:20px; --ease:cubic-bezier(.4,0,.2,1); --header-h:68px;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); line-height:1.7; -webkit-font-smoothing:antialiased; }
+h1,h2 { font-family:'Fraunces',Georgia,serif; font-weight:600; color:var(--charcoal); }
+a { color:var(--blue); }
+
+header { height:var(--header-h); background:rgba(250,249,246,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--hairline); display:flex; align-items:center; justify-content:space-between; padding:0 clamp(14px,4vw,28px); position:fixed; top:0; left:0; right:0; z-index:1000; }
+.logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.logo-icon { width:36px; height:36px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--hairline); }
+.logo-text { font-family:'Fraunces',serif; font-size:1.25rem; font-weight:600; color:var(--charcoal); }
+.back-link { font-size:13.5px; color:var(--charcoal-soft); text-decoration:none; display:flex; align-items:center; gap:6px; }
+.back-link:hover { color:var(--charcoal); }
+
+main { max-width:760px; margin:0 auto; padding:calc(var(--header-h) + 32px) clamp(16px,4vw,28px) 60px; }
+.doc-header { margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--hairline); }
+.doc-header h1 { font-size:clamp(1.8rem,5vw,2.4rem); margin-bottom:8px; }
+.doc-header .updated { font-size:13px; color:var(--text-muted); }
+
+.notice { background:var(--gold-tint); border:1px solid transparent; border-radius:var(--radius-md); padding:16px 18px; margin-bottom:32px; font-size:13.5px; color:var(--charcoal-soft); display:flex; gap:12px; }
+.notice i { color:var(--gold-deep); flex-shrink:0; margin-top:2px; }
+
+.doc-section { margin-bottom:30px; }
+.doc-section h2 { font-size:1.25rem; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--hairline); }
+.doc-section p { font-size:14.5px; color:var(--charcoal-soft); margin:0 0 12px; }
+.doc-section ul { margin:0 0 12px; padding-left:20px; }
+.doc-section li { font-size:14.5px; color:var(--charcoal-soft); margin-bottom:6px; }
+.doc-section strong { color:var(--charcoal); }
+
+.toc { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:36px; }
+.toc h3 { font-family:'Inter',sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin:0 0 12px; }
+.toc ol { margin:0; padding-left:18px; columns:2; column-gap:20px; }
+.toc li { font-size:13px; margin-bottom:8px; break-inside:avoid; }
+.toc a { color:var(--charcoal-soft); text-decoration:none; }
+.toc a:hover { color:var(--blue); }
+
+@media (max-width:600px) { .toc ol { columns:1; } }
+</style>
 </head>
 <body>
-    <div class="bismillah">
-        <span class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
-        <span class="english">In the name of Allah, the Most Gracious, the Most Merciful</span>
-    </div>
 
-    <div class="container">
-        <h1>📜 Core Insight Terms of Service</h1>
-        
-        <div class="last-updated">
-            <strong>Last Updated:</strong> May 12, 2026
-        </div>
-        
-        <div class="highlight">
-            <strong>⚠️ Important:</strong> By using Core Insight, you agree to these terms. Please read them carefully.
-        </div>
-        
-        <h2>1. Introduction</h2>
-        <p>Welcome to Core Insight ("we," "our," "us"). These Terms of Service ("Terms") govern your use of our website, services, and platform. By accessing or using Core Insight, you agree to be bound by these Terms.</p>
-        
-        <h2>2. Account Types & Registration</h2>
-        <p>When you sign up for Core Insight, you must choose one of two account types:</p>
-        
-        <h3>2.1 Buyer (Client)</h3>
-        <ul>
-            <li>Can purchase digital products, physical products, and courses</li>
-            <li>Can hire freelancers for services</li>
-            <li>No subscription fees required</li>
-            <li>Free access to all marketplace features</li>
-        </ul>
-        
-        <h3>2.2 Seller (Freelancer)</h3>
-        <ul>
-            <li>Can list services and products for sale</li>
-            <li>Earn money from sales (subject to platform fees)</li>
-            <li>Must maintain active subscription (free trial: 90 days)</li>
-            <li>Required to provide valid payment information</li>
-            <li>Subject to verification process</li>
-        </ul>
-        
-        <h2>3. Platform Fees & Payments</h2>
-        
-        <h3>3.1 Transaction Fees</h3>
-        <p>Core Insight charges a 10% platform fee on all successful transactions. This fee covers:</p>
-        <ul>
-            <li>Payment processing costs</li>
-            <li>Platform maintenance and development</li>
-            <li>Customer support services</li>
-            <li>Marketing and promotion</li>
-        </ul>
-        
-        <h3>3.2 Fee Breakdown Example</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Product Price</td>
-                    <td>$100.00</td>
-                </tr>
-                <tr>
-                    <td>Platform Fee (10%)</td>
-                    <td>$10.00</td>
-                </tr>
-                <tr>
-                    <td><strong>Seller Earnings</strong></td>
-                    <td><strong>$90.00</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <h2>4. Courses & Books Section - Important Disclosure</h2>
-        
-        <div class="knowledge-box">
-            <h3 style="color: var(--success); margin-top: 0;">📚 Free Books & Knowledge Sharing</h3>
-            <p><strong>Core Insight serves as a platform for sharing beneficial knowledge.</strong> Regarding the Courses section:</p>
-            <ul>
-                <li><strong>Free books and courses uploaded are NOT owned by Core Insight.</strong> They are shared by users for educational and knowledge-sharing purposes.</li>
-                <li><strong>Our role is to provide a medium</strong> for users to share and access beneficial knowledge, including free books, documents, and educational materials.</li>
-                <li><strong>Paid courses are different</strong> - They are sold by verified instructors/providers, and Core Insight facilitates the transaction.</li>
-                <li><strong>Copyright notice:</strong> If you are a copyright owner and believe your work has been shared without permission, contact us immediately with proof of ownership, and we will remove the content.</li>
-                <li><strong>Users uploading content</strong> must have the right to share the material. Do not upload copyrighted content without permission.</li>
-                <li><strong>We encourage knowledge sharing</strong> - The goal is to spread beneficial knowledge, especially free educational resources.</li>
-            </ul>
-            <p style="margin-top: 10px;"><strong>📖 For paid courses:</strong> These are sold by instructors. The 10% platform fee applies, and you have a 7-day refund window for paid courses.</p>
-        </div>
-        
-        <h2>5. Services Section - Important Disclosure</h2>
-        
-        <div class="warning-box">
-            <h3 style="color: var(--danger); margin-top: 0;">⚠️ Services Are Between Buyers and Freelancers</h3>
-            <p><strong>Core Insight is a marketplace that connects buyers with freelancers.</strong> The platform provides a medium for both parties to meet, discuss, offer, and receive services. However:</p>
-            <ul>
-                <li><strong>We do not handle funds for services</strong> - Payments for services are arranged directly between buyers and freelancers outside of our platform.</li>
-                <li><strong>We are not a party to any service agreement</strong> - The terms, pricing, delivery, and quality of services are solely between the buyer and the freelancer.</li>
-                <li><strong>Fraudulent practices can be reported</strong> - If you encounter fraudulent behavior, please report it immediately through our support system.</li>
-                <li><strong>We provide the meeting ground</strong> - Our role is limited to providing the platform where freelancers and clients can connect and communicate.</li>
-                <li><strong>The rest is up to you</strong> - Due diligence, negotiations, and final agreements are the responsibility of the parties involved.</li>
-            </ul>
-            <p style="margin-top: 10px;"><strong>Recommendation:</strong> Always communicate clearly about deliverables, timelines, and payment terms before starting any service arrangement.</p>
-        </div>
-        
-        <h2>6. Digital Products - Important Disclosure</h2>
-        
-        <div class="warning-box">
-            <h3 style="color: var(--warning); margin-top: 0;">📱 Digital Products Are Sold Directly by Sellers</h3>
-            <p><strong>Core Insight does not handle funds for digital products either.</strong> When you purchase a digital product:</p>
-            <ul>
-                <li>The transaction is between you and the seller via the integrated payment gateway (Paystack/Flutterwave).</li>
-                <li>The 10% platform fee is automatically deducted, but the funds are not held by Core Insight.</li>
-                <li>If you feel scammed or the product does not match the description, you may report the seller through our support system.</li>
-                <li>We will investigate and take appropriate action against fraudulent sellers, including account suspension or banning.</li>
-                <li>However, <strong>Core Insight cannot issue refunds for digital products</strong> - the funds are directly with the seller after the 10% platform fee is deducted.</li>
-                <li>We encourage buyers to check seller ratings and reviews before making a purchase.</li>
-            </ul>
-            <p style="margin-top: 10px;"><strong>⚠️ Note:</strong> Digital products are generally non-refundable once downloaded. Report any seller misconduct immediately.</p>
-        </div>
-        
-        <h2>7. Your Responsibility as a User</h2>
-        
-        <div class="info-box">
-            <h3 style="color: var(--accent-blue); margin-top: 0;">🤝 Due Diligence Is Your Responsibility</h3>
-            <p>Core Insight provides the platform, but <strong>you are responsible for:</strong></p>
-            <ul>
-                <li>Verifying the credibility of freelancers, sellers, or buyers before engaging in any transaction.</li>
-                <li>Ensuring you have the right to share any content you upload (especially in the Courses section).</li>
-                <li>Negotiating clear terms for services, including pricing, deliverables, and timelines.</li>
-                <li>Keeping records of your communications and agreements.</li>
-                <li>Reporting any suspicious or fraudulent activity immediately.</li>
-                <li>Understanding that we are not liable for any losses arising from service agreements made through our platform.</li>
-                <li>Respecting copyright laws when sharing books and educational materials.</li>
-            </ul>
-        </div>
-        
-        <h2>8. Final Decision Authority</h2>
-        
-        <div class="final-decision-box">
-            <h3 style="color: var(--accent-gold); margin-top: 0;">⚖️ All Decisions Are Final</h3>
-            <p><strong>Core Insight reserves the right to make the final determination regarding all matters and disputes that may occur on the site.</strong> This includes, but is not limited to:</p>
-            <ul>
-                <li><strong>Account suspensions or terminations</strong> - Whether temporary or permanent, for any violation of these Terms.</li>
-                <li><strong>Content removal decisions</strong> - Including but not limited to products, services, courses, books, reviews, or any user-generated content.</li>
-                <li><strong>Dispute resolutions</strong> - Any disagreement between users regarding transactions, services, or platform usage.</li>
-                <li><strong>Refund determinations</strong> - Whether a refund is warranted (where applicable).</li>
-                <li><strong>Policy interpretations</strong> - How any term or condition is interpreted and applied.</li>
-                <li><strong>Flag/report outcomes</strong> - Whether reported content or behavior violates our policies.</li>
-                <li><strong>Verification decisions</strong> - Approval or rejection of seller/freelancer accounts.</li>
-                <li><strong>Fraud investigations</strong> - Determination of fraudulent activity and subsequent actions.</li>
-                <li><strong>Any other matter</strong> - Any issue, dispute, or concern arising from the use of the Core Insight platform.</li>
-            </ul>
-            <p><strong>⚠️ Important:</strong> All decisions made by Core Insight management and administration are final, binding, and not subject to appeal. By using our platform, you agree to accept our decisions as conclusive regarding any matter or dispute.</p>
-            <p style="margin-top: 10px;">While we strive to be fair and transparent, we reserve the right to make the ultimate determination in all situations to protect the integrity of the platform and the safety of our community.</p>
-        </div>
-        
-        <h2>9. Content Guidelines</h2>
-        
-        <h3>9.1 Prohibited Content</h3>
-        <p>You may not upload, share, or sell content that:</p>
-        <ul>
-            <li>Infringes on intellectual property rights (copyrighted books, etc.)</li>
-            <li>Contains illegal materials or promotes illegal activities</li>
-            <li>Includes hate speech, harassment, or discrimination</li>
-            <li>Contains malware, viruses, or harmful code</li>
-            <li>Promotes fraudulent or deceptive practices</li>
-            <li>Includes adult or explicit content</li>
-        </ul>
-        
-        <h3>9.2 Copyright & Knowledge Sharing</h3>
-        <ul>
-            <li><strong>For free books:</strong> Share only books and materials you have the right to share or that are in the public domain.</li>
-            <li><strong>For paid courses:</strong> You must be the original creator or have explicit permission to sell the content.</li>
-            <li><strong>Copyright infringement:</strong> If you believe your copyrighted work has been shared without permission, contact <strong>suppourtcoreinsight@gmail.com</strong> with proof of ownership, and we will remove it within 48 hours.</li>
-        </ul>
-        
-        <h3>9.3 Reporting Violations</h3>
-        <p>If you encounter any prohibited content or suspicious behavior:</p>
-        <ul>
-            <li>Use the <strong>flag/report button</strong> on any suspicious user, product, or service</li>
-            <li>Email our support team at <strong>suppourtcoreinsight@gmail.com</strong></li>
-            <li>Provide as much detail as possible (screenshots, links, descriptions)</li>
-            <li>For copyright claims, include proof of ownership</li>
-            <li>Our team will investigate and take appropriate action within 48 hours</li>
-            <li><strong>Our decision regarding the outcome of any report is final.</strong></li>
-        </ul>
-        
-        <h2>10. Payment Processing & Refunds</h2>
-        
-        <h3>10.1 Payment Providers</h3>
-        <p>We use secure third-party payment processors:</p>
-        <ul>
-            <li><strong>Flutterwave</strong> - For international payments</li>
-            <li><strong>Paystack</strong> - For African markets</li>
-        </ul>
-        
-        <h3>10.2 Refund Policy</h3>
-        <ul>
-            <li><strong>Digital Products:</strong> Non-refundable once downloaded. Report fraudulent sellers instead.</li>
-            <li><strong>Physical Products:</strong> Returns accepted within 14 days of delivery (subject to seller's policy).</li>
-            <li><strong>Services:</strong> Refunds are determined between you and the freelancer. Core Insight does not mediate service refunds.</li>
-            <li><strong>Free Courses/Books:</strong> No refunds apply as they are free. Report issues with the content instead.</li>
-            <li><strong>Paid Courses:</strong> Full refund within 7 days of purchase if not satisfied.</li>
-        </ul>
-        <p><strong>Note:</strong> All refund decisions made by Core Insight are final and binding.</p>
-        
-        <h2>11. Account Suspension & Termination</h2>
-        <p>Core Insight reserves the right to suspend or terminate accounts that:</p>
-        <ul>
-            <li>Violate these Terms of Service</li>
-            <li>Share copyrighted content without permission</li>
-            <li>Engage in fraudulent or deceptive practices</li>
-            <li>Receive multiple valid complaints from other users</li>
-            <li>Attempt to manipulate the platform or scam other users</li>
-            <li>Fail to maintain subscription (for freelancers)</li>
-        </ul>
-        <p><strong>Decision Authority:</strong> Core Insight has the sole authority to determine whether a violation has occurred and the appropriate action to take. These decisions are final.</p>
-        
-        <h2>12. Limitation of Liability</h2>
-        <div class="warning-box">
-            <p><strong>Core Insight is NOT liable for:</strong></p>
-            <ul>
-                <li><strong>Services:</strong> Any losses, damages, or disputes arising from service agreements between buyers and freelancers.</li>
-                <li><strong>Digital Products:</strong> Quality, functionality, or delivery of digital products (report issues directly to the seller).</li>
-                <li><strong>Free Books/Courses:</strong> The accuracy, quality, or copyright status of free shared content (report violations for removal).</li>
-                <li><strong>Payment Issues:</strong> Problems with third-party payment processors (Paystack, Flutterwave).</li>
-                <li><strong>Fraud:</strong> Losses resulting from fraudulent activity by other users (report such activity to us immediately).</li>
-                <li><strong>Technical Issues:</strong> Platform downtime, data loss, or technical errors beyond our reasonable control.</li>
-            </ul>
-            <p style="margin-top: 10px;">Our maximum liability is limited to the amount you paid in platform fees over the past 12 months. <strong>All decisions made by Core Insight regarding liability and disputes are final.</strong></p>
-        </div>
-        
-        <h2>13. Reporting Fraud & Dispute Resolution</h2>
-        
-        <h3>13.1 How to Report Fraud</h3>
-        <ul>
-            <li>Use the <strong>flag/report button</strong> on any suspicious user, product, or service</li>
-            <li>Email: <strong>suppourtcoreinsight@gmail.com</strong> with details and evidence</li>
-            <li>Include order numbers, screenshots, and communication logs</li>
-            <li>Our team will investigate within 24-48 hours</li>
-        </ul>
-        
-        <h3>13.2 Dispute Resolution Process</h3>
-        <ul>
-            <li>All disputes shall first be attempted to be resolved through our customer support system.</li>
-            <li>If unresolved, Core Insight management will review the case and make a final determination.</li>
-            <li><strong>The decision of Core Insight management is final and binding regarding all platform-related disputes.</strong></li>
-            <li>Users agree not to pursue external disputes regarding matters that have been decided by Core Insight.</li>
-        </ul>
-        
-        <h3>13.3 What Happens After a Report</h3>
-        <ul>
-            <li>We review the complaint and gather information from both parties</li>
-            <li>If a violation is confirmed, we may warn, suspend, or ban the offending account</li>
-            <li>We keep records of flagged accounts and may take legal action in serious cases</li>
-            <li><strong>However, Core Insight cannot recover lost funds</strong> - that responsibility lies with law enforcement and payment providers</li>
-            <li><strong>Our decision regarding the outcome is final</strong> and not subject to further review</li>
-        </ul>
-        
-        <h2>14. Governing Law & Jurisdiction</h2>
-        <p>These Terms shall be governed by and construed in accordance with the laws of Nigeria. Any legal action or proceeding arising under these Terms shall be brought exclusively in the courts located in Nigeria, and the parties hereby consent to the personal jurisdiction and venue thereof.</p>
-        
-        <h2>15. Modifications to Terms</h2>
-        <p>We may update these Terms periodically. Continued use of the platform after changes constitutes acceptance of new Terms. We will notify users of significant changes via email or platform notification.</p>
-        
-        <h2>16. Need More Information?</h2>
-        
-        <div class="contact-card">
-            <h3 style="color: var(--accent-gold); margin-top: 0;">📧 Contact Us</h3>
-            <p>If you have questions, concerns, or need clarification about these Terms:</p>
-            <p><strong>Email:</strong> <a href="mailto:suppourtcoreinsight@gmail.com">suppourtcoreinsight@gmail.com</a></p>
-            <p><strong>Response Time:</strong> Within 24-48 hours</p>
-            <p><strong>Support Hours:</strong> Monday-Friday, 9 AM - 6 PM (WAT)</p>
-            <hr style="margin: 1rem 0;">
-            <p style="font-size: 0.9rem;">For urgent matters, include "URGENT" in your email subject line.</p>
-            <p style="font-size: 0.9rem;">For copyright claims, include "COPYRIGHT CLAIM" in the subject line.</p>
-            <p style="font-size: 0.9rem;">For dispute appeals, include "DISPUTE APPEAL" in the subject line. <strong>Note: All decisions are final.</strong></p>
-        </div>
-        
-        <div class="highlight">
-            <p><strong>📌 Summary of What You Need to Know:</strong></p>
-            <ul>
-                <li><strong>Free Books/Courses:</strong> Shared by users for knowledge. Not owned by Core Insight. Report copyright violations.</li>
-                <li><strong>Services:</strong> Between you and freelancers. We only provide the meeting ground.</li>
-                <li><strong>Digital Products:</strong> Sold directly by sellers. We don't hold funds. Report fraud.</li>
-                <li><strong>Physical Products:</strong> Our standard marketplace. 10% platform fee applies.</li>
-                <li><strong>Due diligence is YOUR responsibility.</strong> Always verify before transacting.</li>
-                <li><strong>Report suspicious activity</strong> immediately to help keep the platform safe.</li>
-                <li><strong>⚖️ ALL DECISIONS MADE BY CORE INSIGHT ARE FINAL</strong> - Regarding disputes, account actions, content removal, and any other matter on the site.</li>
-            </ul>
-        </div>
-        
-        <div class="final-decision-box" style="margin-top: 1rem; text-align: center;">
-            <p><strong>By using Core Insight, you acknowledge and agree that all decisions made by Core Insight management and administration are final and binding regarding any matter or dispute arising from your use of the platform.</strong></p>
-        </div>
-        
-        <hr>
-        
-        <p style="text-align: center;">
-            <a href="/signup.html" class="back-link">← Back to Sign Up</a>
-        </p>
-        
-        <p style="text-align: center; font-size: 0.8rem; color: var(--text-gray); margin-top: 2rem;">
-            &copy; 2026 Core Insight. 
-        </p>
-    </div>
+<header>
+  <a href="index.html" class="logo">
+    <div class="logo-icon"><img src="https://i.pinimg.com/736x/27/7a/12/277a1257f00946e8337c57ac43c9b700.jpg" alt="Core Insight" style="width:100%;height:100%;object-fit:cover;"></div>
+    <span class="logo-text">Core Insight</span>
+  </a>
+  <a href="signup.html" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+</header>
+
+<main>
+  <div class="doc-header">
+    <h1>Terms of Service</h1>
+    <span class="updated">Last updated: September 2026</span>
+  </div>
+
+  
+
+  <div class="toc">
+    <h3>On this page</h3>
+    <ol>
+      <li><a href="#acceptance">Acceptance of Terms</a></li>
+      <li><a href="#eligibility">Eligibility</a></li>
+      <li><a href="#accounts">Accounts</a></li>
+      <li><a href="#fees">Platform Fees</a></li>
+      <li><a href="#content">Listings &amp; Content</a></li>
+      <li><a href="#payments">Payments &amp; Escrow</a></li>
+      <li><a href="#pod">Pay on Delivery</a></li>
+      <li><a href="#disputes">Disputes &amp; Resolution</a></li>
+      <li><a href="#payouts">Seller Verification &amp; Payouts</a></li>
+      <li><a href="#physical">In-Person Services</a></li>
+      <li><a href="#prohibited">Prohibited Uses</a></li>
+      <li><a href="#ip">Intellectual Property</a></li>
+      <li><a href="#suspension">Suspension &amp; Termination</a></li>
+      <li><a href="#liability">Limitation of Liability</a></li>
+      <li><a href="#law">Governing Law</a></li>
+      <li><a href="#changes">Changes to These Terms</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ol>
+  </div>
+
+  <div class="doc-section" id="acceptance">
+    <h2>1. Acceptance of Terms</h2>
+    <p>By creating an account or using Core Insight in any way, you agree to be bound by these Terms of Service. If you do not agree, please do not use the platform.</p>
+  </div>
+
+  <div class="doc-section" id="eligibility">
+    <h2>2. Eligibility</h2>
+    <p>You must be at least 18 years old, or the age of legal majority in your jurisdiction, to create an account and use Core Insight. By registering, you confirm that you meet this requirement.</p>
+  </div>
+
+  <div class="doc-section" id="accounts">
+    <h2>3. Accounts</h2>
+    <p>Core Insight uses a single account model — there is no separate "buyer" or "seller" account type. Every account can browse and purchase immediately, and can begin offering services, courses, products, or articles at any time without a separate application or approval step.</p>
+    <p>You are responsible for maintaining the confidentiality of your login credentials and for all activity under your account. Notify us immediately if you believe your account has been accessed without authorization.</p>
+  </div>
+
+  <div class="doc-section" id="fees">
+    <h2>4. Platform Fees</h2>
+    <p>Core Insight charges a flat <strong>10% platform fee</strong> on completed sales made through services, courses, and products. This fee is deducted automatically at the time of transaction. There is no cost to create a listing, publish a course, or post an article.</p>
+    <p>There are no subscription plans, tiered pricing, or recurring fees of any kind.</p>
+  </div>
+
+  <div class="doc-section" id="content">
+    <h2>5. Listings &amp; Content</h2>
+    <p>You are solely responsible for the accuracy of listings, descriptions, pricing, and any content you publish (including articles, service descriptions, course materials, and product listings). Listings must not be misleading, and physical product conditions must be accurately described.</p>
+    <p>You retain ownership of content you create and publish, but grant Core Insight a license to display, distribute, and promote that content within the platform for the purpose of operating the marketplace.</p>
+  </div>
+
+  <div class="doc-section" id="payments">
+    <h2>6. Payments &amp; Escrow</h2>
+    <p>Payments for services and physical products are held in escrow — meaning funds are not released to the seller until the buyer confirms satisfactory delivery, or an applicable protection window has passed without a dispute being raised.</p>
+    <p>For custom or negotiated work, both parties must explicitly agree to a final price via the platform's quote system before any payment is collected. A quote is binding once accepted by the receiving party.</p>
+    <p>Payments are processed through Flutterwave, a third-party payment processor. Core Insight does not store full card or bank credentials directly; payment data is handled according to Flutterwave's own security standards.</p>
+  </div>
+
+  <div class="doc-section" id="pod">
+    <h2>7. Pay on Delivery</h2>
+    <p>For eligible physical goods, sellers may offer Pay on Delivery. To accept a Pay on Delivery order, a seller must have the applicable platform fee available in their Core Insight wallet at the time of acceptance — this requirement applies equally to all sellers regardless of sales history or standing.</p>
+    <p>Sellers who repeatedly fail to fulfill accepted Pay on Delivery orders may have this feature restricted or removed.</p>
+  </div>
+
+  <div class="doc-section" id="disputes">
+    <h2>8. Disputes &amp; Resolution</h2>
+    <p>If a buyer or seller believes an order was not fulfilled as agreed, either party may open a dispute before funds are released from escrow. Once a dispute is opened, the related funds are frozen pending review.</p>
+    <p>Core Insight reviews disputed orders and makes a final determination on whether funds are released to the seller or refunded to the buyer. Response windows apply at various stages of an order (for example, sellers generally have 24 hours to accept a new order, and 4 hours to respond to a client's decision on a mid-job change order); failure to respond within these windows may result in automatic cancellation or resolution in the other party's favor.</p>
+    <p>Core Insight's decision on a dispute is final. We encourage both parties to communicate clearly and keep records (messages, quotes, photos) that support their position, as this information may be reviewed during a dispute.</p>
+  </div>
+
+  <div class="doc-section" id="payouts">
+    <h2>9. Seller Verification &amp; Payouts</h2>
+    <p>To receive payouts, sellers must link a valid bank account or payout method and may be required to complete identity verification. Listings that are published without a linked payout method will not generate earnings until this is completed.</p>
+    <p>Payout and banking information you provide is transmitted securely to our payment processor and is used solely to facilitate payment to you.</p>
+  </div>
+
+  <div class="doc-section" id="physical">
+    <h2>10. In-Person Services</h2>
+    <p>Some services listed on Core Insight involve a provider traveling to, or a client visiting, a physical location. Core Insight is a platform that connects clients and independent service providers — <strong>we are not a party to the underlying service agreement and do not employ, supervise, or guarantee the conduct of any provider.</strong></p>
+    <p>Arrival verification codes and other in-app safety features are provided as tools to help confirm that a scheduled visit has taken place; they are not a guarantee of safety, and users should exercise the same judgment and caution they would when engaging any independent contractor. Core Insight strongly encourages meeting in appropriate settings and verifying provider credentials where relevant.</p>
+  </div>
+
+  <div class="doc-section" id="prohibited">
+    <h2>11. Prohibited Uses</h2>
+    <p>You may not use Core Insight to:</p>
+    <ul>
+      <li>List or sell illegal goods or services, or goods obtained illegally;</li>
+      <li>Engage in fraud, including misrepresenting a listing, identity, or qualifications;</li>
+      <li>Infringe on the intellectual property rights of others;</li>
+      <li>Circumvent the platform's payment or escrow system (e.g., soliciting off-platform payment to avoid fees or buyer protection);</li>
+      <li>Harass, threaten, or discriminate against other users;</li>
+      <li>Attempt to manipulate ratings, reviews, or the seller ranking system.</li>
+    </ul>
+  </div>
+
+  <div class="doc-section" id="ip">
+    <h2>12. Intellectual Property</h2>
+    <p>The Core Insight Market name, logo, and platform design are the property of Core Insight. You may not use them without written permission. Content you upload remains yours, subject to the license described in Section 5.</p>
+  </div>
+
+  <div class="doc-section" id="suspension">
+    <h2>13. Suspension &amp; Termination</h2>
+    <p>We reserve the right to suspend or terminate accounts that violate these Terms, including for repeated disputes found in a user's disfavor, fraudulent activity, or failure to fulfill accepted orders. Funds already legitimately earned and released prior to suspension are not affected.</p>
+  </div>
+
+  <div class="doc-section" id="liability">
+    <h2>14. Limitation of Liability</h2>
+    <p>Core Insight provides the platform "as is." To the maximum extent permitted by law, Core Insight is not liable for indirect, incidental, or consequential damages arising from your use of the platform, transactions between users, or the conduct of any user, including in the context of in-person services.</p>
+  </div>
+
+  <div class="doc-section" id="law">
+    <h2>15. Governing Law</h2>
+    <p>These Terms are governed by the laws of the jurisdiction in which Core Insight is registered to operate, without regard to conflict-of-law principles. <em>[To be finalized with your legal counsel based on your actual registered jurisdiction.]</em></p>
+  </div>
+
+  <div class="doc-section" id="changes">
+    <h2>16. Changes to These Terms</h2>
+    <p>We may update these Terms from time to time. Material changes will be reflected by an updated "Last updated" date at the top of this page. Continued use of the platform after changes take effect constitutes acceptance of the revised Terms.</p>
+  </div>
+
+  <div class="doc-section" id="contact">
+    <h2>17. Contact</h2>
+    <p>Questions about these Terms can be sent to <a href="mailto:suppourtcoreinsight@gmail.com">suppourtcoreinsight@gmail.com</a> or via our <a href="contact.html">Contact page</a>.</p>
+  </div>
+</main>
+
 </body>
 </html>

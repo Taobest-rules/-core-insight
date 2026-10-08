@@ -1,137 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Successful - Core Insight</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
-            color: #e6f1ff; 
-            min-height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            padding: 20px;
-        }
-        .container { max-width: 500px; margin: 0 auto; width: 100%; }
-        .success-card { 
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px; 
-            padding: 40px; 
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-        }
-        /* Marketplace Banner - Replacement for Bismillah */
-        .marketplace-banner {
-            text-align: center;
-            padding: 1rem;
-            background: rgba(255, 215, 0, 0.08);
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 215, 0, 0.25);
-            transition: all 0.3s ease;
-        }
-        .marketplace-banner span {
-            color: gold;
-            font-size: 1.1rem;
-            line-height: 1.5;
-            display: block;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .marketplace-banner span:first-child {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.3rem;
-            color: #FFD700;
-            text-shadow: 0 0 8px rgba(255,215,0,0.3);
-        }
-        .marketplace-banner span:last-child {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #FFD700;
-            opacity: 0.95;
-        }
-        .success-icon { 
-            width: 80px; 
-            height: 80px; 
-            background: rgba(16, 185, 129, 0.2); 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            margin: 0 auto 24px; 
-        }
-        .success-icon i { font-size: 48px; color: #10b981; }
-        h1 { color: #10b981; margin-bottom: 16px; }
-        p { color: #94a3b8; margin-bottom: 24px; line-height: 1.6; }
-        .btn { 
-            display: inline-block; 
-            background: linear-gradient(135deg, #FFD700, #D4AF37);
-            color: #0f172a;
-            padding: 12px 32px; 
-            border-radius: 12px; 
-            text-decoration: none; 
-            font-weight: 600; 
-            margin: 8px; 
-            transition: all 0.3s; 
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,215,0,0.3); }
-        .btn-outline { background: transparent; border: 1px solid #3b82f6; color: #3b82f6; }
-        .btn-outline:hover { background: rgba(59, 130, 246, 0.1); box-shadow: none; }
-        .escrow-note {
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        
-        @media (max-width: 480px) {
-            .success-card { padding: 25px; }
-            .marketplace-banner span:first-child { font-size: 1.3rem; }
-            .marketplace-banner span:last-child { font-size: 0.75rem; }
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Payment Successful | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage:#5a8d7d; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+  --shadow-modal:0 24px 60px rgba(43,43,40,.18); --ease:cubic-bezier(.4,0,.2,1);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; -webkit-font-smoothing:antialiased; }
+h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; color:var(--sage-deep); margin-bottom:12px; font-size:1.6rem; }
+a { color:var(--blue); }
+
+.container { max-width:440px; width:100%; }
+
+.marketplace-banner { text-align:center; padding:14px; background:var(--gold-tint); border-radius:var(--radius-md); margin-bottom:20px; }
+.marketplace-banner span { display:block; color:var(--gold-deep); }
+.marketplace-banner span:first-child { font-family:'Fraunces',serif; font-size:1.05rem; font-weight:600; margin-bottom:3px; }
+.marketplace-banner span:last-child { font-size:11.5px; font-weight:600; letter-spacing:.04em; opacity:.9; }
+
+.success-card { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:clamp(28px,7vw,40px) clamp(22px,6vw,32px); text-align:center; box-shadow:var(--shadow-modal); }
+
+.success-icon { width:72px; height:72px; background:#e6efe9; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 22px; }
+.success-icon i { font-size:36px; color:var(--sage-deep); }
+
+.success-card p { color:var(--charcoal-soft); margin:0 0 20px; line-height:1.6; font-size:14px; }
+
+.order-id-box { background:var(--cream); border:1px solid var(--hairline); border-radius:var(--radius-md); padding:12px 16px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.order-id-box .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); }
+.order-id-box .val { font-family:'Fraunces',serif; font-weight:600; font-size:14px; color:var(--charcoal); }
+
+.btn-row { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:var(--radius-sm); border:1px solid var(--hairline-strong); background:var(--paper); color:var(--charcoal); font-weight:600; font-size:14px; text-decoration:none; cursor:pointer; transition:var(--ease); }
+.btn:hover { background:var(--cream-deep); }
+.btn.primary { background:var(--gold); border-color:var(--gold); color:var(--charcoal); }
+.btn.primary:hover { background:var(--gold-deep); }
+
+.escrow-note { display:flex; align-items:flex-start; gap:9px; background:#e3ecf5; border-radius:var(--radius-md); padding:13px 15px; margin-top:20px; font-size:12.5px; color:var(--blue-deep); text-align:left; }
+.escrow-note i { margin-top:1px; flex-shrink:0; }
+
+@media (max-width:480px) {
+  .success-card { padding:26px 20px; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
-        <div class="marketplace-banner">
-            <span style="color: gold;">Core Insight MarketPlace</span>
-            <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-        </div>
-        <div class="success-card">
-            <div class="success-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <h1>Payment Successful! 🎉</h1>
-            <p>Your payment has been processed successfully.<br>Your order is now being processed.</p>
-            <div style="margin-top: 24px;">
-                <a href="/products.html" class="btn">Continue Shopping</a>
-                <a href="/order-tracking.html" class="btn btn-outline">Track Order</a>
-            </div>
-            <div class="escrow-note">
-                <i class="fas fa-lock"></i> Your payment is held in escrow for 7 days. 
-                You can request a refund within this period if needed.
-            </div>
-        </div>
+
+  <div class="container">
+    <div class="marketplace-banner">
+      <span>Core Insight Marketplace</span>
+      <span>The One Place Where Everyone Is Welcomed</span>
     </div>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const orderId = urlParams.get('orderId');
-        if (orderId) {
-            console.log('Order ID:', orderId);
-        }
-    </script>
+
+    <div class="success-card">
+      <div class="success-icon"><i class="fas fa-circle-check"></i></div>
+      <h1>Payment Successful 🎉</h1>
+      <p>Your payment has been processed successfully.<br>Your order is now being processed.</p>
+
+      <div class="order-id-box" id="orderIdBox" style="display:none;">
+        <span class="lbl">Order ID</span>
+        <span class="val" id="orderIdValue"></span>
+      </div>
+
+      <div class="btn-row">
+        <a href="/products.html" class="btn primary"><i class="fas fa-store"></i> Continue Shopping</a>
+        <a href="/order-tracking.html" id="trackOrderLink" class="btn"><i class="fas fa-truck-fast"></i> Track This Order</a>
+      </div>
+
+      <div class="escrow-note">
+        <i class="fas fa-shield-halved"></i>
+        <span>Your payment is held in escrow for 7 days. You can request a refund within this period if needed.</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderId = urlParams.get('orderId');
+
+  if (orderId) {
+    // Previously this was fetched but only logged to the console —
+    // never actually shown to the person who just paid. Now it
+    // displays on the confirmation itself.
+    document.getElementById('orderIdValue').textContent = orderId;
+    document.getElementById('orderIdBox').style.display = 'flex';
+
+    // Corrected: order-tracking.html is a real, dedicated page —
+    // confirmed after building it out. Points there now with the
+    // correct ?orderId= param it actually expects.
+    document.getElementById('trackOrderLink').href = `/order-tracking.html?orderId=${encodeURIComponent(orderId)}`;
+  }
+</script>
+
 </body>
 </html>

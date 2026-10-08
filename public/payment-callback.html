@@ -1,299 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Processing - Core Insight</title>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background: linear-gradient(135deg, #0a192f 0%, #1e1b4b 100%);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            max-width: 500px;
-            width: 100%;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-        }
-        /* Marketplace Banner - Replacement for Bismillah */
-        .marketplace-banner {
-            text-align: center;
-            padding: 1rem;
-            background: rgba(255, 215, 0, 0.08);
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 215, 0, 0.25);
-            transition: all 0.3s ease;
-        }
-        .marketplace-banner span {
-            color: gold;
-            font-size: 1.1rem;
-            line-height: 1.5;
-            display: block;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .marketplace-banner span:first-child {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.3rem;
-            color: #FFD700;
-            text-shadow: 0 0 8px rgba(255,215,0,0.3);
-        }
-        .marketplace-banner span:last-child {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #FFD700;
-            opacity: 0.95;
-        }
-        h2 { color: #e6f1ff; margin-bottom: 24px; }
-        .spinner {
-            border: 4px solid #334155;
-            border-top-color: #FFD700;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .success { color: #10b981; }
-        .error { color: #ef4444; }
-        .btn, .download-btn, .watch-btn {
-            padding: 12px 28px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin: 10px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .btn {
-            background: linear-gradient(135deg, #FFD700, #D4AF37);
-            color: #0f172a;
-        }
-        .download-btn {
-            background: #10b981;
-            color: white;
-        }
-        .watch-btn {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: white;
-        }
-        .btn:hover, .download-btn:hover, .watch-btn:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .product-info {
-            background: rgba(16, 185, 129, 0.1);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .course-info {
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        
-        @media (max-width: 480px) {
-            .container { padding: 25px; }
-            .marketplace-banner span:first-child { font-size: 1.3rem; }
-            .marketplace-banner span:last-child { font-size: 0.75rem; }
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Payment Processing | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage:#5a8d7d; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2;
+  --danger:#b3492f; --danger-tint:#f7e6e1;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+  --shadow-modal:0 24px 60px rgba(43,43,40,.18); --ease:cubic-bezier(.4,0,.2,1);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; -webkit-font-smoothing:antialiased; }
+h2 { font-family:'Fraunces',Georgia,serif; font-weight:600; color:var(--charcoal); margin-bottom:20px; }
+
+.container { max-width:480px; width:100%; background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:clamp(28px,7vw,40px) clamp(22px,6vw,32px); text-align:center; box-shadow:var(--shadow-modal); }
+
+.marketplace-banner { text-align:center; padding:14px; background:var(--gold-tint); border-radius:var(--radius-md); margin-bottom:20px; }
+.marketplace-banner span { display:block; color:var(--gold-deep); }
+.marketplace-banner span:first-child { font-family:'Fraunces',serif; font-size:1.05rem; font-weight:600; margin-bottom:3px; }
+.marketplace-banner span:last-child { font-size:11.5px; font-weight:600; letter-spacing:.04em; opacity:.9; }
+
+.spinner { border:3px solid var(--hairline); border-top-color:var(--gold); border-radius:50%; width:44px; height:44px; animation:spin .8s linear infinite; margin:20px auto; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.success { color:var(--sage-deep); }
+.error { color:var(--danger); }
+#message { color:var(--charcoal-soft); font-size:14px; line-height:1.7; }
+
+.btn, .download-btn, .watch-btn { padding:12px 24px; border:none; border-radius:var(--radius-sm); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:7px; margin:6px; font-weight:600; font-size:14px; transition:var(--ease); }
+.btn { background:var(--gold); color:var(--charcoal); }
+.btn:hover { background:var(--gold-deep); }
+.download-btn { background:var(--sage); color:#fff; }
+.download-btn:hover { background:var(--sage-deep); }
+.watch-btn { background:var(--blue); color:#fff; }
+.watch-btn:hover { background:var(--blue-deep); }
+
+.product-info, .course-info { border-radius:var(--radius-md); padding:15px; margin:18px 0; text-align:left; font-size:13.5px; }
+.product-info { background:#e6efe9; color:var(--sage-deep); }
+.course-info { background:#e3ecf5; color:var(--blue-deep); }
+
+.ref-row { display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; color:var(--text-muted); margin-top:14px; }
+.ref-copy-btn { background:none; border:none; color:var(--charcoal-soft); cursor:pointer; padding:2px 4px; }
+.ref-copy-btn:hover { color:var(--charcoal); }
+.ref-copy-btn.copied { color:var(--sage-deep); }
+
+@media (max-width:480px) { .container { padding:26px 20px; } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Core Insight Marketplace Banner (Replaces Bismillah) -->
-        <div class="marketplace-banner">
-            <span style="color: gold;">Core Insight MarketPlace</span>
-            <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-        </div>
-        <div id="paymentStatus">
-            <h2>Processing Payment...</h2>
-            <div class="spinner"></div>
-            <p id="message" style="color: #94a3b8;">Please wait while we verify your payment...</p>
-        </div>
+  <div class="container">
+    <div class="marketplace-banner">
+      <span>Core Insight Marketplace</span>
+      <span>The One Place Where Everyone Is Welcomed</span>
     </div>
+    <div id="paymentStatus">
+      <h2>Processing Payment…</h2>
+      <div class="spinner"></div>
+      <p id="message">Please wait while we verify your payment…</p>
+    </div>
+  </div>
 
-    <script>
-        // Get payment reference from URL (supports multiple formats)
-        const urlParams = new URLSearchParams(window.location.search);
-        let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref') || urlParams.get('transaction_id');
-        let paymentType = urlParams.get('type') || 'auto'; // 'course', 'digital', or 'auto'
-        
-        console.log('Payment callback received. Reference:', reference, 'Type:', paymentType);
-        
-        // Clean the reference (remove Paystack prefix if present)
-        if (reference && reference.startsWith('PS_')) {
-            reference = reference.substring(3);
-            console.log('Removed PS_ prefix. New reference:', reference);
-        }
-        
-        async function verifyPayment() {
-            if (!reference) {
-                showError('No payment reference found. Please contact support.');
-                return;
-            }
-            
-            try {
-                console.log('Verifying payment with reference:', reference);
-                
-                // Try to detect payment type from reference
-                if (paymentType === 'auto') {
-                    if (reference.startsWith('coreinsight_')) {
-                        paymentType = 'course';
-                        console.log('Detected COURSE payment from reference');
-                    } else if (reference.startsWith('DIGITAL_')) {
-                        paymentType = 'digital';
-                        console.log('Detected DIGITAL product payment from reference');
-                    }
-                }
-                
-                let response;
-                
-                if (paymentType === 'course') {
-                    // Verify course payment
-                    console.log('Verifying COURSE payment...');
-                    response = await fetch(`/api/verify-by-reference/${encodeURIComponent(reference)}`, {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: { 'Accept': 'application/json' }
-                    });
-                } else {
-                    // Verify digital product payment
-                    console.log('Verifying DIGITAL product payment...');
-                    response = await fetch(`/api/verify-digital-payment/${encodeURIComponent(reference)}`, {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: { 'Accept': 'application/json' }
-                    });
-                }
-                
-                const data = await response.json();
-                console.log('Verification response:', data);
-                
-                if (data.status === 'success') {
-                    // Payment successful - show appropriate success message
-                    if (paymentType === 'course' || data.type === 'course') {
-                        showCourseSuccess(data);
-                    } else {
-                        showDigitalSuccess(data);
-                    }
-                    sessionStorage.removeItem('pendingOrder');
-                } else {
-                    showError(data.message || 'Payment verification failed. Please contact support.');
-                }
-                
-            } catch (error) {
-                console.error('Verification error:', error);
-                showError('Error verifying payment. Please contact support with your transaction reference.');
-            }
-        }
-        
-        function showCourseSuccess(data) {
-            const isVideo = data.is_video || false;
-            const actionText = isVideo ? 'watch' : 'access';
-            
-            document.getElementById('paymentStatus').innerHTML = `
-                <div class="marketplace-banner">
-                    <span style="color: gold;">Core Insight MarketPlace</span>
-                    <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-                </div>
-                <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
-                <h2 style="color: #10b981;">Payment Successful!</h2>
-                <div class="course-info">
-                    <strong>${escapeHtml(data.course_title || 'Course')}</strong><br>
-                    You now have access to this course!
-                </div>
-                <p style="margin: 15px 0;">Click below to ${actionText} your course content.</p>
-                <div>
-                    <a href="/courses.html" class="btn">
-                        <i class="fas fa-graduation-cap"></i> Go to Courses
-                    </a>
-                    <a href="/api/download/${data.course_id}" class="download-btn">
-                        <i class="fas fa-download"></i> Download Now
-                    </a>
-                    ${isVideo ? `<a href="/watch.html?course=${data.course_id}" class="watch-btn">
-                        <i class="fas fa-play"></i> Watch Now
-                    </a>` : ''}
-                </div>
-            `;
-        }
-        
-        function showDigitalSuccess(data) {
-            document.getElementById('paymentStatus').innerHTML = `
-                <div class="marketplace-banner">
-                    <span style="color: gold;">Core Insight MarketPlace</span>
-                    <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-                </div>
-                <div class="success" style="font-size: 48px; margin: 20px 0;">✅</div>
-                <h2 style="color: #10b981;">Payment Successful!</h2>
-                <div class="product-info">
-                    <strong>${escapeHtml(data.product_title || 'Digital Product')}</strong><br>
-                    Thank you for your purchase!
-                </div>
-                <p style="margin: 15px 0;">Your download link is ready. It will expire in 7 days.</p>
-                <div>
-                    <a href="${data.download_url}" class="download-btn" target="_blank">
-                        <i class="fas fa-download"></i> Download Now
-                    </a>
-                    <a href="/products.html" class="btn">Continue Shopping</a>
-                </div>
-            `;
-        }
-        
-        function showError(message) {
-            document.getElementById('paymentStatus').innerHTML = `
-                <div class="marketplace-banner">
-                    <span style="color: gold;">Core Insight MarketPlace</span>
-                    <span style="color: gold;">The One Place Where Everyone Is Welcomed</span>
-                </div>
-                <div class="error" style="font-size: 48px; margin: 20px 0;">❌</div>
-                <h2 style="color: #ef4444;">Verification Failed</h2>
-                <p style="color: #94a3b8;">${escapeHtml(message)}</p>
-                <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Transaction Reference: ${escapeHtml(reference)}</p>
-                <div style="margin-top: 20px;">
-                    <a href="/courses.html" class="btn">Browse Courses</a>
-                    <a href="/products.html" class="btn">Browse Products</a>
-                </div>
-            `;
-        }
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-        
-        // Start verification
-        if (reference) {
-            verifyPayment();
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let reference = urlParams.get('reference') || urlParams.get('trxref') || urlParams.get('tx_ref') || urlParams.get('transaction_id');
+  let paymentType = urlParams.get('type') || 'auto';
+
+  console.log('Payment callback received. Reference:', reference, 'Type:', paymentType);
+
+  if (reference && reference.startsWith('PS_')) {
+    reference = reference.substring(3);
+    console.log('Removed PS_ prefix. New reference:', reference);
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.copyReference = function (btn) {
+    const text = document.getElementById('refText')?.textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.innerHTML = '<i class="fas fa-check"></i>';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<i class="far fa-copy"></i>'; }, 1800);
+    });
+  };
+
+  function renderRefRow() {
+    return reference ? `<div class="ref-row"><span>Ref: <span id="refText">${escapeHtml(reference)}</span></span><button class="ref-copy-btn" onclick="copyReference(this)" title="Copy reference"><i class="far fa-copy"></i></button></div>` : '';
+  }
+
+  async function verifyPayment() {
+    if (!reference) {
+      document.getElementById('paymentStatus').innerHTML = `
+        <h2><span class="error">❌ No Payment Reference Found</span></h2>
+        <p id="message">We couldn't find a payment reference in this link. If you just completed a purchase, check your email for confirmation.</p>
+        <a href="/products.html" class="btn"><i class="fas fa-store"></i> Back to Products</a>
+      `;
+      return;
+    }
+
+    try {
+      let endpoint = paymentType === 'course'
+        ? `/api/verify-by-reference/${reference}`
+        : `/api/verify-digital-payment/${reference}`;
+
+      let response = await fetch(endpoint);
+      let data = await response.json();
+
+      if (paymentType === 'auto' && data.status !== 'success') {
+        const altEndpoint = endpoint.includes('verify-by-reference')
+          ? `/api/verify-digital-payment/${reference}`
+          : `/api/verify-by-reference/${reference}`;
+        const altResponse = await fetch(altEndpoint);
+        const altData = await altResponse.json();
+        if (altData.status === 'success') { data = altData; }
+      }
+
+      if (data.status === 'success') {
+        if (data.course_id || data.course_title) {
+          document.getElementById('paymentStatus').innerHTML = `
+            <h2><span class="success">✅ Course Purchase Successful!</span></h2>
+            <div class="course-info">
+              <strong>${escapeHtml(data.course_title || 'Your course')}</strong><br>
+              Amount: $${Number(data.amount || 0).toFixed(2)}
+            </div>
+            <a href="/courses.html" class="watch-btn"><i class="fas fa-play"></i> Start Learning</a>
+            <a href="/courses.html" class="btn"><i class="fas fa-compass"></i> Browse More Courses</a>
+            ${renderRefRow()}
+          `;
         } else {
-            showError('No payment reference found in URL.');
+          const downloadUrl = data.download_url || data.downloadUrl;
+          document.getElementById('paymentStatus').innerHTML = `
+            <h2><span class="success">✅ Purchase Successful!</span></h2>
+            <div class="product-info">
+              <strong>${escapeHtml(data.product_title || data.product_name || 'Your purchase')}</strong><br>
+              Amount: $${Number(data.amount || 0).toFixed(2)}
+            </div>
+            ${downloadUrl ? `<a href="${downloadUrl}" class="download-btn" download><i class="fas fa-download"></i> Download File</a>` : ''}
+            <a href="/products.html" class="btn"><i class="fas fa-store"></i> Continue Shopping</a>
+            ${renderRefRow()}
+          `;
         }
-    </script>
+      } else if (data.status === 'pending') {
+        document.getElementById('message').textContent = 'Still confirming your payment — this can take a few seconds…';
+        setTimeout(verifyPayment, 3000);
+      } else {
+        document.getElementById('paymentStatus').innerHTML = `
+          <h2><span class="error">❌ Payment Verification Failed</span></h2>
+          <p id="message">${escapeHtml(data.message || 'Please contact support with your reference below.')}</p>
+          ${renderRefRow()}
+          <a href="/contact.html" class="btn"><i class="fas fa-headset"></i> Contact Support</a>
+        `;
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      document.getElementById('paymentStatus').innerHTML = `
+        <h2><span class="error">❌ Error Verifying Payment</span></h2>
+        <p id="message">Please contact support with your reference below.</p>
+        ${renderRefRow()}
+        <a href="/contact.html" class="btn"><i class="fas fa-headset"></i> Contact Support</a>
+      `;
+    }
+  }
+
+  verifyPayment();
+</script>
+
 </body>
 </html>

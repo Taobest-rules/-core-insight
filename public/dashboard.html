@@ -1,589 +1,593 @@
-<span style="font-size: 0.001px; color: transparent; opacity: 0; position: absolute; pointer-events: none; user-select: none; width: 1px; height: 1px; overflow: hidden;">
-بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ - In the name of Allah, the Most Gracious, the Most Merciful
-</span><span style="color: gold;">
-Core Insight MarketPlace<br>
-The One Place Where Everyone Is Welcomed
-</span> 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seller Dashboard</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Seller Dashboard | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: #fff;
-  margin: 0;
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage:#5a8d7d; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2;
+  --danger:#b3492f; --danger-tint:#f7e6e1; --purple:#8a6bb0;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:20px;
+  --shadow-rest:0 1px 2px rgba(43,43,40,.04); --shadow-hover:0 12px 28px rgba(43,43,40,.10);
+  --shadow-modal:0 24px 60px rgba(43,43,40,.22); --ease:cubic-bezier(.4,0,.2,1); --header-h:64px;
 }
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); line-height:1.6; -webkit-font-smoothing:antialiased; }
+h1,h2,h3 { font-family:'Fraunces',Georgia,serif; font-weight:600; color:var(--charcoal); margin:0; }
+a { color:var(--blue); }
 
-header {
-  background: #020617;
-  padding: 15px 25px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.dashboard-header { height:var(--header-h); background:rgba(250,249,246,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--hairline); display:flex; align-items:center; justify-content:space-between; padding:0 clamp(14px,4vw,28px); position:sticky; top:0; z-index:100; }
+.header-brand { display:flex; align-items:center; gap:12px; }
+.header-brand img { width:34px; height:34px; border-radius:8px; object-fit:cover; border:1px solid var(--hairline); }
+.header-brand h2 { font-size:clamp(1rem,3vw,1.25rem); display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.header-brand h2 i { color:var(--gold-deep); font-size:.85em; }
+.refresh-btn { padding:9px 16px; border-radius:var(--radius-sm); border:1px solid var(--hairline-strong); background:var(--paper); color:var(--charcoal); font-weight:500; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:var(--ease); }
+.refresh-btn:hover { background:var(--cream-deep); }
+
+.container { max-width:1180px; margin:0 auto; padding:clamp(16px,4vw,28px); }
+
+/* ===== Overview / command center ===== */
+.overview-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:24px; }
+.stat-card { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-md); padding:18px; display:flex; align-items:center; gap:14px; text-decoration:none; transition:var(--ease); }
+.stat-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+.stat-icon { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.stat-card.wallet .stat-icon { background:var(--gold-tint); color:var(--gold-deep); }
+.stat-card.pod .stat-icon { background:#e3ecf5; color:var(--blue-deep); }
+.stat-card.service .stat-icon { background:#f0e9f7; color:var(--purple); }
+.stat-card.product .stat-icon { background:#e6efe9; color:var(--sage-deep); }
+.stat-content .num { font-family:'Fraunces',serif; font-size:1.4rem; font-weight:600; color:var(--charcoal); line-height:1; }
+.stat-content .lbl { font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-top:4px; }
+
+.attention-section { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:clamp(16px,4vw,22px); margin-bottom:24px; }
+.attention-section h3 { font-size:1.15rem; display:flex; align-items:center; gap:9px; margin-bottom:16px; }
+.attention-section h3 i { color:var(--gold-deep); }
+.attention-list { display:flex; flex-direction:column; gap:10px; }
+.attention-item { display:flex; align-items:center; gap:12px; padding:13px 14px; background:var(--cream); border:1px solid var(--hairline); border-radius:var(--radius-md); flex-wrap:wrap; }
+.attention-item .badge-tag { font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0; }
+.attention-item .badge-tag.pod { background:#e3ecf5; color:var(--blue-deep); }
+.attention-item .badge-tag.service { background:#f0e9f7; color:var(--purple); }
+.attention-item .title { flex:1; min-width:160px; font-size:13.5px; font-weight:500; }
+.attention-item .amount { font-family:'Fraunces',serif; font-weight:600; color:var(--gold-deep); font-size:14px; }
+.attention-item a.action-btn { padding:7px 14px; border-radius:var(--radius-sm); background:var(--charcoal); color:var(--cream); font-size:12.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+.attention-empty { text-align:center; padding:28px; color:var(--text-muted); font-size:13.5px; }
+.attention-empty i { font-size:26px; color:var(--hairline-strong); margin-bottom:8px; display:block; }
+
+/* ===== Original physical orders table, restyled ===== */
+.card { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); overflow:hidden; }
+.card-header { padding:18px clamp(16px,4vw,22px); border-bottom:1px solid var(--hairline); }
+.card-header h3 { font-size:1.2rem; display:flex; align-items:center; gap:9px; }
+.card-header h3 i { color:var(--gold-deep); }
+.table-responsive { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.table { width:100%; border-collapse:collapse; min-width:640px; }
+.table th { text-align:left; padding:12px clamp(12px,3vw,18px); background:var(--cream); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--charcoal-soft); font-weight:600; white-space:nowrap; }
+.table td { padding:13px clamp(12px,3vw,18px); border-bottom:1px solid var(--hairline); font-size:13.5px; color:var(--charcoal); vertical-align:middle; }
+.table tbody tr:last-child td { border-bottom:none; }
+.table tbody tr:hover { background:var(--cream); }
+
+.status { display:inline-block; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em; }
+.status.pending { background:var(--gold-tint); color:var(--gold-deep); }
+.status.accepted { background:#e3ecf5; color:var(--blue-deep); }
+.status.completed { background:#e6efe9; color:var(--sage-deep); }
+.status.cancelled { background:var(--danger-tint); color:var(--danger); }
+.status.refund_requested { background:#f0e9f7; color:var(--purple); }
+
+.btn { padding:8px 13px; border-radius:var(--radius-sm); border:1px solid var(--hairline-strong); background:var(--paper); color:var(--charcoal); font-size:12.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:var(--ease); white-space:nowrap; }
+.btn:hover { background:var(--cream-deep); }
+.accept-btn { background:var(--sage); border-color:var(--sage); color:#fff; }
+.accept-btn:hover { background:var(--sage-deep); }
+.reject-btn { background:transparent; border-color:var(--danger); color:var(--danger); }
+.reject-btn:hover { background:var(--danger-tint); }
+.view-btn { background:var(--charcoal); border-color:var(--charcoal); color:var(--cream); }
+.view-btn:hover { background:#1b1a17; }
+
+.spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--hairline-strong); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.login-prompt, .error-message { text-align:center; color:var(--charcoal-soft); }
+.login-prompt i, .error-message i { font-size:26px; color:var(--gold-deep); margin-bottom:10px; display:block; }
+.login-prompt a { color:var(--blue); font-weight:600; }
+
+/* ===== Modal ===== */
+.modal { display:none; position:fixed; inset:0; background:rgba(43,43,40,.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+.modal-content { background:var(--paper); border-radius:var(--radius-lg); max-width:520px; width:100%; max-height:86vh; overflow-y:auto; box-shadow:var(--shadow-modal); }
+.modal-header { display:flex; justify-content:space-between; align-items:center; padding:18px 22px; border-bottom:1px solid var(--hairline); }
+.modal-header h3 { font-size:1.15rem; display:flex; align-items:center; gap:9px; }
+.modal-header h3 i { color:var(--gold-deep); }
+.modal-header .close { background:none; border:none; font-size:18px; color:var(--charcoal-soft); cursor:pointer; width:32px; height:32px; border-radius:50%; }
+.modal-header .close:hover { background:var(--cream-deep); color:var(--charcoal); }
+.modal-body { padding:20px 22px; }
+.order-detail-row { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--hairline); font-size:13.5px; }
+.order-detail-row:last-child { border-bottom:none; }
+.order-detail-label { color:var(--charcoal-soft); flex-shrink:0; }
+.order-detail-value { text-align:right; color:var(--charcoal); }
+.status-badge { font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em; }
+.modal-footer { padding:16px 22px; border-top:1px solid var(--hairline); text-align:right; }
+.close-btn { padding:10px 20px; border-radius:var(--radius-sm); border:1px solid var(--hairline-strong); background:var(--paper); color:var(--charcoal); font-weight:600; cursor:pointer; }
+.close-btn:hover { background:var(--cream-deep); }
+
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.brand-watermark { text-align:center; font-size:11px; color:var(--text-muted); padding:24px 0 40px; }
+.brand-watermark i { color:var(--gold-deep); margin-right:5px; }
+
+@media (max-width:768px) {
+  .dashboard-header { padding:0 14px; }
+  .header-brand h2 span { display:none; }
+  .overview-grid { grid-template-columns:repeat(2,1fr); }
+  .attention-item { flex-direction:column; align-items:stretch; }
+  .attention-item .title { min-width:0; }
+  .attention-item a.action-btn { text-align:center; }
 }
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.logo-img {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  object-fit: cover;
-  border: 2px solid #3b82f6;
-}
-
-header h2 {
-  margin: 0;
-}
-
-.container {
-  padding: 20px;
-}
-
-.card {
-  background: #1e293b;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th {
-  background: #020617;
-  padding: 12px;
-  text-align: left;
-}
-
-.table td {
-  padding: 12px;
-  border-bottom: 1px solid #334155;
-}
-
-.table tr:hover {
-  background: #334155;
-}
-
-.status {
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  display: inline-block;
-}
-
-.pending { background: orange; color: black; }
-.pending_seller_approval { background: orange; color: black; }
-.accepted { background: #3b82f6; }
-.completed { background: #10b981; }
-.seller_accepted { background: #3b82f6; }
-
-button {
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.accept-btn {
-  background: linear-gradient(135deg, #10b981, #22c55e);
-  color: white;
-}
-
-.reject-btn {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.accept-btn:hover {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-}
-
-.reject-btn:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-}
-
-.view-btn {
-  background: #3b82f6;
-  color: white;
-}
-
-/* Modal Styles */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.8);
-  animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal-content {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  margin: 5% auto;
-  padding: 0;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  animation: slideIn 0.3s;
-  border: 1px solid #3b82f6;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modal-header {
-  padding: 20px 24px;
-  background: #020617;
-  border-bottom: 2px solid #3b82f6;
-  border-radius: 16px 16px 0 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 1.5rem;
-}
-
-.modal-header h3 i {
-  color: #3b82f6;
-  margin-right: 10px;
-}
-
-.close {
-  color: #94a3b8;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.close:hover {
-  color: #ef4444;
-}
-
-.modal-body {
-  padding: 24px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.order-detail-row {
-  display: flex;
-  padding: 12px 0;
-  border-bottom: 1px solid #334155;
-}
-
-.order-detail-label {
-  font-weight: 600;
-  width: 140px;
-  color: #94a3f8;
-}
-
-.order-detail-value {
-  flex: 1;
-  color: #e2e8f0;
-  word-break: break-word;
-}
-
-.order-detail-value strong {
-  color: #3b82f6;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.modal-footer {
-  padding: 16px 24px;
-  background: #020617;
-  border-top: 1px solid #334155;
-  border-radius: 0 0 16px 16px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.modal-footer button {
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: #334155;
-  color: white;
-}
-
-.close-btn:hover {
-  background: #475569;
-}
-
-.error-message {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  margin: 20px 0;
-}
-
-.error-message i {
-  font-size: 48px;
-  color: #ef4444;
-  margin-bottom: 10px;
-}
-
-.login-prompt {
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid #3b82f6;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-}
-
-.login-prompt a {
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.login-prompt a:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-  header {
-    padding: 12px 16px;
-  }
-  .logo-img {
-    width: 32px;
-    height: 32px;
-  }
-  .container {
-    padding: 12px;
-  }
-  .table {
-    font-size: 12px;
-  }
-  .table th, .table td {
-    padding: 8px;
-  }
-  button {
-    padding: 5px 8px;
-    font-size: 11px;
-  }
-  .modal-content {
-    width: 95%;
-    margin: 10% auto;
-  }
-  .order-detail-row {
-    flex-direction: column;
-    padding: 10px 0;
-  }
-  .order-detail-label {
-    width: 100%;
-    margin-bottom: 5px;
-  }
+@media (max-width:480px) {
+  .overview-grid { grid-template-columns:1fr; }
+  .refresh-btn span { display:none; }
 }
 </style>
 </head>
-
 <body>
 
-<header>
-  <div class="header-left">
-    <img class="logo-img" src="https://i.pinimg.com/736x/27/7a/12/277a1257f00946e8337c57ac43c9b700.jpg" alt="Logo">
-    <h2>Seller Dashboard</h2>
+  <span class="sr-only" aria-hidden="true">
+    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ - In the name of Allah, the Most Gracious, the Most Merciful
+  </span>
+
+  <header class="dashboard-header">
+    <div class="header-brand">
+      <img src="https://i.pinimg.com/736x/27/7a/12/277a1257f00946e8337c57ac43c9b700.jpg" alt="Core Insight">
+      <h2><i class="fas fa-store"></i> <span>Seller Dashboard</span></h2>
+    </div>
+    <button class="refresh-btn" onclick="location.reload()">
+      <i class="fas fa-sync-alt"></i> <span>Refresh</span>
+    </button>
+  </header>
+
+  <div class="container">
+
+    <!-- ===== NEW: unified overview — one account, one dashboard ===== -->
+    <div class="overview-grid" id="overviewGrid">
+      <a href="profile.html?tab=wallet" class="stat-card wallet">
+        <div class="stat-icon"><i class="fas fa-sack-dollar"></i></div>
+        <div class="stat-content"><div class="num" id="statWallet">—</div><div class="lbl">Wallet Available</div></div>
+      </a>
+      <a href="profile.html?tab=wallet" class="stat-card pod">
+        <div class="stat-icon"><i class="fas fa-truck-fast"></i></div>
+        <div class="stat-content"><div class="num" id="statPodPending">—</div><div class="lbl">Pending POD Orders</div></div>
+      </a>
+      <a href="services.html#myOrdersTab" class="stat-card service">
+        <div class="stat-icon"><i class="fas fa-briefcase"></i></div>
+        <div class="stat-content"><div class="num" id="statServiceActive">—</div><div class="lbl">Active Service Orders</div></div>
+      </a>
+      <a href="#physicalOrdersCard" class="stat-card product">
+        <div class="stat-icon"><i class="fas fa-box"></i></div>
+        <div class="stat-content"><div class="num" id="statProductPending">—</div><div class="lbl">Product Orders Pending</div></div>
+      </a>
+    </div>
+
+    <div class="attention-section">
+      <h3><i class="fas fa-bolt"></i> Needs Your Attention</h3>
+      <div class="attention-list" id="attentionList">
+        <div class="attention-empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div>
+      </div>
+    </div>
+
+    <!-- ===== ORIGINAL: physical product orders table, unchanged behavior ===== -->
+    <div class="card" id="physicalOrdersCard">
+      <div class="card-header">
+        <h3><i class="fas fa-clipboard-list"></i> Product Orders</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ordersList">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 2.5rem 0;">
+                <span class="spinner"></span> Loading orders...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  <button onclick="location.reload()">
-    <i class="fas fa-sync-alt"></i> Refresh
-  </button>
-</header>
 
-<div class="container">
-
-<div class="card">
-  <h3><i class="fas fa-shopping-cart"></i> Orders</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Product</th>
-        <th>Qty</th>
-        <th>Amount</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="ordersList">
-      <tr><td colspan="6" style="text-align: center;"><i class="fas fa-spinner fa-pulse"></i> Loading...</td></tr>
-    </tbody>
-  </table>
-</div>
-
-</div>
-
-<!-- Order Details Modal -->
-<div id="orderModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3><i class="fas fa-receipt"></i> Order Details</h3>
-      <span class="close">&times;</span>
-    </div>
-    <div class="modal-body" id="modalBody">
-      Loading...
-    </div>
-    <div class="modal-footer">
-      <button class="close-btn" onclick="closeModal()">Close</button>
+  <!-- Order Details Modal -->
+  <div id="orderModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-receipt"></i> Order Details</h3>
+        <button class="close" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <div style="text-align: center; padding: 2rem;">
+          <span class="spinner"></span> Loading details...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="close-btn" onclick="closeModal()">Close</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-// Store orders data globally for view access
-let allOrders = [];
+  <div class="brand-watermark">
+    <i class="fas fa-gem"></i> Core Insight Marketplace · Where everyone is welcomed
+  </div>
 
-async function loadOrders() {
-  const tbody = document.getElementById('ordersList');
-  
-  try {
-    const res = await fetch('/api/seller/physical-orders', {credentials:'include'});
-    
-    if (res.status === 401) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6">
-            <div class="login-prompt">
-              <i class="fas fa-lock" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
-              <strong>Session expired or not logged in</strong><br>
-              Please <a href="/login">click here to login</a> as a seller
-            </div>
-          </td>
-        </tr>
-      `;
-      return;
-    }
-    
-    const data = await res.json();
-    
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to load orders');
-    }
+  <script>
+    (function() {
+      // ----- state -----
+      let allOrders = [];
 
-    if (!data.orders || data.orders.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">📦 No orders found</td></tr>';
-      allOrders = [];
-      return;
-    }
+      // ----- DOM refs -----
+      const ordersTbody = document.getElementById('ordersList');
+      const modal = document.getElementById('orderModal');
+      const modalBody = document.getElementById('modalBody');
 
-    // Store orders for modal access
-    allOrders = data.orders;
+      // ----- helpers -----
+      function getStatusClass(status) {
+        if (!status) return 'pending';
+        if (status === 'pending_seller_approval' || status === 'pending') return 'pending';
+        if (status === 'seller_accepted' || status === 'accepted') return 'accepted';
+        if (status === 'completed') return 'completed';
+        if (status === 'cancelled' || status === 'rejected') return 'cancelled';
+        if (status === 'refund_requested') return 'refund_requested';
+        return 'pending';
+      }
 
-    tbody.innerHTML = data.orders.map(o => {
-      const statusClass = o.order_status === 'pending_seller_approval' ? 'pending' : 
-                         (o.order_status === 'seller_accepted' ? 'accepted' : o.order_status);
-      const displayStatus = o.order_status === 'pending_seller_approval' ? 'pending' : 
-                           (o.order_status === 'seller_accepted' ? 'accepted' : o.order_status);
-      
-      return `
-        <tr>
-          <td>#${o.id}</td>
-          <td>${o.product_name || 'Product'}</td>
-          <td>${o.quantity || 1}</td>
-          <td>$${parseFloat(o.total_amount || 0).toFixed(2)}</td>
-          <td><span class="status ${statusClass}">${displayStatus}</span></td>
-          <td>
-            ${(o.order_status === 'pending_seller_approval' || o.order_status === 'pending') ? `
-              <button class="accept-btn" onclick="respond(${o.id}, 'accept')">✓ Accept</button>
-              <button class="reject-btn" onclick="respond(${o.id}, 'reject')">✗ Reject</button>
-            ` : `<button class="view-btn" onclick="viewOrder(${o.id})">👁️ View Details</button>`}
-          </td>
-        </tr>
-      `;
-    }).join('');
-    
-  } catch (err) {
-    console.error('Error loading orders:', err);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6">
-          <div class="error-message">
-            <i class="fas fa-exclamation-triangle"></i><br>
-            <strong>Error loading orders</strong><br>
-            ${err.message}<br>
-            <button onclick="loadOrders()" style="margin-top: 10px; background: #3b82f6; padding: 6px 12px;">
-              <i class="fas fa-sync-alt"></i> Retry
-            </button>
+      function getDisplayStatus(status) {
+        if (!status) return 'pending';
+        if (status === 'pending_seller_approval') return 'pending';
+        if (status === 'seller_accepted') return 'accepted';
+        return status;
+      }
+
+      function getStatusColor(status) {
+        const map = {
+          'pending_seller_approval': '#f59e0b',
+          'pending': '#f59e0b',
+          'seller_accepted': '#3b82f6',
+          'accepted': '#3b82f6',
+          'completed': '#10b981',
+          'cancelled': '#ef4444',
+          'rejected': '#ef4444',
+          'refund_requested': '#8b5cf6'
+        };
+        return map[status] || '#6b7280';
+      }
+
+      function formatCurrency(value) {
+        const num = parseFloat(value) || 0;
+        return '$' + num.toFixed(2);
+      }
+
+      function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+          return new Date(dateString).toLocaleString();
+        } catch (e) {
+          return 'N/A';
+        }
+      }
+
+      // ----- load orders -----
+      async function loadOrders() {
+        ordersTbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 2.5rem 0;">
+              <span class="spinner"></span> Loading orders...
+            </td>
+          </tr>
+        `;
+
+        try {
+          const res = await fetch('/api/seller/physical-orders', {
+            credentials: 'include'
+          });
+
+          // not logged in / session expired
+          if (res.status === 401) {
+            ordersTbody.innerHTML = `
+              <tr>
+                <td colspan="6" style="padding: 2rem 1rem;">
+                  <div class="login-prompt">
+                    <i class="fas fa-lock"></i>
+                    <strong style="font-size: 1.2rem;">Session expired or not logged in</strong><br>
+                    <span style="color: #94a3b8;">Please <a href="/login">click here to login</a> as a seller</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+            allOrders = [];
+            return;
+          }
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to load orders');
+          }
+
+          if (!data.orders || data.orders.length === 0) {
+            ordersTbody.innerHTML = `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                  <i class="fas fa-box-open" style="font-size: 2.5rem; margin-bottom: 0.8rem; display: block; opacity: 0.6;"></i>
+                  No orders found
+                </td>
+              </tr>
+            `;
+            allOrders = [];
+            return;
+          }
+
+          // store for modal
+          allOrders = data.orders;
+
+          // build table rows
+          ordersTbody.innerHTML = data.orders.map(order => {
+            const statusClass = getStatusClass(order.order_status);
+            const displayStatus = getDisplayStatus(order.order_status);
+            const isPending = order.order_status === 'pending_seller_approval' || order.order_status === 'pending';
+
+            const actionButtons = isPending
+              ? `<button class="btn accept-btn" onclick="respond(${order.id}, 'accept')"><i class="fas fa-check"></i> Accept</button>
+                 <button class="btn reject-btn" onclick="respond(${order.id}, 'reject')"><i class="fas fa-times"></i> Reject</button>`
+              : `<button class="btn view-btn" onclick="viewOrder(${order.id})"><i class="fas fa-eye"></i> View Details</button>`;
+
+            return `
+              <tr>
+                <td><span style="font-weight: 500;">#${order.id}</span></td>
+                <td>${order.product_name || 'Product'}</td>
+                <td>${order.quantity || 1}</td>
+                <td>${formatCurrency(order.total_amount)}</td>
+                <td><span class="status ${statusClass}">${displayStatus}</span></td>
+                <td>${actionButtons}</td>
+              </tr>
+            `;
+          }).join('');
+
+        } catch (err) {
+          console.error('Error loading orders:', err);
+          ordersTbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="padding: 2rem 1rem;">
+                <div class="error-message">
+                  <i class="fas fa-exclamation-triangle"></i><br>
+                  <strong style="font-size: 1.1rem;">Error loading orders</strong><br>
+                  <span style="color: #fca5a5;">${err.message}</span><br>
+                  <button class="btn" onclick="loadOrders()" style="margin-top: 1rem; background: #3b82f6; color: white; padding: 0.6rem 1.6rem;">
+                    <i class="fas fa-sync-alt"></i> Retry
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      // ----- respond (accept / reject) -----
+      window.respond = async function(orderId, action) {
+        try {
+          const response = await fetch(`/api/physical-orders/${orderId}/respond`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action }),
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to ${action} order`);
+          }
+
+          // reload the orders list after success
+          await loadOrders();
+
+        } catch (err) {
+          console.error(`Error responding to order #${orderId}:`, err);
+          alert(`Failed to ${action} order: ${err.message}`);
+        }
+      };
+
+      // ----- view order details (modal) -----
+      window.viewOrder = function(orderId) {
+        const order = allOrders.find(o => o.id === orderId);
+        if (!order) {
+          alert('Order details not found. Please refresh and try again.');
+          return;
+        }
+
+        const orderDate = formatDate(order.created_at);
+        const statusColor = getStatusColor(order.order_status);
+        const displayStatus = getDisplayStatus(order.order_status);
+
+        modalBody.innerHTML = `
+          <div class="order-detail-row">
+            <div class="order-detail-label">Order ID</div>
+            <div class="order-detail-value"><strong>#${order.id}</strong></div>
           </div>
-        </td>
-      </tr>
-    `;
-  }
-}
+          <div class="order-detail-row">
+            <div class="order-detail-label">Product</div>
+            <div class="order-detail-value">${order.product_name || 'N/A'}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Quantity</div>
+            <div class="order-detail-value">${order.quantity || 1}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Price per unit</div>
+            <div class="order-detail-value">${formatCurrency(order.price)}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Total Amount</div>
+            <div class="order-detail-value"><strong>${formatCurrency(order.total_amount)}</strong></div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Status</div>
+            <div class="order-detail-value">
+              <span class="status-badge" style="background: ${statusColor}; color: white;">${displayStatus || 'N/A'}</span>
+            </div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Customer Name</div>
+            <div class="order-detail-value">${order.customer_name || 'N/A'}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Customer Email</div>
+            <div class="order-detail-value">${order.customer_email || 'N/A'}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Delivery Phone</div>
+            <div class="order-detail-value">${order.delivery_phone || 'N/A'}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Shipping Address</div>
+            <div class="order-detail-value">${order.shipping_address || 'N/A'}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Order Date</div>
+            <div class="order-detail-value">${orderDate}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Platform Fee</div>
+            <div class="order-detail-value">${formatCurrency(order.platform_fee)}</div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Seller Earnings</div>
+            <div class="order-detail-value"><strong style="color: #10b981;">${formatCurrency(order.seller_earnings)}</strong></div>
+          </div>
+          <div class="order-detail-row">
+            <div class="order-detail-label">Est. Delivery</div>
+            <div class="order-detail-value">${order.estimated_delivery_days || 7} days</div>
+          </div>
+        `;
 
-async function respond(id, action) {
-  try {
-    const response = await fetch(`/api/physical-orders/${id}/respond`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action}),
-      credentials:'include'
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to process order');
-    }
-    
-    await loadOrders();
-    
-  } catch (err) {
-    console.error('Error responding to order:', err);
-    alert(`Failed to ${action} order: ${err.message}`);
-  }
-}
+        modal.style.display = 'flex';
+      };
 
-function viewOrder(orderId) {
-  // Find the order in our stored data
-  const order = allOrders.find(o => o.id === orderId);
-  
-  if (!order) {
-    alert('Order details not found');
-    return;
-  }
-  
-  // Format date if exists
-  const orderDate = order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A';
-  
-  // Build modal content with full order details
-  const modalBody = document.getElementById('modalBody');
-  modalBody.innerHTML = `
-    <div class="order-detail-row">
-      <div class="order-detail-label">Order ID:</div>
-      <div class="order-detail-value"><strong>#${order.id}</strong></div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Product:</div>
-      <div class="order-detail-value">${order.product_name || 'N/A'}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Quantity:</div>
-      <div class="order-detail-value">${order.quantity || 1}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Price per unit:</div>
-      <div class="order-detail-value">$${parseFloat(order.price || 0).toFixed(2)}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Total Amount:</div>
-      <div class="order-detail-value"><strong>$${parseFloat(order.total_amount || 0).toFixed(2)}</strong></div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Status:</div>
-      <div class="order-detail-value"><span class="status-badge" style="background: ${getStatusColor(order.order_status)}; color: white;">${order.order_status || 'N/A'}</span></div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Customer Name:</div>
-      <div class="order-detail-value">${order.customer_name || 'N/A'}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Customer Email:</div>
-      <div class="order-detail-value">${order.customer_email || 'N/A'}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Delivery Phone:</div>
-      <div class="order-detail-value">${order.delivery_phone || 'N/A'}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Shipping Address:</div>
-      <div class="order-detail-value">${order.shipping_address || 'N/A'}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Order Date:</div>
-      <div class="order-detail-value">${orderDate}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Platform Fee:</div>
-      <div class="order-detail-value">$${parseFloat(order.platform_fee || 0).toFixed(2)}</div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Seller Earnings:</div>
-      <div class="order-detail-value"><strong style="color: #10b981;">$${parseFloat(order.seller_earnings || 0).toFixed(2)}</strong></div>
-    </div>
-    <div class="order-detail-row">
-      <div class="order-detail-label">Est. Delivery:</div>
-      <div class="order-detail-value">${order.estimated_delivery_days || 7} days</div>
-    </div>
-  `;
-  
-  // Show modal
-  document.getElementById('orderModal').style.display = 'block';
-}
+      // ----- close modal -----
+      window.closeModal = function() {
+        modal.style.display = 'none';
+      };
 
-function getStatusColor(status) {
-  const colors = {
-    'pending_seller_approval': '#f59e0b',
-    'seller_accepted': '#3b82f6',
-    'accepted': '#3b82f6',
-    'completed': '#10b981',
-    'cancelled': '#ef4444',
-    'refund_requested': '#8b5cf6'
-  };
-  return colors[status] || '#6b7280';
-}
+      // close when clicking outside modal content
+      window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          closeModal();
+        }
+      });
 
-function closeModal() {
-  document.getElementById('orderModal').style.display = 'none';
-}
+      // close with Escape key
+      window.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal.style.display === 'flex') {
+          closeModal();
+        }
+      });
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-  const modal = document.getElementById('orderModal');
-  if (event.target === modal) {
-    closeModal();
-  }
-}
+      // ----- init -----
+      loadOrders();
 
-// Load orders on page load
-loadOrders();
-</script>
+
+      // ===== NEW: unified overview — pulls from endpoints already
+      // built for the wallet, POD orders, and service escrow system.
+      // No new backend needed; this just aggregates what exists.
+      async function loadOverview() {
+        // Wallet balance
+        try {
+          const res = await fetch('/api/wallet/balance', { credentials: 'include' });
+          if (res.ok) {
+            const wallet = await res.json();
+            document.getElementById('statWallet').textContent = `$${Number(wallet.available_balance || 0).toFixed(2)}`;
+          } else {
+            document.getElementById('statWallet').textContent = '$0.00';
+          }
+        } catch (e) { document.getElementById('statWallet').textContent = '—'; }
+
+        // Pending POD orders
+        let podOrders = [];
+        try {
+          const res = await fetch('/api/my-pod-orders', { credentials: 'include' });
+          if (res.ok) podOrders = await res.json();
+        } catch (e) { /* non-fatal */ }
+        document.getElementById('statPodPending').textContent = podOrders.length;
+
+        // Active service orders
+        let serviceOrders = [];
+        try {
+          const res = await fetch('/api/service-orders/mine', { credentials: 'include' });
+          if (res.ok) serviceOrders = await res.json();
+        } catch (e) { /* non-fatal */ }
+        document.getElementById('statServiceActive').textContent = serviceOrders.length;
+
+        // Pending physical product orders — reuses the same data
+        // loadOrders() below already fetches for the table, so just
+        // count "pending" status rows once that's populated.
+        setTimeout(() => {
+          const pendingRows = document.querySelectorAll('#ordersList .status.pending').length;
+          document.getElementById('statProductPending').textContent = pendingRows;
+        }, 600);
+
+        renderAttentionList(podOrders, serviceOrders);
+      }
+
+      function renderAttentionList(podOrders, serviceOrders) {
+        const el = document.getElementById('attentionList');
+        const items = [];
+
+        podOrders.forEach(o => {
+          items.push({
+            badge: 'POD', badgeClass: 'pod',
+            title: `${o.product_name || 'Product'} × ${o.quantity || 1} — needs accept/reject`,
+            amount: `$${Number(o.pod_fee_amount || 0).toFixed(2)} fee`,
+            link: 'profile.html?tab=wallet',
+          });
+        });
+
+        serviceOrders.forEach(o => {
+          if (['payment_pending', 'client_review', 'travelling'].includes(o.status)) {
+            const statusLabel = { payment_pending: 'awaiting payment', client_review: 'awaiting client review', travelling: 'awaiting arrival confirmation' }[o.status] || o.status;
+            items.push({
+              badge: 'Service', badgeClass: 'service',
+              title: `${o.title || 'Service order'} — ${statusLabel}`,
+              amount: `$${Number(o.agreed_price || 0).toFixed(2)}`,
+              link: 'services.html#myOrdersTab',
+            });
+          }
+        });
+
+        if (!items.length) {
+          el.innerHTML = `<div class="attention-empty"><i class="fas fa-circle-check"></i>Nothing needs your attention right now.</div>`;
+          return;
+        }
+
+        el.innerHTML = items.map(i => `
+          <div class="attention-item">
+            <span class="badge-tag ${i.badgeClass}">${i.badge}</span>
+            <span class="title">${i.title}</span>
+            <span class="amount">${i.amount}</span>
+            <a href="${i.link}" class="action-btn">Review</a>
+          </div>
+        `).join('');
+      }
+
+      loadOverview();
+    })();
+  </script>
 
 </body>
 </html>

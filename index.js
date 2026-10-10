@@ -2722,6 +2722,22 @@ app.get("/api/profile/me/following", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+async function getPayerCountry(req) {
+  // Cloudflare sets this on every proxied request
+  const cf = req.headers['cf-ipcountry'];
+  if (cf && cf !== 'XX' && cf !== 'T1') return cf.toUpperCase();
+
+  // Fallback: first IP only, not the whole forwarded list
+  const ip = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+    .split(',')[0].trim();
+  try {
+    const r = await axios.get(`http://ip-api.com/json/${ip}?fields=countryCode`, { timeout: 3000 });
+    return r.data?.countryCode || null;
+  } catch (e) {
+    return null;
+  }
+}
 // ============================================
 // CREATOR SUPPORT (TIPS)
 // ============================================
@@ -2791,25 +2807,18 @@ app.post("/api/support/create", async (req, res) => {
         }
 
               
+                const payerCountry = await getPayerCountry(req);
         let supportCurrency = "USD";
         let chargeAmount = tipAmount;
-        let paymentOptions = "card";
+        let paymentOptions = "card";           // everyone outside Nigeria: card only
 
-        try {
-            const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-            const geoResponse = await axios.get(`http://ip-api.com/json/${userIp}`, { timeout: 3000 });
-            if (geoResponse.data?.countryCode === 'NG') {
-                const rates = await getExchangeRate();
-                const usdToNgn = rates.USD_TO_NGN || 1500;
-                supportCurrency = "NGN";
-                chargeAmount = Math.round(tipAmount * usdToNgn);
-                paymentOptions = "card, account, banktransfer, ussd, mobilemoney, qr, barter";
-                console.log(`💰 Nigerian supporter — charging ₦${chargeAmount} with local payment methods`);
-            }
-        } catch (geoError) {
-            console.log('Support: could not detect country, defaulting to card/USD');
+        if (payerCountry === 'NG') {
+            const rates = await getExchangeRate();
+            supportCurrency = "NGN";
+            chargeAmount = Math.round(tipAmount * (rates.USD_TO_NGN || 1500));
+            paymentOptions = "banktransfer, ussd, account";   // no card for Nigerians
+            console.log(`💰 Nigerian payer: ₦${chargeAmount} via transfer/USSD/account`);
         }
-
         const payload = {
             tx_ref: transactionRef,
             amount: chargeAmount,

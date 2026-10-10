@@ -201,6 +201,17 @@ async function getMessageItemContext(itemType, itemId) {
 }
 runWalletMigrations();
  
+
+(async () => {
+  for (const sql of [
+    `ALTER TABLE users ADD COLUMN payout_country VARCHAR(5) NULL`,
+    `ALTER TABLE users ADD COLUMN payout_business_email VARCHAR(255) NULL`,
+  ]) {
+    try { await db.query(sql); }
+    catch (e) { if (!/duplicate|already exists/i.test(e.message)) console.error('Payout migration failed:', e.message); }
+  }
+})();
+
 async function getWallet(userId) {
   await ensureWallet(userId);
   const result = await db.query(`SELECT * FROM seller_wallets WHERE user_id = ?`, [userId]);
@@ -1556,29 +1567,22 @@ async function createFlutterwaveSubaccount(userId, bankData) {
 async function saveSubaccountToUser(userId, subaccountId, bankData) {
     const {
         bank_code, account_number, business_name, is_virtual = false,
+        country = 'NG', business_email,
         routing_number, swift_code, iban, branch_code,
         institution_number, transit_number, bsb_number,
     } = bankData;
 
     await db.query(
         `UPDATE users 
-         SET flutterwave_subaccount_id = ?,
-             subaccount_created_at = NOW(),
-             subaccount_status = 'active',
-             bank_code = ?,
-             account_number = ?,
-             account_name = ?,
-             is_virtual_account = ?,
-             routing_number = ?,
-             swift_code = ?,
-             iban = ?,
-             branch_code = ?,
-             institution_number = ?,
-             transit_number = ?,
-             bsb_number = ?
+         SET flutterwave_subaccount_id = ?, subaccount_created_at = NOW(), subaccount_status = 'active',
+             bank_code = ?, account_number = ?, account_name = ?,
+             payout_country = ?, payout_business_email = ?,
+             is_virtual_account = ?, routing_number = ?, swift_code = ?, iban = ?,
+             branch_code = ?, institution_number = ?, transit_number = ?, bsb_number = ?
          WHERE id = ?`,
         [
             subaccountId, bank_code, account_number, business_name,
+            country, business_email || null,
             is_virtual ? 1 : 0,
             routing_number || null, swift_code || null, iban || null,
             branch_code || null, institution_number || null,
@@ -7838,23 +7842,28 @@ app.post("/api/flutterwave/create-subaccount", async (req, res) => {
 // Get seller's Flutterwave subaccount status
 app.get("/api/flutterwave/subaccount-status", async (req, res) => {
     try {
-        if (!req.session.user) {
-            return res.status(401).json({ error: "Please login" });
-        }
-        
+        if (!req.session.user) return res.status(401).json({ error: "Please login" });
+
         const result = await db.query(
-            `SELECT flutterwave_subaccount_id, subaccount_status, subaccount_created_at 
+            `SELECT flutterwave_subaccount_id, subaccount_status, subaccount_created_at,
+                    payout_country, payout_business_email, bank_code, account_number, account_name
              FROM users WHERE id = ?`,
             [req.session.user.id]
         );
-        
+        const u = extractRows(result)[0] || {};
+
         res.json({
-            has_subaccount: !!(result[0]?.flutterwave_subaccount_id),
-            subaccount_id: result[0]?.flutterwave_subaccount_id,
-            status: result[0]?.subaccount_status || 'pending',
-            created_at: result[0]?.subaccount_created_at
+            has_subaccount: !!u.flutterwave_subaccount_id,
+            subaccount_id: u.flutterwave_subaccount_id || null,
+            status: u.subaccount_status || 'pending',
+            created_at: u.subaccount_created_at || null,
+            country: u.payout_country || null,
+            bank_code: u.bank_code || null,
+            account_number: u.account_number || null,
+            account_name: u.account_name || null,
+            business_name: u.account_name || null,
+            business_email: u.payout_business_email || null
         });
-        
     } catch (err) {
         console.error("Error fetching subaccount status:", err);
         res.status(500).json({ error: err.message });

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payment | Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#f8f9fa;color:#343a40;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border:1px solid #e9ecef;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:44px 36px;max-width:440px;width:100%;text-align:center}
+.icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:1.8rem;color:#fff}
+.icon.load{background:#4a6fa5}.icon.ok{background:#5a8d7d}.icon.warn{background:#c9971f}.icon.bad{background:#c1553a}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:1.7rem;margin-bottom:10px}
+p{color:#495057;margin-bottom:8px}
+.amount{font-family:'Fraunces',serif;font-size:1.5rem;color:#c9971f;margin:10px 0 4px}
+.btn{display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:12px 26px;border-radius:8px;background:#4a6fa5;color:#fff;font:600 .95rem 'Inter',sans-serif;text-decoration:none;border:none;cursor:pointer}
+.btn:hover{background:#3a5784}
+.btn.ghost{background:transparent;color:#343a40;border:1px solid #e9ecef;margin-left:8px}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="icon load"><i class="fas fa-spinner spin"></i></div>
+  <h1>Confirming your payment</h1>
+  <p>Please wait a moment. Don't close this page.</p>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const status = (q.get('status') || '').toLowerCase();
+const txRef = q.get('tx_ref') || q.get('reference');
+const card = document.getElementById('card');
+
+function show(kind, icon, title, text, extra) {
+  card.innerHTML = '';
+  const ic = document.createElement('div'); ic.className = 'icon ' + kind; ic.innerHTML = '<i class="fas ' + icon + '"></i>';
+  const h = document.createElement('h1'); h.textContent = title;
+  const p = document.createElement('p'); p.textContent = text;
+  card.append(ic, h, p);
+  if (extra) card.appendChild(extra);
+  const a = document.createElement('a'); a.className = 'btn'; a.href = 'knowledge-hub.html';
+  a.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Knowledge Hub';
+  card.appendChild(a);
+}
+
+async function verify(attempt) {
+  try {
+    const r = await fetch('/api/verify-support-payment/' + encodeURIComponent(txRef), { credentials: 'include' });
+    const d = await r.json();
+    if (d.status === 'success') {
+      const extra = document.createElement('div');
+      const amt = document.createElement('div'); amt.className = 'amount'; amt.textContent = '$' + Number(d.amount).toFixed(2);
+      extra.appendChild(amt);
+      show('ok', 'fa-check', 'Thank you!', 'Your payment to ' + (d.creator_name || 'the creator') + ' went through.', extra);
+      return;
+    }
+    if (attempt < 5) return setTimeout(() => verify(attempt + 1), 3000);
+    show('warn', 'fa-clock', 'Still processing', "We haven't received confirmation yet. If money left your account, it will be confirmed automatically within a few minutes.");
+  } catch (e) {
+    if (attempt < 5) return setTimeout(() => verify(attempt + 1), 3000);
+    show('warn', 'fa-triangle-exclamation', 'Could not confirm', 'We could not check your payment right now. If you were charged, it will still reach the creator.');
+  }
+}
+
+if (!txRef) {
+  show('bad', 'fa-xmark', 'No payment found', 'This page needs a payment reference.');
+} else if (status === 'cancelled' || status === 'failed') {
+  show('bad', 'fa-xmark', status === 'cancelled' ? 'Payment cancelled' : 'Payment failed', 'No money was taken. You can go back and try again.');
+} else {
+  verify(1);
+}
+</script>
+</body>
+</html>

@@ -1500,7 +1500,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
         }
         
         console.log("📤 Subaccount payload:", JSON.stringify(payload, null, 2));
-        
+        console.log('Support split payload:', JSON.stringify(payload.subaccounts), 'options:', payload.payment_options);
         const response = await axios.post(
             'https://api.flutterwave.com/v3/subaccounts',
             payload,
@@ -2786,7 +2786,11 @@ app.post("/api/support/create", async (req, res) => {
         if (!supporterEmail) {
             return res.status(400).json({ error: "Email is required to process payment" });
         }
-
+if (!creator.flutterwave_subaccount_id) {
+    return res.status(400).json({
+        error: "This person hasn't set up payouts yet, so they can't receive payments right now."
+    });
+}
         // Store the support record
         const insertResult = await db.query(
             `INSERT INTO creator_support
@@ -2846,10 +2850,11 @@ app.post("/api/support/create", async (req, res) => {
                 error: "This creator hasn't finished setting up payouts yet, so support can't be processed right now.",
             });
         }
-        payload.subaccounts = [{
-            id: creator.flutterwave_subaccount_id,
-            transaction_split_ratio: 0.9
-        }];
+       payload.subaccounts = [{
+    id: creator.flutterwave_subaccount_id,
+    transaction_charge_type: "percentage",
+    transaction_charge: 0.1        // you keep 10%, the recipient gets the rest
+}];
 
         const response = await axios.post(
             'https://api.flutterwave.com/v3/payments',

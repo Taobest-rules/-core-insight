@@ -2850,11 +2850,12 @@ if (!creator.flutterwave_subaccount_id) {
                 error: "This creator hasn't finished setting up payouts yet, so support can't be processed right now.",
             });
         }
-       payload.subaccounts = [{
+      payload.subaccounts = [{
     id: creator.flutterwave_subaccount_id,
     transaction_charge_type: "percentage",
-    transaction_charge: 0.1        // you keep 10%, the recipient gets the rest
+    transaction_charge: 0.1
 }];
+console.log('Support split:', JSON.stringify(payload.subaccounts));
 
         const response = await axios.post(
             'https://api.flutterwave.com/v3/payments',
@@ -14385,11 +14386,8 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
     // ✅ FIXED: Flutterwave uses 'verif-hash' header (lowercase)
     const signature = req.headers['verif-hash'];
     const expectedSignature = process.env.FLW_WEBHOOK_SECRET;
-    
-    console.log(`Signature received: ${signature}`);
-    console.log(`Expected signature: ${expectedSignature ? 'present' : 'missing'}`);
-    
-    // Only verify signature if webhook secret is configured
+        
+// Only verify signature if webhook secret is configured
     if (expectedSignature && signature !== expectedSignature) {
       console.log("⚠️ Invalid Flutterwave webhook signature - ignoring");
       // Still return 200 to prevent Flutterwave from retrying

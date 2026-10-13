@@ -1546,7 +1546,7 @@ async function createFlutterwaveSubaccount(userId, bankData) {
                 );
 
                 if (existing) {
-                    const existingId = existing.id || existing.subaccount_id;
+                   const existingId = existing.subaccount_id || existing.id;
                     await saveSubaccountToUser(userId, existingId, bankData);
                     console.log(`♻️ Reused existing subaccount for user ${userId}: ${existingId}`);
                     return { success: true, subaccount_id: existingId, reused: true };

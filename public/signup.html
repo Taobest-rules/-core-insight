@@ -61,6 +61,17 @@ a { color:var(--blue); }
 .validation-message.error { color:var(--danger); }
 .validation-message.checking { color:var(--text-muted); font-style:italic; }
 
+/* Username suggestions */
+.suggestions { margin-top:8px; display:none; }
+.suggestions.show { display:block; }
+.suggestions-label { font-size:12px; color:var(--charcoal-soft); margin-bottom:7px; display:flex; align-items:center; gap:6px; }
+.suggestions-label i { color:var(--gold-deep); }
+.suggestion-chips { display:flex; flex-wrap:wrap; gap:7px; }
+.suggestion-chip { border:1px solid var(--hairline-strong); background:var(--gold-tint); color:var(--charcoal); font-family:inherit; font-size:12.5px; font-weight:500; padding:6px 12px; border-radius:999px; cursor:pointer; transition:var(--ease); }
+.suggestion-chip:hover { background:var(--gold); border-color:var(--gold-deep); }
+.suggestion-refresh { border:none; background:none; color:var(--blue); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; padding:6px 4px; }
+.suggestion-refresh:hover { color:var(--blue-deep); text-decoration:underline; }
+
 /* Replaces the old role picker — explains the actual model instead
    of forcing an upfront account-type choice. */
 .selling-note { display:flex; gap:12px; padding:14px 16px; background:var(--cream); border:1px solid var(--hairline); border-radius:var(--radius-md); margin-bottom:20px; }
@@ -88,7 +99,18 @@ a { color:var(--blue); }
 .links a { font-size:13.5px; color:var(--charcoal-soft); text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
 .links a:hover { color:var(--charcoal); }
 
-/* Modals */
+/* Post-signup "where do you want to explore?" picker */
+.explore-picker { margin-top:18px; padding-top:18px; border-top:1px solid rgba(73,115,99,.2); }
+.explore-picker h3 { font-size:1.05rem; margin:0 0 4px; color:var(--charcoal); }
+.explore-picker p { margin:0 0 14px; font-size:12.5px; color:var(--charcoal-soft); }
+.explore-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.explore-option { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:14px; background:var(--paper); border:1px solid var(--hairline-strong); border-radius:var(--radius-md); font-family:inherit; font-size:13.5px; font-weight:600; color:var(--charcoal); cursor:pointer; text-align:left; transition:var(--ease); }
+.explore-option i { color:var(--gold-deep); font-size:18px; }
+.explore-option:hover { border-color:var(--gold); background:var(--gold-tint); transform:translateY(-1px); }
+.explore-skip { display:block; margin-top:12px; text-align:center; font-size:12.5px; color:var(--charcoal-soft); background:none; border:none; font-family:inherit; cursor:pointer; width:100%; }
+.explore-skip:hover { color:var(--charcoal); text-decoration:underline; }
+@media (max-width:360px) { .explore-grid { grid-template-columns:1fr; } }
+
 /* Terms/Privacy links now go to real pages (terms.html, privacy.html) instead of modals */
 
 @media (max-width:480px) {
@@ -119,8 +141,12 @@ a { color:var(--blue); }
       <form id="signupForm">
         <div class="form-group">
           <label><i class="fas fa-user"></i> Username</label>
-          <input type="text" id="username" placeholder="Choose a username" required>
+          <input type="text" id="username" placeholder="Choose a username" required autocomplete="username">
           <div class="validation-message" id="username-validation"></div>
+          <div class="suggestions" id="username-suggestions" aria-live="polite">
+            <div class="suggestions-label"><i class="fas fa-wand-magic-sparkles"></i> <span id="suggestions-title">Try one of these:</span></div>
+            <div class="suggestion-chips" id="suggestion-chips"></div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -199,6 +225,148 @@ a { color:var(--blue); }
     return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
   }
 
+  // ───────────────────────── USERNAME SUGGESTIONS ─────────────────────────
+  // Builds candidate usernames from what the person typed (or their email
+  // prefix), checks each against the same availability endpoint, and shows
+  // only the ones that are free as clickable chips.
+  const suggestionsBox = document.getElementById('username-suggestions');
+  const suggestionChips = document.getElementById('suggestion-chips');
+  const suggestionsTitle = document.getElementById('suggestions-title');
+  let suggestionRun = 0; // guards against out-of-order async results
+  let lastSuggestionBase = '';
+
+  const SUFFIXES = ['hub', 'pro', 'ng', 'official', 'zone', 'online', 'plus', 'insight', 'works', 'hq'];
+  const PREFIXES = ['the', 'real', 'its', 'mr', 'team'];
+
+  function cleanBase(str) {
+    return (str || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_{2,}/g, '_')
+      .slice(0, 20);
+  }
+
+  function randDigits(n) {
+    let s = '';
+    for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10);
+    return s;
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function generateCandidates(base) {
+    const out = new Set();
+    const b = cleanBase(base);
+    if (b.length < 2) return [];
+
+    const year = String(new Date().getFullYear()).slice(-2);
+
+    out.add(b + randDigits(2));
+    out.add(b + randDigits(3));
+    out.add(b + '_' + year);
+    out.add(b + '_' + pick(SUFFIXES));
+    out.add(b + pick(SUFFIXES));
+    out.add(pick(PREFIXES) + '_' + b);
+    out.add(pick(PREFIXES) + b);
+    out.add(b + '_' + randDigits(2));
+    out.add(b + year + randDigits(1));
+    out.add(b + '_' + pick(SUFFIXES) + randDigits(1));
+    out.add(b + randDigits(4));
+    out.add(b + '_' + pick(SUFFIXES));
+
+    // If the base itself is short, pad with a suffix so it stays 3+ chars
+    return shuffle([...out])
+      .filter(n => n !== b && validateUsername(n) && n.length <= 24);
+  }
+
+  // true = available, false = taken, null = couldn't check
+  async function isUsernameAvailable(name) {
+    try {
+      const res = await fetch(`/api/check-availability?field=username&value=${encodeURIComponent(name)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return !!data.available;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hideSuggestions() {
+    suggestionRun++;
+    suggestionsBox.classList.remove('show');
+    suggestionChips.innerHTML = '';
+  }
+
+  function renderSuggestions(names, title) {
+    suggestionChips.innerHTML = '';
+    if (!names.length) { suggestionsBox.classList.remove('show'); return; }
+
+    suggestionsTitle.textContent = title;
+    names.forEach(name => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'suggestion-chip';
+      btn.textContent = name;
+      btn.addEventListener('click', () => applySuggestion(name));
+      suggestionChips.appendChild(btn);
+    });
+
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.className = 'suggestion-refresh';
+    refresh.innerHTML = '<i class="fas fa-rotate"></i> More ideas';
+    refresh.addEventListener('click', () => suggestUsernames(lastSuggestionBase, title));
+    suggestionChips.appendChild(refresh);
+
+    suggestionsBox.classList.add('show');
+  }
+
+  function applySuggestion(name) {
+    usernameInput.value = name;
+    hideSuggestions();
+    usernameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    usernameInput.focus();
+  }
+
+  async function suggestUsernames(base, title) {
+    const candidates = generateCandidates(base);
+    if (!candidates.length) { hideSuggestions(); return; }
+
+    lastSuggestionBase = base;
+    const run = ++suggestionRun;
+    const batch = candidates.slice(0, 10);
+
+    const results = await Promise.all(batch.map(async n => ({ n, ok: await isUsernameAvailable(n) })));
+    if (run !== suggestionRun) return; // a newer request took over
+
+    const confirmed = results.filter(r => r.ok === true).map(r => r.n);
+    const unchecked = results.every(r => r.ok === null);
+
+    // If the server can't be reached, still offer well-formed ideas
+    // (signup itself will catch a collision).
+    const final = (unchecked ? batch : confirmed).slice(0, 4);
+    renderSuggestions(final, title || 'Try one of these:');
+  }
+
+  // Offer names derived from the email when the username box is still empty
+  function suggestFromEmail() {
+    if (usernameInput.value.trim()) return;
+    const email = emailInput.value.trim();
+    if (!validateEmail(email)) return;
+    const prefix = email.split('@')[0];
+    suggestUsernames(prefix, 'Username ideas based on your email:');
+  }
+
+  // ───────────────────────── USERNAME VALIDATION ─────────────────────────
   // Real-time username validation — format check is instant, actual
   // availability check is debounced against the server so we're not
   // firing a request on every keystroke.
@@ -214,9 +382,11 @@ a { color:var(--blue); }
       if (data.available) {
         usernameValidation.textContent = '✓ Username is available';
         usernameValidation.className = 'validation-message success';
+        hideSuggestions();
       } else {
         usernameValidation.textContent = '✗ That username is already taken';
         usernameValidation.className = 'validation-message error';
+        suggestUsernames(username, 'Already taken — try one of these:');
       }
     } catch (e) {
       // If the availability endpoint isn't reachable, fall back to
@@ -230,13 +400,18 @@ a { color:var(--blue); }
     const username = this.value;
     if (username.length === 0) {
       usernameValidation.textContent = '';
+      hideSuggestions();
+      suggestFromEmail();
     } else if (!validateUsername(username)) {
       usernameValidation.textContent = '✗ Username must be 3+ characters (letters, numbers, underscores only)';
       usernameValidation.className = 'validation-message error';
+      hideSuggestions();
     } else {
       checkUsernameAvailability(username);
     }
   });
+
+  usernameInput.addEventListener('focus', suggestFromEmail);
 
   const emailInput = document.getElementById('email');
   const emailValidation = document.getElementById('email-validation');
@@ -271,6 +446,9 @@ a { color:var(--blue); }
       checkEmailAvailability(email);
     }
   });
+
+  // Once they finish typing their email, suggest usernames if the box is empty
+  emailInput.addEventListener('blur', suggestFromEmail);
 
   // Password strength checker
   document.getElementById('password').addEventListener('input', function () {
@@ -376,14 +554,27 @@ a { color:var(--blue); }
             <i class="fas fa-check-circle"></i>
             ✅ Account created successfully!<br><br>
             <strong>📧 A verification link has been sent to ${email}</strong><br><br>
-            Please check your email and click the verification link to activate your account.<br><br>
-            <small>Redirecting to login page in 5 seconds...</small>
+            Please check your email and click the verification link to activate your account.
+            <div class="explore-picker">
+              <h3>Where do you want to explore first?</h3>
+              <p>Pick a section — you can visit the others anytime.</p>
+              <div class="explore-grid">
+                <button type="button" class="explore-option" data-dest="knowledge-hub.html" data-key="knowledge-hub"><i class="fas fa-book"></i> Knowledge Hub</button>
+                <button type="button" class="explore-option" data-dest="courses.html" data-key="courses"><i class="fas fa-graduation-cap"></i> Courses</button>
+                <button type="button" class="explore-option" data-dest="products.html" data-key="products"><i class="fas fa-box"></i> Products</button>
+                <button type="button" class="explore-option" data-dest="services.html" data-key="services"><i class="fas fa-briefcase"></i> Services</button>
+              </div>
+              <button type="button" class="explore-skip" data-dest="" data-key="">Skip for now</button>
+            </div>
           </div>
         `;
         document.getElementById('signupForm').reset();
-        setTimeout(() => { window.location.href = 'login.html?message=check_email'; }, 5000);
+        document.getElementById('signupForm').style.display = 'none';
+        hideSuggestions();
       } else {
         messageDiv.innerHTML = `<div class="message error"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Error creating account'}</div>`;
+        // Username may have been taken between the check and submit
+        if (/username/i.test(data.error || '')) suggestUsernames(username, 'Try one of these instead:');
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -392,6 +583,20 @@ a { color:var(--blue); }
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up';
     }
+  });
+
+  // After signup: remember where they want to explore, then send them to
+  // login with a `next` page so it can drop them there once verified.
+  document.getElementById('message').addEventListener('click', (e) => {
+    const btn = e.target.closest('.explore-option, .explore-skip');
+    if (!btn) return;
+    const dest = btn.dataset.dest || '';
+    try {
+      if (btn.dataset.key) localStorage.setItem('ci_explore_choice', btn.dataset.key);
+    } catch (err) { /* storage unavailable — carry on */ }
+    const params = new URLSearchParams({ message: 'check_email' });
+    if (dest) params.set('next', dest);
+    window.location.href = 'login.html?' + params.toString();
   });
 
   document.querySelectorAll('.password-toggle').forEach(btn => {

@@ -1572,6 +1572,15 @@ async function saveSubaccountToUser(userId, subaccountId, bankData) {
         institution_number, transit_number, bsb_number,
     } = bankData;
 
+    // Block one subaccount being linked to more than one user
+    const dup = await db.query(
+        "SELECT id FROM users WHERE flutterwave_subaccount_id = ? AND id != ?",
+        [subaccountId, userId]
+    );
+    if (extractRows(dup).length > 0) {
+        throw new Error("This bank account is already linked to another user.");
+    }
+
     await db.query(
         `UPDATE users 
          SET flutterwave_subaccount_id = ?, subaccount_created_at = NOW(), subaccount_status = 'active',
@@ -2745,7 +2754,24 @@ async function getPayerCountry(req) {
 // Create a support payment
 app.post("/api/support/create", async (req, res) => {
     try {
-        const { creatorId, articleId, amount, message, isAnonymous } = req.body;
+        const { articleId, amount, message, isAnonymous } = req.body;
+        let creatorId = req.body.creatorId;
+
+        // Always resolve the real author from the article, never trust the client
+        if (articleId) {
+            const artRes = await db.query(
+                "SELECT user_id FROM articles WHERE id = ? AND is_deleted = 0", [articleId]
+            );
+            const art = extractRows(artRes)[0];
+            if (!art) return res.status(404).json({ error: "Article not found" });
+            creatorId = art.user_id;   // always the real author
+        }
+
+        console.log('SUPPORT DEBUG →', {
+            sessionUser: req.session.user?.id,
+            creatorId,
+            articleId
+        });
 
         if (!creatorId || !amount) {
             return res.status(400).json({ error: "Creator and amount are required" });
@@ -2775,16 +2801,16 @@ app.post("/api/support/create", async (req, res) => {
         const creator = creatorResult[0];
 
         if (!creator.flutterwave_subaccount_id) {
-    return res.status(400).json({
-        error: "This person hasn't set up payouts yet, so they can't receive payments right now."
-    });
-}
-if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
-    console.error('Bad subaccount ID for user', creatorId, creator.flutterwave_subaccount_id);
-    return res.status(400).json({
-        error: "This person's payout account needs to be re-linked before they can receive payments."
-    });
-}
+            return res.status(400).json({
+                error: "This person hasn't set up payouts yet, so they can't receive payments right now."
+            });
+        }
+        if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
+            console.error('Bad subaccount ID for user', creatorId, creator.flutterwave_subaccount_id);
+            return res.status(400).json({
+                error: "This person's payout account needs to be re-linked before they can receive payments."
+            });
+        }
 
         // 90/10 split, same model as digital products
         const platformFee = tipAmount * 0.10;
@@ -2818,8 +2844,7 @@ if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
             return res.status(500).json({ error: "Payment system not configured" });
         }
 
-              
-                const payerCountry = await getPayerCountry(req);
+        const payerCountry = await getPayerCountry(req);
         let supportCurrency = "USD";
         let chargeAmount = tipAmount;
         let paymentOptions = "card";           // everyone outside Nigeria: card only
@@ -2831,6 +2856,7 @@ if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
             paymentOptions = "banktransfer, ussd, account";   // no card for Nigerians
             console.log(`💰 Nigerian payer: ₦${chargeAmount} via transfer/USSD/account`);
         }
+
         const payload = {
             tx_ref: transactionRef,
             amount: chargeAmount,
@@ -2852,18 +2878,12 @@ if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
             }
         };
 
-             
-        if (!creator.flutterwave_subaccount_id) {
-            return res.status(400).json({
-                error: "This creator hasn't finished setting up payouts yet, so support can't be processed right now.",
-            });
-        }
-      payload.subaccounts = [{
-    id: creator.flutterwave_subaccount_id,
-    transaction_charge_type: "percentage",
-    transaction_charge: 0.1
-}];
-console.log('Support split:', JSON.stringify(payload.subaccounts));
+        payload.subaccounts = [{
+            id: creator.flutterwave_subaccount_id,
+            transaction_charge_type: "percentage",
+            transaction_charge: 0.1
+        }];
+        console.log('Support split:', JSON.stringify(payload.subaccounts));
 
         const response = await axios.post(
             'https://api.flutterwave.com/v3/payments',

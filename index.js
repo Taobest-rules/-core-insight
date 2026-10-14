@@ -2774,6 +2774,18 @@ app.post("/api/support/create", async (req, res) => {
         }
         const creator = creatorResult[0];
 
+        if (!creator.flutterwave_subaccount_id) {
+    return res.status(400).json({
+        error: "This person hasn't set up payouts yet, so they can't receive payments right now."
+    });
+}
+if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
+    console.error('Bad subaccount ID for user', creatorId, creator.flutterwave_subaccount_id);
+    return res.status(400).json({
+        error: "This person's payout account needs to be re-linked before they can receive payments."
+    });
+}
+
         // 90/10 split, same model as digital products
         const platformFee = tipAmount * 0.10;
         const creatorEarnings = tipAmount - platformFee;
@@ -2786,11 +2798,7 @@ app.post("/api/support/create", async (req, res) => {
         if (!supporterEmail) {
             return res.status(400).json({ error: "Email is required to process payment" });
         }
-if (!creator.flutterwave_subaccount_id) {
-    return res.status(400).json({
-        error: "This person hasn't set up payouts yet, so they can't receive payments right now."
-    });
-}
+
         // Store the support record
         const insertResult = await db.query(
             `INSERT INTO creator_support

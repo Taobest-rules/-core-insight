@@ -2754,18 +2754,26 @@ async function getPayerCountry(req) {
 // Create a support payment
 app.post("/api/support/create", async (req, res) => {
     try {
-        const { articleId, amount, message, isAnonymous } = req.body;
-        let creatorId = req.body.creatorId;
+       const { articleId, commentId, type, amount, message, isAnonymous } = req.body;
+let creatorId = req.body.creatorId;
 
-        // Always resolve the real author from the article, never trust the client
-        if (articleId) {
-            const artRes = await db.query(
-                "SELECT user_id FROM articles WHERE id = ? AND is_deleted = 0", [articleId]
-            );
-            const art = extractRows(artRes)[0];
-            if (!art) return res.status(404).json({ error: "Article not found" });
-            creatorId = art.user_id;   // always the real author
-        }
+if (type === 'reward' && commentId) {
+    // Reward goes to the commenter, resolved on the server
+    const cRes = await db.query(
+        "SELECT user_id FROM article_comments WHERE id = ?", [commentId]
+    );
+    const c = extractRows(cRes)[0];
+    if (!c) return res.status(404).json({ error: "Comment not found" });
+    creatorId = c.user_id;
+} else if (articleId) {
+    // Normal support goes to the article author
+    const artRes = await db.query(
+        "SELECT user_id FROM articles WHERE id = ? AND is_deleted = 0", [articleId]
+    );
+    const art = extractRows(artRes)[0];
+    if (!art) return res.status(404).json({ error: "Article not found" });
+    creatorId = art.user_id;
+}
 
         console.log('SUPPORT DEBUG →', {
             sessionUser: req.session.user?.id,
@@ -2923,17 +2931,14 @@ app.get("/api/verify-support-payment/:reference", async (req, res) => {
         if (reference.startsWith('FW_')) reference = reference.substring(3);
 
         const supportResult = await db.query(
-            `SELECT cs.*, u.username as creator_name, u.email as creator_email
+            `SELECT cs.*, u.username as creator_name
              FROM creator_support cs
              JOIN users u ON cs.creator_id = u.id
              WHERE cs.transaction_ref = ?`,
             [reference]
         );
-
-        if (!supportResult || supportResult.length === 0) {
-            return res.status(404).json({ error: "Support record not found" });
-        }
-        const support = supportResult[0];
+        const support = extractRows(supportResult)[0];
+        if (!support) return res.status(404).json({ error: "Support record not found" });
 
         if (support.payment_status === 'completed') {
             return res.json({
@@ -2950,31 +2955,7 @@ app.get("/api/verify-support-payment/:reference", async (req, res) => {
         );
 
         if (response.data.status === 'success' && response.data.data.status === 'successful') {
-            await db.query(
-                `UPDATE creator_support
-                 SET payment_status = 'completed', completed_at = NOW()
-                 WHERE transaction_ref = ?`,
-                [reference]
-            );
-
-            // Notify the creator
-            const supporterName = support.is_anonymous ? "Someone" :
-                (support.supporter_id ? (await db.query("SELECT username FROM users WHERE id = ?", [support.supporter_id]))[0]?.username : "A guest supporter");
-
-            const emailHtml = `
-                <!DOCTYPE html>
-                <html><head><title>You've been supported!</title></head>
-                <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
-                    <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
-                        <h1 style="color:#fbbf24;">💛 You received support!</h1>
-                        <p>${escapeHtml(supporterName)} just supported you with <strong>$${parseFloat(support.amount).toFixed(2)}</strong>.</p>
-                        ${support.message ? `<div style="background:#0f172a;padding:16px;border-radius:10px;margin:16px 0;"><p style="font-style:italic;">"${escapeHtml(support.message)}"</p></div>` : ''}
-                        <p>Your earnings: <strong>$${parseFloat(support.creator_earnings).toFixed(2)}</strong> (after platform fee)</p>
-                    </div>
-                </body></html>
-            `;
-            sendEmail(support.creator_email, "You've received support! 💛", emailHtml).catch(() => {});
-
+            await completeSupportAndNotify(reference);   // no-op if the webhook got there first
             return res.json({
                 status: "success",
                 message: "Payment verified successfully",
@@ -14468,15 +14449,75 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
 async function handleFlutterwaveSupportPayment(tx_ref, transaction) {
   console.log(`💛 Processing support payment: ${tx_ref}`);
   try {
-    await db.query(
-      `UPDATE creator_support SET payment_status = 'completed', completed_at = NOW()
-       WHERE transaction_ref = ?`,
-      [tx_ref]
-    );
-    console.log(`✅ Support payment confirmed via webhook: ${tx_ref}`);
+    const done = await completeSupportAndNotify(tx_ref);
+    console.log(done ? `✅ Support confirmed + creator notified: ${tx_ref}` : `ℹ️ Support already processed: ${tx_ref}`);
   } catch (err) {
     console.error('Error processing support payment webhook:', err);
   }
+}
+async function completeSupportAndNotify(txRef) {
+  // Atomically claim the completion. Only the first caller gets affectedRows > 0.
+  const claim = await db.query(
+    `UPDATE creator_support
+     SET payment_status = 'completed', completed_at = NOW()
+     WHERE transaction_ref = ? AND payment_status != 'completed'`,
+    [txRef]
+  );
+  const claimed = (claim?.affectedRows ?? claim?.[0]?.affectedRows ?? 0) > 0;
+  if (!claimed) return false;
+
+  const rowRes = await db.query(
+    `SELECT cs.*, cu.email AS creator_email, cu.username AS creator_name,
+            su.username AS supporter_username
+     FROM creator_support cs
+     JOIN users cu ON cs.creator_id = cu.id
+     LEFT JOIN users su ON cs.supporter_id = su.id
+     WHERE cs.transaction_ref = ?`,
+    [txRef]
+  );
+  const s = extractRows(rowRes)[0];
+  if (!s) return true;
+
+  // Anonymous means the creator never sees the name, but still sees the message
+  const supporterName = s.is_anonymous
+    ? "Someone"
+    : (s.supporter_username || "A guest supporter");
+  const amount = parseFloat(s.amount).toFixed(2);
+  const earnings = parseFloat(s.creator_earnings).toFixed(2);
+
+  // In-app notification
+  try {
+    await db.query(
+      `INSERT INTO notifications (recipient_id, type, title, message, link, created_at)
+       VALUES (?, 'support', ?, ?, '/knowledge-hub.html', NOW())`,
+      [
+        s.creator_id,
+        `💛 ${supporterName} supported you with $${amount}`,
+        s.message ? `"${String(s.message).slice(0, 200)}"` : 'No message left.'
+      ]
+    );
+  } catch (e) { console.error('Support in-app notification failed:', e.message); }
+
+  // Email
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html><head><title>You've been supported!</title></head>
+    <body style="font-family:Arial;background:#0a192f;color:#e6f1ff;padding:20px;">
+      <div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:16px;padding:30px;">
+        <h1 style="color:#fbbf24;">💛 You received support!</h1>
+        <p><strong>${escapeHtml(supporterName)}</strong> just supported you with <strong>$${amount}</strong>.</p>
+        ${s.message
+          ? `<div style="background:#0f172a;padding:16px;border-radius:10px;margin:16px 0;">
+               <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;">Message from ${escapeHtml(supporterName)}:</p>
+               <p style="font-style:italic;margin:0;">"${escapeHtml(s.message)}"</p>
+             </div>`
+          : ''}
+        <p>Your earnings: <strong>$${earnings}</strong> (after platform fee)</p>
+      </div>
+    </body></html>`;
+  sendEmail(s.creator_email, "You've received support! 💛", emailHtml).catch(() => {});
+
+  return true;
 }
 // Helper: Handle Flutterwave Digital Payment
 async function handleFlutterwaveDigitalPayment(tx_ref, transaction) {

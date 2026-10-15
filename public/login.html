@@ -218,15 +218,16 @@ a { color:var(--blue); }
     document.getElementById('resetEmail').value = '';
   }
 
-  // BUG FIX: the original file hardcoded every redirect to
-  // /courses.html regardless of where the person came from or what
-  // they were trying to do. This now honors a ?redirect= param that
-  // other pages can pass (e.g. login.html?redirect=/products.html),
-  // falling back to the homepage only if none was given.
+  // Where to go after login: honor ?redirect= if it's a safe on-site path
+  // (e.g. login.html?redirect=/products.html), otherwise show the
+  // destination picker so the person can choose where to land.
   function getRedirectTarget() {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect');
-    return redirect ? decodeURIComponent(redirect) : '/index.html';
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      return redirect;
+    }
+    return '/welcome.html';
   }
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {

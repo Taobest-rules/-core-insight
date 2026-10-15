@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Welcome — Core Insight</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6; --cream-deep:#f5f3ee; --paper:#fff;
+  --charcoal:#2b2b28; --charcoal-soft:#55524a; --text-muted:#8a8578;
+  --hairline:#e9e5dc; --hairline-strong:#ddd7ca;
+  --blue:#4a6fa5; --blue-deep:#3c5c8a; --sage-deep:#497363;
+  --gold:#c9971f; --gold-deep:#a97c15; --gold-tint:#f8ecd2; --purple:#8a6bb0;
+  --radius-sm:8px; --radius-lg:20px;
+  --shadow-hover:0 12px 28px rgba(43,43,40,.10);
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--cream); color:var(--charcoal); line-height:1.6; -webkit-font-smoothing:antialiased; min-height:100vh; display:flex; flex-direction:column; }
+h1,h2,h3 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-.01em; margin:0; }
+a { text-decoration:none; color:inherit; }
+header { height:68px; display:flex; align-items:center; padding:0 clamp(14px,4vw,28px); border-bottom:1px solid var(--hairline); background:rgba(250,249,246,.92); }
+.logo { display:flex; align-items:center; gap:12px; }
+.logo-icon { width:38px; height:38px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--hairline); }
+.logo-text { font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; }
+main { flex:1; max-width:1000px; width:100%; margin:0 auto; padding:clamp(36px,8vw,72px) clamp(16px,4vw,28px); text-align:center; }
+.eyebrow { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--sage-deep); margin-bottom:12px; }
+main h1 { font-size:clamp(1.8rem,5vw,2.8rem); line-height:1.15; margin-bottom:12px; }
+main p.sub { color:var(--charcoal-soft); font-size:16px; max-width:520px; margin:0 auto 36px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:18px; text-align:left; }
+.card { background:var(--paper); border:1px solid var(--hairline); border-radius:var(--radius-lg); padding:26px 22px; display:flex; flex-direction:column; gap:12px; cursor:pointer; transition:var(--ease); font:inherit; color:inherit; text-align:left; }
+.card:hover, .card:focus-visible { transform:translateY(-4px); box-shadow:var(--shadow-hover); border-color:var(--hairline-strong); outline:none; }
+.icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.hub .icon { background:#e3ecf5; color:var(--blue-deep); }
+.services .icon { background:#f0e9f7; color:var(--purple); }
+.courses .icon { background:#e6efe9; color:var(--sage-deep); }
+.products .icon { background:var(--gold-tint); color:var(--gold-deep); }
+.card h3 { font-size:1.2rem; }
+.card p { margin:0; font-size:13.5px; color:var(--charcoal-soft); flex:1; }
+.go { font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:6px; }
+.hub .go { color:var(--blue-deep); } .services .go { color:var(--purple); } .courses .go { color:var(--sage-deep); } .products .go { color:var(--gold-deep); }
+.go i { transition:transform .2s var(--ease); }
+.card:hover .go i { transform:translateX(3px); }
+.remember { margin-top:30px; display:inline-flex; align-items:center; gap:10px; font-size:14px; color:var(--charcoal-soft); cursor:pointer; user-select:none; }
+.remember input { width:17px; height:17px; accent-color:var(--gold-deep); cursor:pointer; }
+.skip { display:block; margin-top:18px; font-size:13px; color:var(--text-muted); }
+.skip:hover { color:var(--charcoal); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">
+    <div class="logo-icon"><img src="https://i.pinimg.com/736x/27/7a/12/277a1257f00946e8337c57ac43c9b700.jpg" alt="Core Insight" style="width:100%;height:100%;object-fit:cover;"></div>
+    <div class="logo-text">Core Insight</div>
+  </a>
+</header>
+
+<main id="chooser">
+  <span class="eyebrow">You're in</span>
+  <h1>Where would you like to start?</h1>
+  <p class="sub">Pick a section to land on. You can switch anytime from the menu.</p>
+
+  <div class="grid">
+    <button class="card hub" data-dest="knowledge-hub.html" data-key="knowledge">
+      <div class="icon"><i class="fas fa-book"></i></div>
+      <h3>Knowledge Hub</h3>
+      <p>Read and publish articles and videos.</p>
+      <span class="go">Open <i class="fas fa-arrow-right"></i></span>
+    </button>
+    <button class="card services" data-dest="services.html" data-key="services">
+      <div class="icon"><i class="fas fa-briefcase"></i></div>
+      <h3>Services</h3>
+      <p>Hire freelancers or offer your own services.</p>
+      <span class="go">Open <i class="fas fa-arrow-right"></i></span>
+    </button>
+    <button class="card courses" data-dest="courses.html" data-key="courses">
+      <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+      <h3>Courses</h3>
+      <p>Learn from creators or publish a course.</p>
+      <span class="go">Open <i class="fas fa-arrow-right"></i></span>
+    </button>
+    <button class="card products" data-dest="products.html" data-key="products">
+      <div class="icon"><i class="fas fa-box"></i></div>
+      <h3>Products</h3>
+      <p>Buy or sell digital and physical goods.</p>
+      <span class="go">Open <i class="fas fa-arrow-right"></i></span>
+    </button>
+  </div>
+
+  <label class="remember"><input type="checkbox" id="rememberChoice"> Always take me to my choice after login</label>
+  <a href="profile.html" class="skip">Skip — go to my profile</a>
+</main>
+
+<script>
+(function () {
+  var KEY = 'ci_preferred_landing';
+  var DESTS = {
+    knowledge: 'knowledge-hub.html',
+    services: 'services.html',
+    courses: 'courses.html',
+    products: 'products.html'
+  };
+
+  function get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function set(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function clear() { try { localStorage.removeItem(KEY); } catch (e) {} }
+
+  var params = new URLSearchParams(location.search);
+
+  // If the user saved a preference, skip the chooser (unless ?choose=1 to change it)
+  var saved = get();
+  if (saved && DESTS[saved] && !params.has('choose')) {
+    location.replace(DESTS[saved]);
+    return;
+  }
+
+  var remember = document.getElementById('rememberChoice');
+  remember.checked = false;
+
+  document.querySelectorAll('.card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      if (remember.checked) set(card.dataset.key); else clear();
+      location.href = card.dataset.dest;
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+/* ============================================================
+   service-cards.css — card design for the markup services.js
+   actually renders (.service-header, .service-title,
+   .service-provider-info, .service-actions, ...).
+   Uses the variables from services.css (--gold, --blue, --sage,
+   --cream, --hairline...). Load AFTER services.css:
+     <link rel="stylesheet" href="services.css">
+     <link rel="stylesheet" href="service-cards.css">
+   Cards rotate through 5 palettes: gold, blue, sage, plum, clay.
+   ============================================================ */
+
+/* ---------- Palettes (rotate by position) ---------- */
+.service-card { --accent: var(--gold);  --accent-deep: var(--gold-deep); --tint: var(--gold-tint); }
+.service-card:nth-child(5n+2) { --accent: var(--blue);  --accent-deep: var(--blue-deep);  --tint: #e3ecf5; }
+.service-card:nth-child(5n+3) { --accent: var(--sage);  --accent-deep: var(--sage-deep);  --tint: #e6efe9; }
+.service-card:nth-child(5n+4) { --accent: #8a6bb0;      --accent-deep: #6f548f;            --tint: #efe9f6; }
+.service-card:nth-child(5n+5) { --accent: #d0743c;      --accent-deep: #a85a2c;            --tint: #f9ece3; }
+
+/* ---------- Shell ---------- */
+.service-card {
+  border: 1px solid var(--hairline);
+  border-top: 0;                      /* replaced by the gradient bar below */
+  border-radius: var(--radius-lg);
+  padding: 22px 18px 16px;
+  cursor: default;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, var(--paper) 0%, var(--tint) 220%);
+  box-shadow: 0 1px 2px rgba(43, 43, 40, .05), 0 6px 18px rgba(43, 43, 40, .05);
+  overflow: hidden;
+}
+.service-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 5px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+}
+.service-card:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--hairline));
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+/* ---------- Title + price ---------- */
+.service-card .service-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px;
+}
+.service-card .service-title {
+  margin: 0; font-size: 1.05rem; line-height: 1.3; font-weight: 600; color: var(--charcoal);
+}
+.service-card .service-price {
+  flex-shrink: 0; white-space: nowrap;
+  font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: .95rem;
+  padding: 5px 13px; border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* ---------- Provider strip ---------- */
+.service-card .service-provider-info {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px 8px 8px; margin-bottom: 12px;
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+}
+.service-card .profile-picture-wrapper,
+.service-card .provider-initials {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}
+.service-card .provider-profile-picture { width: 100%; height: 100%; object-fit: cover; display: block; }
+.service-card .provider-initials {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.1rem; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+}
+.service-card .provider-info { min-width: 0; }
+.service-card .service-provider-name {
+  font-size: 13px; font-weight: 600; color: var(--charcoal);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.service-card .service-provider {
+  display: inline-block; margin-top: 2px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px;
+  color: var(--accent-deep);
+  background: var(--tint);
+}
+.service-card .service-rating { margin-top: 3px; font-size: 11.5px; color: var(--charcoal-soft); }
+.service-card .service-rating .stars { color: var(--gold); letter-spacing: 1px; margin-right: 3px; }
+
+/* ---------- Description + meta ---------- */
+.service-card .description-container { margin-bottom: 8px; }
+.service-card .service-description {
+  margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--charcoal-soft);
+}
+.service-card .fa-clock, .service-card .fa-redo-alt { color: var(--accent); margin-right: 5px; }
+
+.service-card .service-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.service-card .service-tags .tag {
+  font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  color: var(--accent-deep);
+  background: var(--tint);
+  border: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* ---------- Action buttons ---------- */
+.service-card .service-actions {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  margin-top: auto; padding-top: 12px;
+  border-top: 1px dashed var(--hairline-strong);
+}
+.service-card .service-actions .btn {
+  flex: 1 1 auto; justify-content: center;
+  padding: 8px 11px; font-size: 12px; font-weight: 600;
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+}
+.service-card .service-actions .btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+.service-card .chat-btn     { background: var(--accent); color: #fff; border-color: var(--accent); }
+.service-card .chat-btn:hover { background: var(--accent-deep); }
+.service-card .profile-btn  { background: var(--paper); color: var(--accent-deep); border-color: var(--accent); }
+.service-card .recruit-btn  { background: var(--sage); color: #fff; border-color: var(--sage); }
+.service-card .recruit-btn:hover { background: var(--sage-deep); }
+.service-card .recruit-btn.recruited { background: #e6efe9; color: var(--sage-deep); border-color: transparent; }
+.service-card .favorite-btn { background: var(--danger-tint); color: var(--danger); border-color: transparent; }
+.service-card .favorite-btn.active { background: var(--danger); color: #fff; }
+.service-card .flag-btn     { background: var(--cream); color: var(--charcoal-soft); border-color: var(--hairline-strong); }
+.service-card .review-btn   { background: var(--gold-tint); color: var(--gold-deep); border-color: transparent; }
+.service-card .btn-danger   { background: transparent; color: var(--danger); border-color: var(--danger); }
+.service-card .btn-primary  { background: var(--accent); color: #fff; border-color: var(--accent); }
+.service-card .btn-secondary{ background: var(--paper); color: var(--charcoal); border-color: var(--hairline-strong); }
+
+.service-card .view-details-btn {
+  width: 100%; margin-top: 10px; padding: 9px; justify-content: center;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  color: var(--accent-deep); background: var(--tint);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--radius-sm);
+  transition: all .2s var(--ease);
+}
+.service-card .view-details-btn:hover {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+}
+
+/* ---------- Order cards (use .card-body / .price-row from services.css) ---------- */
+.service-card .card-body { background: none; padding: 0; }
+.service-card .price-row { margin: 10px 0 0; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: var(--tint); }
+.service-card .price { color: var(--accent-deep); }
+
+/* ---------- Job board ---------- */
+.job-card {
+  position: relative; overflow: hidden;
+  border-left: 5px solid var(--gold);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--paper) 0%, var(--gold-tint) 260%);
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(43,43,40,.05), 0 6px 18px rgba(43,43,40,.05);
+}
+.job-card:nth-child(3n+2) { border-left-color: var(--blue); background: linear-gradient(135deg, var(--paper) 0%, #e3ecf5 260%); }
+.job-card:nth-child(3n+3) { border-left-color: var(--sage); background: linear-gradient(135deg, var(--paper) 0%, #e6efe9 260%); }
+.job-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+.job-card .job-budget {
+  padding: 4px 12px; border-radius: 999px; color: var(--charcoal);
+  background: var(--gold-tint); border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.job-card .job-meta-row i { color: var(--gold-deep); margin-right: 3px; }
+
+/* ---------- Grid ---------- */
+#servicesList, #myServicesList, #favoritesList, #clientServicesList, #ordersList {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px;
+}
+@media (max-width: 600px) {
+  #servicesList, #myServicesList, #favoritesList, #clientServicesList, #ordersList { grid-template-columns: 1fr; gap: 14px; }
+  .service-card { padding: 20px 14px 14px; }
+}

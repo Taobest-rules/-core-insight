@@ -18,7 +18,7 @@ module.exports = function registerJobRoutes(app, db) {
       catch (e) { if (!/duplicate|already exists/i.test(e.message)) console.error(`❌ Jobs migration failed (${label}):`, e.message); }
     };
     await run(
-      `CREATE TABLE IF NOT EXISTS jobs (
+      `CREATE TABLE IF NOT EXISTS job_posts (
         id INT AUTO_INCREMENT PRIMARY KEY,
         client_id INT NOT NULL,
         title VARCHAR(255) NOT NULL,
@@ -37,7 +37,7 @@ module.exports = function registerJobRoutes(app, db) {
         INDEX idx_category (category)
       )`, 'jobs table');
     await run(
-      `CREATE TABLE IF NOT EXISTS job_bids (
+      `CREATE TABLE IF NOT EXISTS job_post_bids (
         id INT AUTO_INCREMENT PRIMARY KEY,
         job_id INT NOT NULL,
         provider_id INT NOT NULL,
@@ -45,9 +45,9 @@ module.exports = function registerJobRoutes(app, db) {
         note TEXT NULL,
         status VARCHAR(20) DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_job_provider (job_id, provider_id),
+        UNIQUE KEY uniq_post_provider (job_id, provider_id),
         INDEX idx_job (job_id)
-      )`, 'job_bids table');
+      )`, 'job_post_bids table');
   })();
 
   // ---------- Post a job ----------
@@ -72,7 +72,7 @@ module.exports = function registerJobRoutes(app, db) {
       }
 
       const result = await db.query(
-        `INSERT INTO jobs (client_id, title, category, subcategory, description, budget_min, budget_max, location, qualifications, status, created_at)
+        `INSERT INTO job_posts (client_id, title, category, subcategory, description, budget_min, budget_max, location, qualifications, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NOW())`,
         [user.id, title.trim(), category, subcategory || null, description.trim(), min, max,
          location ? location.trim() : null, qualifications ? qualifications.trim() : null]
@@ -90,8 +90,8 @@ module.exports = function registerJobRoutes(app, db) {
       const { status, category, mine } = req.query;
       let sql = `
         SELECT j.*, u.username AS client_name,
-               (SELECT COUNT(*) FROM job_bids b WHERE b.job_id = j.id) AS bid_count
-        FROM jobs j
+               (SELECT COUNT(*) FROM job_post_bids b WHERE b.job_id = j.id) AS bid_count
+        FROM job_posts j
         LEFT JOIN users u ON j.client_id = u.id
         WHERE 1=1`;
       const params = [];
@@ -113,8 +113,8 @@ module.exports = function registerJobRoutes(app, db) {
     try {
       const job = rows(await db.query(
         `SELECT j.*, u.username AS client_name,
-                (SELECT COUNT(*) FROM job_bids b WHERE b.job_id = j.id) AS bid_count
-         FROM jobs j LEFT JOIN users u ON j.client_id = u.id WHERE j.id = ?`, [req.params.id]))[0];
+                (SELECT COUNT(*) FROM job_post_bids b WHERE b.job_id = j.id) AS bid_count
+         FROM job_posts j LEFT JOIN users u ON j.client_id = u.id WHERE j.id = ?`, [req.params.id]))[0];
       if (!job) return res.status(404).json({ error: 'Job not found' });
       res.json(job);
     } catch (err) {
@@ -131,7 +131,7 @@ module.exports = function registerJobRoutes(app, db) {
         return res.status(403).json({ error: 'Only freelancers can submit bids' });
       }
 
-      const job = rows(await db.query('SELECT * FROM jobs WHERE id = ?', [req.params.id]))[0];
+      const job = rows(await db.query('SELECT * FROM job_posts WHERE id = ?', [req.params.id]))[0];
       if (!job) return res.status(404).json({ error: 'Job not found' });
       if (job.status !== 'open') return res.status(400).json({ error: 'This job is no longer accepting bids' });
       if (parseInt(job.client_id) === parseInt(user.id)) return res.status(400).json({ error: "You can't bid on your own job" });
@@ -141,7 +141,7 @@ module.exports = function registerJobRoutes(app, db) {
       const note = (req.body.note || '').trim().substring(0, 2000);
 
       await db.query(
-        `INSERT INTO job_bids (job_id, provider_id, amount, note, status, created_at)
+        `INSERT INTO job_post_bids (job_id, provider_id, amount, note, status, created_at)
          VALUES (?, ?, ?, ?, 'pending', NOW())
          ON DUPLICATE KEY UPDATE amount = VALUES(amount), note = VALUES(note), status = 'pending'`,
         [job.id, user.id, amount, note || null]
@@ -168,14 +168,14 @@ module.exports = function registerJobRoutes(app, db) {
     try {
       const user = req.session.user;
       if (!user) return res.status(401).json({ error: 'Please log in' });
-      const job = rows(await db.query('SELECT client_id FROM jobs WHERE id = ?', [req.params.id]))[0];
+      const job = rows(await db.query('SELECT client_id FROM job_posts WHERE id = ?', [req.params.id]))[0];
       if (!job) return res.status(404).json({ error: 'Job not found' });
       if (parseInt(job.client_id) !== parseInt(user.id) && user.role !== 'admin') {
         return res.status(403).json({ error: 'Only the job owner can view bids' });
       }
       const bids = rows(await db.query(
         `SELECT b.*, u.username AS provider_name, fp.headline, fp.profile_picture_url
-         FROM job_bids b
+         FROM job_post_bids b
          JOIN users u ON b.provider_id = u.id
          LEFT JOIN freelancer_profiles fp ON fp.user_id = b.provider_id
          WHERE b.job_id = ? ORDER BY b.amount ASC`, [req.params.id]));
@@ -190,17 +190,17 @@ module.exports = function registerJobRoutes(app, db) {
     try {
       const user = req.session.user;
       if (!user) return res.status(401).json({ error: 'Please log in' });
-      const job = rows(await db.query('SELECT * FROM jobs WHERE id = ?', [req.params.id]))[0];
+      const job = rows(await db.query('SELECT * FROM job_posts WHERE id = ?', [req.params.id]))[0];
       if (!job) return res.status(404).json({ error: 'Job not found' });
       if (parseInt(job.client_id) !== parseInt(user.id)) return res.status(403).json({ error: 'Only the job owner can accept a bid' });
       if (job.status !== 'open') return res.status(400).json({ error: 'Job is no longer open' });
 
-      const bid = rows(await db.query('SELECT * FROM job_bids WHERE id = ? AND job_id = ?', [req.params.bidId, job.id]))[0];
+      const bid = rows(await db.query('SELECT * FROM job_post_bids WHERE id = ? AND job_id = ?', [req.params.bidId, job.id]))[0];
       if (!bid) return res.status(404).json({ error: 'Bid not found' });
 
-      await db.query(`UPDATE job_bids SET status = 'accepted' WHERE id = ?`, [bid.id]);
-      await db.query(`UPDATE job_bids SET status = 'rejected' WHERE job_id = ? AND id != ?`, [job.id, bid.id]);
-      await db.query(`UPDATE jobs SET status = 'awarded', awarded_bid_id = ? WHERE id = ?`, [bid.id, job.id]);
+      await db.query(`UPDATE job_post_bids SET status = 'accepted' WHERE id = ?`, [bid.id]);
+      await db.query(`UPDATE job_post_bids SET status = 'rejected' WHERE job_id = ? AND id != ?`, [job.id, bid.id]);
+      await db.query(`UPDATE job_posts SET status = 'awarded', awarded_bid_id = ? WHERE id = ?`, [bid.id, job.id]);
 
       res.json({ success: true, provider_id: bid.provider_id, amount: bid.amount });
     } catch (err) {
@@ -214,12 +214,12 @@ module.exports = function registerJobRoutes(app, db) {
     try {
       const user = req.session.user;
       if (!user) return res.status(401).json({ error: 'Please log in' });
-      const job = rows(await db.query('SELECT client_id FROM jobs WHERE id = ?', [req.params.id]))[0];
+      const job = rows(await db.query('SELECT client_id FROM job_posts WHERE id = ?', [req.params.id]))[0];
       if (!job) return res.status(404).json({ error: 'Job not found' });
       if (parseInt(job.client_id) !== parseInt(user.id) && user.role !== 'admin') {
         return res.status(403).json({ error: 'Not allowed' });
       }
-      await db.query(`UPDATE jobs SET status = 'closed' WHERE id = ?`, [req.params.id]);
+      await db.query(`UPDATE job_posts SET status = 'closed' WHERE id = ?`, [req.params.id]);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: err.message });

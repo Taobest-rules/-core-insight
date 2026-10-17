@@ -1,3 +1,4 @@
+function getCSRFToken(){ return document.querySelector('meta[name="csrf-token"]')?.content || ''; }
 /* ============================================================
    CORE INSIGHT — SERVICES PAGE JAVASCRIPT
    services.js = original application logic (browsing, orders,
@@ -7070,7 +7071,8 @@ function setupEventListeners() {
     if ($('findServicesBtn')) {
         $('findServicesBtn').addEventListener('click', () => {
             showServicesBrowser();
-            if (typeof switchTab === 'function') switchTab('browse');
+            if (typeof revealServiceSearch === 'function') revealServiceSearch();
+            else if (typeof switchTab === 'function') switchTab('browse');
         });
     }
 
@@ -10873,25 +10875,353 @@ async function subscribe(plan) { /* no-op — subscriptions removed */ }
    with the two-level Category → Subcategory system.
    ============================================================ */
 const SERVICE_CATEGORIES = {
-  "Home Repair & Maintenance": ["Plumbing", "Electrical", "HVAC", "Handyman", "Appliance Repair", "Roofing", "Locksmith", "Pest Control"],
-  "Cleaning": ["House Cleaning", "Deep Cleaning", "Carpet & Upholstery", "Window Cleaning", "Post-Construction Cleaning", "Office Cleaning"],
-  "Moving & Delivery": ["Local Moving", "Long-Distance Moving", "Packing Services", "Furniture Delivery", "Courier & Errands"],
-  "Construction & Renovation": ["General Contracting", "Carpentry", "Painting", "Flooring", "Masonry", "Welding", "Interior Design"],
-  "Automotive": ["Mechanic", "Auto Detailing", "Towing", "Tire Services", "Car Wash"],
-  "Landscaping & Outdoor": ["Lawn Care", "Gardening", "Tree Services", "Pool Maintenance", "Fencing", "Pest Control (Outdoor)"],
-  "Tech & IT Support": ["Computer Repair", "Phone Repair", "Network Setup", "Smart Home Installation", "Data Recovery", "IT Consulting"],
-  "Web & Software Development": ["Web Development", "Mobile App Development", "E-commerce Setup", "WordPress", "Bug Fixing / Maintenance"],
-  "Design & Creative": ["Graphic Design", "Logo Design", "UI/UX Design", "Video Editing", "Photography", "Illustration", "Animation"],
-  "Writing & Translation": ["Content Writing", "Copywriting", "Editing & Proofreading", "Translation", "Resume Writing", "Ghostwriting"],
-  "Marketing & Sales": ["Social Media Management", "SEO", "Paid Advertising", "Email Marketing", "Brand Strategy", "Sales Consulting"],
-  "Business & Consulting": ["Business Consulting", "Financial Consulting", "Legal Consulting", "HR Consulting", "Bookkeeping & Accounting"],
-  "Education & Tutoring": ["Academic Tutoring", "Language Lessons", "Music Lessons", "Exam Prep", "Career Coaching"],
-  "Health & Wellness": ["Personal Training", "Nutrition Coaching", "Massage Therapy", "Life Coaching", "Therapy & Counseling"],
-  "Beauty & Personal Care": ["Hair Styling", "Makeup Artistry", "Nail Services", "Barbering", "Spa Services"],
-  "Events & Entertainment": ["Event Planning", "Catering", "DJ & Music", "Photography (Events)", "Decoration", "MC / Hosting"],
-  "Childcare & Pet Care": ["Babysitting", "Nanny Services", "Pet Sitting", "Dog Walking", "Pet Grooming"],
-  "Security": ["Security Guard Services", "CCTV Installation", "Alarm Systems"],
-  "Other": [],
+  "Virtual Assistance & Admin Support": [
+    "Virtual Assistant",
+    "Executive Assistant",
+    "Customer Support / Live Chat",
+    "Data Entry",
+    "Email & Calendar Management",
+    "Appointment Setting",
+    "Transcription",
+    "Online Research",
+    "Project Coordination",
+    "Document Formatting",
+    "CRM Management",
+    "Travel Planning & Booking"
+  ],
+  "Home Repair & Maintenance": [
+    "Plumbing",
+    "Electrical",
+    "HVAC",
+    "Handyman",
+    "Appliance Repair",
+    "Roofing",
+    "Locksmith",
+    "Pest Control",
+    "Generator & Inverter Repair",
+    "Solar Installation",
+    "Furniture Repair",
+    "Gate & Door Repair",
+    "Water Tank & Borehole"
+  ],
+  "Cleaning": [
+    "House Cleaning",
+    "Deep Cleaning",
+    "Carpet & Upholstery",
+    "Window Cleaning",
+    "Post-Construction Cleaning",
+    "Office Cleaning",
+    "Laundry & Ironing",
+    "Fumigation",
+    "Move-in/Move-out Cleaning"
+  ],
+  "Moving & Delivery": [
+    "Local Moving",
+    "Long-Distance Moving",
+    "Packing Services",
+    "Furniture Delivery",
+    "Courier & Errands",
+    "Dispatch Rider",
+    "Freight & Logistics",
+    "Storage"
+  ],
+  "Construction & Renovation": [
+    "General Contracting",
+    "Carpentry",
+    "Painting",
+    "Flooring & Tiling",
+    "Masonry",
+    "Welding & Fabrication",
+    "Interior Design",
+    "POP & Ceiling",
+    "Architecture",
+    "Quantity Surveying",
+    "Land Surveying",
+    "Aluminium & Glass Works"
+  ],
+  "Automotive": [
+    "Mechanic",
+    "Auto Electrician",
+    "Auto Detailing",
+    "Towing",
+    "Tire Services",
+    "Car Wash",
+    "Panel Beating & Spraying",
+    "Car Rental & Driver Hire",
+    "Vehicle Inspection"
+  ],
+  "Landscaping & Outdoor": [
+    "Lawn Care",
+    "Gardening",
+    "Tree Services",
+    "Pool Maintenance",
+    "Fencing",
+    "Irrigation",
+    "Outdoor Lighting"
+  ],
+  "Tech & IT Support": [
+    "Computer Repair",
+    "Phone Repair",
+    "Network Setup",
+    "Smart Home Installation",
+    "Data Recovery",
+    "IT Consulting",
+    "Cybersecurity",
+    "Cloud & DevOps",
+    "Software Installation",
+    "Printer & Office Equipment",
+    "CCTV & Security Tech"
+  ],
+  "Web & Software Development": [
+    "Web Development",
+    "Mobile App Development",
+    "E-commerce Setup",
+    "WordPress",
+    "Shopify",
+    "Bug Fixing / Maintenance",
+    "API & Backend Development",
+    "Game Development",
+    "Desktop Software",
+    "QA & Testing",
+    "Chatbots & Automation",
+    "No-Code Development",
+    "Blockchain / Web3"
+  ],
+  "AI & Data": [
+    "Data Analysis",
+    "Data Science & ML",
+    "AI Automation",
+    "Prompt Engineering",
+    "Data Visualization / Dashboards",
+    "Web Scraping",
+    "Spreadsheet & Excel Work",
+    "Database Design"
+  ],
+  "Design & Creative": [
+    "Graphic Design",
+    "Logo Design",
+    "Brand Identity",
+    "UI/UX Design",
+    "Video Editing",
+    "Photography",
+    "Illustration",
+    "Animation & Motion Graphics",
+    "3D Modeling",
+    "Packaging Design",
+    "Presentation Design",
+    "Print Design",
+    "Fashion Design",
+    "Photo Editing & Retouching",
+    "Thumbnail & Social Graphics"
+  ],
+  "Audio, Video & Music": [
+    "Voice Over",
+    "Music Production",
+    "Mixing & Mastering",
+    "Podcast Editing",
+    "Videography",
+    "Drone Photography",
+    "Sound Engineering",
+    "Songwriting",
+    "Jingles",
+    "Live Streaming Production"
+  ],
+  "Writing & Translation": [
+    "Content Writing",
+    "Copywriting",
+    "Editing & Proofreading",
+    "Translation",
+    "Resume & CV Writing",
+    "Ghostwriting",
+    "Technical Writing",
+    "Grant & Proposal Writing",
+    "Scriptwriting",
+    "Academic Writing Help",
+    "Blog & Article Writing",
+    "Product Descriptions"
+  ],
+  "Marketing & Sales": [
+    "Social Media Management",
+    "SEO",
+    "Paid Advertising",
+    "Email Marketing",
+    "Brand Strategy",
+    "Sales Consulting",
+    "Influencer Marketing",
+    "Lead Generation",
+    "Community Management",
+    "Market Research",
+    "Affiliate Marketing",
+    "Public Relations",
+    "Content Strategy"
+  ],
+  "Business & Consulting": [
+    "Business Consulting",
+    "Financial Consulting",
+    "Legal Consulting",
+    "HR & Recruitment",
+    "Bookkeeping & Accounting",
+    "Business Plans",
+    "Tax Preparation",
+    "Company Registration",
+    "Project Management",
+    "Product Management",
+    "Startup Mentoring",
+    "Procurement & Sourcing",
+    "Import/Export Consulting"
+  ],
+  "Finance & Legal": [
+    "Accounting",
+    "Auditing",
+    "Payroll",
+    "Investment Advisory",
+    "Contract Drafting",
+    "Notary & Documentation",
+    "Immigration Documentation Help",
+    "Insurance Advisory",
+    "Intellectual Property / Trademark"
+  ],
+  "Education & Tutoring": [
+    "Academic Tutoring",
+    "Language Lessons",
+    "Music Lessons",
+    "Exam Prep",
+    "Career Coaching",
+    "Coding Lessons",
+    "Math & Science Tutoring",
+    "Test Prep (SAT/IELTS/JAMB)",
+    "Online Course Creation",
+    "Homeschool Teaching",
+    "Skills Training",
+    "Art Lessons"
+  ],
+  "Health & Wellness": [
+    "Personal Training",
+    "Nutrition Coaching",
+    "Massage Therapy",
+    "Life Coaching",
+    "Therapy & Counseling",
+    "Yoga & Pilates",
+    "Physiotherapy",
+    "Home Nursing",
+    "Elderly Care",
+    "Meditation & Mindfulness",
+    "Sports Coaching"
+  ],
+  "Beauty & Personal Care": [
+    "Hair Styling",
+    "Makeup Artistry",
+    "Nail Services",
+    "Barbering",
+    "Spa Services",
+    "Braiding & Weaving",
+    "Skincare",
+    "Lashes & Brows",
+    "Tailoring & Alterations",
+    "Personal Styling",
+    "Henna & Body Art"
+  ],
+  "Fashion & Tailoring": [
+    "Bespoke Tailoring",
+    "Seamstress",
+    "Fashion Styling",
+    "Embroidery",
+    "Shoe Making & Repair",
+    "Bag Making",
+    "Costume Design"
+  ],
+  "Events & Entertainment": [
+    "Event Planning",
+    "Catering",
+    "DJ & Music",
+    "Photography (Events)",
+    "Decoration",
+    "MC / Hosting",
+    "Live Band",
+    "Event Security",
+    "Rentals (Chairs, Tents, Sound)",
+    "Cake & Pastry",
+    "Wedding Planning",
+    "Ushering & Event Staff",
+    "Comedians & Performers"
+  ],
+  "Food & Culinary": [
+    "Private Chef",
+    "Meal Prep",
+    "Baking",
+    "Cooking Lessons",
+    "Food Delivery",
+    "Drinks & Bartending"
+  ],
+  "Childcare & Pet Care": [
+    "Babysitting",
+    "Nanny Services",
+    "Pet Sitting",
+    "Dog Walking",
+    "Pet Grooming",
+    "Pet Training",
+    "Veterinary Services",
+    "School Run / Child Transport"
+  ],
+  "Agriculture & Farming": [
+    "Farm Labor",
+    "Poultry & Livestock",
+    "Crop Consulting",
+    "Farm Equipment",
+    "Agro Processing",
+    "Fishing & Aquaculture"
+  ],
+  "Real Estate & Property": [
+    "Property Management",
+    "Real Estate Agent",
+    "Property Valuation",
+    "Home Staging",
+    "Facility Management",
+    "Interior Styling"
+  ],
+  "Travel & Hospitality": [
+    "Tour Guide",
+    "Travel Planning & Booking",
+    "Visa Assistance",
+    "Airport Pickup",
+    "Hotel & Lodging Help",
+    "Translation / Interpreting"
+  ],
+  "Security": [
+    "Security Guard Services",
+    "CCTV Installation",
+    "Alarm Systems",
+    "Bodyguard",
+    "Electric Fence & Gates",
+    "Access Control"
+  ],
+  "Engineering & Manufacturing": [
+    "Mechanical Engineering",
+    "Electrical Engineering",
+    "Civil Engineering",
+    "CAD Drafting",
+    "Product Design",
+    "Prototyping",
+    "3D Printing",
+    "Electronics Repair",
+    "Machining"
+  ],
+  "Repair & Technical Trades": [
+    "Electronics Repair",
+    "Watch & Jewelry Repair",
+    "Generator Repair",
+    "Refrigerator & AC Repair",
+    "Phone & Gadget Repair",
+    "Bicycle & Motorbike Repair"
+  ],
+  "Community & Social": [
+    "Charity & NGO Support",
+    "Volunteer Coordination",
+    "Religious / Church Services",
+    "Counseling & Mentorship",
+    "Fundraising"
+  ],
+  "Other": []
 };
 
 function populateTwoLevelCategorySelect(mainId, subId) {
@@ -11242,16 +11572,38 @@ function handleOfferServiceClick() {
 /* ============================================================
    8. INIT — wire everything up once the DOM is ready
    ============================================================ */
+
+/* Brings up the search bar + category chips and focuses the search box */
+function revealServiceSearch() {
+  const browser = document.getElementById('servicesBrowser');
+  if (browser) browser.classList.remove('hidden');
+  if (typeof switchTab === 'function') switchTab('browse');
+  const controls = document.querySelector('#browseTab .controls') || document.getElementById('serviceSearch');
+  if (controls) {
+    controls.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    controls.classList.add('search-spotlight');
+    setTimeout(() => controls.classList.remove('search-spotlight'), 1600);
+  }
+  setTimeout(() => document.getElementById('serviceSearch')?.focus({ preventScroll: true }), 350);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   populateCategoryDropdowns();
   goToServiceWizardStep(1);
   loadJobs();
 
+  // Show services immediately — no need to click "Find Services" first
+  try {
+    showServicesBrowser();
+    switchTab('browse');
+    if (typeof loadServices === 'function') loadServices();
+  } catch (e) { console.error('Initial services load failed:', e); }
+
+  // "Find Services" brings up the search bar and categories
   document.getElementById('findServicesBtn')?.addEventListener('click', () => {
     document.getElementById('findServicesBtn')?.classList.add('active');
     document.getElementById('postJobBtn')?.classList.remove('active');
-    showServicesBrowser();
-    switchTab('browse');
+    revealServiceSearch();
   });
 });
 

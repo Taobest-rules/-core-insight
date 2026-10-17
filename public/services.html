@@ -68,7 +68,7 @@
     </section>
 
     <!-- ============ BROWSER (services grid + job board share this shell) ============ -->
-    <section id="servicesBrowser">
+    <section id="servicesBrowser" class="hidden">
 
       <div id="clientTabs" class="dashboard-tabs hidden">
         <button class="tab-btn tab active" id="browseTabBtn">Browse Services</button>
@@ -150,50 +150,101 @@
           </div>
         </div>
 
-        <!-- Post Job Form -->
-        <div id="postJobForm" class="submit-bid-form hidden">
-          <h4 style="margin:0 0 16px;">Post a job</h4>
-          <div class="form-group">
-            <label class="form-label">Job Title <span class="required">*</span></label>
-            <input type="text" id="jobTitle" class="form-input" placeholder="e.g. Need a plumber to fix a leaking kitchen sink">
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Category <span class="required">*</span></label>
-              <select id="jobCategorySelect" class="form-select"><option value="">Select a category</option></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Subcategory</label>
-              <select id="jobSubcategorySelect" class="form-select" disabled><option value="">Select a category first</option></select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Description <span class="required">*</span></label>
-            <textarea id="jobDescription" class="form-textarea" rows="4" placeholder="Describe what you need, any qualifications required, timeline, etc."></textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Budget range (USD)</label>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <input type="number" id="jobBudgetMin" class="form-input" placeholder="Min">
-                <span>–</span>
-                <input type="number" id="jobBudgetMax" class="form-input" placeholder="Max">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Location / Remote</label>
-              <input type="text" id="jobLocation" class="form-input" placeholder="e.g. Lagos, Nigeria or Remote">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Required qualifications (optional)</label>
-            <input type="text" id="jobQualifications" class="form-input" placeholder="e.g. Licensed electrician, 3+ years experience">
-          </div>
-          <div class="form-actions" style="display:flex;gap:10px;">
-            <button class="btn primary" id="submitJobPostBtn"><i class="fas fa-paper-plane"></i> Post Job</button>
-            <button class="btn" id="cancelPostJobBtn">Cancel</button>
-          </div>
+       <!-- Post Job Form -->
+<div id="postJobForm" class="pj-card hidden">
+  <div class="pj-head">
+    <div class="pj-head-icon"><i class="fas fa-bullhorn"></i></div>
+    <div>
+      <h4>Post a job</h4>
+      <p>Tell freelancers what you need. You'll get bids you can compare.</p>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="pj-section">
+    <div class="pj-section-title"><span>1</span> What do you need done?</div>
+    <div class="pj-field">
+      <label class="pj-label">Job title <b>*</b></label>
+      <input type="text" id="jobTitle" class="pj-input" maxlength="120" placeholder="e.g. Fix a leaking kitchen sink">
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="pj-section">
+    <div class="pj-section-title"><span>2</span> Category</div>
+    <div class="pj-grid-2">
+      <div class="pj-field">
+        <label class="pj-label">Category <b>*</b></label>
+        <select id="jobCategorySelect" class="pj-input"><option value="">Select a category</option></select>
+      </div>
+      <div class="pj-field">
+        <label class="pj-label">Subcategory</label>
+        <select id="jobSubcategorySelect" class="pj-input" disabled><option value="">Select a category first</option></select>
+      </div>
+    </div>
+    <div class="pj-field pj-hidden" id="jobSubcategorySelectCustomWrap">
+      <label class="pj-label">Can't find it? Tell us what you need <b>*</b></label>
+      <input type="text" id="jobSubcategorySelectCustom" class="pj-input" maxlength="80" placeholder="e.g. Drone mapping, Wig making, Borehole drilling...">
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="pj-section">
+    <div class="pj-section-title"><span>3</span> Describe the job</div>
+    <div class="pj-field">
+      <label class="pj-label">Description <b>*</b></label>
+      <textarea id="jobDescription" class="pj-input" rows="5" placeholder="What needs to be done? Include timeline, size of the job, and anything the freelancer should know."></textarea>
+    </div>
+    <div class="pj-field">
+      <label class="pj-label">Required qualifications <small>(optional)</small></label>
+      <input type="text" id="jobQualifications" class="pj-input" placeholder="e.g. Licensed electrician, 3+ years experience">
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="pj-section">
+    <div class="pj-section-title"><span>4</span> Budget & location</div>
+    <div class="pj-grid-2">
+      <div class="pj-field">
+        <label class="pj-label">Budget range <small>(USD)</small></label>
+        <div class="pj-budget">
+          <div class="pj-money"><i>$</i><input type="number" id="jobBudgetMin" class="pj-input" min="0" placeholder="Min"></div>
+          <span class="pj-dash">to</span>
+          <div class="pj-money"><i>$</i><input type="number" id="jobBudgetMax" class="pj-input" min="0" placeholder="Max"></div>
         </div>
+      </div>
+      <div class="pj-field">
+        <label class="pj-label">Where is the job?</label>
+        <div class="pj-loc">
+          <i class="fas fa-location-dot"></i>
+          <input type="text" id="jobLocation" class="pj-input" list="popularPlaces" placeholder="Pick a place or type your own">
+        </div>
+        <datalist id="popularPlaces">
+          <option value="Remote / Online">
+          <option value="Lagos"><option value="Abuja"><option value="Port Harcourt"><option value="Ibadan"><option value="Kano">
+          <option value="Accra"><option value="Nairobi"><option value="Johannesburg"><option value="Cape Town"><option value="Cairo">
+          <option value="London"><option value="Manchester"><option value="Paris"><option value="Berlin">
+          <option value="New York"><option value="Los Angeles"><option value="Houston"><option value="Toronto">
+          <option value="Dubai"><option value="Mumbai"><option value="Singapore"><option value="Sydney">
+        </datalist>
+        <div class="pj-chips" id="jobLocationChips">
+          <button type="button" data-place="Remote / Online">🌐 Remote</button>
+          <button type="button" data-place="Lagos">Lagos</button>
+          <button type="button" data-place="Abuja">Abuja</button>
+          <button type="button" data-place="Port Harcourt">Port Harcourt</button>
+          <button type="button" data-place="London">London</button>
+          <button type="button" data-place="New York">New York</button>
+          <button type="button" data-place="Dubai">Dubai</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pj-actions">
+    <button class="btn" id="cancelPostJobBtn" type="button">Cancel</button>
+    <button class="btn primary" id="submitJobPostBtn" type="button"><i class="fas fa-paper-plane"></i> Post job</button>
+  </div>
+</div>
 
         <div id="jobsList"></div>
         <div id="noJobs" class="empty-state" style="display:none;">
@@ -299,6 +350,10 @@
             </div>
           </div>
 
+          <div class="form-group pj-hidden" id="serviceSubcategoryCustomWrap">
+  <label class="form-label">Can't find your category? Type it here <span class="required">*</span></label>
+  <input type="text" id="serviceSubcategoryCustom" class="form-input" maxlength="80" placeholder="e.g. Drone mapping, Borehole drilling...">
+</div>
           <div class="form-group">
             <label class="form-label" for="serviceDescription">Description <span class="required">*</span></label>
             <textarea id="serviceDescription" class="form-textarea" rows="5" placeholder="Describe your service in detail..." required></textarea>
@@ -1162,6 +1217,8 @@
       </div>
     </div>
 </main>
+
+  
 
   <!-- ============ ASK PROVIDER MODAL (unified messaging entry point) ============ -->
   <div id="askProviderModal" class="modal hidden">

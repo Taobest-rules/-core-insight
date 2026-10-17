@@ -232,7 +232,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-require('./jobs-backend')(app, db);
 
 // ============================================
 // MIDDLEWARE CONFIGURATION
@@ -283,6 +282,9 @@ app.use(session({
 
 app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+require('./jobs-backend')(app, db);
+
 
 // ============================================
 // FILE UPLOAD CONFIGURATION

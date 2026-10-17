@@ -1,4 +1,3 @@
-function getCSRFToken(){ return document.querySelector('meta[name="csrf-token"]')?.content || ''; }
 /* ============================================================
    CORE INSIGHT — SERVICES PAGE JAVASCRIPT
    services.js = original application logic (browsing, orders,
@@ -7071,8 +7070,7 @@ function setupEventListeners() {
     if ($('findServicesBtn')) {
         $('findServicesBtn').addEventListener('click', () => {
             showServicesBrowser();
-            if (typeof revealServiceSearch === 'function') revealServiceSearch();
-            else if (typeof switchTab === 'function') switchTab('browse');
+            if (typeof switchTab === 'function') switchTab('browse');
         });
     }
 
@@ -10875,354 +10873,96 @@ async function subscribe(plan) { /* no-op — subscriptions removed */ }
    with the two-level Category → Subcategory system.
    ============================================================ */
 const SERVICE_CATEGORIES = {
-  "Virtual Assistance & Admin Support": [
-    "Virtual Assistant",
-    "Executive Assistant",
-    "Customer Support / Live Chat",
-    "Data Entry",
-    "Email & Calendar Management",
-    "Appointment Setting",
-    "Transcription",
-    "Online Research",
-    "Project Coordination",
-    "Document Formatting",
-    "CRM Management",
-    "Travel Planning & Booking"
-  ],
-  "Home Repair & Maintenance": [
-    "Plumbing",
-    "Electrical",
-    "HVAC",
-    "Handyman",
-    "Appliance Repair",
-    "Roofing",
-    "Locksmith",
-    "Pest Control",
-    "Generator & Inverter Repair",
-    "Solar Installation",
-    "Furniture Repair",
-    "Gate & Door Repair",
-    "Water Tank & Borehole"
-  ],
-  "Cleaning": [
-    "House Cleaning",
-    "Deep Cleaning",
-    "Carpet & Upholstery",
-    "Window Cleaning",
-    "Post-Construction Cleaning",
-    "Office Cleaning",
-    "Laundry & Ironing",
-    "Fumigation",
-    "Move-in/Move-out Cleaning"
-  ],
-  "Moving & Delivery": [
-    "Local Moving",
-    "Long-Distance Moving",
-    "Packing Services",
-    "Furniture Delivery",
-    "Courier & Errands",
-    "Dispatch Rider",
-    "Freight & Logistics",
-    "Storage"
-  ],
-  "Construction & Renovation": [
-    "General Contracting",
-    "Carpentry",
-    "Painting",
-    "Flooring & Tiling",
-    "Masonry",
-    "Welding & Fabrication",
-    "Interior Design",
-    "POP & Ceiling",
-    "Architecture",
-    "Quantity Surveying",
-    "Land Surveying",
-    "Aluminium & Glass Works"
-  ],
-  "Automotive": [
-    "Mechanic",
-    "Auto Electrician",
-    "Auto Detailing",
-    "Towing",
-    "Tire Services",
-    "Car Wash",
-    "Panel Beating & Spraying",
-    "Car Rental & Driver Hire",
-    "Vehicle Inspection"
-  ],
-  "Landscaping & Outdoor": [
-    "Lawn Care",
-    "Gardening",
-    "Tree Services",
-    "Pool Maintenance",
-    "Fencing",
-    "Irrigation",
-    "Outdoor Lighting"
-  ],
-  "Tech & IT Support": [
-    "Computer Repair",
-    "Phone Repair",
-    "Network Setup",
-    "Smart Home Installation",
-    "Data Recovery",
-    "IT Consulting",
-    "Cybersecurity",
-    "Cloud & DevOps",
-    "Software Installation",
-    "Printer & Office Equipment",
-    "CCTV & Security Tech"
-  ],
-  "Web & Software Development": [
-    "Web Development",
-    "Mobile App Development",
-    "E-commerce Setup",
-    "WordPress",
-    "Shopify",
-    "Bug Fixing / Maintenance",
-    "API & Backend Development",
-    "Game Development",
-    "Desktop Software",
-    "QA & Testing",
-    "Chatbots & Automation",
-    "No-Code Development",
-    "Blockchain / Web3"
-  ],
-  "AI & Data": [
-    "Data Analysis",
-    "Data Science & ML",
-    "AI Automation",
-    "Prompt Engineering",
-    "Data Visualization / Dashboards",
-    "Web Scraping",
-    "Spreadsheet & Excel Work",
-    "Database Design"
-  ],
-  "Design & Creative": [
-    "Graphic Design",
-    "Logo Design",
-    "Brand Identity",
-    "UI/UX Design",
-    "Video Editing",
-    "Photography",
-    "Illustration",
-    "Animation & Motion Graphics",
-    "3D Modeling",
-    "Packaging Design",
-    "Presentation Design",
-    "Print Design",
-    "Fashion Design",
-    "Photo Editing & Retouching",
-    "Thumbnail & Social Graphics"
-  ],
-  "Audio, Video & Music": [
-    "Voice Over",
-    "Music Production",
-    "Mixing & Mastering",
-    "Podcast Editing",
-    "Videography",
-    "Drone Photography",
-    "Sound Engineering",
-    "Songwriting",
-    "Jingles",
-    "Live Streaming Production"
-  ],
-  "Writing & Translation": [
-    "Content Writing",
-    "Copywriting",
-    "Editing & Proofreading",
-    "Translation",
-    "Resume & CV Writing",
-    "Ghostwriting",
-    "Technical Writing",
-    "Grant & Proposal Writing",
-    "Scriptwriting",
-    "Academic Writing Help",
-    "Blog & Article Writing",
-    "Product Descriptions"
-  ],
-  "Marketing & Sales": [
-    "Social Media Management",
-    "SEO",
-    "Paid Advertising",
-    "Email Marketing",
-    "Brand Strategy",
-    "Sales Consulting",
-    "Influencer Marketing",
-    "Lead Generation",
-    "Community Management",
-    "Market Research",
-    "Affiliate Marketing",
-    "Public Relations",
-    "Content Strategy"
-  ],
-  "Business & Consulting": [
-    "Business Consulting",
-    "Financial Consulting",
-    "Legal Consulting",
-    "HR & Recruitment",
-    "Bookkeeping & Accounting",
-    "Business Plans",
-    "Tax Preparation",
-    "Company Registration",
-    "Project Management",
-    "Product Management",
-    "Startup Mentoring",
-    "Procurement & Sourcing",
-    "Import/Export Consulting"
-  ],
-  "Finance & Legal": [
-    "Accounting",
-    "Auditing",
-    "Payroll",
-    "Investment Advisory",
-    "Contract Drafting",
-    "Notary & Documentation",
-    "Immigration Documentation Help",
-    "Insurance Advisory",
-    "Intellectual Property / Trademark"
-  ],
-  "Education & Tutoring": [
-    "Academic Tutoring",
-    "Language Lessons",
-    "Music Lessons",
-    "Exam Prep",
-    "Career Coaching",
-    "Coding Lessons",
-    "Math & Science Tutoring",
-    "Test Prep (SAT/IELTS/JAMB)",
-    "Online Course Creation",
-    "Homeschool Teaching",
-    "Skills Training",
-    "Art Lessons"
-  ],
-  "Health & Wellness": [
-    "Personal Training",
-    "Nutrition Coaching",
-    "Massage Therapy",
-    "Life Coaching",
-    "Therapy & Counseling",
-    "Yoga & Pilates",
-    "Physiotherapy",
-    "Home Nursing",
-    "Elderly Care",
-    "Meditation & Mindfulness",
-    "Sports Coaching"
-  ],
-  "Beauty & Personal Care": [
-    "Hair Styling",
-    "Makeup Artistry",
-    "Nail Services",
-    "Barbering",
-    "Spa Services",
-    "Braiding & Weaving",
-    "Skincare",
-    "Lashes & Brows",
-    "Tailoring & Alterations",
-    "Personal Styling",
-    "Henna & Body Art"
-  ],
-  "Fashion & Tailoring": [
-    "Bespoke Tailoring",
-    "Seamstress",
-    "Fashion Styling",
-    "Embroidery",
-    "Shoe Making & Repair",
-    "Bag Making",
-    "Costume Design"
-  ],
-  "Events & Entertainment": [
-    "Event Planning",
-    "Catering",
-    "DJ & Music",
-    "Photography (Events)",
-    "Decoration",
-    "MC / Hosting",
-    "Live Band",
-    "Event Security",
-    "Rentals (Chairs, Tents, Sound)",
-    "Cake & Pastry",
-    "Wedding Planning",
-    "Ushering & Event Staff",
-    "Comedians & Performers"
-  ],
-  "Food & Culinary": [
-    "Private Chef",
-    "Meal Prep",
-    "Baking",
-    "Cooking Lessons",
-    "Food Delivery",
-    "Drinks & Bartending"
-  ],
-  "Childcare & Pet Care": [
-    "Babysitting",
-    "Nanny Services",
-    "Pet Sitting",
-    "Dog Walking",
-    "Pet Grooming",
-    "Pet Training",
-    "Veterinary Services",
-    "School Run / Child Transport"
-  ],
-  "Agriculture & Farming": [
-    "Farm Labor",
-    "Poultry & Livestock",
-    "Crop Consulting",
-    "Farm Equipment",
-    "Agro Processing",
-    "Fishing & Aquaculture"
-  ],
-  "Real Estate & Property": [
-    "Property Management",
-    "Real Estate Agent",
-    "Property Valuation",
-    "Home Staging",
-    "Facility Management",
-    "Interior Styling"
-  ],
-  "Travel & Hospitality": [
-    "Tour Guide",
-    "Travel Planning & Booking",
-    "Visa Assistance",
-    "Airport Pickup",
-    "Hotel & Lodging Help",
-    "Translation / Interpreting"
-  ],
-  "Security": [
-    "Security Guard Services",
-    "CCTV Installation",
-    "Alarm Systems",
-    "Bodyguard",
-    "Electric Fence & Gates",
-    "Access Control"
-  ],
-  "Engineering & Manufacturing": [
-    "Mechanical Engineering",
-    "Electrical Engineering",
-    "Civil Engineering",
-    "CAD Drafting",
-    "Product Design",
-    "Prototyping",
-    "3D Printing",
-    "Electronics Repair",
-    "Machining"
-  ],
-  "Repair & Technical Trades": [
-    "Electronics Repair",
-    "Watch & Jewelry Repair",
-    "Generator Repair",
-    "Refrigerator & AC Repair",
-    "Phone & Gadget Repair",
-    "Bicycle & Motorbike Repair"
-  ],
-  "Community & Social": [
-    "Charity & NGO Support",
-    "Volunteer Coordination",
-    "Religious / Church Services",
-    "Counseling & Mentorship",
-    "Fundraising"
-  ],
-  "Other": []
+  "Home Repair & Maintenance": ["Plumbing", "Electrical", "HVAC / Air Conditioning", "Handyman", "Appliance Repair", "Roofing", "Locksmith", "Pest Control", "Generator Repair", "Gate & Door Repair", "Waterproofing", "Glass & Aluminium Works"],
+  "Cleaning": ["House Cleaning", "Deep Cleaning", "Carpet & Upholstery", "Window Cleaning", "Post-Construction Cleaning", "Office Cleaning", "Fumigation", "Laundry & Dry Cleaning", "Water Tank Cleaning"],
+  "Moving & Delivery": ["Local Moving", "Long-Distance Moving", "Packing Services", "Furniture Delivery", "Courier & Errands", "Dispatch Rider", "Freight & Logistics", "Truck Hire"],
+  "Construction & Renovation": ["General Contracting", "Carpentry", "Painting", "Flooring & Tiling", "Masonry & Bricklaying", "Welding & Fabrication", "Interior Design", "POP / Ceiling Works", "Plastering", "Architecture", "Quantity Surveying"],
+  "Engineering & Technical": ["Civil Engineering", "Mechanical Engineering", "Electrical Engineering", "CAD / Technical Drafting", "Solar Installation", "Inverter & Battery Installation", "Surveying", "Project Supervision"],
+  "Electronics Repair & Installation": ["TV Repair", "Phone & Laptop Repair", "Refrigerator & Freezer Repair", "Washing Machine Repair", "Satellite / DSTV Installation", "Sound System Setup"],
+  "Automotive": ["Mechanic", "Auto Electrician", "Auto Detailing", "Panel Beating & Spraying", "Towing", "Tire Services", "Car Wash", "Car AC Repair", "Driver / Chauffeur", "Car Hire"],
+  "Landscaping & Outdoor": ["Lawn Care", "Gardening", "Tree Services", "Pool Maintenance", "Fencing", "Outdoor Pest Control", "Irrigation"],
+  "Real Estate": ["Property Management", "Real Estate Agent", "Property Valuation", "Land Surveying", "Home Staging", "Property Inspection"],
+  "Agriculture": ["Farm Consulting", "Poultry Farming", "Fish Farming", "Crop Farming", "Farm Labour", "Irrigation Setup", "Agro-Processing", "Veterinary Services"],
+  "Tech & IT Support": ["Computer Repair", "Phone Repair", "Network Setup", "Smart Home Installation", "Data Recovery", "IT Consulting", "Printer & Office Equipment", "Cybersecurity", "Software Installation"],
+  "Web & Software Development": ["Web Development", "Mobile App Development", "E-commerce Setup", "WordPress", "Backend / API Development", "Game Development", "DevOps & Cloud", "QA & Testing", "Bug Fixing / Maintenance", "Blockchain / Web3"],
+  "Data & AI": ["Data Analysis", "Dashboards & Reporting", "Machine Learning", "AI Automation & Chatbots", "Data Entry", "Web Scraping", "Prompt Engineering"],
+  "Design & Creative": ["Graphic Design", "Logo & Branding", "UI/UX Design", "Illustration", "Animation", "3D Modelling", "Packaging Design", "Presentation Design", "Photo Editing"],
+  "Photography & Video": ["Photography", "Event Videography", "Video Editing", "Motion Graphics", "Drone Photography", "Product Photography", "Wedding Photography"],
+  "Audio & Music": ["Voice-over", "Music Production", "Podcast Editing", "Sound Design", "Songwriting", "Mixing & Mastering", "Live Band / Musician"],
+  "Writing & Translation": ["Content Writing", "Copywriting", "Editing & Proofreading", "Translation", "Resume & CV Writing", "Ghostwriting", "Technical Writing", "Transcription", "Script Writing"],
+  "Marketing & Sales": ["Social Media Management", "SEO", "Paid Advertising", "Email Marketing", "Brand Strategy", "Influencer Marketing", "Sales Consulting", "Lead Generation", "Market Research"],
+  "Business & Consulting": ["Business Consulting", "Business Plan Writing", "Startup Advisory", "HR Consulting", "Project Management", "Import / Export Consulting", "Business Registration"],
+  "Finance & Accounting": ["Bookkeeping", "Accounting", "Tax Preparation", "Payroll", "Auditing", "Financial Planning", "Investment Advisory"],
+  "Legal Services": ["Contract Drafting", "Legal Consulting", "Property / Land Law", "Immigration Advisory", "Trademark & IP", "Notary Services", "Company Registration"],
+  "Admin & Virtual Assistance": ["Virtual Assistant", "Customer Support", "Data Entry", "Scheduling & Calendar", "Email Management", "Research", "Personal Assistant"],
+  "Education & Tutoring": ["Academic Tutoring", "Language Lessons", "Music Lessons", "Exam Prep (WAEC, JAMB, SAT, IELTS...)", "Career Coaching", "Coding Lessons", "Home Lessons", "Art & Craft Lessons"],
+  "Health & Wellness": ["Personal Training", "Nutrition Coaching", "Massage Therapy", "Life Coaching", "Therapy & Counseling", "Yoga & Meditation", "Physiotherapy", "Home Nursing"],
+  "Beauty & Personal Care": ["Hair Styling", "Makeup Artistry", "Nail Services", "Barbering", "Spa Services", "Wig Making & Installation", "Lash & Brow", "Skincare & Facials", "Mobile Beauty Services"],
+  "Fashion & Tailoring": ["Tailoring", "Fashion Design", "Clothing Alterations", "Embroidery", "Shoemaking", "Personal Styling", "Bag & Accessories Making"],
+  "Events & Entertainment": ["Event Planning", "Catering", "DJ & Music", "Event Photography", "Decoration", "MC / Hosting", "Event Security", "Equipment Rental", "Bouncy Castle & Games"],
+  "Food & Catering": ["Private Chef", "Baking & Cakes", "Meal Prep", "Small Chops & Snacks", "Bartending", "Outdoor Catering"],
+  "Childcare & Pet Care": ["Babysitting", "Nanny Services", "Pet Sitting", "Dog Walking", "Pet Grooming", "Pet Training"],
+  "Elderly & Home Care": ["Caregiver", "Housekeeper", "Home Cook", "Companion Care", "Domestic Help"],
+  "Craft & Artisan": ["Furniture Making", "Woodwork", "Upholstery", "Leatherwork", "Pottery & Ceramics", "Custom Gifts", "Art Commissions"],
+  "Travel & Tourism": ["Tour Guide", "Travel Planning", "Visa Assistance", "Airport Pickup", "Car Rental with Driver", "Accommodation Booking"],
+  "Security": ["Security Guard Services", "CCTV Installation", "Alarm Systems", "Electric Fence Installation", "Bodyguard"],
+  "Other": [],
 };
+
+const OTHER_VALUE = '__other__';
+
+function populateTwoLevelCategorySelect(mainId, subId) {
+  const mainSelect = document.getElementById(mainId);
+  const subSelect = document.getElementById(subId);
+  if (!mainSelect) return;
+
+  const wrap = document.getElementById(subId + 'CustomWrap');
+  const customInput = document.getElementById(subId + 'Custom');
+  const showCustom = (show) => {
+    if (!wrap) return;
+    wrap.classList.toggle('pj-hidden', !show);
+    if (!show && customInput) customInput.value = '';
+  };
+
+  const currentValue = mainSelect.value;
+  mainSelect.innerHTML = '<option value="">Select a category</option>' +
+    Object.keys(SERVICE_CATEGORIES).map(cat => `<option value="${cat}">${cat}</option>`).join('');
+  if (currentValue) mainSelect.value = currentValue;
+
+  if (!subSelect) return;
+
+  mainSelect.onchange = () => {
+    const main = mainSelect.value;
+    showCustom(false);
+    if (!main) {
+      subSelect.innerHTML = '<option value="">Select a category first</option>';
+      subSelect.disabled = true;
+      return;
+    }
+    const subs = SERVICE_CATEGORIES[main] || [];
+    if (!subs.length) {
+      // "Other" has no list: go straight to the custom box
+      subSelect.innerHTML = `<option value="${OTHER_VALUE}">Other (specify below)</option>`;
+      subSelect.value = OTHER_VALUE;
+      subSelect.disabled = true;
+      showCustom(true);
+      return;
+    }
+    subSelect.disabled = false;
+    subSelect.innerHTML = '<option value="">Select a subcategory</option>' +
+      subs.map(s => `<option value="${s}">${s}</option>`).join('') +
+      `<option value="${OTHER_VALUE}">Other (not listed)…</option>`;
+  };
+
+  subSelect.onchange = () => showCustom(subSelect.value === OTHER_VALUE);
+}
+
+// Returns the real subcategory text, whether picked from the list or typed in
+function getSubcategoryValue(subId) {
+  const sub = document.getElementById(subId)?.value || '';
+  if (sub === OTHER_VALUE) return (document.getElementById(subId + 'Custom')?.value || '').trim();
+  return sub;
+}
 
 function populateTwoLevelCategorySelect(mainId, subId) {
   const mainSelect = document.getElementById(mainId);
@@ -11290,7 +11030,7 @@ function populateCategoryDropdowns() {
 
 function getSelectedServiceCategory() {
   const main = document.getElementById('serviceCategory')?.value.trim() || '';
-  const sub = document.getElementById('serviceSubcategory')?.value.trim() || '';
+  const sub = getSubcategoryValue('serviceSubcategory');
   return main && sub ? `${main} > ${sub}` : main;
 }
 
@@ -11319,11 +11059,15 @@ function goToServiceWizardStep(step) {
 }
 
 function serviceWizardStepIsValid(step) {
-  if (step === 1) {
-    return document.getElementById('serviceTitle')?.value.trim()
-      && document.getElementById('serviceCategory')?.value
-      && document.getElementById('serviceDescription')?.value.trim();
-  }
+ if (step === 1) {
+  const cat = document.getElementById('serviceCategory')?.value;
+  const subRaw = document.getElementById('serviceSubcategory')?.value;
+  const customOk = subRaw !== OTHER_VALUE || getSubcategoryValue('serviceSubcategory');
+  return document.getElementById('serviceTitle')?.value.trim()
+    && cat
+    && customOk
+    && document.getElementById('serviceDescription')?.value.trim();
+}
   if (step === 2) {
     const pricingType = document.getElementById('pricingType')?.value;
     if (pricingType === 'fixed') return !!document.getElementById('fixedPrice')?.value;
@@ -11391,20 +11135,30 @@ document.getElementById('cancelPostJobBtn')?.addEventListener('click', () => doc
 
 async function submitJobPost() {
   if (!currentUser) { openModal(document.getElementById('loginModal')); return; }
+
+  const subRaw = document.getElementById('jobSubcategorySelect')?.value;
   const payload = {
     title: document.getElementById('jobTitle')?.value.trim(),
     category: document.getElementById('jobCategorySelect')?.value,
-    subcategory: document.getElementById('jobSubcategorySelect')?.value,
+    subcategory: getSubcategoryValue('jobSubcategorySelect'),
     description: document.getElementById('jobDescription')?.value.trim(),
     budget_min: document.getElementById('jobBudgetMin')?.value || null,
     budget_max: document.getElementById('jobBudgetMax')?.value || null,
     location: document.getElementById('jobLocation')?.value.trim(),
     qualifications: document.getElementById('jobQualifications')?.value.trim(),
   };
+
   if (!payload.title || !payload.category || !payload.description) {
     showToast('Fill in title, category, and description.', 'error');
     return;
   }
+  if (subRaw === OTHER_VALUE && !payload.subcategory) {
+    showToast('Tell us what kind of job this is.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('submitJobPostBtn');
+  if (btn) btn.disabled = true;
   try {
     const res = await fetch('/api/jobs', {
       method: 'POST', credentials: 'include',
@@ -11413,14 +11167,32 @@ async function submitJobPost() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not post job');
+
     showToast('Job posted', 'success');
     document.getElementById('postJobForm')?.classList.add('hidden');
+    ['jobTitle','jobDescription','jobBudgetMin','jobBudgetMax','jobLocation','jobQualifications','jobSubcategorySelectCustom']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const cat = document.getElementById('jobCategorySelect');
+    if (cat) { cat.value = ''; cat.dispatchEvent(new Event('change')); }
     loadJobs();
   } catch (e) {
     showToast(e.message || 'Could not post job', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 document.getElementById('submitJobPostBtn')?.addEventListener('click', submitJobPost);
+
+// Quick-pick location chips
+document.querySelectorAll('#jobLocationChips button').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const input = document.getElementById('jobLocation');
+    if (input) input.value = chip.dataset.place;
+    document.querySelectorAll('#jobLocationChips button').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+
 
 async function loadJobs() {
   const listEl = document.getElementById('jobsList');
@@ -11572,38 +11344,16 @@ function handleOfferServiceClick() {
 /* ============================================================
    8. INIT — wire everything up once the DOM is ready
    ============================================================ */
-
-/* Brings up the search bar + category chips and focuses the search box */
-function revealServiceSearch() {
-  const browser = document.getElementById('servicesBrowser');
-  if (browser) browser.classList.remove('hidden');
-  if (typeof switchTab === 'function') switchTab('browse');
-  const controls = document.querySelector('#browseTab .controls') || document.getElementById('serviceSearch');
-  if (controls) {
-    controls.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    controls.classList.add('search-spotlight');
-    setTimeout(() => controls.classList.remove('search-spotlight'), 1600);
-  }
-  setTimeout(() => document.getElementById('serviceSearch')?.focus({ preventScroll: true }), 350);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   populateCategoryDropdowns();
   goToServiceWizardStep(1);
   loadJobs();
 
-  // Show services immediately — no need to click "Find Services" first
-  try {
-    showServicesBrowser();
-    switchTab('browse');
-    if (typeof loadServices === 'function') loadServices();
-  } catch (e) { console.error('Initial services load failed:', e); }
-
-  // "Find Services" brings up the search bar and categories
   document.getElementById('findServicesBtn')?.addEventListener('click', () => {
     document.getElementById('findServicesBtn')?.classList.add('active');
     document.getElementById('postJobBtn')?.classList.remove('active');
-    revealServiceSearch();
+    showServicesBrowser();
+    switchTab('browse');
   });
 });
 

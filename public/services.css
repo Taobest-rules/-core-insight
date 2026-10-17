@@ -580,3 +580,264 @@ textarea.pj-input{resize:vertical;min-height:110px}
   .packages-container { grid-template-columns: 1fr; }
   .modal-box, .modal-card { padding: 16px; }
 }
+
+/* ============================================================
+   SERVICES — MISSING STYLES (append to the END of services.css)
+   Covers every class used by services.html + the markup that
+   services.js generates but that had no rule in services.css.
+   ============================================================ */
+
+/* ---------- 1. Utilities & text states ---------- */
+.text-center { text-align: center; }
+.text-error { color: var(--danger); }
+.text-success { color: var(--sage-deep); }
+.text-info { color: var(--blue-deep); }
+.mt-20 { margin-top: 20px; }
+
+@keyframes slideIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.custom-toast { max-width: min(360px, calc(100vw - 32px)); font-size: 13px; box-shadow: var(--shadow-modal); }
+
+/* ---------- 2. Pricing step (was always showing BOTH blocks) ---------- */
+.conditional-section { display: none; }
+.conditional-section.show { display: block; }
+
+/* ---------- 3. Buttons used in HTML/JS but never defined ---------- */
+.btn-primary { background: var(--gold); border-color: var(--gold); color: var(--charcoal); font-weight: 600; }
+.btn-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); }
+.btn-success { background: var(--sage); border-color: var(--sage); color: #fff; }
+.btn-success:hover { background: var(--sage-deep); }
+.btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-warning { background: var(--gold-tint); border-color: var(--gold); color: var(--gold-deep); }
+.btn-warning:hover { background: var(--gold); color: var(--charcoal); }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
+.btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Card action buttons rendered by JS */
+.chat-btn, .profile-btn, .favorite-btn, .recruit-btn, .flag-btn, .review-btn { font-size: 12px; padding: 7px 11px; }
+.favorite-btn.active { background: var(--danger-tint); border-color: var(--danger); color: var(--danger); }
+.favorite-count { font-weight: 600; }
+.recruit-btn.recruited { background: #e6efe9; border-color: var(--sage); color: var(--sage-deep); }
+.flag-btn { color: var(--danger); border-color: var(--danger-tint); background: transparent; }
+.flag-btn:hover { background: var(--danger-tint); }
+
+/* Header auth buttons created in JS (had no background/border) */
+.header-actions .auth-btn:not(#signupOpen):not(#loginOpen) {
+  background: transparent; color: var(--charcoal-soft); border: 1px solid var(--hairline-strong);
+}
+.header-actions .auth-btn:not(#signupOpen):not(#loginOpen):hover { background: var(--cream-deep); color: var(--charcoal); }
+.welcome-pill {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500;
+  color: var(--charcoal-soft); padding: 6px 12px; background: var(--cream-deep);
+  border: 1px solid var(--hairline); border-radius: 30px; white-space: nowrap;
+}
+.role-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  padding: 2px 8px; border-radius: 20px; background: #e3ecf5; color: var(--blue-deep);
+}
+.role-badge.freelancer-badge { background: var(--gold-tint); color: var(--gold-deep); }
+.header-actions-mobile .welcome-pill { align-self: flex-start; }
+.header-actions-mobile .auth-btn { justify-content: center; width: 100%; }
+@media (max-width: 1100px) { .header-actions .welcome-pill { display: none; } }
+
+/* ---------- 4. Forms ---------- */
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-actions .btn { flex: 1; justify-content: center; }
+.modal-card .form-actions, .modal-box .form-actions { margin-top: 16px; }
+
+/* Plain (unclassed) fields inside .form-group — edit service modal, review modal, order modal */
+.form-group > label:not(.form-label) { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--charcoal); }
+.form-group > input:not([type="checkbox"]):not([type="radio"]):not(.form-input):not(.form-input-enhanced),
+.form-group > select:not(.form-select):not(.form-select-enhanced),
+.form-group > textarea:not(.form-textarea):not(.form-textarea-enhanced) {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+  font-size: 13.5px; font-family: inherit; background: var(--cream); color: var(--charcoal);
+}
+.form-group > input:focus, .form-group > select:focus, .form-group > textarea:focus { border-color: var(--blue); outline: none; background: var(--paper); }
+.form-group > textarea:not(.form-textarea):not(.form-textarea-enhanced) { min-height: 90px; resize: vertical; }
+
+/* Login / signup modals use .form-input-enhanced inside plain divs */
+.modal-card input[type="radio"] { accent-color: var(--gold-deep); }
+.toggleLoginBtn { cursor: pointer; font-family: inherit; font-weight: 500; font-size: 14px; transition: var(--ease); }
+#loginModal .modal-card > div > div[style*="rgba(255,255,255,0.05)"] { background: var(--cream-deep) !important; border: 1px solid var(--hairline); }
+#loginModal div[style*="rgba(59, 130, 246, 0.1)"] { background: #e3ecf5 !important; }
+#signupModal label[style*="var(--card-bg)"] { border: 2px solid var(--hairline) !important; background: var(--cream) !important; }
+
+/* Requirements / tags (wizard step 4) */
+.requirement-item { align-items: center; }
+.tag, .service-tags .tag {
+  display: inline-block; font-size: 10.5px; padding: 3px 9px; border-radius: 20px;
+  background: var(--cream); color: var(--charcoal-soft); border: 1px solid var(--hairline);
+}
+.service-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+#tagsList .tag { background: var(--gold-tint); color: var(--gold-deep); border: none; }
+
+/* Wizard review card */
+.info-card { background: var(--cream); border: 1px solid var(--hairline); border-left: 3px solid var(--gold); border-radius: var(--radius-md); padding: 16px; }
+.info-card h4 { margin: 0 0 8px; font-family: 'Fraunces', Georgia, serif; font-size: 16px; }
+
+/* Star rating inputs */
+.rating-input { margin-bottom: 6px; }
+.star-rating { display: inline-flex; gap: 6px; font-size: 26px; color: var(--gold); cursor: pointer; }
+.star-rating i { transition: transform .15s var(--ease); }
+.star-rating i:hover { transform: scale(1.2); }
+
+/* Ask provider modal */
+.ask-provider-context { background: var(--cream); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 13.5px; }
+#askProviderMessage, #bidNote { min-height: 110px; }
+
+/* ---------- 5. Modals ---------- */
+.modal-card.large { max-width: 800px; }
+.modal-card h3 { font-size: 1.15rem; }
+.modal.open { display: flex; }
+.modal-card .close-x { padding: 0 4px; }
+
+/* ---------- 6. Legacy service-card markup (what services.js renders) ----------
+   JS outputs .service-header / .service-title / .service-price /
+   .service-provider-info etc. — not the .card-media/.card-body structure
+   above. These rules make that markup match the warm design.           */
+.service-card { padding: 16px; gap: 10px; cursor: default; }
+.service-card:nth-child(3n+2) .service-price { color: var(--blue-deep); }
+.service-card:nth-child(3n+3) .service-price { color: var(--sage-deep); }
+.service-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.service-title { font-family: 'Fraunces', Georgia, serif; font-size: 15px; font-weight: 600; line-height: 1.35; margin: 0; color: var(--charcoal); }
+.service-price { font-family: 'Fraunces', Georgia, serif; font-size: 18px; font-weight: 600; color: var(--gold-deep); white-space: nowrap; }
+
+.service-provider-info { display: flex; align-items: center; gap: 10px; background: var(--cream); border-radius: 30px; padding: 5px 12px 5px 5px; }
+.profile-picture-wrapper { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--hairline); border: 2px solid var(--paper); }
+.provider-profile-picture { width: 100%; height: 100%; object-fit: cover; display: block; }
+.provider-initials {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--gold); color: var(--charcoal); font-weight: 700; font-size: 15px; border: 2px solid var(--paper);
+}
+.provider-info { min-width: 0; }
+.service-provider-name { font-size: 13px; font-weight: 600; color: var(--charcoal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.service-provider { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.service-rating { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--charcoal-soft); font-weight: 600; }
+.service-rating .stars, .stars { color: var(--gold); letter-spacing: 1px; }
+.rating-count { color: var(--text-muted); font-weight: 400; }
+
+.description-container { min-height: 0; }
+.service-description { font-size: 12.5px; color: var(--charcoal-soft); line-height: 1.5; margin: 0; }
+.service-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--hairline); }
+.service-actions .btn { flex: 1 1 auto; justify-content: center; }
+.view-details-btn { width: 100%; justify-content: center; background: var(--cream); }
+.view-details-btn:hover { background: var(--cream-deep); }
+
+/* ---------- 7. Freelancer profile page ---------- */
+/* JS/HTML set white text on the hero, so the hero must be dark */
+.profile-hero {
+  background: linear-gradient(135deg, var(--charcoal) 0%, #3c3a33 100%);
+  border-color: transparent; color: #fff; position: relative; overflow: hidden;
+}
+.profile-hero::before { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(201,151,31,.35), transparent 70%); }
+.profile-hero h1, .profile-hero h2 { color: #fff; }
+.profile-hero h1 { font-size: clamp(1.4rem, 4vw, 2rem); }
+.profile-hero h2 { font-family: 'Inter', sans-serif; font-size: clamp(.95rem, 2.5vw, 1.1rem); }
+.profile-hero .stat-value { color: #fff; }
+.profile-hero .stat-label { color: rgba(255,255,255,.65); }
+.profile-hero .profile-stats { justify-content: center; gap: clamp(18px, 5vw, 40px); margin-top: 18px; }
+.profile-hero .btn-secondary { color: #fff; border-color: rgba(255,255,255,.35); }
+.profile-hero .btn-secondary:hover { background: rgba(255,255,255,.12); }
+.profile-avatar-wrapper {
+  width: clamp(80px, 18vw, 104px); height: clamp(80px, 18vw, 104px); border-radius: 50%; overflow: hidden;
+  background: var(--gold); border: 3px solid rgba(255,255,255,.9); margin: 0 auto 14px; display: block;
+}
+.profile-avatar-wrapper img { width: 100% !important; height: 100% !important; border: none; box-shadow: none; border-radius: 0; }
+#profileInitials { background: var(--gold); color: var(--charcoal) !important; }
+
+.sidebar { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.sidebar-card { background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: clamp(16px, 4vw, 22px); }
+.sidebar-card h4 { font-family: 'Fraunces', Georgia, serif; font-size: 1rem; }
+.details-list { display: flex; flex-direction: column; }
+.detail-item-enhanced { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--hairline); font-size: 13px; }
+.detail-item-enhanced:last-child { border-bottom: none; }
+
+.category-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.skills-grid .skill-tag i.fa-check-circle, .skills-grid .skill-tag i.fa-language { opacity: 1; cursor: default; color: var(--gold-deep); }
+.remove-skill { cursor: pointer; font-weight: 700; opacity: .7; }
+.remove-skill:hover { opacity: 1; }
+
+/* Certificates */
+.upload-area.dragover { border-color: var(--blue); background: #e3ecf5; }
+.certificate-uploader { padding: 16px; }
+.certificate-uploader .upload-area { border: none; background: transparent; padding: 20px; }
+.certificate-uploader .upload-area:hover { background: transparent; }
+#certificatePreview, #profileCertificates { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; border: none; margin-top: 12px; }
+.certificate-item { position: relative; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--hairline); background: var(--cream); }
+.certificate-image { display: block; width: 100%; }
+.remove-certificate {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: none;
+  background: var(--danger); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+#certificateProgress div[style*="--secondary-dark"] { background: var(--hairline) !important; }
+
+/* ---------- 8. Hard-coded dark-theme markup injected by JS ----------
+   openFreelancerProfile() & friends write inline #1e293b / #ffffff
+   colors. On the light modal those are unreadable, so remap them.      */
+#freelancerProfileContent [style*="background: #1e293b"],
+#freelancerProfileContent [style*="background: #0f172a"] { background: var(--cream) !important; border-color: var(--hairline) !important; }
+#freelancerProfileContent [style*="color: #ffffff"],
+#freelancerProfileContent [style*="color: #e2e8f0"] { color: var(--charcoal) !important; }
+#freelancerProfileContent [style*="color: #cbd5e1"],
+#freelancerProfileContent [style*="color: #94a3b8"] { color: var(--charcoal-soft) !important; }
+#freelancerProfileContent [style*="color: #fbbf24"] { color: var(--gold-deep) !important; }
+#freelancerProfileContent [style*="color: #3b82f6"] { color: var(--blue) !important; }
+#freelancerProfileContent [style*="rgba(255,255,255,0.1)"] { border-color: var(--hairline) !important; }
+#serviceDetailsContent [style*="rgba(255,255,255,0.1)"] { border-color: var(--hairline) !important; }
+#adminDeleteServiceInfo, #freelancerDeleteServiceInfo { background: var(--cream) !important; border: 1px solid var(--hairline); font-size: 13px; }
+#adminDeleteReason, #freelancerDeleteReason { background: var(--cream) !important; color: var(--charcoal) !important; border: 1px solid var(--hairline) !important; }
+.admin-review-card { background: var(--cream) !important; border-color: var(--hairline) !important; }
+.admin-review-card .badge { color: #fff; }
+.admin-stats-grid .admin-stat-card { background: var(--cream) !important; }
+
+/* ---------- 9. Image viewer (certificates / chat images) ---------- */
+.image-viewer-modal { position: fixed; inset: 0; background: rgba(43,43,40,.88); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.image-viewer-content { position: relative; max-width: 95vw; max-height: 92vh; }
+.image-viewer-content img { max-width: 95vw; max-height: 88vh; border-radius: var(--radius-md); display: block; }
+.image-viewer-close, .image-viewer-download {
+  position: absolute; top: 10px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.92);
+  color: var(--charcoal); cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none;
+}
+.image-viewer-close { right: 10px; } .image-viewer-download { right: 54px; }
+#certificateImage { transform-origin: center; }
+
+/* ---------- 10. Welcome modal (showWelcomeMessage) ---------- */
+.welcome-modal { position: fixed; inset: 0; background: rgba(43,43,40,.5); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.welcome-modal-content { background: var(--paper); border-radius: var(--radius-lg); padding: clamp(20px, 5vw, 32px); max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; text-align: center; box-shadow: var(--shadow-modal); }
+.welcome-modal-content h2 { font-size: clamp(1.2rem, 4vw, 1.5rem); margin: 12px 0; }
+.welcome-modal-content p { color: var(--charcoal-soft); font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
+.welcome-icon { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+.welcome-icon.client { background: #e3ecf5; } .welcome-icon.freelancer { background: var(--gold-tint); }
+.welcome-highlight { background: var(--cream); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: 14px; text-align: left; margin: 16px 0; }
+.welcome-highlight p { margin: 0 0 8px; font-size: 13px; } .welcome-highlight p:last-child { margin: 0; }
+.welcome-highlight i { color: var(--sage-deep); margin-right: 6px; }
+.welcome-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.welcome-feature { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: var(--radius-md); font-size: 11.5px; font-weight: 600; }
+.welcome-feature i { font-size: 18px; }
+.welcome-feature.client-feature { background: #e3ecf5; color: var(--blue-deep); }
+.welcome-feature.freelancer-feature { background: var(--gold-tint); color: var(--gold-deep); }
+.welcome-checkbox { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--charcoal-soft); margin-bottom: 14px; }
+.welcome-btn { background: var(--gold); border: none; color: var(--charcoal); font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; }
+.welcome-btn:hover { background: var(--gold-deep); }
+
+/* ---------- 11. Misc modals created in JS ---------- */
+#deleteConfirmModal, #dynamicModal, #editServiceModal, #statsModal, #searchMessagesModal,
+#reviewFreelancerModal, #flagUserModal, #adminReviewModal, #adminDashboardModal { z-index: 3500; }
+.modal-card [style*="var(--secondary-dark)"] { background: var(--cream) !important; }
+.modal-card [style*="color: var(--text-light)"] { color: var(--charcoal) !important; }
+
+/* ---------- 12. Responsive fixes for inline grids ---------- */
+@media (max-width: 800px) {
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 300px"],
+  div[style*="grid-template-columns: repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+  .welcome-features { grid-template-columns: 1fr; }
+  .profile-message-btn { margin-left: 0; }
+}
+@media (max-width: 600px) {
+  .service-actions .btn { flex: 1 1 calc(50% - 6px); }
+  .modal-card [style*="display: flex"][style*="gap: 15px"] { flex-wrap: wrap; }
+  #certificatePreview, #profileCertificates { grid-template-columns: repeat(2, 1fr); }
+  .form-actions .btn { flex: 1 1 100%; }
+}

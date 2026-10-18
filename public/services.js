@@ -4193,7 +4193,19 @@ function addNewCategoryToDropdowns(category) {
     }
 }
 
-// (old cloneNode-based setupServiceFormListener removed - the non-cloning version near the top of this section is used instead)
+// Make sure the event listener is properly attached
+function setupServiceFormListener() {
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        // Remove any existing listeners
+        const newForm = serviceForm.cloneNode(true);
+        serviceForm.parentNode.replaceChild(newForm, serviceForm);
+        
+        // Add new listener
+        newForm.addEventListener('submit', handleServiceFormSubmit);
+        console.log('Service form listener attached');
+    }
+}
 
 // Call this when page loads and when create service form is shown
 document.addEventListener('DOMContentLoaded', () => {

@@ -4194,23 +4194,7 @@ function addNewCategoryToDropdowns(category) {
 }
 
 // Make sure the event listener is properly attached
-function setupServiceFormListener() {
-    const serviceForm = document.getElementById('serviceForm');
-    if (serviceForm) {
-        // Remove any existing listeners
-        const newForm = serviceForm.cloneNode(true);
-        serviceForm.parentNode.replaceChild(newForm, serviceForm);
-        
-        // Add new listener
-        newForm.addEventListener('submit', handleServiceFormSubmit);
-        console.log('Service form listener attached');
-    }
-}
 
-// Call this when page loads and when create service form is shown
-document.addEventListener('DOMContentLoaded', () => {
-    setupServiceFormListener();
-});
 
 // Also set up when create service form is shown
 
@@ -10777,31 +10761,9 @@ function getSubcategoryValue(subId) {
   return sub;
 }
 
-function populateTwoLevelCategorySelect(mainId, subId) {
-  const mainSelect = document.getElementById(mainId);
-  const subSelect = document.getElementById(subId);
-  if (!mainSelect) return;
 
-  const currentValue = mainSelect.value;
-  mainSelect.innerHTML = '<option value="">Select a category</option>' +
-    Object.keys(SERVICE_CATEGORIES).map(cat => `<option value="${cat}">${cat}</option>`).join('');
-  if (currentValue) mainSelect.value = currentValue;
 
-  if (subSelect) {
-    mainSelect.onchange = () => {
-      const subs = SERVICE_CATEGORIES[mainSelect.value] || [];
-      if (!subs.length) {
-        subSelect.innerHTML = '<option value="">N/A</option>';
-        subSelect.disabled = true;
-      } else {
-        subSelect.disabled = false;
-        subSelect.innerHTML = '<option value="">Select a subcategory</option>' +
-          subs.map(s => `<option value="${s}">${s}</option>`).join('');
-      }
-    };
-  }
-}
-
+ 
 // Overrides the original — builds the wizard's category selects,
 // the browse filter selects, and the category chip row, all from
 // the same taxonomy instead of the old flat categories[] array.

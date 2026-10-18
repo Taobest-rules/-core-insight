@@ -997,50 +997,7 @@ function showPricingSection() {
 }
 
 // Make sure this function doesn't have any placeholder issues
-async function showCreateServiceForm() {
-    if (!currentUser) {
-        showToast('Please login to create a service', 'warning');
-        openModal(document.getElementById('loginModal'));
-        return;
-    }
-    
-    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
-        showToast('Only freelancers can create services', 'error');
-        return;
-    }
-    
-    // Check subscription for freelancers
-    if (currentUser.role === 'freelancer') {
-        try {
-            const response = await fetch('/api/subscription/status', {
-                credentials: 'include'
-            });
-            const data = await response.json();
-            
-            if (!data.hasActiveSubscription) {
-                showSubscriptionModal();
-                return;
-            }
-        } catch (error) {
-            console.error('Subscription check error:', error);
-        }
-    }
-    
-    // Hide other sections
-    const sections = ['pricingSection', 'servicesBrowser', 'freelancerProfile', 'inboxPage'];
-    sections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    });
-    
-    // Show create service form
-    const createForm = document.getElementById('createServiceForm');
-    if (createForm) {
-        createForm.classList.remove('hidden');
-        // Re-attach form listener
-        setupServiceForm();
-    }
-}
+
 function hideCreateServiceForm() {
     const createServiceForm = $('createServiceForm');
     if (createServiceForm) {
@@ -1186,46 +1143,7 @@ function populateCategoryDropdowns() {
     }
 }
 
-function filterAndRenderServices() {
-    const searchTerm = $('serviceSearch') ? $('serviceSearch').value.toLowerCase() : '';
-    const categoryFilter = $('categoryFilter') ? $('categoryFilter').value : '';
-    const sortBy = $('sortFilter') ? $('sortFilter').value : 'newest';
 
-    let filteredServices = [...services];
-
-    if (searchTerm) {
-        filteredServices = filteredServices.filter(service =>
-            service.title.toLowerCase().includes(searchTerm) ||
-            (service.description && service.description.toLowerCase().includes(searchTerm)) ||
-            (service.category && service.category.toLowerCase().includes(searchTerm)) ||
-            (service.username && service.username.toLowerCase().includes(searchTerm))
-        );
-    }
-
-    if (categoryFilter) {
-        filteredServices = filteredServices.filter(service =>
-            service.category === categoryFilter
-        );
-    }
-
-    switch (sortBy) {
-        case 'price_low':
-            filteredServices.sort((a, b) => (a.price || 0) - (b.price || 0));
-            break;
-        case 'price_high':
-            filteredServices.sort((a, b) => (b.price || 0) - (a.price || 0));
-            break;
-        case 'rating':
-            filteredServices.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
-            break;
-        case 'newest':
-        default:
-            filteredServices.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            break;
-    }
-
-    renderServices(filteredServices);
-}
 
 function renderServices(servicesToRender) {
     const container = $('servicesList');
@@ -4081,7 +3999,169 @@ async function updateUIForUserRole() {
         if (providerServicesView) providerServicesView.classList.add('hidden');
         
         switchTab('browse');
-    }
+/* ---------- 1. no more form cloning ---------- */
+function setupServiceForm() {
+  const f = document.getElementById('serviceForm');
+  if (f) f.addEventListener('submit', handleServiceFormSubmit); // same fn reference = never double-binds
+}
+function setupServiceFormListener() { setupServiceForm(); }
+
+/* ---------- 2. single, non-recursive opener ---------- */
+async function showCreateServiceForm() {
+  if (!currentUser) { showToast('Please login to create a service', 'warning'); openModal($('loginModal')); return; }
+  if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+    showToast('Only freelancers can create services', 'error'); return;
+  }
+  ['pricingSection', 'servicesBrowser', 'freelancerProfile', 'inboxPage'].forEach(id => $(id)?.classList.add('hidden'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  $('createServiceForm')?.classList.remove('hidden');
+  setupServiceForm();
+  goToServiceWizardStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.showCreateServiceForm = showCreateServiceForm;
+
+/* ---------- 3. step 4 handlers: tags, requirements, char count ---------- */
+function addServiceTag() {
+  const input = $('tagInput');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  const list = $('tagsList');
+  const exists = [...list.querySelectorAll('.tag')].some(t => t.dataset.tag.toLowerCase() === text.toLowerCase());
+  if (exists) { showToast('Tag already added', 'warning'); return; }
+  const span = document.createElement('span');
+  span.className = 'tag job-tag';
+  span.dataset.tag = text;
+  span.innerHTML = `${escapeHtml(text)} <button type="button" class="remove-tag" style="background:none;border:none;cursor:pointer;">×</button>`;
+  span.querySelector('.remove-tag').onclick = () => span.remove();
+  list.appendChild(span);
+  input.value = '';
+}
+$('addTagBtn')?.addEventListener('click', addServiceTag);
+$('tagInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addServiceTag(); } });
+
+$('addRequirementBtn')?.addEventListener('click', () => {
+  const row = document.createElement('div');
+  row.className = 'requirement-item';
+  row.style.cssText = 'display:flex;gap:10px;margin-bottom:10px;';
+  row.innerHTML = `<input type="text" class="requirement-input form-input" placeholder="e.g., Project brief, brand colors, etc." style="flex:1;">
+                   <button type="button" class="btn remove-requirement">Remove</button>`;
+  $('requirementsContainer').appendChild(row);
+});
+$('requirementsContainer')?.addEventListener('click', e => {
+  if (e.target.classList.contains('remove-requirement')) e.target.closest('.requirement-item')?.remove();
+});
+$('serviceDescription')?.addEventListener('input', e => {
+  const el = $('descCharCount'); if (el) el.textContent = `${e.target.value.length}/1000`;
+});
+
+/* ---------- 4. submit handler (no subscription, subcategory + pricing aware) ---------- */
+async function handleServiceFormSubmit(e) {
+  e.preventDefault();
+  if (!currentUser) { showToast('Please login to create a service', 'warning'); openModal($('loginModal')); return; }
+  if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+    showToast('Only freelancers can create services', 'error'); return;
+  }
+
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const title = val('serviceTitle');
+  const description = val('serviceDescription');
+  const category = val('serviceCategory');
+  const subcategory = getSubcategoryValue('serviceSubcategory');
+  const pricingType = val('pricingType') || 'fixed';
+
+  if (title.length < 5) return showToast('Title must be at least 5 characters', 'warning');
+  if (!category) return showToast('Please select a category', 'warning');
+  if (description.length < 20) return showToast('Description must be at least 20 characters', 'warning');
+  if (pricingType === 'fixed' && !(parseFloat(val('fixedPrice')) > 0)) return showToast('Enter a fixed price', 'warning');
+
+  const tags = [...document.querySelectorAll('#tagsList .tag')].map(t => t.dataset.tag).filter(Boolean);
+  const requirements = [...document.querySelectorAll('.requirement-input')].map(i => i.value.trim()).filter(Boolean);
+  const deliveryTime = parseInt(val('deliveryTime')) || 7;
+
+  const packages = [];
+  document.querySelectorAll('.package-card').forEach(card => {
+    if (!card.querySelector('.package-enabled')?.checked) return;
+    const price = parseFloat(card.querySelector('.package-price-input')?.value) || 0;
+    if (price <= 0) return; // skip untouched tiers
+    packages.push({
+      package_name: card.dataset.package,
+      price,
+      features: [...card.querySelectorAll('.package-feature-input')].map(i => i.value.trim()).filter(Boolean),
+      delivery_time: deliveryTime,
+      revisions: 2,
+    });
+  });
+
+  const submitBtn = document.querySelector('#serviceForm button[type="submit"]');
+  const originalText = submitBtn ? submitBtn.innerHTML : 'Create Service';
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
+
+  try {
+    const res = await fetch('/api/services', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title, description, category, subcategory,
+        pricing_type: pricingType,
+        // flexible services show their "starting from" as the listed price
+        fixed_price: pricingType === 'fixed' ? val('fixedPrice') : (val('startingPrice') || null),
+        hourly_rate: val('hourlyRate') || null,
+        delivery_time: deliveryTime,
+        tags, requirements, packages,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok || !result.success) throw new Error(result.error || 'Failed to create service');
+
+    showToast(result.is_draft ? result.message : '✅ Service created successfully!', 'success');
+    $('serviceForm')?.reset();
+    $('tagsList').innerHTML = '';
+    document.querySelectorAll('.pricing-type-option').forEach(o => o.classList.toggle('selected', o.dataset.pricing === 'fixed'));
+    $('pricingType').value = 'fixed';
+    $('fixedPriceBlock')?.classList.add('show');
+    $('flexiblePriceBlock')?.classList.remove('show');
+    const cat = $('serviceCategory'); if (cat) cat.dispatchEvent(new Event('change'));
+    goToServiceWizardStep(1);
+
+    hideCreateServiceForm();
+    await loadServices();
+    switchTab('myServices');
+    await loadMyServices();
+  } catch (err) {
+    console.error('Service creation error:', err);
+    showToast(err.message || 'Error creating service', 'error');
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalText; }
+  }
+}
+window.handleServiceFormSubmit = handleServiceFormSubmit;
+
+/* ---------- 5. browse filter understands subcategory ---------- */
+function filterAndRenderServices() {
+  const term = ($('serviceSearch')?.value || '').toLowerCase();
+  const cat = $('categoryFilter')?.value || '';
+  const sub = $('subcategoryFilter')?.value || '';
+  const sortBy = $('sortFilter')?.value || 'newest';
+
+  let list = [...services];
+  if (term) list = list.filter(s =>
+    (s.title || '').toLowerCase().includes(term) ||
+    (s.description || '').toLowerCase().includes(term) ||
+    (s.category || '').toLowerCase().includes(term) ||
+    (s.subcategory || '').toLowerCase().includes(term) ||
+    (s.username || '').toLowerCase().includes(term));
+  if (cat) list = list.filter(s => s.category === cat);
+  if (sub) list = list.filter(s => s.subcategory === sub);
+
+  if (sortBy === 'price_low') list.sort((a, b) => (a.price || 0) - (b.price || 0));
+  else if (sortBy === 'price_high') list.sort((a, b) => (b.price || 0) - (a.price || 0));
+  else if (sortBy === 'rating') list.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
+  else list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  renderServices(list);
+}
+$('subcategoryFilter')?.addEventListener('change', filterAndRenderServices);    }
 }
 
 
@@ -4091,259 +4171,6 @@ async function updateUIForUserRole() {
 // ==================== COMPLETE SERVICE FORM HANDLER ====================
 
 // Make sure this function is defined and not overridden
-async function handleServiceFormSubmit(e) {
-    e.preventDefault();
-    
-    console.log("Service form submitted");
-    
-    if (!currentUser) {
-        showToast('Please login to create a service', 'warning');
-        openModal(document.getElementById('loginModal'));
-        return;
-    }
-    
-    if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
-        showToast('Only freelancers can create services', 'error');
-        return;
-    }
-    
-    const submitBtn = document.querySelector('#serviceForm button[type="submit"]');
-    const originalText = submitBtn ? submitBtn.innerHTML : 'Create Service';
-    
-    try {
-        // Check subscription status for freelancers
-        if (currentUser.role === 'freelancer') {
-            showToast('Checking subscription status...', 'info');
-            const subResponse = await fetch('/api/subscription/status', {
-                credentials: 'include'
-            });
-            const subData = await subResponse.json();
-            
-            if (!subData.hasActiveSubscription) {
-                showToast('Subscription required to create services', 'warning');
-                showSubscriptionModal();
-                return;
-            }
-        }
-        
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Service...';
-        }
-        
-        // Get form values
-        const title = document.getElementById('serviceTitle')?.value.trim();
-        const description = document.getElementById('serviceDescription')?.value.trim();
-        const hourlyRate = document.getElementById('hourlyRate')?.value;
-        const fixedPrice = document.getElementById('fixedPrice')?.value;
-        const deliveryTime = document.getElementById('deliveryTime')?.value;
-        const revisions = document.getElementById('revisions')?.value;
-        
-        // Handle category - check if new category was entered
-        let category = '';
-        const activeTab = document.querySelector('.category-tab-btn.active');
-        const isNewCategory = activeTab && activeTab.getAttribute('data-tab') === 'new';
-        
-        if (isNewCategory) {
-            const newCategory = document.getElementById('newCategory')?.value.trim();
-            if (!newCategory) {
-                showToast('Please enter a category name', 'warning');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-                return;
-            }
-            category = newCategory;
-            // Add to dropdowns for future use
-            addNewCategoryToDropdowns(newCategory);
-        } else {
-            category = document.getElementById('serviceCategory')?.value;
-            if (!category) {
-                showToast('Please select a category', 'warning');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-                return;
-            }
-        }
-        
-        // Validation
-        if (!title) {
-            showToast('Please enter a service title', 'warning');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-            return;
-        }
-        
-        if (title.length < 5) {
-            showToast('Title must be at least 5 characters', 'warning');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-            return;
-        }
-        
-        if (!description) {
-            showToast('Please enter a service description', 'warning');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-            return;
-        }
-        
-        if (description.length < 20) {
-            showToast('Description must be at least 20 characters', 'warning');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-            return;
-        }
-        
-        // Collect tags
-        const tags = [];
-        document.querySelectorAll('#tagsList .tag').forEach(tag => {
-            const tagText = tag.textContent.replace('×', '').trim();
-            if (tagText) {
-                tags.push(tagText);
-            }
-        });
-        
-        // Collect requirements
-        const requirements = [];
-        document.querySelectorAll('.requirement-input').forEach(input => {
-            if (input.value && input.value.trim()) {
-                requirements.push(input.value.trim());
-            }
-        });
-        
-        // Collect packages
-        const packages = [];
-        const packageCards = document.querySelectorAll('.package-card');
-        packageCards.forEach(card => {
-            const packageNameElement = card.querySelector('.package-name');
-            const packageName = packageNameElement ? packageNameElement.textContent.trim() : '';
-            const isEnabled = card.querySelector('.package-enabled')?.checked;
-            
-            if (isEnabled && packageName) {
-                const priceInput = card.querySelector('.package-price-input');
-                const price = parseFloat(priceInput?.value) || 0;
-                
-                const features = [];
-                const featureInputs = card.querySelectorAll('.package-feature-input');
-                featureInputs.forEach(input => {
-                    if (input.value && input.value.trim()) {
-                        features.push(input.value.trim());
-                    }
-                });
-                
-                packages.push({
-                    package_name: packageName.toLowerCase(),
-                    price: price,
-                    features: features,
-                    delivery_time: parseInt(deliveryTime) || 7,
-                    revisions: parseInt(revisions) || 2
-                });
-            }
-        });
-        
-        // Prepare data
-        const serviceData = {
-            title: title,
-            description: description,
-            category: category,
-            hourly_rate: hourlyRate || null,
-            fixed_price: fixedPrice || null,
-            delivery_time: parseInt(deliveryTime) || 7,
-            revisions: parseInt(revisions) || 2,
-            tags: tags,
-            requirements: requirements,
-            packages: packages
-        };
-        
-        console.log('Sending service data:', serviceData);
-        showToast('Creating service...', 'info');
-        
-        // Send to server
-        const response = await fetch('/api/services', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(serviceData)
-        });
-        
-        const result = await response.json();
-        console.log('Server response:', result);
-        
-        if (response.ok && result.success) {
-            showToast('✅ Service created successfully!', 'success');
-            
-            // Reset form
-            const form = document.getElementById('serviceForm');
-            if (form) form.reset();
-            
-            const tagsList = document.getElementById('tagsList');
-            if (tagsList) tagsList.innerHTML = '';
-            
-            const requirementsContainer = document.getElementById('requirementsContainer');
-            if (requirementsContainer) {
-                requirementsContainer.innerHTML = `
-                    <div class="requirement-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <input type="text" class="requirement-input" placeholder="e.g., Project brief, brand colors, etc." style="flex: 1; padding: 12px; border-radius: 8px; background: var(--secondary-dark); border: 1px solid rgba(255,255,255,0.1); color: var(--text-light);">
-                        <button type="button" class="btn btn-secondary remove-requirement" style="padding: 12px;">Remove</button>
-                    </div>
-                `;
-            }
-            
-            // Reset packages
-            document.querySelectorAll('.package-price-input').forEach(input => {
-                const card = input.closest('.package-card');
-                const isEnabled = card?.querySelector('.package-enabled')?.checked;
-                if (isEnabled) {
-                    input.value = '0';
-                }
-            });
-            
-            // Reset category selection
-            const categorySelect = document.getElementById('serviceCategory');
-            if (categorySelect) categorySelect.value = '';
-            const newCategoryInput = document.getElementById('newCategory');
-            if (newCategoryInput) newCategoryInput.value = '';
-            hideSelectedCategory();
-            
-            // Hide create form and show services browser
-            hideCreateServiceForm();
-            
-            // Reload services
-            await loadServices();
-            
-            // Switch to my services tab if freelancer
-            if (currentUser && currentUser.role === 'freelancer') {
-                switchTab('myServices');
-                await loadMyServices();
-            }
-        } else {
-            showToast(result.error || 'Failed to create service', 'error');
-        }
-        
-    } catch (err) {
-        console.error('Service creation error:', err);
-        showToast('Error creating service: ' + err.message, 'error');
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        }
-    }
-}
 
 // Helper function to add new category to dropdowns
 function addNewCategoryToDropdowns(category) {
@@ -10072,18 +9899,7 @@ setTimeout(function() {
 }, 100);
 
 // ==================== FIX setupServiceForm FUNCTION ====================
-function setupServiceForm() {
-    const serviceForm = document.getElementById('serviceForm');
-    if (serviceForm) {
-        // Remove any existing listeners
-        const newForm = serviceForm.cloneNode(true);
-        serviceForm.parentNode.replaceChild(newForm, serviceForm);
-        
-        // Add the submit handler
-        newForm.addEventListener('submit', handleServiceFormSubmit);
-        console.log('✅ Service form listener attached');
-    }
-}
+
 
 // ==================== FIX renderServices FOR TAGS ====================
 // Override the renderServices function to handle tags correctly

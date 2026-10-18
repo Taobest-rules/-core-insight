@@ -10397,7 +10397,7 @@ app.get("/api/services/my-services", async (req, res) => {
                 (SELECT COUNT(*) FROM service_orders WHERE service_id = s.id) as total_orders,
                 (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) as review_count,
                 (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) as avg_rating,
-                (SELECT SUM(amount) FROM service_orders WHERE service_id = s.id AND status = 'completed') as total_earnings,
+                (SELECT COALESCE(SUM(provider_earnings), 0) FROM service_orders WHERE service_id = s.id AND status = 'completed') as total_earnings,
                 (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) as favorite_count
             FROM services s
             LEFT JOIN users u ON s.user_id = u.id
@@ -12323,10 +12323,10 @@ app.get("/api/export/user-data", async (req, res) => {
     
     // Get user's service orders (if freelancer)
     const serviceOrders = await db.query(
-      `SELECT so.id, s.title as service_name, so.amount, so.status, so.created_at
+      `SELECT so.id, s.title as service_name, so.agreed_price AS amount, so.status, so.created_at
        FROM service_orders so
        LEFT JOIN services s ON so.service_id = s.id
-       WHERE so.buyer_id = ? OR so.seller_id = ?
+       WHERE so.client_id = ? OR so.provider_id = ?
        ORDER BY so.created_at DESC`,
       [queryUserId, queryUserId]
     );
@@ -13367,10 +13367,10 @@ app.get("/api/freelancer/dashboard", async (req, res) => {
                 u.id,
                 u.username,
                 COUNT(so.id) as total_orders,
-                COALESCE(SUM(so.amount), 0) as total_spent
+                COALESCE(SUM(so.agreed_price), 0) as total_spent
             FROM client_providers cp
             JOIN users u ON cp.client_id = u.id
-            LEFT JOIN service_orders so ON so.buyer_id = cp.client_id AND so.seller_id = cp.freelancer_id AND so.status = 'completed'
+            LEFT JOIN service_orders so ON so.client_id = cp.client_id AND so.provider_id = cp.freelancer_id AND so.status = 'completed'
             WHERE cp.freelancer_id = ? 
               AND cp.status = 'active'
             GROUP BY u.id, u.username

@@ -4214,14 +4214,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Also set up when create service form is shown
 
-window.showCreateServiceForm = function() {
-    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
-    setTimeout(() => {
-        setupServiceFormListener();
-        initCategoryTabs();
-    }, 100);
-};
-
 // Initialize category tabs
 function initCategoryTabs() {
     const tabBtns = document.querySelectorAll('.category-tab-btn');
@@ -10503,16 +10495,7 @@ window.showFreelancerProfile = async function() {
 };
 
 // Override the original showCreateServiceForm function
-const originalShowCreateServiceForm = window.showCreateServiceForm;
-window.showCreateServiceForm = async function() {
-    const hasAccess = await checkSubscriptionAndLock();
-    if (!hasAccess && currentUser?.role === 'freelancer') {
-        showToast('Subscription required to create services', 'warning');
-        showSubscriptionModal();
-        return;
-    }
-    if (originalShowCreateServiceForm) originalShowCreateServiceForm();
-};
+
 
 // Override checkAndStartConversation function
 const originalCheckAndStartConversation = window.checkAndStartConversation;
@@ -10641,7 +10624,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+async function openCreateServiceWizard() {
+  if (!currentUser) { showToast('Please login to create a service', 'warning'); openModal($('loginModal')); return; }
+  if (currentUser.role !== 'freelancer' && currentUser.role !== 'admin') {
+    showToast('Only freelancers can create services', 'error'); return;
+  }
+  ['pricingSection', 'servicesBrowser', 'freelancerProfile', 'inboxPage'].forEach(id => $(id)?.classList.add('hidden'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  $('createServiceForm')?.classList.remove('hidden');
+  setupServiceForm();
+  goToServiceWizardStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
+// MUST stay the last statement in the file
+window.showCreateServiceForm = openCreateServiceWizard;
 /* ============================================================
    ↓↓↓ NEW FEATURES ADD-ON STARTS HERE ↓↓↓
    ============================================================ */

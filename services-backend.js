@@ -91,28 +91,41 @@ module.exports = function (app, db) {
     }
   });
 
-  /* ---------- MY SERVICES (freelancer) ---------- */
+   /* ---------- MY SERVICES (freelancer) ---------- */
   app.get('/api/services/my-services', async (req, res) => {
     try {
       if (!req.session.user) return res.status(401).json({ error: 'Please login to view your services' });
 
-      const rows = extractRows(await db.query(`
+      const base = `
         SELECT s.*, u.username,
                fp.profile_picture_url AS profile_picture,
                fp.headline AS provider_headline,
-               (SELECT COUNT(*) FROM service_orders WHERE service_id = s.id) AS total_orders,
                (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) AS review_count,
                (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) AS avg_rating,
-               (SELECT COALESCE(SUM(provider_earnings), 0) FROM service_orders WHERE service_id = s.id AND status = 'completed') AS total_earnings,
                (SELECT COUNT(*) FROM service_favorites WHERE service_id = s.id) AS favorite_count
+               EXTRA_COLUMNS
         FROM services s
         LEFT JOIN users u ON s.user_id = u.id
         LEFT JOIN freelancer_profiles fp ON fp.user_id = s.user_id
         WHERE s.user_id = ?
-        ORDER BY s.created_at DESC`, [req.session.user.id]));
+        ORDER BY s.created_at DESC`;
+
+      const orderStats = `,
+               (SELECT COUNT(*) FROM service_orders WHERE service_id = s.id) AS total_orders,
+               (SELECT COALESCE(SUM(provider_earnings), 0) FROM service_orders WHERE service_id = s.id AND status = 'completed') AS total_earnings`;
+
+      let rows;
+      try {
+        rows = extractRows(await db.query(base.replace('EXTRA_COLUMNS', orderStats), [req.session.user.id]));
+      } catch (e) {
+        console.error('my-services full query failed, retrying without order stats:', e.message);
+        rows = extractRows(await db.query(base.replace('EXTRA_COLUMNS', ''), [req.session.user.id]));
+      }
 
       res.json(rows.map(s => ({
         ...s,
+        total_orders: s.total_orders || 0,
+        total_earnings: s.total_earnings || 0,
         tags: parseJSON(s.tags, []),
         requirements: parseJSON(s.requirements, []),
       })));

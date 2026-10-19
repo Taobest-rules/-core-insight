@@ -3984,7 +3984,7 @@ async function updateUIForUserRole() {
             
             switchTab('browse');
         }
-    } else {
+        } else {
         // Not logged in
         if (heroDescription) heroDescription.textContent = "Find expert services or offer your skills to clients worldwide.";
         if (findServicesBtn) findServicesBtn.textContent = "Find Services";
@@ -3994,11 +3994,14 @@ async function updateUIForUserRole() {
         if (providerTabs) providerTabs.classList.add('hidden');
         if (subscriptionBanner) subscriptionBanner.classList.add('hidden');
         if (servicesBrowser) servicesBrowser.classList.remove('hidden');
-        
+
         if (clientServicesView) clientServicesView.classList.add('hidden');
         if (providerServicesView) providerServicesView.classList.add('hidden');
-        
+
         switchTab('browse');
+    }
+}
+
 /* ---------- 1. no more form cloning ---------- */
 function setupServiceForm() {
   const f = document.getElementById('serviceForm');
@@ -4037,23 +4040,32 @@ function addServiceTag() {
   list.appendChild(span);
   input.value = '';
 }
-$('addTagBtn')?.addEventListener('click', addServiceTag);
-$('tagInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addServiceTag(); } });
 
-$('addRequirementBtn')?.addEventListener('click', () => {
-  const row = document.createElement('div');
-  row.className = 'requirement-item';
-  row.style.cssText = 'display:flex;gap:10px;margin-bottom:10px;';
-  row.innerHTML = `<input type="text" class="requirement-input form-input" placeholder="e.g., Project brief, brand colors, etc." style="flex:1;">
-                   <button type="button" class="btn remove-requirement">Remove</button>`;
-  $('requirementsContainer').appendChild(row);
-});
-$('requirementsContainer')?.addEventListener('click', e => {
-  if (e.target.classList.contains('remove-requirement')) e.target.closest('.requirement-item')?.remove();
-});
-$('serviceDescription')?.addEventListener('input', e => {
-  const el = $('descCharCount'); if (el) el.textContent = `${e.target.value.length}/1000`;
-});
+function initServiceWizardListeners() {
+  $('addTagBtn')?.addEventListener('click', addServiceTag);
+  $('tagInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addServiceTag(); } });
+
+  $('addRequirementBtn')?.addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'requirement-item';
+    row.style.cssText = 'display:flex;gap:10px;margin-bottom:10px;';
+    row.innerHTML = `<input type="text" class="requirement-input form-input" placeholder="e.g., Project brief, brand colors, etc." style="flex:1;">
+                     <button type="button" class="btn remove-requirement">Remove</button>`;
+    $('requirementsContainer').appendChild(row);
+  });
+  $('requirementsContainer')?.addEventListener('click', e => {
+    if (e.target.classList.contains('remove-requirement')) e.target.closest('.requirement-item')?.remove();
+  });
+  $('serviceDescription')?.addEventListener('input', e => {
+    const el = $('descCharCount'); if (el) el.textContent = `${e.target.value.length}/1000`;
+  });
+  $('subcategoryFilter')?.addEventListener('change', filterAndRenderServices);
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initServiceWizardListeners);
+} else {
+  initServiceWizardListeners();
+}
 
 /* ---------- 4. submit handler (no subscription, subcategory + pricing aware) ---------- */
 async function handleServiceFormSubmit(e) {
@@ -4161,9 +4173,6 @@ function filterAndRenderServices() {
   else list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   renderServices(list);
 }
-$('subcategoryFilter')?.addEventListener('change', filterAndRenderServices);    }
-}
-
 
 // ==================== CATEGORY MANAGEMENT ====================
 

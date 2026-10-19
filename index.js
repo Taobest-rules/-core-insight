@@ -284,7 +284,7 @@ app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 require('./jobs-backend')(app, db);
-
+require('./services-backend')(app, db);
 
 // ============================================
 // FILE UPLOAD CONFIGURATION

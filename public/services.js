@@ -11403,3 +11403,79 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(document.getElementById('loginModal'));
   });
 });
+window.showInbox = function () {
+  window.location.href = '/messages.html';
+};
+ 
+window.showInboxAndOpenConversation = function (conversationId) {
+  window.location.href = conversationId
+    ? `/messages.html?conversation=${encodeURIComponent(conversationId)}`
+    : '/messages.html';
+};
+ 
+window.checkAndStartConversation = async function (serviceId, freelancerId) {
+  if (!currentUser) {
+    showToast('Please login to start a conversation', 'warning');
+    openModal(document.getElementById('loginModal'));
+    return;
+  }
+  if (parseInt(currentUser.id) === parseInt(freelancerId)) {
+    showToast('You cannot start a conversation with yourself', 'warning');
+    return;
+  }
+ 
+  showToast('Opening chat...', 'info');
+  try {
+    const res = serviceId
+      ? await fetch('/api/conversations/start', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ service_id: parseInt(serviceId), recipient_id: parseInt(freelancerId) }),
+        })
+      : await fetch('/api/conversations/start-without-service', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient_id: parseInt(freelancerId) }),
+        });
+ 
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.conversation_id) {
+      showToast(data.error || 'Could not start the conversation', 'error');
+      return;
+    }
+    window.location.href = `/messages.html?conversation=${encodeURIComponent(data.conversation_id)}`;
+  } catch (err) {
+    console.error('Start conversation error:', err);
+    showToast('Could not start the conversation', 'error');
+  }
+};
+ (function () {
+  const baseRender = window.renderOrderCard;
+  window.renderOrderCard = function (order) {
+    let html = baseRender(order);
+    if (order.status !== 'payment_pending') return html;
+    const isProvider = currentUser && order.provider_id === currentUser.id;
+    const extra = isProvider
+      ? `<span style="font-size:13px;opacity:.75">Waiting for the client to pay</span>`
+      : `<button class="btn sm primary order-pay-btn" data-order-id="${order.id}">Pay $${Number(order.agreed_price || 0).toFixed(2)}</button>`;
+    return html.replace('<div class="order-actions-row">', '<div class="order-actions-row">' + extra);
+  };
+ 
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.order-pay-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = 'Opening payment…';
+    try {
+      const res = await fetch(`/api/service-orders/${btn.dataset.orderId}/pay`, { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.paymentLink) throw new Error(data.error || 'Could not start payment');
+      window.location.href = data.paymentLink;
+    } catch (err) {
+      btn.disabled = false; btn.textContent = label;
+      showToast(err.message, 'error');
+    }
+  });
+})();
+ 

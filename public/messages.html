@@ -1059,6 +1059,7 @@ function renderConversationList() {
 /* ---------- thread pane ---------- */
 async function openConversation(conversationId) {
   activeConversationId = conversationId;
+  if (window.CoreQuote) CoreQuote.setConversation(conversationId);
   history.replaceState(null, '', `/messages.html?conversation=${conversationId}`);
   stopMessagePolling(); stopTypingPolling();
 
@@ -1093,6 +1094,7 @@ async function openConversation(conversationId) {
     <div class="thread-composer">
       <input type="file" id="inboxAttachInput" accept="image/*,application/pdf" style="display:none;">
       <button class="composer-btn composer-attach" id="inboxAttachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
+      <button class="composer-btn" id="inboxQuoteBtn" title="Send a quote (amount + what it covers)" onclick="window.CoreQuote && CoreQuote.openSend()"><i class="fas fa-file-invoice-dollar"></i></button>
       <textarea id="inboxComposerText" rows="1" placeholder="Write a message…"></textarea>
       <button class="composer-btn composer-send" id="inboxSendBtn" title="Send"><i class="fas fa-paper-plane"></i></button>
     </div>`;
@@ -1139,12 +1141,20 @@ function renderThreadMessages(messages) {
         ? `<a class="attach-pdf" href="${m.attachment_url}" target="_blank"><i class="fas fa-file-pdf"></i> View PDF</a>`
         : `<img class="attach-img" src="${m.attachment_url}">`;
     }
+    const qm = /^quote:(\d+)$/.exec(m.message || '');
+    if (m.attachment_type === 'quote' && qm) {
+      return `<div class="msg-bubble-row ${mine ? 'mine' : 'theirs'}">
+        <div data-cq-quote="${qm[1]}"></div>
+        <div class="msg-meta">${formatTimeShort(m.created_at)}${receipt ? ' · ' + receipt : ''}</div>
+      </div>`;
+    }
     return `<div class="msg-bubble-row ${mine ? 'mine' : 'theirs'}">
       <div class="msg-bubble">${escapeHtml(m.message || '')}${attachment}</div>
       <div class="msg-meta">${formatTimeShort(m.created_at)}${receipt ? ' · ' + receipt : ''}</div>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
+  if (window.CoreQuote) CoreQuote.scan();
 }
 
 /* ---------- send ---------- */
@@ -1192,6 +1202,7 @@ async function toggleArchive(conversationId, archived) {
     await loadConversations();
     document.getElementById('inboxThread').innerHTML = `<div class="thread-placeholder"><i class="fas fa-comments"></i><p>Select a conversation to view it</p></div>`;
     activeConversationId = null;
+    if (window.CoreQuote) CoreQuote.setConversation(null);
     stopMessagePolling(); stopTypingPolling();
   } catch (e) {
     showToast('Could not update', 'Try again in a moment.');
@@ -1223,5 +1234,9 @@ function stopTypingPolling() { if (typingPollTimer) clearInterval(typingPollTime
 function startMessagePolling() { stopMessagePolling(); messagePollTimer = setInterval(refreshThreadMessages, 4000); }
 function stopMessagePolling() { if (messagePollTimer) clearInterval(messagePollTimer); messagePollTimer = null; }
   </script>
+
+  <!-- Quotes in chat -->
+  <script>window.CORE_QUOTE_NATIVE = true;</script>
+  <script src="quote-chat.js"></script>
 </body>
 </html>

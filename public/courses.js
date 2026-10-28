@@ -1099,12 +1099,18 @@ function openPreviewModal(courseId, opts = {}) {
     ${related.length ? `<div><strong>Related</strong></div><div class="related-courses">${related.map(r => `<div class="rv-card" onclick="openPreviewModal(${r.id})"><img src="${r.thumbnailSrc}" alt="${r.safeTitle}" loading="lazy"><p>${r.safeTitle}</p></div>`).join('')}</div>` : ''}
   `;
 
-  const reviewsEl = document.getElementById('previewReviews');
-  if (Array.isArray(course.reviews) && course.reviews.length) {
-    reviewsEl.innerHTML = course.reviews.map(r => `<p><strong>${escapeHtml(r.author || 'Learner')}:</strong> ${escapeHtml(r.text || '')}</p>`).join('');
-  } else {
-    reviewsEl.innerHTML = `<p class="stub-note"><i class="fas fa-star"></i> No reviews yet — be the first to review after enrolling.</p>`;
+ CourseCommunity.open(course.id, (avg, count) => {
+  // keep the card + modal header in sync after a review is saved
+  course.rating = avg;
+  course.review_count = count;
+  const ratingEl = document.getElementById('previewRating');
+  ratingEl.hidden = !count;
+  if (count) {
+    ratingEl.innerHTML = `<span class="stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span> ${avg.toFixed(1)} <span class="rv-count">(${count} reviews)</span>`;
   }
+  renderCourses();
+  updateAllPrices();
+});
 
   document.getElementById('previewFooter').innerHTML = buildModalFooterHTML(course);
   updateAllPrices();

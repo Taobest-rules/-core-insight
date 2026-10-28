@@ -226,6 +226,68 @@ async function logWalletTransaction(userId, type, amount, balanceAfter, orderId,
   );
 }
 // ============================================
+// COURSE REVIEWS + Q&A
+// ============================================
+(async () => {
+  const run = async (sql, label) => {
+    try { await db.query(sql); }
+    catch (e) { if (!/duplicate|already exists/i.test(e.message)) console.error(`Course community migration failed (${label}):`, e.message); }
+  };
+  await run(`CREATE TABLE IF NOT EXISTS course_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating TINYINT NOT NULL,
+    comment TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uniq_review (course_id, user_id),
+    INDEX idx_course (course_id)
+  )`, 'course_reviews');
+  await run(`CREATE TABLE IF NOT EXISTS course_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT NOT NULL,
+    user_id INT NOT NULL,
+    question TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_course (course_id)
+  )`, 'course_questions');
+  await run(`CREATE TABLE IF NOT EXISTS course_answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_id INT NOT NULL,
+    course_id INT NOT NULL,
+    user_id INT NOT NULL,
+    answer TEXT NOT NULL,
+    is_instructor TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_question (question_id)
+  )`, 'course_answers');
+})();
+
+// Who can do what on a course
+async function getCourseAccess(user, courseId) {
+  const course = extractRows(await db.query(
+    "SELECT id, user_id, price FROM courses WHERE id = ?", [courseId]
+  ))[0];
+  if (!course) return null;
+
+  const isFree = !course.price || parseFloat(course.price) === 0;
+  const isOwner = !!user && Number(course.user_id) === Number(user.id);
+  const isAdmin = !!user && user.role === 'admin';
+
+  let purchased = false;
+  if (user && !isFree) {
+    purchased = extractRows(await db.query(
+      "SELECT 1 FROM user_courses WHERE user_id = ? AND course_id = ? AND payment_status = 'completed' LIMIT 1",
+      [user.id, courseId]
+    )).length > 0;
+  }
+  // Free courses: any logged-in user can take part, no enrolment needed.
+  // Paid courses: purchasers, the instructor, or admins.
+  return { course, isFree, isOwner, isAdmin, purchased,
+           canParticipate: !!user && (isFree || purchased || isOwner || isAdmin) };
+}
+// ============================================
 // APP INITIALIZATION
 // ============================================
 const app = express();
@@ -839,6 +901,48 @@ async function checkFreelancerSubscription(req, res, next) {
         res.status(500).json({ error: err.message });
     }
 }
+// Atomically moves payment_pending -> escrow_funded. Safe to call twice.
+async function completeServiceOrderPayment(txRef, transaction) {
+  const order = extractRows(await db.query(
+    `SELECT * FROM service_orders WHERE transaction_ref = ? LIMIT 1`, [txRef]
+  ))[0];
+  if (!order) { console.error('Service payment: no order for', txRef); return false; }
+ 
+  // Don't trust the webhook body alone: the amount must cover the agreed price.
+  if (transaction) {
+    const paidUsd = String(transaction.currency).toUpperCase() === 'USD' ? Number(transaction.amount) : null;
+    if (paidUsd !== null && paidUsd + 0.01 < Number(order.agreed_price)) {
+      console.error('Service payment: underpaid', txRef, paidUsd, order.agreed_price);
+      return false;
+    }
+  }
+ 
+  const claim = await db.query(
+    `UPDATE service_orders SET status = 'escrow_funded' WHERE id = ? AND status = 'payment_pending'`,
+    [order.id]
+  );
+  const won = (claim && (claim.affectedRows || (claim[0] && claim[0].affectedRows))) > 0;
+  if (!won) return false;                     // the other path got there first
+ 
+  try {
+    await db.query(
+      `UPDATE service_orders SET payment_held_until = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?`, [order.id]
+    );
+  } catch (e) { /* column optional; the review sweep sets its own window */ }
+ 
+  try {
+    const q = extractRows(await db.query(`SELECT conversation_id FROM service_quotes WHERE id = ?`, [order.quote_id]))[0];
+    if (q && q.conversation_id) {
+      await postChatSystemLine(q.conversation_id, order.client_id,
+        `💳 Payment of $${Number(order.agreed_price).toFixed(2)} received and held in escrow. The provider can now start the job.`);
+    }
+    const prov = extractRows(await db.query(`SELECT email FROM users WHERE id = ?`, [order.provider_id]))[0];
+    if (prov) sendEmail(prov.email, `Order #${order.id} is paid — you can start`,
+      `<p>The client has paid $${Number(order.agreed_price).toFixed(2)}. It is held in escrow and released when the work is approved.</p>`).catch(() => {});
+  } catch (e) { console.error('Service payment notify error:', e.message); }
+  return true;
+}
+ 
 
 /* ================================================================
    PART A — SCHEMA MIGRATION
@@ -925,122 +1029,249 @@ async function runServiceEscrowMigrations() {
 runServiceEscrowMigrations();
 
 
-/* ================================================================
-   PART B — SEND / ACCEPT / COUNTER / DECLINE A QUOTE
-   ================================================================ */
+app.get("/api/quotes/context", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const p = await resolveQuoteParties(parseInt(req.query.conversation_id), user.id);
+    if (!p) return res.status(403).json({ error: "Access denied" });
+    res.json({
+      me: p.me,
+      other: { id: p.other.id, username: p.other.username },
+      provider_id: p.providerId,
+      client_id: p.clientId,
+      i_am_provider: p.me === p.providerId,
+      service: p.serviceId ? { id: p.serviceId, title: p.serviceTitle } : null,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+ 
+// One quote, for rendering the card inside the chat (participants only)
+app.get("/api/quotes/:quoteId", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const q = extractRows(await db.query(
+      `SELECT q.*, su.username AS sender_name, ru.username AS recipient_name
+       FROM service_quotes q
+       JOIN users su ON su.id = q.sender_id
+       JOIN users ru ON ru.id = q.recipient_id
+       WHERE q.id = ?`, [req.params.quoteId]
+    ))[0];
+    if (!q || (Number(q.sender_id) !== Number(user.id) && Number(q.recipient_id) !== Number(user.id))) {
+      return res.status(404).json({ error: "Quote not found" });
+    }
+    let scope = q.scope_items;
+    if (typeof scope === 'string') { try { scope = JSON.parse(scope); } catch { scope = [scope]; } }
+    let status = q.status;
+    if (status === 'pending' && q.expires_at && new Date(q.expires_at) < new Date()) status = 'expired';
+    const order = extractRows(await db.query(`SELECT id, status FROM service_orders WHERE quote_id = ? LIMIT 1`, [q.id]))[0];
+    res.json({
+      id: q.id, conversation_id: q.conversation_id, amount: Number(q.amount), scope_items: scope || [],
+      status, expires_at: q.expires_at, created_at: q.created_at,
+      sender_id: q.sender_id, recipient_id: q.recipient_id,
+      sender_name: q.sender_name, recipient_name: q.recipient_name,
+      parent_quote_id: q.parent_quote_id, order_id: order ? order.id : null, order_status: order ? order.status : null, client_id: order ? order.client_id : null, me: Number(user.id),
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+ 
 app.post("/api/quotes/send", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
-    const { conversation_id, recipient_id, amount, scope_items, service_id, job_id, parent_quote_id } = req.body;
-
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Enter a valid amount" });
-
-    // Only the most recent quote in a thread is acceptable — supersede
-    // any earlier pending quote in the same thread automatically.
+    const { conversation_id, amount, scope_items, parent_quote_id } = req.body;
+ 
+    const amt = Math.round(parseFloat(amount) * 100) / 100;
+    if (!(amt > 0) || amt > 1000000) return res.status(400).json({ error: "Enter a valid amount" });
+    const items = (Array.isArray(scope_items) ? scope_items : [])
+      .map(s => String(s).trim().slice(0, 200)).filter(Boolean).slice(0, 20);
+    if (!items.length) return res.status(400).json({ error: "List what the amount covers" });
+ 
+    const p = await resolveQuoteParties(parseInt(conversation_id), user.id);
+    if (!p) return res.status(403).json({ error: "You're not part of this conversation" });
+ 
     let threadId = null;
     if (parent_quote_id) {
-      const parentResult = await db.query(`SELECT thread_id FROM service_quotes WHERE id = ?`, [parent_quote_id]);
-      threadId = extractRows(parentResult)[0]?.thread_id || parent_quote_id;
-      await db.query(`UPDATE service_quotes SET status = 'superseded' WHERE thread_id = ? AND status = 'pending'`, [threadId]);
+      const parent = extractRows(await db.query(
+        `SELECT id, thread_id FROM service_quotes WHERE id = ? AND conversation_id = ?`,
+        [parent_quote_id, conversation_id]
+      ))[0];
+      if (parent) threadId = parent.thread_id || parent.id;
     }
-
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 48);
-
+    // only one live quote per chat
+    await db.query(`UPDATE service_quotes SET status = 'superseded' WHERE conversation_id = ? AND status = 'pending'`, [conversation_id]);
+ 
+    const expiresAt = new Date(Date.now() + 48 * 3600 * 1000);
     const insertResult = await db.query(
       `INSERT INTO service_quotes (conversation_id, thread_id, parent_quote_id, sender_id, recipient_id, service_id, job_id, amount, scope_items, status, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
-      [conversation_id, threadId, parent_quote_id || null, user.id, recipient_id, service_id || null, job_id || null, amount, JSON.stringify(scope_items || []), expiresAt]
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'pending', ?, NOW())`,
+      [conversation_id, threadId, parent_quote_id || null, user.id, p.otherId, p.serviceId, amt, JSON.stringify(items), expiresAt]
     );
     const quoteId = extractInsertId(insertResult);
     if (!threadId) await db.query(`UPDATE service_quotes SET thread_id = ? WHERE id = ?`, [quoteId, quoteId]);
-
-    // Post it into the conversation as a special message type, same
-    // pattern as an image/PDF attachment — quote cards live in the
-    // unified thread, not a separate UI.
+ 
     await db.query(
       `INSERT INTO messages (conversation_id, sender_id, message, attachment_type, created_at, is_read)
        VALUES (?, ?, ?, 'quote', NOW(), 0)`,
       [conversation_id, user.id, `quote:${quoteId}`]
     );
-
+ 
     if (typeof notifyNewMessage === 'function') {
       notifyNewMessage({
-        conversationId: conversation_id, recipientId: recipient_id, senderId: user.id,
-        senderName: user.username, messagePreview: `Sent a quote: $${amount}`,
-        itemContext: { icon: '📋', label: 'Quote', title: `$${amount} quote` },
+        conversationId: conversation_id, recipientId: p.otherId, senderId: user.id,
+        senderName: user.username, messagePreview: `Sent a quote: $${amt}`,
+        itemContext: { icon: '📋', label: 'Quote', title: `$${amt} quote` },
       }).catch(() => {});
     }
-
-    res.status(201).json({ success: true, quote_id: quoteId, thread_id: threadId || quoteId, expires_at: expiresAt });
+ 
+    res.status(201).json({ success: true, quote_id: quoteId, expires_at: expiresAt });
   } catch (err) {
     console.error("Quote send error:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
+ 
 app.post("/api/quotes/:quoteId/accept", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
-    const quoteResult = await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]);
-    const quote = extractRows(quoteResult)[0];
+    const quote = extractRows(await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]))[0];
     if (!quote) return res.status(404).json({ error: "Quote not found" });
-    if (quote.recipient_id !== user.id) return res.status(403).json({ error: "Only the recipient can accept this quote" });
+    if (Number(quote.recipient_id) !== Number(user.id)) return res.status(403).json({ error: "Only the person who received this quote can accept it" });
     if (quote.status !== 'pending') return res.status(400).json({ error: `Quote is ${quote.status}, not acceptable` });
     if (new Date(quote.expires_at) < new Date()) {
       await db.query(`UPDATE service_quotes SET status = 'expired' WHERE id = ?`, [quote.id]);
       return res.status(400).json({ error: "This quote has expired" });
     }
-
+    const dup = extractRows(await db.query(`SELECT id, status FROM service_orders WHERE quote_id = ? LIMIT 1`, [quote.id]))[0];
+    if (dup) return res.status(400).json({ error: "An order already exists for this quote" });
+ 
+    const p = await resolveQuoteParties(quote.conversation_id, user.id);
+    if (!p) return res.status(403).json({ error: "Access denied" });
+ 
     await db.query(`UPDATE service_quotes SET status = 'accepted' WHERE id = ?`, [quote.id]);
-
-    // Client accepting a provider's quote → client pays, client=recipient, provider=sender.
-    // (If a client sent a counter and the provider accepts, roles flip — handled below.)
-    const senderIsProvider = quote.job_id ? true : (quote.service_id ? true : false);
-    const clientId = senderIsProvider ? quote.recipient_id : quote.sender_id;
-    const providerId = senderIsProvider ? quote.sender_id : quote.recipient_id;
-
-    const platformFee = quote.amount * 0.10;
-    const providerEarnings = quote.amount - platformFee;
-    const transactionRef = `SVC_${Date.now()}_${clientId}`;
-
+ 
+    const amount = Number(quote.amount);
+    const platformFee = Math.round(amount * 0.10 * 100) / 100;
+    const providerEarnings = Math.round((amount - platformFee) * 100) / 100;
+    const transactionRef = `SVC_${Date.now()}_${p.clientId}`;
+    const title = p.serviceTitle || `Service Order #${quote.id}`;
+ 
     const orderResult = await db.query(
       `INSERT INTO service_orders (quote_id, client_id, provider_id, service_id, job_id, title, agreed_price, platform_fee, provider_earnings, transaction_ref, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'payment_pending', NOW())`,
-      [quote.id, clientId, providerId, quote.service_id, quote.job_id, `Service Order #${quote.id}`, quote.amount, platformFee, providerEarnings, transactionRef]
+      [quote.id, p.clientId, p.providerId, quote.service_id, quote.job_id, title, amount, platformFee, providerEarnings, transactionRef]
     );
     const orderId = extractInsertId(orderResult);
-
-    res.json({ success: true, order_id: orderId, agreed_price: quote.amount, transaction_ref: transactionRef });
+ 
+    await postChatSystemLine(quote.conversation_id, user.id, `✅ Quote accepted — $${amount.toFixed(2)} agreed. An order has been created.`);
+    res.json({ success: true, order_id: orderId, agreed_price: amount, transaction_ref: transactionRef });
   } catch (err) {
     console.error("Quote accept error:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
+ 
 app.post("/api/quotes/:quoteId/decline", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
-    const quoteResult = await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]);
-    const quote = extractRows(quoteResult)[0];
-    if (!quote || quote.recipient_id !== user.id) return res.status(404).json({ error: "Quote not found" });
+    const quote = extractRows(await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]))[0];
+    if (!quote || Number(quote.recipient_id) !== Number(user.id)) return res.status(404).json({ error: "Quote not found" });
+    if (quote.status !== 'pending') return res.status(400).json({ error: `Quote is already ${quote.status}` });
     await db.query(`UPDATE service_quotes SET status = 'declined' WHERE id = ?`, [quote.id]);
+    await postChatSystemLine(quote.conversation_id, user.id, `Quote of $${Number(quote.amount).toFixed(2)} declined.`);
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+app.post("/api/service-orders/:orderId/pay", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    if (!process.env.FLW_SECRET_KEY) return res.status(500).json({ error: "Payment system not configured" });
+ 
+    const order = extractRows(await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]))[0];
+    if (!order || Number(order.client_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    if (order.status !== 'payment_pending') return res.status(400).json({ error: "This order isn't waiting for payment" });
+ 
+    const provider = extractRows(await db.query(
+      `SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [order.provider_id]
+    ))[0];
+    if (!provider || !provider.flutterwave_subaccount_id) {
+      return res.status(400).json({ error: "The provider hasn't set up payouts yet. Ask them to add a payout account, then try again." });
+    }
+ 
+    const quote = extractRows(await db.query(`SELECT conversation_id FROM service_quotes WHERE id = ?`, [order.quote_id]))[0];
+    const convId = quote ? quote.conversation_id : '';
+ 
+    // Fresh reference per attempt so an abandoned checkout never blocks a retry.
+    const txRef = `SVC_${order.id}_${Date.now()}`;
+    await db.query(`UPDATE service_orders SET transaction_ref = ? WHERE id = ? AND status = 'payment_pending'`, [txRef, order.id]);
+ 
+    const usd = Number(order.agreed_price);
+    const payerCountry = await getPayerCountry(req);
+    let currency = "USD", amount = usd, paymentOptions = "card";
+    if (payerCountry === 'NG') {
+      const rates = await getExchangeRate();
+      currency = "NGN";
+      amount = Math.round(usd * (rates.USD_TO_NGN || 1500));
+      paymentOptions = "banktransfer, ussd, account";
+    }
+ 
+    const payload = {
+      tx_ref: txRef, amount, currency,
+      redirect_url: `https://coreinsightmarket.com/messages.html?conversation=${convId}&svc_pay=${order.id}`,
+      customer: { email: user.email, name: user.username },
+      customizations: { title: "Core Insight Service Order", description: String(order.title || `Order #${order.id}`).substring(0, 50) },
+      payment_options: paymentOptions,
+      meta: { service_order_id: order.id, client_id: user.id, type: "service_order" },
+      subaccounts: [{ id: provider.flutterwave_subaccount_id, transaction_charge_type: "percentage", transaction_charge: 0.1 }],
+    };
+ 
+    const response = await axios.post('https://api.flutterwave.com/v3/payments', payload, {
+      headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' },
+      timeout: 30000,
+    });
+    if (response.data.status === 'success' && response.data.data?.link) {
+      return res.json({ success: true, paymentLink: response.data.data.link, transactionRef: txRef, amount, currency });
+    }
+    throw new Error(response.data.message || "Payment initialization failed");
+  } catch (err) {
+    console.error("Service order pay error:", err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+ 
+// Called by the chat page after Flutterwave redirects back.
+app.post("/api/service-orders/:orderId/verify-payment", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const order = extractRows(await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]))[0];
+    if (!order || (Number(order.client_id) !== Number(user.id) && Number(order.provider_id) !== Number(user.id))) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    if (order.status !== 'payment_pending') return res.json({ success: true, status: order.status });
+ 
+    const r = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(order.transaction_ref)}`,
+      { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }, timeout: 15000 }
+    ).catch(() => null);
+ 
+    if (r && r.data.status === 'success' && r.data.data.status === 'successful') {
+      await completeServiceOrderPayment(order.transaction_ref, r.data.data);
+      const fresh = extractRows(await db.query(`SELECT status FROM service_orders WHERE id = ?`, [order.id]))[0];
+      return res.json({ success: true, status: fresh.status });
+    }
+    res.json({ success: false, status: order.status, message: "Payment not confirmed yet" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// A counter-offer is just a new quote in the same thread, sent back
-// the other direction — the frontend calls POST /api/quotes/send
-// directly with parent_quote_id set to the quote being countered.
-// No separate route needed: /api/quotes/send already handles
-// threading and auto-superseding the previous quote (see Part B above).
-
-
+ 
 /* ================================================================
    PART C — QUOTE EXPIRATION SWEEP (cron, same pattern as your others)
    ================================================================ */
@@ -1699,7 +1930,47 @@ async function createBuyerNotification(buyerId, orderId, notificationType, title
     }
 }
 
-
+async function resolveQuoteParties(conversationId, userId) {
+  const conv = extractRows(await db.query(
+    `SELECT id, client_id, freelancer_id, service_id, item_type, item_id FROM conversations WHERE id = ?`,
+    [conversationId]
+  ))[0];
+  if (!conv) return null;
+ 
+  const a = Number(conv.client_id), b = Number(conv.freelancer_id), me = Number(userId);
+  if (me !== a && me !== b) return null;           // not a participant
+  const otherId = me === a ? b : a;
+ 
+  // Provider = owner of the service this chat is about…
+  const serviceId = conv.service_id || (conv.item_type === 'service' ? conv.item_id : null) || null;
+  let providerId = null, serviceTitle = null, linkedServiceId = null;
+  if (serviceId) {
+    const s = extractRows(await db.query(`SELECT id, title, user_id FROM services WHERE id = ?`, [serviceId]))[0];
+    if (s && (Number(s.user_id) === a || Number(s.user_id) === b)) {
+      providerId = Number(s.user_id); serviceTitle = s.title; linkedServiceId = s.id;
+    }
+  }
+  // …otherwise whichever participant is a freelancer.
+  if (!providerId) {
+    const users = extractRows(await db.query(`SELECT id, role FROM users WHERE id IN (?, ?)`, [a, b]));
+    const f = users.filter(u => u.role === 'freelancer');
+    providerId = f.length === 1 ? Number(f[0].id) : b;
+  }
+  const clientId = providerId === a ? b : a;
+  const other = extractRows(await db.query(`SELECT id, username FROM users WHERE id = ?`, [otherId]))[0]
+    || { id: otherId, username: 'User' };
+ 
+  return { conv, me, otherId, other, providerId, clientId, serviceId: linkedServiceId, serviceTitle };
+}
+ 
+async function postChatSystemLine(conversationId, senderId, text) {
+  try {
+    await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read) VALUES (?, ?, ?, NOW(), 0)`,
+      [conversationId, senderId, text]
+    );
+  } catch (e) { console.error('System line failed:', e.message); }
+}
 // ---- Cover image upload config ----
 // ---- Cover image + video upload config ----
 const articleCoverDir = path.join(__dirname, "uploads", "article-covers");
@@ -6007,7 +6278,215 @@ if (process.env.NODE_ENV === 'production') {
     }
   }, 24 * 60 * 60 * 1000);
 }
+// ---------- REVIEWS ----------
+app.get("/api/courses/:id/reviews", async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.id);
+    const user = req.session.user || null;
+    const access = await getCourseAccess(user, courseId);
+    if (!access) return res.status(404).json({ error: "Course not found" });
 
+    const reviews = extractRows(await db.query(
+      `SELECT r.id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at, u.username
+       FROM course_reviews r JOIN users u ON r.user_id = u.id
+       WHERE r.course_id = ? ORDER BY r.created_at DESC LIMIT 100`, [courseId]
+    ));
+    const summary = extractRows(await db.query(
+      "SELECT AVG(rating) AS avg_rating, COUNT(*) AS count FROM course_reviews WHERE course_id = ?", [courseId]
+    ))[0] || {};
+
+    let reason = null;
+    if (!user) reason = "Log in to leave a review.";
+    else if (access.isOwner) reason = "You can't review your own course.";
+    else if (!access.canParticipate) reason = "Purchase this course to leave a review.";
+
+    res.json({
+      success: true,
+      reviews: reviews.map(r => ({ ...r, is_mine: !!user && r.user_id === user.id })),
+      average: parseFloat(summary.avg_rating) || 0,
+      count: parseInt(summary.count) || 0,
+      can_review: !reason,
+      reason,
+      is_free: access.isFree
+    });
+  } catch (err) {
+    console.error("Course reviews fetch error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/courses/:id/reviews", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in to leave a review" });
+
+    const courseId = parseInt(req.params.id);
+    const rating = parseInt(req.body.rating);
+    const comment = String(req.body.comment || '').trim();
+
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    if (comment.length < 10) return res.status(400).json({ error: "Review must be at least 10 characters" });
+    if (comment.length > 2000) return res.status(400).json({ error: "Review is too long (max 2000 characters)" });
+
+    const access = await getCourseAccess(user, courseId);
+    if (!access) return res.status(404).json({ error: "Course not found" });
+    if (access.isOwner) return res.status(403).json({ error: "You can't review your own course" });
+    if (!access.canParticipate) return res.status(403).json({ error: "Purchase this course to leave a review" });
+
+    await db.query(
+      `INSERT INTO course_reviews (course_id, user_id, rating, comment, created_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), updated_at = NOW()`,
+      [courseId, user.id, rating, comment]
+    );
+    res.json({ success: true, message: "Review saved" });
+  } catch (err) {
+    console.error("Course review save error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/courses/reviews/:reviewId", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const r = extractRows(await db.query("SELECT user_id FROM course_reviews WHERE id = ?", [req.params.reviewId]))[0];
+    if (!r) return res.status(404).json({ error: "Review not found" });
+    if (r.user_id !== user.id && user.role !== 'admin') return res.status(403).json({ error: "Not allowed" });
+    await db.query("DELETE FROM course_reviews WHERE id = ?", [req.params.reviewId]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ---------- Q&A ----------
+app.get("/api/courses/:id/questions", async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.id);
+    const user = req.session.user || null;
+    const access = await getCourseAccess(user, courseId);
+    if (!access) return res.status(404).json({ error: "Course not found" });
+
+    const questions = extractRows(await db.query(
+      `SELECT q.id, q.user_id, q.question, q.created_at, u.username
+       FROM course_questions q JOIN users u ON q.user_id = u.id
+       WHERE q.course_id = ? ORDER BY q.created_at DESC LIMIT 100`, [courseId]
+    ));
+    const answers = extractRows(await db.query(
+      `SELECT a.id, a.question_id, a.user_id, a.answer, a.is_instructor, a.created_at, u.username
+       FROM course_answers a JOIN users u ON a.user_id = u.id
+       WHERE a.course_id = ? ORDER BY a.is_instructor DESC, a.created_at ASC`, [courseId]
+    ));
+
+    const byQ = {};
+    answers.forEach(a => {
+      (byQ[a.question_id] = byQ[a.question_id] || []).push({ ...a, is_mine: !!user && a.user_id === user.id });
+    });
+
+    res.json({
+      success: true,
+      questions: questions.map(q => ({ ...q, is_mine: !!user && q.user_id === user.id, answers: byQ[q.id] || [] })),
+      can_post: access.canParticipate,
+      reason: !user ? "Log in to join the discussion."
+            : (!access.canParticipate ? "Purchase this course to join the discussion." : null),
+      is_admin: !!user && user.role === 'admin'
+    });
+  } catch (err) {
+    console.error("Course questions fetch error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/courses/:id/questions", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in to ask a question" });
+    const courseId = parseInt(req.params.id);
+    const question = String(req.body.question || '').trim();
+    if (question.length < 10) return res.status(400).json({ error: "Question must be at least 10 characters" });
+    if (question.length > 1500) return res.status(400).json({ error: "Question is too long (max 1500 characters)" });
+
+    const access = await getCourseAccess(user, courseId);
+    if (!access) return res.status(404).json({ error: "Course not found" });
+    if (!access.canParticipate) return res.status(403).json({ error: "Purchase this course to join the discussion" });
+
+    await db.query(
+      "INSERT INTO course_questions (course_id, user_id, question, created_at) VALUES (?, ?, ?, NOW())",
+      [courseId, user.id, question]
+    );
+
+    // Let the instructor know
+    if (!access.isOwner) {
+      db.query(
+        `INSERT INTO notifications (recipient_id, type, title, message, link, created_at)
+         VALUES (?, 'message', ?, ?, '/courses.html', NOW())`,
+        [access.course.user_id, `New question on your course`, `${user.username}: ${question.slice(0, 140)}`]
+      ).catch(() => {});
+    }
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error("Course question error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/courses/questions/:qid/answers", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in to answer" });
+    const answer = String(req.body.answer || '').trim();
+    if (answer.length < 2) return res.status(400).json({ error: "Answer can't be empty" });
+    if (answer.length > 2000) return res.status(400).json({ error: "Answer is too long (max 2000 characters)" });
+
+    const q = extractRows(await db.query("SELECT id, course_id, user_id FROM course_questions WHERE id = ?", [req.params.qid]))[0];
+    if (!q) return res.status(404).json({ error: "Question not found" });
+
+    const access = await getCourseAccess(user, q.course_id);
+    if (!access || !access.canParticipate) return res.status(403).json({ error: "Purchase this course to join the discussion" });
+
+    await db.query(
+      `INSERT INTO course_answers (question_id, course_id, user_id, answer, is_instructor, created_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
+      [q.id, q.course_id, user.id, answer, access.isOwner ? 1 : 0]
+    );
+
+    if (q.user_id !== user.id) {
+      db.query(
+        `INSERT INTO notifications (recipient_id, type, title, message, link, created_at)
+         VALUES (?, 'message', ?, ?, '/courses.html', NOW())`,
+        [q.user_id, `Your question got an answer`, `${user.username}: ${answer.slice(0, 140)}`]
+      ).catch(() => {});
+    }
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error("Course answer error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/courses/questions/:qid", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const q = extractRows(await db.query("SELECT user_id FROM course_questions WHERE id = ?", [req.params.qid]))[0];
+    if (!q) return res.status(404).json({ error: "Question not found" });
+    if (q.user_id !== user.id && user.role !== 'admin') return res.status(403).json({ error: "Not allowed" });
+    await db.query("DELETE FROM course_answers WHERE question_id = ?", [req.params.qid]);
+    await db.query("DELETE FROM course_questions WHERE id = ?", [req.params.qid]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/courses/answers/:aid", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+    const a = extractRows(await db.query("SELECT user_id FROM course_answers WHERE id = ?", [req.params.aid]))[0];
+    if (!a) return res.status(404).json({ error: "Answer not found" });
+    if (a.user_id !== user.id && user.role !== 'admin') return res.status(403).json({ error: "Not allowed" });
+    await db.query("DELETE FROM course_answers WHERE id = ?", [req.params.aid]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 // =================== DEBUG ENDPOINTS ===================
 app.get("/api/debug/course-files", async (req, res) => {
   try {
@@ -8872,59 +9351,34 @@ app.post("/api/freelancer/certificate-images", uploadCertificate, async (req, re
   }
 });
 
-app.get("/api/messages/:conversationId", async (req, res) => {
+app.get("/api/messages/:conversationId/messages", async (req, res) => {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
+    if (!req.session.user) return res.status(401).json({ error: "Unauthorized" });
     const conversationId = parseInt(req.params.conversationId);
-    if (isNaN(conversationId)) {
-      return res.status(400).json({ error: "Invalid conversation ID" });
-    }
-
+    if (isNaN(conversationId)) return res.status(400).json({ error: "Invalid conversation ID" });
     const userId = req.session.user.id;
-
-    // Check access
-    const convResult = await db.query(
+ 
+    const access = extractRows(await db.query(
       `SELECT id FROM conversations WHERE id = ? AND (client_id = ? OR freelancer_id = ?)`,
       [conversationId, userId, userId]
-    );
-
-    const convRows = extractRows(convResult);
-    if (!convRows || convRows.length === 0) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    // Get messages with file info
-    const messagesResult = await db.query(
-      `SELECT 
-        m.id, 
-        m.conversation_id, 
-        m.sender_id, 
-        m.message, 
-        m.image_url,
-        m.file_url,
-        m.file_name,
-        m.file_size,
-        m.is_read, 
-        m.created_at,
-        u.username AS sender_name
-      FROM messages m 
-      JOIN users u ON m.sender_id = u.id 
-      WHERE m.conversation_id = ? 
-      ORDER BY m.created_at ASC`,
+    ));
+    if (!access.length) return res.status(403).json({ error: "Access denied" });
+ 
+    const rows = extractRows(await db.query(
+      `SELECT m.*, u.username AS sender_name
+       FROM messages m JOIN users u ON m.sender_id = u.id
+       WHERE m.conversation_id = ?
+       ORDER BY m.created_at ASC`,
       [conversationId]
-    );
-
-    const messages = extractRows(messagesResult);
-    return res.json(Array.isArray(messages) ? messages : []);
-    
+    ));
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
-    console.error("Error fetching messages:", err);
-    return res.json([]);
+    console.error("Thread load error:", err);
+    res.json([]);
   }
 });
+ 
+
 app.get("/api/notifications/unread-count", async (req, res) => {
   try {
     if (!req.session.user) return res.json({ count: 0 });
@@ -14436,6 +14890,9 @@ app.post("/api/webhook/flutterwave", async (req, res) => {
         // SUBSCRIPTION PAYMENT
         await handleFlutterwaveSubscriptionPayment(tx_ref, transaction);
       }
+      else if (tx_ref && tx_ref.startsWith('SVC_')) {
+  await completeServiceOrderPayment(tx_ref, transaction);
+}
       else if (tx_ref && (tx_ref.includes('ORDER_') || tx_ref.includes('FW_'))) {
         // PHYSICAL PRODUCT
         await handleFlutterwavePhysicalPayment(tx_ref, transaction);

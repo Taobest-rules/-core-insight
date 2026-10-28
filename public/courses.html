@@ -379,6 +379,46 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
   .header-actions { gap: 0.4rem; }
   header { padding: 0 0.75rem; }
 }
+/* Modal layout: video on top, content always below it */
+.modal-panel--preview { display: flex; flex-direction: column; overflow-y: auto; }
+.modal-preview__media {
+  position: relative; flex: 0 0 auto;
+  height: auto; aspect-ratio: 16 / 9; max-height: 260px; width: 100%;
+}
+.modal-preview__media video,
+.modal-preview__media iframe,
+.modal-preview__media img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  display: block; object-fit: contain; border: 0;
+}
+.modal-preview__body { position: relative; z-index: 1; background: var(--color-white); flex: 1 0 auto; }
+.modal-tabs { position: relative; z-index: 1; background: var(--color-white); }
+.tab-panel { position: relative; clear: both; }
+.modal-close { z-index: 10; }
+
+@media (max-width: 480px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-panel { max-height: 94vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+}
+.cc-summary { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+.cc-summary .big { font-family:var(--font-serif); font-size:2rem; font-weight:700; }
+.cc-stars { color:var(--color-gold); letter-spacing:2px; }
+.cc-form { background:var(--color-bg-alt); border-radius:var(--radius-card); padding:1rem; margin-bottom:1.25rem; }
+.cc-form textarea { width:100%; min-height:80px; padding:.75rem; border:1px solid var(--color-border); border-radius:var(--radius-sm); background:var(--color-white); resize:vertical; margin:.6rem 0; }
+.cc-star-input button { background:none; border:none; font-size:1.6rem; color:var(--color-border-strong); cursor:pointer; padding:0 .1rem; }
+.cc-star-input button.on { color:var(--color-gold); }
+.cc-note { background:var(--color-bg-alt); border-radius:var(--radius-sm); padding:.8rem 1rem; color:var(--color-text-muted); font-size:.88rem; margin-bottom:1rem; }
+.cc-item { padding:1rem 0; border-bottom:1px solid var(--color-border); }
+.cc-meta { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; font-size:.8rem; color:var(--color-text-muted); margin-bottom:.35rem; }
+.cc-meta strong { color:var(--color-charcoal); }
+.cc-text { color:var(--color-text-soft); white-space:pre-wrap; word-break:break-word; }
+.cc-answers { margin:.75rem 0 0 .75rem; padding-left:.9rem; border-left:2px solid var(--color-border); display:flex; flex-direction:column; gap:.75rem; }
+.cc-badge { background:var(--color-gold-soft); color:var(--color-gold-dark); font-size:.68rem; font-weight:700; padding:.1rem .5rem; border-radius:var(--radius-pill); text-transform:uppercase; }
+.cc-link { background:none; border:none; color:var(--color-blue); font-weight:600; font-size:.8rem; cursor:pointer; padding:.25rem 0; }
+.cc-link.danger { color:var(--color-danger); }
+.cc-reply { display:none; margin-top:.5rem; }
+.cc-reply.open { display:block; }
+.cc-reply textarea { min-height:60px; }
 </style>
 </head>
 <body>
@@ -591,12 +631,12 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
         <div class="byline" id="previewByline"></div>
       </div>
 
-      <nav class="modal-tabs">
+      <div class="modal-tabs" role="tablist"></div>
         <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
         <button class="tab-btn" data-tab="curriculum" type="button">Curriculum</button>
         <button class="tab-btn" data-tab="reviews" type="button">Reviews</button>
         <button class="tab-btn" data-tab="discussion" type="button">Q&amp;A</button>
-      </nav>
+      </div>
 
       <div class="tab-panel" data-panel="overview" id="previewOverview"></div>
       <div class="tab-panel" data-panel="curriculum" id="previewCurriculum" hidden>
@@ -752,7 +792,7 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
     <p>&copy; Core Insight — Empowering minds through knowledge.</p>
   </div>
 </footer>
-
+   <script src="course-community.js"></script>
 <script src="courses.js"></script>
 </body>
 </html>

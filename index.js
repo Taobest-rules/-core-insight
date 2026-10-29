@@ -4754,50 +4754,74 @@ const checkCourseAccess = async (req, res, next) => {
   }
 };
 
-// =================== COURSES ENDPOINTS ===================
+// Shared helpers
+const isFreeCourse = (c) =>
+  (parseFloat(c.price) || 0) === 0 || String(c.type || '').toLowerCase() === 'free';
+const VIDEO_EXT = /\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)(\?.*)?$/i;
+
 app.get("/api/courses", async (req, res) => {
   try {
-    const courses = await db.query(`
-      SELECT 
-        c.*, 
-        u.username as author_name,
-        u.role as user_role,
-        COALESCE(c.file_url, c.file_path) as file_path_combined,
-        COALESCE(c.thumbnail_url, c.thumbnail_path) as thumbnail_path_combined
-      FROM courses c 
-      LEFT JOIN users u ON c.user_id = u.id 
+    const user = req.session.user || null;
+
+    const result = await db.query(`
+      SELECT c.*, u.username AS author_name, u.role AS user_role
+      FROM courses c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE (c.is_deleted = 0 OR c.is_deleted IS NULL)
       ORDER BY c.created_at DESC
     `);
-    
-    const processedCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
-      if (course.id && typeof course.id === 'bigint') {
-        course.id = Number(course.id);
-      }
-      if (course.user_id && typeof course.user_id === 'bigint') {
-        course.user_id = Number(course.user_id);
-      }
-      
+
+    // Which courses has this user purchased?
+    const purchasedIds = new Set();
+    if (user) {
+      const purchases = extractRows(await db.query(
+        `SELECT course_id FROM user_courses WHERE user_id = ? AND payment_status = 'completed'`,
+        [user.id]
+      ));
+      purchases.forEach(p => purchasedIds.add(Number(p.course_id)));
+    }
+
+    const processedCourses = extractRows(result).map(course => {
+      course.id = Number(course.id);
+      course.user_id = Number(course.user_id);
+
+      const fileUrl = course.file_url || course.file_path || '';
+      const isVideo =
+        course.content_type === 'video' ||
+        VIDEO_EXT.test(fileUrl);
+
+      const free = isFreeCourse(course);
+      const isOwner = !!user && Number(user.id) === course.user_id;
+      const isAdmin = !!user && user.role === 'admin';
+      const canSeeFile = free || isOwner || isAdmin || purchasedIds.has(course.id);
+
+      // Thumbnail
       course.thumbnail_url = course.thumbnail_url || course.thumbnail_path;
-      course.file_url = course.file_url || course.file_path;
-      
       if (course.thumbnail_url && course.thumbnail_url.includes('cloudinary.com')) {
         course.thumbnail_url = course.thumbnail_url.replace('/upload/', '/upload/w_500,h_300,c_limit/');
       }
-      
+
+      course.is_video = isVideo;
       course.download_url = `/api/download/${course.id}`;
-      
+
+      // Never leak the real file location of a locked course
+      if (canSeeFile) {
+        course.file_url = course.file_url || course.file_path;
+      } else {
+        delete course.file_url;
+        delete course.file_path;
+      }
+
       return course;
     });
-    
+
     res.json(processedCourses);
   } catch (err) {
     console.error('Error fetching courses:', err);
-    res.status(500).json({ 
-      error: "Error fetching courses", 
-      details: err.message
-    });
+    res.status(500).json({ error: "Error fetching courses", details: err.message });
   }
 });
+
 
 // Get my courses (purchased)
 app.get("/api/my-courses", async (req, res) => {
@@ -4834,91 +4858,52 @@ app.get("/api/my-courses", async (req, res) => {
 app.get('/api/check-access/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const userId = req.session?.user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({ 
-        hasAccess: false,
-        error: 'Please login first' 
-      });
+    const user = req.session?.user || null;
+
+    const courses = extractRows(await db.query('SELECT * FROM courses WHERE id = ?', [courseId]));
+    if (courses.length === 0) {
+      return res.status(404).json({ hasAccess: false, error: 'Course not found' });
     }
-    
-    const courses = await db.query('SELECT * FROM courses WHERE id = ?', [courseId]);
-    
-    if (!courses || courses.length === 0) {
-      return res.status(404).json({ 
-        hasAccess: false,
-        error: 'Course not found' 
-      });
-    }
-    
     const course = courses[0];
-    
-    const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
-    
-    if (isFree) {
-      return res.json({
-        hasAccess: true,
-        isFree: true,
-        course: {
-          id: course.id,
-          title: course.title,
-          price: course.price,
-          type: course.type
-        }
-      });
+    const courseInfo = { id: course.id, title: course.title, price: course.price, type: course.type };
+
+    // 1) Free courses: anyone, logged in or not
+    if (isFreeCourse(course)) {
+      return res.json({ hasAccess: true, isFree: true, course: courseInfo });
     }
-    
-    const purchases = await db.query(
-      'SELECT * FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = "completed"',
-      [courseId, userId]
-    );
-    
-    const hasPurchased = purchases && purchases.length > 0;
-    
-    if (!hasPurchased) {
-      const payments = await db.query(
-        'SELECT * FROM payments WHERE course_id = ? AND user_id = ? AND status = "successful"',
-        [courseId, userId]
-      );
-      
-      const hasPaid = payments && payments.length > 0;
-      
-      if (!hasPaid) {
-        return res.json({
-          hasAccess: false,
-          isFree: false,
-          price: course.price,
-          course: {
-            id: course.id,
-            title: course.title,
-            price: course.price,
-            type: course.type
-          }
-        });
-      }
+
+    // 2) Everything else needs a login
+    if (!user) {
+      return res.status(401).json({ hasAccess: false, isFree: false, error: 'Please login first' });
     }
-    
-    res.json({
-      hasAccess: true,
-      isFree: false,
-      course: {
-        id: course.id,
-        title: course.title,
-        price: course.price,
-        type: course.type
-      }
-    });
-    
+
+    // 3) Owner / admin
+    if (Number(course.user_id) === Number(user.id) || user.role === 'admin') {
+      return res.json({ hasAccess: true, isFree: false, course: courseInfo });
+    }
+
+    // 4) Purchased?
+    const purchases = extractRows(await db.query(
+      `SELECT 1 FROM user_courses WHERE course_id = ? AND user_id = ? AND payment_status = 'completed' LIMIT 1`,
+      [courseId, user.id]
+    ));
+    let hasAccess = purchases.length > 0;
+
+    // 5) Fallback: completed payment record
+    if (!hasAccess) {
+      const payments = extractRows(await db.query(
+        `SELECT 1 FROM payments WHERE course_id = ? AND user_id = ? AND status IN ('completed','successful') LIMIT 1`,
+        [courseId, user.id]
+      ));
+      hasAccess = payments.length > 0;
+    }
+
+    res.json({ hasAccess, isFree: false, price: course.price, course: courseInfo });
   } catch (error) {
     console.error('❌ Access check error:', error);
-    res.status(500).json({ 
-      hasAccess: false,
-      error: 'Server error' 
-    });
+    res.status(500).json({ hasAccess: false, error: 'Server error' });
   }
 });
-
 // =================== COURSE DOWNLOAD - UPDATED FOR IMGBB ===================
 app.get('/api/download/:courseId', async (req, res) => {
   try {

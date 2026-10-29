@@ -422,18 +422,26 @@ async function loadCourses() {
     allCourses = (rawCourses || []).map(course => {
       const fileUrl = course.file_url || course.download_url || '';
       const fileName = course.file_path || '';
-      const isVideo = !!(
-        (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
-        (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)$/i)) ||
+
+      // Server sends is_video because file_url is hidden on locked courses
+      const isVideo = course.is_video === true || !!(
+        (fileUrl && fileUrl.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)(\?.*)?$/i)) ||
+        (fileName && fileName.match(/\.(mp4|mov|avi|mkv|webm|wmv|flv|m4v|mpg|mpeg)(\?.*)?$/i)) ||
         course.content_type === 'video'
       );
-      const isFree = course.price === 0 || course.type === 'free' || course.type === 'Free';
-      const isPremium = course.price > 0 && !isFree;
-      const hasAccess = isFree || purchasedSet.has(Number(course.id));
-      const isOwner = user && Number(course.user_id) === Number(user.id);
+
+      // MySQL DECIMAL often arrives as a string like "0.00", so parse it
+      const priceNum = parseFloat(course.price) || 0;
+      const isFree = priceNum === 0 || String(course.type || '').toLowerCase() === 'free';
+      const isPremium = priceNum > 0 && !isFree;
+
+      const isOwner = !!(user && Number(course.user_id) === Number(user.id));
+      const isAdminUser = !!(user && user.role === 'admin');
+      const hasAccess = isFree || purchasedSet.has(Number(course.id)) || isOwner || isAdminUser;
+
       const isUploadedByAdmin = course.user_role === 'admin';
-      const showFlagButton = !!(user && !isUploadedByAdmin && !isOwner && user.role !== 'admin');
-      const canDelete = !!(user && (user.role === 'admin' || Number(user.id) === Number(course.user_id)));
+      const showFlagButton = !!(user && !isUploadedByAdmin && !isOwner && !isAdminUser);
+      const canDelete = !!(user && (isAdminUser || isOwner));
 
       let thumbnailSrc = course.thumbnail_url || course.thumbnail_path;
       if (!thumbnailSrc) {
@@ -451,13 +459,14 @@ async function loadCourses() {
         ...course,
         id: Number(course.id),
         user_id: Number(course.user_id),
+        price: priceNum, // normalise so later numeric comparisons and data-original-price work
         isVideo, isFree, isPremium, hasAccess, isOwner, showFlagButton, canDelete,
         hasFlagged: flaggedSet.has(Number(course.id)),
         thumbnailSrc,
         safeTitle: escapeHtml(course.title),
         safeDescription: escapeHtml(course.description || 'No description available'),
         safeAuthor: escapeHtml(course.author || ''),
-        usdPrice: isPremium ? Math.max(0.5, Math.round((course.price / usdRate) * 100) / 100) : 0,
+        usdPrice: isPremium ? Math.max(0.5, Math.round((priceNum / usdRate) * 100) / 100) : 0,
         hasProgress, isCompleted, isInProgress
       };
     });
@@ -975,11 +984,13 @@ async function watchVideo(courseId) {
   const course = allCourses.find(c => c.id === courseId);
   if (!course) return;
   try {
-    const accessRes = await fetch(`/api/check-access/${courseId}`);
-    const accessData = await accessRes.json();
-    if (!accessData.hasAccess) {
-      showToast('You do not have access to this video yet.', 'error');
-      return;
+    if (!course.isFree) {
+      const accessRes = await fetch(`/api/check-access/${courseId}`);
+      const accessData = await accessRes.json();
+      if (!accessData.hasAccess) {
+        showToast('You do not have access to this video yet.', 'error');
+        return;
+      }
     }
     openPreviewModal(courseId, { autoplay: true, source: 'full' });
   } catch (error) {
@@ -1099,18 +1110,19 @@ function openPreviewModal(courseId, opts = {}) {
     ${related.length ? `<div><strong>Related</strong></div><div class="related-courses">${related.map(r => `<div class="rv-card" onclick="openPreviewModal(${r.id})"><img src="${r.thumbnailSrc}" alt="${r.safeTitle}" loading="lazy"><p>${r.safeTitle}</p></div>`).join('')}</div>` : ''}
   `;
 
- CourseCommunity.open(course.id, (avg, count) => {
-  // keep the card + modal header in sync after a review is saved
-  course.rating = avg;
-  course.review_count = count;
-  const ratingEl = document.getElementById('previewRating');
-  ratingEl.hidden = !count;
-  if (count) {
-    ratingEl.innerHTML = `<span class="stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span> ${avg.toFixed(1)} <span class="rv-count">(${count} reviews)</span>`;
-  }
-  renderCourses();
-  updateAllPrices();
-});
+ if (typeof CourseCommunity !== 'undefined') {
+  CourseCommunity.open(course.id, (avg, count) => {
+    course.rating = avg;
+    course.review_count = count;
+    const ratingEl = document.getElementById('previewRating');
+    ratingEl.hidden = !count;
+    if (count) {
+      ratingEl.innerHTML = `<span class="stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span> ${avg.toFixed(1)} <span class="rv-count">(${count} reviews)</span>`;
+    }
+    renderCourses();
+    updateAllPrices();
+  });
+}
 
   document.getElementById('previewFooter').innerHTML = buildModalFooterHTML(course);
   updateAllPrices();

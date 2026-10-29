@@ -5164,7 +5164,7 @@ function loadTabData(tabId) {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 DOM Content Loaded - Initializing...");
     
-    initMobileNav();
+   
     await initCurrency();
     await loadUser();
     await loadProducts();

@@ -2395,6 +2395,35 @@ app.get("/api/articles/my/list", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get("/api/profile/:userId/products", async (req, res) => {
+  try {
+    const rows = extractRows(await db.query(
+      `SELECT id, title, price, type, image_urls, created_at
+       FROM products
+       WHERE user_id = ? AND status = 'active'
+         AND (is_deleted = 0 OR is_deleted IS NULL)
+       ORDER BY created_at DESC LIMIT 50`,
+      [req.params.userId]
+    ));
+    const products = rows.map(p => {
+      let images = [];
+      try {
+        images = Array.isArray(p.image_urls) ? p.image_urls : JSON.parse(p.image_urls || '[]');
+      } catch (e) { images = []; }
+      return {
+        id: Number(p.id),
+        title: p.title,
+        price: parseFloat(p.price) || 0,
+        type: p.type,
+        image: images[0] || null
+      };
+    });
+    res.json({ success: true, products });
+  } catch (err) {
+    console.error("❌ Error fetching profile products:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ============================================
 // UPDATE ARTICLE (author or admin only)
@@ -2823,6 +2852,7 @@ app.post("/api/articles/:id/share", async (req, res) => {
 app.get("/api/profile/:userId", async (req, res) => {
   try {
     const profileUserId = req.params.userId;
+    const n = (r) => Number(extractRows(r)[0]?.count) || 0;
 
     const userResult = await db.query(
       `SELECT u.id, u.username, u.role, u.created_at,
@@ -2841,48 +2871,33 @@ app.get("/api/profile/:userId", async (req, res) => {
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-
     const user = rows[0];
 
-    const followerCountResult = await db.query(
-      "SELECT COUNT(*) as count FROM user_follows WHERE creator_id = ?",
-      [profileUserId]
-    );
+    const followerCount = n(await db.query(
+      "SELECT COUNT(*) as count FROM user_follows WHERE creator_id = ?", [profileUserId]));
+    const articleCount = n(await db.query(
+      "SELECT COUNT(*) as count FROM articles WHERE user_id = ? AND status = 'published' AND is_deleted = 0", [profileUserId]));
+    const productCount = n(await db.query(
+      "SELECT COUNT(*) as count FROM products WHERE user_id = ? AND status = 'active' AND (is_deleted = 0 OR is_deleted IS NULL)", [profileUserId]));
+    const courseCount = n(await db.query(
+      "SELECT COUNT(*) as count FROM courses WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)", [profileUserId]));
+    const serviceCount = n(await db.query(
+      "SELECT COUNT(*) as count FROM services WHERE user_id = ? AND status = 'active'", [profileUserId]));
 
-    const articleCountResult = await db.query(
-      "SELECT COUNT(*) as count FROM articles WHERE user_id = ? AND status = 'published' AND is_deleted = 0",
-      [profileUserId]
-    );
-const productCountResult = await db.query(
-      "SELECT COUNT(*) as count FROM products WHERE user_id = ? AND status = 'active'",
-      [profileUserId]
-    );
     let isFollowing = false;
     if (req.session.user) {
-      const followCheck = await db.query(
+      const followCheck = extractRows(await db.query(
         "SELECT id FROM user_follows WHERE follower_id = ? AND creator_id = ?",
         [req.session.user.id, profileUserId]
-      );
-      isFollowing = followCheck && followCheck.length > 0;
+      ));
+      isFollowing = followCheck.length > 0;
     }
-    const courseCountResult = await db.query(
-      "SELECT COUNT(*) as count FROM courses WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)",
-      [profileUserId]
-    );
-    const serviceCountResult = await db.query(
-      "SELECT COUNT(*) as count FROM services WHERE user_id = ? AND status = 'active'",
-      [profileUserId]
-    );
-    const courseCount = courseCountResult[0]?.count || 0;
-    const serviceCount = serviceCountResult[0]?.count || 0;
 
     let hasPayoutAccount = false;
     if (req.session.user && req.session.user.id === parseInt(profileUserId)) {
-      const payoutCheck = await db.query(
-        "SELECT flutterwave_subaccount_id FROM users WHERE id = ?",
-        [profileUserId]
-      );
-      hasPayoutAccount = !!(payoutCheck && payoutCheck[0] && payoutCheck[0].flutterwave_subaccount_id);
+      const payoutCheck = extractRows(await db.query(
+        "SELECT flutterwave_subaccount_id FROM users WHERE id = ?", [profileUserId]));
+      hasPayoutAccount = !!(payoutCheck[0] && payoutCheck[0].flutterwave_subaccount_id);
     }
 
     let parsedLinks = [];
@@ -2900,18 +2915,17 @@ const productCountResult = await db.query(
         profile_picture: user.profile_picture_url,
         member_since: user.created_at
       },
-      follower_count: followerCountResult[0]?.count || 0,
+      follower_count: followerCount,
       is_following: isFollowing,
       is_own_profile: req.session.user ? req.session.user.id === parseInt(profileUserId) : false,
       has_payout_account: hasPayoutAccount,
-            sections: {
-        knowledge: { count: articleCountResult[0]?.count || 0, available: true },
+      sections: {
+        knowledge: { count: articleCount, available: true },
         services: { count: serviceCount, available: serviceCount > 0 },
         courses: { count: courseCount, available: courseCount > 0 },
-        products: { count: productCountResult[0]?.count || 0, available: (productCountResult[0]?.count || 0) > 0 }
+        products: { count: productCount, available: productCount > 0 }
       }
     });
-
   } catch (err) {
     console.error("❌ Error fetching unified profile:", err);
     res.status(500).json({ error: err.message });

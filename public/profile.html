@@ -656,7 +656,7 @@
 <script>
 const params = new URLSearchParams(location.search);
 
-let profileUserId = params.get('user');
+let profileUserId = params.get('user') || params.get('id');
 const requestedTab = params.get('tab') || 'knowledge';
 
 let currentUser = null;
@@ -776,31 +776,28 @@ async function loadProductsSection() {
   const grid = document.getElementById('panel-products');
   if (!grid || grid.dataset.loaded) return;
   try {
-    const res = await fetch(`/api/products/seller/${profileUserId}`, { credentials: 'include' });
-    const productList = res.ok ? await res.json() : [];
+    const res = await fetch(`/api/profile/${profileUserId}/products`, { credentials: 'include' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const productList = data.products || [];
     if (!productList.length) {
-      grid.innerHTML = `<div class="empty-state"><i class="fas fa-box" style="font-size:2rem;margin-bottom:12px;display:block;"></i>No products listed yet.</div>`;
+      grid.innerHTML = `<div class="empty-state"><i class="fas fa-box"></i><p>No products listed yet.</p></div>`;
       grid.dataset.loaded = '1';
       return;
     }
-    grid.innerHTML = `<div class="article-grid">${productList.map(p => {
-      let firstImage = '';
-      try {
-        const imgs = Array.isArray(p.image_urls) ? p.image_urls : JSON.parse(p.image_urls || '[]');
-        firstImage = imgs[0] || '';
-      } catch (e) { firstImage = ''; }
-      return `<div class="product-mini-card" onclick="window.location.href='/product/${p.id}'">
-        <div class="pc-image" style="${firstImage ? `background-image:url('${firstImage}')` : ''}"></div>
+    grid.innerHTML = `<div class="article-grid">${productList.map(p => `
+      <div class="product-mini-card" onclick="window.location.href='/product/${p.id}'">
+        <div class="pc-image" ${p.image ? `style="background-image:url('${encodeURI(p.image)}')"` : ''}></div>
         <div class="pc-body">
           <h4>${escapeHtml(p.title)}</h4>
           <div class="pc-price">$${Number(p.price).toFixed(2)}</div>
         </div>
-      </div>`;
-    }).join('')}</div>`;
+      </div>`).join('')}</div>`;
     grid.dataset.loaded = '1';
- } catch (e) {
+  } catch (e) {
     console.error('loadProductsSection failed:', e);
     grid.innerHTML = `<div class="empty-state">Couldn't load products right now.</div>`;
+    // not marked loaded, so clicking the tab again retries
   }
 }
 async function loadCoursesSection() {

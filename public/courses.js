@@ -603,7 +603,7 @@ function bylineBlockHTML(course) {
   return `
     <div class="byline__avatar">${getInitials(course.author)}</div>
     <div class="byline__info">
-      <a href="profile.html?id=${course.user_id}" class="byline__name">${course.safeAuthor || 'Core Insight'}</a>
+      <a href="profile.html?user=${course.user_id}" class="byline__name">${course.safeAuthor || 'Core Insight'}</a>
       <span class="byline__meta ${rep.tier}">${rep.label}</span>
     </div>
     ${(!isSelf && course.safeAuthor) ? `<button type="button" class="follow-btn" data-follow-id="${course.user_id}" onclick="toggleFollow(${course.user_id})">${followedAuthorIds.has(course.user_id) ? 'Following' : 'Follow'}</button>` : ''}

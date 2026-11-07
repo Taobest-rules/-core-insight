@@ -686,8 +686,8 @@ function initials(name) { return (name || '?').trim().charAt(0).toUpperCase(); }
 
 async function checkAuth() {
   try {
-    const res = await fetch('/api/me');
-    currentUser = await res.json();
+    const res = await fetch('/api/me', { credentials: 'include' });
+    currentUser = res.ok ? await res.json() : null;
   } catch (e) { currentUser = null; }
 }
 
@@ -1231,7 +1231,7 @@ for (const link of links) {
 
 async function loadProfile() {
   if (!profileUserId) {
-    document.getElementById('username').textContent = 'No profile specified';
+    document.getElementById('username').textContent = 'Please log in to view your profile';
     return;
   }
   try {
@@ -1260,23 +1260,30 @@ async function loadProfile() {
     setupOwnerControls();
     setupPayoutListeners();
 
-       const ownerTabs = ['settings', 'payouts', 'wallet'];
+    const ownerTabs = ['settings', 'payouts', 'wallet'];
     const validTab = ownerTabs.includes(requestedTab)
       ? (data.is_own_profile ? requestedTab : 'knowledge')
       : (data.sections[requestedTab] && data.sections[requestedTab].available ? requestedTab : 'knowledge');
 
+    switchTab(validTab);
+    loadKnowledgeSection();
 
   } catch (e) {
+    console.error('loadProfile failed:', e);
     document.getElementById('username').textContent = 'Error loading profile';
   }
 }
-
 (async function init() {
   await checkAuth();
 
-  // Open your own profile if no ?user= was supplied
-  if (!profileUserId && currentUser?.id) {
-    profileUserId = currentUser.id;
+  if (!profileUserId) {
+    if (currentUser && currentUser.id) {
+      profileUserId = currentUser.id;
+    } else {
+      // Not logged in: send to login, then come back
+      location.href = '/login?redirect=' + encodeURIComponent(location.pathname + location.search);
+      return;
+    }
   }
 
   await loadProfile();

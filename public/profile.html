@@ -449,6 +449,24 @@
       .flex-row { flex-direction: column; }
       .flex-row .btn-primary, .flex-row .btn-secondary { flex: unset; width: 100%; }
     }
+    /* payout connected state */
+.payout-connected{display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--radius-md);background:linear-gradient(135deg,rgba(90,141,125,.14),rgba(74,111,165,.10));border:1px solid rgba(90,141,125,.35);margin-bottom:20px}
+.pc-check{width:46px;height:46px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.payout-connected h3{font-family:'Fraunces',serif;font-size:1.15rem}
+.payout-connected p{font-size:.85rem;color:var(--text-muted)}
+.pill-active{margin-left:auto;background:var(--green);color:#fff;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:30px;text-transform:uppercase;letter-spacing:.04em}
+.payout-rows{border:1px solid var(--border-light);border-radius:var(--radius-sm);margin-bottom:16px}
+.payout-row{display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border-light);font-size:.9rem}
+.payout-row:last-child{border-bottom:none}
+.payout-row span:first-child{color:var(--text-muted)}
+.payout-row span:last-child{font-weight:600;text-align:right;word-break:break-word}
+.payout-split{display:flex;gap:10px;align-items:flex-start;background:rgba(201,151,31,.08);border-left:4px solid var(--gold);padding:12px 14px;border-radius:var(--radius-sm);font-size:.85rem;color:var(--text-soft);margin-bottom:18px}
+
+/* course + service cards */
+.pc-badge{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--border-light);color:var(--text-muted);margin-bottom:8px;text-transform:capitalize;align-self:flex-start}
+.pc-badge.free{background:rgba(90,141,125,.15);color:var(--green)}
+.pc-sub{font-size:.8rem;color:var(--text-muted);margin-bottom:6px}
+.pc-image.ph{display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.85);font-size:2.4rem;background:linear-gradient(145deg,var(--primary),var(--secondary))}
   </style>
 </head>
 <body>
@@ -483,17 +501,11 @@
     <div class="article-grid" id="knowledgeGrid"></div>
   </div>
 
-  <div class="tab-panel" id="panel-services">
-    <div class="coming-soon"><i class="fas fa-briefcase"></i><p>Services will appear here soon.</p></div>
-  </div>
+   <div class="tab-panel" id="panel-services"></div>
 
-  <div class="tab-panel" id="panel-courses">
-    <div class="coming-soon"><i class="fas fa-graduation-cap"></i><p>Courses will appear here soon.</p></div>
-  </div>
+  <div class="tab-panel" id="panel-courses"></div>
 
-  <div class="tab-panel" id="panel-products">
-    <div class="coming-soon"><i class="fas fa-box"></i><p>Products will appear here soon.</p></div>
-  </div>
+  <div class="tab-panel" id="panel-products"></div>
 
   <div class="tab-panel" id="panel-settings">
     <div class="settings-card">
@@ -519,11 +531,43 @@
   </div>
 
   <div class="tab-panel" id="panel-payouts">
-    <div class="payout-card">
-      <h2>Payout Settings</h2>
-      <p class="sub">Manage how you receive earnings from your content.</p>
-      <div id="payoutStatusBanner" class="status-banner"></div>
+  <div class="payout-card">
+    <h2>Payout Settings</h2>
+    <p class="sub">Manage how you receive earnings from your content.</p>
+    <div id="payoutStatusBanner" class="status-banner"></div>
 
+    <!-- CONNECTED SUMMARY (shown once payout details exist) -->
+    <div id="payoutSummary" style="display:none;">
+      <div class="payout-connected">
+        <div class="pc-check"><i class="fas fa-check"></i></div>
+        <div>
+          <h3>Payouts connected 🎉</h3>
+          <p>You're all set. Earnings go straight to your account.</p>
+        </div>
+        <span class="pill-active" id="payoutStatusPill">Active</span>
+      </div>
+
+      <div class="payout-rows">
+        <div class="payout-row"><span>Account name</span><span id="sumName">—</span></div>
+        <div class="payout-row"><span>Bank</span><span id="sumBank">—</span></div>
+        <div class="payout-row"><span>Account number</span><span id="sumAccount">—</span></div>
+        <div class="payout-row"><span>Country</span><span id="sumCountry">—</span></div>
+        <div class="payout-row"><span>Business email</span><span id="sumEmail">—</span></div>
+      </div>
+
+      <div class="payout-split">
+        <i class="fas fa-coins" style="color:var(--gold);margin-top:2px;"></i>
+        <div>You keep <strong>90%</strong> of every sale, tip and reward. Core Insight takes a 10% platform fee.</div>
+      </div>
+
+      <div class="flex-row">
+        <button class="btn-secondary" id="editPayoutBtn" type="button"><i class="fas fa-pen"></i> Update payout details</button>
+        <button class="btn-primary" id="payoutBackBtn" type="button" style="display:none;"><i class="fas fa-arrow-left"></i> Back to publishing</button>
+      </div>
+    </div>
+
+    <!-- FORM (shown when no payout details yet, or when editing) -->
+    <div id="payoutFormWrap">
       <div class="form-group">
         <label>Country</label>
         <select id="payoutCountry">
@@ -560,7 +604,7 @@
         <label>Account Number</label>
         <div class="flex-row">
           <input type="text" id="payoutAccountNumber" placeholder="Enter account number" style="flex:2; min-width:160px;">
-          <button class="btn-secondary" id="verifyAccountBtn" style="flex:1; white-space:nowrap;">Verify</button>
+          <button class="btn-secondary" id="verifyAccountBtn" type="button" style="flex:1; white-space:nowrap;">Verify</button>
         </div>
         <div id="verifiedAccountName" class="verified-name"></div>
       </div>
@@ -575,7 +619,10 @@
         <input type="email" id="payoutBusinessEmail" placeholder="you@example.com">
       </div>
 
-      <button class="btn-primary" id="savePayoutBtn"><i class="fas fa-wallet"></i> Save Payout Details</button>
+      <div class="flex-row">
+        <button class="btn-secondary" id="cancelEditPayoutBtn" type="button" style="display:none;">Cancel</button>
+        <button class="btn-primary" id="savePayoutBtn" type="button"><i class="fas fa-wallet"></i> <span id="savePayoutLabel">Save Payout Details</span></button>
+      </div>
     </div>
   </div>
 </div>
@@ -647,6 +694,7 @@ async function checkAuth() {
 function switchTab(tabKey) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
   const btn = document.querySelector(`.tab-btn[data-tab="${tabKey}"]`);
   const panel = document.getElementById(`panel-${tabKey}`);
   if (btn && !btn.classList.contains('disabled')) btn.classList.add('active');
@@ -656,23 +704,15 @@ function switchTab(tabKey) {
   url.searchParams.set('tab', tabKey);
   history.replaceState(null, '', url);
 
-  if (tabKey === 'payouts') {
-    loadPayoutStatus();
-    loadSavedPayoutDetails();
+  if (tabKey === 'payouts') loadPayoutStatus();
 
-    const country =
-      document.getElementById('payoutCountry').value;
-
-    if (country) {
-      loadBanksForCountry(country);
-    }
-}
-  if (tabKey === 'wallet') {
+  if (tabKey === 'wallet' && typeof loadWalletData === 'function') {
     loadWalletData();
   }
-if (tabKey === 'products') {          // ADD THIS BLOCK
-    loadProductsSection();
-  }
+
+  if (tabKey === 'products') loadProductsSection();
+  if (tabKey === 'courses') loadCoursesSection();
+  if (tabKey === 'services') loadServicesSection();
 }
 function renderTabs(sections) {
   const nav = document.getElementById('tabNav');
@@ -763,7 +803,72 @@ async function loadProductsSection() {
     grid.innerHTML = `<div class="empty-state">Couldn't load products right now.</div>`;
   }
 }
+async function loadCoursesSection() {
+  const panel = document.getElementById('panel-courses');
+  if (!panel || panel.dataset.loaded) return;
+  try {
+    const res = await fetch(`/api/profile/${profileUserId}/courses`, { credentials: 'include' });
+    const data = res.ok ? await res.json() : { courses: [] };
+    const list = data.courses || [];
+    if (!list.length) {
+      panel.innerHTML = `<div class="empty-state"><i class="fas fa-graduation-cap"></i><p>No courses or books published yet.</p></div>`;
+      panel.dataset.loaded = '1';
+      return;
+    }
+    panel.innerHTML = `<div class="article-grid">${list.map(c => {
+      const free = !(parseFloat(c.price) > 0);
+      const img = c.thumbnail_url ? `style="background-image:url('${escapeHtml(c.thumbnail_url)}')"` : '';
+      return `<div class="product-mini-card" data-id="${c.id}">
+        <div class="pc-image ${c.thumbnail_url ? '' : 'ph'}" ${img}>${c.thumbnail_url ? '' : '<i class="fas fa-graduation-cap"></i>'}</div>
+        <div class="pc-body">
+          <span class="pc-badge ${free ? 'free' : ''}">${free ? 'Free' : escapeHtml(c.content_type || 'Course')}</span>
+          <h4>${escapeHtml(c.title)}</h4>
+          <div class="pc-price">${free ? 'Free' : '₦' + Number(c.price).toLocaleString()}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    panel.querySelectorAll('.product-mini-card').forEach(card => {
+      card.onclick = () => location.href = `courses.html?course=${card.dataset.id}`;
+    });
+    panel.dataset.loaded = '1';
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state">Couldn't load courses right now.</div>`;
+  }
+}
 
+async function loadServicesSection() {
+  const panel = document.getElementById('panel-services');
+  if (!panel || panel.dataset.loaded) return;
+  try {
+    const res = await fetch(`/api/profile/${profileUserId}/services`, { credentials: 'include' });
+    const data = res.ok ? await res.json() : { services: [] };
+    const list = data.services || [];
+    if (!list.length) {
+      panel.innerHTML = `<div class="empty-state"><i class="fas fa-briefcase"></i><p>No services listed yet.</p></div>`;
+      panel.dataset.loaded = '1';
+      return;
+    }
+    panel.innerHTML = `<div class="article-grid">${list.map(s => {
+      const rating = s.avg_rating ? `<span class="pc-sub">★ ${Number(s.avg_rating).toFixed(1)} (${s.review_count})</span>` : '';
+      return `<div class="product-mini-card" data-id="${s.id}">
+        <div class="pc-image ph"><i class="fas fa-briefcase"></i></div>
+        <div class="pc-body">
+          <span class="pc-badge">${escapeHtml(s.category || 'Service')}</span>
+          <h4>${escapeHtml(s.title)}</h4>
+          ${rating}
+          ${s.delivery_time ? `<span class="pc-sub"><i class="far fa-clock"></i> ${s.delivery_time} day delivery</span>` : ''}
+          <div class="pc-price">From $${Number(s.price).toFixed(2)}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    panel.querySelectorAll('.product-mini-card').forEach(card => {
+      card.onclick = () => location.href = `services.html?service=${card.dataset.id}`;
+    });
+    panel.dataset.loaded = '1';
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state">Couldn't load services right now.</div>`;
+  }
+}
 function renderFollowButton() {
   const slot = document.getElementById('followSlot');
   if (profileData.is_own_profile) {
@@ -793,24 +898,56 @@ async function toggleFollow() {
 }
 
 // ---- PAYOUT FUNCTIONS ----
+
+ function showPayoutForm(show) {
+  document.getElementById('payoutFormWrap').style.display = show ? 'block' : 'none';
+  document.getElementById('payoutSummary').style.display = show ? 'none' : 'block';
+}
+
 async function loadPayoutStatus() {
+  const banner = document.getElementById('payoutStatusBanner');
+  if (!banner) return;
   try {
     const res = await fetch('/api/flutterwave/subaccount-status', { credentials: 'include' });
     const data = await res.json();
-    const banner = document.getElementById('payoutStatusBanner');
-    if (!banner) return;
-    if (data.has_subaccount) {
-      banner.style.display = 'block';
-      banner.className = 'status-banner';
-      banner.style.background = 'rgba(90,141,125,.12)';
-      banner.style.color = 'var(--green)';
-      banner.innerHTML = `<i class="fas fa-check-circle"></i> Payouts are set up. Status: <strong>${data.status}</strong>`;
-    } else {
+
+    if (!data.has_subaccount) {
+      // Not set up yet: show the form with a nudge
+      showPayoutForm(true);
+      document.getElementById('cancelEditPayoutBtn').style.display = 'none';
+      document.getElementById('savePayoutLabel').textContent = 'Save Payout Details';
       banner.style.display = 'block';
       banner.className = 'status-banner warning';
-      banner.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No payout account added yet. Until you add one, earnings won't reach you automatically.`;
+      banner.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No payout account added yet. Until you add one, support and sales go to Core Insight instead of you 🍕`;
+      return;
     }
-  } catch (e) {}
+
+    // Set up: prefill the (hidden) form, then show the summary
+    banner.style.display = 'none';
+    await loadSavedPayoutDetails();
+
+    const bankSel = document.getElementById('payoutBank');
+    const countrySel = document.getElementById('payoutCountry');
+    const bankOpt = bankSel.selectedOptions[0];
+    const countryOpt = countrySel.selectedOptions[0];
+    const acct = String(data.account_number || '');
+
+    document.getElementById('sumName').textContent = data.account_name || data.business_name || '—';
+    document.getElementById('sumBank').textContent = bankOpt && bankOpt.value ? bankOpt.textContent : 'Linked bank account';
+    document.getElementById('sumAccount').textContent = acct ? '•••• ' + acct.slice(-4) : '—';
+    document.getElementById('sumCountry').textContent = countryOpt && countryOpt.value ? countryOpt.textContent : (data.country || '—');
+    document.getElementById('sumEmail').textContent = data.business_email || '—';
+    document.getElementById('payoutStatusPill').textContent = data.status || 'Active';
+
+    // "Back to publishing" if they were sent here from a publish flow
+    if (params.get('redirect') === 'publish') {
+      const back = document.getElementById('payoutBackBtn');
+      back.style.display = 'inline-flex';
+      back.onclick = () => history.back();
+    }
+
+    showPayoutForm(false);
+  } catch (e) { console.error(e); }
 }
 
 async function loadBanksForCountry(country) {
@@ -871,7 +1008,14 @@ businessNameInput.readOnly = true;
       }
     } catch (e) { toast('Error verifying account'); }
   });
-
+  document.getElementById('editPayoutBtn')?.addEventListener('click', () => {
+    showPayoutForm(true);
+    document.getElementById('cancelEditPayoutBtn').style.display = 'inline-flex';
+    document.getElementById('savePayoutLabel').textContent = 'Update Payout Details';
+    document.getElementById('payoutBusinessName').readOnly = false;
+  });
+  document.getElementById('cancelEditPayoutBtn')?.addEventListener('click', () => showPayoutForm(false));
+  
   // ✅ FULLY INTEGRATED: Business Email in validation and request body
   document.getElementById('savePayoutBtn')?.addEventListener('click', async () => {
     const country = document.getElementById('payoutCountry').value;
@@ -1116,14 +1260,12 @@ async function loadProfile() {
     setupOwnerControls();
     setupPayoutListeners();
 
-    const validTab = data.sections[requestedTab] && data.sections[requestedTab].available ? requestedTab : 'knowledge';
-    switchTab(validTab);
-    await loadKnowledgeSection();
+       const ownerTabs = ['settings', 'payouts', 'wallet'];
+    const validTab = ownerTabs.includes(requestedTab)
+      ? (data.is_own_profile ? requestedTab : 'knowledge')
+      : (data.sections[requestedTab] && data.sections[requestedTab].available ? requestedTab : 'knowledge');
 
-   if (profileData.is_own_profile) {
-    loadPayoutStatus();
-    loadSavedPayoutDetails();
-}
+
   } catch (e) {
     document.getElementById('username').textContent = 'Error loading profile';
   }

@@ -631,12 +631,12 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
         <div class="byline" id="previewByline"></div>
       </div>
 
-      <div class="modal-tabs" role="tablist"></div>
-         <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
-        <button class="tab-btn" data-tab="curriculum" type="button">Curriculum</button>
-        <button class="tab-btn" data-tab="reviews" type="button">Reviews</button>
-        <button class="tab-btn" data-tab="discussion" type="button">Q&amp;A</button>
-      </div>
+     <div class="modal-tabs" role="tablist">
+  <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
+  <button class="tab-btn" data-tab="curriculum" type="button">Curriculum</button>
+  <button class="tab-btn" data-tab="reviews" type="button">Reviews</button>
+  <button class="tab-btn" data-tab="discussion" type="button">Q&amp;A</button>
+</div>
 
       <div class="tab-panel" data-panel="overview" id="previewOverview"></div>
       <div class="tab-panel" data-panel="curriculum" id="previewCurriculum" hidden>
@@ -786,6 +786,18 @@ footer p { color: var(--color-text-soft); font-size: 0.9rem; }
   </div>
 </div>
 
+<!-- Payout Reminder Modal -->
+<div class="modal-overlay" id="payoutModal">
+  <div class="modal-panel modal-panel--flag">
+    <h3>🍕 Hold up, no payout details!</h3>
+    <p>If you post without adding your payout details, any support or tips sent your way go <strong>straight to us</strong>... and we'll spend every cent on pizza. 🍕 We'd be incredibly grateful and think of you every single time we take a bite. 😂</p>
+    <p style="font-size:.82rem;color:var(--color-text-muted);">(Jokes aside: without payout details, money sent to you is received by Core Insight, not you. Add them and you keep 90%. 💸)</p>
+    <div class="modal-buttons" style="flex-wrap:wrap;">
+      <button class="btn-secondary btn-inline" id="payoutPostAnyway" type="button">Post anyway 🍕</button>
+      <button class="btn-primary btn-inline" id="payoutAddDetails" type="button">Add payout details 💸</button>
+    </div>
+  </div>
+</div>
 <!-- Footer -->
 <footer>
   <div class="container">

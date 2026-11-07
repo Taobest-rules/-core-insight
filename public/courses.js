@@ -78,7 +78,10 @@ function closeAllPopovers() {
   document.querySelectorAll('.card-menu__dropdown').forEach(d => d.hidden = true);
 }
 
-document.addEventListener('click', closeAllPopovers);
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.dropdown-panel') || e.target.closest('.card-menu__dropdown')) return;
+  closeAllPopovers();
+});
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   closeAllPopovers();
@@ -477,6 +480,12 @@ async function loadCourses() {
     renderRecentlyViewed();
     renderFeaturedSpotlight();
     renderContinueLearning();
+
+        const deepId = parseInt(new URLSearchParams(location.search).get('course'));
+    if (deepId && !window.__deepOpened && allCourses.some(c => c.id === deepId)) {
+      window.__deepOpened = true;
+      openPreviewModal(deepId);
+    }
 
     const heroCount = document.getElementById('heroCourseCount');
     if (heroCount) heroCount.textContent = allCourses.length;
@@ -1150,7 +1159,32 @@ function setupModalTabs() {
     });
   });
 }
+async function refreshPayoutStatus() {
+  try {
+    const r = await fetch('/api/flutterwave/subaccount-status');
+    if (!r.ok) return false;
+    const d = await r.json();
+    return !!d.has_subaccount;
+  } catch (e) { return false; }
+}
 
+// Resolves 'add' | 'post' | 'cancel'. Shown EVERY time they post without payout details.
+function askPayoutChoice() {
+  return new Promise(resolve => {
+    const modal = document.getElementById('payoutModal');
+    const done = (choice) => {
+      modal.classList.remove('is-open');
+      document.getElementById('payoutPostAnyway').onclick = null;
+      document.getElementById('payoutAddDetails').onclick = null;
+      modal.onclick = null;
+      resolve(choice);
+    };
+    document.getElementById('payoutPostAnyway').onclick = () => done('post');
+    document.getElementById('payoutAddDetails').onclick = () => done('add');
+    modal.onclick = (e) => { if (e.target === modal) done('cancel'); };
+    modal.classList.add('is-open');
+  });
+}
 /* -------------------------- 15. UPLOAD WIZARD (Share Your Knowledge) -------------------------- */
 function openUploadModal() {
   if (!currentUser) {
@@ -1158,6 +1192,7 @@ function openUploadModal() {
     window.location.href = 'login.html';
     return;
   }
+  
   wizardCurrentStep = 1;
   showWizardStep(1);
   document.getElementById('uploadModal').classList.add('is-open');
@@ -1349,15 +1384,23 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
     return;
   }
 
+  // Payout reminder: shown on every post until payout details are added
+  let postingWithoutPayout = false;
+  if (!(await refreshPayoutStatus())) {
+    const choice = await askPayoutChoice();
+    if (choice === 'add') {
+      window.location.href = '/profile.html?tab=payouts&redirect=publish';
+      return;
+    }
+    if (choice === 'cancel') return;
+    postingWithoutPayout = true;
+  }
+
   const formData = new FormData();
+  if (postingWithoutPayout) formData.append('acknowledge_no_payout', 'true');
   formData.append('title', document.getElementById('wizTitle').value);
   formData.append('description', document.getElementById('wizDescription').value);
   formData.append('author', document.getElementById('wizAuthor').value);
-
-  // category, level, page_count, language, preview_url: not yet columns on
-  // the courses table, so the current POST /api/courses handler ignores
-  // them safely — sent anyway so nothing needs to change here once the
-  // backend adds support.
   formData.append('category', document.getElementById('wizCategory').value);
   formData.append('level', document.getElementById('wizLevel').value);
   const pages = document.getElementById('wizPages').value;
@@ -1372,7 +1415,6 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
 
   const thumbnailFile = document.getElementById('wizThumbnail').files[0];
   if (thumbnailFile) formData.append('thumbnail', thumbnailFile);
-
   const fileFile = document.getElementById('wizFile').files[0];
   if (fileFile) formData.append('file', fileFile);
 

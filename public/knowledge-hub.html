@@ -191,6 +191,7 @@ nav a.active{color:var(--blue);background:rgba(74,111,165,.12);font-weight:600}
 #toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,20px);background:var(--text);color:#fff;padding:12px 20px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:.3s;z-index:999}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 footer{background:#fff;padding:26px 0;border-top:1px solid var(--line);text-align:center;color:var(--gray)}
+#payoutModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1100;align-items:center;justify-content:center}
 
 @media(max-width:900px){.hub-layout,.reader-wrap{grid-template-columns:1fr;gap:28px}.rail{position:static;order:-1;max-height:none;overflow:visible}}
 @media(max-width:768px){
@@ -325,6 +326,17 @@ nav a{display:block;text-align:center;padding:14px;border-radius:0;border-bottom
   </div>
 </div>
 
+<div id="payoutModal">
+  <div class="modal-box">
+    <h3>🍕 Hold up, no payout details!</h3>
+    <p style="color:var(--text-l);font-size:.92rem;margin:10px 0">If you publish without adding your payout details, any support or rewards sent your way go <strong>straight to us</strong>... and we'll spend every cent on pizza. 🍕 We'd be incredibly grateful and think of you every single time we take a bite. 😂</p>
+    <p style="color:var(--gray);font-size:.8rem;margin-bottom:18px">(Jokes aside: without payout details, money sent to you is received by Core Insight, not you. Add them and you keep 90%. 💸)</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="payoutPostAnyway" type="button" style="flex:1">Post anyway 🍕</button>
+      <button class="btn btn-primary" id="payoutAddDetails" type="button" style="flex:1">Add payout details 💸</button>
+    </div>
+  </div>
+</div>
 <script>
 const $ = id => document.getElementById(id);
 const CAT = {
@@ -591,25 +603,59 @@ $('videoInput').onchange=e=>{const f=e.target.files[0];if(!f)return;
 document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{$('richEditor').focus();
   if(b.dataset.cmd==='createLink'){const u=prompt('Paste a URL:');if(u)document.execCommand('createLink',false,u)}else document.execCommand(b.dataset.cmd,false,b.dataset.arg||null)});
 
-$('articleForm').onsubmit=async e=>{
-  e.preventDefault();const status=e.submitter?e.submitter.dataset.status:'draft';
+
+  $('articleForm').onsubmit=async e=>{
+  e.preventDefault();
+  let status=e.submitter?e.submitter.dataset.status:'draft';
   const title=$('fieldTitle').value.trim();
   if(title.length<5)return toast('Title must be at least 5 characters.');
   if($('richEditor').innerText.trim().length<50)return toast('Write at least 50 characters of content.');
+
+  // Payout reminder: shown on every publish until payout details are added
+  let postWithoutPayout=false,goToPayouts=false;
+  if(status==='published'&&!(await hasPayoutDetails())){
+    const choice=await askPayoutChoice();
+    if(choice==='cancel')return;
+    if(choice==='add'){status='draft';goToPayouts=true;toast('Saving your article as a draft first...')}
+    else postWithoutPayout=true;
+  }
+
   const fd=new FormData();
   fd.append('title',title);fd.append('excerpt',$('fieldExcerpt').value.trim());fd.append('content',$('richEditor').innerHTML.trim());
   fd.append('category',$('fieldCategory').value);fd.append('tags',$('fieldTags').value);fd.append('status',status);
+  if(postWithoutPayout)fd.append('acknowledge_no_payout','true');
   if(coverFile)fd.append('cover_image',coverFile);if(videoFile)fd.append('video',videoFile);
   if(removeVideo&&!videoFile)fd.append('remove_video','true');
   const id=$('editArticleId').value,btns=document.querySelectorAll('#articleForm button[type=submit]');
   btns.forEach(b=>b.disabled=true);if(videoFile)toast('Uploading video. This can take a moment...');
-  try{const r=await fetch(id?`/api/articles/${id}`:'/api/articles',{method:id?'PUT':'POST',body:fd});const d=await r.json();
-    if(!r.ok){if(d.requires_payout_setup){toast('Add your payout details to publish. Taking you there now.');setTimeout(()=>location.href='/profile.html?tab=payouts&redirect=publish',1500)}else toast(d.error||'Something went wrong.');return}
+  try{
+    const r=await fetch(id?`/api/articles/${id}`:'/api/articles',{method:id?'PUT':'POST',body:fd,credentials:'include'});
+    const d=await r.json();
+    if(!r.ok){
+      // Safety net: server says payout is missing and it wasn't acknowledged
+      if(d.requires_payout_setup){toast('Add your payout details, or choose "Post anyway" when prompted.')}
+      else toast(d.error||'Something went wrong.');
+      return;
+    }
+    if(goToPayouts){toast('Draft saved. Taking you to payout setup...');setTimeout(()=>location.href='/profile.html?tab=payouts&redirect=publish',1200);return}
     toast(status==='published'?'Published!':'Draft saved.');
     if(d.slug)openArticle(d.slug);else{loadMyArticles();showView('view-my-articles')}
   }catch(err){toast('Network error. Please try again.')}finally{btns.forEach(b=>b.disabled=false)}
 };
-
+async function hasPayoutDetails(){
+  try{const r=await fetch('/api/flutterwave/subaccount-status',{credentials:'include'});if(!r.ok)return false;const d=await r.json();return !!d.has_subaccount}catch(e){return false}
+}
+// Resolves 'add' | 'post' | 'cancel'
+function askPayoutChoice(){
+  return new Promise(resolve=>{
+    const m=$('payoutModal');
+    const done=c=>{m.style.display='none';$('payoutPostAnyway').onclick=null;$('payoutAddDetails').onclick=null;m.onclick=null;resolve(c)};
+    $('payoutPostAnyway').onclick=()=>done('post');
+    $('payoutAddDetails').onclick=()=>done('add');
+    m.onclick=e=>{if(e.target===m)done('cancel')};
+    m.style.display='flex';
+  });
+}
 /* ---------- my articles ---------- */
 $('myArticlesBtn').onclick=async()=>{if(await requireLogin('Please log in to see your articles.')){loadMyArticles();showView('view-my-articles')}};
 async function loadMyArticles(){

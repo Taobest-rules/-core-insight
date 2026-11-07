@@ -2074,15 +2074,14 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
 
       let finalStatus = status === 'published' ? 'published' : 'draft';
 
-  
-    if (finalStatus === 'published') {
+      if (finalStatus === 'published') {
       const payoutCheck = await db.query(`SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [req.session.user.id]);
       const hasPayoutLinked = !!extractRows(payoutCheck)[0]?.flutterwave_subaccount_id;
-      if (!hasPayoutLinked) {
+      const acknowledged = req.body.acknowledge_no_payout === 'true' || req.body.acknowledge_no_payout === true;
+      if (!hasPayoutLinked && !acknowledged) {
         return res.status(400).json({
-          error: "Add your payout details before publishing, so any support you receive goes to you.",
-          requires_payout_setup: true,
-          saved_as_draft: true,
+          error: "No payout details yet. Add them, or post anyway and we'll enjoy the pizza 🍕",
+          requires_payout_setup: true
         });
       }
     }
@@ -2215,11 +2214,17 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
     const willBePublished = newStatus === "published";
 
     let publishedAt;
-    if (!wasPublished && willBePublished) {
-      publishedAt = new Date();
-    } else {
-      publishedAt = article.published_at;
-    }
+        if (!wasPublished && willBePublished) {
+      const payoutCheck = await db.query(`SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [article.user_id]);
+      const hasPayoutLinked = !!extractRows(payoutCheck)[0]?.flutterwave_subaccount_id;
+      const acknowledged = req.body.acknowledge_no_payout === 'true' || req.body.acknowledge_no_payout === true;
+      if (!hasPayoutLinked && !acknowledged) {
+        return res.status(400).json({
+          error: "No payout details yet. Add them, or post anyway and we'll enjoy the pizza 🍕",
+          requires_payout_setup: true
+        });
+      }
+    } 
 
     await db.query(
       `UPDATE articles
@@ -2860,6 +2865,16 @@ const productCountResult = await db.query(
       );
       isFollowing = followCheck && followCheck.length > 0;
     }
+    const courseCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM courses WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)",
+      [profileUserId]
+    );
+    const serviceCountResult = await db.query(
+      "SELECT COUNT(*) as count FROM services WHERE user_id = ? AND status = 'active'",
+      [profileUserId]
+    );
+    const courseCount = courseCountResult[0]?.count || 0;
+    const serviceCount = serviceCountResult[0]?.count || 0;
 
     let hasPayoutAccount = false;
     if (req.session.user && req.session.user.id === parseInt(profileUserId)) {
@@ -2889,16 +2904,59 @@ const productCountResult = await db.query(
       is_following: isFollowing,
       is_own_profile: req.session.user ? req.session.user.id === parseInt(profileUserId) : false,
       has_payout_account: hasPayoutAccount,
-      sections: {
+            sections: {
         knowledge: { count: articleCountResult[0]?.count || 0, available: true },
-        services: { count: 0, available: false },
-        courses: { count: 0, available: false },
-      products: { count: productCountResult[0]?.count || 0, available: (productCountResult[0]?.count || 0) > 0 }
+        services: { count: serviceCount, available: serviceCount > 0 },
+        courses: { count: courseCount, available: courseCount > 0 },
+        products: { count: productCountResult[0]?.count || 0, available: (productCountResult[0]?.count || 0) > 0 }
       }
     });
 
   } catch (err) {
     console.error("❌ Error fetching unified profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// A creator's courses/books (public). Never exposes file_url.
+app.get("/api/profile/:userId/courses", async (req, res) => {
+  try {
+    const rows = extractRows(await db.query(
+      `SELECT * FROM courses
+       WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)
+       ORDER BY created_at DESC LIMIT 50`,
+      [req.params.userId]
+    ));
+    const courses = rows.map(c => ({
+      id: Number(c.id),
+      title: c.title,
+      description: c.description,
+      thumbnail_url: c.thumbnail_url || c.thumbnail_path || null,
+      price: parseFloat(c.price) || 0,
+      content_type: c.content_type || 'course',
+      created_at: c.created_at
+    }));
+    res.json({ success: true, courses });
+  } catch (err) {
+    console.error("❌ Error fetching profile courses:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A creator's active services (public)
+app.get("/api/profile/:userId/services", async (req, res) => {
+  try {
+    const rows = extractRows(await db.query(
+      `SELECT s.id, s.title, s.price, s.category, s.delivery_time, s.created_at,
+              (SELECT AVG(rating) FROM service_reviews WHERE service_id = s.id) AS avg_rating,
+              (SELECT COUNT(*) FROM service_reviews WHERE service_id = s.id) AS review_count
+       FROM services s
+       WHERE s.user_id = ? AND s.status = 'active'
+       ORDER BY s.created_at DESC LIMIT 50`,
+      [req.params.userId]
+    ));
+    res.json({ success: true, services: rows });
+  } catch (err) {
+    console.error("❌ Error fetching profile services:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -3072,7 +3130,7 @@ if (type === 'reward' && commentId) {
             return res.status(400).json({ error: "You cannot support yourself" });
         }
 
-        // Get creator + their payout subaccount
+              // Get creator + their payout subaccount
         const creatorResult = await db.query(
             `SELECT id, username, email, flutterwave_subaccount_id FROM users WHERE id = ?`,
             [creatorId]
@@ -3083,21 +3141,17 @@ if (type === 'reward' && commentId) {
         }
         const creator = creatorResult[0];
 
-        if (!creator.flutterwave_subaccount_id) {
-            return res.status(400).json({
-                error: "This person hasn't set up payouts yet, so they can't receive payments right now."
-            });
-        }
-        if (!String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
+        const hasPayout = !!creator.flutterwave_subaccount_id;
+        if (hasPayout && !String(creator.flutterwave_subaccount_id).startsWith('RS_')) {
             console.error('Bad subaccount ID for user', creatorId, creator.flutterwave_subaccount_id);
             return res.status(400).json({
                 error: "This person's payout account needs to be re-linked before they can receive payments."
             });
         }
 
-        // 90/10 split, same model as digital products
-        const platformFee = tipAmount * 0.10;
-        const creatorEarnings = tipAmount - platformFee;
+        // No payout details => the full amount stays with the platform (no split)
+        const platformFee = hasPayout ? tipAmount * 0.10 : tipAmount;
+        const creatorEarnings = hasPayout ? tipAmount - platformFee : 0;
 
         const transactionRef = `SUPPORT_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         const supporterId = req.session.user ? req.session.user.id : null;
@@ -3130,13 +3184,13 @@ if (type === 'reward' && commentId) {
         const payerCountry = await getPayerCountry(req);
         let supportCurrency = "USD";
         let chargeAmount = tipAmount;
-        let paymentOptions = "card";           // everyone outside Nigeria: card only
+        let paymentOptions = "card";
 
         if (payerCountry === 'NG') {
             const rates = await getExchangeRate();
             supportCurrency = "NGN";
             chargeAmount = Math.round(tipAmount * (rates.USD_TO_NGN || 1500));
-            paymentOptions = "banktransfer, ussd, account";   // no card for Nigerians
+            paymentOptions = "banktransfer, ussd, account";
             console.log(`💰 Nigerian payer: ₦${chargeAmount} via transfer/USSD/account`);
         }
 
@@ -3157,16 +3211,23 @@ if (type === 'reward' && commentId) {
             meta: {
                 support_id: supportId,
                 creator_id: creatorId,
-                type: "creator_support"
+                type: "creator_support",
+                platform_keeps_all: !hasPayout
             }
         };
 
-        payload.subaccounts = [{
-            id: creator.flutterwave_subaccount_id,
-            transaction_charge_type: "percentage",
-            transaction_charge: 0.1
-        }];
-        console.log('Support split:', JSON.stringify(payload.subaccounts));
+        // Only split when the creator has payout details; otherwise the full
+        // amount settles to the platform's main Flutterwave account.
+        if (hasPayout) {
+            payload.subaccounts = [{
+                id: creator.flutterwave_subaccount_id,
+                transaction_charge_type: "percentage",
+                transaction_charge: 0.1
+            }];
+            console.log('Support split:', JSON.stringify(payload.subaccounts));
+        } else {
+            console.log(`🍕 Creator ${creatorId} has no payout details, full amount goes to platform`);
+        }
 
         const response = await axios.post(
             'https://api.flutterwave.com/v3/payments',
@@ -4830,13 +4891,19 @@ app.get("/api/my-courses", async (req, res) => {
   }
 
   try {
-    const courses = await db.query(`
-      SELECT c.*, uc.purchased_at 
-      FROM courses c 
-      INNER JOIN user_courses uc ON c.id = uc.course_id 
-      WHERE uc.user_id = ? AND uc.payment_status = 'completed'
-      ORDER BY uc.purchased_at DESC
-    `, [req.session.user.id]);
+   const courses = await db.query(`
+  SELECT 
+    c.*, 
+    u.username as author_name,
+    u.role as user_role,
+    COALESCE(c.file_url, c.file_path) as file_path_combined,
+    COALESCE(c.thumbnail_url, c.thumbnail_path) as thumbnail_path_combined,
+    (SELECT AVG(rating) FROM course_reviews WHERE course_id = c.id) AS rating,
+    (SELECT COUNT(*) FROM course_reviews WHERE course_id = c.id) AS review_count
+  FROM courses c 
+  LEFT JOIN users u ON c.user_id = u.id 
+  ORDER BY c.created_at DESC
+`);
 
     const safeCourses = (Array.isArray(courses) ? courses : (courses[0] || [])).map(course => {
       if (course.id && typeof course.id === 'bigint') {
@@ -14926,12 +14993,12 @@ async function completeSupportAndNotify(txRef) {
   const s = extractRows(rowRes)[0];
   if (!s) return true;
 
-  // Anonymous means the creator never sees the name, but still sees the message
   const supporterName = s.is_anonymous
     ? "Someone"
     : (s.supporter_username || "A guest supporter");
   const amount = parseFloat(s.amount).toFixed(2);
   const earnings = parseFloat(s.creator_earnings).toFixed(2);
+  const noPayout = parseFloat(s.creator_earnings) === 0;
 
   // In-app notification
   try {
@@ -14940,8 +15007,12 @@ async function completeSupportAndNotify(txRef) {
        VALUES (?, 'support', ?, ?, '/knowledge-hub.html', NOW())`,
       [
         s.creator_id,
-        `💛 ${supporterName} supported you with $${amount}`,
-        s.message ? `"${String(s.message).slice(0, 200)}"` : 'No message left.'
+        noPayout
+          ? `💛 ${supporterName} tried to support you with $${amount}`
+          : `💛 ${supporterName} supported you with $${amount}`,
+        noPayout
+          ? 'You have no payout details, so this went to Core Insight (pizza fund 🍕). Add them so future support reaches you!'
+          : (s.message ? `"${String(s.message).slice(0, 200)}"` : 'No message left.')
       ]
     );
   } catch (e) { console.error('Support in-app notification failed:', e.message); }
@@ -14960,7 +15031,9 @@ async function completeSupportAndNotify(txRef) {
                <p style="font-style:italic;margin:0;">"${escapeHtml(s.message)}"</p>
              </div>`
           : ''}
-        <p>Your earnings: <strong>$${earnings}</strong> (after platform fee)</p>
+        ${noPayout
+          ? `<p>You haven't added payout details yet, so this went to Core Insight (pizza fund 🍕). <a href="https://coreinsightmarket.com/profile.html?tab=payouts" style="color:#fbbf24;">Add your payout details</a> so future support reaches you!</p>`
+          : `<p>Your earnings: <strong>$${earnings}</strong> (after platform fee)</p>`}
       </div>
     </body></html>`;
   sendEmail(s.creator_email, "You've received support! 💛", emailHtml).catch(() => {});

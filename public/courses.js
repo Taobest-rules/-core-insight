@@ -333,12 +333,17 @@ function isRecentlyAdded(course) {
   return (Date.now() - created.getTime()) < 30 * 24 * 60 * 60 * 1000;
 }
 
-/* "✓ Verified Creator" — real signal for the CURRENT user's own content
-   (we have their live verification status). For other creators' cards we
-   fall back to admin-uploaded as a proxy, since /api/courses doesn't yet
-   join verification_status — see note in chat. The guard on
-   creator_verification_status means this upgrades automatically the
-   moment that field is added server-side. */
+function canSellNow() {
+  if (currentUser && currentUser.role === 'admin') return true;
+  const v = currentUserVerification;
+  if (!v || v.posting_blocked) return false;
+  return v.status === 'verified' || v.status === 'temporary';
+}
+function wantsPaid() {
+  const b = document.querySelector('.book-type-btn.active');
+  return !!b && b.dataset.type === 'paid';
+}
+
 function isVerifiedCreatorContent(course) {
   if (typeof course.creator_verification_status === 'string') {
     return course.creator_verification_status === 'verified';
@@ -581,6 +586,7 @@ function renderCourses() {
   const slice = filtered.slice(0, visibleCount);
   grid.innerHTML = slice.map(courseCardHTML).join('');
   loadMoreBtn.hidden = visibleCount >= filtered.length;
+   updateAllPrices();
 }
 
 function resetAllFilters() {
@@ -647,14 +653,15 @@ function courseCardHTML(course) {
   if (!course.isVideo) benefitBits.push(`<span><i class="fas fa-check-circle"></i> Downloadable</span>`);
   const benefitsRow = `<div class="course-benefits">${benefitBits.join('')}</div>`;
 
-  let priceBlock;
-  if (course.hasAccess && course.isPremium) {
-    priceBlock = `<div class="price-block is-owned"><i class="fas fa-check-circle"></i> ${course.isCompleted ? 'Completed' : 'Enrolled'}</div>`;
-  } else if (course.isFree) {
-    priceBlock = `<div class="price-block is-free">Free</div>`;
-  } else {
-    priceBlock = `<div class="price-block" data-original-price="${course.price}">…</div>`;
-  }
+let priceBlock;
+if (course.isFree) {
+  priceBlock = `<div class="price-block is-free">Free</div>`;
+} else {
+  const tag = course.hasAccess
+    ? `<span class="owned-tag"><i class="fas fa-check-circle"></i> ${course.isCompleted ? 'Completed' : 'Enrolled'}</span>`
+    : '';
+  priceBlock = `<div class="price-wrap"><div class="price-block" data-original-price="${course.price}">…</div>${tag}</div>`;
+}
 
   const cta = primaryCtaFor(course);
   const progressRail = course.hasProgress
@@ -681,7 +688,11 @@ function courseCardHTML(course) {
   if (course.isPremium && !course.hasAccess) menuItems.push(`<button type="button" onclick="checkAccess(${course.id})"><i class="fas fa-shield-halved"></i> Verify Access</button>`);
   if (course.showFlagButton) menuItems.push(`<button type="button" onclick="openFlagModal(${course.id})" ${course.hasFlagged ? 'disabled' : ''}><i class="fas fa-flag"></i> ${course.hasFlagged ? 'Reported' : 'Report'}</button>`);
   if (course.canDelete) menuItems.push(`<button type="button" class="danger" onclick="deleteCourse(${course.id})"><i class="fas fa-trash"></i> Delete</button>`);
-
+if (currentUser && currentUser.role === 'admin' && course.user_id !== Number(currentUser.id)) {
+  menuItems.push(course.creator_blocked
+    ? `<button type="button" onclick="adminRestoreCreator(${course.user_id})"><i class="fas fa-rotate-left"></i> Restore Creator</button>`
+    : `<button type="button" class="danger" onclick="adminBlockCreator(${course.user_id})"><i class="fas fa-ban"></i> Block Creator</button>`);
+}
   return `
     <article class="course-card" data-course-id="${course.id}">
       <div class="course-card__media">
@@ -1208,36 +1219,36 @@ function closeUploadModal() {
    here, once, as part of "why verify" — once someone can actually sell,
    this panel stops appearing, so it's never repeated. */
 function updatePricingStepUI() {
-  const isAdmin = currentUser && currentUser.role === 'admin';
-  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
-  const canSell = isAdmin || isVerified;
-
-  document.getElementById('wizPricingAdmin').hidden = !canSell;
+  document.getElementById('wizPricingAdmin').hidden = false;       // toggle for everyone
   const gate = document.getElementById('wizPricingInfo');
-  gate.hidden = canSell;
-  if (canSell) return;
+  const v = currentUserVerification || {};
+  const status = v.status || 'unverified';
 
-  const status = currentUserVerification ? currentUserVerification.status : 'unverified';
-  if (status === 'pending_review') {
-    let timeText = 'usually within about 2 hours';
-    if (currentUserVerification && currentUserVerification.hours_remaining != null) {
-      timeText = `about ${currentUserVerification.hours_remaining}h ${currentUserVerification.minutes_remaining || 0}m remaining`;
-    }
-    gate.innerHTML = `
-      <i class="fas fa-hourglass-half"></i>
-      <div>
-        <strong>Verification in review</strong>
-        <p>Your documents are under review (${escapeHtml(timeText)}). You can publish free content right now — paid pricing unlocks automatically the moment you're verified.</p>
-      </div>`;
-  } else {
-    gate.innerHTML = `
-      <i class="fas fa-shield-halved"></i>
-      <div>
-        <strong>Verification required to sell</strong>
-        <p>To sell paid courses, books, or digital products and receive payouts, become a Verified Creator first. This protects buyers, reduces fraud, and unlocks your ✓ Verified Creator badge. You'll keep 90% of every sale — Core Insight takes a 10% platform fee.</p>
-        <a href="verification.html" class="btn-secondary btn-inline" style="margin-top:0.75rem;width:auto;">Start Verification</a>
-      </div>`;
+  if (v.posting_blocked) {
+    gate.hidden = false;
+    gate.innerHTML = `<i class="fas fa-ban"></i><div><strong>Posting suspended</strong>
+      <p>${escapeHtml(v.blocked_reason || 'Your posting privileges were suspended by our team.')}</p></div>`;
+    return;
   }
+  if (!wantsPaid() || canSellNow()) {
+    // Free content, or allowed to sell. Temporary users get a small reminder
+    gate.hidden = !(wantsPaid() && status === 'temporary');
+    if (!gate.hidden) {
+      gate.innerHTML = `<i class="fas fa-hourglass-half"></i><div><strong>Temporarily verified</strong>
+        <p>You can sell now while we review your documents.</p></div>`;
+    }
+    return;
+  }
+  gate.hidden = false;
+  gate.innerHTML = status === 'rejected'
+    ? `<i class="fas fa-triangle-exclamation"></i><div><strong>Verification not approved</strong>
+        <p>${escapeHtml(v.rejection_reason || 'Please resubmit your documents.')} Free publishing still works.</p>
+        <a href="verification.html" class="btn-secondary btn-inline" style="margin-top:.75rem;width:auto;">Resubmit</a></div>`
+    : `<i class="fas fa-shield-halved"></i><div><strong>Verify to sell</strong>
+        <p>Free content needs no verification. To charge for it, verify once (takes ~3 minutes) and you can start selling
+        <em>immediately</em>, temporarily verified while we review. You keep 90% of every sale.</p>
+        <a href="verification.html" class="btn-secondary btn-inline" style="margin-top:.75rem;width:auto;">Verify to sell</a>
+        <p style="margin-top:.5rem;font-size:.85rem;">Or switch back to <strong>Free Content</strong> above to publish now.</p></div>`;
 }
 
 function showWizardStep(step) {
@@ -1267,18 +1278,14 @@ function validateWizardStep(step) {
     if (!document.getElementById('wizFile').files[0]) { showToast('Please upload a file.', 'error'); return false; }
     return true;
   }
-  if (step === 3) {
-    const isAdmin = currentUser && currentUser.role === 'admin';
-    const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
-    if (isAdmin || isVerified) {
-      const activeType = document.querySelector('.book-type-btn.active');
-      if (activeType && activeType.dataset.type === 'paid') {
-        const price = document.getElementById('wizPrice').value;
-        if (!price || parseFloat(price) <= 0) { showToast('Please enter a valid price.', 'error'); return false; }
-      }
-    }
-    return true;
+if (step === 3) {
+  if (wantsPaid()) {
+    if (!canSellNow()) { showToast('Verify your identity to sell, or choose Free Content.', 'error'); return false; }
+    const price = document.getElementById('wizPrice').value;
+    if (!price || parseFloat(price) <= 0) { showToast('Please enter a valid price.', 'error'); return false; }
   }
+  return true;
+}
   return true;
 }
 
@@ -1298,10 +1305,8 @@ function populateWizardReview() {
   const category = document.getElementById('wizCategory').value;
   const contentType = document.querySelector('input[name="content_type"]:checked').value;
   const level = document.getElementById('wizLevel').value;
-  const isAdmin = currentUser && currentUser.role === 'admin';
-  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
   const activeType = document.querySelector('.book-type-btn.active');
-  const isPaid = (isAdmin || isVerified) && activeType && activeType.dataset.type === 'paid';
+  const isPaid = canSellNow() && wantsPaid();
   const price = isPaid ? document.getElementById('wizPrice').value : null;
   const categoryLabel = category ? (getCategoryMeta(category)?.label || category) : '—';
 
@@ -1329,6 +1334,7 @@ function setupBookTypeSelector() {
       } else {
         priceField.hidden = true;
         priceInput.required = false;
+              updatePricingStepUI();
       }
     });
   });
@@ -1418,10 +1424,9 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   const fileFile = document.getElementById('wizFile').files[0];
   if (fileFile) formData.append('file', fileFile);
 
-  const isAdmin = currentUser.role === 'admin';
-  const isVerified = currentUserVerification && currentUserVerification.status === 'verified';
-  const activeType = document.querySelector('.book-type-btn.active');
-  if ((isAdmin || isVerified) && activeType && activeType.dataset.type === 'paid') {
+  // Price is only sent for Premium, and only if the user is allowed to sell
+  // (admin, verified, or temporarily verified). Free needs no verification.
+  if (canSellNow() && wantsPaid()) {
     const price = document.getElementById('wizPrice').value;
     if (price && parseFloat(price) > 0) formData.append('price', price);
   }
@@ -1437,6 +1442,9 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
       document.getElementById('thumbnailPreview').innerHTML = '';
       closeUploadModal();
       loadCourses();
+    } else if (result.verification_required) {
+      showToast('❌ ' + result.error, 'error');
+      setTimeout(() => { window.location.href = result.redirect_url || '/verification.html'; }, 1800);
     } else {
       showToast('❌ ' + (result.error || 'Upload failed'), 'error');
     }
@@ -1613,7 +1621,33 @@ async function deleteCourse(courseId) {
     showToast('Error deleting. Please try again.', 'error');
   }
 }
-
+async function adminBlockCreator(userId) {
+  const reason = prompt('Reason for blocking this creator from posting?'); if (!reason) return;
+  const hide = confirm('Also hide their existing content? (restorable)');
+  try {
+    showLoading();
+    const r = await fetch(`/api/admin/users/${userId}/block-posting`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, hide_content: hide })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Failed');
+    showToast('Creator blocked from posting', 'success'); loadCourses();
+  } catch (e) { showToast('❌ ' + e.message, 'error'); } finally { hideLoading(); }
+}
+async function adminRestoreCreator(userId) {
+  const restore = confirm('Restore posting access.\nOK = also bring back content hidden by the block.');
+  try {
+    showLoading();
+    const r = await fetch(`/api/admin/users/${userId}/restore-posting`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restore_content: restore })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Failed');
+    showToast('Creator restored', 'success'); loadCourses();
+  } catch (e) { showToast('❌ ' + e.message, 'error'); } finally { hideLoading(); }
+}
 async function refreshCoursesAfterPurchase() {
   await loadCourses();
   showToast('✅ Purchase successful! Your new content is now available.', 'success');

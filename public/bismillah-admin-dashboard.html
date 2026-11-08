@@ -85,6 +85,19 @@
     }
     .nav-item:hover, .nav-item.active { background: var(--accent); color: white; }
     
+    .nav-link-out {
+      padding: 12px 20px;
+      margin: 4px 12px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-gray);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .nav-link-out:hover { background: var(--accent); color: white; }
+
     .main-content {
       flex: 1;
       margin-left: 280px;
@@ -245,6 +258,7 @@
       <div class="nav-item" data-tab="users"><i class="fas fa-users"></i> Users</div>
       <div class="nav-item" data-tab="products"><i class="fas fa-box"></i> Products</div>
       <div class="nav-item" data-tab="orders"><i class="fas fa-shopping-cart"></i> Orders</div>
+      <a href="admin-verifications.html" class="nav-link-out"><i class="fas fa-shield-halved"></i> Verifications &amp; Blocks</a>
     </nav>
   </aside>
 

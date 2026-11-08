@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Become a Verified Creator | Core Insight</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:#faf9f6;--alt:#f5f3ee;--ink:#2b2b28;--soft:#5c584f;--muted:#8f8a7c;--line:#e9e5dc;--blue:#4a6fa5;--sage:#5a8d7d;--gold:#c9971f;--gold-d:#a97e18;--danger:#b3483f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{padding:1rem 1.5rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+header a{color:var(--ink);text-decoration:none;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:1.25rem}
+header a.back{font-family:Inter;font-size:.9rem;color:var(--soft);font-weight:500}
+main{max-width:640px;margin:2rem auto 4rem;padding:0 1.25rem}
+h1{font-family:Fraunces,Georgia,serif;font-size:1.9rem;margin-bottom:.4rem}
+.lead{color:var(--soft);margin-bottom:1.5rem}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 8px 28px -18px rgba(43,36,24,.25)}
+.card h2{font-size:1.05rem;margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center}
+.card h2 .n{width:26px;height:26px;border-radius:50%;background:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
+.card h2 .n.done{background:var(--sage);color:#fff}
+.card p.sub{color:var(--muted);font-size:.88rem;margin-bottom:1rem}
+label{display:block;font-weight:600;font-size:.88rem;color:var(--soft);margin:.9rem 0 .35rem}
+input[type=text],input[type=tel]{width:100%;padding:.8rem;border:1px solid var(--line);border-radius:8px;background:var(--alt);font:inherit}
+input:focus{outline:2px solid var(--blue);background:#fff}
+.row{display:flex;gap:.6rem}.row>*{flex:1}.row .fit{flex:0 0 auto}
+button{font:inherit;font-weight:600;border:none;border-radius:8px;padding:.8rem 1.2rem;cursor:pointer;min-height:46px}
+.btn{background:var(--gold);color:var(--ink)}.btn:hover{background:var(--gold-d)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--ink)}
+.types{display:flex;gap:.6rem}
+.types label{flex:1;margin:0;border:1.5px solid var(--line);border-radius:10px;padding:.8rem;text-align:center;cursor:pointer;background:var(--alt);color:var(--ink)}
+.types input{display:none}.types input:checked+span{font-weight:700}
+.types label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink)}
+.file{border:2px dashed #ddd6c7;border-radius:10px;padding:.9rem;background:var(--alt);font-size:.88rem;color:var(--soft)}
+.file input{margin-top:.4rem;width:100%}
+.hint{font-size:.8rem;color:var(--muted);margin-top:.25rem}
+.banner{border-radius:12px;padding:1.1rem 1.25rem;display:flex;gap:.8rem;align-items:flex-start;margin-bottom:1.25rem}
+.banner i{font-size:1.3rem;margin-top:.15rem}
+.banner.ok{background:rgba(90,141,125,.12);border:1px solid rgba(90,141,125,.35)}.banner.ok i{color:var(--sage)}
+.banner.warn{background:rgba(201,151,31,.12);border:1px solid rgba(201,151,31,.35)}.banner.warn i{color:var(--gold-d)}
+.banner.bad{background:rgba(179,72,63,.1);border:1px solid rgba(179,72,63,.35)}.banner.bad i{color:var(--danger)}
+.banner strong{display:block;margin-bottom:.15rem}
+.perks{list-style:none;margin:1rem 0 1.5rem}.perks li{padding:.25rem 0;color:var(--soft);font-size:.92rem}
+.perks i{color:var(--sage);margin-right:.5rem}
+.msg{font-size:.88rem;margin-top:.6rem;min-height:1.2em}.msg.err{color:var(--danger)}.msg.ok{color:var(--sage)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><a href="index.html">Core Insight</a><a class="back" href="courses.html"><i class="fas fa-arrow-left"></i> Back to Courses</a></header>
+<main>
+  <h1>Become a Verified Creator</h1>
+  <p class="lead">Publishing free content never needs verification. You only need this to <strong>sell</strong> paid courses, books or products and receive payouts.</p>
+
+  <div id="statusArea"></div>
+
+  <div id="flow" hidden>
+    <ul class="perks">
+      <li><i class="fas fa-bolt"></i> <strong>Sell immediately</strong> after submitting. You're verified temporarily while we review.</li>
+      <li><i class="fas fa-circle-check"></i> Earn the ✓ Verified Creator badge once approved.</li>
+      <li><i class="fas fa-coins"></i> Keep 90% of every sale. Core Insight takes a 10% platform fee.</li>
+    </ul>
+
+    <section class="card" id="phoneCard">
+      <h2><span class="n" id="n1">1</span> Verify your phone</h2>
+      <p class="sub">We'll email a 6-digit code to your account email.</p>
+      <label for="phone">Phone number</label>
+      <div class="row"><input type="tel" id="phone" placeholder="+234 801 234 5678"><button class="btn fit" id="sendOtp" type="button">Send code</button></div>
+      <div id="otpRow" hidden>
+        <label for="otp">6-digit code</label>
+        <div class="row"><input type="text" id="otp" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn fit" id="verifyOtp" type="button">Confirm</button></div>
+      </div>
+      <p class="msg" id="phoneMsg"></p>
+    </section>
+
+    <form class="card" id="docsForm" hidden>
+      <h2><span class="n">2</span> Upload your documents</h2>
+      <p class="sub">JPG, PNG or PDF, max 10MB each. Only our review team sees these.</p>
+      <label>Account type</label>
+      <div class="types">
+        <label><input type="radio" name="verification_type" value="individual" checked><span>Individual</span></label>
+        <label><input type="radio" name="verification_type" value="business"><span>Business</span></label>
+      </div>
+      <div id="bizWrap" hidden><label for="biz">Business name</label><input type="text" id="biz" name="business_name" maxlength="150"></div>
+
+      <label>Government ID</label>
+      <div class="file"><i class="fas fa-id-card"></i> Passport, national ID or driver's licence<input type="file" name="government_id" accept="image/*,.pdf" required></div>
+      <label>Selfie holding your ID</label>
+      <div class="file"><i class="fas fa-camera"></i> Your face and the ID must both be clearly visible<input type="file" name="selfie_with_id" accept="image/*" required></div>
+      <label>Proof of address</label>
+      <div class="file"><i class="fas fa-house"></i> Utility bill or bank statement from the last 3 months<input type="file" name="address_proof" accept="image/*,.pdf" required></div>
+
+      <button class="btn" id="submitBtn" type="submit" style="width:100%;margin-top:1.4rem">Submit for verification</button>
+      <p class="msg" id="docsMsg"></p>
+    </form>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let state = null;
+
+function banner(kind, icon, title, body, actions) {
+  return `<div class="banner ${kind}"><i class="fas ${icon}"></i><div><strong>${title}</strong>${body}${actions || ''}</div></div>`;
+}
+const toCourses = `<p style="margin-top:.75rem"><a href="courses.html"><button class="btn" type="button">Go publish something</button></a></p>`;
+
+function render() {
+  const s = state.status;
+  const area = $('statusArea'), flow = $('flow');
+  flow.hidden = true; area.innerHTML = '';
+
+  if (state.posting_blocked) {
+    area.innerHTML = banner('bad', 'fa-ban', 'Posting is suspended',
+      `<p>${esc(state.blocked_reason || 'Your posting privileges were suspended by our team.')} Contact support if you think this is a mistake.</p>`);
+    return;
+  }
+  if (s === 'verified') {
+    area.innerHTML = banner('ok', 'fa-circle-check', "You're a Verified Creator", '<p>You can sell paid courses, books and products. Your ✓ badge shows on your content.</p>', toCourses);
+    return;
+  }
+  if (s === 'temporary') {
+    area.innerHTML = banner('ok', 'fa-hourglass-half', "You're temporarily verified",
+      "<p>Thanks, we have your documents. You can <strong>sell right now</strong> while our team reviews them. We'll email you when review is done. If anything doesn't check out, paid selling is paused until it's fixed.</p>", toCourses);
+    return;
+  }
+  if (s === 'rejected') {
+    area.innerHTML = banner('bad', 'fa-triangle-exclamation', 'We couldn\'t approve your documents',
+      `<p>${esc(state.rejection_reason || 'Please check your documents and try again.')} Paid selling is paused. Free content is unaffected. Resubmit below.</p>`);
+  }
+  flow.hidden = false;
+  const phoneOk = state.phone_verified;
+  $('n1').className = 'n' + (phoneOk ? ' done' : '');
+  $('n1').innerHTML = phoneOk ? '<i class="fas fa-check"></i>' : '1';
+  $('phoneCard').hidden = phoneOk;
+  $('docsForm').hidden = !phoneOk;
+}
+
+async function load() {
+  const me = await fetch('/api/me').then(r => r.json()).catch(() => null);
+  if (!me) { location.href = 'login.html'; return; }
+  const r = await fetch('/api/verification/status');
+  if (r.status === 401) { location.href = 'login.html'; return; }
+  state = await r.json();
+  render();
+}
+
+$('sendOtp').onclick = async () => {
+  const phone = $('phone').value.trim();
+  const m = $('phoneMsg'); m.className = 'msg';
+  if (phone.replace(/\D/g, '').length < 7) { m.textContent = 'Enter a valid phone number.'; m.classList.add('err'); return; }
+  $('sendOtp').disabled = true;
+  try {
+    const r = await fetch('/api/verification/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number: phone }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not send code');
+    $('otpRow').hidden = false; m.textContent = d.message || 'Code sent. Check your email.'; m.classList.add('ok');
+  } catch (e) { m.textContent = e.message; m.classList.add('err'); }
+  $('sendOtp').disabled = false;
+};
+$('verifyOtp').onclick = async () => {
+  const m = $('phoneMsg'); m.className = 'msg';
+  try {
+    const r = await fetch('/api/verification/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ otp_code: $('otp').value.trim() }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Invalid code');
+    state.phone_verified = true; render();
+  } catch (e) { m.textContent = e.message; m.classList.add('err'); }
+};
+document.querySelectorAll('input[name=verification_type]').forEach(r => r.addEventListener('change', () => {
+  $('bizWrap').hidden = document.querySelector('input[name=verification_type]:checked').value !== 'business';
+}));
+
+$('docsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const m = $('docsMsg'); m.className = 'msg'; m.textContent = '';
+  const btn = $('submitBtn'); btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const r = await fetch('/api/verification/submit', { method: 'POST', body: new FormData($('docsForm')) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Submission failed');
+    await load();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) { m.textContent = err.message; m.classList.add('err'); }
+  btn.disabled = false; btn.textContent = 'Submit for verification';
+});
+load();
+</script>
+</body>
+</html>

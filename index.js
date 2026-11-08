@@ -345,6 +345,7 @@ app.use(session({
 app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+require('./verification-backend')(app, db, { sendEmail });
 require('./jobs-backend')(app, db);
 require('./services-backend')(app, db);
 
@@ -4839,7 +4840,9 @@ app.get("/api/courses", async (req, res) => {
     const user = req.session.user || null;
 
     const result = await db.query(`
-      SELECT c.*, u.username AS author_name, u.role AS user_role
+      SELECT c.*, u.username AS author_name, u.role AS user_role,
+       u.verification_status AS creator_verification_status,
+       u.posting_blocked AS creator_blocked
       FROM courses c
       LEFT JOIN users u ON c.user_id = u.id
       WHERE (c.is_deleted = 0 OR c.is_deleted IS NULL)
@@ -4926,6 +4929,7 @@ app.get("/api/my-courses", async (req, res) => {
       if (course.user_id && typeof course.user_id === 'bigint') {
         course.user_id = Number(course.user_id);
       }
+      course.creator_blocked = (user && user.role === 'admin') ? !!course.creator_blocked : undefined;
       return course;
     });
 
@@ -5096,11 +5100,20 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
       return res.status(401).json({ error: "Please login to upload courses" });
     }
 
-    const { title, description, price, author, content_type } = req.body;
+const { title, description, price, author, content_type,
+        category, level, page_count, language, preview_url } = req.body;
     
     if (!title || title.trim() === '') {
       return res.status(400).json({ error: "Title is required" });
     }
+const priceNum = parseFloat(price) || 0;
+if (priceNum > 0 && !(await app.locals.canSell(req.session.user))) {
+  return res.status(403).json({
+    error: "Verify your identity to sell paid content. Free content never needs verification.",
+    verification_required: true,
+    redirect_url: '/verification.html'
+  });
+}
 
     if (!req.files?.file || !req.files?.file[0]) {
       return res.status(400).json({ error: "Course file is required" });
@@ -5122,23 +5135,29 @@ app.post("/api/courses", uploadCourse, async (req, res) => {
     console.log(`✅ Thumbnail uploaded to: ${thumbnailUrl.substring(0, 60)}...`);
 
     // Store in database
-    const result = await db.query(
-      `INSERT INTO courses (
-        title, description, file_url, thumbnail_url,
-        price, type, user_id, author, content_type, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        title.trim(),
-        description ? description.trim() : '',
-        fileUrl,
-        thumbnailUrl,
-        parseFloat(price) || 0,
-        (parseFloat(price) > 0) ? 'paid' : 'free',
-        req.session.user.id,
-        author || req.session.user.username,
-        content_type || 'book'
-      ]
-    );
+   const result = await db.query(
+  `INSERT INTO courses (
+    title, description, file_url, thumbnail_url,
+    price, type, user_id, author, content_type,
+    category, level, page_count, language, preview_url, created_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+  [
+    title.trim(),
+    description ? description.trim() : '',
+    fileUrl,
+    thumbnailUrl,
+    priceNum,
+    priceNum > 0 ? 'paid' : 'free',
+    req.session.user.id,
+    author || req.session.user.username,
+    content_type || 'book',
+    category || null,
+    level || null,
+    parseInt(page_count) || null,
+    language || null,
+    preview_url || null
+  ]
+);
 
     res.json({
       success: true,
@@ -11357,17 +11376,17 @@ const checkSellerVerification = async (req, res, next) => {
                 redirect_url: '/verification.html'
             });
         }
-        
-        if (verificationStatus === 'pending_review') {
-            return res.status(403).json({ 
-                error: "Your verification is pending review. You can create draft services, but they won't be visible until verification is complete (within 2 hours).",
+
+        if (verificationStatus === 'rejected') {
+            return res.status(403).json({
+                error: "Your verification was not approved. Please resubmit your documents.",
                 verification_required: true,
-                verification_status: 'pending_review',
-                redirect_url: '/verification.html',
-                can_create_drafts: true  // Allow draft creation during pending
+                verification_status: 'rejected',
+                redirect_url: '/verification.html'
             });
         }
 
+        // 'temporary' and 'verified' fall through and are allowed
         next();
     } catch (err) {
         console.error("Verification check error:", err);

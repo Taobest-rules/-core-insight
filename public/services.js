@@ -11167,43 +11167,114 @@ async function loadOrders() {
   }
 }
 
-function renderOrderCard(order) {
-  const isProvider = currentUser && order.provider_id === currentUser.id;
-  const otherParty = isProvider ? order.client_name : order.provider_name;
-  const statusLabel = (order.status || 'pending').replace(/_/g, ' ');
+const ORDER_LABELS = { payment_pending: 'awaiting payment', escrow_funded: 'paid · awaiting arrival', in_progress: 'in progress',
+  client_review: 'awaiting inspection', release_pending: 'payment releasing', disputed: 'disputed', payout_failed: 'payout pending', refund_failed: 'refund pending' };
 
-  let actionsHtml = '';
-  if (order.status === 'escrow_funded' && !isProvider) {
-    actionsHtml = `<button class="btn sm primary order-generate-code-btn" data-order-id="${order.id}">Get Arrival Code</button>`;
-  } else if (order.status === 'travelling' && !isProvider) {
-    actionsHtml = `<button class="btn sm order-view-code-btn" data-order-id="${order.id}" data-code="${order.arrival_code || ''}">View Arrival Code</button>`;
-  } else if (order.status === 'travelling' && isProvider) {
-    actionsHtml = `<button class="btn sm primary order-verify-arrival-btn" data-order-id="${order.id}">Enter Arrival Code</button>`;
-  } else if (order.status === 'in_progress' && isProvider) {
-    actionsHtml = `<button class="btn sm primary order-mark-complete-btn" data-order-id="${order.id}">Mark Work Complete</button>
-                    <button class="btn sm order-change-order-btn" data-order-id="${order.id}">Request Additional Work</button>`;
-  } else if (order.status === 'client_review' && !isProvider) {
-    actionsHtml = `<button class="btn sm success order-accept-release-btn" data-order-id="${order.id}">Accept & Release Funds</button>
-                    <button class="btn sm order-request-fix-btn" data-order-id="${order.id}">Request a Fix</button>
-                    <button class="btn sm danger order-dispute-btn" data-order-id="${order.id}">Open Dispute</button>`;
+function renderOrderCard(order) {
+  const isProvider = currentUser && Number(order.provider_id) === Number(currentUser.id);
+  const s = order.status, online = order.job_type === 'online';
+  const b = (cls, act, txt) => `<button class="btn sm ${cls}" data-act="${act}" data-order-id="${order.id}">${txt}</button>`;
+  let a = '';
+
+  if (s === 'payment_pending') a += isProvider ? '<span style="font-size:13px;opacity:.75">Waiting for the client to pay</span>' : b('primary', 'pay', `Pay $${Number(order.agreed_price).toFixed(2)}`);
+  if (s === 'escrow_funded') a += isProvider ? b('primary', 'enter-arrival', 'Enter Arrival Code') : b('', 'view-arrival', 'View Arrival Code');
+  if (s === 'in_progress' && isProvider) a += b('primary', 'complete', online ? 'Mark Delivered' : 'Mark Work Complete') + b('', 'change-order', 'Request Additional Work');
+  if (s === 'client_review') {
+    if (isProvider) a += order.client_satisfied_at ? b('primary', 'enter-completion', 'Enter Completion Code') : '<span style="font-size:13px;opacity:.75">Waiting for client inspection</span>';
+    else a += order.completion_code ? b('success', 'view-completion', 'View Completion Code') : b('success', 'satisfied', "I'm Satisfied") + b('', 'fix', 'Request a Fix');
   }
 
-  return `<div class="service-card" style="cursor:default;">
-    <div class="card-body">
-      <h3>${escapeHtml(order.title || 'Service Order')}</h3>
-      <div class="provider-byline">
-        <div class="provider-meta">
-          <div class="name">${isProvider ? 'Client' : 'Provider'}: ${escapeHtml(otherParty || '—')}</div>
-        </div>
-      </div>
-      <div class="price-row">
-        <div class="price">$${Number(order.agreed_price || 0).toFixed(2)}</div>
-        <span class="status-pill ${order.status}">${statusLabel}</span>
-      </div>
-      <div class="order-actions-row">${actionsHtml}</div>
-    </div>
-  </div>`;
+  // Disputes (with photo evidence) live in the chat
+  if (['in_progress', 'client_review', 'release_pending', 'disputed'].includes(s) && order.conversation_id) {
+    a += `<a class="btn sm danger" href="/messages.html?conversation=${order.conversation_id}">${s === 'disputed' ? 'View dispute' : 'Open chat / dispute'}</a>`;
+  }
+  if (['payment_pending', 'escrow_funded', 'in_progress'].includes(s)) a += b('danger', 'cancel', 'Cancel Job');
+  a += b('', 'agreement', 'View Agreement');
+
+  const timer = order.started_at && ['in_progress', 'client_review'].includes(s)
+    ? `<div class="order-timer" data-started="${order.started_at}" style="font-size:12.5px;margin:6px 0;color:var(--charcoal-soft)"></div>` : '';
+
+  return `<div class="service-card" style="cursor:default;"><div class="card-body">
+    <h3>${escapeHtml(order.title || 'Service Order')}</h3>
+    <div class="provider-byline"><div class="provider-meta"><div class="name">${isProvider ? 'Client' : 'Provider'}: ${escapeHtml((isProvider ? order.client_name : order.provider_name) || '—')} · ${online ? '💻 Online' : '📍 On-site'}</div></div></div>
+    ${timer}
+    <div class="price-row"><div class="price">$${Number(order.agreed_price || 0).toFixed(2)}</div><span class="status-pill ${s}">${ORDER_LABELS[s] || s.replace(/_/g, ' ')}</span></div>
+    <div class="order-actions-row">${a}</div></div></div>`;
 }
+
+function tickOrderTimers() {
+  document.querySelectorAll('.order-timer').forEach(el => {
+    const t0 = new Date(el.dataset.started); if (isNaN(t0)) return;
+    const m = Math.floor((Date.now() - t0) / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+    el.textContent = `⏱ Started ${t0.toLocaleDateString()} ${t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · running ${d ? d + 'd ' : ''}${h}h ${m % 60}m`;
+  });
+}
+setInterval(tickOrderTimers, 30000);
+function wireOrderCardActions() { tickOrderTimers(); }   // loadOrders() already calls this
+
+async function svcPost(path, body) {
+  const res = await fetch(path, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Something went wrong');
+  return data;
+}
+
+// code modal: display or entry (mode: 'arrival' | 'completion')
+function showCodeDisplay(code, label) {
+  document.getElementById('arrivalCodeEntryView')?.classList.add('hidden');
+  document.getElementById('arrivalCodeDisplayView')?.classList.remove('hidden');
+  document.querySelector('#arrivalCodeDisplayView .lbl').textContent = label;
+  document.getElementById('arrivalCodeDisplay').textContent = code || '------';
+  openModal(document.getElementById('arrivalCodeModal'));
+}
+function showCodeEntry(orderId, mode) {
+  const m = document.getElementById('arrivalCodeModal');
+  document.getElementById('arrivalCodeDisplayView')?.classList.add('hidden');
+  document.getElementById('arrivalCodeEntryView')?.classList.remove('hidden');
+  m.dataset.orderId = orderId; m.dataset.mode = mode;
+  document.getElementById('arrivalCodeInput').value = '';
+  document.getElementById('arrivalCodeError').classList.remove('show');
+  openModal(m);
+}
+document.getElementById('verifyArrivalCodeBtn')?.addEventListener('click', async () => {
+  const m = document.getElementById('arrivalCodeModal'), err = document.getElementById('arrivalCodeError');
+  const path = m.dataset.mode === 'completion' ? 'confirm-completion' : 'verify-arrival';
+  try {
+    await svcPost(`/api/service-orders/${m.dataset.orderId}/${path}`, { code: document.getElementById('arrivalCodeInput').value.trim() });
+    closeModal(m); showToast(path === 'verify-arrival' ? 'Arrival confirmed. Timer started' : 'Confirmed. Payment releases in 7 days', 'success'); loadOrders();
+  } catch (e) { err.textContent = e.message; err.classList.add('show'); }
+});
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const id = btn.dataset.orderId, act = btn.dataset.act, base = `/api/service-orders/${id}`;
+  try {
+    if (act === 'pay') {
+      btn.disabled = true; btn.textContent = 'Opening payment…';
+      try { const d = await svcPost(`${base}/pay`); window.location.href = d.paymentLink; }
+      catch (er) { btn.disabled = false; btn.textContent = 'Pay'; throw er; }
+    }
+    else if (act === 'view-arrival') { const r = await (await fetch(`${base}/arrival-code`, { credentials: 'include' })).json(); showCodeDisplay(r.arrival_code, 'Give this to the freelancer on arrival'); }
+    else if (act === 'enter-arrival') showCodeEntry(id, 'arrival');
+    else if (act === 'complete') { if (confirm('Mark this job as complete?')) { await svcPost(`${base}/mark-completed`); showToast('Marked complete', 'success'); loadOrders(); } }
+    else if (act === 'satisfied') { const d = await svcPost(`${base}/satisfied`); showCodeDisplay(d.completion_code, 'Give this to the freelancer to finish the job'); loadOrders(); }
+    else if (act === 'view-completion') { const d = await svcPost(`${base}/satisfied`); showCodeDisplay(d.completion_code, 'Give this to the freelancer to finish the job'); }
+    else if (act === 'enter-completion') showCodeEntry(id, 'completion');
+    else if (act === 'fix') { const notes = prompt('What needs to be fixed?'); if (notes) { await svcPost(`${base}/request-fix`, { notes }); loadOrders(); } }
+    else if (act === 'cancel') {
+      const reason = prompt('Why are you cancelling? The client is refunded in full.'); if (!reason) return;
+      const d = await svcPost(`${base}/cancel`, { reason }); showToast(d.refunded ? 'Cancelled. Client is being refunded' : 'Cancelled', 'success'); loadOrders();
+    }
+    else if (act === 'change-order') { /* keep your existing change-order prompt code here */ }
+    else if (act === 'agreement') {
+      const d = await (await fetch(`${base}/agreement`, { credentials: 'include' })).json(); const g = d.agreement;
+      showModalWithContent('Agreement', `<p><strong>${escapeHtml(g.client)}</strong> hired <strong>${escapeHtml(g.provider)}</strong> · $${g.amount.toFixed(2)} · ${g.job_type}</p>
+        <p style="white-space:pre-wrap">${escapeHtml(g.description)}</p>
+        <p style="font-size:12px;color:var(--charcoal-soft)">Accepted ${new Date(g.accepted_at).toLocaleString()}<br>Ref: ${g.hash}</p><hr>
+        ${d.events.map(ev => `<div style="font-size:13px;margin:4px 0">${new Date(ev.created_at).toLocaleString()}: <strong>${ev.event.replace(/_/g, ' ')}</strong>${ev.actor ? ' by ' + escapeHtml(ev.actor) : ''}${ev.detail ? ' · ' + escapeHtml(ev.detail) : ''}</div>`).join('')}`);
+    }
+  } catch (err) { showToast(err.message, 'error'); }
+});
 
 function wireOrderCardActions() {
   document.querySelectorAll('.order-generate-code-btn').forEach(btn => {

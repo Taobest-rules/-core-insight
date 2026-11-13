@@ -1,455 +1,374 @@
-/* ============================================================
-   quote-chat.js — quotes inside the chat (messages.html)
-   Add before </body> of messages.html:  <script src="quote-chat.js"></script>
-
-   - Adds a "Quote" button next to Send in the chat box.
-   - Form: amount to be paid + what it covers -> review -> confirm & send.
-   - Messages that the server stores as "quote:<id>" are drawn as a
-     quote card. The other person can Accept (confirm), Counter or
-     Decline. Either side can quote; a counter replaces the old one.
-   Self-contained: its own styles and modal, no dependency on the
-   page's CSS. Finds the chat box / conversation id by itself.
-   ============================================================ */
+/* quote-chat.js — quote cards, send-quote sheet, pinned job panel, dispute + evidence */
 (function () {
-  'use strict';
-  if (window.__coreQuoteLoaded) return;
-  window.__coreQuoteLoaded = true;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = n => '$' + Number(n || 0).toFixed(2);
+  const fdate = d => d ? new Date(d).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const say = (m, bad) => (window.showToast ? window.showToast(bad ? 'Hold on' : 'Done', m) : alert(m));
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { credentials: 'include', ...opts });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Something went wrong');
+    return d;
+  }
+  const post = (p, b) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) });
 
-  // Elements matching this are conversation-list previews: show a short label, not a card
-  const LIST_PREVIEW_SELECTOR = '[class*="preview"], [class*="conversation-item"], [class*="conv-item"], [class*="chat-list"]';
+  let convId = null, panelTimer = null, panelOpen = true;
+  const ctxCache = {}, quoteCache = new Map();
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const csrf = () => (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+  /* ---------- styles ---------- */
+  document.head.insertAdjacentHTML('beforeend', `<style>
+  .cq-card{width:min(370px,86vw);background:var(--paper);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(37,35,31,.07);color:var(--ink);text-align:left}
+  .cq-top{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:linear-gradient(135deg,var(--gold-tint),#fff 85%);border-bottom:1px solid var(--line);font:700 10.5px Inter,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--gold-deep)}
+  .cq-body{padding:16px 16px 14px}
+  .cq-sentence{font:500 17px/1.5 Fraunces,Georgia,serif}
+  .cq-sentence b{color:var(--gold-deep);font-weight:600}
+  .cq-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .cq-chip{display:inline-flex;align-items:center;gap:5px;font:600 11px Inter,sans-serif;padding:4px 10px;border-radius:20px;background:var(--cream);border:1px solid var(--line);color:var(--ink2)}
+  .cq-chip.ok{background:#e4efe9;border-color:transparent;color:#3d6f5e}.cq-chip.warn{background:var(--gold-tint);border-color:transparent;color:var(--gold-deep)}
+  .cq-chip.bad{background:#f6e3de;border-color:transparent;color:var(--danger)}.cq-chip.blue{background:#e3ecf5;border-color:transparent;color:#3c5c8a}
+  .cq-note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+  .cq-actions{display:flex;gap:8px;padding:0 16px 16px;flex-wrap:wrap}
+  .cq-btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:9px 15px;font:600 13px Inter,sans-serif;cursor:pointer;transition:.12s}
+  .cq-btn:hover{background:var(--cream)}.cq-btn.primary{background:var(--ink);border-color:var(--ink);color:var(--cream)}.cq-btn.primary:hover{background:#000}
+  .cq-btn.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}.cq-btn.gold:hover{background:var(--gold-deep)}
+  .cq-btn.danger{color:var(--danger);border-color:#ecc9c0}.cq-btn.sm{padding:7px 12px;font-size:12px}.cq-btn:disabled{opacity:.5;cursor:default}
+  .cq-overlay{position:fixed;inset:0;background:rgba(37,35,31,.45);backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:0}
+  @media(min-width:560px){.cq-overlay{align-items:center;padding:20px}}
+  .cq-sheet{background:var(--paper);width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:24px 24px 0 0;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.25);color:var(--ink)}
+  @media(min-width:560px){.cq-sheet{border-radius:24px}}
+  .cq-sheet h3{font:600 22px Fraunces,Georgia,serif;margin:0 0 4px}.cq-sub{font-size:13px;color:var(--ink2);margin:0 0 16px;line-height:1.5}
+  .cq-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .cq-type{border:1.5px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;font-size:13px;text-align:center;background:var(--cream)}
+  .cq-type input{display:none}.cq-type b{display:block;font-size:14px;margin-bottom:2px}.cq-type.on{border-color:var(--gold);background:var(--gold-tint)}
+  .cq-field{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.cq-field>span{font:600 17px Fraunces,Georgia,serif;color:var(--gold-deep);padding-top:10px;min-width:44px}
+  .cq-field textarea,.cq-field input,.cq-sheet textarea.cq-in,.cq-code{flex:1;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font:14px Inter,sans-serif;background:var(--cream);color:var(--ink);resize:vertical}
+  .cq-field textarea{min-height:84px}.cq-field textarea:focus,.cq-field input:focus,.cq-sheet textarea.cq-in:focus,.cq-code:focus{outline:none;border-color:var(--gold);background:#fff}
+  .cq-preview{background:var(--cream);border:1px dashed var(--line);border-radius:14px;padding:12px 14px;font:500 15px/1.5 Fraunces,Georgia,serif;margin:6px 0 14px;min-height:46px;color:var(--ink2)}
+  .cq-err{color:var(--danger);font-size:12.5px;min-height:18px;margin-bottom:8px}.cq-row{display:flex;gap:8px;justify-content:flex-end}
+  .cq-drop{border:2px dashed var(--line);border-radius:16px;padding:18px;text-align:center;font-size:13px;color:var(--ink2);cursor:pointer;background:var(--cream)}.cq-drop:hover{border-color:var(--gold)}
+  .cq-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.cq-thumb{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--cream)}
+  .cq-thumb img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block}.cq-thumb button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;font-size:13px;line-height:1}
+  /* job panel */
+  .cq-panel{margin:12px 16px 4px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:18px;box-shadow:0 4px 16px rgba(37,35,31,.05);overflow:hidden;flex-shrink:0}
+  .cq-ph{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer}.cq-pt{flex:1;min-width:0;font:600 14px Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cq-pt small{display:block;font-weight:500;font-size:11.5px;color:var(--muted)}.cq-pb{padding:0 14px 14px;border-top:1px solid var(--line)}
+  .cq-steps{display:flex;align-items:flex-start;margin:14px 0 12px}.cq-step{flex:1;text-align:center;position:relative;font-size:10.5px;color:var(--muted);font-weight:600}
+  .cq-step:before{content:'';position:absolute;top:9px;left:-50%;width:100%;height:3px;background:var(--line);z-index:0}.cq-step:first-child:before{display:none}
+  .cq-step i{position:relative;z-index:1;display:block;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--line);margin:0 auto 5px;font-size:10px;line-height:16px;font-style:normal;color:#fff}
+  .cq-step.done{color:var(--ink2)}.cq-step.done:before{background:var(--sage)}.cq-step.done i{background:var(--sage);border-color:var(--sage)}
+  .cq-step.cur i{border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,151,31,.18)}.cq-step.cur{color:var(--ink)}
+  .cq-head{font:600 15px Fraunces,Georgia,serif;margin:4px 0 2px}.cq-head+p{margin:0 0 10px;font-size:12.5px;color:var(--ink2);line-height:1.5}
+  .cq-codebox{background:var(--ink);color:var(--cream);border-radius:16px;text-align:center;padding:14px;margin:8px 0}
+  .cq-codebox small{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.7}.cq-codebox b{display:block;font:600 30px Fraunces,Georgia,serif;letter-spacing:.2em;margin-top:2px}
+  .cq-inline{display:flex;gap:8px;margin:8px 0}.cq-code{text-align:center;letter-spacing:.3em;font:600 18px Fraunces,Georgia,serif;max-width:170px;resize:none}
+  .cq-timer{font-size:12.5px;color:var(--ink2);margin:6px 0}.cq-panel .cq-actions{padding:6px 0 0}
+  .cq-dispute{background:#fbf1ee;border:1px solid #efd3ca;border-radius:14px;padding:12px;margin:8px 0;font-size:13px}.cq-dispute strong{color:var(--danger)}
+  .cq-evid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-top:8px}.cq-evid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:zoom-in;border:1px solid var(--line)}
+  .cq-evnote{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px;font-size:12.5px}
+  .cq-lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9500;display:flex;align-items:center;justify-content:center;cursor:zoom-out}.cq-lb img{max-width:94vw;max-height:92vh;border-radius:12px}
+  </style>`);
 
-  async function api(url, opts) {
-    opts = opts || {};
-    const res = await fetch(url, Object.assign({ credentials: 'include' }, opts, {
-      headers: Object.assign({ 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() }, opts.headers || {}),
-    }));
-    let data = {};
-    try { data = await res.json(); } catch (e) { /* non-JSON */ }
-    if (!res.ok) throw new Error(data.error || 'Something went wrong');
-    return data;
+  /* ---------- helpers ---------- */
+  function sheet(html) {
+    document.querySelectorAll('.cq-overlay').forEach(x => x.remove());
+    const o = document.createElement('div'); o.className = 'cq-overlay';
+    o.innerHTML = `<div class="cq-sheet">${html}</div>`;
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+    document.body.appendChild(o); return o;
+  }
+  function zoom(url) {
+    const lb = document.createElement('div'); lb.className = 'cq-lb'; lb.innerHTML = `<img src="${esc(url)}">`;
+    lb.onclick = () => lb.remove(); document.body.appendChild(lb);
+  }
+  document.addEventListener('click', e => { const z = e.target.closest('[data-zoom]'); if (z) zoom(z.dataset.zoom); });
+  function askText(title, sub, placeholder, cta, danger) {
+    return new Promise(resolve => {
+      const o = sheet(`<h3>${esc(title)}</h3><p class="cq-sub">${esc(sub)}</p>
+        <textarea class="cq-in" id="cqAsk" rows="4" placeholder="${esc(placeholder)}"></textarea><div class="cq-err" id="cqAskErr"></div>
+        <div class="cq-row"><button class="cq-btn" id="cqAskNo">Back</button><button class="cq-btn ${danger ? 'danger' : 'primary'}" id="cqAskGo">${esc(cta)}</button></div>`);
+      o.querySelector('#cqAskNo').onclick = () => { o.remove(); resolve(null); };
+      o.querySelector('#cqAskGo').onclick = () => {
+        const v = o.querySelector('#cqAsk').value.trim();
+        if (v.length < 5) { o.querySelector('#cqAskErr').textContent = 'Please add a short reason.'; return; }
+        o.remove(); resolve(v);
+      };
+    });
+  }
+  async function context() {
+    if (!convId) return null;
+    if (!ctxCache[convId]) ctxCache[convId] = api(`/api/quotes/context?conversation_id=${convId}`).catch(() => null);
+    return ctxCache[convId];
+  }
+  function refreshAll() {
+    quoteCache.clear();
+    if (window.refreshThreadMessages) window.refreshThreadMessages(true);
+    refreshPanel();
   }
 
-  function toast(msg, type) {
-    const t = document.createElement('div');
-    t.className = 'cq-toast';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-  }
-
-  /* ---------------- styles ---------------- */
-  const style = document.createElement('style');
-  style.textContent = `
-  .cq-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;border:1px solid #c9971f;background:#f8ecd2;color:#2b2b28;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
-  .cq-btn:hover{background:#c9971f}
-  .cq-btn.cq-float{position:fixed;right:16px;bottom:90px;z-index:2500;box-shadow:0 6px 18px rgba(0,0,0,.18)}
-  .cq-overlay{position:fixed;inset:0;background:rgba(43,43,40,.45);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px}
-  .cq-overlay[hidden]{display:none}
-  .cq-box{background:#fff;color:#2b2b28;border-radius:18px;width:100%;max-width:460px;max-height:90vh;overflow:auto;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.25);font:14px/1.5 Inter,system-ui,sans-serif}
-  .cq-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .cq-head h3{margin:0;font:600 19px Fraunces,Georgia,serif}
-  .cq-x{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:#55524a}
-  .cq-ctx{background:#faf9f6;border:1px solid #e9e5dc;border-radius:10px;padding:9px 12px;font-size:12.5px;color:#55524a;margin-bottom:14px}
-  .cq-box label{display:block;font-weight:600;font-size:12.5px;margin:12px 0 5px}
-  .cq-help{margin:0 0 8px;font-size:12px;color:#8a8578}
-  .cq-money{position:relative}
-  .cq-money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8a8578}
-  .cq-box input[type=number],.cq-box input[type=text]{width:100%;box-sizing:border-box;padding:11px 12px;border:1.5px solid #e2ddd2;border-radius:10px;font:inherit;background:#faf9f6;color:#2b2b28}
-  .cq-money input{padding-left:26px!important;font-size:18px!important;font-weight:600}
-  .cq-box input:focus{outline:none;border-color:#c9971f;background:#fff}
-  .cq-item{display:flex;gap:6px;margin-bottom:6px}
-  .cq-item button{border:1px solid #e2ddd2;background:#fff;border-radius:8px;width:36px;cursor:pointer;color:#b3492f}
-  .cq-link{background:none;border:0;color:#3c5c8a;font:600 12.5px inherit;cursor:pointer;padding:4px 0}
-  .cq-err{color:#b3492f;font-size:12.5px;min-height:18px;margin-top:8px}
-  .cq-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
-  .cq-primary{background:#c9971f;border:1px solid #c9971f;color:#2b2b28;font-weight:600;border-radius:10px;padding:11px 18px;cursor:pointer;font:600 13.5px inherit}
-  .cq-primary:hover{background:#a97c15}
-  .cq-primary:disabled{opacity:.6;cursor:wait}
-  .cq-ghost{background:#fff;border:1px solid #ddd7ca;border-radius:10px;padding:11px 16px;cursor:pointer;font:500 13.5px inherit;color:#2b2b28}
-  .cq-sum{border:1.5px solid #c9971f;background:#f8ecd2;border-radius:14px;padding:14px}
-  .cq-sum .cq-amt{font:600 30px Fraunces,Georgia,serif}
-  .cq-sum ul,.cq-card ul{list-style:none;margin:8px 0 0;padding:0}
-  .cq-sum li,.cq-card li{font-size:13px;padding:2px 0;display:flex;gap:7px;color:#55524a}
-  .cq-sum li:before,.cq-card li:before{content:"✓";color:#497363;font-weight:700}
-  .cq-note{font-size:12px;color:#55524a;margin-top:10px}
-  .cq-card{border:1.5px solid #c9971f;background:#f8ecd2;border-radius:14px;padding:13px 15px;width:300px;max-width:100%;margin:4px 0;color:#2b2b28;font:13px/1.45 Inter,system-ui,sans-serif;text-align:left}
-  .cq-card.cq-accepted{border-color:#5a8d7d;background:#e6efe9}
-  .cq-card.cq-dead{border-color:#ddd7ca;background:#f5f3ee;opacity:.85}
-  .cq-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#a97c15}
-  .cq-pill{font-size:10.5px;padding:2px 8px;border-radius:20px;background:#fff;color:#55524a;text-transform:none;letter-spacing:0}
-  .cq-card .cq-amt{font:600 24px Fraunces,Georgia,serif;margin:4px 0}
-  .cq-meta{font-size:11.5px;color:#55524a;margin-top:8px}
-  .cq-meta.cq-warn{color:#b3492f;font-weight:600}
-  .cq-card-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-  .cq-card-actions button{flex:1;min-width:76px;padding:8px 6px;border-radius:8px;border:1px solid #ddd7ca;background:#fff;font:600 12px inherit;cursor:pointer;color:#2b2b28}
-  .cq-card-actions .cq-accept{background:#5a8d7d;border-color:#5a8d7d;color:#fff}
-  .cq-card-actions .cq-decline{border-color:#b3492f;color:#b3492f;background:transparent}
-  .cq-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2b2b28;color:#faf9f6;padding:11px 16px;border-radius:10px;z-index:9500;font:13px Inter,sans-serif}
-  `;
-  document.head.appendChild(style);
-
-  /* ---------------- conversation context ---------------- */
-  let manualConversationId = null;
-  function currentConversationId() {
-    const form = document.getElementById('sendMessageForm');
-    const fromUrl = new URLSearchParams(location.search).get('conversation');
-    return Number(manualConversationId || window.activeConversationId || (form && form.dataset.conversationId) || fromUrl) || null;
-  }
-
-  const ctxCache = new Map();
-  async function getContext(convId) {
-    if (!ctxCache.has(convId)) ctxCache.set(convId, api('/api/quotes/context?conversation_id=' + convId).catch(e => { ctxCache.delete(convId); throw e; }));
-    return ctxCache.get(convId);
-  }
-
-  /* ---------------- modal ---------------- */
-  let modal, state = null;
-  function buildModal() {
-    modal = document.createElement('div');
-    modal.className = 'cq-overlay';
-    modal.hidden = true;
-    modal.innerHTML = `
-      <div class="cq-box" role="dialog" aria-modal="true">
-        <div class="cq-head"><h3 id="cqTitle">Send a quote</h3><button type="button" class="cq-x" data-cq="close" aria-label="Close">&times;</button></div>
-        <div class="cq-ctx" id="cqCtx"></div>
-
-        <div id="cqStepForm">
-          <label for="cqAmount">Amount to be paid (USD)</label>
-          <div class="cq-money"><span>$</span><input type="number" id="cqAmount" min="0.01" step="0.01" placeholder="0.00"></div>
-
-          <label>What this amount covers</label>
-          <p class="cq-help">List each thing included. This is the written record both of you agree to.</p>
-          <div id="cqScope"></div>
-          <button type="button" class="cq-link" data-cq="add-item">+ Add another item</button>
-
-          <div class="cq-err" id="cqErr"></div>
-          <div class="cq-actions">
-            <button type="button" class="cq-ghost" data-cq="close">Cancel</button>
-            <button type="button" class="cq-primary" data-cq="review">Review quote</button>
-          </div>
-        </div>
-
-        <div id="cqStepReview" hidden>
-          <div class="cq-sum" id="cqSummary"></div>
-          <div class="cq-note" id="cqReviewNote"></div>
-          <div class="cq-err" id="cqErr2"></div>
-          <div class="cq-actions">
-            <button type="button" class="cq-ghost" data-cq="back" id="cqBackBtn">Edit</button>
-            <button type="button" class="cq-primary" data-cq="confirm" id="cqConfirmBtn">Confirm &amp; send</button>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', onModalClick);
-  }
-
-  function addScopeRow(value) {
-    const row = document.createElement('div');
-    row.className = 'cq-item';
-    row.innerHTML = `<input type="text" class="cq-scope-input" maxlength="200" placeholder="e.g. Replace kitchen tap, test water pressure"><button type="button" data-cq="rm-item" aria-label="Remove">&times;</button>`;
-    row.querySelector('input').value = value || '';
-    modal.querySelector('#cqScope').appendChild(row);
-  }
-
-  const $m = id => modal.querySelector('#' + id);
-  function showStep(step) {
-    $m('cqStepForm').hidden = step !== 'form';
-    $m('cqStepReview').hidden = step !== 'review';
-  }
-  function readForm() {
-    const amount = Math.round(parseFloat($m('cqAmount').value) * 100) / 100;
-    const items = [...modal.querySelectorAll('.cq-scope-input')].map(i => i.value.trim()).filter(Boolean);
-    return { amount, items };
-  }
-  function renderSummary(amount, items) {
-    $m('cqSummary').innerHTML = `
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#a97c15">Total to be paid</div>
-      <div class="cq-amt">${money(amount)}</div>
-      <div style="font-size:12px;font-weight:600;margin-top:6px">This covers</div>
-      <ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
-  }
-
-  async function openSend(opts) {          // opts: {prefill:{amount,items}, parentQuoteId}
-    const convId = currentConversationId();
-    if (!convId) return toast('Open a conversation first.', 'warning');
-    let ctx;
-    try { ctx = await getContext(convId); } catch (e) { return toast(e.message, 'error'); }
-    if (!modal) buildModal();
-    state = { mode: 'send', convId, ctx, parentQuoteId: (opts && opts.parentQuoteId) || null };
-
-    $m('cqTitle').textContent = state.parentQuoteId ? 'Counter-offer' : 'Send a quote';
-    $m('cqCtx').innerHTML = `To <strong>${esc(ctx.other.username)}</strong>` + (ctx.service ? ` · for <strong>${esc(ctx.service.title)}</strong>` : '');
-    $m('cqAmount').value = (opts && opts.prefill && opts.prefill.amount) || '';
-    $m('cqScope').innerHTML = '';
-    const items = (opts && opts.prefill && opts.prefill.items) || [];
-    (items.length ? items : ['']).forEach(addScopeRow);
-    $m('cqErr').textContent = '';
-    $m('cqErr2').textContent = '';
-    $m('cqBackBtn').hidden = false;
-    $m('cqConfirmBtn').textContent = 'Confirm & send';
-    $m('cqConfirmBtn').disabled = false;
-    $m('cqReviewNote').textContent = `${ctx.other.username} can accept, counter, or decline. If they accept, an order is created for this amount. The quote expires in 48 hours.`;
-    showStep('form');
-    modal.hidden = false;
-    $m('cqAmount').focus();
-  }
-
-  function openAccept(q) {
-    if (!modal) buildModal();
-    state = { mode: 'accept', quote: q };
-    $m('cqTitle').textContent = 'Confirm quote';
-    $m('cqCtx').innerHTML = `From <strong>${esc(q.sender_name)}</strong>`;
-    renderSummary(q.amount, q.scope_items);
-    $m('cqReviewNote').textContent = `By confirming you agree to pay ${money(q.amount)} for the work listed above. An order is created once you confirm.`;
-    $m('cqErr2').textContent = '';
-    $m('cqBackBtn').hidden = true;
-    $m('cqConfirmBtn').textContent = `Accept ${money(q.amount)}`;
-    $m('cqConfirmBtn').disabled = false;
-    showStep('review');
-    modal.hidden = false;
-  }
-
-  function closeModal() { if (modal) modal.hidden = true; state = null; }
-
-  async function onModalClick(e) {
-    const act = e.target.closest('[data-cq]');
-    if (e.target === modal) return closeModal();
-    if (!act) return;
-    switch (act.dataset.cq) {
-      case 'close': return closeModal();
-      case 'add-item': addScopeRow(''); return;
-      case 'rm-item': {
-        const rows = modal.querySelectorAll('.cq-item');
-        if (rows.length > 1) act.closest('.cq-item').remove(); else act.closest('.cq-item').querySelector('input').value = '';
-        return;
-      }
-      case 'back': showStep('form'); return;
-      case 'review': {
-        const { amount, items } = readForm();
-        if (!(amount > 0)) { $m('cqErr').textContent = 'Enter the amount to be paid.'; return; }
-        if (!items.length) { $m('cqErr').textContent = 'Write at least one thing this amount covers.'; return; }
-        $m('cqErr').textContent = '';
-        renderSummary(amount, items);
-        showStep('review');
-        return;
-      }
-      case 'confirm': return confirmAction();
-    }
-  }
-
-  async function confirmAction() {
-    const btn = $m('cqConfirmBtn');
-    btn.disabled = true;
-    $m('cqErr2').textContent = '';
+  /* ---------- send-quote sheet (freelancer) ---------- */
+  async function openSend(opts) {            // opts: { prefill: {what, amount, job_type}, parentId }
+  const c = await context();
+  if (!c) return say('Open a conversation first', 1);
+  if (!c.i_am_provider) return say('Only the freelancer sends a quote. As the client, use Counter on a quote you received.', 1);
+  const pf = (opts && opts.prefill) || {};
+  const o = sheet(`<h3>${opts && opts.parentId ? 'Counter back' : 'Send a quote'}</h3>
+    <p class="cq-sub">Write it as a promise. When the client confirms, it becomes your written agreement for this job.</p>
+    <div class="cq-types">
+      <label class="cq-type ${pf.job_type !== 'online' ? 'on' : ''}"><input type="radio" name="cqT" value="onsite" ${pf.job_type !== 'online' ? 'checked' : ''}><b>📍 On-site</b>You go to the client. Arrival &amp; completion codes.</label>
+      <label class="cq-type ${pf.job_type === 'online' ? 'on' : ''}"><input type="radio" name="cqT" value="online" ${pf.job_type === 'online' ? 'checked' : ''}><b>💻 Online</b>Remote work. No codes.</label>
+    </div>
+    <div class="cq-field"><span>I will</span><textarea id="cqWhat" placeholder="fix the leaking kitchen sink and replace the washer">${esc(pf.what || '')}</textarea></div>
+    <div class="cq-field"><span>for</span><input id="cqPrice" type="number" min="1" step="0.01" placeholder="$ 0.00" value="${pf.amount || ''}"></div>
+    <div class="cq-preview" id="cqPrev"></div><div class="cq-err" id="cqErr"></div>
+    <div class="cq-row"><button class="cq-btn" id="cqCancel">Cancel</button><button class="cq-btn gold" id="cqSendGo">Send quote</button></div>`);
+  const prev = () => { const w = o.querySelector('#cqWhat').value.trim().replace(/^i\s+will\s+/i, ''), p = o.querySelector('#cqPrice').value;
+    o.querySelector('#cqPrev').innerHTML = w || p ? `“I will ${esc(w || '…')} for <b>${p ? money(p) : '…'}</b>”` : 'Your quote will appear here.'; };
+  o.querySelectorAll('.cq-type').forEach(l => l.addEventListener('click', () => { o.querySelectorAll('.cq-type').forEach(x => x.classList.remove('on')); l.classList.add('on'); }));
+  o.querySelector('#cqWhat').oninput = prev; o.querySelector('#cqPrice').oninput = prev; prev();
+  o.querySelector('#cqCancel').onclick = () => o.remove();
+  o.querySelector('#cqSendGo').onclick = async ev => {
+    ev.target.disabled = true;
     try {
-      if (state.mode === 'send') {
-        const { amount, items } = readForm();
-        await api('/api/quotes/send', {
-          method: 'POST',
-          body: JSON.stringify({ conversation_id: state.convId, amount, scope_items: items, parent_quote_id: state.parentQuoteId }),
-        });
-        closeModal();
-        toast('Quote sent', 'success');
-      } else {
-        const q = state.quote;
-        await api('/api/quotes/' + q.id + '/accept', { method: 'POST' });
-        closeModal();
-        toast('Quote accepted — order created', 'success');
-        quoteCache.delete(q.id);
-      }
-      refreshChat();
-      repaintAll(true);
-    } catch (e) {
-      $m('cqErr2').textContent = e.message;
-      btn.disabled = false;
-    }
+      await post('/api/quotes/send', { conversation_id: convId, what: o.querySelector('#cqWhat').value, amount: o.querySelector('#cqPrice').value,
+        job_type: o.querySelector('input[name=cqT]:checked').value, parent_quote_id: (opts && opts.parentId) || null });
+      o.remove(); say('Quote sent. Waiting for the client to confirm.'); refreshAll();
+    } catch (e) { o.querySelector('#cqErr').textContent = e.message; ev.target.disabled = false; }
+  };
+}
+async function openCounter(quoteId) {
+  const q = await api(`/api/quotes/${quoteId}`), c = await context();
+  if (c && c.i_am_provider) {                       // freelancer countering a client's counter → send a fresh quote
+    return openSend({ parentId: quoteId, prefill: { what: q.description, amount: q.amount, job_type: q.job_type } });
   }
-
-  function refreshChat() {
-    const id = currentConversationId();
-    ['loadMessagesForConversation', 'loadMessages'].forEach(fn => {
-      if (typeof window[fn] === 'function') { try { window[fn](id); } catch (e) { /* host handles */ } }
-    });
-    document.dispatchEvent(new CustomEvent('cq:changed', { detail: { conversationId: id } }));
+  const o = sheet(`<h3>Counter-offer</h3>
+    <p class="cq-sub">Suggest different terms. ${esc(q.sender_name)} can agree, counter back, or decline. Nothing is charged until you both agree.</p>
+    <div class="cq-field"><span>They will</span><textarea id="cqWhat">${esc(q.description || '')}</textarea></div>
+    <div class="cq-field"><span>for</span><input id="cqPrice" type="number" min="1" step="0.01" value="${q.amount}"></div>
+    <div class="cq-note" style="margin:-4px 0 10px">Their original offer: ${money(q.amount)}</div>
+    <div class="cq-preview" id="cqPrev"></div><div class="cq-err" id="cqErr"></div>
+    <div class="cq-row"><button class="cq-btn" id="cqCancel">Back</button><button class="cq-btn gold" id="cqGo">Send counter-offer</button></div>`);
+  const prev = () => { const w = o.querySelector('#cqWhat').value.trim(), p = o.querySelector('#cqPrice').value;
+    o.querySelector('#cqPrev').innerHTML = `“${esc(q.recipient_name)} will ${esc(w || '…')} for <b>${p ? money(p) : '…'}</b>”`; };
+  o.querySelector('#cqWhat').oninput = prev; o.querySelector('#cqPrice').oninput = prev; prev();
+  o.querySelector('#cqCancel').onclick = () => o.remove();
+  o.querySelector('#cqGo').onclick = async ev => {
+    ev.target.disabled = true;
+    try { await post(`/api/quotes/${quoteId}/counter`, { what: o.querySelector('#cqWhat').value, amount: o.querySelector('#cqPrice').value });
+      o.remove(); say('Counter-offer sent.'); refreshAll(); }
+    catch (e) { o.querySelector('#cqErr').textContent = e.message; ev.target.disabled = false; }
+  };
+}
+  /* ---------- quote card ---------- */
+  const QCHIP = { pending: ['warn', 'Awaiting confirmation'], accepted: ['ok', 'Agreed'], declined: ['bad', 'Declined'], expired: ['', 'Expired'], superseded: ['', 'Replaced'], withdrawn: ['', 'Withdrawn'] };
+  function cardHTML(q) {
+  const mine = Number(q.me) === Number(q.sender_id), iAmRecipient = Number(q.me) === Number(q.recipient_id);
+  const counter = q.proposed_by === 'client';
+  const [cls, label] = QCHIP[q.status] || ['', q.status];
+  const sentence = esc(q.agreement_text || '').replace(/(\$[\d,]+\.\d{2})$/, '<b>$1</b>');
+  let actions = '', note = '';
+  if (q.status === 'pending' && iAmRecipient) {
+    actions = `<button class="cq-btn primary" data-qa="accept" data-id="${q.id}">Agree &amp; confirm</button>
+               <button class="cq-btn" data-qa="counter" data-id="${q.id}">Counter</button>
+               <button class="cq-btn danger" data-qa="decline" data-id="${q.id}">Decline</button>`;
+    note = counter ? 'The client suggested different terms. Agreeing locks them in as your written agreement.'
+                   : 'By confirming you agree to this exact scope and price. It is saved as your written agreement.';
+  } else if (q.status === 'pending' && mine) {
+    actions = `<button class="cq-btn sm" data-qa="withdraw" data-id="${q.id}">Withdraw</button>`;
+    note = `Waiting for ${esc(q.recipient_name)} to respond. Expires in 48 hours.`;
+  } else if (q.status === 'accepted') {
+    note = `Agreed ${fdate(q.accepted_at)}${q.agreement_hash ? ' · Ref ' + q.agreement_hash.slice(0, 10) : ''}`;
+    if (q.order_status === 'payment_pending' && q.client_id && Number(q.client_id) === Number(q.me))
+      actions += `<button class="cq-btn gold" data-qa="pay" data-order="${q.order_id}">Pay ${money(q.amount)}</button>`;
+    if (q.order_id) actions += `<button class="cq-btn sm" data-qa="agreement" data-order="${q.order_id}">View agreement</button>`;
   }
-
-  /* ---------------- quote cards ---------------- */
-  const quoteCache = new Map();           // id -> {data, ts}
-  const inflight = new Map();
-
-  function loadQuote(id, force) {
-    const hit = quoteCache.get(id);
-    if (hit && !force && Date.now() - hit.ts < 8000) return Promise.resolve(hit.data);
-    if (inflight.has(id)) return inflight.get(id);
-    const p = api('/api/quotes/' + id).then(d => { quoteCache.set(id, { data: d, ts: Date.now() }); return d; })
-      .finally(() => inflight.delete(id));
-    inflight.set(id, p);
-    return p;
-  }
-
-  function cardHtml(q) {
-    const iAmRecipient = q.recipient_id === q.me;
-    const pending = q.status === 'pending';
-    const cls = q.status === 'accepted' ? 'cq-accepted' : (['declined', 'expired', 'superseded'].includes(q.status) ? 'cq-dead' : '');
-    const label = { pending: 'Awaiting reply', accepted: 'Accepted', declined: 'Declined', expired: 'Expired', superseded: 'Replaced' }[q.status] || q.status;
-
-    let footer = '';
-    if (pending && iAmRecipient) {
-      footer = `<div class="cq-card-actions">
-        <button type="button" class="cq-accept" data-cq-act="accept" data-q="${q.id}">Accept</button>
-        <button type="button" data-cq-act="counter" data-q="${q.id}">Counter</button>
-        <button type="button" class="cq-decline" data-cq-act="decline" data-q="${q.id}">Decline</button></div>`;
-    } else if (pending) {
-      footer = `<div class="cq-meta">Waiting for ${esc(q.recipient_name)} to respond</div>`;
-    } else if (q.status === 'accepted') {
-      const os = q.order_status, num = q.order_id ? ` (#${q.order_id})` : '';
-      const iAmClient = q.client_id != null && Number(q.client_id) === Number(q.me);
-      if (os === 'payment_pending' && iAmClient) {
-        footer = `<div class="cq-meta">Agreed${num}. Pay now to hold the money in escrow so the work can start.</div>
-          <div class="cq-card-actions"><button type="button" class="cq-accept" data-cq-act="pay" data-q="${q.id}" data-order="${q.order_id}">Pay ${money(q.amount)}</button></div>`;
-      } else if (os === 'payment_pending') {
-        footer = `<div class="cq-meta">Agreed${num}. Waiting for the client to pay.</div>`;
-      } else if (os && os !== 'payment_pending') {
-        footer = `<div class="cq-meta">✅ Paid &amp; held in escrow${num}. <a href="/services.html" style="color:#3c5c8a;font-weight:600">View in Active Orders</a></div>`;
-      } else {
-        footer = `<div class="cq-meta">Agreed${num}. <a href="/services.html" style="color:#3c5c8a;font-weight:600">View in Active Orders</a></div>`;
-      }
-    }
-    let expiry = '';
-    if (pending && q.expires_at) {
-      const hrs = Math.max(0, Math.round((new Date(q.expires_at) - Date.now()) / 3600000));
-      expiry = `<div class="cq-meta ${hrs <= 6 ? 'cq-warn' : ''}">Expires in ${hrs}h</div>`;
-    }
-    return `<div class="cq-card ${cls}">
-      <div class="cq-top"><span>📋 Quote from ${esc(q.sender_name)}</span><span class="cq-pill">${esc(label)}</span></div>
-      <div class="cq-amt">${money(q.amount)}</div>
-      <div style="font-size:12px;font-weight:600">Covers</div>
-      <ul>${(q.scope_items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-      ${expiry}${footer}</div>`;
-  }
-
-  function paint(el, q) { el.innerHTML = cardHtml(q); }
-
-  function repaintAll(force) {
-    document.querySelectorAll('[data-cq-quote]').forEach(el => {
-      const id = Number(el.dataset.cqQuote);
-      loadQuote(id, force).then(q => { if (document.contains(el)) paint(el, q); }).catch(() => { });
-    });
-  }
-
-  const QUOTE_RE = /^\s*quote:(\d+)\s*$/;
-  const NATIVE = () => window.CORE_QUOTE_NATIVE === true;   // host renders <div data-cq-quote="ID"> slots itself
-
-  function mountEl(el, id) {
-    el.dataset.cqQuote = id;
-    const hit = quoteCache.get(id);
-    if (hit) paint(el, hit.data); else el.textContent = 'Loading quote…';
-    loadQuote(id).then(q => { if (document.contains(el)) paint(el, q); }).catch(() => { el.textContent = 'Quote unavailable'; });
-  }
-
+  return `<div class="cq-card"><div class="cq-top"><span>${counter ? '🔁 Counter-offer' : '📋 Quote'} from ${esc(q.sender_name)}</span><span class="cq-chip ${cls}">${label}</span></div>
+    <div class="cq-body"><div class="cq-sentence">“${sentence}”</div>
+    <div class="cq-meta"><span class="cq-chip">${q.job_type === 'online' ? '💻 Online job' : '📍 On-site job'}</span></div>
+    ${note ? `<div class="cq-note">${esc(note)}</div>` : ''}</div>${actions ? `<div class="cq-actions">${actions}</div>` : ''}</div>`;
+}
+  function paint(el, q) { const s = JSON.stringify(q); if (el._s === s) return; el._s = s; el.innerHTML = cardHTML(q); }
   function scan() {
-    // 1) slots the host page rendered for real quote messages
-    document.querySelectorAll('[data-cq-quote]:not([data-cq-painted])').forEach(el => {
-      el.dataset.cqPainted = '1';
-      mountEl(el, Number(el.dataset.cqQuote));
-    });
-    // 2) plain "quote:ID" text: always shortened in list previews; turned into a card only in non-native mode
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode: n => QUOTE_RE.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
-    });
-    const hits = [];
-    while (walker.nextNode()) hits.push(walker.currentNode);
-    hits.forEach(node => {
-      const el = node.parentElement;
-      if (!el || el.closest('.cq-card') || el.closest('.cq-overlay')) return;
-      if (el.closest(LIST_PREVIEW_SELECTOR)) { node.nodeValue = '📋 Quote'; return; }
-      if (NATIVE()) return;
-      el.dataset.cqPainted = '1';
-      mountEl(el, Number(node.nodeValue.match(QUOTE_RE)[1]));
+    document.querySelectorAll('[data-cq-quote]').forEach(async el => {
+      const id = el.dataset.cqQuote, c = quoteCache.get(id);
+      if (c) paint(el, c.q);
+      if (!c || Date.now() - c.t > 6000) {
+        try { const q = await api(`/api/quotes/${id}`); quoteCache.set(id, { q, t: Date.now() }); if (el.isConnected) paint(el, q); }
+        catch (e) { if (!c) el.innerHTML = '<div class="cq-card"><div class="cq-body">Quote unavailable</div></div>'; }
+      }
     });
   }
 
-  document.addEventListener('click', async e => {
-    const b = e.target.closest('[data-cq-act]');
-    if (!b) return;
-    e.preventDefault(); e.stopPropagation();
-    const id = Number(b.dataset.q);
+  async function showAgreement(orderId) {
+  try {
+    const d = await api(`/api/service-orders/${orderId}/agreement`), g = d.agreement;
+    const stat = { accepted: ['ok', 'Agreed'], superseded: ['', 'Replaced by next offer'], declined: ['bad', 'Declined'], expired: ['', 'Expired'], withdrawn: ['', 'Withdrawn'], pending: ['warn', 'Open'] };
+    const history = (d.negotiation || []).map(n => {
+      const [cls, lbl] = stat[n.status] || ['', n.status];
+      const who = n.proposed_by === 'client' ? '🔁 Client countered' : '📋 Freelancer offered';
+      return `<div style="border-left:3px solid var(--line);padding:2px 0 2px 12px;margin:10px 0">
+        <div style="font-size:12px;color:var(--muted)">${who} · ${esc(n.sender_name)} · ${new Date(n.created_at).toLocaleString()}</div>
+        <div style="font:500 14.5px/1.45 Fraunces,Georgia,serif;margin:3px 0">“${n.proposed_by === 'client' ? 'Work: ' : 'I will '}${esc(n.description)} for <b>${money(n.amount)}</b>”</div>
+        <span class="cq-chip ${cls}">${lbl}</span></div>`;
+    }).join('');
+
+    let dispute = '';
+    if (d.dispute) {
+      const ev = d.dispute.evidence || [];
+      dispute = `<hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+        <div style="font:600 15px Fraunces,Georgia,serif;margin-bottom:6px">⚠️ Dispute (${esc(d.dispute.status)})</div>
+        <div class="cq-note" style="margin:0 0 6px">${esc(d.dispute.reason)}</div>
+        ${ev.filter(x => x.url).length ? `<div class="cq-evid">${ev.filter(x => x.url).map(x => `<img src="${esc(x.url)}" data-zoom="${esc(x.url)}">`).join('')}</div>` : ''}
+        ${ev.filter(x => x.note).map(x => `<div class="cq-evnote">📝 ${esc(x.note)}</div>`).join('')}
+        ${d.dispute.resolution ? `<div class="cq-note"><b>Decision:</b> ${esc(d.dispute.resolution)}</div>` : ''}`;
+    }
+
+    sheet(`<h3>Written agreement</h3>
+      <p class="cq-sub">${esc(g.client)} (client) · ${esc(g.provider)} (freelancer)</p>
+      <div class="cq-preview" style="color:var(--ink)">“I will ${esc(g.description)} for <b>${money(g.amount)}</b>”</div>
+      <p class="cq-note">${g.job_type === 'online' ? 'Online job' : 'On-site job'} · agreed ${new Date(g.accepted_at).toLocaleString()}<br>Reference: <span style="word-break:break-all">${esc(g.hash || '')}</span></p>
+      ${(d.negotiation || []).length > 1 ? `<hr style="border:none;border-top:1px solid var(--line);margin:14px 0"><div style="font:600 15px Fraunces,Georgia,serif">How you got here</div>${history}` : ''}
+      ${dispute}
+      <hr style="border:none;border-top:1px solid var(--line);margin:14px 0"><div style="font:600 15px Fraunces,Georgia,serif;margin-bottom:6px">Timeline</div>
+      ${d.events.map(ev => `<div style="font-size:12.5px;margin:6px 0;color:var(--ink2)"><b style="color:var(--ink)">${esc(ev.event.replace(/_/g, ' '))}</b>${ev.actor ? ' · ' + esc(ev.actor) : ''}<br><span style="color:var(--muted)">${new Date(ev.created_at).toLocaleString()}${ev.detail ? ' · ' + esc(ev.detail) : ''}</span></div>`).join('')}
+      <div class="cq-row" style="margin-top:14px"><button class="cq-btn" onclick="this.closest('.cq-overlay').remove()">Close</button></div>`);
+  } catch (e) { say(e.message, 1); }
+}
+
+  /* ---------- job panel ---------- */
+  const STEPS = { onsite: ['Agreed', 'Paid', 'Arrived', 'Work done', 'Approved', 'Released'], online: ['Agreed', 'Paid', 'Delivered', 'Released'] };
+  const SCHIP = { payment_pending: ['warn', 'Awaiting payment'], escrow_funded: ['blue', 'Paid · escrow'], in_progress: ['blue', 'In progress'], client_review: ['warn', 'Inspection'], release_pending: ['ok', 'Releasing'], completed: ['ok', 'Complete'], disputed: ['bad', 'Disputed'], cancelled: ['', 'Cancelled'], refunded: ['', 'Refunded'], payout_failed: ['warn', 'Payout pending'], refund_failed: ['warn', 'Refund pending'] };
+  const doneCount = o => { const s = o.status; return o.job_type === 'online'
+    ? ({ payment_pending: 1, in_progress: 2, release_pending: 3, completed: 4 })[s] ?? 0
+    : ({ payment_pending: 1, escrow_funded: 2, in_progress: 3, client_review: o.client_satisfied_at ? 5 : 4, release_pending: 5, completed: 6 })[s] ?? 0; };
+
+  function headline(o) {
+    const c = o.i_am_client, on = o.job_type !== 'online', rel = o.payment_held_until ? fdate(o.payment_held_until) : '';
+    switch (o.status) {
+      case 'payment_pending': return c ? ['Quote agreed. Pay to start the job', `Your ${money(o.agreed_price)} is held safely by Core Insight and only released once the job is done.`] : ['Waiting for the client to pay', 'You can start as soon as payment arrives.'];
+      case 'escrow_funded': return c ? ['Paid. Share the arrival code when they arrive', 'Only give it to the freelancer once they are physically with you.'] : ['Paid. Enter the client’s arrival code on arrival', 'Entering it starts the job timer.'];
+      case 'in_progress': return c ? ['Work in progress', 'You’ll be asked to inspect once the freelancer marks it complete.'] : ['Work in progress', on ? 'Press “Mark complete” when you’re done.' : 'Press “Mark delivered” when the work is handed over.'];
+      case 'client_review': return c ? (o.client_satisfied_at ? ['You approved the work', 'Give the completion code to the freelancer to finish.'] : ['Inspect the work', 'Happy? Press “I’m satisfied”. Not right? Request a fix or open a dispute with photos.'])
+        : (o.client_satisfied_at ? ['Client is satisfied', 'Enter the completion code they give you.'] : ['Waiting for the client to inspect', 'If they don’t respond within 7 days it’s approved automatically.']);
+      case 'release_pending': return ['Payment is on its way', c ? `Released ${rel}. You can still open a dispute until then.` : `Releases ${rel}.`];
+      case 'completed': return ['Job complete', 'Payment has been released to the freelancer.'];
+      case 'disputed': return ['Dispute open', 'Funds are frozen while Core Insight reviews. Add photos or notes below.'];
+      case 'cancelled': return ['Job cancelled', o.cancel_reason ? `Reason: ${o.cancel_reason}` : 'No payment was taken.'];
+      case 'refunded': return ['Cancelled · client refunded in full', o.cancel_reason ? `Reason: ${o.cancel_reason}` : ''];
+      case 'payout_failed': return ['Payout delayed', 'Support has been alerted and will complete it.'];
+      case 'refund_failed': return ['Refund delayed', 'Support has been alerted and will complete it.'];
+    } return [o.status, ''];
+  }
+  function panelHTML(o) {
+    const c = o.i_am_client, on = o.job_type !== 'online', s = o.status, [chipCls, chipTxt] = SCHIP[s] || ['', s];
+    const [h, p] = headline(o), steps = STEPS[on ? 'onsite' : 'online'], d = doneCount(o), showSteps = !['cancelled', 'refunded', 'disputed', 'payout_failed', 'refund_failed'].includes(s);
+    const btn = (cls, a, t) => `<button class="cq-btn ${cls}" data-oa="${a}" data-order="${o.id}">${t}</button>`;
+    let a = '';
+    if (s === 'payment_pending' && c) a += btn('gold', 'pay', `Pay ${money(o.agreed_price)}`);
+    if (s === 'in_progress' && !c) a += btn('primary', 'complete', on ? 'Mark complete' : 'Mark delivered');
+    if (s === 'client_review' && c && !o.client_satisfied_at) a += btn('primary', 'satisfied', 'I’m satisfied') + btn('', 'fix', 'Request a fix');
+    if (['in_progress', 'client_review', 'release_pending'].includes(s)) a += btn('danger', 'dispute', 'Open dispute');
+    if (['payment_pending', 'escrow_funded', 'in_progress'].includes(s)) a += btn('danger sm', 'cancel', 'Cancel job');
+    if (s === 'disputed') a += btn('primary', 'evidence', 'Add photos / notes');
+    a += btn('sm', 'agreement', 'Agreement');
+
+    let extra = '';
+    if (s === 'escrow_funded' && c && o.arrival_code) extra += `<div class="cq-codebox"><small>Arrival code</small><b>${esc(o.arrival_code)}</b></div>`;
+    if (s === 'escrow_funded' && !c) extra += `<div class="cq-inline"><input class="cq-code" id="cqArr" maxlength="6" inputmode="numeric" placeholder="······">${btn('primary', 'arrival', 'Confirm arrival')}</div>`;
+    if (s === 'client_review' && c && o.client_satisfied_at && o.completion_code) extra += `<div class="cq-codebox"><small>Completion code</small><b>${esc(o.completion_code)}</b></div>`;
+    if (s === 'client_review' && !c && o.client_satisfied_at) extra += `<div class="cq-inline"><input class="cq-code" id="cqComp" maxlength="6" inputmode="numeric" placeholder="······">${btn('primary', 'confirmcode', 'Finish job')}</div>`;
+    if (o.started_at && ['in_progress', 'client_review'].includes(s)) extra += `<div class="cq-timer" data-start="${o.started_at}"></div>`;
+    if (o.dispute && s === 'disputed') {
+      const ev = o.dispute.evidence || [];
+      extra += `<div class="cq-dispute"><strong>Reason given:</strong> ${esc(o.dispute.reason)}
+        ${ev.length ? `<div class="cq-evid">${ev.filter(x => x.url).map(x => `<img src="${esc(x.url)}" data-zoom="${esc(x.url)}">`).join('')}</div>${ev.filter(x => x.note).map(x => `<div class="cq-evnote">📝 ${esc(x.note)}</div>`).join('')}` : '<div class="cq-note">No photos added yet.</div>'}</div>`;
+    }
+    return `<div class="cq-panel"><div class="cq-ph" data-oa="toggle"><span class="cq-chip ${chipCls}">${chipTxt}</span>
+      <div class="cq-pt">${esc(o.description ? 'I will ' + o.description : o.title)}<small>${on ? '📍 On-site' : '💻 Online'} · ${money(o.agreed_price)}</small></div><span style="color:var(--muted)">${panelOpen ? '▴' : '▾'}</span></div>
+      ${panelOpen ? `<div class="cq-pb">${showSteps ? `<div class="cq-steps">${steps.map((t, i) => `<div class="cq-step ${i < d ? 'done' : i === d ? 'cur' : ''}"><i>${i < d ? '✓' : ''}</i>${t}</div>`).join('')}</div>` : '<div style="height:10px"></div>'}
+      <div class="cq-head">${esc(h)}</div><p>${esc(p)}</p>${extra}<div class="cq-actions">${a}</div></div>` : ''}</div>`;
+  }
+  function tick() {
+    document.querySelectorAll('.cq-timer').forEach(el => {
+      const t0 = new Date(el.dataset.start); if (isNaN(t0)) return;
+      const m = Math.max(0, Math.floor((Date.now() - t0) / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+      el.innerHTML = `⏱ Started <b>${t0.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}</b> at ${t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · running ${d ? d + 'd ' : ''}${h}h ${m % 60}m`;
+    });
+  }
+  let lastPanel = '';
+  async function refreshPanel() {
+    const host = document.getElementById('jobPanel'); if (!host || !convId) return;
     try {
-      const q = await loadQuote(id, true);
-      if (b.dataset.cqAct === 'pay') {
-        b.disabled = true; b.textContent = 'Opening payment…';
-        try {
-          const r = await api('/api/service-orders/' + b.dataset.order + '/pay', { method: 'POST' });
-          window.location.href = r.paymentLink;
-        } catch (err) { b.disabled = false; b.textContent = 'Pay ' + money(q.amount); toast(err.message, 'error'); }
-        return;
+      const { order } = await api(`/api/service-orders/by-conversation/${convId}`);
+      const html = order ? panelHTML(order) : '';
+      const typing = document.activeElement && host.contains(document.activeElement);
+      if (html !== lastPanel && !typing) { host.innerHTML = html; lastPanel = html; }
+      tick();
+    } catch (e) { /* silent */ }
+  }
+  function mount(id) { convId = id; lastPanel = ''; const h = document.getElementById('jobPanel'); if (h) h.innerHTML = ''; clearInterval(panelTimer); if (id) { refreshPanel(); panelTimer = setInterval(() => { refreshPanel(); tick(); }, 8000); } }
+
+  /* ---------- dispute / evidence sheet ---------- */
+  function openDispute(orderId, mode) {
+    const add = mode === 'add', files = [];
+    const o = sheet(`<h3>${add ? 'Add evidence' : 'Open a dispute'}</h3>
+      <p class="cq-sub">${add ? 'Add photos or a note to support your side.' : 'Funds are frozen until Core Insight reviews. Photos help us decide fast: the problem, the work done, damage, or screenshots.'}</p>
+      <textarea class="cq-in" id="cqDText" rows="4" placeholder="${add ? 'Add a note (optional)' : 'What went wrong? Be specific.'}"></textarea>
+      <div class="cq-drop" id="cqDrop">📷 Tap to add photos (up to 6, 5 MB each)</div>
+      <input type="file" id="cqDFile" accept="image/*" multiple style="display:none"><div class="cq-thumbs" id="cqThumbs"></div>
+      <div class="cq-err" id="cqDErr"></div>
+      <div class="cq-row"><button class="cq-btn" id="cqDNo">Back</button><button class="cq-btn ${add ? 'primary' : 'danger'}" id="cqDGo">${add ? 'Submit evidence' : 'Open dispute'}</button></div>`);
+    const draw = () => { const t = o.querySelector('#cqThumbs'); t.innerHTML = ''; files.forEach((f, i) => { const d = document.createElement('div'); d.className = 'cq-thumb'; const u = URL.createObjectURL(f); d.innerHTML = `<img src="${u}" data-zoom="${u}"><button data-i="${i}">×</button>`; t.appendChild(d); }); };
+    o.querySelector('#cqDrop').onclick = () => o.querySelector('#cqDFile').click();
+    o.querySelector('#cqDFile').onchange = e => { for (const f of e.target.files) { if (f.size > 5 * 1024 * 1024) { say(`${f.name} is over 5 MB`, 1); continue; } if (files.length < 6) files.push(f); } e.target.value = ''; draw(); };
+    o.querySelector('#cqThumbs').onclick = e => { const b = e.target.closest('button[data-i]'); if (b) { files.splice(+b.dataset.i, 1); draw(); } };
+    o.querySelector('#cqDNo').onclick = () => o.remove();
+    o.querySelector('#cqDGo').onclick = async ev => {
+      const txt = o.querySelector('#cqDText').value.trim(), err = o.querySelector('#cqDErr');
+      if (!add && txt.length < 10) { err.textContent = 'Please explain what went wrong (10+ characters).'; return; }
+      if (add && !txt && !files.length) { err.textContent = 'Add a photo or a note.'; return; }
+      const fd = new FormData(); fd.append(add ? 'note' : 'reason', txt); files.forEach(f => fd.append('evidence', f));
+      ev.target.disabled = true; ev.target.textContent = 'Uploading…';
+      try {
+        const r = await fetch(`/api/service-orders/${orderId}/dispute${add ? '/evidence' : ''}`, { method: 'POST', credentials: 'include', body: fd });
+        const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Failed');
+        o.remove(); say(add ? 'Evidence added' : 'Dispute opened. Funds are frozen.'); refreshAll();
+      } catch (e) { err.textContent = e.message; ev.target.disabled = false; ev.target.textContent = add ? 'Submit evidence' : 'Open dispute'; }
+    };
+  }
+
+  /* ---------- click handling ---------- */
+  document.addEventListener('click', async e => {
+    const q = e.target.closest('[data-qa]'), a = e.target.closest('[data-oa]');
+    try {
+      if (q) {
+        const id = q.dataset.id, act = q.dataset.qa;
+        if (act === 'accept') { q.disabled = true; await post(`/api/quotes/${id}/accept`); say('Agreed. You can now pay to start the job.'); refreshAll(); }
+        else if (act === 'decline') { if (confirm('Decline this quote?')) { await post(`/api/quotes/${id}/decline`); refreshAll(); } }
+        else if (act === 'withdraw') { await post(`/api/quotes/${id}/withdraw`); refreshAll(); }
+        else if (act === 'pay') { q.disabled = true; q.textContent = 'Opening payment…'; const d = await post(`/api/service-orders/${q.dataset.order}/pay`); window.location.href = d.paymentLink; }
+        else if (act === 'agreement') showAgreement(q.dataset.order);
+      } else if (a) {
+        const id = a.dataset.order, act = a.dataset.oa, base = `/api/service-orders/${id}`;
+        if (act === 'toggle') { panelOpen = !panelOpen; lastPanel = ''; refreshPanel(); }
+        else if (act === 'pay') { a.disabled = true; a.textContent = 'Opening payment…'; const d = await post(`${base}/pay`); window.location.href = d.paymentLink; }
+        else if (act === 'arrival') { await post(`${base}/verify-arrival`, { code: document.getElementById('cqArr').value }); say('Arrival confirmed. Timer started.'); refreshAll(); }
+        else if (act === 'complete') { if (confirm('Mark this job as finished?')) { await post(`${base}/mark-completed`); refreshAll(); } }
+        else if (act === 'satisfied') { await post(`${base}/satisfied`); say('Great. Give the completion code to the freelancer.'); refreshAll(); }
+        else if (act === 'confirmcode') { await post(`${base}/confirm-completion`, { code: document.getElementById('cqComp').value }); say('Confirmed. Payment releases in 7 days.'); refreshAll(); }
+        else if (act === 'fix') { const n = await askText('Request a fix', 'Tell the freelancer what needs to be put right.', 'e.g. The pipe under the sink still drips', 'Send request'); if (n) { await post(`${base}/request-fix`, { notes: n }); refreshAll(); } }
+        else if (act === 'cancel') { const r = await askText('Cancel this job?', 'The client is refunded in full. Please give a short reason.', 'Reason for cancelling', 'Cancel job', true); if (r) { const d = await post(`${base}/cancel`, { reason: r }); say(d.refunded ? 'Cancelled. The client is being refunded in full.' : 'Cancelled.'); refreshAll(); } }
+        else if (act === 'dispute') openDispute(id, 'new');
+        else if (act === 'evidence') openDispute(id, 'add');
+        else if (act === 'agreement') showAgreement(id);
+        else if (act === 'counter') openCounter(id);
       }
-      if (b.dataset.cqAct === 'accept') openAccept(q);
-      else if (b.dataset.cqAct === 'counter') openSend({ parentQuoteId: id, prefill: { amount: q.amount, items: q.scope_items } });
-      else if (b.dataset.cqAct === 'decline') {
-        if (!confirm('Decline this quote?')) return;
-        await api('/api/quotes/' + id + '/decline', { method: 'POST' });
-        toast('Quote declined', 'info');
-        quoteCache.delete(id); refreshChat(); repaintAll(true);
-      }
-    } catch (err) { toast(err.message, 'error'); }
+    } catch (err) { say(err.message, 1); }
   });
 
-  /* ---------------- the "Quote" button ---------------- */
-  function ensureButton() {
-    if (NATIVE()) return;     // host page has its own Quote button
-    let btn = document.getElementById('cqOpenBtn');
-    const convId = currentConversationId();
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'cqOpenBtn';
-      btn.className = 'cq-btn';
-      btn.innerHTML = '📋 Quote';
-      btn.title = 'Send a price quote for this job';
-      btn.addEventListener('click', () => openSend());
-    }
-    if (!btn.isConnected || !btn.dataset.placed) {
-      const input = document.getElementById('messageInput') ||
-        document.querySelector('textarea[placeholder*="essage" i], input[placeholder*="essage" i]');
-      const form = input && input.closest('form');
-      const submit = form && form.querySelector('button[type="submit"]');
-      if (submit) { submit.parentNode.insertBefore(btn, submit); btn.classList.remove('cq-float'); btn.dataset.placed = 'form'; }
-      else { btn.classList.add('cq-float'); document.body.appendChild(btn); btn.dataset.placed = 'float'; }
-    }
-    btn.style.display = convId ? '' : 'none';
-  }
-
-  /* ---------------- boot ---------------- */
-  let t = null;
-  new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { scan(); ensureButton(); }, 120); })
-    .observe(document.body, { childList: true, subtree: true, characterData: true });
-  setInterval(ensureButton, 1500);
-  setInterval(() => repaintAll(true), 10000);      // keep pending cards fresh
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-  scan(); ensureButton();
-
-  // Returning from Flutterwave: confirm the payment, then clean the URL.
-  (async function checkReturn() {
-    const sp = new URLSearchParams(location.search), oid = sp.get('svc_pay');
-    if (!oid) return;
-    const clean = () => { sp.delete('svc_pay'); sp.delete('status'); sp.delete('tx_ref'); sp.delete('transaction_id');
-      history.replaceState(null, '', location.pathname + (sp.toString() ? '?' + sp : '')); };
-    if (sp.get('status') === 'cancelled') { toast('Payment cancelled', 'info'); clean(); return; }
-    toast('Confirming your payment…', 'info');
-    for (let i = 0; i < 4; i++) {
-      try {
-        const r = await api('/api/service-orders/' + oid + '/verify-payment', { method: 'POST' });
-        if (r.success) { toast('Payment received — held in escrow', 'success'); clean(); quoteCache.clear(); refreshChat(); repaintAll(true); return; }
-      } catch (e) { /* retry */ }
-      await new Promise(r => setTimeout(r, 2500));
-    }
-    toast('Payment not confirmed yet — it will update shortly', 'info'); clean();
-  })();
-
-  window.CoreQuote = { openSend, scan, setConversation: id => { manualConversationId = Number(id) || null; ensureButton(); } };
+  window.CoreQuote = {
+    setConversation(id) { mount(id); },
+    openSend, scan, zoom, refreshPanel,
+    isProvider: async () => { const c = await context(); return !!(c && c.i_am_provider); },
+  };
+  window.CoreOrder = { refresh: refreshPanel };
 })();

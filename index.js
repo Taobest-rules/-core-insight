@@ -446,7 +446,84 @@ const FROM_NAME = 'Core Insight Marketplace';
 
 // Initialize Resend
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+async function runQuoteV2Migrations() {
+  const alter = async (sql, label) => {
+    try { await db.query(sql); }
+    catch (e) { if (!/duplicate|already exists/i.test(e.message)) console.error(`Quote v2 migration failed (${label}):`, e.message); }
+  };
+  const cols = [
+    ['service_quotes', 'job_type VARCHAR(10) DEFAULT \'onsite\''],
+    ['service_quotes', 'description TEXT NULL'],
+    ['service_quotes', 'accepted_at DATETIME NULL'],
+    ['service_quotes', 'agreement_hash CHAR(64) NULL'],
+    ['service_orders', 'job_type VARCHAR(10) DEFAULT \'onsite\''],
+    ['service_orders', 'flw_transaction_id VARCHAR(40) NULL'],
+    ['service_orders', 'paid_amount DECIMAL(14,2) NULL'],
+    ['service_orders', 'paid_currency VARCHAR(5) NULL'],
+    ['service_orders', 'paid_at DATETIME NULL'],
+    ['service_orders', 'started_at DATETIME NULL'],
+    ['service_orders', 'completion_code VARCHAR(10) NULL'],
+    ['service_orders', 'client_satisfied_at DATETIME NULL'],
+    ['service_orders', 'arrival_code_attempts INT DEFAULT 0'],
+    ['service_orders', 'completion_code_attempts INT DEFAULT 0'],
+    ['service_orders', 'cancelled_by INT NULL'],
+    ['service_orders', 'cancelled_at DATETIME NULL'],
+    ['service_orders', 'cancel_reason VARCHAR(500) NULL'],
+    ['service_orders', 'refunded_at DATETIME NULL'],
+    ['service_orders', 'payout_ref VARCHAR(60) NULL'],
+    ['service_orders', 'payout_error VARCHAR(500) NULL'],
+    ['service_quotes', 'proposed_by VARCHAR(10) DEFAULT \'provider\''],
+  ];
+  for (const [t, c] of cols) await alter(`ALTER TABLE ${t} ADD COLUMN ${c}`, `${t}.${c.split(' ')[0]}`);
 
+  await alter(`CREATE TABLE IF NOT EXISTS service_quote_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    quote_id INT NULL, order_id INT NULL, actor_id INT NULL,
+    event VARCHAR(40) NOT NULL, detail TEXT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_quote (quote_id), INDEX idx_order (order_id)
+  )`, 'service_quote_events');
+}
+runQuoteV2Migrations();
+const SVC_FEE_RATE = 0.10;
+const SVC_RELEASE_HOLD_DAYS = 7;   // on-site: after completion code is entered
+const SVC_ONLINE_HOLD_DAYS = 7;    // online: after freelancer marks complete (0 = next cron run)
+const SVC_AUTO_ACCEPT_DAYS = 7;    // client silent after "complete" on an on-site job
+const SVC_CANCELLABLE = ['payment_pending', 'escrow_funded', 'in_progress'];
+
+const svcCode = () => String(crypto.randomInt(100000, 1000000));
+const affected = (r) => Number((r && (r.affectedRows ?? r[0]?.affectedRows)) || 0);
+const daysFromNow = (d) => new Date(Date.now() + d * 86400000);
+
+async function svcLog(quoteId, orderId, actorId, event, detail) {
+  try {
+    await db.query(
+      `INSERT INTO service_quote_events (quote_id, order_id, actor_id, event, detail, created_at) VALUES (?, ?, ?, ?, ?, NOW())`,
+      [quoteId || null, orderId || null, actorId || null, event, detail || null]
+    );
+  } catch (e) { console.error('svcLog failed:', e.message); }
+}
+
+async function getSvcOrder(orderId, userId) {
+  const o = extractRows(await db.query(
+    `SELECT so.*, q.conversation_id FROM service_orders so
+     JOIN service_quotes q ON q.id = so.quote_id WHERE so.id = ?`, [orderId]
+  ))[0];
+  if (!o) return null;
+  const u = Number(userId);
+  if (Number(o.client_id) !== u && Number(o.provider_id) !== u) return null;
+  return o;
+}
+
+// Atomic status transition. Returns true only for the single caller that wins.
+async function claim(orderId, fromStatuses, setSql, params = []) {
+  const ph = fromStatuses.map(() => '?').join(',');
+  const r = await db.query(
+    `UPDATE service_orders SET ${setSql} WHERE id = ? AND status IN (${ph})`,
+    [...params, orderId, ...fromStatuses]
+  );
+  return affected(r) > 0;
+}
 
 // ============================================
 // UNIVERSAL EMAIL SENDER - RESEND
@@ -904,42 +981,33 @@ async function checkFreelancerSubscription(req, res, next) {
 }
 // Atomically moves payment_pending -> escrow_funded. Safe to call twice.
 async function completeServiceOrderPayment(txRef, transaction) {
-  const order = extractRows(await db.query(
-    `SELECT * FROM service_orders WHERE transaction_ref = ? LIMIT 1`, [txRef]
-  ))[0];
+  const order = extractRows(await db.query(`SELECT * FROM service_orders WHERE transaction_ref = ? LIMIT 1`, [txRef]))[0];
   if (!order) { console.error('Service payment: no order for', txRef); return false; }
- 
-  // Don't trust the webhook body alone: the amount must cover the agreed price.
-  if (transaction) {
-    const paidUsd = String(transaction.currency).toUpperCase() === 'USD' ? Number(transaction.amount) : null;
-    if (paidUsd !== null && paidUsd + 0.01 < Number(order.agreed_price)) {
-      console.error('Service payment: underpaid', txRef, paidUsd, order.agreed_price);
-      return false;
-    }
+
+  if (transaction && String(transaction.currency).toUpperCase() === 'USD'
+      && Number(transaction.amount) + 0.01 < Number(order.agreed_price)) {
+    console.error('Service payment: underpaid', txRef); return false;
   }
- 
-  const claim = await db.query(
-    `UPDATE service_orders SET status = 'escrow_funded' WHERE id = ? AND status = 'payment_pending'`,
-    [order.id]
-  );
-  const won = (claim && (claim.affectedRows || (claim[0] && claim[0].affectedRows))) > 0;
-  if (!won) return false;                     // the other path got there first
- 
-  try {
-    await db.query(
-      `UPDATE service_orders SET payment_held_until = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?`, [order.id]
-    );
-  } catch (e) { /* column optional; the review sweep sets its own window */ }
- 
+
+  const onsite = order.job_type !== 'online';
+  const code = onsite ? svcCode() : null;
+  const pay = [transaction?.id ? String(transaction.id) : null, transaction?.amount || null, transaction?.currency || null];
+  const won = onsite
+    ? await claim(order.id, ['payment_pending'],
+        `status='escrow_funded', arrival_code=?, flw_transaction_id=?, paid_amount=?, paid_currency=?, paid_at=NOW()`, [code, ...pay])
+    : await claim(order.id, ['payment_pending'],
+        `status='in_progress', started_at=NOW(), flw_transaction_id=?, paid_amount=?, paid_currency=?, paid_at=NOW()`, pay);
+  if (!won) return false;
+
+  await svcLog(order.quote_id, order.id, order.client_id, 'payment_received', `$${Number(order.agreed_price).toFixed(2)} held by Core Insight`);
   try {
     const q = extractRows(await db.query(`SELECT conversation_id FROM service_quotes WHERE id = ?`, [order.quote_id]))[0];
-    if (q && q.conversation_id) {
-      await postChatSystemLine(q.conversation_id, order.client_id,
-        `💳 Payment of $${Number(order.agreed_price).toFixed(2)} received and held in escrow. The provider can now start the job.`);
-    }
+    if (q) await postChatSystemLine(q.conversation_id, order.client_id,
+      onsite ? `💳 Payment of $${Number(order.agreed_price).toFixed(2)} received and held by Core Insight. The client has an arrival code to give the freelancer when they arrive.`
+             : `💳 Payment of $${Number(order.agreed_price).toFixed(2)} received and held by Core Insight. The freelancer can start work now.`);
     const prov = extractRows(await db.query(`SELECT email FROM users WHERE id = ?`, [order.provider_id]))[0];
-    if (prov) sendEmail(prov.email, `Order #${order.id} is paid — you can start`,
-      `<p>The client has paid $${Number(order.agreed_price).toFixed(2)}. It is held in escrow and released when the work is approved.</p>`).catch(() => {});
+    if (prov) sendEmail(prov.email, `Order #${order.id} is paid`,
+      `<p>The client has paid. The money is held by Core Insight and released after the job is completed.</p>`).catch(() => {});
   } catch (e) { console.error('Service payment notify error:', e.message); }
   return true;
 }
@@ -1029,7 +1097,73 @@ async function runServiceEscrowMigrations() {
 }
 runServiceEscrowMigrations();
 
+fs.mkdirSync(path.join(__dirname, 'uploads', 'disputes'), { recursive: true });
+const disputeUpload = multer({
+  dest: path.join(__dirname, 'uploads', 'disputes'),
+  limits: { fileSize: 5 * 1024 * 1024, files: 6 },
+  fileFilter: (r, f, cb) => f.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Evidence must be image files (JPG/PNG/WEBP)')),
+}).array('evidence', 6);
+const withEvidenceUpload = (req, res, next) => disputeUpload(req, res, (err) => err ? res.status(400).json({ error: err.message }) : next());
+const rmFiles = (files) => (files || []).forEach(f => { try { fs.unlinkSync(f.path); } catch (e) {} });
+const parseJson = (v) => { try { return typeof v === 'string' ? JSON.parse(v) : (v || []); } catch (e) { return []; } };
 
+async function uploadEvidence(files, userId) {
+  const out = [];
+  for (const f of files || []) {
+    try { out.push({ url: await uploadToImgbb(f.path, f.originalname), by: Number(userId), at: new Date().toISOString() }); }
+    catch (e) { console.error('Evidence upload failed:', e.message); }
+    finally { try { fs.unlinkSync(f.path); } catch (e) {} }
+  }
+  return out;
+}
+
+app.post("/api/service-orders/:orderId/dispute", withEvidenceUpload, async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) { rmFiles(req.files); return res.status(401).json({ error: "Please log in" }); }
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o) { rmFiles(req.files); return res.status(403).json({ error: "Access denied" }); }
+    const reason = String(req.body.reason || '').trim();
+    if (reason.length < 10) { rmFiles(req.files); return res.status(400).json({ error: "Please explain what went wrong (10+ characters)" }); }
+    if (!(await claim(o.id, ['in_progress', 'client_review', 'release_pending'], `status='disputed'`))) {
+      rmFiles(req.files); return res.status(400).json({ error: "This job can't be disputed right now" });
+    }
+    const evidence = await uploadEvidence(req.files, user.id);
+    await db.query(
+      `INSERT INTO service_disputes (service_order_id, raised_by, reason, evidence_urls, status, created_at) VALUES (?, ?, ?, ?, 'open', NOW())`,
+      [o.id, user.id, reason, JSON.stringify(evidence)]);
+    await svcLog(o.quote_id, o.id, user.id, 'dispute_opened', `${reason} (${evidence.length} photo(s))`);
+    await postChatSystemLine(o.conversation_id, user.id, `⚠️ A dispute was opened. Funds are frozen until Core Insight reviews it. Both sides can add photos and notes.`);
+
+    const other = Number(user.id) === Number(o.client_id) ? o.provider_id : o.client_id;
+    const em = extractRows(await db.query(`SELECT email FROM users WHERE id = ?`, [other]))[0];
+    if (em) sendEmail(em.email, `Dispute opened on Order #${o.id}`, `<p>A dispute was opened. Please add your side and any photos in the chat.</p>`).catch(() => {});
+    sendEmail(SUPPORT_EMAIL, `Service dispute: Order #${o.id}`, `<p>${escapeHtml(reason)}</p><p>${evidence.length} photo(s) attached.</p>`).catch(() => {});
+    res.json({ success: true, evidence_count: evidence.length });
+  } catch (e) { rmFiles(req.files); console.error(e); res.status(500).json({ error: e.message }); }
+});
+
+// Either side adds photos / a note while a dispute is open
+app.post("/api/service-orders/:orderId/dispute/evidence", withEvidenceUpload, async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) { rmFiles(req.files); return res.status(401).json({ error: "Please log in" }); }
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || o.status !== 'disputed') { rmFiles(req.files); return res.status(400).json({ error: "No open dispute on this job" }); }
+    const d = extractRows(await db.query(`SELECT * FROM service_disputes WHERE service_order_id = ? AND status='open' ORDER BY id DESC LIMIT 1`, [o.id]))[0];
+    if (!d) { rmFiles(req.files); return res.status(400).json({ error: "No open dispute on this job" }); }
+
+    const added = await uploadEvidence(req.files, user.id);
+    const note = String(req.body.note || '').trim().slice(0, 1000);
+    if (note) added.push({ note, by: Number(user.id), at: new Date().toISOString() });
+    if (!added.length) return res.status(400).json({ error: "Add at least one photo or a note" });
+
+    await db.query(`UPDATE service_disputes SET evidence_urls = ? WHERE id = ?`, [JSON.stringify([...parseJson(d.evidence_urls), ...added]), d.id]);
+    await svcLog(o.quote_id, o.id, user.id, 'evidence_added', `${added.length} item(s)`);
+    await postChatSystemLine(o.conversation_id, user.id, `📎 New evidence was added to the dispute.`);
+    res.json({ success: true });
+  } catch (e) { rmFiles(req.files); res.status(500).json({ error: e.message }); }
+});
 app.get("/api/quotes/context", async (req, res) => {
   try {
     const user = req.session.user;
@@ -1052,6 +1186,7 @@ app.get("/api/quotes/:quoteId", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
+
     const q = extractRows(await db.query(
       `SELECT q.*, su.username AS sender_name, ru.username AS recipient_name
        FROM service_quotes q
@@ -1062,116 +1197,238 @@ app.get("/api/quotes/:quoteId", async (req, res) => {
     if (!q || (Number(q.sender_id) !== Number(user.id) && Number(q.recipient_id) !== Number(user.id))) {
       return res.status(404).json({ error: "Quote not found" });
     }
+
     let scope = q.scope_items;
     if (typeof scope === 'string') { try { scope = JSON.parse(scope); } catch { scope = [scope]; } }
+
     let status = q.status;
     if (status === 'pending' && q.expires_at && new Date(q.expires_at) < new Date()) status = 'expired';
-    const order = extractRows(await db.query(`SELECT id, status FROM service_orders WHERE quote_id = ? LIMIT 1`, [q.id]))[0];
+
+    const order = extractRows(await db.query(`SELECT id, status, client_id FROM service_orders WHERE quote_id = ? LIMIT 1`, [q.id]))[0];
+
     res.json({
       id: q.id, conversation_id: q.conversation_id, amount: Number(q.amount), scope_items: scope || [],
       status, expires_at: q.expires_at, created_at: q.created_at,
       sender_id: q.sender_id, recipient_id: q.recipient_id,
       sender_name: q.sender_name, recipient_name: q.recipient_name,
-      parent_quote_id: q.parent_quote_id, order_id: order ? order.id : null, order_status: order ? order.status : null, client_id: order ? order.client_id : null, me: Number(user.id),
+      parent_quote_id: q.parent_quote_id,
+      order_id: order ? order.id : null, order_status: order ? order.status : null,
+      client_id: order ? order.client_id : null, me: Number(user.id),
+
+      // new
+      description: q.description,
+      job_type: q.job_type,
+      accepted_at: q.accepted_at,
+      agreement_hash: q.agreement_hash,
+      agreement_text: `I will ${q.description || (Array.isArray(scope) ? scope.join('; ') : '')} for $${Number(q.amount).toFixed(2)}`,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
  
+// CLIENT writes the job + price. Freelancer must accept.
+
+// FREELANCER sends a quote ("I will ___ for $___"), or counters back to a client's counter-offer.
+// The client then agrees, counters, or declines.
 app.post("/api/quotes/send", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
-    const { conversation_id, amount, scope_items, parent_quote_id } = req.body;
- 
-    const amt = Math.round(parseFloat(amount) * 100) / 100;
-    if (!(amt > 0) || amt > 1000000) return res.status(400).json({ error: "Enter a valid amount" });
-    const items = (Array.isArray(scope_items) ? scope_items : [])
-      .map(s => String(s).trim().slice(0, 200)).filter(Boolean).slice(0, 20);
-    if (!items.length) return res.status(400).json({ error: "List what the amount covers" });
- 
+
+    const { conversation_id, what, amount, job_type, parent_quote_id } = req.body;
+
+    // 1) must be a participant, and must be the freelancer
     const p = await resolveQuoteParties(parseInt(conversation_id), user.id);
     if (!p) return res.status(403).json({ error: "You're not part of this conversation" });
- 
-    let threadId = null;
-    if (parent_quote_id) {
-      const parent = extractRows(await db.query(
-        `SELECT id, thread_id FROM service_quotes WHERE id = ? AND conversation_id = ?`,
-        [parent_quote_id, conversation_id]
-      ))[0];
-      if (parent) threadId = parent.thread_id || parent.id;
+    if (p.me !== p.providerId) {
+      return res.status(403).json({ error: "Only the freelancer sends a quote. As the client, use Counter on a quote you received." });
     }
-    // only one live quote per chat
-    await db.query(`UPDATE service_quotes SET status = 'superseded' WHERE conversation_id = ? AND status = 'pending'`, [conversation_id]);
- 
+
+    // 2) freelancer needs payout details so the client's payment can actually reach them later
+    const bank = extractRows(await db.query(
+      `SELECT bank_code, account_number FROM users WHERE id = ?`, [user.id]))[0];
+    if (!bank || !bank.bank_code || !bank.account_number) {
+      return res.status(400).json({ error: "Add your payout details first so you can be paid for this job." });
+    }
+
+    // 3) validate the promise and the price
+    const text = String(what || '').trim()
+      .replace(/^i\s+will\s+/i, '')      // the UI already adds "I will"
+      .replace(/[.\s]+$/, '');
+    if (text.length < 10) return res.status(400).json({ error: "Say what you'll do in a bit more detail" });
+    if (text.length > 600) return res.status(400).json({ error: "Keep it under 600 characters" });
+
+    const amt = Math.round(parseFloat(amount) * 100) / 100;
+    if (!(amt > 0) || amt > 1000000) return res.status(400).json({ error: "Enter a valid price" });
+
+    const type = job_type === 'online' ? 'online' : 'onsite';
+
+    // 4) a job that already has an active order can't be re-quoted
+    const live = extractRows(await db.query(
+      `SELECT so.id FROM service_orders so JOIN service_quotes q ON q.id = so.quote_id
+       WHERE q.conversation_id = ?
+         AND so.status NOT IN ('completed','cancelled','refunded')
+       LIMIT 1`, [conversation_id]))[0];
+    if (live) {
+      return res.status(400).json({ error: "There's already an active job in this chat. Finish or cancel it before sending a new quote." });
+    }
+
+    // 5) link to the quote this replaces (counter-back) so the negotiation stays in one thread
+    let threadId = null, parentId = null;
+    if (parent_quote_id) {
+      const par = extractRows(await db.query(
+        `SELECT id, thread_id FROM service_quotes WHERE id = ? AND conversation_id = ?`,
+        [parent_quote_id, conversation_id]))[0];
+      if (par) { parentId = par.id; threadId = par.thread_id || par.id; }
+    }
+
+    // 6) only one live quote per chat
+    await db.query(
+      `UPDATE service_quotes SET status = 'superseded' WHERE conversation_id = ? AND status = 'pending'`,
+      [conversation_id]);
+
+    // 7) save it
     const expiresAt = new Date(Date.now() + 48 * 3600 * 1000);
-    const insertResult = await db.query(
-      `INSERT INTO service_quotes (conversation_id, thread_id, parent_quote_id, sender_id, recipient_id, service_id, job_id, amount, scope_items, status, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'pending', ?, NOW())`,
-      [conversation_id, threadId, parent_quote_id || null, user.id, p.otherId, p.serviceId, amt, JSON.stringify(items), expiresAt]
-    );
-    const quoteId = extractInsertId(insertResult);
+    const ins = await db.query(
+      `INSERT INTO service_quotes
+         (conversation_id, thread_id, parent_quote_id, sender_id, recipient_id, service_id,
+          amount, scope_items, description, job_type, proposed_by, status, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'provider', 'pending', ?, NOW())`,
+      [conversation_id, threadId, parentId, user.id, p.clientId, p.serviceId,
+       amt, JSON.stringify([`I will ${text}`]), text, type, expiresAt]);
+    const quoteId = extractInsertId(ins);
     if (!threadId) await db.query(`UPDATE service_quotes SET thread_id = ? WHERE id = ?`, [quoteId, quoteId]);
- 
+
+    // 8) show it in the chat as a quote card
     await db.query(
       `INSERT INTO messages (conversation_id, sender_id, message, attachment_type, created_at, is_read)
        VALUES (?, ?, ?, 'quote', NOW(), 0)`,
-      [conversation_id, user.id, `quote:${quoteId}`]
-    );
- 
-    if (typeof notifyNewMessage === 'function') {
-      notifyNewMessage({
-        conversationId: conversation_id, recipientId: p.otherId, senderId: user.id,
-        senderName: user.username, messagePreview: `Sent a quote: $${amt}`,
-        itemContext: { icon: '📋', label: 'Quote', title: `$${amt} quote` },
-      }).catch(() => {});
-    }
- 
+      [conversation_id, user.id, `quote:${quoteId}`]);
+
+    // 9) audit trail + notify the client
+    await svcLog(quoteId, null, user.id, parentId ? 'quote_countered_back' : 'quote_created',
+      `I will ${text} for $${amt.toFixed(2)} (${type})`);
+
+    notifyNewMessage({
+      conversationId: conversation_id, recipientId: p.clientId, senderId: user.id,
+      senderName: user.username,
+      messagePreview: `Quote: I will ${text} for $${amt.toFixed(2)}`,
+      itemContext: { icon: '📋', label: 'Quote', title: `$${amt.toFixed(2)} quote` },
+    }).catch(() => {});
+
     res.status(201).json({ success: true, quote_id: quoteId, expires_at: expiresAt });
   } catch (err) {
     console.error("Quote send error:", err);
     res.status(500).json({ error: err.message });
   }
 });
- 
+
+
+app.post("/api/quotes/:quoteId/withdraw", async (req, res) => {
+  try {
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const r = await db.query(`UPDATE service_quotes SET status='withdrawn' WHERE id=? AND sender_id=? AND status='pending'`, [req.params.quoteId, user.id]);
+    if (!affected(r)) return res.status(400).json({ error: "This quote can't be withdrawn" });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// FREELANCER accepts → agreement is frozen and hashed → order created
+
 app.post("/api/quotes/:quoteId/accept", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
     const quote = extractRows(await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]))[0];
     if (!quote) return res.status(404).json({ error: "Quote not found" });
-    if (Number(quote.recipient_id) !== Number(user.id)) return res.status(403).json({ error: "Only the person who received this quote can accept it" });
-    if (quote.status !== 'pending') return res.status(400).json({ error: `Quote is ${quote.status}, not acceptable` });
+    if (Number(quote.recipient_id) !== Number(user.id)) return res.status(403).json({ error: "Only the client can confirm this quote" });
+    if (quote.status !== 'pending') return res.status(400).json({ error: `Quote is ${quote.status}` });
     if (new Date(quote.expires_at) < new Date()) {
       await db.query(`UPDATE service_quotes SET status = 'expired' WHERE id = ?`, [quote.id]);
       return res.status(400).json({ error: "This quote has expired" });
     }
-    const dup = extractRows(await db.query(`SELECT id, status FROM service_orders WHERE quote_id = ? LIMIT 1`, [quote.id]))[0];
-    if (dup) return res.status(400).json({ error: "An order already exists for this quote" });
- 
     const p = await resolveQuoteParties(quote.conversation_id, user.id);
     if (!p) return res.status(403).json({ error: "Access denied" });
- 
-    await db.query(`UPDATE service_quotes SET status = 'accepted' WHERE id = ?`, [quote.id]);
- 
+
+    const acceptedAt = new Date();
     const amount = Number(quote.amount);
-    const platformFee = Math.round(amount * 0.10 * 100) / 100;
-    const providerEarnings = Math.round((amount - platformFee) * 100) / 100;
-    const transactionRef = `SVC_${Date.now()}_${p.clientId}`;
-    const title = p.serviceTitle || `Service Order #${quote.id}`;
- 
-    const orderResult = await db.query(
-      `INSERT INTO service_orders (quote_id, client_id, provider_id, service_id, job_id, title, agreed_price, platform_fee, provider_earnings, transaction_ref, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'payment_pending', NOW())`,
-      [quote.id, p.clientId, p.providerId, quote.service_id, quote.job_id, title, amount, platformFee, providerEarnings, transactionRef]
+    const hash = crypto.createHash('sha256').update(JSON.stringify({
+      quote: quote.id, conversation: quote.conversation_id, client: p.clientId, provider: p.providerId,
+      description: quote.description, amount: amount.toFixed(2), job_type: quote.job_type,
+      created: new Date(quote.created_at).toISOString(), accepted: acceptedAt.toISOString(),
+    })).digest('hex');
+
+    const won = await db.query(
+      `UPDATE service_quotes SET status = 'accepted', accepted_at = ?, agreement_hash = ? WHERE id = ? AND status = 'pending'`,
+      [acceptedAt, hash, quote.id]
     );
-    const orderId = extractInsertId(orderResult);
+    if (!affected(won)) return res.status(409).json({ error: "Quote was already handled" });
+
+    const fee = Math.round(amount * SVC_FEE_RATE * 100) / 100;
+    const earnings = Math.round((amount - fee) * 100) / 100;
+    const txRef = `SVC_${Date.now()}_${p.clientId}`;
+    const ord = await db.query(
+      `INSERT INTO service_orders (quote_id, client_id, provider_id, service_id, job_type, title, agreed_price, platform_fee, provider_earnings, transaction_ref, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'payment_pending', NOW())`,
+      [quote.id, p.clientId, p.providerId, quote.service_id, quote.job_type,
+       p.serviceTitle || `Service Order #${quote.id}`, amount, fee, earnings, txRef]
+    );
+    const orderId = extractInsertId(ord);
+    await svcLog(quote.id, orderId, user.id, 'quote_accepted', `hash ${hash}`);
+
+    const who = quote.proposed_by === 'client' ? 'Freelancer agreed to the client’s counter-offer' : 'Client agreed';
+    await postChatSystemLine(quote.conversation_id, user.id,
+      `✅ ${who}: “I will ${quote.description}” for $${amount.toFixed(2)} (${quote.job_type === 'online' ? 'online job' : 'on-site job'}). Ref ${hash.slice(0, 12)}. The client can now pay to start the job.`);
+
+    res.json({ success: true, order_id: orderId });
+  } catch (err) { console.error("Quote accept error:", err); res.status(500).json({ error: err.message }); }
+});
+
  
-    await postChatSystemLine(quote.conversation_id, user.id, `✅ Quote accepted — $${amount.toFixed(2)} agreed. An order has been created.`);
-    res.json({ success: true, order_id: orderId, agreed_price: amount, transaction_ref: transactionRef });
-  } catch (err) {
-    console.error("Quote accept error:", err);
-    res.status(500).json({ error: err.message });
-  }
+// CLIENT counters a freelancer's pending quote. Freelancer then confirms, counters back, or declines.
+app.post("/api/quotes/:quoteId/counter", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+
+    const old = extractRows(await db.query(`SELECT * FROM service_quotes WHERE id = ?`, [req.params.quoteId]))[0];
+    if (!old) return res.status(404).json({ error: "Quote not found" });
+    if (Number(old.recipient_id) !== Number(user.id)) return res.status(403).json({ error: "Only the person who received this quote can counter it" });
+    if (old.status !== 'pending') return res.status(400).json({ error: `This quote is ${old.status}` });
+    if (new Date(old.expires_at) < new Date()) return res.status(400).json({ error: "This quote has expired" });
+
+    const p = await resolveQuoteParties(old.conversation_id, user.id);
+    if (!p) return res.status(403).json({ error: "Access denied" });
+    if (p.me !== p.clientId) return res.status(403).json({ error: "Freelancers counter by sending a new quote" });
+
+    const text = String(req.body.what || '').trim().replace(/^i\s+will\s+/i, '').replace(/[.\s]+$/, '');
+    if (text.length < 10 || text.length > 600) return res.status(400).json({ error: "Describe the work in 10 to 600 characters" });
+    const amt = Math.round(parseFloat(req.body.amount) * 100) / 100;
+    if (!(amt > 0) || amt > 1000000) return res.status(400).json({ error: "Enter a valid price" });
+
+    const won = await db.query(`UPDATE service_quotes SET status = 'superseded' WHERE id = ? AND status = 'pending'`, [old.id]);
+    if (!affected(won)) return res.status(409).json({ error: "This quote was already handled" });
+
+    const expiresAt = new Date(Date.now() + 48 * 3600 * 1000);
+    const ins = await db.query(
+      `INSERT INTO service_quotes (conversation_id, thread_id, parent_quote_id, sender_id, recipient_id, service_id, amount, scope_items, description, job_type, proposed_by, status, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'client', 'pending', ?, NOW())`,
+      [old.conversation_id, old.thread_id || old.id, old.id, user.id, p.providerId, old.service_id, amt,
+       JSON.stringify([`I will ${text}`]), text, old.job_type, expiresAt]);
+    const quoteId = extractInsertId(ins);
+
+    await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, message, attachment_type, created_at, is_read)
+       VALUES (?, ?, ?, 'quote', NOW(), 0)`, [old.conversation_id, user.id, `quote:${quoteId}`]);
+    await svcLog(quoteId, null, user.id, 'counter_offer',
+      `was $${Number(old.amount).toFixed(2)} "${old.description}" → now $${amt.toFixed(2)} "${text}"`);
+
+    notifyNewMessage({
+      conversationId: old.conversation_id, recipientId: p.providerId, senderId: user.id, senderName: user.username,
+      messagePreview: `Counter-offer: $${amt.toFixed(2)}`,
+      itemContext: { icon: '🔁', label: 'Counter-offer', title: `$${amt.toFixed(2)}` },
+    }).catch(() => {});
+    res.status(201).json({ success: true, quote_id: quoteId });
+  } catch (err) { console.error("Counter error:", err); res.status(500).json({ error: err.message }); }
 });
  
 app.post("/api/quotes/:quoteId/decline", async (req, res) => {
@@ -1198,12 +1455,10 @@ app.post("/api/service-orders/:orderId/pay", async (req, res) => {
     if (!order || Number(order.client_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
     if (order.status !== 'payment_pending') return res.status(400).json({ error: "This order isn't waiting for payment" });
  
-    const provider = extractRows(await db.query(
-      `SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [order.provider_id]
-    ))[0];
-    if (!provider || !provider.flutterwave_subaccount_id) {
-      return res.status(400).json({ error: "The provider hasn't set up payouts yet. Ask them to add a payout account, then try again." });
-    }
+const provider = extractRows(await db.query(`SELECT bank_code, account_number FROM users WHERE id = ?`, [order.provider_id]))[0];
+if (!provider || !provider.bank_code || !provider.account_number) {
+  return res.status(400).json({ error: "The provider hasn't added payout details yet. Ask them to add a payout account, then try again." });
+}
  
     const quote = extractRows(await db.query(`SELECT conversation_id FROM service_quotes WHERE id = ?`, [order.quote_id]))[0];
     const convId = quote ? quote.conversation_id : '';
@@ -1289,149 +1544,219 @@ app.get("/api/cron/expire-stale-quotes", async (req, res) => {
 });
 
 
-/* ================================================================
-   PART D — ARRIVAL CODE (generate + verify), same shape as the
-   delivery-code system already built for physical products.
-   ================================================================ */
-app.post("/api/service-orders/:orderId/generate-arrival-code", async (req, res) => {
-  try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
-    if (order.status !== 'escrow_funded' && order.status !== 'travelling') {
-      return res.status(400).json({ error: "Order isn't ready for an arrival code yet" });
-    }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    await db.query(`UPDATE service_orders SET arrival_code = ?, status = 'travelling' WHERE id = ?`, [code, order.id]);
-    res.json({ success: true, arrival_code: code });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Client re-views their arrival code
+app.get("/api/service-orders/:orderId/arrival-code", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, req.session.user.id);
+    if (!o || Number(o.client_id) !== Number(req.session.user.id)) return res.status(403).json({ error: "Access denied" });
+    if (o.status !== 'escrow_funded') return res.status(400).json({ error: "No arrival code needed right now" });
+    res.json({ arrival_code: o.arrival_code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// FREELANCER enters arrival code → timer starts
 app.post("/api/service-orders/:orderId/verify-arrival", async (req, res) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const { code } = req.body;
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || order.provider_id !== user.id) return res.status(403).json({ error: "Access denied" });
-    if (order.arrival_code !== code) return res.status(400).json({ error: "Incorrect code" });
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || Number(o.provider_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    if (o.job_type === 'online' || o.status !== 'escrow_funded') return res.status(400).json({ error: "Arrival can't be confirmed for this order" });
+    if (o.arrival_code_attempts >= 5) return res.status(429).json({ error: "Too many wrong codes. Contact support." });
 
-    await db.query(`UPDATE service_orders SET status = 'in_progress', arrival_verified_at = NOW() WHERE id = ?`, [order.id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    if (String(req.body.code || '').trim() !== o.arrival_code) {
+      await db.query(`UPDATE service_orders SET arrival_code_attempts = arrival_code_attempts + 1 WHERE id = ?`, [o.id]);
+      return res.status(400).json({ error: "Incorrect code" });
+    }
+    if (!(await claim(o.id, ['escrow_funded'], `status='in_progress', started_at=NOW(), arrival_verified_at=NOW()`)))
+      return res.status(409).json({ error: "Order already updated" });
+
+    const now = new Date();
+    await svcLog(o.quote_id, o.id, user.id, 'arrival_verified', now.toISOString());
+    await postChatSystemLine(o.conversation_id, user.id, `📍 Freelancer arrived and the code was verified on ${now.toDateString()}. Job timer started.`);
+    res.json({ success: true, started_at: now });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-
-/* ================================================================
-   PART E — PROVIDER MARKS WORK COMPLETE
-   ================================================================ */
+// FREELANCER says the work is done
 app.post("/api/service-orders/:orderId/mark-completed", async (req, res) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || order.provider_id !== user.id) return res.status(403).json({ error: "Access denied" });
-    if (order.status !== 'in_progress') return res.status(400).json({ error: "Order isn't in progress" });
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || Number(o.provider_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    if (o.status !== 'in_progress') return res.status(400).json({ error: "Order isn't in progress" });
 
-    await db.query(`UPDATE service_orders SET status = 'client_review', completed_by_provider_at = NOW() WHERE id = ?`, [order.id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const onsite = o.job_type !== 'online';
+    const ok = onsite
+      ? await claim(o.id, ['in_progress'], `status='client_review', completed_by_provider_at=NOW()`)
+      : await claim(o.id, ['in_progress'], `status='release_pending', completed_by_provider_at=NOW(), payment_held_until=?`, [daysFromNow(SVC_ONLINE_HOLD_DAYS)]);
+    if (!ok) return res.status(409).json({ error: "Order already updated" });
+
+    await svcLog(o.quote_id, o.id, user.id, 'marked_complete', onsite ? 'awaiting client inspection' : `release in ${SVC_ONLINE_HOLD_DAYS}d`);
+    await postChatSystemLine(o.conversation_id, user.id, onsite
+      ? `🔧 Freelancer marked the job complete. Client: please inspect the work and press "I'm Satisfied" or request a fix.`
+      : `✅ Freelancer delivered the work. Payment will be released in ${SVC_ONLINE_HOLD_DAYS} days unless the client opens a dispute.`);
+    const c = extractRows(await db.query(`SELECT email FROM users WHERE id = ?`, [o.client_id]))[0];
+    if (c) sendEmail(c.email, `Order #${o.id}: work marked complete`, `<p>Please review the work in Active Orders.</p>`).catch(() => {});
+    res.json({ success: true, status: onsite ? 'client_review' : 'release_pending' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-
-/* ================================================================
-   PART F — CLIENT REVIEW: Accept & Release / Request Fix / Dispute
-   ================================================================ */
-app.post("/api/service-orders/:orderId/accept-release", async (req, res) => {
+// CLIENT is satisfied → completion code is generated and emailed
+app.post("/api/service-orders/:orderId/satisfied", async (req, res) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
-    if (order.status !== 'client_review') return res.status(400).json({ error: "Order isn't awaiting review" });
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || Number(o.client_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    if (o.status !== 'client_review') return res.status(400).json({ error: "Order isn't awaiting your review" });
+    if (o.completion_code) return res.json({ success: true, completion_code: o.completion_code });
 
-    // Immediate release since the client explicitly confirmed satisfaction —
-    // no need to wait out a protection window when they've already approved.
-    await releaseServiceOrderFunds(order);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const code = svcCode();
+    const r = await db.query(
+      `UPDATE service_orders SET completion_code = ?, client_satisfied_at = NOW(), completion_code_attempts = 0
+       WHERE id = ? AND status = 'client_review' AND completion_code IS NULL`, [code, o.id]);
+    if (!affected(r)) return res.status(409).json({ error: "Already handled" });
+
+    await svcLog(o.quote_id, o.id, user.id, 'client_satisfied', 'completion code issued');
+    await postChatSystemLine(o.conversation_id, user.id, `👍 Client is satisfied. They will give the freelancer a completion code to release the job.`);
+    sendEmail(user.email, `Your completion code for Order #${o.id}`,
+      `<p>Give this code to the freelancer to confirm the job is finished:</p><h1 style="letter-spacing:8px">${code}</h1><p>Only share it once you're happy. Payment is released 7 days after the freelancer enters it.</p>`).catch(() => {});
+    res.json({ success: true, completion_code: code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// FREELANCER enters the completion code → 7-day hold starts
+app.post("/api/service-orders/:orderId/confirm-completion", async (req, res) => {
+  try {
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || Number(o.provider_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    if (o.status !== 'client_review' || !o.completion_code) return res.status(400).json({ error: "The client hasn't confirmed satisfaction yet" });
+    if (o.completion_code_attempts >= 5) return res.status(429).json({ error: "Too many wrong codes. Contact support." });
+
+    if (String(req.body.code || '').trim() !== o.completion_code) {
+      await db.query(`UPDATE service_orders SET completion_code_attempts = completion_code_attempts + 1 WHERE id = ?`, [o.id]);
+      return res.status(400).json({ error: "Incorrect code" });
+    }
+    const release = daysFromNow(SVC_RELEASE_HOLD_DAYS);
+    if (!(await claim(o.id, ['client_review'], `status='release_pending', payment_held_until=?`, [release])))
+      return res.status(409).json({ error: "Order already updated" });
+
+    await svcLog(o.quote_id, o.id, user.id, 'completion_confirmed', `release ${release.toISOString()}`);
+    await postChatSystemLine(o.conversation_id, user.id, `🏁 Job confirmed complete. Payment will be released to the freelancer on ${release.toDateString()}.`);
+    res.json({ success: true, release_date: release });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post("/api/service-orders/:orderId/request-fix", async (req, res) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const { notes } = req.body;
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || order.client_id !== user.id) return res.status(403).json({ error: "Access denied" });
-    if (order.status !== 'client_review') return res.status(400).json({ error: "Order isn't awaiting review" });
-
-    await db.query(`UPDATE service_orders SET status = 'in_progress' WHERE id = ?`, [order.id]);
-
-    const providerResult = await db.query(`SELECT email FROM users WHERE id = ?`, [order.provider_id]);
-    const provider = extractRows(providerResult)[0];
-    if (provider) {
-      sendEmail(provider.email, `Fix requested — Order #${order.id}`,
-        `<p>The client requested a fix before releasing payment.</p><p>${escapeHtml(notes || '')}</p>`
-      ).catch(() => {});
-    }
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o || Number(o.client_id) !== Number(user.id)) return res.status(403).json({ error: "Access denied" });
+    const notes = String(req.body.notes || '').trim().slice(0, 500);
+    if (!(await claim(o.id, ['client_review'], `status='in_progress', completion_code=NULL, client_satisfied_at=NULL`)))
+      return res.status(400).json({ error: "Order isn't awaiting review" });
+    await svcLog(o.quote_id, o.id, user.id, 'fix_requested', notes);
+    await postChatSystemLine(o.conversation_id, user.id, `🛠 Client requested a fix: ${notes || '(no details)'}`);
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/service-orders/:orderId/dispute", async (req, res) => {
+// CANCEL: either side, before completion. Client always gets a full refund.
+app.post("/api/service-orders/:orderId/cancel", async (req, res) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Please log in" });
-    const { reason, evidence_urls } = req.body;
-    const orderResult = await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]);
-    const order = extractRows(orderResult)[0];
-    if (!order || (order.client_id !== user.id && order.provider_id !== user.id)) {
-      return res.status(403).json({ error: "Access denied" });
-    }
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const o = await getSvcOrder(req.params.orderId, user.id);
+    if (!o) return res.status(403).json({ error: "Access denied" });
+    if (!SVC_CANCELLABLE.includes(o.status)) return res.status(400).json({ error: "This job can no longer be cancelled. Open a dispute instead." });
+    const reason = String(req.body.reason || '').trim().slice(0, 500);
+    if (reason.length < 5) return res.status(400).json({ error: "Please give a short reason" });
 
-    await db.query(`UPDATE service_orders SET status = 'disputed' WHERE id = ?`, [order.id]);
+    const wasFunded = o.status !== 'payment_pending';
+    if (!(await claim(o.id, SVC_CANCELLABLE, `status='cancelling'`))) return res.status(409).json({ error: "Order already updated" });
+
+    if (wasFunded) {
+      try { await refundServiceOrder(o); }
+      catch (err) {
+        await db.query(`UPDATE service_orders SET status='refund_failed', payout_error=? WHERE id=?`, [String(err.message).slice(0, 500), o.id]);
+        sendEmail(SUPPORT_EMAIL, `Service refund FAILED, order #${o.id}`, `<p>${escapeHtml(err.message)}</p>`).catch(() => {});
+        return res.status(502).json({ error: "We couldn't process the refund automatically. Support has been alerted and will complete it." });
+      }
+    }
     await db.query(
-      `INSERT INTO service_disputes (service_order_id, raised_by, reason, evidence_urls, status, created_at)
-       VALUES (?, ?, ?, ?, 'open', NOW())`,
-      [order.id, user.id, reason, JSON.stringify(evidence_urls || [])]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      `UPDATE service_orders SET status=?, cancelled_by=?, cancelled_at=NOW(), cancel_reason=?, refunded_at=${wasFunded ? 'NOW()' : 'NULL'} WHERE id=?`,
+      [wasFunded ? 'refunded' : 'cancelled', user.id, reason, o.id]);
+
+    const who = Number(user.id) === Number(o.client_id) ? 'client' : 'freelancer';
+    await svcLog(o.quote_id, o.id, user.id, 'cancelled', `by ${who}: ${reason}`);
+    await postChatSystemLine(o.conversation_id, user.id,
+      `❌ Job cancelled by the ${who}. ${wasFunded ? 'The client is being refunded in full.' : 'No payment had been made.'}`);
+    res.json({ success: true, refunded: wasFunded });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Shared release helper — used by explicit client acceptance AND the
-// automatic 7-day sweep in Part H.
-async function releaseServiceOrderFunds(order) {
-  await db.query(`UPDATE service_orders SET status = 'completed', released_at = NOW() WHERE id = ?`, [order.id]);
-  try {
-    await db.query(
-      `INSERT INTO wallet_transactions (user_id, type, amount, order_id, description, created_at)
-       VALUES (?, 'service_release', ?, ?, ?, NOW())`,
-      [order.provider_id, order.provider_earnings, order.id, `Released for service order #${order.id}`]
-    );
-  } catch (e) { /* wallet_transactions is optional context here — payment itself already moved via subaccount split at charge time */ }
+
+async function refundServiceOrder(order) {
+  if (!order.flw_transaction_id) throw new Error('No Flutterwave transaction recorded for this order');
+  const r = await axios.post(
+    `https://api.flutterwave.com/v3/transactions/${order.flw_transaction_id}/refund`,
+    { amount: Number(order.paid_amount) },   // original charged amount, in the currency paid
+    { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }, timeout: 20000 }
+  );
+  if (r.data.status !== 'success') throw new Error(r.data.message || 'Refund rejected');
 }
 
+async function payoutProvider(order) {
+  const u = extractRows(await db.query(
+    `SELECT bank_code, account_number, account_name, payout_country FROM users WHERE id = ?`, [order.provider_id]))[0];
+  if (!u || !u.bank_code || !u.account_number) throw new Error('Provider has no payout details');
+  let currency = 'USD', amount = Number(order.provider_earnings);
+  if ((u.payout_country || 'NG') === 'NG') {
+    const rates = await getExchangeRate();
+    currency = 'NGN'; amount = Math.round(amount * (rates.USD_TO_NGN || 1500));
+  }
+  const ref = `SVCPAYOUT_${order.id}`;   // deterministic, so a retry can't double-pay
+  const r = await axios.post('https://api.flutterwave.com/v3/transfers', {
+    account_bank: String(u.bank_code), account_number: String(u.account_number),
+    amount, currency, debit_currency: currency, reference: ref,
+    narration: `Core Insight job #${order.id}`,
+  }, { headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` }, timeout: 30000 });
+  if (r.data.status !== 'success') throw new Error(r.data.message || 'Transfer rejected');
+  return ref;
+}
+
+async function releaseServiceOrderFunds(order) {
+  if (!(await claim(order.id, ['release_pending', 'payout_failed', 'disputed'], `status='releasing'`))) return false;
+  try {
+    const ref = await payoutProvider(order);
+    await db.query(`UPDATE service_orders SET status='completed', released_at=NOW(), payout_ref=?, payout_error=NULL WHERE id=?`, [ref, order.id]);
+    await svcLog(order.quote_id, order.id, null, 'funds_released', ref);
+    const p = extractRows(await db.query(`SELECT email FROM users WHERE id = ?`, [order.provider_id]))[0];
+    if (p) sendEmail(p.email, `Payment released: Order #${order.id}`, `<p>$${Number(order.provider_earnings).toFixed(2)} has been sent to your payout account.</p>`).catch(() => {});
+    return true;
+  } catch (err) {
+    await db.query(`UPDATE service_orders SET status='payout_failed', payout_error=? WHERE id=?`, [String(err.message).slice(0, 500), order.id]);
+    sendEmail(SUPPORT_EMAIL, `Service payout FAILED, order #${order.id}`, `<p>${escapeHtml(err.message)}</p>`).catch(() => {});
+    return false;
+  }
+}
+
+// Replaces the old /api/cron/release-service-escrow
+app.get("/api/cron/release-service-escrow", async (req, res) => {
+  if (req.query.secret !== process.env.CRON_SECRET) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    // client silent after an on-site "complete" → auto-accept
+    const stale = await db.query(
+      `UPDATE service_orders SET status='release_pending', payment_held_until=NOW()
+       WHERE status='client_review' AND completed_by_provider_at <= ?`, [daysFromNow(-SVC_AUTO_ACCEPT_DAYS)]);
+    const due = extractRows(await db.query(
+      `SELECT * FROM service_orders WHERE status IN ('release_pending','payout_failed') AND payment_held_until <= NOW()`));
+    let released = 0;
+    for (const o of due) if (await releaseServiceOrderFunds(o)) released++;
+    res.json({ success: true, auto_accepted: affected(stale), released, attempted: due.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 /* ================================================================
    PART G — CHANGE ORDERS (mid-job scope additions)
@@ -1547,17 +1872,27 @@ app.get("/api/service-orders/mine", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.status(401).json({ error: "Please log in" });
+
     const result = await db.query(
-      `SELECT so.*, 
+      `SELECT so.*, q.conversation_id,
               c.username AS client_name, p.username AS provider_name
        FROM service_orders so
+       JOIN service_quotes q ON q.id = so.quote_id
        JOIN users c ON so.client_id = c.id
        JOIN users p ON so.provider_id = p.id
-       WHERE (so.client_id = ? OR so.provider_id = ?) AND so.status NOT IN ('completed', 'refunded')
+       WHERE (so.client_id = ? OR so.provider_id = ?)
+         AND so.status NOT IN ('completed', 'refunded', 'cancelled')
        ORDER BY so.created_at DESC`,
       [user.id, user.id]
     );
-    res.json(extractRows(result));
+
+    const rows = extractRows(result).map(o => {
+      const isClient = Number(o.client_id) === Number(user.id);
+      if (!isClient) { delete o.arrival_code; delete o.completion_code; }   // freelancer must never see these
+      delete o.flw_transaction_id;
+      return o;
+    });
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1584,12 +1919,10 @@ app.post("/api/admin/service-disputes/:disputeId/resolve", async (req, res) => {
 
     if (outcome === 'release') {
       await releaseServiceOrderFunds(order);
-    } else {
-      await db.query(`UPDATE service_orders SET status = 'refunded' WHERE id = ?`, [order.id]);
-      // NOTE: actually refunding the client's original charge should
-      // reuse your existing refund-processing code (the same route
-      // used for Products refunds) — intentionally not duplicated here.
-    }
+   } else {
+  await refundServiceOrder(order);
+  await db.query(`UPDATE service_orders SET status='refunded', refunded_at=NOW() WHERE id = ?`, [order.id]);
+}
 
     res.json({ success: true });
   } catch (err) {
@@ -1967,9 +2300,8 @@ async function resolveQuoteParties(conversationId, userId) {
 async function postChatSystemLine(conversationId, senderId, text) {
   try {
     await db.query(
-      `INSERT INTO messages (conversation_id, sender_id, message, created_at, is_read) VALUES (?, ?, ?, NOW(), 0)`,
-      [conversationId, senderId, text]
-    );
+      `INSERT INTO messages (conversation_id, sender_id, message, attachment_type, created_at, is_read) VALUES (?, ?, ?, 'system', NOW(), 0)`,
+      [conversationId, senderId, text]);
   } catch (e) { console.error('System line failed:', e.message); }
 }
 // ---- Cover image upload config ----
@@ -2058,6 +2390,60 @@ async function syncArticleTags(articleId, parsedTags) {
   }
 }
 
+// Participants and admins can pull the full agreement + timeline
+app.get("/api/service-orders/:orderId/agreement", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ error: "Please log in" });
+
+    const isAdmin = user.role === 'admin';
+    const o = isAdmin
+      ? extractRows(await db.query(`SELECT * FROM service_orders WHERE id = ?`, [req.params.orderId]))[0]
+      : await getSvcOrder(req.params.orderId, user.id);
+    if (!o) return res.status(404).json({ error: "Not found" });
+
+    const q = extractRows(await db.query(
+      `SELECT q.*, c.username AS client_name, p.username AS provider_name
+       FROM service_quotes q
+       JOIN users c ON c.id = ?
+       JOIN users p ON p.id = ?
+       WHERE q.id = ?`, [o.client_id, o.provider_id, o.quote_id]))[0];
+
+    const events = extractRows(await db.query(
+      `SELECT e.event, e.detail, e.created_at, u.username AS actor
+       FROM service_quote_events e LEFT JOIN users u ON u.id = e.actor_id
+       WHERE e.order_id = ? OR e.quote_id = ?
+       ORDER BY e.created_at ASC, e.id ASC`, [o.id, o.quote_id]));
+
+    const d = extractRows(await db.query(
+      `SELECT * FROM service_disputes WHERE service_order_id = ? ORDER BY id DESC LIMIT 1`, [o.id]))[0];
+
+      const tid = q.thread_id || q.id;
+const negotiation = extractRows(await db.query(
+  `SELECT t.id, t.amount, t.description, t.status, t.proposed_by, t.created_at, t.accepted_at, u.username AS sender_name
+   FROM service_quotes t JOIN users u ON u.id = t.sender_id
+   WHERE t.thread_id = ? OR t.id = ?
+   ORDER BY t.id ASC`, [tid, tid]));
+
+    res.json({
+      agreement: {
+        client: q.client_name, provider: q.provider_name, job_type: q.job_type,
+        description: q.description, amount: Number(q.amount),
+        created_at: q.created_at, accepted_at: q.accepted_at, hash: q.agreement_hash,
+      },
+      order: {
+        id: o.id, status: o.status, started_at: o.started_at,
+        completed_by_provider_at: o.completed_by_provider_at,
+        cancelled_by: o.cancelled_by, cancel_reason: o.cancel_reason,
+      },
+      dispute: d ? {
+        id: d.id, reason: d.reason, status: d.status, raised_by: d.raised_by,
+        resolution: d.resolution, created_at: d.created_at, evidence: parseJson(d.evidence_urls),
+      } : null,
+      events,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.post("/api/articles", uploadArticleMedia, async (req, res) => {
   try {
     if (!req.session.user) {
@@ -8162,6 +8548,33 @@ app.get("/api/debug/routes", (req, res) => {
     }
   });
   res.json(routes.filter(r => r.path && r.path.includes('download')));
+});
+
+app.get("/api/service-orders/by-conversation/:conversationId", async (req, res) => {
+  try {
+    const user = req.session.user; if (!user) return res.status(401).json({ error: "Please log in" });
+    const cid = parseInt(req.params.conversationId);
+    if (!(await resolveQuoteParties(cid, user.id))) return res.status(403).json({ error: "Access denied" });
+
+    const o = extractRows(await db.query(
+      `SELECT so.*, q.description, q.agreement_hash, q.accepted_at FROM service_orders so
+       JOIN service_quotes q ON q.id = so.quote_id WHERE q.conversation_id = ? ORDER BY so.id DESC LIMIT 1`, [cid]))[0];
+    if (!o) return res.json({ order: null });
+
+    const iAmClient = Number(o.client_id) === Number(user.id);
+    const d = extractRows(await db.query(`SELECT * FROM service_disputes WHERE service_order_id = ? ORDER BY id DESC LIMIT 1`, [o.id]))[0];
+    res.json({ order: {
+      id: o.id, status: o.status, job_type: o.job_type, title: o.title, agreed_price: Number(o.agreed_price),
+      description: o.description, agreement_hash: o.agreement_hash, accepted_at: o.accepted_at,
+      started_at: o.started_at, completed_by_provider_at: o.completed_by_provider_at,
+      payment_held_until: o.payment_held_until, client_satisfied_at: o.client_satisfied_at,
+      cancel_reason: o.cancel_reason, cancelled_by: o.cancelled_by,
+      i_am_client: iAmClient,
+      arrival_code: iAmClient && o.status === 'escrow_funded' ? o.arrival_code : null,
+      completion_code: iAmClient && o.status === 'client_review' ? o.completion_code : null,
+      dispute: d ? { id: d.id, reason: d.reason, raised_by: d.raised_by, status: d.status, evidence: parseJson(d.evidence_urls) } : null,
+    } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ============================================
 // SELLER PRODUCTS ENDPOINT - FIXED

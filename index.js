@@ -9354,25 +9354,27 @@ app.get("/api/messages/conversations", async (req, res) => {
     if (!req.session.user) return res.json([]);
     const userId = req.session.user.id;
  
-    const result = await db.query(`
-      SELECT
-        c.id AS conversation_id,
-        c.item_type,
-        c.item_id,
-        c.service_id,
-        c.created_at,
-        CASE WHEN c.client_id = ? THEN u2.username ELSE u1.username END AS other_user_name,
-        CASE WHEN c.client_id = ? THEN u2.id ELSE u1.id END AS other_user_id,
-        CASE WHEN c.client_id = ? THEN c.archived_by_client ELSE c.archived_by_freelancer END AS is_archived,
-        (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) AS last_message_time,
-        (SELECT message FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
-        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_id != ? AND is_read = 0) AS unread_count
-      FROM conversations c
-      JOIN users u1 ON c.client_id = u1.id
-      JOIN users u2 ON c.freelancer_id = u2.id
-      WHERE c.client_id = ? OR c.freelancer_id = ?
-      ORDER BY (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC, c.created_at DESC
-    `, [userId, userId, userId, userId, userId, userId]);
+   const result = await db.query(`
+  SELECT
+    c.id AS conversation_id, c.item_type, c.item_id, c.service_id, c.created_at,
+    CASE WHEN c.client_id = ? THEN u2.username ELSE u1.username END AS other_user_name,
+    CASE WHEN c.client_id = ? THEN u2.id ELSE u1.id END AS other_user_id,
+    CASE WHEN c.client_id = ? THEN COALESCE(up2.profile_picture_url, fp2.profile_picture_url)
+         ELSE COALESCE(up1.profile_picture_url, fp1.profile_picture_url) END AS other_user_picture,
+    CASE WHEN c.client_id = ? THEN c.archived_by_client ELSE c.archived_by_freelancer END AS is_archived,
+    (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) AS last_message_time,
+    (SELECT message FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_id != ? AND is_read = 0) AS unread_count
+  FROM conversations c
+  JOIN users u1 ON c.client_id = u1.id
+  JOIN users u2 ON c.freelancer_id = u2.id
+  LEFT JOIN user_profiles up1 ON up1.user_id = u1.id
+  LEFT JOIN freelancer_profiles fp1 ON fp1.user_id = u1.id
+  LEFT JOIN user_profiles up2 ON up2.user_id = u2.id
+  LEFT JOIN freelancer_profiles fp2 ON fp2.user_id = u2.id
+  WHERE c.client_id = ? OR c.freelancer_id = ?
+  ORDER BY (SELECT MAX(created_at) FROM messages WHERE conversation_id = c.id) DESC, c.created_at DESC
+`, [userId, userId, userId, userId, userId, userId, userId]);
  
     const conversations = extractRows(result);
  

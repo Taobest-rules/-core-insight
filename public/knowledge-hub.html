@@ -181,6 +181,21 @@ nav a.active{color:var(--blue);background:rgba(74,111,165,.12);font-weight:600}
 .icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--text-l)}
 .icon-btn:hover{border-color:var(--blue);color:var(--blue)}
 
+/* linked offers */
+.link-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:.9rem}
+.link-opt.on{border-color:var(--blue);background:rgba(74,111,165,.06)}
+.link-opt span{flex:1;font-weight:500}
+.link-opt small{color:var(--gray);font-size:.76rem}
+.offers{margin:34px 0 0;padding:22px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px}
+.offers h2{font-family:'Fraunces',serif;font-weight:500;font-size:1.3rem;margin-bottom:4px}
+.offers>p{font-size:.86rem;color:var(--gray);margin-bottom:14px}
+.offer-card{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:8px;text-decoration:none;margin-bottom:10px;background:var(--bg)}
+.offer-card:hover{border-color:var(--green)}
+.offer-ic{width:46px;height:46px;border-radius:8px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;background-size:cover;background-position:center}
+.offer-card b{display:block;font-size:.95rem}
+.offer-card small{color:var(--gray);font-size:.78rem}
+.offer-go{margin-left:auto;color:var(--green);font-weight:600;font-size:.85rem;white-space:nowrap}
+
 /* modal + toast */
 #supportModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center}
 .modal-box{background:#fff;border-radius:14px;padding:28px;max-width:420px;width:90%}
@@ -281,6 +296,9 @@ nav a{display:block;text-align:center;padding:14px;border-radius:0;border-bottom
         <div class="field"><label>Category</label><select id="fieldCategory"></select></div>
         <div class="field"><label>Tags (comma separated, optional)</label><input type="text" id="fieldTags" placeholder="freelancing, ai, pricing"></div>
       </div>
+      <div class="field"><label>Link your work (optional, up to 3)</label>
+  <div id="linkPicker"></div>
+  <p class="helper">Readers will see these under your article so they can hire you or buy from you.</p></div>
       <div class="field"><label>Article</label>
         <div class="toolbar">
           <button type="button" data-cmd="bold" title="Bold"><i class="fas fa-bold"></i></button>
@@ -458,7 +476,8 @@ async function loadArticle(slug){
   try{const r=await fetch('/api/articles/'+encodeURIComponent(slug));if(!r.ok){toast("That article couldn't be found.");return}
     const d=await r.json();recordRead(d.article);renderArticle(d.article);showView('view-article')}catch(e){toast('Something went wrong loading that article.')}
 }
-function renderArticle(a){
+
+ function renderArticle(a){
   const m=cm(a.category),own=state.currentUser&&a.author_id===state.currentUser.id;
   const prof=`profile.html?user=${a.author_id}&tab=knowledge`;
   $('readerWrap').innerHTML=`
@@ -470,6 +489,7 @@ function renderArticle(a){
     ${a.video_url?`<video class="reader-cover" src="${a.video_url}" ${a.cover_image_url?`poster="${a.cover_image_url}"`:''} controls style="background:#000"></video>`:(a.cover_image_url?`<img class="reader-cover" src="${a.cover_image_url}" alt="">`:'')}
     <div class="reader-content">${a.content}</div>
     <div class="tag-row">${(a.tags||[]).map(t=>`<span class="tag-pill">${esc(t)}</span>`).join('')}</div>
+    ${offersHtml(a)}
     <div class="engage">
       <button class="engage-btn" id="likeBtn"><i class="fas fa-heart" style="color:#e74c3c"></i> <span>${a.likes_count||0}</span></button>
       <button class="engage-btn" id="bookmarkBtn"><i class="fas fa-bookmark" style="color:var(--gold)"></i> <span>${a.bookmarks_count||0}</span></button>
@@ -512,7 +532,6 @@ function renderArticle(a){
   $('commentsContainer').onclick=e=>commentAction(e,a);
   loadComments(a);loadRelated(a);
 }
-
 /* ---------- comments: like + reward ---------- */
 function commentHtml(c,reply){
   const uid=c.user_id||c.author_id||'';
@@ -576,6 +595,32 @@ $('confirmSupportBtn').onclick=async()=>{
     const d=await r.json();if(d.success&&d.paymentLink)location.href=d.paymentLink;else toast(d.error||'Could not start payment.')}catch(e){toast('Something went wrong.')}
 };
 
+/* ---------- linked offers ---------- */
+let linkable=[],linkSel=[];
+const TYPE_META={product:{icon:'fa-box',label:'Product',cta:'View product'},service:{icon:'fa-briefcase',label:'Service',cta:'View service'},course:{icon:'fa-graduation-cap',label:'Course',cta:'View course'}};
+const money=p=>Number(p)>0?'$'+Number(p).toFixed(2):'Free';
+async function loadLinkable(){
+  try{const r=await fetch('/api/articles/my/linkable',{credentials:'include'});const d=await r.json();linkable=d.items||[]}catch(e){linkable=[]}
+  renderLinkPicker();
+}
+function renderLinkPicker(){
+  const box=$('linkPicker');
+  if(!linkable.length){box.innerHTML='<p class="helper">You have no active services, products or courses to link yet.</p>';return}
+  box.innerHTML=linkable.map(i=>{const k=i.type+':'+i.id,on=linkSel.includes(k),m=TYPE_META[i.type];
+    return `<label class="link-opt ${on?'on':''}"><input type="checkbox" value="${k}" ${on?'checked':''}><i class="fas ${m.icon}"></i><span>${esc(i.title)}</span><small>${m.label} · ${money(i.price)}</small></label>`}).join('');
+  box.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{
+    if(cb.checked){if(linkSel.length>=3){cb.checked=false;return toast('You can link up to 3 items.')}linkSel.push(cb.value)}
+    else linkSel=linkSel.filter(x=>x!==cb.value);
+    cb.closest('.link-opt').classList.toggle('on',cb.checked)});
+}
+function offersHtml(a){
+  const l=a.links||[];if(!l.length)return'';
+  return `<div class="offers"><h2>Work with ${esc(a.author_name||'this author')}</h2><p>Liked what you read? Here is what they offer.</p>`+
+    l.map(i=>{const m=TYPE_META[i.type];
+      return `<a class="offer-card" href="${i.url}"><div class="offer-ic" style="${i.image?`background-image:url('${i.image}')`:''}">${i.image?'':`<i class="fas ${m.icon}"></i>`}</div>
+      <div><b>${esc(i.title)}</b><small>${m.label} · ${money(i.price)}</small></div><span class="offer-go">${m.cta} <i class="fas fa-arrow-right"></i></span></a>`}).join('')+`</div>`;
+}
+
 /* ---------- editor ---------- */
 let coverFile=null,videoFile=null,removeVideo=false;
 const COVER_HTML='<i class="fas fa-image" style="font-size:1.5rem;margin-bottom:8px;display:block"></i>Click to add a cover image';
@@ -589,7 +634,9 @@ function resetEditor(){
   $('editArticleId').value='';$('editorTitle').textContent='Write an article';
   ['fieldTitle','fieldExcerpt','fieldTags'].forEach(i=>$(i).value='');$('fieldCategory').value='technology';$('richEditor').innerHTML='';
   $('coverDrop').innerHTML=COVER_HTML;$('coverDrop').classList.remove('has-image');coverFile=null;clearVideo();removeVideo=false;
+  linkSel=[];loadLinkable();
 }
+
 async function startWriting(){if(await requireLogin('Please log in to write an article.')){resetEditor();showView('view-editor')}}
 $('composer').onclick=startWriting;$('composer').onkeydown=e=>{if(e.key==='Enter')startWriting()};
 $('newFromMy').onclick=e=>{e.preventDefault();resetEditor();showView('view-editor')};
@@ -603,8 +650,7 @@ $('videoInput').onchange=e=>{const f=e.target.files[0];if(!f)return;
 document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{$('richEditor').focus();
   if(b.dataset.cmd==='createLink'){const u=prompt('Paste a URL:');if(u)document.execCommand('createLink',false,u)}else document.execCommand(b.dataset.cmd,false,b.dataset.arg||null)});
 
-
-  $('articleForm').onsubmit=async e=>{
+$('articleForm').onsubmit=async e=>{
   e.preventDefault();
   let status=e.submitter?e.submitter.dataset.status:'draft';
   const title=$('fieldTitle').value.trim();
@@ -623,6 +669,7 @@ document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{$('richEd
   const fd=new FormData();
   fd.append('title',title);fd.append('excerpt',$('fieldExcerpt').value.trim());fd.append('content',$('richEditor').innerHTML.trim());
   fd.append('category',$('fieldCategory').value);fd.append('tags',$('fieldTags').value);fd.append('status',status);
+  fd.append('links',JSON.stringify(linkSel.map(k=>{const [type,id]=k.split(':');return {type,id:+id}})));
   if(postWithoutPayout)fd.append('acknowledge_no_payout','true');
   if(coverFile)fd.append('cover_image',coverFile);if(videoFile)fd.append('video',videoFile);
   if(removeVideo&&!videoFile)fd.append('remove_video','true');
@@ -632,7 +679,6 @@ document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{$('richEd
     const r=await fetch(id?`/api/articles/${id}`:'/api/articles',{method:id?'PUT':'POST',body:fd,credentials:'include'});
     const d=await r.json();
     if(!r.ok){
-      // Safety net: server says payout is missing and it wasn't acknowledged
       if(d.requires_payout_setup){toast('Add your payout details, or choose "Post anyway" when prompted.')}
       else toast(d.error||'Something went wrong.');
       return;
@@ -642,6 +688,7 @@ document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{$('richEd
     if(d.slug)openArticle(d.slug);else{loadMyArticles();showView('view-my-articles')}
   }catch(err){toast('Network error. Please try again.')}finally{btns.forEach(b=>b.disabled=false)}
 };
+
 async function hasPayoutDetails(){
   try{const r=await fetch('/api/flutterwave/subaccount-status',{credentials:'include'});if(!r.ok)return false;const d=await r.json();return !!d.has_subaccount}catch(e){return false}
 }
@@ -671,10 +718,12 @@ async function loadMyArticles(){
 }
 async function editArticle(id,slug){
   try{const r=await fetch('/api/articles/'+slug);const a=(await r.json()).article;resetEditor();
+    linkSel=(a.links||[]).map(l=>l.type+':'+l.id);
     $('editArticleId').value=id;$('editorTitle').textContent='Edit article';$('fieldTitle').value=a.title;$('fieldExcerpt').value=a.excerpt||'';
     $('fieldTags').value=(a.tags||[]).join(', ');$('fieldCategory').value=a.category;$('richEditor').innerHTML=a.content;
     if(a.cover_image_url){$('coverDrop').classList.add('has-image');$('coverDrop').innerHTML=`<img src="${a.cover_image_url}" alt="">`}
     if(a.video_url){showVideo(a.video_url);removeVideo=false}
+    renderLinkPicker();
     showView('view-editor')}catch(e){toast('Could not load article for editing.')}
 }
 async function deleteArticle(id){

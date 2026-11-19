@@ -2444,6 +2444,117 @@ const negotiation = extractRows(await db.query(
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// ============================================
+// ARTICLE HTML SANITIZING
+// ============================================
+const sanitizeHtml = require("sanitize-html");
+
+function cleanArticleHtml(html) {
+  return sanitizeHtml(String(html || ''), {
+    allowedTags: ['p','br','h2','h3','h4','b','strong','i','em','u','s','ul','ol','li','blockquote','a','img','div','span','pre','code','hr'],
+    allowedAttributes: { a: ['href','title','rel','target'], img: ['src','alt'] },
+    allowedSchemes: ['http','https','mailto'],
+    allowedSchemesByTag: { img: ['http','https'] },
+    transformTags: {
+      a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow', target: '_blank' })
+    },
+    disallowedTagsMode: 'discard'
+  });
+}
+const htmlTextLength = (html) => html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length;
+
+// ============================================
+// ARTICLE → OFFER LINKS (products / services / courses)
+// ============================================
+(async () => {
+  try {
+    await db.query(`CREATE TABLE IF NOT EXISTS article_links (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      article_id INT NOT NULL,
+      item_type VARCHAR(10) NOT NULL,
+      item_id INT NOT NULL,
+      sort_order TINYINT DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_link (article_id, item_type, item_id),
+      INDEX idx_article (article_id)
+    )`);
+  } catch (e) { if (!/already exists/i.test(e.message)) console.error('article_links migration failed:', e.message); }
+})();
+
+const MAX_ARTICLE_LINKS = 3;
+// Adjust the url() functions for services/courses once the deep-link format is confirmed
+const LINK_TYPES = {
+  product: { table: 'products', live: "status = 'active' AND (is_deleted = 0 OR is_deleted IS NULL)",
+             url: id => `/product/${id}` },
+  service: { table: 'services', live: "status = 'active'",
+             url: id => `/services.html?service=${id}` },
+  course:  { table: 'courses',  live: "(is_deleted = 0 OR is_deleted IS NULL)",
+             url: id => `/courses.html?course=${id}` },
+};
+
+async function loadLinkItem(type, id) {
+  const cfg = LINK_TYPES[type];
+  if (!cfg) return null;
+  const row = extractRows(await db.query(
+    `SELECT * FROM ${cfg.table} WHERE id = ? AND ${cfg.live}`, [id]))[0];
+  if (!row) return null;
+  let image = null;
+  if (type === 'product') {
+    try { const imgs = Array.isArray(row.image_urls) ? row.image_urls : JSON.parse(row.image_urls || '[]'); image = imgs[0] || null; } catch (e) {}
+  } else if (type === 'course') {
+    image = row.thumbnail_url || row.thumbnail_path || null;
+  }
+  return { type, id: Number(row.id), title: row.title, price: parseFloat(row.price) || 0, image, url: cfg.url(row.id) };
+}
+
+async function resolveArticleLinks(articleId) {
+  const rows = extractRows(await db.query(
+    `SELECT item_type, item_id FROM article_links WHERE article_id = ? ORDER BY sort_order, id`, [articleId]));
+  const out = [];
+  for (const r of rows) {
+    const item = await loadLinkItem(r.item_type, r.item_id);
+    if (item) out.push(item);
+  }
+  return out;
+}
+
+// Replaces the article's links. Only items owned by the author are accepted.
+async function saveArticleLinks(articleId, authorId, rawLinks) {
+  const links = parseJson(rawLinks);
+  const clean = [], seen = new Set();
+  for (const l of Array.isArray(links) ? links : []) {
+    const cfg = LINK_TYPES[l && l.type];
+    const id = parseInt(l && l.id);
+    if (!cfg || !id || seen.has(l.type + ':' + id)) continue;
+    const owned = extractRows(await db.query(
+      `SELECT id FROM ${cfg.table} WHERE id = ? AND user_id = ? AND ${cfg.live}`, [id, authorId]))[0];
+    if (!owned) continue;
+    seen.add(l.type + ':' + id);
+    clean.push({ type: l.type, id });
+    if (clean.length >= MAX_ARTICLE_LINKS) break;
+  }
+  await db.query(`DELETE FROM article_links WHERE article_id = ?`, [articleId]);
+  for (let i = 0; i < clean.length; i++) {
+    await db.query(
+      `INSERT INTO article_links (article_id, item_type, item_id, sort_order) VALUES (?, ?, ?, ?)`,
+      [articleId, clean[i].type, clean[i].id, i]);
+  }
+}
+
+// What the current user can link (editor picker)
+app.get("/api/articles/my/linkable", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: "Please login" });
+    const uid = req.session.user.id, items = [];
+    for (const type of Object.keys(LINK_TYPES)) {
+      const cfg = LINK_TYPES[type];
+      const rows = extractRows(await db.query(
+        `SELECT id, title, price FROM ${cfg.table} WHERE user_id = ? AND ${cfg.live} ORDER BY created_at DESC LIMIT 100`, [uid]));
+      rows.forEach(r => items.push({ type, id: Number(r.id), title: r.title, price: parseFloat(r.price) || 0 }));
+    }
+    res.json({ success: true, items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 app.post("/api/articles", uploadArticleMedia, async (req, res) => {
   try {
     if (!req.session.user) {
@@ -2455,13 +2566,15 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
     if (!title || title.trim().length < 5) {
       return res.status(400).json({ error: "Title must be at least 5 characters" });
     }
-    if (!content || content.trim().length < 50) {
+
+    const cleanContent = cleanArticleHtml(content);
+    if (htmlTextLength(cleanContent) < 50) {
       return res.status(400).json({ error: "Article content must be at least 50 characters" });
     }
 
-      let finalStatus = status === 'published' ? 'published' : 'draft';
+    let finalStatus = status === 'published' ? 'published' : 'draft';
 
-      if (finalStatus === 'published') {
+    if (finalStatus === 'published') {
       const payoutCheck = await db.query(`SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [req.session.user.id]);
       const hasPayoutLinked = !!extractRows(payoutCheck)[0]?.flutterwave_subaccount_id;
       const acknowledged = req.body.acknowledge_no_payout === 'true' || req.body.acknowledge_no_payout === true;
@@ -2472,8 +2585,9 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
         });
       }
     }
+
     const slug = await generateUniqueSlug(title);
-    const readTime = estimateReadTime(content);
+    const readTime = estimateReadTime(cleanContent);
 
     let coverImageUrl = null;
     const coverFile = req.files?.cover_image?.[0];
@@ -2508,7 +2622,7 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
         title.trim(),
         slug,
         excerpt ? excerpt.trim().substring(0, 500) : null,
-        content,
+        cleanContent,
         coverImageUrl,
         videoUrl,
         category ? category.trim() : 'general',
@@ -2520,6 +2634,11 @@ app.post("/api/articles", uploadArticleMedia, async (req, res) => {
     );
 
     const articleId = extractInsertId(result);
+
+    // sync tags table too (was missing on create)
+    try { await syncArticleTags(articleId, parsedTags ? JSON.parse(parsedTags) : []); } catch (e) {}
+
+    await saveArticleLinks(articleId, req.session.user.id, req.body.links);
 
     res.json({
       success: true,
@@ -2546,29 +2665,22 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
       "SELECT * FROM articles WHERE id = ? AND is_deleted = 0",
       [articleId]
     );
-
     const rows = extractRows(existing);
-
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Article not found" });
     }
 
     const article = rows[0];
-
     const isOwner = article.user_id === req.session.user.id;
     const isAdmin = req.session.user.role === "admin";
-
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        error: "You can only edit your own articles"
-      });
+      return res.status(403).json({ error: "You can only edit your own articles" });
     }
 
     const { title, excerpt, content, category, tags, status, remove_video } = req.body;
 
     let coverImageUrl = article.cover_image_url;
     const coverFile = req.files?.cover_image?.[0];
-
     if (coverFile) {
       coverImageUrl = await uploadToImgbb(coverFile.path, coverFile.originalname);
       try { fs.unlinkSync(coverFile.path); } catch (e) {}
@@ -2576,7 +2688,6 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
 
     let videoUrl = article.video_url;
     const videoFile = req.files?.video?.[0];
-
     if (videoFile) {
       videoUrl = await uploadToBackblaze(videoFile.path, videoFile.originalname);
       try { fs.unlinkSync(videoFile.path); } catch (e) {}
@@ -2585,7 +2696,6 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
     }
 
     let parsedTags = article.tags;
-
     if (tags) {
       try {
         parsedTags = JSON.stringify(typeof tags === "string" ? JSON.parse(tags) : tags);
@@ -2594,14 +2704,21 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
       }
     }
 
-    const finalContent = content !== undefined ? content : article.content;
+    let finalContent = article.content;
+    if (content !== undefined) {
+      finalContent = cleanArticleHtml(content);
+      if (htmlTextLength(finalContent) < 50) {
+        return res.status(400).json({ error: "Article content must be at least 50 characters" });
+      }
+    }
 
     const newStatus = status || article.status;
     const wasPublished = article.status === "published";
     const willBePublished = newStatus === "published";
 
-    let publishedAt;
-        if (!wasPublished && willBePublished) {
+    // Keep the original publish date; set it the first time the article is published
+    let publishedAt = article.published_at || null;
+    if (!wasPublished && willBePublished) {
       const payoutCheck = await db.query(`SELECT flutterwave_subaccount_id FROM users WHERE id = ?`, [article.user_id]);
       const hasPayoutLinked = !!extractRows(payoutCheck)[0]?.flutterwave_subaccount_id;
       const acknowledged = req.body.acknowledge_no_payout === 'true' || req.body.acknowledge_no_payout === true;
@@ -2611,7 +2728,8 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
           requires_payout_setup: true
         });
       }
-    } 
+      publishedAt = new Date();
+    }
 
     await db.query(
       `UPDATE articles
@@ -2646,7 +2764,11 @@ app.put("/api/articles/:id", uploadArticleMedia, async (req, res) => {
     try { tagsArray = JSON.parse(parsedTags) || []; } catch (e) {}
     await syncArticleTags(articleId, tagsArray);
 
-    res.json({ success: true, message: "Article updated successfully" });
+    if (req.body.links !== undefined) {
+      await saveArticleLinks(articleId, article.user_id, req.body.links);
+    }
+
+    res.json({ success: true, message: "Article updated successfully", slug: article.slug });
 
   } catch (err) {
     console.error("❌ Article update error:", err);
@@ -2728,7 +2850,6 @@ app.get("/api/articles/:slug", async (req, res) => {
 
     const article = rows[0];
 
-    // Only the author/admin can view drafts
     const isOwner = req.session.user && req.session.user.id === article.user_id;
     const isAdmin = req.session.user && req.session.user.role === 'admin';
     if (article.status !== 'published' && !isOwner && !isAdmin) {
@@ -2741,7 +2862,10 @@ app.get("/api/articles/:slug", async (req, res) => {
       article.tags = [];
     }
 
-    // Track view (fire and forget) — skip counting the author's own views
+    // Sanitize on the way out too, so older unsanitized articles are safe
+    article.content = cleanArticleHtml(article.content);
+    article.links = await resolveArticleLinks(article.id);
+
     if (!isOwner) {
       db.query("UPDATE articles SET views_count = views_count + 1 WHERE id = ?", [article.id]).catch(() => {});
       db.query(

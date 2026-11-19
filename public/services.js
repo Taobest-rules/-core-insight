@@ -11549,4 +11549,21 @@ window.checkAndStartConversation = async function (serviceId, freelancerId) {
     }
   });
 })();
- 
+/* ============================================================
+   DEEP LINK: services.html?service=ID opens that service's
+   details modal (used by Knowledge Hub article "Work with" cards)
+   ============================================================ */
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const serviceId = parseInt(params.get('service'));
+  if (!serviceId) return;
+
+  window.addEventListener('load', () => {
+    // small delay so the page's own init (auth check, browser view) finishes first
+    setTimeout(() => {
+      if (typeof viewServiceDetailsModal === 'function' && document.getElementById('serviceDetailsModal')) {
+        viewServiceDetailsModal(serviceId);
+      }
+    }, 700);
+  });
+})(); 

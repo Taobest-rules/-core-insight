@@ -28,6 +28,9 @@
       --gold: #c9971f;
       --gray: #6b7a8f;
       --neutral-dark: #eef1f5;
+      --text-gray: #6b7a8f;
+      --danger: #c0392b;
+      --success: #5a8d7d;
     }
     body {
       font-family: 'Inter', sans-serif;
@@ -467,6 +470,64 @@
 .pc-badge.free{background:rgba(90,141,125,.15);color:var(--green)}
 .pc-sub{font-size:.8rem;color:var(--text-muted);margin-bottom:6px}
 .pc-image.ph{display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.85);font-size:2.4rem;background:linear-gradient(145deg,var(--primary),var(--secondary))}
+/* ---------- POD wallet ---------- */
+.wallet-wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.wallet-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.wb{background:var(--card-bg);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:18px 18px 16px;box-shadow:var(--shadow-sm)}
+.wb span{display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.wb strong{display:block;font-family:'Fraunces',serif;font-size:1.7rem;margin:4px 0 2px;color:var(--text-dark)}
+.wb small{display:block;font-size:.78rem;color:var(--text-muted)}
+.wb.primary{background:linear-gradient(145deg,var(--primary),var(--secondary));border-color:transparent}
+.wb.primary span,.wb.primary small{color:rgba(255,255,255,.85)}
+.wb.primary strong{color:#fff}
+.info-card{background:var(--card-bg);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:22px 24px;box-shadow:var(--shadow-sm)}
+.info-card h4{font-size:1rem;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.info-card h4 i{color:var(--primary)}
+.info-card .sub{color:var(--text-muted);font-size:.85rem;margin-bottom:14px}
+.how-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.how-step{background:var(--bg-light);border-radius:var(--radius-sm);padding:12px;font-size:.8rem;color:var(--text-soft)}
+.how-step b{display:block;color:var(--primary);font-size:.72rem;letter-spacing:.05em;margin-bottom:4px}
+.fund-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.fund-row input{width:170px;padding:11px 14px;border:1px solid var(--border-light);border-radius:var(--radius-sm);font:inherit;background:#fafcff}
+.fund-row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,111,165,.15)}
+.chip{border:1px solid var(--border-light);background:#fff;border-radius:30px;padding:8px 14px;font-weight:600;font-size:.85rem;cursor:pointer;color:var(--text-soft);transition:.15s}
+.chip:hover{border-color:var(--primary);color:var(--primary)}
+.btn-sm{padding:9px 16px;font-size:.85rem;width:auto}
+.btn-ghost{background:transparent;border:1px solid var(--border-light);color:var(--text-soft);border-radius:40px;padding:9px 16px;font-weight:600;font-size:.85rem;cursor:pointer;transition:.15s}
+.btn-ghost:hover{border-color:var(--danger);color:var(--danger)}
+.btn-primary:disabled,.btn-ghost:disabled,.btn-secondary:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.pod-card{border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:14px 16px;margin-top:12px;background:#fff}
+.pod-card:first-of-type{margin-top:0}
+.pod-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.pod-top strong{font-size:.98rem}
+.pod-meta{font-size:.82rem;color:var(--text-muted);margin-top:4px;line-height:1.55}
+.pod-meta i{width:14px;color:#9aa8bb}
+.pod-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.pod-actions input.code-input{width:130px;padding:9px 12px;border:1px solid var(--border-light);border-radius:var(--radius-sm);font:inherit;letter-spacing:.25em;text-align:center;font-weight:700}
+.pod-note{margin-top:10px;font-size:.82rem;padding:9px 12px;border-radius:var(--radius-sm);background:rgba(201,151,31,.09);border-left:3px solid var(--gold);color:var(--text-soft)}
+.pod-note.bad{background:rgba(192,57,43,.07);border-left-color:var(--danger)}
+.pod-note.ok{background:rgba(90,141,125,.1);border-left-color:var(--green)}
+.spill{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:30px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.spill.warn{background:rgba(201,151,31,.14);color:#9a720f}
+.spill.info{background:rgba(74,111,165,.12);color:var(--primary-dark)}
+.spill.ok{background:rgba(90,141,125,.15);color:#3f6e5f}
+.spill.bad{background:rgba(192,57,43,.12);color:var(--danger)}
+.spill.muted{background:var(--border-light);color:var(--text-muted)}
+.tx-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border-light);font-size:.88rem}
+.tx-row:last-child{border-bottom:none}
+.tx-row small{display:block;color:var(--text-muted);font-size:.76rem}
+.tx-amt{font-weight:700;white-space:nowrap}
+.tx-amt.in{color:var(--green)}
+.tx-amt.out{color:var(--text-soft)}
+.empty-mini{color:var(--text-muted);font-size:.88rem;padding:6px 0}
+.history-toggle{background:none;border:none;color:var(--primary);font-weight:600;cursor:pointer;font-size:.85rem;margin-top:10px;padding:0}
+@media (max-width:640px){
+  .wallet-hero{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr 1fr}
+  .info-card{padding:18px 16px}
+  .fund-row input{width:100%}
+  .pod-actions .btn-primary,.pod-actions .btn-ghost,.pod-actions .btn-secondary{flex:1}
+}
   </style>
 </head>
 <body>
@@ -627,31 +688,65 @@
   </div>
 </div>
 
-<div id="toast"></div>
   <div class="tab-panel" id="panel-wallet">
-    <div class="info-card" style="margin-bottom:20px;">
-      <h4><i class="fas fa-sack-dollar"></i> Pay on Delivery Wallet</h4>
-      <div id="walletBalanceRow" style="display:flex; gap:24px; flex-wrap:wrap; margin:16px 0;">
-        <div><div style="font-size:12px;color:var(--text-gray);">Available</div><div id="walletAvailable" style="font-size:1.4rem;font-weight:600;">—</div></div>
-        <div><div style="font-size:12px;color:var(--text-gray);">Reserved</div><div id="walletReserved" style="font-size:1.4rem;font-weight:600;">—</div></div>
-        <div><div style="font-size:12px;color:var(--text-gray);">Owed on credit</div><div id="walletOwed" style="font-size:1.4rem;font-weight:600;">—</div></div>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <input type="number" id="walletFundAmount" placeholder="Amount (USD)" min="1" style="width:140px;padding:10px;border-radius:8px;border:1px solid var(--border-light);">
-        <button class="btn" onclick="fundWallet()">Add Funds</button>
-      </div>
-    </div>
+    <div class="wallet-wrap">
 
-    <div class="info-card" style="margin-bottom:20px;">
-      <h4><i class="fas fa-clock"></i> Pending Pay on Delivery Requests</h4>
-      <div id="podPendingOrders"><p style="color:var(--text-gray);">Loading…</p></div>
-    </div>
+      <div class="wallet-hero">
+        <div class="wb primary"><span>Available</span><strong id="walletAvailable">—</strong><small>Free to use for new orders</small></div>
+        <div class="wb"><span>Reserved</span><strong id="walletReserved">—</strong><small>Held for orders in progress</small></div>
+        <div class="wb"><span>Waiting requests</span><strong id="walletPending">—</strong><small id="walletPendingSub">Fees they would reserve</small></div>
+      </div>
 
-    <div class="info-card">
-      <h4><i class="fas fa-list"></i> Wallet Activity</h4>
-      <div id="walletTransactionList"><p style="color:var(--text-gray);">Loading…</p></div>
+      <div class="info-card">
+        <h4><i class="fas fa-circle-info"></i> How Pay on Delivery works</h4>
+        <p class="sub">The customer pays you cash, so Core Insight can't collect its 10% automatically. Instead you keep the 10% in this wallet.</p>
+        <div class="how-steps">
+          <div class="how-step"><b>1 · ACCEPT</b>10% of the order is reserved from your available balance.</div>
+          <div class="how-step"><b>2 · DELIVER</b>You ship, the customer pays you cash and gives you their code.</div>
+          <div class="how-step"><b>3 · 7 DAYS</b>The customer can still ask for a refund during the window.</div>
+          <div class="how-step"><b>4 · FEE TAKEN</b>After the window the reserved 10% goes to Core Insight. If the order is cancelled or refunded, it comes back to you.</div>
+        </div>
+      </div>
+
+      <div class="info-card" id="walletFundCard">
+        <h4><i class="fas fa-circle-plus"></i> Add funds</h4>
+        <p class="sub">Top up in USD. You can only accept an order if your available balance covers its 10%.</p>
+        <div class="fund-row">
+          <input type="number" id="walletFundAmount" placeholder="Amount (USD)" min="1" step="1" inputmode="decimal">
+          <button class="chip" type="button" data-action="chip" data-amount="10">$10</button>
+          <button class="chip" type="button" data-action="chip" data-amount="25">$25</button>
+          <button class="chip" type="button" data-action="chip" data-amount="50">$50</button>
+          <button class="chip" type="button" data-action="chip" data-amount="100">$100</button>
+          <button class="btn-primary btn-sm" type="button" id="walletFundBtn" data-action="fund"><i class="fas fa-lock"></i> Add funds</button>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h4><i class="fas fa-clock"></i> Requests waiting for you</h4>
+        <p class="sub">Accept within 24 hours or the order is cancelled automatically.</p>
+        <div id="podPendingOrders"><p class="empty-mini">Loading…</p></div>
+      </div>
+
+      <div class="info-card">
+        <h4><i class="fas fa-truck-fast"></i> Orders in progress</h4>
+        <p class="sub">Ship accepted orders, then enter the customer's delivery code once they have paid you.</p>
+        <div id="podActiveOrders"><p class="empty-mini">Loading…</p></div>
+        <div id="podHistoryWrap" style="display:none">
+          <button class="history-toggle" type="button" data-action="history">Show finished orders</button>
+          <div id="podHistoryOrders" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h4><i class="fas fa-list"></i> Wallet activity</h4>
+        <p class="sub">Every top-up, reserve and fee, newest first.</p>
+        <div id="walletTransactionList"><p class="empty-mini">Loading…</p></div>
+      </div>
+
     </div>
   </div>
+
+<div id="toast"></div>
 
 <script>
 const params = new URLSearchParams(location.search);
@@ -737,10 +832,22 @@ function renderTabs(sections) {
   });
 }
 
+function cssUrl(u) {
+  return encodeURI(String(u || '')).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29');
+}
+function setAvatarImage(url) {
+  const av = document.getElementById('avatar');
+  av.textContent = '';
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  av.appendChild(img);
+}
+
 function articleCardHtml(a) {
-  const cover = a.cover_image_url ? `background-image:url('${a.cover_image_url}')` : '';
+  const cover = a.cover_image_url ? `background-image:url('${cssUrl(a.cover_image_url)}')` : '';
   return `
-    <div class="article-card" data-slug="${a.slug}">
+    <div class="article-card" data-slug="${escapeHtml(a.slug)}">
       <div class="ac-image" style="${cover}"></div>
       <div class="ac-body">
         <h4>${escapeHtml(a.title)}</h4>
@@ -765,7 +872,7 @@ async function loadKnowledgeSection() {
     }
     grid.innerHTML = data.articles.map(articleCardHtml).join('');
     grid.querySelectorAll('.article-card').forEach(card => {
-      card.onclick = () => location.href = `knowledge-hub.html#/article/${card.dataset.slug}`;
+      card.onclick = () => location.href = `knowledge-hub.html#/article/${encodeURIComponent(card.dataset.slug)}`;
     });
   } catch (e) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Could not load articles.</p></div>`;
@@ -787,7 +894,7 @@ async function loadProductsSection() {
     }
     grid.innerHTML = `<div class="article-grid">${productList.map(p => `
       <div class="product-mini-card" onclick="window.location.href='/product/${p.id}'">
-        <div class="pc-image" ${p.image ? `style="background-image:url('${encodeURI(p.image)}')"` : ''}></div>
+        <div class="pc-image" ${p.image ? `style="background-image:url('${cssUrl(p.image)}')"` : ''}></div>
         <div class="pc-body">
           <h4>${escapeHtml(p.title)}</h4>
           <div class="pc-price">$${Number(p.price).toFixed(2)}</div>
@@ -814,7 +921,7 @@ async function loadCoursesSection() {
     }
     panel.innerHTML = `<div class="article-grid">${list.map(c => {
       const free = !(parseFloat(c.price) > 0);
-      const img = c.thumbnail_url ? `style="background-image:url('${escapeHtml(c.thumbnail_url)}')"` : '';
+      const img = c.thumbnail_url ? `style="background-image:url('${cssUrl(c.thumbnail_url)}')"` : '';
       return `<div class="product-mini-card" data-id="${c.id}">
         <div class="pc-image ${c.thumbnail_url ? '' : 'ph'}" ${img}>${c.thumbnail_url ? '' : '<i class="fas fa-graduation-cap"></i>'}</div>
         <div class="pc-body">
@@ -1089,6 +1196,309 @@ async function loadSavedPayoutDetails() {
     console.error(err);
   }
 }
+
+// ---- POD WALLET ----
+let walletBalance = null;
+let podOrders = [];
+let historyOpen = false;
+
+async function walletApi(url, opts) {
+  const res = await fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
+  let data = null;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (!res.ok) {
+    const err = new Error((data && data.error) || `Request failed (${res.status})`);
+    err.data = data || {};
+    throw err;
+  }
+  return data;
+}
+function usd(n) { return '$' + (Number(n) || 0).toFixed(2); }
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function timeLeft(ts) {
+  const ms = new Date(ts) - Date.now();
+  if (isNaN(ms)) return '';
+  if (ms <= 0) return 'expired';
+  const h = Math.floor(ms / 36e5), m = Math.floor((ms % 36e5) / 6e4);
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  return `${h}h ${m}m`;
+}
+
+const POD_STATUS = {
+  pending_seller_approval: ['Waiting for you', 'warn'],
+  accepted_pod: ['Accepted · ship it', 'info'],
+  shipped: ['Shipped', 'info'],
+  delivered: ['Delivered', 'ok'],
+  refund_requested: ['Refund requested', 'bad'],
+  completed: ['Completed', 'ok'],
+  refunded: ['Refunded', 'muted'],
+  cancelled: ['Cancelled', 'muted']
+};
+
+function podWhere(o) {
+  return [o.city, o.state, o.country].filter(Boolean).map(escapeHtml).join(', ');
+}
+
+function podCardHtml(o) {
+  const [label, tone] = POD_STATUS[o.order_status] || [String(o.order_status || '').replace(/_/g, ' '), 'muted'];
+  const fee = Number(o.pod_fee_amount) || 0;
+  const where = podWhere(o);
+  let meta = `<div class="pod-meta"><i class="fas fa-hashtag"></i> Order #${o.id} · ${fmtDate(o.created_at)} · Total <strong>${usd(o.total_amount)}</strong>`;
+  meta += `<br><i class="fas fa-percent"></i> Platform fee (10%): <strong>${usd(fee)}</strong>`;
+  if (where) meta += `<br><i class="fas fa-location-dot"></i> ${where}`;
+  if (o.order_status !== 'pending_seller_approval' && ['accepted_pod', 'shipped', 'delivered', 'refund_requested'].includes(o.order_status)) {
+    if (o.customer_name) meta += `<br><i class="fas fa-user"></i> ${escapeHtml(o.customer_name)}`;
+    if (o.shipping_address) meta += `<br><i class="fas fa-house"></i> ${escapeHtml(o.shipping_address)}`;
+    if (o.delivery_phone) meta += `<br><i class="fas fa-phone"></i> ${escapeHtml(o.delivery_phone)}`;
+  }
+  meta += `</div>`;
+
+  let body = '';
+  const id = o.id;
+  switch (o.order_status) {
+    case 'pending_seller_approval': {
+      const avail = walletBalance ? Number(walletBalance.available_balance) : 0;
+      const short = Math.max(0, fee - avail);
+      body += `<div class="pod-note">Respond in <strong>${escapeHtml(timeLeft(o.seller_response_deadline))}</strong>. Accepting reserves <strong>${usd(fee)}</strong> from your wallet.</div>`;
+      body += `<div class="pod-actions">`;
+      if (short > 0) {
+        body += `<button class="btn-primary btn-sm" data-action="need-funds" data-amount="${Math.ceil(short)}"><i class="fas fa-circle-plus"></i> Add ${usd(Math.ceil(short))} to accept</button>`;
+      } else {
+        body += `<button class="btn-primary btn-sm" data-action="accept" data-id="${id}"><i class="fas fa-check"></i> Accept</button>`;
+      }
+      body += `<button class="btn-ghost" data-action="reject" data-id="${id}">Reject</button></div>`;
+      break;
+    }
+    case 'accepted_pod':
+      body += `<div class="pod-note">${usd(fee)} is reserved. Ship within 7 days or the order cancels and the reserve is returned.</div>
+        <div class="pod-actions">
+          <button class="btn-primary btn-sm" data-action="ship" data-id="${id}"><i class="fas fa-truck"></i> Mark as shipped</button>
+          <button class="btn-ghost" data-action="cancel" data-id="${id}">Cancel order</button>
+        </div>`;
+      break;
+    case 'shipped':
+      body += `<div class="pod-note">Collect <strong>${usd(o.total_amount)}</strong> cash from the customer, then enter the 6-digit code they received by email.</div>
+        <div class="pod-actions">
+          <input class="code-input" type="text" inputmode="numeric" maxlength="6" placeholder="······" autocomplete="off">
+          <button class="btn-primary btn-sm" data-action="confirm" data-id="${id}"><i class="fas fa-check-double"></i> Confirm delivery</button>
+          <button class="btn-ghost" data-action="cancel" data-id="${id}">Delivery failed · cancel</button>
+        </div>`;
+      break;
+    case 'delivered':
+      body += `<div class="pod-note ok">Delivered. The 7-day refund window ends <strong>${escapeHtml(fmtDate(o.pod_fee_release_at))}</strong> (${escapeHtml(timeLeft(o.pod_fee_release_at))}). Then ${usd(fee)} is taken from your reserve.</div>`;
+      break;
+    case 'refund_requested':
+      body += `<div class="pod-note bad"><strong>Customer asked for a refund:</strong> ${escapeHtml(o.refund_reason || 'No reason given')}<br>Your ${usd(fee)} stays reserved until this is resolved.</div>
+        <div class="pod-actions">
+          <button class="btn-secondary btn-sm" data-action="accept-return" data-id="${id}"><i class="fas fa-rotate-left"></i> Accept return &amp; refund customer</button>
+        </div>
+        <div class="pod-meta">If you accept, you give the customer their cash back directly and your ${usd(fee)} reserve is returned. If you disagree, support will review it.</div>`;
+      break;
+    case 'completed':
+      body += o.pod_fee_released ? `<div class="pod-meta">Fee of ${usd(fee)} collected.</div>` : '';
+      break;
+    case 'refunded':
+    case 'cancelled':
+      body += o.pod_fee_returned ? `<div class="pod-meta">Reserve of ${usd(fee)} returned to your wallet.</div>` : '';
+      break;
+  }
+
+  return `<div class="pod-card" data-order="${id}">
+    <div class="pod-top"><strong>${escapeHtml(o.product_name || 'Order')} × ${Number(o.quantity) || 1}</strong><span class="spill ${tone}">${escapeHtml(label)}</span></div>
+    ${meta}${body}</div>`;
+}
+
+function renderPodOrders() {
+  const pending = podOrders.filter(o => o.order_status === 'pending_seller_approval');
+  const active = podOrders.filter(o => ['accepted_pod', 'shipped', 'delivered', 'refund_requested'].includes(o.order_status));
+  const done = podOrders.filter(o => ['completed', 'refunded', 'cancelled'].includes(o.order_status)).slice(0, 10);
+
+  document.getElementById('podPendingOrders').innerHTML = pending.length
+    ? pending.map(podCardHtml).join('')
+    : `<p class="empty-mini">No requests waiting for you.</p>`;
+  document.getElementById('podActiveOrders').innerHTML = active.length
+    ? active.map(podCardHtml).join('')
+    : `<p class="empty-mini">No orders in progress.</p>`;
+
+  const wrap = document.getElementById('podHistoryWrap');
+  const hist = document.getElementById('podHistoryOrders');
+  wrap.style.display = done.length ? 'block' : 'none';
+  hist.innerHTML = done.map(podCardHtml).join('');
+  hist.style.display = historyOpen ? 'block' : 'none';
+  wrap.querySelector('.history-toggle').textContent = historyOpen ? 'Hide finished orders' : `Show finished orders (${done.length})`;
+
+  setWalletTabBadge(pending.length);
+}
+
+function setWalletTabBadge(n) {
+  const btn = document.querySelector('.tab-btn[data-tab="wallet"]');
+  if (!btn) return;
+  const old = btn.querySelector('.tab-count');
+  if (old) old.remove();
+  if (n > 0) {
+    const sp = document.createElement('span');
+    sp.className = 'tab-count';
+    sp.textContent = n;
+    btn.appendChild(sp);
+  }
+}
+
+function renderBalance() {
+  const b = walletBalance;
+  document.getElementById('walletAvailable').textContent = b ? usd(b.available_balance) : '—';
+  document.getElementById('walletReserved').textContent = b ? usd(b.reserved_balance) : '—';
+  document.getElementById('walletPending').textContent = b ? usd(b.pending_requests_fee) : '—';
+  document.getElementById('walletPendingSub').textContent = b && b.pending_requests_count
+    ? `${b.pending_requests_count} request${b.pending_requests_count === 1 ? '' : 's'} waiting`
+    : 'No requests waiting';
+}
+
+function renderTransactions(list) {
+  const el = document.getElementById('walletTransactionList');
+  if (!list.length) { el.innerHTML = `<p class="empty-mini">No wallet activity yet. Add funds to start accepting Pay on Delivery orders.</p>`; return; }
+  el.innerHTML = list.map(t => {
+    const inn = t.direction === 'in';
+    const note = t.type === 'topup' ? '' : (t.order_id ? `Order #${t.order_id}` : '');
+    return `<div class="tx-row">
+      <div>${escapeHtml(t.label || t.type)}<small>${escapeHtml(fmtDate(t.created_at))}${note ? ' · ' + escapeHtml(note) : ''}${t.balance_after != null ? ' · balance ' + usd(t.balance_after) : ''}</small></div>
+      <span class="tx-amt ${inn ? 'in' : 'out'}">${inn ? '+' : '−'}${usd(t.amount)}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadWalletData() {
+  const [bal, txs, orders] = await Promise.allSettled([
+    walletApi('/api/wallet/balance'),
+    walletApi('/api/wallet/transactions'),
+    walletApi('/api/my-pod-orders?scope=all')
+  ]);
+
+  if (bal.status === 'fulfilled') walletBalance = bal.value;
+  else { walletBalance = null; console.error('Wallet balance failed:', bal.reason); toast('Could not load your wallet balance.'); }
+  renderBalance();
+
+  if (txs.status === 'fulfilled') renderTransactions(Array.isArray(txs.value) ? txs.value : []);
+  else document.getElementById('walletTransactionList').innerHTML = `<p class="empty-mini">Couldn't load wallet activity.</p>`;
+
+  if (orders.status === 'fulfilled') { podOrders = Array.isArray(orders.value) ? orders.value : []; renderPodOrders(); }
+  else {
+    const msg = `<p class="empty-mini">Couldn't load orders right now.</p>`;
+    document.getElementById('podPendingOrders').innerHTML = msg;
+    document.getElementById('podActiveOrders').innerHTML = msg;
+  }
+}
+
+async function fundWallet() {
+  const input = document.getElementById('walletFundAmount');
+  const amount = parseFloat(input.value);
+  if (!amount || amount < 1) { toast('Enter an amount of at least $1'); input.focus(); return; }
+  const btn = document.getElementById('walletFundBtn');
+  btn.disabled = true;
+  try {
+    const data = await walletApi('/api/wallet/fund', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
+    });
+    toast('Taking you to secure payment…');
+    window.location.href = data.payment_link;
+  } catch (e) {
+    toast(e.message || 'Could not start payment');
+    btn.disabled = false;
+  }
+}
+
+// Flutterwave sends the buyer back to profile.html?tab=wallet&status=…&tx_ref=…&transaction_id=…
+async function handleTopupReturn() {
+  const txRef = params.get('tx_ref');
+  const txId = params.get('transaction_id');
+  if (!txRef || !/^WALLET_/.test(txRef)) return;
+  const status = (params.get('status') || '').toLowerCase();
+
+  const clean = new URL(location.href);
+  ['tx_ref', 'transaction_id', 'status'].forEach(k => clean.searchParams.delete(k));
+  history.replaceState(null, '', clean);
+
+  if (status === 'cancelled') { toast('Top-up cancelled. Nothing was charged.'); return; }
+  if (!txId) { toast('Could not confirm that payment. If you were charged, contact support.'); return; }
+  toast('Confirming your payment…');
+  try {
+    const r = await walletApi(`/api/wallet/verify-topup?tx_ref=${encodeURIComponent(txRef)}&transaction_id=${encodeURIComponent(txId)}`);
+    toast(r.already_processed ? 'That top-up was already added.' : `✅ ${usd(r.credited)} added to your wallet`);
+  } catch (e) {
+    toast(e.message || 'Payment could not be confirmed');
+  }
+  loadWalletData();
+}
+
+async function podAction(btn, url, body, okMsg) {
+  btn.disabled = true;
+  try {
+    const data = await walletApi(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+    toast(typeof okMsg === 'function' ? okMsg(data) : okMsg);
+  } catch (e) {
+    toast(e.message || 'Something went wrong');
+    if (e.data && e.data.shortfall) {
+      document.getElementById('walletFundAmount').value = Math.ceil(e.data.shortfall);
+    }
+  }
+  await loadWalletData();
+}
+
+function setupWalletListeners() {
+  const panel = document.getElementById('panel-wallet');
+  panel.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-action]');
+    if (!btn || btn.disabled) return;
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+
+    if (action === 'chip') { document.getElementById('walletFundAmount').value = btn.dataset.amount; return; }
+    if (action === 'fund') { fundWallet(); return; }
+    if (action === 'history') { historyOpen = !historyOpen; renderPodOrders(); return; }
+    if (action === 'need-funds') {
+      document.getElementById('walletFundAmount').value = btn.dataset.amount;
+      document.getElementById('walletFundCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('walletFundAmount').focus();
+      return;
+    }
+    if (action === 'accept') return podAction(btn, `/api/pod-orders/${id}/accept`, {}, d => `Order accepted · ${usd(d.reserved)} reserved`);
+    if (action === 'reject') {
+      if (!confirm('Reject this order? The customer will be told nothing was charged.')) return;
+      return podAction(btn, `/api/pod-orders/${id}/reject`, {}, 'Order rejected');
+    }
+    if (action === 'ship') return podAction(btn, `/api/pod-orders/${id}/ship`, {}, 'Marked as shipped · the customer got their delivery code');
+    if (action === 'cancel') {
+      if (!confirm('Cancel this order? Your reserved fee will be returned to your available balance.')) return;
+      return podAction(btn, `/api/pod-orders/${id}/cancel`, {}, d => d.fee_returned ? 'Order cancelled · reserve returned' : 'Order cancelled');
+    }
+    if (action === 'confirm') {
+      const code = btn.closest('.pod-card').querySelector('.code-input').value.trim();
+      if (!/^\d{6}$/.test(code)) { toast('Enter the 6-digit code from the customer'); return; }
+      return podAction(btn, `/api/pod-orders/${id}/confirm-delivery`, { delivery_code: code }, 'Delivery confirmed · the 7-day refund window has started');
+    }
+    if (action === 'accept-return') {
+      if (!confirm('Accept the return? You will refund the customer’s cash yourself, and your reserved fee comes back to you.')) return;
+      return podAction(btn, `/api/pod-orders/${id}/resolve`, { decision: 'refund' }, 'Return accepted · reserve returned');
+    }
+  });
+  document.getElementById('walletFundAmount').addEventListener('keydown', (e) => { if (e.key === 'Enter') fundWallet(); });
+}
+
+async function loadPodBadge() {
+  try {
+    const list = await walletApi('/api/my-pod-orders');
+    setWalletTabBadge(Array.isArray(list) ? list.length : 0);
+  } catch (e) { /* badge is optional */ }
+}
+
 // ---- LINK EDITOR ----
 function renderLinksEditor() {
   const container = document.getElementById('linksList');
@@ -1103,6 +1513,7 @@ function renderLinksEditor() {
 
   container.querySelectorAll('.remove-link-btn').forEach((btn, i) => {
     btn.addEventListener('click', () => {
+      profileLinks = collectLinksFromEditor();   // keep what was typed in the other rows
       profileLinks.splice(i, 1);
       renderLinksEditor();
     });
@@ -1161,7 +1572,7 @@ function setupOwnerControls() {
       const res = await fetch('/api/profile/me/picture', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (data.success) {
-        document.getElementById('avatar').innerHTML = `<img src="${data.profile_picture}">`;
+        setAvatarImage(data.profile_picture);
         toast('Photo updated!');
       } else {
         toast(data.error || 'Upload failed');
@@ -1181,6 +1592,7 @@ function setupOwnerControls() {
       toast('Maximum 5 links');
       return;
     }
+    profileLinks = collectLinksFromEditor();
     profileLinks.push({ label: '', url: '' });
     renderLinksEditor();
   });
@@ -1246,7 +1658,7 @@ async function loadProfile() {
 
     const avatar = document.getElementById('avatar');
     if (data.profile.profile_picture) {
-      avatar.innerHTML = `<img src="${data.profile.profile_picture}">`;
+      setAvatarImage(data.profile.profile_picture);
     } else {
       avatar.textContent = initials(data.profile.username);
     }
@@ -1256,6 +1668,7 @@ async function loadProfile() {
     renderProfileLinks();
     setupOwnerControls();
     setupPayoutListeners();
+    if (data.is_own_profile) setupWalletListeners();
 
     const ownerTabs = ['settings', 'payouts', 'wallet'];
     const validTab = ownerTabs.includes(requestedTab)
@@ -1264,6 +1677,11 @@ async function loadProfile() {
 
     switchTab(validTab);
     loadKnowledgeSection();
+
+    if (data.is_own_profile) {
+      if (validTab !== 'wallet') loadPodBadge();
+      handleTopupReturn();
+    }
 
   } catch (e) {
     console.error('loadProfile failed:', e);
